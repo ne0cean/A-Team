@@ -64,10 +64,10 @@ bash templates/project-scaffold.sh my-project
 | [`docs/02-conflict-prevention.md`](docs/02-conflict-prevention.md) | 파일 충돌 방지 (소유권 + 브랜치 + CURRENT.md) |
 | [`docs/03-model-selection.md`](docs/03-model-selection.md) | 태스크별 모델 선택 가이드 |
 | [`docs/04-coordination-protocol.md`](docs/04-coordination-protocol.md) | 에이전트 간 비동기 조율 프로토콜 |
-| [`docs/architecture.md`](docs/architecture.md) | ClawTeam 스웜 구조 & 메시지 흐름 |
-| [`docs/task-design.md`](docs/task-design.md) | 태스크 설계 방법론 (4단계) |
-| [`docs/workflows.md`](docs/workflows.md) | 팀 셋업·스폰·모니터링·종료 워크플로우 |
-| [`docs/clawteam-cli.md`](docs/clawteam-cli.md) | ClawTeam CLI 전체 레퍼런스 |
+| [`reference/architecture.md`](reference/architecture.md) | ClawTeam 스웜 구조 & 메시지 흐름 |
+| [`reference/task-design.md`](reference/task-design.md) | 태스크 설계 방법론 (4단계) |
+| [`reference/workflows.md`](reference/workflows.md) | 팀 셋업·스폰·모니터링·종료 워크플로우 |
+| [`reference/clawteam-cli.md`](reference/clawteam-cli.md) | ClawTeam CLI 전체 레퍼런스 |
 
 ### 템플릿
 

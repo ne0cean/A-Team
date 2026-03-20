@@ -10,6 +10,28 @@ model: sonnet
 
 ## 실행 프로토콜
 
+### Phase 0: 거버넌스 로드 (최우선)
+작업 시작 전 반드시 다음 파일을 읽는다. 없으면 스킵.
+1. `.agent/rules/coding-safety.md` — 코딩 안전 원칙
+2. `.agent/rules/sync-and-commit.md` — 커밋 형식 + 동기화 규칙
+3. `.agent/rules/turbo-auto.md` — 자율 실행 규칙
+
+읽은 내용을 아래 `governance` 객체로 압축해 모든 서브에이전트 task JSON에 포함한다:
+
+```json
+{
+  "governance": {
+    "read_full_file_before_edit": true,
+    "build_required_after_change": true,
+    "build_command": "npm run build",
+    "max_retry_before_escalate": 2,
+    "commit_format": "[type]: 요약\n\nNOW: 완료 내용\nNEXT: 다음 작업\nBLOCK: 미해결\nFILE: 수정 파일",
+    "security_review_triggers": ["auth", "crypto", "input", "sql", "token", "password"],
+    "visual_verify_required": true
+  }
+}
+```
+
 ### Phase 1: 컨텍스트 수집
 시작 즉시 다음을 읽는다:
 1. `.context/CURRENT.md` — 현재 프로젝트 상태
@@ -66,7 +88,7 @@ T3: [태스크] → (에이전트) → 산출물  [병렬: T2]
 ### Phase 4: 에이전트 실행
 - 의존성 없는 태스크: 동시에 병렬 실행 (Task 도구 사용)
 - 의존성 있는 태스크: 선행 완료 확인 후 순차 실행
-- 각 에이전트에게 구조화된 입력 전달:
+- 각 에이전트에게 구조화된 입력 전달 (governance 항상 포함):
 
 ```json
 {
@@ -75,15 +97,24 @@ T3: [태스크] → (에이전트) → 산출물  [병렬: T2]
   "constraints": ["[제약 조건]"],
   "file_ownership": ["[담당 파일]"],
   "context_refs": ["[참조 파일 경로]"],
-  "dod": ["[완료 기준 체크리스트]"]
+  "dod": ["[완료 기준 체크리스트]"],
+  "governance": {
+    "read_full_file_before_edit": true,
+    "build_required_after_change": true,
+    "build_command": "npm run build",
+    "max_retry_before_escalate": 2,
+    "commit_format": "[type]: 요약\n\nNOW: ...\nNEXT: ...\nBLOCK: ...\nFILE: ...",
+    "security_review_triggers": ["auth", "crypto", "input", "sql", "token", "password"],
+    "visual_verify_required": true
+  }
 }
 ```
 
-### Phase 5: 결과 취합
+### Phase 5: 결과 취합 + 컨텍스트 갱신
 모든 에이전트 완료 후:
 1. 각 에이전트의 구조화 출력 수집
-2. 충돌/불일치 감지 → Judge 판단 (필요 시)
-3. CURRENT.md 갱신
+2. 충돌/불일치 감지 → 판단 (필요 시)
+3. `.context/CURRENT.md` 갱신 — 완료 항목 + 다음 태스크 업데이트
 4. 최종 구조화 출력 생성:
 
 ```json
@@ -93,7 +124,9 @@ T3: [태스크] → (에이전트) → 산출물  [병렬: T2]
   "completed_tasks": ["T-001", "T-002"],
   "evidence": ["[검증 결과]"],
   "risks": ["[남은 위험 요소]"],
-  "next_steps": ["[다음 권장 작업]"]
+  "next_steps": ["[다음 권장 작업]"],
+  "commit_ready": true,
+  "commit_message": "[type]: 요약\n\nNOW: ...\nNEXT: ...\nBLOCK: ...\nFILE: ..."
 }
 ```
 
@@ -102,3 +135,4 @@ T3: [태스크] → (에이전트) → 산출물  [병렬: T2]
 - 에이전트 간 컨텍스트는 구조화 JSON으로만 전달 (긴 히스토리 금지)
 - 중요 변경(10개 이상 파일 / 보안 / DB 스키마) → Reviewer 필수 통과
 - 실패 2회 → 사람에게 에스컬레이션, 절대 무한 재시도 하지 않음
+- governance 객체는 Phase 0에서 로드한 실제 규칙 기반으로 채운다

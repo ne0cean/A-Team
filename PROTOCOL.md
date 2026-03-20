@@ -24,9 +24,9 @@
   → MCP 서버 설정 (docs/05-mcp-servers.md)
 
 [Phase 1] Planning
-  → 멀티 에이전트 필요성 확인 (docs/08 Step 1)
-  → 아키텍처 패턴 선택: Supervisor / Swarm / Hierarchical (docs/08)
-  → 4단계 태스크 설계: 분해 → 명세 → 의존성 → 산출물 (reference/task-design.md)
+  → 멀티 에이전트 필요성 확인 ([docs/08-orchestration-patterns.md](docs/08-orchestration-patterns.md) Step 1)
+  → 아키텍처 패턴 선택: Supervisor / Swarm / Hierarchical ([docs/08-orchestration-patterns.md](docs/08-orchestration-patterns.md))
+  → 4단계 태스크 설계: 분해 → 명세 → 의존성 → 산출물 ([reference/task-design.md](reference/task-design.md))
 
 [Phase 2] Assembly
   → 역할 배정 + 모델 선택 (docs/01, docs/03)

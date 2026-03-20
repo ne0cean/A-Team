@@ -5,6 +5,14 @@
 
 set -e
 
+# ─────────────────────────────────────────
+# 0. 필수 도구 확인
+# ─────────────────────────────────────────
+if ! command -v git &> /dev/null; then
+  echo "⚠️  git이 설치되어 있지 않습니다. git을 먼저 설치해주세요."
+  exit 1
+fi
+
 PROJECT_NAME=${1:-"my-project"}
 ATEAM_DIR=${2:-"./A-Team"}
 DATE=$(date +%Y-%m-%d)
@@ -91,7 +99,7 @@ else
 fi
 
 # ─────────────────────────────────────────
-# 3. PARALLEL_PLAN.md 템플릿 복사
+# 3. 템플릿 복사 (PARALLEL_PLAN.md, PRD.md)
 # ─────────────────────────────────────────
 PLAN_SRC="$ATEAM_DIR/templates/PARALLEL_PLAN.md"
 if [ -f "$PLAN_SRC" ] && [ ! -f "PARALLEL_PLAN.md" ]; then
@@ -99,8 +107,37 @@ if [ -f "$PLAN_SRC" ] && [ ! -f "PARALLEL_PLAN.md" ]; then
   echo "✅ PARALLEL_PLAN.md 템플릿 복사 완료"
 fi
 
+PRD_SRC="$ATEAM_DIR/templates/PRD.md"
+if [ -f "$PRD_SRC" ] && [ ! -f "PRD.md" ]; then
+  cp "$PRD_SRC" PRD.md
+  echo "✅ PRD.md 템플릿 복사 완료"
+fi
+
 # ─────────────────────────────────────────
-# 4. CLAUDE.md 생성 (없는 경우)
+# 4. .gitignore 생성
+# ─────────────────────────────────────────
+if [ ! -f .gitignore ]; then
+cat > .gitignore << EOF
+# A-Team
+.claude/agents/*.md.backup
+.clawteam/
+tmp/
+*.log
+
+# Environment
+.env
+.env.local
+
+# Build
+dist/
+build/
+node_modules/
+EOF
+  echo "✅ .gitignore 생성 완료"
+fi
+
+# ─────────────────────────────────────────
+# 5. CLAUDE.md 생성 (없는 경우)
 # ─────────────────────────────────────────
 if [ ! -f CLAUDE.md ]; then
 cat > CLAUDE.md << EOF
@@ -143,17 +180,12 @@ else
 fi
 
 # ─────────────────────────────────────────
-# 5. ClawTeam 초기화 (선택)
+# 6. ClawTeam 초기화 (선택)
 # ─────────────────────────────────────────
 if command -v clawteam &> /dev/null; then
-  echo ""
-  read -p "ClawTeam 팀을 생성할까요? (y/N): " INIT_CLAWTEAM
-  if [[ "$INIT_CLAWTEAM" == "y" || "$INIT_CLAWTEAM" == "Y" ]]; then
-    export CLAWTEAM_AGENT_NAME="leader"
-    export CLAWTEAM_AGENT_TYPE="leader"
-    clawteam team spawn-team "$PROJECT_NAME" -n leader -d "$PROJECT_NAME A-Team"
-    echo "✅ ClawTeam 팀 '$PROJECT_NAME' 생성 완료"
-  fi
+  # Avoid error if project name contains spaces (though recommended not to)
+  clawteam team spawn-team "$PROJECT_NAME" -n leader -d "$PROJECT_NAME A-Team" || true
+  echo "✅ ClawTeam 팀 '$PROJECT_NAME' 생성 완료"
 else
   echo "ℹ️  ClawTeam 미설치 — Claude Code 서브에이전트 모드로 운영"
 fi
@@ -171,6 +203,8 @@ echo "  .context/CURRENT.md      — 프로젝트 상태 추적"
 echo "  .context/SESSIONS.md     — 세션 로그"
 echo "  .claude/agents/          — A-Team 서브에이전트 5종"
 echo "  PARALLEL_PLAN.md         — 병렬 작업 플랜 템플릿"
+echo "  PRD.md                   — 제품 요구사항 정의서 템플릿"
+echo "  .gitignore               — 기본 제외 파일 설정"
 echo "  CLAUDE.md                — Claude Code 거버넌스"
 echo ""
 echo "다음 단계:"
