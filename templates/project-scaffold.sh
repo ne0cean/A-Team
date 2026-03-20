@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
-# project-scaffold.sh — 멀티 에이전트 프로젝트 초기화 스크립트
-# 사용법: bash project-scaffold.sh [프로젝트명]
-# 설명: .context/ 디렉토리 구조와 초기 파일을 자동 생성한다.
+# project-scaffold.sh — A-Team 멀티 에이전트 프로젝트 초기화 스크립트
+# 사용법: bash A-Team/templates/project-scaffold.sh [프로젝트명] [A-Team-레포-경로]
+# 예시:   bash A-Team/templates/project-scaffold.sh my-project ./A-Team
 
 set -e
 
 PROJECT_NAME=${1:-"my-project"}
+ATEAM_DIR=${2:-"./A-Team"}
 DATE=$(date +%Y-%m-%d)
 
-echo "🔧 멀티 에이전트 프로젝트 초기화: $PROJECT_NAME"
+echo "🔧 A-Team 프로젝트 초기화: $PROJECT_NAME"
 
-# .context/ 생성
+# ─────────────────────────────────────────
+# 1. .context/ 디렉토리 초기화
+# ─────────────────────────────────────────
 mkdir -p .context
 
 cat > .context/CURRENT.md << EOF
@@ -37,13 +40,14 @@ cat > .context/CURRENT.md << EOF
 ## Last Completions
 - **프로젝트 초기화** ($DATE)
   - .context/ 구조 생성
+  - A-Team 서브에이전트 설치 완료
 
 ---
 
 ## Next Tasks
 1. [ ] PRD 작성 및 태스크 분해
-2. [ ] 병렬 플랜 수립 (PARALLEL_PLAN.md)
-3. [ ] 에이전트 스폰 및 작업 시작
+2. [ ] PARALLEL_PLAN.md 작성 (orchestrator 에이전트 활용)
+3. [ ] 에이전트 스폰 및 병렬 작업 시작
 
 ---
 
@@ -60,7 +64,8 @@ cat > .context/SESSIONS.md << EOF
 
 ## [$DATE] 초기화
 
-**완료**: 프로젝트 스캐폴딩
+**완료**: A-Team 프레임워크로 프로젝트 스캐폴딩
+**에이전트**: orchestrator, researcher, coder, reviewer, architect 설치
 **빌드**: (해당 없음)
 
 ---
@@ -68,7 +73,35 @@ EOF
 
 echo "✅ .context/ 초기화 완료"
 
-# CLAUDE.md가 없으면 기본 생성
+# ─────────────────────────────────────────
+# 2. Claude Code 서브에이전트 설치
+# ─────────────────────────────────────────
+AGENTS_SRC="$ATEAM_DIR/.claude/agents"
+AGENTS_DST=".claude/agents"
+
+if [ -d "$AGENTS_SRC" ]; then
+  mkdir -p "$AGENTS_DST"
+  cp "$AGENTS_SRC"/*.md "$AGENTS_DST/"
+  echo "✅ A-Team 서브에이전트 설치 완료 (.claude/agents/)"
+  echo "   └─ orchestrator, researcher, coder, reviewer, architect"
+else
+  echo "⚠️  A-Team 서브에이전트 소스를 찾을 수 없음: $AGENTS_SRC"
+  echo "   A-Team 레포 경로를 두 번째 인자로 전달하거나"
+  echo "   수동으로 .claude/agents/ 디렉토리를 생성하세요."
+fi
+
+# ─────────────────────────────────────────
+# 3. PARALLEL_PLAN.md 템플릿 복사
+# ─────────────────────────────────────────
+PLAN_SRC="$ATEAM_DIR/templates/PARALLEL_PLAN.md"
+if [ -f "$PLAN_SRC" ] && [ ! -f "PARALLEL_PLAN.md" ]; then
+  cp "$PLAN_SRC" PARALLEL_PLAN.md
+  echo "✅ PARALLEL_PLAN.md 템플릿 복사 완료"
+fi
+
+# ─────────────────────────────────────────
+# 4. CLAUDE.md 생성 (없는 경우)
+# ─────────────────────────────────────────
 if [ ! -f CLAUDE.md ]; then
 cat > CLAUDE.md << EOF
 # $PROJECT_NAME — Claude Code Governance
@@ -83,15 +116,24 @@ cat > CLAUDE.md << EOF
 - **Commit Format**: \`[type]: 요약\` + NOW/NEXT/BLOCK 구조
 - **컨텍스트 갱신**: 태스크 완료마다 CURRENT.md 갱신
 
+## A-Team 서브에이전트
+\`.claude/agents/\`에 5개 전문 에이전트가 설치되어 있습니다:
+- **orchestrator** — 멀티에이전트 작업 총괄 (Supervisor 패턴)
+- **researcher** — 리서치/조사 전문 (Haiku, 비용 효율)
+- **coder** — 구현/수정 전문 (Sonnet)
+- **reviewer** — 품질 검증 전문 (Sonnet)
+- **architect** — 설계/아키텍처 전문 (Opus)
+
+## 빠른 시작
+복잡한 작업 → "이 작업을 A-Team으로 처리해줘" → orchestrator 자동 호출
+단순 작업 → 직접 진행 (에이전트 불필요)
+
 ## 프로젝트 구조
 [프로젝트 구조 설명]
 
 ## 빌드 명령
 \`\`\`bash
-# 빌드
-npm run build   # 또는 해당 빌드 명령
-
-# 테스트
+npm run build
 npm run test
 \`\`\`
 EOF
@@ -100,25 +142,38 @@ else
   echo "ℹ️  CLAUDE.md 이미 존재 — 스킵"
 fi
 
-# ClawTeam 초기화 (설치된 경우)
+# ─────────────────────────────────────────
+# 5. ClawTeam 초기화 (선택)
+# ─────────────────────────────────────────
 if command -v clawteam &> /dev/null; then
   echo ""
   read -p "ClawTeam 팀을 생성할까요? (y/N): " INIT_CLAWTEAM
   if [[ "$INIT_CLAWTEAM" == "y" || "$INIT_CLAWTEAM" == "Y" ]]; then
     export CLAWTEAM_AGENT_NAME="leader"
     export CLAWTEAM_AGENT_TYPE="leader"
-    clawteam team spawn-team "$PROJECT_NAME" -n leader -d "$PROJECT_NAME 멀티 에이전트 팀"
+    clawteam team spawn-team "$PROJECT_NAME" -n leader -d "$PROJECT_NAME A-Team"
     echo "✅ ClawTeam 팀 '$PROJECT_NAME' 생성 완료"
-    echo "   워커 스폰: clawteam spawn --team $PROJECT_NAME --agent-name worker1 --task '...'"
   fi
 else
-  echo "ℹ️  ClawTeam 미설치 — 수동 조율 모드 (PARALLEL_PLAN.md 사용)"
+  echo "ℹ️  ClawTeam 미설치 — Claude Code 서브에이전트 모드로 운영"
 fi
 
+# ─────────────────────────────────────────
+# 완료 메시지
+# ─────────────────────────────────────────
 echo ""
-echo "✅ 초기화 완료!"
+echo "═══════════════════════════════════════"
+echo "✅ A-Team 초기화 완료: $PROJECT_NAME"
+echo "═══════════════════════════════════════"
+echo ""
+echo "생성된 파일:"
+echo "  .context/CURRENT.md      — 프로젝트 상태 추적"
+echo "  .context/SESSIONS.md     — 세션 로그"
+echo "  .claude/agents/          — A-Team 서브에이전트 5종"
+echo "  PARALLEL_PLAN.md         — 병렬 작업 플랜 템플릿"
+echo "  CLAUDE.md                — Claude Code 거버넌스"
 echo ""
 echo "다음 단계:"
 echo "  1. CLAUDE.md 프로젝트 구조 섹션 채우기"
-echo "  2. templates/PARALLEL_PLAN.md 복사 후 태스크 설계"
-echo "  3. 에이전트 스폰 (docs/06-build-methodology.md Phase 2 참조)"
+echo "  2. 복잡한 작업 시작: '이 작업을 A-Team으로 처리해줘'"
+echo "  3. orchestrator가 PARALLEL_PLAN.md 자동 작성 + 에이전트 조율"

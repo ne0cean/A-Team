@@ -71,6 +71,17 @@
 | 07 | `docs/07-clawteam.md` | ClawTeam CLI 치트시트 + 수동 조율 비교 |
 | 08 | `docs/08-orchestration-patterns.md` | TAO루프 / Supervisor / Swarm / 계층형 패턴 |
 | 09 | `docs/09-production-strategy.md` | LangGraph / CrewAI / MCP+ClawTeam 선택 + 3가지 운영전략 |
+| **10** | **`docs/10-claude-code-subagents.md`** | **Claude Code 서브에이전트 5종 운용 가이드 ← 즉시 사용** |
+
+### 서브에이전트 (`.claude/agents/`)
+
+| 에이전트 | 모델 | 역할 |
+|----------|------|------|
+| `orchestrator` | Sonnet | Supervisor 리더 — 계획·배분·취합 |
+| `researcher` | Haiku | 리서치·조사 전문 (읽기전용, 저비용) |
+| `coder` | Sonnet | 구현·수정·빌드 검증 전문 |
+| `reviewer` | Sonnet | 품질 검증·승인/거절 전문 |
+| `architect` | Opus | 설계·아키텍처 결정 전문 |
 
 ### 템플릿
 
@@ -121,17 +132,19 @@
 ## 빠른 시작
 
 ```bash
-# 신규 프로젝트
+# 1. A-Team 클론
 git clone https://github.com/ne0cean/A-Team.git
-bash A-Team/templates/project-scaffold.sh my-project
 
-# ClawTeam 설치
+# 2. 신규 프로젝트 초기화 (서브에이전트 자동 설치 포함)
+bash A-Team/templates/project-scaffold.sh my-project ./A-Team
+
+# 3. 작업 시작 — Claude Code에서:
+# 복잡한 작업: "이 기능을 A-Team으로 구현해줘"
+# 단순 작업: 직접 진행
+
+# (선택) ClawTeam 설치 — tmux 기반 완전 격리 병렬 실행
 pip install clawteam
-
-# 팀 생성 → 플랜 작성 → 스폰
 clawteam team spawn-team my-team -n leader
-cp A-Team/templates/PARALLEL_PLAN.md ./PARALLEL_PLAN.md
-# → 플랜 작성 후:
 clawteam spawn --team my-team --agent-name worker1 --task "..."
 clawteam board attach my-team
 ```
