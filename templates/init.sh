@@ -207,6 +207,21 @@ RULE
 - ≥2회 실패 시 사용자에게 에스컬레이션 (무한 재시도 금지)
 RULE
 
+  cat > .agent/rules/mirror-sync.md << 'RULE'
+# Mirror Sync Rules (CC Mirror)
+
+## 1. 개요
+모델 중단, 토큰 소진 시에도 작업 맥락을 보존하기 위한 자동 동기화 규칙입니다.
+
+## 2. 자동 동기화 (`auto-sync.sh`)
+- 백그라운드 데몬으로 실행되거나 세션 종료 훅(`stop-check.sh`)과 연동됩니다.
+- 커밋 메시지: `sync: auto-commit [시간]` 포맷을 사용합니다.
+
+## 3. 모델 핸드오프 (`model-exit.sh`)
+- 사용자가 `/handoff` 혹은 `/end` 명령을 내릴 때 실행됩니다.
+- `CURRENT.md` 기반으로 `HANDOFF_PROMPT.txt`를 생성하고 클립보드에 복사합니다.
+RULE
+
   echo "✅ 기본 거버넌스 규칙 생성 완료 (.agent/rules/)"
 fi
 

@@ -19,8 +19,8 @@
 ### 새 프로젝트에 적용
 
 ```bash
-# 1. 프로젝트 초기화 (context 디렉토리 + CLAUDE.md 자동 생성)
-bash templates/project-scaffold.sh my-project
+# 1. 프로젝트 초기화 (context + memory + harness 자동 생성)
+bash templates/init.sh my-project
 
 # 2. PARALLEL_PLAN.md로 태스크 설계
 cp templates/PARALLEL_PLAN.md ./PARALLEL_PLAN.md
@@ -37,7 +37,7 @@ clawteam board attach my-team
 
 ```bash
 # 1. 프로젝트 초기화
-bash templates/project-scaffold.sh my-project
+bash templates/init.sh my-project
 
 # 2. PARALLEL_PLAN.md 작성
 # 3. 각 에이전트에게 각자 섹션의 PARALLEL_PLAN.md 전달
@@ -75,7 +75,8 @@ bash templates/project-scaffold.sh my-project
 |------|------|
 | [`templates/PARALLEL_PLAN.md`](templates/PARALLEL_PLAN.md) | 병렬 태스크 플랜 (에이전트 구성 + 파일 소유권 + DoD) |
 | [`templates/task-spec.md`](templates/task-spec.md) | 단일 태스크 기술 명세 (에이전트 프롬프트 템플릿) |
-| [`templates/project-scaffold.sh`](templates/project-scaffold.sh) | 신규 프로젝트 초기화 스크립트 |
+| [`templates/init.sh`](templates/init.sh) | **통합 프로젝트 초기화 스크립트** (Harness & Mirror 포함) |
+| [`templates/project-scaffold.sh`](templates/project-scaffold.sh) | 레거시 프로젝트 초기화 스크립트 |
 
 ### 실제 사례
 

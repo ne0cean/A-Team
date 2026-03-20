@@ -19,8 +19,9 @@
 
 ```
 [Phase 0] Foundation
-  → templates/project-scaffold.sh 실행
-  → CLAUDE.md + .context/ 초기화
+  → templates/init.sh 실행 (통합 초기화)
+  → CLAUDE.md + .context/ + memory/ 초기화
+  → 하네스 훅 (.claude/hooks/) 설치 및 검증
   → MCP 서버 설정 (docs/05-mcp-servers.md)
 
 [Phase 1] Planning
@@ -71,7 +72,11 @@
 | 07 | `docs/07-clawteam.md` | ClawTeam CLI 치트시트 + 수동 조율 비교 |
 | 08 | `docs/08-orchestration-patterns.md` | TAO루프 / Supervisor / Swarm / 계층형 패턴 |
 | 09 | `docs/09-production-strategy.md` | LangGraph / CrewAI / MCP+ClawTeam 선택 + 3가지 운영전략 |
-| **10** | **`docs/10-claude-code-subagents.md`** | **Claude Code 서브에이전트 5종 운용 가이드 ← 즉시 사용** |
+| 10 | `docs/10-claude-code-subagents.md` | Claude Code 서브에이전트 5종 운용 가이드 |
+| 11 | `docs/11-integration-guide.md` | Vibe-Toolkit + A-Team 통합 가이드 |
+| 12 | `docs/12-harness-engineering.md` | **하네스 엔지니어링** (확정적 AI 제어 레이어) |
+| 13 | `docs/13-context-continuity-protocol.md` | **맥락 지속성 프로토콜** (Mirror & Sync) |
+| 14 | `docs/14-mobile-development.md` | **모바일 개발 가이드** (폰에서 Claude & Antigravity) |
 
 ### 서브에이전트 (`.claude/agents/`)
 
@@ -135,8 +140,8 @@
 # 1. A-Team 클론
 git clone https://github.com/ne0cean/A-Team.git
 
-# 2. 신규 프로젝트 초기화 (서브에이전트 자동 설치 포함)
-bash A-Team/templates/project-scaffold.sh my-project ./A-Team
+# 2. 신규 프로젝트 초기화 (Harness + Context Mirror 포함)
+bash A-Team/templates/init.sh my-project ./A-Team
 
 # 3. 작업 시작 — Claude Code에서:
 # 복잡한 작업: "이 기능을 A-Team으로 구현해줘"
