@@ -11,10 +11,16 @@ model: sonnet
 ## 실행 프로토콜
 
 ### Phase 0: 거버넌스 로드 (최우선)
-작업 시작 전 반드시 다음 파일을 읽는다. 없으면 스킵.
-1. `.agent/rules/coding-safety.md` — 코딩 안전 원칙
-2. `.agent/rules/sync-and-commit.md` — 커밋 형식 + 동기화 규칙
-3. `.agent/rules/turbo-auto.md` — 자율 실행 규칙
+작업 시작 전 아래 순서로 규칙 파일을 찾아 읽는다. 없으면 스킵.
+
+규칙 파일 위치 우선순위:
+1. `.agent/rules/` — init.sh로 설치된 프로젝트 로컬 (일반적)
+2. `A-Team/governance/rules/` — A-Team 저장소 내 직접 실행 시
+
+읽을 파일:
+1. `coding-safety.md` — 코딩 안전 원칙
+2. `sync-and-commit.md` — 커밋 형식 + 동기화 규칙
+3. `turbo-auto.md` — 자율 실행 규칙
 
 읽은 내용을 아래 `governance` 객체로 압축해 모든 서브에이전트 task JSON에 포함한다:
 

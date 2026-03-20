@@ -9,10 +9,10 @@
 
 ## 2. 세부 운영 룰 (Atomic Rules)
 상황에 맞게 다음 문서들을 정독하여 행동하십시오.
-- **동기화 및 커밋**: `@.agent/rules/sync-and-commit.md`
-- **코딩 안전 및 보호**: `@.agent/rules/coding-safety.md`
-- **자율 작업 (Turbo)**: `@.agent/rules/turbo-auto.md`
-- **자율 최적화**: `@.agent/workflows/self-optimization.md`
+- **동기화 및 커밋**: `.agent/rules/sync-and-commit.md`
+- **코딩 안전 및 보호**: `.agent/rules/coding-safety.md`
+- **자율 작업 (Turbo)**: `.agent/rules/turbo-auto.md`
+- **자율 최적화**: `.agent/workflows/self-optimization.md`
 
 ## 3. 작업 프로세스
 - **시작**: `.context/CURRENT.md` 정독 및 `session-start.md` 실행

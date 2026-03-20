@@ -11,7 +11,7 @@ description: 백그라운드에서 정기적으로 세션을 저장하고 커밋
 1. **정기적 변경 감지**: 설정된 시간(기본 30분)마다 프로젝트 내 파일 변경 사항을 확인합니다.
 2. **컨텍스트 자동 백업**: `.context/SESSIONS.md`에 현재의 간단한 `git diff` 요약을 추가하여 맥락을 유지합니다.
 3. **자동 Git 커밋**: `sync: automatic session backup...` 메시지와 함께 스테이징된 모든 변경 사항을 자동으로 커밋합니다.
-4. **macOS 알림**: 커밋 성공 시 환경(macOS) 우측 상단에 알림을 띄웁니다.
+4. **알림**: 커밋 성공 시 플랫폼별 알림 (macOS: osascript / Linux: notify-send / Windows: 터미널 출력).
 
 ## 사용 방법
 

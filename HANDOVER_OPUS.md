@@ -11,7 +11,7 @@ Completed A-Team project maintenance and centralized the agent toolkit infrastru
 - **Centralized Workflows**: Centralized `/todo` and `/prjt` workflows into `A-Team/.agent/workflows/`. The root `.agent/workflows/` now correctly points to these for cross-project consistency.
 
 ## 2. Centralized TODO System
-All tasks are now managed in a **Single Source of Truth**: **[TODO.md](file:///c:/Users/SKTelecom/Desktop/Dev%20Projects/connectome/A-Team/TODO.md)**.
+All tasks are now managed in a **Single Source of Truth**: **`A-Team/TODO.md`**.
 - **Command**: Use `/todo` to see the full list or `/prjt` to see a project-by-project summary.
 - **Status**: Updated to GitHub `A-Team` repository (cf58869).
 
