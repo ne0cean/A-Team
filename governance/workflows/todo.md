@@ -2,6 +2,10 @@
 description: 추가 및 조회를 위한 프로젝트 TODO 관리 (GitHub 동기화 포함)
 ---
 
-1. 중앙화된 `A-Team/.agent/workflows/todo.md` 워크플로우를 참조하여 실행하세요.
-2. 모든 TODO 추가 및 조회는 `A-Team/TODO.md`를 기준으로 하며 GitHub 동기화가 포함됩니다.
+A-Team 중앙 TODO 시스템을 사용합니다. 상세 사용법은 루트의 `.agent/workflows/todo.md`를 참조하세요.
 
+기본 명령어:
+- **추가**: `bash A-Team/scripts/todo.sh add "내용" "프로젝트"`
+- **조회**: `bash A-Team/scripts/todo.sh list [프로젝트]`
+- **완료**: `bash A-Team/scripts/todo.sh done "검색어"`
+- **통계**: `bash A-Team/scripts/todo.sh stats`

@@ -92,9 +92,10 @@
 
 | 파일 | 용도 |
 |------|------|
-| `templates/project-scaffold.sh` | 신규 프로젝트 초기화 (1분 셋업) |
+| `templates/init.sh` | **통합 프로젝트 초기화** (Harness + Mirror + Governance 포함) |
 | `templates/PARALLEL_PLAN.md` | 병렬 작업 플랜 (파일 소유권 + DoD + ClawTeam 스크립트) |
 | `templates/task-spec.md` | 단일 태스크 기술 명세 (에이전트 프롬프트 템플릿) |
+| `templates/project-scaffold.sh` | 레거시 초기화 (init.sh 사용 권장) |
 
 ### ClawTeam 원본 레퍼런스 (상세 스펙)
 
