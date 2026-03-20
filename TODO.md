@@ -1,16 +1,12 @@
 # Central TODO List (A-Team Managed)
 
-이 파일은 모든 프로젝트의 할 일을 통합 관리하는 공간입니다. 
-`/todo` 명령어 사용 시 현재 작업 중인 프로젝트명이 말머리에 자동으로 붙으며, **오퍼스(Opus)**와 **제미나이(Gemini)**의 역할을 구분하여 관리합니다.
+이 파일은 여러 프로젝트의 할 일을 통합 관리하는 공간입니다. 
+`/todo` 명령어를 통해 지능형 분류(오퍼스 vs 제미나이) 기능을 체험해 보세요.
 
-## 🎭 Opus Tasks (Main Work)
-- [ ] [A-Team] 15:00 오퍼스 인계 및 메인 작업 착수
-- [ ] [A-Team] TODO 시스템 역할 분담 검증
-
-## 🤖 Gemini Tasks (Support/Automation)
-- [ ] [A-Team] 폰에서 클로드와 안티그래비티 사용하는 프로젝트
-- [ ] [A-Team] TODO 시스템 고도화 및 프로젝트 태깅 구현
-- [ ] [connectome] 중앙 관리형 TODO 테스트
-
-## ✅ Completed Tasks
+## 📋 Task List
+- [ ] [A-Team] 하네스 엔지니어링 A-TEAM에 반영 (Opus: 구조적 작업)
+- [ ] [A-Team] 폰에서 클로드와 안티그래비티 사용하는 프로젝트 (오퍼스: 설계 필요)
+- [ ] [connectome] 중앙 관리형 TODO 테스트 (제미나이: 단순 구현)
+- [ ] [A-Team] 15:00 오퍼스 인계 준비 확인 (제미나이)
+- [ ] [A-Team] TODO 시스템 고도화 및 프로젝트 태깅 구현 (제미나이)
 - [x] [connectome] TODO 시스템 기초 구현 (2026-03-20)
