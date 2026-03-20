@@ -180,6 +180,27 @@ else
 fi
 
 # ─────────────────────────────────────────
+# 5. 글로벌 슬래시 명령어 설치 (/vibe, /end)
+# ─────────────────────────────────────────
+GLOBAL_COMMANDS_SRC="$ATEAM_DIR/.claude/commands"
+GLOBAL_COMMANDS_DST="$HOME/.claude/commands"
+
+if [ -d "$GLOBAL_COMMANDS_SRC" ]; then
+  mkdir -p "$GLOBAL_COMMANDS_DST"
+  for cmd_file in "$GLOBAL_COMMANDS_SRC"/*.md; do
+    fname=$(basename "$cmd_file")
+    if [ ! -f "$GLOBAL_COMMANDS_DST/$fname" ]; then
+      cp "$cmd_file" "$GLOBAL_COMMANDS_DST/"
+      echo "✅ 글로벌 명령어 설치: /$( echo "$fname" | sed 's/.md$//')"
+    else
+      echo "ℹ️  이미 존재: ~/$fname — 스킵"
+    fi
+  done
+else
+  echo "ℹ️  글로벌 명령어 소스 없음 — 스킵"
+fi
+
+# ─────────────────────────────────────────
 # 6. ClawTeam 초기화 (선택)
 # ─────────────────────────────────────────
 if command -v clawteam &> /dev/null; then
@@ -206,6 +227,7 @@ echo "  PARALLEL_PLAN.md         — 병렬 작업 플랜 템플릿"
 echo "  PRD.md                   — 제품 요구사항 정의서 템플릿"
 echo "  .gitignore               — 기본 제외 파일 설정"
 echo "  CLAUDE.md                — Claude Code 거버넌스"
+echo "  ~/.claude/commands/      — /vibe, /end 글로벌 명령어"
 echo ""
 echo "다음 단계:"
 echo "  1. CLAUDE.md 프로젝트 구조 섹션 채우기"
