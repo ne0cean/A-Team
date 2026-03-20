@@ -14,6 +14,21 @@
 - 긴 탐색 작업은 Explore 서브에이전트 위임 (메인 컨텍스트 보호)
 - 독립 작업은 병렬 툴 호출로 처리 (속도 최적화)
 
+### CURRENT.md 갱신 트리거 (핸드오프 복구의 핵심)
+토큰 소진이나 갑작스러운 중단 후 다른 AI가 작업을 이어받을 수 있으려면
+**CURRENT.md를 자주 갱신해야 한다.** 다음 상황에서 즉시 갱신:
+
+| 트리거 | 갱신 항목 |
+|--------|----------|
+| 태스크 하나 완료 | `Last Completions` 추가, `In Progress Files` 업데이트 |
+| 새 블로커 발견 | `Blockers` 즉시 기록 |
+| 파일 수정 시작 | `In Progress Files`에 파일명 + 작업 내용 추가 |
+| 접근법 변경 | `Next Tasks`에 변경된 방향 업데이트 |
+| 세션 30분 경과 | 중간 체크포인트로 전체 갱신 |
+
+> **왜 중요한가**: `/handoff` 실행 시 CURRENT.md 전체가 새 AI에게 전달된다.
+> CURRENT.md가 오래됐으면 새 AI는 중단 지점을 알 수 없다.
+
 ## 3. Tool Usage Priority
 우선순위 (높음 → 낮음):
 1. 전용 도구: Read, Edit, Write, Glob, Grep
