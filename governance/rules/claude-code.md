@@ -1,7 +1,7 @@
 # Claude Code Specific Rules
 # Claude Code(CLI) 환경에 최적화된 거버넌스 레이어
-# 이 파일은 vibe-toolkit의 Claude Code 확장 실험 파일입니다.
-# 검증된 패턴은 toolkit-improvements/에 기록 후 vibe-toolkit으로 역업로드됩니다.
+# 역할: orchestrator가 governance/rules/ 경로에서 로드하는 안정(stable) 거버넌스 규칙.
+# 실험적 패턴은 governance/experimental/ 에서 관리하고 충분히 검증된 후 이 파일에 반영한다.
 
 ## 1. Memory System (Claude Code 전용)
 - 프로젝트 메모리: `memory/MEMORY.md` (매 대화 자동 로드)

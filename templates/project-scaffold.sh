@@ -2,8 +2,30 @@
 # project-scaffold.sh — A-Team 멀티 에이전트 프로젝트 초기화 스크립트
 # 사용법: bash A-Team/templates/project-scaffold.sh [프로젝트명] [A-Team-레포-경로]
 # 예시:   bash A-Team/templates/project-scaffold.sh my-project ./A-Team
+#
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  ⚠️  DEPRECATED — 이 스크립트는 더 이상 권장되지 않습니다.         ║
+# ║                                                                  ║
+# ║  대신 templates/init.sh 를 사용하세요:                            ║
+# ║    bash A-Team/templates/init.sh [프로젝트명] [A-Team-레포-경로]  ║
+# ║                                                                  ║
+# ║  이유: init.sh 는 이 스크립트에 없는 다음 기능을 포함합니다:        ║
+# ║    - .agent/rules/ 거버넌스 레이어                                ║
+# ║    - memory/ 영구 메모리 시스템                                    ║
+# ║    - .claude/hooks/ 안전 하네스 (Harness)                        ║
+# ║    - CC Mirror (auto-sync) 스크립트                               ║
+# ║                                                                  ║
+# ║  이 파일은 하위 호환성을 위해 보존되며 추후 제거될 수 있습니다.       ║
+# ╚══════════════════════════════════════════════════════════════════╝
 
 set -e
+
+echo ""
+echo "⚠️  경고: project-scaffold.sh 는 deprecated 되었습니다."
+echo "   templates/init.sh 를 대신 사용하세요 (Harness + Mirror 포함)."
+echo "   계속하려면 Enter, 취소하려면 Ctrl+C ..."
+read -r _CONFIRM || true
+echo ""
 
 # ─────────────────────────────────────────
 # 0. 필수 도구 확인

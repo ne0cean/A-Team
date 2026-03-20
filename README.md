@@ -16,67 +16,56 @@
 
 ## 빠른 시작
 
-### 새 프로젝트에 적용
+### Claude Code만 사용 (기본 — ClawTeam 불필요)
 
 ```bash
-# 1. 프로젝트 초기화 (context + memory + harness 자동 생성)
-bash templates/init.sh my-project
+# 1. A-Team 클론
+git clone https://github.com/ne0cean/A-Team.git
 
-# 2. PARALLEL_PLAN.md로 태스크 설계
-cp templates/PARALLEL_PLAN.md ./PARALLEL_PLAN.md
-# → 에이전트 구성, 파일 소유권, 태스크 목록 작성
+# 2. 프로젝트 초기화 (context + memory + harness 자동 생성)
+bash A-Team/templates/init.sh my-project ./A-Team
 
-# 3. 에이전트 스폰 (ClawTeam 사용 시)
-pip install clawteam
-clawteam team spawn-team my-team -n leader
-clawteam spawn --team my-team --agent-name worker1 --task "..."
-clawteam board attach my-team
+# 3. Claude Code에서 바로 시작
+# 복잡한 작업: "이 기능을 A-Team으로 구현해줘" → orchestrator 자동 호출
+# 단순 작업: 직접 진행 (에이전트 불필요)
 ```
 
-### ClawTeam 없이 (수동 모드)
+이것만으로 `.context/`, `memory/`, `.claude/hooks/` (Harness), 서브에이전트 5종이 모두 설치된다.
+
+### ClawTeam 추가 (선택 — tmux 기반 완전 격리 병렬 실행)
+
+ClawTeam은 각 에이전트를 독립 tmux 세션 + git worktree에서 실행한다.
+단순 멀티에이전트 협업에는 위 Claude Code 모드로 충분하다.
 
 ```bash
-# 1. 프로젝트 초기화
-bash templates/init.sh my-project
-
-# 2. PARALLEL_PLAN.md 작성
-# 3. 각 에이전트에게 각자 섹션의 PARALLEL_PLAN.md 전달
-# 4. 완료 시마다 .context/CURRENT.md 갱신
-# 5. git branch로 격리: git checkout -b agent/worker1
+pip install clawteam        # Python 3.10+, tmux, git 필요
+clawteam team spawn-team my-team -n leader
+clawteam spawn --team my-team --agent-name worker1 --task "인증 모듈 구현"
+clawteam spawn --team my-team --agent-name worker2 --task "단위 테스트 작성"
+clawteam board attach my-team
 ```
 
 ---
 
 ## 구성 문서
 
-### 핵심 방법론
+전체 문서 맵은 **[PROTOCOL.md](PROTOCOL.md)** 를 참고하세요.
 
-| 문서 | 내용 |
+### 핵심 진입점
+
+| 파일 | 내용 |
 |------|------|
-| [`docs/06-build-methodology.md`](docs/06-build-methodology.md) | **5-Phase 빌드 라이프사이클** (전체 워크플로우 완전판) |
-| [`docs/07-clawteam.md`](docs/07-clawteam.md) | ClawTeam CLI 통합 가이드 + 치트시트 |
-
-### 세부 원칙
-
-| 문서 | 내용 |
-|------|------|
-| [`docs/01-role-partitioning.md`](docs/01-role-partitioning.md) | 역할 분할 원칙 (레벨 + 도메인) |
-| [`docs/02-conflict-prevention.md`](docs/02-conflict-prevention.md) | 파일 충돌 방지 (소유권 + 브랜치 + CURRENT.md) |
-| [`docs/03-model-selection.md`](docs/03-model-selection.md) | 태스크별 모델 선택 가이드 |
-| [`docs/04-coordination-protocol.md`](docs/04-coordination-protocol.md) | 에이전트 간 비동기 조율 프로토콜 |
-| [`reference/architecture.md`](reference/architecture.md) | ClawTeam 스웜 구조 & 메시지 흐름 |
-| [`reference/task-design.md`](reference/task-design.md) | 태스크 설계 방법론 (4단계) |
-| [`reference/workflows.md`](reference/workflows.md) | 팀 셋업·스폰·모니터링·종료 워크플로우 |
-| [`reference/clawteam-cli.md`](reference/clawteam-cli.md) | ClawTeam CLI 전체 레퍼런스 |
+| [`PROTOCOL.md`](PROTOCOL.md) | **단일 진입점** — 전체 문서 맵 + 7단계 프로토콜 |
+| [`docs/06-build-methodology.md`](docs/06-build-methodology.md) | 5-Phase 빌드 라이프사이클 (전체 워크플로우) |
+| [`docs/08-orchestration-patterns.md`](docs/08-orchestration-patterns.md) | TAO루프 / Supervisor / Swarm / 계층형 패턴 |
 
 ### 템플릿
 
 | 파일 | 용도 |
 |------|------|
-| [`templates/PARALLEL_PLAN.md`](templates/PARALLEL_PLAN.md) | 병렬 태스크 플랜 (에이전트 구성 + 파일 소유권 + DoD) |
+| [`templates/init.sh`](templates/init.sh) | **통합 프로젝트 초기화** (Harness + Mirror 포함) — 권장 |
+| [`templates/PARALLEL_PLAN.md`](templates/PARALLEL_PLAN.md) | 병렬 태스크 플랜 (파일 소유권 + DoD) |
 | [`templates/task-spec.md`](templates/task-spec.md) | 단일 태스크 기술 명세 (에이전트 프롬프트 템플릿) |
-| [`templates/init.sh`](templates/init.sh) | **통합 프로젝트 초기화 스크립트** (Harness & Mirror 포함) |
-| [`templates/project-scaffold.sh`](templates/project-scaffold.sh) | 레거시 프로젝트 초기화 스크립트 |
 
 ### 실제 사례
 

@@ -1,77 +1,79 @@
-# Context Continuity Protocol (CC Mirror & Harness)
+# 맥락 지속성 프로토콜 (Context Continuity Protocol) — CC Mirror & Harness
 
-> **"Context is more valuable than code."** 
-> This document defines the mechanisms ensuring that an AI agent's "mental model" and work progress are never lost, even during token exhaustion, crashes, or model switching.
-
----
-
-## 1. The Context Architecture
-
-A-Team uses a **Triple-Layer Context Mirror** to prevent loss:
-
-1.  **In-Memory Context**: Claude's current conversation window (volatile).
-2.  **On-Disk Context**: `.context/CURRENT.md` and `memory/MEMORY.md` (semi-volatile).
-3.  **Git-Mirrored Context**: Automatic, frequent commits to a remote repository (persistent).
+> **"컨텍스트는 코드보다 귀하다."**
+> 이 문서는 AI 에이전트의 "정신 모델(mental model)"과 작업 진행 상태가
+> 토큰 소진(Token Death), 크래시, 모델 교체 시에도 절대 소실되지 않도록
+> 보장하는 메커니즘을 정의한다.
 
 ---
 
-## 2. Component 1: The Harness (Safe Guards)
+## 1. 컨텍스트 아키텍처
 
-The "Harness" provides deterministic control over the AI's actions via `.claude/hooks/`.
+A-Team은 **3중 레이어 컨텍스트 미러(Triple-Layer Context Mirror)**를 사용해 손실을 방지한다:
 
-### 🛡️ Pre-Tool Use (Prevention)
-- **`pre-bash.sh`**: Blocks destructive commands (`rm -rf *`, `git reset --hard`) that could destroy progress.
-- **`pre-write.sh`**: Protects core governance files and ensures the agent stays within its defined "File Ownership" (from `PARALLEL_PLAN.md`).
-
-### 🏁 Stop-Check (Quality Gate)
-- **`stop-check.sh`**: Triggered when the agent tries to end a session. It **forces** a build/test run. If the build fails, the session is *blocked from closing*, forcing the agent to fix the break before it can leave. This prevents "broken handovers."
+1. **인메모리 컨텍스트 (In-Memory Context)**: Claude의 현재 대화 창 (휘발성).
+2. **디스크 컨텍스트 (On-Disk Context)**: `.context/CURRENT.md`와 `memory/MEMORY.md` (반영구).
+3. **Git 미러 컨텍스트 (Git-Mirrored Context)**: 원격 저장소에 자동으로 자주 커밋 (영구).
 
 ---
 
-## 3. Component 2: CC Mirror (Continuous Sync)
+## 2. 컴포넌트 1: 하네스 (Harness) — 안전 장치
 
-The "Mirror" (implemented via `scripts/auto-sync.sh`) ensures that even if an agent "dies" (token exhaustion), its work is saved.
+"하네스"는 `.claude/hooks/`를 통해 AI의 행동을 확정적으로 제어하는 안전망이다.
 
-### 🔄 Auto-Sync Logic
-- **Frequency**: Runs in the background (as a daemon) or via hooks.
-- **Atomic Commits**: Automatically stages and commits changes with a `[sync]` prefix.
-- **Remote Push**: Attempts to push to GitHub frequently to ensure the "Mirror" exists outside the local machine.
+### 🛡️ 도구 호출 전 (사전 방지)
+- **`pre-bash.sh`**: 진행 상태를 파괴할 수 있는 위험 명령어(`rm -rf *`, `git reset --hard`)를 차단한다.
+- **`pre-write.sh`**: 핵심 거버넌스 파일을 보호하고, 에이전트가 `PARALLEL_PLAN.md`에 정의된 "파일 소유권" 범위 안에서만 작업하도록 강제한다.
 
-### 🚪 Model Handoff (`model-exit.sh`)
-- Activated via `/handoff` or `/end`.
-- **Protocol**:
-    1. Summarize `CURRENT.md` (NOW/NEXT/BLOCK).
-    2. Commit with a specialized handover message.
-    3. Clear volatile flags but keep the "Resume Point" clear.
+### 🏁 세션 종료 검사 (Stop-Check)
+- **`stop-check.sh`**: 에이전트가 세션을 종료하려 할 때 트리거된다. **강제로** 빌드/테스트를 실행하며, 빌드가 실패하면 세션 종료가 *차단*된다 — 에이전트는 종료하기 전에 반드시 문제를 수정해야 한다. 이 메커니즘이 "깨진 핸드오버"를 방지한다.
 
 ---
 
-## 4. Continuity Workflow (Agent Instructions)
+## 3. 컴포넌트 2: CC Mirror — 지속적 동기화
 
-When an agent starts a session, it **must** follow these steps to "load the mirror":
+"미러"(`scripts/auto-sync.sh`로 구현)는 에이전트가 "토큰 소진(Token Death)"으로 사망하더라도 작업이 저장되도록 보장한다.
 
-1.  **Sync Check**: Run `git pull` to ensure local files match the latest remote "Mirror."
-2.  **Status Load**: Read `.context/CURRENT.md` and `memory/MEMORY.md` to reconstruct the "Mental Model."
-3.  **Harness Verification**: Check `.claude/settings.json` to ensure the safety harness is active.
+### 🔄 자동 동기화 로직
+- **주기**: 백그라운드 데몬 또는 훅을 통해 실행된다.
+- **원자적 커밋 (Atomic Commits)**: 변경사항을 자동으로 스테이징하고 `[sync]` 프리픽스로 커밋한다.
+- **원격 푸시 (Remote Push)**: "미러"가 로컬 머신 외부에도 존재하도록 GitHub에 자주 푸시한다.
 
----
-
-## 5. Failure Recovery (The "Token Death" Scenario)
-
-If an agent stops due to token exhaustion:
-1.  **The Mirror is Safe**: `auto-sync.sh` should have captured the last successful tool call.
-2.  **The Next Agent**:
-    - Reads the `git log` to see the last `[sync]` or `[handoff]` commit.
-    - Specifically looks for "Incomplete" items in `A-Team/TODO.md`.
-    - Resumes by picking the single most logical "NEXT" item from `CURRENT.md`.
+### 🚪 모델 핸드오프 (`model-exit.sh`)
+- `/handoff` 또는 `/end` 명령으로 활성화된다.
+- **프로토콜**:
+    1. `CURRENT.md`를 NOW/NEXT/BLOCK 구조로 요약한다.
+    2. 전용 핸드오버 메시지로 커밋한다.
+    3. 휘발성 플래그를 초기화하되 "재개 지점(Resume Point)"은 명확하게 보존한다.
 
 ---
 
-## 6. Project Tagging (Context Organization)
+## 4. 지속성 워크플로우 (에이전트 지침)
 
-To prevent context mixing between projects:
-- Every task in `A-Team/TODO.md` **must** use a project tag: `[ProjectName] Task Description`.
-- The `/todo` command automatically prepends the current directory name as the tag.
+에이전트가 세션을 시작할 때 반드시 다음 단계를 따라 "미러를 로드"해야 한다:
+
+1. **동기화 확인 (Sync Check)**: `git pull`을 실행해 로컬 파일이 최신 원격 "미러"와 일치하는지 확인한다.
+2. **상태 로드 (Status Load)**: `.context/CURRENT.md`와 `memory/MEMORY.md`를 읽어 "정신 모델"을 복원한다.
+3. **하네스 검증 (Harness Verification)**: `.claude/settings.json`을 확인해 안전 하네스가 활성화되어 있는지 점검한다.
 
 ---
-*Created per USER request for extreme detail in context preservation. Updated 2026-03-20.*
+
+## 5. 장애 복구 — "토큰 소진(Token Death)" 시나리오
+
+에이전트가 토큰 소진으로 중단된 경우:
+1. **미러는 안전하다**: `auto-sync.sh`가 마지막으로 성공한 도구 호출까지 캡처했을 것이다.
+2. **다음 에이전트가 해야 할 일**:
+    - `git log`를 읽어 마지막 `[sync]` 또는 `[handoff]` 커밋을 확인한다.
+    - `A-Team/TODO.md`에서 "미완료(Incomplete)" 항목을 찾는다.
+    - `CURRENT.md`의 "NEXT" 항목 중 가장 논리적인 하나를 골라 재개한다.
+
+---
+
+## 6. 프로젝트 태깅 (컨텍스트 조직화)
+
+여러 프로젝트 간 컨텍스트 혼재를 방지하기 위해:
+- `A-Team/TODO.md`의 모든 태스크는 **반드시** 프로젝트 태그를 사용해야 한다: `[프로젝트명] 태스크 설명`.
+- `/todo` 명령어는 현재 디렉토리 이름을 자동으로 태그로 앞에 붙인다.
+
+---
+*사용자 요청에 따라 맥락 보존의 극도의 상세함을 위해 작성됨. 2026-03-20 업데이트.*
