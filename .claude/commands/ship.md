@@ -48,20 +48,25 @@ npm test 2>&1 | tail -20
 단순 unit test 갭 → 자동 생성
 E2E/복잡한 테스트 갭 → AskUserQuestion
 
-## Step 5: Pre-landing 리뷰
+## Step 5: 문서 Drift 빠른 체크
+`/doc-sync --quick` 실행 (BROKEN 항목만 — 존재하지 않는 함수/경로 참조).
+- BROKEN 항목 발견 시 → 자동 수정 후 계속
+- 수정 불가 항목 → AskUserQuestion
+
+## Step 6: Pre-landing 리뷰
 reviewer 에이전트 호출 (2-pass 체크리스트).
 - APPROVED / APPROVED_WITH_CONCERNS → 계속
 - REJECTED → 수정 후 재시도 (최대 1회)
 - 2회 REJECTED → AskUserQuestion
 
-## Step 6: 버전 범프
+## Step 7: 버전 범프
 ```bash
 git log $BASE..HEAD --oneline | head -20
 ```
 - breaking change 있음 → AskUserQuestion (MINOR/MAJOR 확인)
 - 없음 → PATCH 자동 선택
 
-## Step 7: 커밋 & PR 생성
+## Step 8: 커밋 & PR 생성
 ```bash
 # A-Team 커밋 형식 사용
 git add -p  # 변경사항 확인
@@ -92,8 +97,9 @@ gh pr create \
 1. main/master 브랜치 감지
 2. 머지 충돌
 3. 이번 PR 원인 테스트 실패
-4. MINOR/MAJOR 버전 범프 필요
-5. reviewer 2회 REJECTED
+4. doc-sync BROKEN 항목 자동 수정 불가
+5. MINOR/MAJOR 버전 범프 필요
+6. reviewer 2회 REJECTED
 
 ## 완료 출력
 ```
