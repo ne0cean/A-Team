@@ -22,6 +22,8 @@
 | `/investigate` | `investigate.md` | 체계적 근본 원인 분석 — 버그 디버깅 전용 |
 | `/ship` | `ship.md` | PR 생성 전 완전 검증 파이프라인 |
 | `/cso` | `cso.md` | OWASP + STRIDE 보안 감사 (read-only) |
+| `/browse` | `browse.md` | 브라우저 자동화 — ARIA @ref 기반 (browse 바이너리 필요) |
+| `/qa` | `qa.md` | 8카테고리 웹앱 QA + 헬스 스코어 (browse 바이너리 필요) |
 
 ### 계획 & 설계
 | 명령어 | 파일 | 설명 |

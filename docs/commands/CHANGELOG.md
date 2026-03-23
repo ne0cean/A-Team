@@ -2,6 +2,23 @@
 
 ---
 
+## v2026-03-23 — gstack 통합 Wave 3
+
+### 신규 명령어 (브라우저 자동화)
+- `/browse` — ARIA @ref 기반 헤드리스 Chromium 자동화 (browse 바이너리 필요)
+- `/qa` — 8카테고리 웹앱 QA + 헬스 스코어 + 원자적 수정
+
+### init.sh 업데이트
+- browse 바이너리 자동 감지 + 설치 안내 추가
+
+### 전체 완성 워크플로우
+```
+아이디어 → /office-hours → /plan-ceo → /plan-eng
+→ orchestrator(구현) → /browse /qa(검증) → /cso(보안) → /ship(PR)
+```
+
+---
+
 ## v2026-03-23 — gstack 통합 Wave 2
 
 ### 신규 명령어 (계획 & 설계)

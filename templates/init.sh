@@ -371,6 +371,18 @@ if [ -f "$SETTINGS_SRC" ] && [ ! -f ".claude/settings.json" ]; then
 fi
 
 # ─────────────────────────────────────────────────
+# 9. browse 바이너리 체크 (선택적 — /browse, /qa 사용 시 필요)
+# ─────────────────────────────────────────────────
+BROWSE_BIN="$HOME/.claude/skills/gstack/browse/dist/browse"
+if [ -f "$BROWSE_BIN" ]; then
+  echo "✅ browse 바이너리 감지됨 (/browse, /qa 사용 가능)"
+else
+  echo "ℹ️  browse 바이너리 없음 — /browse, /qa 미사용 시 무시"
+  echo "   설치: git clone https://github.com/garrytan/gstack ~/.claude/skills/gstack"
+  echo "         cd ~/.claude/skills/gstack && ./setup"
+fi
+
+# ─────────────────────────────────────────────────
 # 완료 메시지
 # ─────────────────────────────────────────────────
 echo ""
