@@ -130,7 +130,7 @@ T3: [태스크] → (에이전트) → 산출물  [병렬: T2]
 
 ```json
 {
-  "status": "completed",
+  "status": "DONE | DONE_WITH_CONCERNS | BLOCKED",
   "summary": "[한 문장 완료 요약]",
   "completed_tasks": ["T-001", "T-002"],
   "evidence": ["[검증 결과]"],
