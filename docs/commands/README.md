@@ -20,10 +20,20 @@
 | 명령어 | 파일 | 설명 |
 |--------|------|------|
 | `/investigate` | `investigate.md` | 체계적 근본 원인 분석 — 버그 디버깅 전용 |
+| `/review` | `review.md` | 수동 Pre-Landing 7단계 리뷰 파이프라인 |
 | `/ship` | `ship.md` | PR 생성 전 완전 검증 파이프라인 |
+| `/land` | `land.md` | 배포 후 신뢰도 검증 — 헬스체크 + 스모크 테스트 |
+| `/adversarial` | `adversarial.md` | 공격자 시각 4관점 적대적 코드 리뷰 |
 | `/cso` | `cso.md` | OWASP + STRIDE 보안 감사 (read-only) |
+| `/benchmark` | `benchmark.md` | 성능 기준선 시스템 — 회귀 자동 감지 |
+| `/doc-sync` | `doc-sync.md` | 문서 Drift 감지 & 동기화 |
 | `/browse` | `browse.md` | 브라우저 자동화 — ARIA @ref 기반 (browse 바이너리 필요) |
 | `/qa` | `qa.md` | 8카테고리 웹앱 QA + 헬스 스코어 (browse 바이너리 필요) |
+
+### 훅 (자동 실행)
+| 훅 | 파일 | 설명 |
+|---|---|---|
+| careful-check | `careful-check.sh` | 리스크 스코어 기반 위험 명령 감지 (opt-in: `.careful` 파일) |
 
 ### 계획 & 설계
 | 명령어 | 파일 | 설명 |

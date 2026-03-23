@@ -2,6 +2,35 @@
 
 ---
 
+## v2026-03-23 — gstack 통합 Wave 4 (완성)
+
+### 신규 명령어 (재설계 포함)
+- `/review` — 수동 7단계 Pre-Landing 리뷰 (reviewer 에이전트와 역할 분리)
+- `/land` — 배포 후 헬스체크 + 스모크 테스트 + 롤백 준비도 (단순 머지 아님)
+- `/adversarial` — 모델 무관 4관점 적대적 리뷰 (입력조작/권한돌파/로직반전/부작용수확)
+- `/doc-sync` — 문서 Drift Score 측정 + 자동 수정 (ship 시점 아닌 상시 감지)
+- `/benchmark` — 도구 자동 감지 성능 기준선 시스템 (browse 없이도 동작)
+
+### 신규 훅
+- `careful-check.sh` — 리스크 스코어러 (0-100점 계산, 40+: ask, 20+: warn, opt-in)
+
+### 전체 워크플로우 (완성)
+```
+아이디어    → /office-hours
+계획 검증   → /plan-ceo → /plan-eng → /autoplan
+구현        → orchestrator
+디버깅      → /investigate
+브라우저    → /browse → /qa
+성능        → /benchmark
+보안        → /adversarial → /cso
+문서        → /doc-sync
+PR          → /review → /ship
+배포 검증   → /land
+회고        → /retro
+```
+
+---
+
 ## v2026-03-23 — gstack 통합 Wave 3
 
 ### 신규 명령어 (브라우저 자동화)
