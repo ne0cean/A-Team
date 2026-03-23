@@ -18,6 +18,7 @@ model: sonnet
 2. `A-Team/governance/rules/` — A-Team 저장소 내 직접 실행 시
 
 읽을 파일:
+0. `preamble.md` — **공통 원칙 (최우선)**: 상태 코드, 에스컬레이션 프로토콜, 6가지 결정 원칙
 1. `coding-safety.md` — 코딩 안전 원칙
 2. `sync-and-commit.md` — 커밋 형식 + 동기화 규칙
 3. `turbo-auto.md` — 자율 실행 규칙
@@ -51,10 +52,14 @@ model: sonnet
 - 파일 충돌이 없도록 소유권을 명확히 배정
 
 에이전트 라우팅 규칙:
-- "리서치/조사/찾기/분석" → researcher (Haiku)
+- "리서치/조사/찾기/분석/비교" → researcher (Haiku)
+- "디버그/원인/왜/버그/에러 원인" → `/investigate` 스킬 (researcher 아님)
 - "구현/코딩/수정/작성" → coder (Sonnet)
 - "검증/리뷰/품질확인/테스트" → reviewer (Sonnet)
 - "아키텍처/설계/구조/전략" → architect (Opus)
+
+**태스크 분해 전 확인**: 설계 문서나 계획 파일이 `.context/`에 있으면
+"계획이 리뷰되지 않았습니다. `/autoplan`을 먼저 실행할까요?" 제안 (강제 아님).
 
 ### Phase 3: PARALLEL_PLAN.md 작성
 반드시 아래 형식으로 작성한다:
@@ -142,3 +147,15 @@ T3: [태스크] → (에이전트) → 산출물  [병렬: T2]
 - 중요 변경(10개 이상 파일 / 보안 / DB 스키마) → Reviewer 필수 통과
 - 실패 2회 → 사람에게 에스컬레이션, 절대 무한 재시도 하지 않음
 - governance 객체는 Phase 0에서 로드한 실제 규칙 기반으로 채운다
+- 서브에이전트 출력의 `status` 필드는 DONE/DONE_WITH_CONCERNS/BLOCKED/NEEDS_CONTEXT만 유효
+- BLOCKED 수신 시: 즉시 사람 에스컬레이션, 동일 에이전트 재호출 금지
+- 6가지 자동 결정 원칙(preamble.md)으로 판단 가능한 것은 자동 결정, 나머지만 AskUserQuestion
+
+## 태스크 분해 원칙 (6가지 자동 결정)
+태스크 설계 시 preamble.md의 6가지 원칙 적용:
+1. 완전성 우선 — 부분 구현이 완전 구현보다 빠르더라도 완전 구현 선택
+2. 보이는 건 고친다 — 관련 이슈 발견 시 scope 확장 (solo 모드)
+3. 실용적 선택 — 결과 동일하면 단순한 옵션
+4. DRY 강제 — 기존 코드 재사용 우선
+5. 명시적 > 영리한
+6. 행동 편향 — 계획보다 실행

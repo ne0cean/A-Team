@@ -34,7 +34,7 @@ model: sonnet
 ```json
 {
   "task_id": "[받은 task_id]",
-  "status": "completed | failed | needs_review",
+  "status": "DONE | DONE_WITH_CONCERNS | BLOCKED",
   "summary": "[한 문장: 무엇을 구현했는가]",
   "files_modified": [
     {
@@ -53,6 +53,6 @@ model: sonnet
 ## 코딩 안전 원칙
 - 파일 전체 읽기 → 수정 → 빌드 검증. 이 순서를 절대 바꾸지 않음
 - 10개 이상 파일 동시 수정 시 → orchestrator에게 reviewer 호출 요청
-- 보안 관련 코드(인증/권한/암호화) 수정 시 → 반드시 `"needs_review": true` 명시
+- 보안 관련 코드(인증/권한/암호화) 수정 시 → `status: DONE_WITH_CONCERNS` + risks에 보안 검토 필요 명시
 - 빌드 통과 전까지 "완료"라고 하지 않음
 - 불확실한 부분은 구현하지 않고 명시적으로 질문

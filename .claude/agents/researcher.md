@@ -27,7 +27,7 @@ model: haiku
 ```json
 {
   "task_id": "[받은 task_id]",
-  "status": "completed",
+  "status": "DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT",
   "question": "[리서치한 핵심 질문]",
   "summary": "[2-3문장 핵심 요약]",
   "findings": [
@@ -45,9 +45,15 @@ model: haiku
 }
 ```
 
+## 에스컬레이션 프로토콜
+- 교차 검증 소스 3개가 모두 상충하거나 결론을 낼 수 없으면 → `status: BLOCKED`
+- BLOCKED 시: 가장 신뢰도 높은 소스를 명시하고 "사람의 판단 필요" 표기
+- 정보가 명백히 부족하면 → `status: NEEDS_CONTEXT`로 필요한 정보 명시
+
 ## 원칙
 - 확인되지 않은 정보는 절대 단정하지 않는다. "~로 보임", "~가능성 있음"으로 표현
 - 출처 없는 정보는 포함하지 않는다
 - 코드베이스 탐색 시: Grep으로 패턴 검색 → 관련 파일 Read → 맥락 파악
 - 긴 히스토리 대신 위 JSON 구조로만 결과 전달
 - 리서치 범위를 초과하면 "이 부분은 coder/architect에게 위임 필요"라고 명시
+- **버그 원인 파악 요청은 researcher가 아닌 `/investigate` 스킬로 라우팅**

@@ -7,13 +7,30 @@
 
 ## 명령어 목록
 
+### 세션 관리
 | 명령어 | 파일 | 설명 |
 |--------|------|------|
 | `/vibe` | `vibe.md` | 세션 시작 — A-Team 업데이트 확인 → 컨텍스트 로드 → 즉시 실행 |
 | `/end` | `end.md` | 세션 종료 — CURRENT.md 갱신 → 빌드 검증 → 커밋 |
+| `/pickup` | `pickup.md` | 토큰 소진 후 작업 재개 |
+| `/handoff` | `handoff.md` | 모델 전환 핸드오프 |
+| `/retro` | `retro.md` | 주기적 회고 보고서 (git 기반 분석) |
+
+### 개발 워크플로우
+| 명령어 | 파일 | 설명 |
+|--------|------|------|
+| `/investigate` | `investigate.md` | 체계적 근본 원인 분석 — 버그 디버깅 전용 |
+| `/ship` | `ship.md` | PR 생성 전 완전 검증 파이프라인 |
+| `/office-hours` | `office-hours.md` | 아이디어 검증 & 설계 발견 (코드 전 단계) |
+
+### 프로젝트 관리
+| 명령어 | 파일 | 설명 |
+|--------|------|------|
 | `/prjt` | `prjt.md` | 전체 프로젝트 현황 조회 |
 | `/repos` | `repos.md` | GitHub 레포 목록 조회 |
 | `/todo` | `todo.md` | 빠른 메모 관리 |
+| `/sync` | `sync.md` | Auto-Sync 데몬 관리 |
+| `/re` | `re.md` | Research Mode 관리 |
 
 ---
 

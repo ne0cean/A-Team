@@ -37,7 +37,7 @@ model: opus
 ```json
 {
   "task_id": "[받은 task_id]",
-  "status": "completed",
+  "status": "DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT",
   "decision_title": "[설계 결정 제목]",
   "context": "[현재 상황 분석 2-3문장]",
   "requirements": {

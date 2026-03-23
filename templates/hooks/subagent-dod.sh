@@ -6,24 +6,63 @@
 PROJ_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 PLAN_FILE="$PROJ_ROOT/PARALLEL_PLAN.md"
 
-# PARALLEL_PLAN.md 없으면 DoD 체크 불필요 (단일 에이전트 작업)
-if [ ! -f "$PLAN_FILE" ]; then
+# stdin에서 에이전트 JSON 출력 읽기
+INPUT=$(cat)
+
+# ── 1. 상태 코드 파싱 (preamble.md 표준: DONE/DONE_WITH_CONCERNS/BLOCKED/NEEDS_CONTEXT) ──
+STATUS=$(echo "$INPUT" | python3 -c "
+import sys, json, re
+try:
+    d = json.load(sys.stdin)
+    out = d.get('output', '')
+    if isinstance(out, str):
+        m = re.search(r'\"status\"\s*:\s*\"([^\"]+)\"', out)
+        if m:
+            print(m.group(1))
+            sys.exit()
+    print('')
+except:
+    print('')
+" 2>/dev/null || echo "")
+
+# BLOCKED 수신 시 오케스트레이터에게 에스컬레이션 경고
+if [ "$STATUS" = "BLOCKED" ]; then
+  BLOCKED_REASON=$(echo "$INPUT" | python3 -c "
+import sys, json, re
+try:
+    d = json.load(sys.stdin)
+    out = d.get('output', '')
+    m = re.search(r'\"blocked_reason\"\s*:\s*\"([^\"]+)\"', str(out))
+    print(m.group(1) if m else '상세 사유 없음')
+except:
+    print('상세 사유 없음')
+" 2>/dev/null || echo "상세 사유 없음")
+  printf '{"decision":"block","reason":"[BLOCKED] 에이전트가 진행 불가 상태를 반환했습니다.\\n사유: %s\\n\\n동일 에이전트 재호출 금지. orchestrator에게 사람 에스컬레이션 요청하세요."}\n' \
+    "$BLOCKED_REASON" >&2
+  exit 2
+fi
+
+# NEEDS_CONTEXT 수신 시 오케스트레이터에게 컨텍스트 요청 전달
+if [ "$STATUS" = "NEEDS_CONTEXT" ]; then
+  printf '{"systemMessage":"[NEEDS_CONTEXT] 에이전트가 추가 정보를 요청했습니다. 에이전트 출력의 missing 필드를 확인하고 필요한 정보를 제공하세요."}\n'
   exit 0
 fi
 
-# stdin에서 에이전트 JSON 출력 읽기
-INPUT=$(cat)
-AGENT_OUTPUT=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('output',''))" 2>/dev/null || echo "")
+# DONE_WITH_CONCERNS 수신 시 경고 메시지 (차단하지 않음)
+if [ "$STATUS" = "DONE_WITH_CONCERNS" ]; then
+  printf '{"systemMessage":"[DONE_WITH_CONCERNS] 에이전트가 완료했으나 주의사항이 있습니다. risks 필드를 확인하세요."}\n'
+fi
 
-# PARALLEL_PLAN.md에서 미완료 DoD 항목 확인
-INCOMPLETE=$(grep -c "^\- \[ \]" "$PLAN_FILE" 2>/dev/null || echo "0")
-TOTAL=$(grep -c "^\- \[" "$PLAN_FILE" 2>/dev/null || echo "0")
+# ── 2. PARALLEL_PLAN.md DoD 체크 (상태 코드 없는 구버전 에이전트 호환) ──
+if [ -f "$PLAN_FILE" ] && [ -z "$STATUS" ]; then
+  INCOMPLETE=$(grep -c "^\- \[ \]" "$PLAN_FILE" 2>/dev/null || echo "0")
+  TOTAL=$(grep -c "^\- \[" "$PLAN_FILE" 2>/dev/null || echo "0")
 
-if [ "$INCOMPLETE" -gt 0 ] && [ "$TOTAL" -gt 0 ]; then
-  # 미완료 항목이 있으면 경고 (차단하지 않음 — 다른 에이전트가 처리 중일 수 있음)
-  INCOMPLETE_ITEMS=$(grep "^\- \[ \]" "$PLAN_FILE" | head -3)
-  printf '{"systemMessage":"[SubagentDoD] 미완료 항목 %d/%d개:\\n%s\\n완료 후 /end 실행 권장"}\n' \
-    "$INCOMPLETE" "$TOTAL" "$INCOMPLETE_ITEMS"
+  if [ "$INCOMPLETE" -gt 0 ] && [ "$TOTAL" -gt 0 ]; then
+    INCOMPLETE_ITEMS=$(grep "^\- \[ \]" "$PLAN_FILE" | head -3)
+    printf '{"systemMessage":"[SubagentDoD] 미완료 항목 %d/%d개:\\n%s\\n완료 후 /end 실행 권장"}\n' \
+      "$INCOMPLETE" "$TOTAL" "$INCOMPLETE_ITEMS"
+  fi
 fi
 
 exit 0
