@@ -21,7 +21,15 @@
 |--------|------|------|
 | `/investigate` | `investigate.md` | 체계적 근본 원인 분석 — 버그 디버깅 전용 |
 | `/ship` | `ship.md` | PR 생성 전 완전 검증 파이프라인 |
+| `/cso` | `cso.md` | OWASP + STRIDE 보안 감사 (read-only) |
+
+### 계획 & 설계
+| 명령어 | 파일 | 설명 |
+|--------|------|------|
 | `/office-hours` | `office-hours.md` | 아이디어 검증 & 설계 발견 (코드 전 단계) |
+| `/autoplan` | `autoplan.md` | CEO→디자인→엔지니어링 자동 검토 파이프라인 |
+| `/plan-ceo` | `plan-ceo.md` | CEO 시각 전략/범위/리스크 검토 |
+| `/plan-eng` | `plan-eng.md` | 아키텍처/테스트/성능/보안 엔지니어링 검토 |
 
 ### 프로젝트 관리
 | 명령어 | 파일 | 설명 |

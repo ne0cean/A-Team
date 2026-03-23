@@ -2,7 +2,20 @@
 
 ---
 
-## v2026-03-23 — gstack 통합 업데이트
+## v2026-03-23 — gstack 통합 Wave 2
+
+### 신규 명령어 (계획 & 설계)
+- `/autoplan` — CEO→디자인→엔지니어링 자동 검토 파이프라인, 6원칙 자동 결정
+- `/plan-ceo` — 전제 도전, 범위 분석, 실패 모드 테이블
+- `/plan-eng` — 아키텍처 다이어그램, 테스트 커버리지 맵, 구현 로드맵
+- `/cso` — OWASP Top 10 + STRIDE 8단계 보안 감사 (read-only)
+
+### 권장 워크플로우 (코드 전 단계)
+`/office-hours` → `/plan-ceo` → `/plan-eng` → orchestrator → `/ship`
+
+---
+
+## v2026-03-23 — gstack 통합 Wave 1
 
 ### 신규 명령어
 - `/investigate` — 체계적 근본 원인 분석. researcher가 아닌 전용 디버깅 스킬
