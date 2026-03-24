@@ -1,5 +1,5 @@
 ---
-description: 세션 종료 — 상태 갱신, 빌드 검증, 커밋 (+ 선택: push / Research Mode)
+description: 세션 종료 — 상태 갱신, 빌드 검증, 커밋, push (+ 선택: Research Mode)
 ---
 
 다음 순서대로 세션을 마무리합니다.
@@ -48,9 +48,11 @@ BLOCK: 막힌 점 (없으면 없음)
 - 로컬 개발 서버 URL 제공 (예: http://localhost:5173)
 - 프로덕션 URL 보고 (있으면)
 
-## Step 6 — (선택) 원격 Push
-커밋이 있으면 "원격에 push할까요?" 질문.
-명시적으로 원하면 즉시 실행: `git push origin main`
+## Step 6 — 원격 Push
+커밋이 있으면 **항상 즉시 실행**:
+```bash
+git push origin main
+```
 
 ## Step 7 — (선택) Research Mode
 자리를 오래 비울 예정이면 "Research Mode를 시작할까요?" 질문.
