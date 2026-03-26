@@ -29,6 +29,8 @@
 | `/doc-sync` | `doc-sync.md` | 문서 Drift 감지 & 동기화 |
 | `/browse` | `browse.md` | 브라우저 자동화 — ARIA @ref 기반 (browse 바이너리 필요) |
 | `/qa` | `qa.md` | 8카테고리 웹앱 QA + 헬스 스코어 (browse 바이너리 필요) |
+| `/tdd` | `tdd.md` | TDD Red-Green-Refactor 루프 강제 — 테스트 먼저 작성 |
+| `/craft` | `craft.md` | PRO Tier 품질 파이프라인 — PO→아키텍트→구현→QA→배포 |
 
 ### 훅 (자동 실행)
 | 훅 | 파일 | 설명 |
@@ -80,6 +82,40 @@
 4. NOW/NEXT/BLOCK 형식 커밋
 5. 프론트엔드 작업 시 URL 보고
 6. (선택) Research Mode 데몬 시작 여부 확인
+
+---
+
+## `/tdd` 상세
+
+**목적**: Red-Green-Refactor 루프를 강제해 Claude의 테스트 건너뜀 방지.
+
+**사용 시점**: 50줄+ 기능, API, 비즈니스 로직, 리팩토링 (자동 감지 또는 수동 호출)
+
+**실행 순서**:
+1. RED — 테스트 먼저 작성, bash 실행으로 실패 확인 (통과 시 테스트 재작성)
+2. GREEN — 최소 구현, 통과 확인
+3. REFACTOR — 정리 후 재통과 확인
+
+**자동 적용 조건** (CLAUDE.md 규칙):
+- 신규 파일 50줄+ 예상
+- API 엔드포인트 / 비즈니스 로직 / 알고리즘
+
+---
+
+## `/craft` 상세
+
+**목적**: PRO Tier 전용 순차 품질 파이프라인. 프로덕션 반영 기능에 사용.
+
+**vs /vibe**: /vibe는 빠른 병렬 실행, /craft는 느리지만 품질 보장
+
+**실행 순서**:
+1. Specification (PO) — 사용자 스토리 + DoD 작성
+2. Architecture (Architect) — DDD 계층 설계
+3. Implementation (Coder) — TDD 필수
+4. Verification (QA) — 커버리지 + E2E
+5. Deployment — CI/CD 트리거
+
+**전제조건**: PRO Tier 프로젝트 (`src/{bounded-context}/` 구조)
 
 ---
 
