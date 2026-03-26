@@ -23,6 +23,7 @@
 | `13-context-continuity-protocol.md` | 맥락 지속성 프로토콜 (CC Mirror) | 컨텍스트 소실, 토큰 소진, 모델 교체, 핸드오프, CURRENT.md 보존, CC Mirror |
 | `14-mobile-development.md` | 모바일 개발 가이드 | 모바일, 폰 개발, Claude 앱, Antigravity, 이동 중 개발 |
 | `15-tdd-methodology.md` | TDD 방법론 — Claude Code 통합 | TDD, Red-Green-Refactor, Vitest, Playwright, Superpowers, Mutation Testing, 테스트 드리프트 방지 |
+| `16-project-tiers.md` | 프로젝트 Tier 시스템 | NANO, STANDARD, PRO, DDD, 클린 아키텍처, Bounded Context, /craft, 업그레이드 경로, 프로젝트 규모 |
 
 ---
 
@@ -40,3 +41,4 @@
 | 토큰 소진 후 컨텍스트 날아감 | `13` |
 | 모바일에서 작업 이어받기 | `14` |
 | TDD 루프, 테스트 드리프트, Vitest/Playwright 설정 | `15` |
+| 프로젝트 규모 선택, DDD 적용 시점 | `16` |

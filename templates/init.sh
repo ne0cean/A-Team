@@ -6,6 +6,18 @@
 
 set -e
 
+# ─────────────────────────────────────────────────
+# Tier 선택
+# ─────────────────────────────────────────────────
+echo ""
+echo "프로젝트 규모를 선택하세요:"
+echo "  1) NANO     — 토이/실험 (하루~1주, 구조 오버헤드 없음)"
+echo "  2) STANDARD — MVP/사이드 (1주~3개월, 에이전트 2~3명 병렬)"
+echo "  3) PRO      — 판매 제품 (장기 운영, DDD+품질 파이프라인)"
+echo ""
+read -p "선택 (1/2/3) [기본: 2]: " TIER_INPUT
+TIER=${TIER_INPUT:-2}
+
 PROJECT_NAME=${1:-"my-project"}
 ATEAM_DIR=${2:-"./A-Team"}
 VIBE_DIR=${3:-""}
@@ -383,27 +395,123 @@ else
 fi
 
 # ─────────────────────────────────────────────────
+# PRO Tier 전용: DDD 계층 구조 + CONTRACTS.md
+# ─────────────────────────────────────────────────
+if [ "$TIER" = "3" ]; then
+  echo ""
+  echo "PRO Tier: DDD 계층 구조 생성 중..."
+  read -p "첫 번째 Bounded Context 이름 (예: auth, todo, payment) [기본: core]: " BC_INPUT
+  BC=${BC_INPUT:-core}
+
+  mkdir -p "src/$BC/domain/entities"
+  mkdir -p "src/$BC/domain/value-objects"
+  mkdir -p "src/$BC/domain/events"
+  mkdir -p "src/$BC/application/commands"
+  mkdir -p "src/$BC/application/queries"
+  mkdir -p "src/$BC/infrastructure/repositories"
+  mkdir -p "src/$BC/infrastructure/adapters"
+  mkdir -p "src/$BC/ports"
+
+  cat > "src/$BC/domain/README.md" << DDDEOF
+# $BC — Domain Layer
+
+**소유권**: architect 전용 (Hook으로 쓰기 차단됨)
+
+비즈니스 규칙만 담습니다. 외부 의존성(DB, API, 프레임워크) 없음.
+
+## 하위 폴더
+- \`entities/\` — 식별자를 가진 도메인 객체
+- \`value-objects/\` — 불변 값 객체
+- \`events/\` — 도메인 이벤트 (발생한 사실)
+DDDEOF
+
+  cat > "src/$BC/application/README.md" << DDDEOF
+# $BC — Application Layer
+
+**소유권**: coder 담당
+
+Use Case 오케스트레이션. 도메인 객체를 조합해 비즈니스 흐름 구성.
+
+## 하위 폴더
+- \`commands/\` — 쓰기 use case (CreateXxx, UpdateXxx)
+- \`queries/\` — 읽기 use case (GetXxx, ListXxx)
+DDDEOF
+
+  cat > "src/$BC/infrastructure/README.md" << DDDEOF
+# $BC — Infrastructure Layer
+
+**소유권**: coder 담당
+
+외부 의존성(DB, 외부 API, 메시징) 구현체. Port 인터페이스를 구현함.
+DDDEOF
+
+  cat > .context/CONTRACTS.md << CONEOF
+# Bounded Context 간 약정 — $PROJECT_NAME
+
+각 Bounded Context가 외부에 공개하는 커맨드와 이벤트를 정의합니다.
+
+---
+
+## $BC Context
+
+### 공개 커맨드 (Input)
+| 커맨드 | 파라미터 | 호출자 |
+|--------|---------|--------|
+| (없음) | - | - |
+
+### 발행 이벤트 (Output)
+| 이벤트 | 페이로드 | 구독자 |
+|--------|---------|--------|
+| (없음) | - | - |
+
+---
+
+## 약정 변경 규칙
+- 커맨드/이벤트 변경 전 이 파일 먼저 수정
+- 구독자 있는 이벤트는 하위 호환성 유지 또는 버저닝
+CONEOF
+
+  cat > .context/EVENTS.log << ''
+  # 이벤트 스트림 (자동 생성됨 — 직접 편집 금지)
+
+  echo "PRO Tier: DDD 계층 구조 생성 완료 (src/$BC/)"
+  echo "PRO Tier: .context/CONTRACTS.md 생성 완료"
+fi
+
+# ─────────────────────────────────────────────────
 # 완료 메시지
 # ─────────────────────────────────────────────────
 echo ""
 echo "═══════════════════════════════════════════════"
-echo "  초기화 완료: $PROJECT_NAME"
-echo "═══════════════════════════════════════════════"
-echo ""
-echo "생성된 구조:"
-echo "  .context/CURRENT.md          — 프로젝트 상태 추적 (살아있는 문서)"
-echo "  .context/SESSIONS.md         — 세션 로그"
-echo "  .context/DECISIONS.md        — 의사결정 로그"
-echo "  memory/MEMORY.md             — 장기 메모리"
-echo "  .agent/rules/                — 거버넌스 규칙 (coding-safety, sync, turbo)"
-echo "  .agent/workflows/            — 세션 시작/종료 워크플로우"
-echo "  .claude/agents/              — A-Team 서브에이전트 5종"
-echo "  PARALLEL_PLAN.md             — 병렬 작업 플랜 템플릿"
-echo "  CLAUDE.md                    — 통합 거버넌스 진입점"
-echo ""
-echo "다음 단계:"
-echo "  1. CLAUDE.md — 프로젝트 구조 섹션 채우기"
-echo "  2. .context/CURRENT.md — Goal 한 문장 작성"
-echo "  3. 복잡한 작업: '이 작업을 A-Team으로 처리해줘'"
-echo "     → orchestrator가 governance 로드 + PARALLEL_PLAN.md 작성 + 에이전트 조율"
-echo ""
+if [ "$TIER" = "1" ]; then
+  echo "  NANO 초기화 완료: $PROJECT_NAME"
+  echo "═══════════════════════════════════════════════"
+  echo ""
+  echo "  빠른 시작:"
+  echo "    /vibe \"만들고 싶은 것 설명\""
+  echo ""
+elif [ "$TIER" = "3" ]; then
+  echo "  PRO 초기화 완료: $PROJECT_NAME"
+  echo "═══════════════════════════════════════════════"
+  echo ""
+  echo "  생성된 구조:"
+  echo "    src/{bounded-context}/{domain,application,infrastructure,ports}/"
+  echo "    .context/CONTRACTS.md  — Bounded Context 약정"
+  echo "    .context/EVENTS.log    — 이벤트 스트림"
+  echo ""
+  echo "  다음 단계:"
+  echo "    1. .context/CONTRACTS.md — 커맨드/이벤트 약정 정의"
+  echo "    2. /vibe --craft \"기능 설명\" — 품질 파이프라인 실행"
+  echo "    3. /tdd — TDD Red-Green-Refactor 강제"
+  echo ""
+else
+  echo "  STANDARD 초기화 완료: $PROJECT_NAME"
+  echo "═══════════════════════════════════════════════"
+  echo ""
+  echo "  다음 단계:"
+  echo "    1. CLAUDE.md — 프로젝트 구조 섹션 채우기"
+  echo "    2. .context/CURRENT.md — Goal 한 문장 작성"
+  echo "    3. /vibe \"작업 설명\" 으로 시작"
+  echo "    4. 기능당 50줄+ → /tdd 자동 적용"
+  echo ""
+fi
