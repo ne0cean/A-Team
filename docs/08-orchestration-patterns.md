@@ -293,3 +293,75 @@ ClawTeam 사용 시: `~/.clawteam/teams/{team}/` 디렉토리에 자동 기록.
 | 출력 스키마 없음 | 다음 에이전트가 이전 결과 해석 불가 | 구조화 JSON 출력 표준화 |
 | 정지 조건 없음 | 무한 루프, 비용 폭발 | 토큰/시간/재시도 상한 필수 |
 | 검증 단계 없음 | 중요 변경이 검토 없이 배포 | Reviewer 에이전트를 라우팅 그래프에 포함 |
+
+---
+
+## 패턴 4: MixtureOfAgents (MoA)
+
+> **출처**: Swarms 프레임워크, 2025년 이후 고품질 설계 결정에 권장
+> **A-Team 통합**: orchestrator.md 선택적 강화 섹션에 구현
+
+### 개념
+
+동일한 문제를 여러 전문 에이전트가 독립적으로 분석 → aggregator가 최선 합성.
+"팀의 집단 지성"을 활용하는 패턴.
+
+```
+                   [동일 태스크]
+                  /      |      \
+         [expert-1]  [expert-2]  [expert-3]
+          리서치      아키텍처      구현가능성
+                  \      |      /
+               [aggregator (orchestrator)]
+                  최선 합성 → 결론
+```
+
+### Supervisor vs MoA 선택 기준
+
+| 상황 | 패턴 |
+|------|------|
+| 구현 태스크 ("만들어줘") | Supervisor |
+| 설계 결정 ("어떻게 할까") | **MoA** |
+| 정답 명확한 버그 수정 | Supervisor |
+| 여러 옵션 중 최선 선택 | **MoA** |
+| 비용 절약이 중요 | Supervisor |
+| 결정의 임팩트가 큰 경우 | **MoA** |
+
+### MoA 비용 고려
+전문가 3명 병렬 = 토큰 3배. 아키텍처/보안 결정처럼 임팩트 높은 경우만 적용.
+
+---
+
+## 패턴 5: SOP-based Workflow
+
+> **출처**: MetaGPT SOP(Standard Operating Procedure) 기반 역할 분리
+> **A-Team 통합**: governance/workflows/ 파일의 표준화 원칙
+
+### 핵심 원칙
+
+모든 워크플로우는 명시적 **입출력 artifact**를 선언한다:
+
+```markdown
+## 워크플로우: [이름]
+
+### Input Artifacts (필수)
+- CURRENT.md — 현재 프로젝트 상태
+- [태스크별 추가 파일]
+
+### Output Artifacts (보장)
+- CURRENT.md 갱신 — 완료 항목 + 다음 태스크
+- .context/checkpoints/ — 중단 태스크 체크포인트 (있으면)
+
+### Completion Gate
+- 빌드 통과 (CLAUDE.md 빌드 명령 기준)
+- status = DONE 또는 DONE_WITH_CONCERNS
+```
+
+### 기존 workflows와 SOP 매핑
+
+| 워크플로우 파일 | SOP 역할 |
+|----------------|---------|
+| `session-start.md` | 컨텍스트 로드 SOP |
+| `session-end.md` | 컨텍스트 저장 SOP |
+| `vibe.md` | 세션 부트스트랩 SOP |
+| `self-optimization.md` | 프로젝트 헬스체크 SOP |

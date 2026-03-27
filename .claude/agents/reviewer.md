@@ -105,3 +105,21 @@ model: sonnet
 - coder에게 수정 요청 시: must_fix_before_merge에 명확히 기술
 - 2회 REJECTED 후에도 미해결 → `status: BLOCKED`로 orchestrator에게 사람 에스컬레이션 요청
 - AUTO-FIX 대상: 오타, 누락된 세미콜론, 명백한 스타일 불일치 등 판단 불필요한 기계적 수정만
+
+---
+
+## 3-Tier Guardrail 구조 (참조용)
+
+이 Reviewer는 3-tier 중 **Tier 3 (Output Guardrail)** 담당.
+
+```
+Tier 1 — Input Guardrail  → orchestrator (실행 전 보안/충돌 스캔)
+Tier 2 — Tool Guardrail   → hooks/harness (실행 중 위험 명령 차단)
+Tier 3 — Output Guardrail → Reviewer (실행 후 품질 검증) ← 이 에이전트
+```
+
+2-pass 구조가 Tier 3를 구현:
+- Critical Pass = 보안/데이터/빌드 게이트
+- Informational Pass = 품질/테스트/성능 게이트
+
+자세한 Tier 1/2 규약: `governance/rules/guardrails.md`

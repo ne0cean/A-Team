@@ -159,3 +159,61 @@ T3: [태스크] → (에이전트) → 산출물  [병렬: T2]
 4. DRY 강제 — 기존 코드 재사용 우선
 5. 명시적 > 영리한
 6. 행동 편향 — 계획보다 실행
+
+---
+
+## 선택적 강화: MixtureOfAgents (MoA) 모드
+
+> **기본 모드**: Supervisor 패턴 (위 프로토콜 그대로)
+> **MoA 모드**: 동일 태스크를 여러 에이전트가 병렬 처리 → 최선 합성
+
+### MoA 자동 활성화 조건
+요청에 아래 키워드 포함 시 MoA 모드 전환:
+- "최선 방안", "옵션 비교", "어떤 게 나은지"
+- "설계 선택", "아키텍처 결정", "리서치 기반 결론"
+- 단순 구현("만들어줘", "수정해줘")에는 비적용
+
+### MoA 실행 플로우
+```
+1. orchestrator → 동일 태스크를 3개 에이전트에 병렬 배포
+   - expert-1 (researcher): 레퍼런스/선례 조사
+   - expert-2 (architect): 설계 관점 분석
+   - expert-3 (coder): 구현 가능성 검토
+
+2. 3개 결과 수집 후 → aggregator 단계
+   - orchestrator가 직접 aggregator 역할
+   - 각 전문가 출력의 교집합 = 확실한 사실
+   - 의견 불일치 영역 = 사람에게 명시적 질문
+
+3. 합성 결과 → 사용자 또는 다음 에이전트에게 전달
+```
+
+### MoA 토큰 예산
+기본 Supervisor의 3배 소비. 복잡한 설계 결정에만 사용.
+- 기준: 태스크 임팩트 높음(핵심 아키텍처, 보안 결정) AND 정답이 불명확할 때
+
+### PARALLEL_PLAN.md MoA 섹션 (선택)
+```markdown
+## MoA 실행 설정
+mode: moa
+moa_workers: [researcher, architect, coder]
+moa_aggregator: orchestrator
+moa_question: "[합성할 핵심 질문]"
+```
+
+---
+
+## 선택적 강화: 체크포인트 관리
+
+에이전트 BLOCKED 반환 시 체크포인트 저장 (governance/rules/checkpointing.md 참조):
+
+```bash
+# BLOCKED 수신 시
+bash scripts/checkpoint.sh save {task_id} {agent_name} blocked "{resume_prompt}"
+```
+
+에이전트 재시작 시 체크포인트 로드:
+```bash
+CHECKPOINT=$(bash scripts/checkpoint.sh load {task_id})
+# resume_prompt를 태스크 앞에 추가하여 재실행
+```

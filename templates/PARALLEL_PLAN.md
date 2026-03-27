@@ -115,6 +115,33 @@ clawteam board attach {team-name}
 
 ---
 
+## Guardrail 체크 (orchestrator Phase 2에서 확인)
+
+- [ ] 보안 키워드 스캔 완료 (security_review_required: [YES/NO])
+- [ ] 파일 소유권 중복 없음
+- [ ] 민감 파일 쓰기 태스크 없음
+- [ ] Tier 3 (Reviewer) 자동 트리거 여부: [YES/NO]
+
+---
+
+## 선택적: MoA 설정 (설계 결정 태스크에만 적용)
+
+```
+mode: supervisor (기본) | moa (설계 결정 시)
+moa_workers: [researcher, architect, coder]
+moa_question: "[합성할 핵심 질문]"
+```
+
+---
+
+## 체크포인트 상태
+
+| 태스크 | 에이전트 | 상태 | 마지막 체크포인트 |
+|--------|---------|------|-----------------|
+| T-001 | coder | in_progress | - |
+
+---
+
 ## 레트로스펙티브 (완료 후 기록)
 
 **잘 된 것**:
