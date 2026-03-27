@@ -25,6 +25,7 @@
 | `14-mobile-development.md` | 모바일 개발 가이드 | 모바일, 폰 개발, Claude 앱, Antigravity, 이동 중 개발 |
 | `15-tdd-methodology.md` | TDD 방법론 — Claude Code 통합 | TDD, Red-Green-Refactor, Vitest, Playwright, Superpowers, Mutation Testing, 테스트 드리프트 방지 |
 | `16-project-tiers.md` | 프로젝트 Tier 시스템 | NANO, STANDARD, PRO, DDD, 클린 아키텍처, Bounded Context, /craft, 업그레이드 경로, 프로젝트 규모 |
+| `17-integration-evaluation-framework.md` | 통합 평가 프레임워크 | 프레임워크 도입, 멀티에이전트, 평가 기준, 토큰 효율, 장애 복원, 거버넌스, 벤치마크, CrewAI, LangGraph, OpenAI Agents SDK |
 
 ---
 
@@ -44,3 +45,4 @@
 | 모바일에서 작업 이어받기 | `14` |
 | TDD 루프, 테스트 드리프트, Vitest/Playwright 설정 | `15` |
 | 프로젝트 규모 선택, DDD 적용 시점 | `16` |
+| 새 프레임워크/도구 도입 평가 | `17` |
