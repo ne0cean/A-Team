@@ -2,6 +2,39 @@
 
 ---
 
+## 2026-03-28 Ralph Loop 자율 개발 데몬 구현 + 최적화
+
+**완료**:
+- Ralph Loop 조사 (Geoffrey Huntley, 2024~) → A-Team 통합 설계
+- `ralph-daemon.mjs`: 5레이어 비용 최적화, 별도 브랜치 안전장치, graceful shutdown
+- `ralph-prompts.mjs`: lean context, AGENTS.md 학습, 리서치 노트 주입
+- `daemon-utils.mjs`: 공통 유틸 추출 (atomicWriteJSON, findClaude, safePath, buildClaudeEnv)
+- `/ralph` 커맨드: start/stop/status/log/notes + 태스크 작성 가이드
+- Research → Ralph 파이프라인: `/re pipeline` 원스탑, 리서치 노트 자동 연결
+- `/vibe` Step 3.5: 주간 야간 Ralph 태스크 자동 제안
+- 코드 리뷰 (reviewer agent): HIGH 3건 + MEDIUM 7건 + LOW 3건 전량 수정
+
+**이슈**:
+- 없음 (실전 테스트는 다음 세션)
+
+**빌드**: ✅ (스크립트 전용 — daemon-utils import 검증 통과)
+
+---
+
+## 2026-03-28 A-Team pull 워크플로우 표준화
+
+**완료**:
+- `GEMINI_TASKS.md` 내 '각 프로젝트에서 A-Team pull 워크플로우 표준화' 완료
+- `CLAUDE.md` 내 업데이트 및 배포 섹션 표준 패턴 적용
+- `README.md` 내 빠른 시작 섹션 최신화 및 절대 경로(`~/tools/A-Team`) 표준화
+
+**이슈**:
+- 없음
+
+**빌드**: ✅ (문서 전용)
+
+---
+
 ## 2026-03-28 훅 계층 재구성 + 토큰 최적화
 
 **완료**:

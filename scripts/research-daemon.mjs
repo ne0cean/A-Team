@@ -336,6 +336,87 @@ async function runConsecutiveCycles(initialCost) {
   }
 
   log(`[SESSION] 연속 사이클 종료. 총 비용: $${sessionCost.toFixed(4)}. 다음 유휴 시 재개.`);
+
+  // ─── Research → Ralph 파이프라인 ─────────────────────────────────────────
+  // 리서치 완료 후 ralph-state.json이 pending 상태이면 Ralph 데몬 자동 시작
+  await maybeStartRalph();
+}
+
+async function maybeStartRalph() {
+  const ralphState = `${RESEARCH_DIR}/ralph-state.json`;
+  if (!existsSync(ralphState)) return;
+
+  try {
+    const state = JSON.parse(readFileSync(ralphState, 'utf8'));
+    if (state.status !== 'pending') return;
+
+    log(`[PIPELINE] Ralph 태스크 감지: "${state.task}"`);
+    log(`[PIPELINE] Research → Ralph 자동 전환`);
+
+    // 최근 리서치 노트 자동 연결
+    if (!state.researchNotes) {
+      const notesDir = `${RESEARCH_DIR}/notes`;
+      if (existsSync(notesDir)) {
+        const { readdirSync, statSync } = await import('fs');
+        let latestNote = null;
+        let latestTime = 0;
+        for (const cat of CATEGORIES) {
+          const catDir = `${notesDir}/${cat}`;
+          if (!existsSync(catDir)) continue;
+          for (const f of readdirSync(catDir)) {
+            if (!f.endsWith('.md')) continue;
+            const fullPath = `${catDir}/${f}`;
+            const mtime = statSync(fullPath).mtimeMs;
+            if (mtime > latestTime) { latestTime = mtime; latestNote = `.research/notes/${cat}/${f}`; }
+          }
+        }
+        if (latestNote) {
+          state.researchNotes = latestNote;
+          log(`[PIPELINE] 리서치 노트 연결: ${latestNote}`);
+        }
+      }
+    }
+
+    // Ralph 데몬 시작
+    const daemonPath = resolve(__dirname, 'ralph-daemon.mjs');
+    if (!existsSync(daemonPath)) {
+      log(`[PIPELINE] ❌ ralph-daemon.mjs 없음: ${daemonPath}`);
+      return;
+    }
+
+    const { buildClaudeEnv } = await import('./daemon-utils.mjs');
+    const env = buildClaudeEnv();
+
+    const ralphLog = `${RESEARCH_DIR}/ralph-daemon.log`;
+    const { openSync } = await import('fs');
+    const logFd = openSync(ralphLog, 'a');
+
+    const proc = spawn('node', [daemonPath], {
+      cwd: REPO_ROOT,
+      env,
+      stdio: ['ignore', logFd, logFd],
+      detached: true,
+    });
+    proc.unref();
+
+    // spawn 성공 확인 후 status 변경 (race condition 방지)
+    state.status = 'running';
+    state.startedAt = Date.now();
+    writeFileSync(ralphState, JSON.stringify(state, null, 2));
+
+    log(`[PIPELINE] Ralph 데몬 시작됨 (PID: ${proc.pid})`);
+  } catch (e) {
+    // spawn 실패 시 status를 pending으로 유지 (재시도 가능)
+    log(`[PIPELINE] Ralph 전환 실패: ${e.message}`);
+    try {
+      const state = JSON.parse(readFileSync(ralphState, 'utf8'));
+      if (state.status === 'running') {
+        state.status = 'pending';
+        writeFileSync(ralphState, JSON.stringify(state, null, 2));
+        log(`[PIPELINE] status를 pending으로 롤백`);
+      }
+    } catch {}
+  }
 }
 
 // ─── 메인 루프 ──────────────────────────────────────────────────────────────

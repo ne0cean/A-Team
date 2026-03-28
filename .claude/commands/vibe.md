@@ -39,6 +39,25 @@ CURRENT.md의 Next Tasks를 분류하고 `.context/GEMINI_TASKS.md` 갱신.
 - 🔴 → "멀티터미널 디스패치 추천. 진행?" → orchestrator + dispatch.sh
 - 🟣 → "MoA 모드 추천. 진행?" → MoA 활성화
 
+## Step 3.5 — Ralph Loop 야간 태스크 제안
+CURRENT.md의 Next Tasks 중 **기계 검증 가능한** 항목을 골라 야간 Ralph Loop 후보로 제안.
+
+**선정 기준:**
+- `--check` 명령을 만들 수 있는가? (빌드, 테스트, 린트 등)
+- 단독 반복으로 완료 가능한가? (다른 작업에 의존 X)
+- 별도 브랜치에서 안전하게 돌릴 수 있는가?
+
+**출력 형식:**
+```
+🌙 오늘 밤 Ralph Loop 후보:
+  1. "[태스크]" --check "[cmd]" --model [모델] --max [N]
+  2. "[태스크]" --check "[cmd]" --model [모델] --max [N]
+  돌릴까요? (번호 선택 or 패스)
+```
+
+사용자가 선택하면 `/ralph start` 또는 `/re pipeline`으로 등록.
+패스하면 야간에 Research Mode만 실행됨.
+
 ## Step 4 — 실행
 브리핑: "마지막 [X] 상태. Opus [N]개 / Gemini [M]개. [모드] + [모델]로 시작."
 
