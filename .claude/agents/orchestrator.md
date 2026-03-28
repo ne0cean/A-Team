@@ -130,7 +130,26 @@ T3: [태스크] → (에이전트) → 산출물  [병렬: T2]
 - 태스크 30분 초과 → 타임아웃 기록 후 재시도 1회
 ```
 
-### Phase 4: 에이전트 실행
+### Phase 3.5: 멀티터미널 디스패치 (❸ 배치형 / ❹ 팀형 선택 시)
+
+Phase 2.0에서 ❸ 이상 패턴 선택 시, Task tool 대신 멀티터미널 디스패치를 사용한다:
+
+1. `.context/dispatch/` 디렉토리 생성
+2. PARALLEL_PLAN.md의 각 에이전트별 dispatch 프롬프트 생성:
+   - `templates/DISPATCH_PROMPT.md` 기반
+   - 태스크 설명 + 파일 소유권 + DoD + 거버넌스 주입
+   - `.context/dispatch/{agent-name}.md`로 저장
+3. `scripts/dispatch.sh PARALLEL_PLAN.md` 실행 → worktree 생성 + 명령어 출력
+4. 사용자에게 터미널별 실행 명령어 전달:
+
+```
+═══ Terminal 1: worker-a (coder) ═══
+cd /project/.claude/worktrees/dispatch-worker-a && claude --model sonnet --permission-mode acceptEdits --name "dispatch-worker-a" "$(cat /project/.context/dispatch/worker-a.md)"
+```
+
+**❶ 기본형 / ❷ A-Team형은 기존 Task tool 방식 유지** (아래 Phase 4).
+
+### Phase 4: 에이전트 실행 (❶/❷ 패턴)
 - 의존성 없는 태스크: 동시에 병렬 실행 (Task 도구 사용)
 - 의존성 있는 태스크: 선행 완료 확인 후 순차 실행
 - 각 에이전트에게 구조화된 입력 전달 (governance 항상 포함):
@@ -175,8 +194,21 @@ T3: [태스크] → (에이전트) → 산출물  [병렬: T2]
 }
 ```
 
+### Phase 5.5: 디스패치 결과 머지 (❸/❹ 패턴 사용 시)
+
+멀티터미널 디스패치 에이전트 완료 후:
+
+1. `scripts/merge-dispatch.sh --check` → 완료 상태 확인
+   - `.context/signals/*.done` = 완료
+   - `.context/signals/*.blocked` = 차단됨
+2. 미완료 에이전트 있으면 → 사용자에게 대기 또는 강제 진행 질문
+3. `scripts/merge-dispatch.sh --merge` → 브랜치 순차 머지
+4. 충돌 발생 시 → 충돌 파일 목록 표시 + 수동 해결 안내
+5. 머지 성공 시 → `scripts/merge-dispatch.sh --cleanup` (worktree + 브랜치 정리)
+6. `.context/CURRENT.md` 갱신
+
 ## 원칙
-- PARALLEL_PLAN.md 없이 에이전트 절대 스폰하지 않는다
+- PARALLEL_PLAN.md 없이 에이전트 절대 스폰하지 않는다 (❶ 기본형 예외)
 - 에이전트 간 컨텍스트는 구조화 JSON으로만 전달 (긴 히스토리 금지)
 - 중요 변경(10개 이상 파일 / 보안 / DB 스키마) → Reviewer 필수 통과
 - 실패 2회 → 사람에게 에스컬레이션, 절대 무한 재시도 하지 않음

@@ -152,6 +152,23 @@ moa_question: "[합성할 핵심 질문]"
 
 ---
 
+## 멀티터미널 디스패치 (❸/❹ 패턴 선택 시)
+
+> Phase 3.5에서 자동 생성. ❶/❷ 패턴은 이 섹션 생략.
+
+| 에이전트 | 모델 | 격리 | 시작 조건 | 타임아웃 |
+|---------|------|------|---------|---------|
+| worker-a | sonnet | worktree | 즉시 | 30m |
+| worker-b | sonnet | worktree | T1 완료 후 | 30m |
+
+- 권한 모드: [acceptEdits / dontAsk]
+- 시그널 경로: `.context/signals/`
+- 머지 전략: [순차 / 스쿼시]
+- 디스패치 명령: `bash scripts/dispatch.sh PARALLEL_PLAN.md`
+- 머지 명령: `bash scripts/merge-dispatch.sh --all`
+
+---
+
 ## 레트로스펙티브 (완료 후 기록)
 
 **잘 된 것**:
