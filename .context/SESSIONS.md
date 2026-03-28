@@ -2,6 +2,21 @@
 
 ---
 
+## 2026-03-28 병렬 처리 도구 종합 가이드 작성
+
+**완료**:
+- 4개 병렬 리서치 에이전트 실행 (OpenHands/Plandex, Mato/CAO, MCP 인프라, Context Handoff)
+- 6개 웹서치로 최신 도구 발굴 (Superset IDE, Claude Squad, ComposioHQ, Multiclaude, Gas Town 등)
+- docs/20-parallel-processing-landscape.md 신규 — 5-Tier 분류 + 8개 개발 케이스별 최적 선택 가이드
+- INDEX.md 갱신 (doc 20 추가)
+
+**이슈**:
+- 컨텍스트 압축 2회 발생 (대량 리서치 에이전트 결과 수집으로 인해)
+
+**빌드**: ✅ (문서 전용)
+
+---
+
 ## 2026-03-27 멀티 에이전트 패턴 Phase 1 통합
 
 **완료**:

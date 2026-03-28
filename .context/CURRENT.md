@@ -6,7 +6,7 @@
 ## In Progress Files
 (없음)
 
-## Last Completions (2026-03-27)
+## Last Completions (2026-03-28)
 - `.claude/commands/tdd.md`, `craft.md` — 누락 커맨드 배포 수정
 - `scripts/install-commands.sh` — orphan 감지 가드 추가
 - `docs/17-integration-evaluation-framework.md` — 7차원 통합 평가 프레임워크
@@ -19,6 +19,7 @@
 - `docs/08-orchestration-patterns.md` — MoA(패턴4) + SOP(패턴5) 추가
 - `templates/PARALLEL_PLAN.md` — Guardrail 체크 + MoA 설정 + 체크포인트 섹션
 - `scripts/checkpoint.sh` — 체크포인트 save/load/list/archive 스크립트
+- `docs/20-parallel-processing-landscape.md` — 병렬 처리 도구 종합 가이드 (4 리서치 에이전트 + 6 웹서치 종합)
 
 ## Next Tasks
 - [ ] scripts/checkpoint.sh 실전 테스트 (실제 BLOCKED 시나리오)

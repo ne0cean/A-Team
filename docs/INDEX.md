@@ -28,6 +28,7 @@
 | `17-integration-evaluation-framework.md` | 통합 평가 프레임워크 | 프레임워크 도입, 멀티에이전트, 평가 기준, 토큰 효율, 장애 복원, 거버넌스, 벤치마크, CrewAI, LangGraph, OpenAI Agents SDK |
 | `18-multi-agent-orchestration-research.md` | 멀티 에이전트 오케스트레이션 리서치 | 오케스트레이션, 수동 분기, 터미널 분기, OpenHands, Mato, CAO, Plandex, 마이그레이션, 토큰 소진 |
 | `19-adoption-plan.md` | 멀티 에이전트 패턴 단계적 도입 계획 | MixtureOfAgents, 3-tier Guardrail, 체크포인팅, SOP, Phase 1/2/3, 파일별 조치, orchestrator 강화, 도입 설계 |
+| `20-parallel-processing-landscape.md` | 병렬 처리 도구 & 프로젝트 종합 가이드 | 서브에이전트, 멀티에이전트, 스웜, 오케스트레이션, Superset IDE, Claude Squad, ComposioHQ, Multiclaude, Gas Town, git worktree, tmux, agentmaxxing, 케이스별 선택, 병렬 처리 |
 
 ---
 
@@ -50,3 +51,4 @@
 | 새 프레임워크/도구 도입 평가 | `17` |
 | 멀티 에이전트 조율, 수동 터미널 분기 효율 | `18` |
 | MoA/Guardrail/체크포인팅 도입 계획, 파일별 설계 | `19` |
+| 병렬 처리 도구 선택, 에이전트 수별 최적 도구, agentmaxxing | `20` |
