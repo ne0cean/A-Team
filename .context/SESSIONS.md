@@ -2,6 +2,27 @@
 
 ---
 
+## 2026-03-28 훅 계층 재구성 + 토큰 최적화
+
+**완료**:
+- SessionStart[startup/resume] 훅 구현 → /vibe + /pickup 수동 입력 자동화
+- auto-commit-on-compact.sh 강화 (.compact-state.json 스냅샷)
+- auto-resume-after-compact.sh 강화 (compact-state 활용)
+- orchestrator.md 70% 축소 (287→87줄), vibe.md 52% 축소 (101→49줄)
+- preamble.md에 coding-safety + sync-and-commit + turbo-auto 통합 부록화
+- governance/workflows/vibe.md 63% 축소 (43→16줄)
+- /vibe Step 3에 태스크별 모델 추천 안내 추가
+- docs/21-hook-hierarchy.md 신규 — 5-Tier 자동화 아키텍처 문서
+- 모델 자동 전환 실현 가능성 조사 → Hook API read-only 확인, dispatch --model로 해결
+
+**이슈**:
+- 컨텍스트 압축 2회 (훅 리서치 + 최적화 작업량)
+- Hook API model 필드 read-only → 메인 세션 모델 전환은 수동 유지
+
+**빌드**: ✅ (문서/스크립트 전용)
+
+---
+
 ## 2026-03-28 병렬 처리 도구 종합 가이드 작성
 
 **완료**:
