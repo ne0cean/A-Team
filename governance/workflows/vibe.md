@@ -33,5 +33,10 @@ description: [Turbo] 세션 시작 및 자율 모드 활성화 (One-Stop Start)
    - 마이너 버그 수정 (원인 명확, 단일 파일)
 
 4. **GEMINI_TASKS.md 업데이트**: 분류 결과를 `.context/GEMINI_TASKS.md`에 기록. 토큰 소진 전 언제든 열람 가능.
-5. **Autonomous Activation**: `turbo-auto.md` 규칙을 활성화하여 사용자 개입 없이 다음 태스크를 즉시 수행합니다.
-6. **Immediate Action**: 브리핑을 생략하거나 극도로 축약하고, **Opus 태스크 중 최우선 과제**를 바로 실행합니다.
+5. **실행 모드 판단**: 최우선 Opus 태스크의 규모를 분석하여 실행 모드 결정:
+   - 🟢 단일 터미널 (에이전트 1-2) → 이대로 진행
+   - 🟡 A-Team 오케스트레이션 (에이전트 3-5) → orchestrator 호출 제안
+   - 🔴 멀티터미널 디스패치 (에이전트 5+) → dispatch.sh 사용 제안
+   - 🟣 MoA 모드 (설계 결정) → MoA 활성화 제안
+6. **Autonomous Activation**: `turbo-auto.md` 규칙을 활성화하여 사용자 개입 없이 다음 태스크를 즉시 수행합니다.
+7. **Immediate Action**: 브리핑을 생략하거나 극도로 축약하고, **선택된 실행 모드**로 최우선 과제를 바로 실행합니다.
