@@ -18,11 +18,12 @@
 ## 빠른 시작
 
 ```bash
-# 1. A-Team 클론
-git clone https://github.com/ne0cean/A-Team.git
+# 1. A-Team 최신화 및 설치
+cd ~/tools/A-Team && git pull && bash scripts/install-commands.sh
 
 # 2. 프로젝트 초기화 (context + memory + harness + 25개 커맨드 자동 설치)
-bash A-Team/templates/init.sh my-project ./A-Team
+# A-Team 저장소가 ~/tools/A-Team 에 있다고 가정합니다.
+bash ~/tools/A-Team/templates/init.sh my-project ~/tools/A-Team
 
 # 3. 세션 시작
 /vibe   # 컨텍스트 로드 + 중단점 파악 + 즉시 실행
