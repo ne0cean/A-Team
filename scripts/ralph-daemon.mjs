@@ -310,6 +310,24 @@ async function mainLoop() {
   log(`[RALPH] 되돌리기: git checkout ${orig} && git branch -D ${branch}`);
   log(`[RALPH] ─────────────────────────────────────`);
 
+  // Notify relay server (if running) so iPhone gets push
+  try {
+    const notifyUrl = process.env.RALPH_NOTIFY_URL || 'http://localhost:3001/api/ralph/notify';
+    await fetch(notifyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        task: finalState.task,
+        status: finalState.status,
+        iterations: finalState.currentIteration,
+        cost: finalState.totalCostUsd,
+      }),
+    });
+    log(`[RALPH] 릴레이 서버 알림 전송 완료`);
+  } catch (e) {
+    log(`[RALPH] 릴레이 서버 알림 실패 (무시): ${e.message}`);
+  }
+
   removePid();
 }
 
