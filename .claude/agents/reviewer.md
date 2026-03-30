@@ -119,6 +119,12 @@ model: sonnet
 }
 ```
 
+### Adversarial Counter-Check (선택적)
+CRITICAL/HIGH 이슈가 0건일 때 — 거짓 음성(false negative)이 아닌지 반증 검증:
+- `lib/adversarial.ts` runAdversarialChecks() 로 프로젝트 상태 교차 검증
+- Bias Delta >= 3 이면: "리뷰 신뢰도 낮음 — 수동 확인 권장" 경고 부착
+- 이 단계는 APPROVED 판정 시에만 실행 (REJECTED는 이미 이슈가 발견된 상태)
+
 ## 판정 기준
 - **APPROVED** (`status: DONE`): CRITICAL/HIGH 이슈 없음
 - **APPROVED_WITH_WARNINGS** (`status: DONE_WITH_CONCERNS`): CRITICAL 없음, HIGH 있지만 블로커 아님

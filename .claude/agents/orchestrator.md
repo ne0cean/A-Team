@@ -15,8 +15,9 @@ model: sonnet
 
 읽은 내용을 `governance` 객체로 압축. 모든 서브에이전트에 주입:
 ```json
-{ "governance": { "read_full_file_before_edit": true, "build_required_after_change": true, "build_command": "npm run build", "max_retry_before_escalate": 2, "commit_format": "[type]: 요약\n\nNOW/NEXT/BLOCK/FILE", "security_review_triggers": ["auth","crypto","input","sql","token","password"] } }
+{ "governance": { "read_full_file_before_edit": true, "build_required_after_change": true, "build_command": "npm run build", "max_retry_before_escalate": 2, "commit_format": "[type]: 요약\n\nNOW/NEXT/BLOCK/FILE", "security_review_triggers": ["auth","crypto","input","sql","token","password"], "hook_tier": "standard" } }
 ```
+`hook_tier`는 `lib/hook-flags.ts`의 3티어(minimal/standard/strict) 중 프로젝트 설정에 따라 결정. 서브에이전트 훅 실행 시 `shouldRunHook()` 으로 필터링.
 
 ## Phase 1: 컨텍스트 수집
 `.context/CURRENT.md` + `CLAUDE.md` + 관련 핵심 파일 3-5개

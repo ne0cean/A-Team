@@ -82,6 +82,15 @@ npm run build
 npm run test
 ```
 
+**Adversarial Verification** (`lib/adversarial.ts`):
+- `runAdversarialChecks()` 실행 — 진입점 존재, 쓰레기 파일, 깨진 참조, 컨텍스트 신선도, 에이전트-규칙 중복 검증
+- `calculateBiasDelta()` — Score/Confidence/Bias Delta 출력
+- Bias Delta >= 5 시 경고 표시
+
+**Harness 성숙도** (`lib/harness-score.ts`):
+- 12원칙 점수를 평가하고 L1-L5 등급 출력
+- 이전 측정 대비 변화 추적
+
 최적화 보고서를 생성하고, `.context/CURRENT.md`에 기록한다.
 발견된 개선 패턴은 `lib/learnings.ts`의 logLearning()으로 자동 축적한다.
 

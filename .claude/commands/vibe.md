@@ -13,6 +13,12 @@ git diff --name-only HEAD~3..HEAD 2>/dev/null | grep -E '^(lib/.*\.ts|\.claude/a
 감지되면: "메이저 통합 감지. `/optimize` 자동 실행합니다." → PIOP Phase 1-5 수행.
 감지 안 되면: 스킵하고 Step 1로.
 
+## Step 0.7 — 학습/Instinct 로드 (자동, 저비용)
+프로젝트에 학습 데이터가 있으면 세션 시작 시 로드:
+- `lib/learnings.ts` searchLearnings() → 최근 학습 5건 요약 표시
+- `lib/instinct.ts` shouldApply() → 이 프로젝트에 적용할 instinct 목록 표시
+- 없으면 무시 (비용 0)
+
 ## Step 1 — 컨텍스트 로드 (SessionStart 훅이 자동 수행)
 새 세션이면 이미 주입됨 → 확인만. 수동 호출이면 아래 실행:
 1. `.context/CURRENT.md` 2. `.context/DECISIONS.md` 3. `memory/MEMORY.md`

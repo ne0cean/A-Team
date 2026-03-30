@@ -38,6 +38,7 @@ description: 세션 종료 — 상태 갱신, 빌드 검증, 커밋, push (+ 선
 - **Learnings**: 세션 중 발견한 pattern/pitfall이 있으면 `lib/learnings.ts` logLearning()으로 기록
 - **Cost**: 세션 토큰/비용 요약 (`lib/cost-tracker.ts` getSummary()) — SESSIONS.md에 포함
 - **Analytics**: 사용한 스킬 목록을 `lib/analytics.ts` logEvent()로 기록
+- **Evals**: 세션 중 테스트/빌드 결과가 있으면 `lib/eval-store.ts` save()로 저장 (다음 세션에서 비교 가능)
 
 ## Step 3.7 — Post-Integration 검사 (자동)
 이 세션 중 `lib/*.ts`, `.claude/agents/*.md`, `governance/` 에 새 파일이 생성되었는지 확인:
