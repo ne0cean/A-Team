@@ -133,3 +133,27 @@ export function searchLearnings(opts: SearchOptions): LearningEntry[] {
 
   return results;
 }
+
+// --- Format ---
+
+/**
+ * Format a learning entry as a single-line string.
+ * Format: `[skill] (confidence N/10) key — insight`
+ * @param entry The learning entry to format
+ * @returns Formatted string representation
+ * @example
+ * const entry = {
+ *   skill: 'review',
+ *   confidence: 8,
+ *   key: 'null-check',
+ *   insight: 'Always null-check API responses',
+ *   ts: '2026-03-30T12:00:00Z',
+ *   type: 'pattern',
+ *   source: 'observed',
+ *   files: ['src/api.ts'],
+ * };
+ * formatLearning(entry) // => '[review] (confidence 8/10) null-check — Always null-check API responses'
+ */
+export function formatLearning(entry: LearningEntry): string {
+  return `[${entry.skill}] (confidence ${entry.confidence}/10) ${entry.key} — ${entry.insight}`;
+}

@@ -5,8 +5,10 @@ import * as os from 'os';
 import {
   logLearning,
   searchLearnings,
+  formatLearning,
   type Learning,
   type LearningType,
+  type LearningEntry,
 } from '../lib/learnings.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'a-team-learnings-test-' + process.pid);
@@ -166,5 +168,75 @@ describe('searchLearnings', () => {
       baseDir: TEST_DIR, slug: 'nonexistent',
     });
     expect(results).toEqual([]);
+  });
+});
+
+describe('formatLearning', () => {
+  it('should format a learning entry as [skill] (confidence N/10) key — insight', () => {
+    const entry: LearningEntry = {
+      skill: 'review',
+      type: 'pattern',
+      key: 'null-check-before-access',
+      insight: 'Always null-check API response before accessing nested fields',
+      confidence: 8,
+      source: 'observed',
+      files: ['src/api/client.ts'],
+      ts: '2026-03-30T12:00:00.000Z',
+    };
+
+    const result = formatLearning(entry);
+    expect(result).toBe(
+      '[review] (confidence 8/10) null-check-before-access — Always null-check API response before accessing nested fields'
+    );
+  });
+
+  it('should format with different confidence levels', () => {
+    const entry: LearningEntry = {
+      skill: 'ship',
+      type: 'pitfall',
+      key: 'no-force-push',
+      insight: 'Never force push to shared branches',
+      confidence: 10,
+      source: 'user-stated',
+      files: [],
+      ts: '2026-03-30T12:00:00.000Z',
+    };
+
+    const result = formatLearning(entry);
+    expect(result).toBe('[ship] (confidence 10/10) no-force-push — Never force push to shared branches');
+  });
+
+  it('should format with low confidence', () => {
+    const entry: LearningEntry = {
+      skill: 'qa',
+      type: 'tool',
+      key: 'playwright-debugging',
+      insight: 'Use inspector mode for Playwright debugging',
+      confidence: 3,
+      source: 'inferred',
+      files: ['test/e2e.ts'],
+      ts: '2026-03-30T12:00:00.000Z',
+    };
+
+    const result = formatLearning(entry);
+    expect(result).toBe('[qa] (confidence 3/10) playwright-debugging — Use inspector mode for Playwright debugging');
+  });
+
+  it('should handle entries with special characters in insight', () => {
+    const entry: LearningEntry = {
+      skill: 'cso',
+      type: 'architecture',
+      key: 'auth-validation',
+      insight: 'Validate JWT expiry & refresh token rotation',
+      confidence: 9,
+      source: 'observed',
+      files: ['src/middleware/auth.ts'],
+      ts: '2026-03-30T12:00:00.000Z',
+    };
+
+    const result = formatLearning(entry);
+    expect(result).toContain('auth-validation');
+    expect(result).toContain('& refresh token rotation');
+    expect(result).toBe('[cso] (confidence 9/10) auth-validation — Validate JWT expiry & refresh token rotation');
   });
 });
