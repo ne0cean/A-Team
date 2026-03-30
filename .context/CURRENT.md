@@ -7,6 +7,15 @@
 (없음)
 
 ## Last Completions (2026-03-30)
+- **PIOP MEDIUM priority wiring (연결율 34.3% → 54.3%)**
+  - vibe.md Step 0.7: learnings/instinct 세션 시작 로드
+  - orchestrator.md: Phase 0 hook_tier, Phase 3.7 학습 주입
+  - reviewer.md: adversarial counter-check, coverage-audit 코드경로 검증
+  - optimize.md Phase 5: adversarial + harness-score 검증
+  - end.md Step 3.5: eval-store 세션 결과 저장
+- **Ralph Loop 실전 테스트 성공**
+  - Pre-check 통과 시 즉시 완료 (정상 동작 확인)
+  - 실패 체크로 실전 실행: haiku가 `formatLearning()` 함수 + 테스트 4건 자율 구현 완료
 - **3개 외부 레포 차용 (7개 모듈, 49 추가 테스트 → 총 116 테스트)**
   - `lib/adversarial.ts` — 반증 검증 (Bias Delta, Score/Confidence 지표) ← harness-diagnostics
   - `lib/harness-score.ts` — 12원칙 성숙도 스코어 (4차원 가중, L1-L5 등급) ← harness-diagnostics
@@ -59,12 +68,13 @@
   - atomic write (renameSync), pipeline race condition 롤백, 하드코딩 경로 제거, spawn timeout, 경로 트래버설 방지 등
 
 ## Next Tasks
-- [ ] Ralph Loop 실전 테스트 (A-Team JSDoc 추가 — haiku, max 5, budget 1)
-- [ ] Research → Ralph 파이프라인 e2e 테스트 (connectome 서브넷 감지)
-- [ ] 멀티터미널 디스패치 실전 테스트 (2-agent dispatch → merge e2e)
-- [ ] scripts/checkpoint.sh 실전 테스트 (BLOCKED 시나리오)
+- [ ] Ralph 결과 머지 (ralph/ 브랜치 → master, formatLearning 포함)
 - [ ] MoA Multi-Layer 실전 테스트 (3 expert × 2 round → judge 호출 시나리오)
 - [ ] MoA Early Stop 검증 (Round 1에서 합의 도달 시 Round 2 스킵 확인)
+- [ ] PIOP LOW priority 연결 (16건 남음 — analytics→vibe, cost-tracker→vibe 등)
+- [ ] Research → Ralph 파이프라인 e2e 테스트
+- [ ] 멀티터미널 디스패치 실전 테스트 (2-agent dispatch → merge e2e)
+- [ ] scripts/checkpoint.sh 실전 테스트 (BLOCKED 시나리오)
 
 ## Blockers
 없음
