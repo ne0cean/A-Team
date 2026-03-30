@@ -7,6 +7,13 @@
 (없음)
 
 ## Last Completions (2026-03-30)
+- **bkit 차용 (4개 모듈, 33 추가 테스트 → 총 153 테스트)**
+  - `lib/circuit-breaker.ts` — 3-state 회로 차단기 (closed/open/half_open, per-feature 격리, auto-cooldown)
+  - `lib/state-machine.ts` — 선언적 FSM (transition table + guard + action, 와일드카드, 히스토리)
+  - `lib/gate-manager.ts` — Quality Gate (pass/retry/fail 3-verdict, metric-driven 조건 평가)
+  - `lib/self-healing.ts` — 자동 복구 파이프라인 (Error→Fix→Verify 루프, max 5회, escalation)
+  - orchestrator.md: circuit-breaker + self-healing 연결
+  - reviewer.md: gate-manager 정량 평가 연결
 - **PIOP MEDIUM priority wiring (연결율 34.3% → 54.3%)**
   - vibe.md Step 0.7: learnings/instinct 세션 시작 로드
   - orchestrator.md: Phase 0 hook_tier, Phase 3.7 학습 주입

@@ -81,7 +81,7 @@ model: sonnet
 - PLAN 없이 에이전트 스폰 금지 (❶ 예외)
 - 에이전트 간 컨텍스트는 구조화 JSON만 (히스토리 금지)
 - 10개+ 파일 / 보안 / DB 스키마 → Reviewer 필수
-- 실패 2회 → 사람 에스컬레이션 (무한 재시도 금지)
+- 실패 2회 → 사람 에스컬레이션 (무한 재시도 금지). `lib/circuit-breaker.ts` CircuitBreaker로 per-feature 실패 추적 — 3회 연속 실패 시 자동 차단(open), 쿨다운 후 재시도(half_open)
 - BLOCKED → 즉시 에스컬레이션 (동일 에이전트 재호출 금지)
 - preamble.md 6가지 원칙: 완전성 우선, 보이면 고친다, 실용 선택, DRY, 명시적>영리, 행동 편향
 
@@ -191,3 +191,10 @@ judge가 `ESCALATE` 반환 시 → 사람에게 에스컬레이션.
 ## 체크포인트 관리
 BLOCKED 시: `bash scripts/checkpoint.sh save {task_id} {agent_name} blocked "{resume_prompt}"`
 재시작 시: `bash scripts/checkpoint.sh load {task_id}` → resume_prompt를 태스크에 추가
+
+## 자동 복구 (Self-Healing)
+서브에이전트가 빌드/테스트 실패로 BLOCKED 반환 시 자동 복구 시도 (`lib/self-healing.ts`):
+1. `createHealSession(error)` — 에러 컨텍스트 세션 생성
+2. `recordFix()` → `recordVerification()` 루프 (최대 5회)
+3. 검증 통과 시 `pr-ready` → 정상 완료로 전환
+4. `shouldEscalate()` = true 시 → 사람 에스컬레이션 (`status: BLOCKED`)
