@@ -6,7 +6,17 @@
 ## In Progress Files
 (없음)
 
-## Last Completions (2026-03-28)
+## Last Completions (2026-03-30)
+- **Auto Mode 통합 + 보안 강화**
+  - `scripts/daemon-utils.mjs` — `getPermissionMode()`: auto 우선, 캐시, 허용목록 검증, `buildClaudeEnv()` 위험 env 제거(NODE_OPTIONS 등 6개), `safePath()` 경계 수정
+  - `scripts/ralph-daemon.mjs` — auto mode 전환 + `checkCommand` freeze (런타임 명령 주입 차단)
+  - `scripts/research-daemon.mjs` — auto mode + 공유 유틸 통합 + `maybeStartRalph()` env 명시 전파
+  - `scripts/dispatch.sh` — auto 기본 + 허용목록 검증 + 변수 인용 + `export CLAUDE_PERMISSION_MODE`
+  - `.claude/commands/vibe.md` — Step 3.7 Auto Mode 활성화 안내
+  - `governance/workflows/vibe.md` — Permission Mode 단계(Step 5) ���가
+  - `/review` 적대적 리뷰: CRITICAL 2 + HIGH 3 + MEDIUM 4 전량 수정
+
+## Previous Completions (2026-03-28)
 - **Ralph Loop 자율 개발 데몬 구현** (NEW)
   - `scripts/ralph-daemon.mjs` — 5레이어 비용 최적화 (pre-check, stall detection, lean context, model tiering, budget cap)
   - `scripts/ralph-prompts.mjs` — per-iteration lean context 빌더 + AGENTS.md 학습 축적

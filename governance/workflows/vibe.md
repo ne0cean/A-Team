@@ -12,5 +12,9 @@ description: [Turbo] 세션 시작 및 자율 모드 활성화 (One-Stop Start)
 2. **Task Classification**: Next Tasks → Opus/Gemini 분류 → GEMINI_TASKS.md 갱신
 3. **Model Recommendation**: 태스크 유형별 추천 모델 안내 (opus/sonnet/haiku)
 4. **Execution Mode**: 에이전트 수 분석 → 🟢 단일 / 🟡 A-Team / 🔴 디스패치 / 🟣 MoA
-5. **Autonomous Activation**: turbo-auto 규칙 활성화
-6. **Immediate Action**: 선택된 모드 + 모델로 최우선 Opus 태스크 즉시 실행
+5. **Permission Mode**: auto mode 활성화 안내 (Shift+Tab 순환 or `--permission-mode auto`)
+   - 대화형: auto mode 전환 권장 (분류기 기반 자동 승인)
+   - 자율 데몬(Ralph/Research): auto 자동 적용, 미지원 시 bypassPermissions 폴백
+   - 디스패치: `--permission-mode auto` 기본 (변경: `--permission-mode acceptEdits`)
+6. **Autonomous Activation**: turbo-auto 규칙 활성화
+7. **Immediate Action**: 선택된 모드 + 모델 + auto permission으로 최우선 Opus 태스크 즉시 실행

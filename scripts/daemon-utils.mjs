@@ -45,10 +45,11 @@ export function findClaude() {
 }
 
 // ─── Claude 실행 환경 ───────────────────────────────────────────────────────
+// 위험한 코드 주입 환경변수를 제거하고 Claude 프로세스에 전달
+const DANGEROUS_ENV_VARS = ['CLAUDECODE', 'NODE_OPTIONS', 'NODE_PATH', 'LD_PRELOAD', 'LD_LIBRARY_PATH', 'DYLD_INSERT_LIBRARIES'];
 export function buildClaudeEnv() {
   const env = { ...process.env };
-  // 중첩 세션 감지 우회
-  delete env.CLAUDECODE;
+  for (const key of DANGEROUS_ENV_VARS) delete env[key];
   return env;
 }
 
@@ -56,8 +57,43 @@ export function buildClaudeEnv() {
 // path traversal 방지: projectRoot 하위 경로만 허용
 export function safePath(projectRoot, relativePath) {
   const resolved = resolve(projectRoot, relativePath);
-  if (!resolved.startsWith(projectRoot)) {
+  if (resolved !== projectRoot && !resolved.startsWith(projectRoot + '/')) {
     throw new Error(`경로 트래버설 감지: ${relativePath}`);
   }
   return resolved;
+}
+
+// ─── Permission Mode 결정 ──────────────────────────────────────────────────
+// Auto mode 우선, 미지원 환경에서는 bypassPermissions 폴백
+// 환경 변수 CLAUDE_PERMISSION_MODE 로 오버라이드 가능
+// 결과를 프로세스 내 캐시하여 반복 서브프로세스 스폰 방지 (프로세스 경계를 넘지 않음)
+const ALLOWED_MODES = ['auto', 'bypassPermissions', 'acceptEdits', 'plan'];
+let _cachedPermMode = null;
+
+export function getPermissionMode() {
+  if (_cachedPermMode !== null) return _cachedPermMode;
+
+  // 1) 환경변수 오버라이드 (허용 목록 검증)
+  const envMode = process.env.CLAUDE_PERMISSION_MODE;
+  if (envMode) {
+    if (!ALLOWED_MODES.includes(envMode)) {
+      throw new Error(`Invalid CLAUDE_PERMISSION_MODE: "${envMode}". Allowed: ${ALLOWED_MODES.join(', ')}`);
+    }
+    _cachedPermMode = envMode;
+    return _cachedPermMode;
+  }
+
+  // 2) auto mode 가용성 확인: claude --help 출력에서 permission 컨텍스트 내 auto 매칭
+  const claudePath = findClaude();
+  try {
+    const r = spawnSync(claudePath, ['--help'], { encoding: 'utf8', timeout: 10_000 });
+    const output = (r.stdout || '') + (r.stderr || '');
+    if (/permission[- ]mode.*\bauto\b/i.test(output) || /\bauto\b.*permission/i.test(output)) {
+      _cachedPermMode = 'auto';
+      return 'auto';
+    }
+  } catch {}
+
+  _cachedPermMode = 'bypassPermissions';
+  return 'bypassPermissions';
 }

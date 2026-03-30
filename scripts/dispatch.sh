@@ -24,7 +24,7 @@ NC='\033[0m'
 
 # ── 인자 파싱 ──
 PLAN_PATH=""
-PERMISSION_MODE="acceptEdits"
+PERMISSION_MODE="auto"
 DRY_RUN=false
 DEFAULT_MODEL="sonnet"
 
@@ -369,6 +369,26 @@ if ! $DRY_RUN; then
   rm -f "$SIGNAL_DIR"/*.done "$SIGNAL_DIR"/*.blocked 2>/dev/null || true
 fi
 
+# permission mode 허용목록 검증
+ALLOWED_MODES="auto bypassPermissions acceptEdits plan"
+if ! echo "$ALLOWED_MODES" | grep -qw "$PERMISSION_MODE"; then
+  echo -e "${RED}Error: 유효하지 않은 permission mode: $PERMISSION_MODE${NC}"
+  echo "허용: $ALLOWED_MODES"
+  exit 1
+fi
+
+# auto mode 가용성 체크 (dispatch.sh는 쉘이므로 별도 검증)
+if [[ "$PERMISSION_MODE" == "auto" ]]; then
+  CLAUDE_BIN=$(command -v claude 2>/dev/null || echo "claude")
+  if ! "$CLAUDE_BIN" --help 2>&1 | grep -q 'permission-mode.*auto\|auto.*permission'; then
+    echo -e "${YELLOW}Warning: auto mode 미지원 — bypassPermissions로 폴백${NC}"
+    PERMISSION_MODE="bypassPermissions"
+  fi
+fi
+
+# 결정된 permission mode를 하위 프로세스에 전파
+export CLAUDE_PERMISSION_MODE="$PERMISSION_MODE"
+
 # 에이전트별 처리
 TERMINAL_NUM=1
 echo ""
@@ -401,7 +421,7 @@ for agent_entry in "${AGENTS[@]}"; do
 
   echo -e "${YELLOW}═══ Terminal ${TERMINAL_NUM}: ${name} (${role}) ═══${NC}"
   echo ""
-  echo "cd \"${local_worktree}\" && claude --model ${model} --permission-mode ${PERMISSION_MODE} --name \"dispatch-${name}\" \"\$(cat '${local_prompt}')\""
+  echo "cd \"${local_worktree}\" && claude --model \"${model}\" --permission-mode \"${PERMISSION_MODE}\" --name \"dispatch-${name}\" \"\$(cat '${local_prompt}')\""
   echo ""
 
   TERMINAL_NUM=$((TERMINAL_NUM + 1))

@@ -12,6 +12,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync, unl
 import { spawnSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
+import { findClaude as sharedFindClaude, buildClaudeEnv, getPermissionMode } from './daemon-utils.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -91,18 +92,8 @@ function removePid() {
   try { unlinkSync(`${RESEARCH_DIR}/daemon.pid`); } catch {}
 }
 
-function findClaude() {
-  const candidates = [
-    '/Users/noir/.nvm/versions/node/v24.13.0/bin/claude',
-    '/usr/local/bin/claude',
-    '/opt/homebrew/bin/claude',
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) return p;
-  }
-  const result = spawnSync('which', ['claude'], { encoding: 'utf8' });
-  return result.stdout.trim() || 'claude';
-}
+// findClaude → daemon-utils.mjs의 sharedFindClaude로 직접 사용
+const findClaude = sharedFindClaude;
 
 // ─── 세션 스냅샷 ─────────────────────────────────────────────────────────────
 // 리서치는 코드를 변경하지 않으므로 git tag 불필요
@@ -163,12 +154,7 @@ function spawnClaude(claudePath, args, { noteFile, category, timestamp, isResume
       warnedBudget: false,
     };
 
-    const env = {
-      ...process.env,
-      PATH: `/Users/noir/.nvm/versions/node/v24.13.0/bin:/usr/local/bin:/usr/bin:/bin:${process.env.PATH || ''}`,
-    };
-    // Claude Code 중첩 세션 감지 우회
-    delete env.CLAUDECODE;
+    const env = buildClaudeEnv();
 
     const proc = spawn(claudePath, args, { cwd: REPO_ROOT, env, timeout: CONFIG.cycleTimeoutMs });
     // stdin 즉시 닫기 — 닫지 않으면 claude가 EOF 대기로 hang
@@ -230,12 +216,15 @@ async function resumeCycle(activeCycle) {
   const claudePath = findClaude();
   const resumePrompt = `이전 ${category} 리서치가 중단됐습니다. 지금까지 분석한 내용을 ${noteFile}에 저장하고 마무리해주세요.`;
 
+  const permMode = getPermissionMode();
+  log(`[PERM] resume permission-mode: ${permMode}`);
+
   return spawnClaude(
     claudePath,
     [
       '--print',
       '--resume', sessionId,
-      '--permission-mode', 'bypassPermissions',
+      '--permission-mode', permMode,
       '--max-budget-usd', CONFIG.maxBudgetUsd,
       '--verbose',
       '--output-format', 'stream-json',
@@ -274,11 +263,14 @@ async function runCycle(category) {
   const prompt = buildPrompt(category, timestamp, REPO_ROOT);
   const claudePath = findClaude();
 
+  const permMode = getPermissionMode();
+  log(`[PERM] cycle permission-mode: ${permMode}`);
+
   const result = await spawnClaude(
     claudePath,
     [
       '--print',
-      '--permission-mode', 'bypassPermissions',
+      '--permission-mode', permMode,
       '--max-budget-usd', CONFIG.maxBudgetUsd,
       '--verbose',
       '--output-format', 'stream-json',
@@ -384,8 +376,10 @@ async function maybeStartRalph() {
       return;
     }
 
-    const { buildClaudeEnv } = await import('./daemon-utils.mjs');
+    const { buildClaudeEnv, getPermissionMode: getPermMode } = await import('./daemon-utils.mjs');
     const env = buildClaudeEnv();
+    // Research가 결정한 permission mode를 Ralph에 명시 전파 (claude --help 중복 방지)
+    env.CLAUDE_PERMISSION_MODE = getPermMode();
 
     const ralphLog = `${RESEARCH_DIR}/ralph-daemon.log`;
     const { openSync } = await import('fs');
@@ -399,7 +393,7 @@ async function maybeStartRalph() {
     });
     proc.unref();
 
-    // spawn 성공 확인 후 status 변경 (race condition 방지)
+    // spawn 비동기 — error 이벤트 전에 status 변경됨. 실패 시 catch에서 pending으로 롤백
     state.status = 'running';
     state.startedAt = Date.now();
     writeFileSync(ralphState, JSON.stringify(state, null, 2));

@@ -58,14 +58,25 @@ CURRENT.md의 Next Tasks 중 **기계 검증 가능한** 항목을 골라 야간
 사용자가 선택하면 `/ralph start` 또는 `/re pipeline`으로 등록.
 패스하면 야간에 Research Mode만 실행됨.
 
+## Step 3.7 — Auto Mode 활성화 안내
+현재 퍼미션 모드를 확인하고 auto mode 전환을 안내:
+- **auto mode 사용 가능**: "🔓 Auto mode 활성 — 분류기가 안전한 액션 자동 승인"
+- **미사용 시**: "`Shift+Tab`으로 auto mode 전환 권장 (승인 피로↓ + 안전장치 유지)"
+- **자율 데몬**(Ralph/Research): auto mode 자동 적용 (bypassPermissions 폴백)
+
+> **주의**: 프로덕션 배포, force push, IAM 변경은 auto mode에서도 차단됨.
+> `CLAUDE_PERMISSION_MODE=bypassPermissions` 환경변수로 오버라이드 가능.
+
 ## Step 4 — 실행
-브리핑: "마지막 [X] 상태. Opus [N]개 / Gemini [M]개. [모드] + [모델]로 시작."
+브리핑: "마지막 [X] 상태. Opus [N]개 / Gemini [M]개. [모드] + [모델] + [퍼미션]. 시작."
 
 - **Opus 태스크**: 선택된 모드로 즉시 실행
 - **Gemini 태스크**: GEMINI_TASKS.md에 기록만. 토큰 소진 시 Gemini가 이어받음
 - 리서치 노트 적용 원하면 해당 태스크 우선
+- **디스패치/Ralph**: auto mode가 기본 (분류기 기반 안전 실행)
 
 ## 자율 작업 원칙
 - 안전한 탐색/읽기는 승인 없이 진행
 - [분석 → 수정 → 검증] 한 번에 묶어 실행
 - 실패 시 원인 파악 후 재시도 (최대 2회), 모호한 부분만 최소 질문
+- auto mode 폴백: 분류기 3회 연속 차단 시 수동 승인으로 에스컬레이션

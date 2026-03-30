@@ -2,6 +2,20 @@
 
 ---
 
+## 2026-03-30 Auto Mode 통합 + 보안 강화
+
+**완료**:
+- Anthropic auto mode 딥리서치 (2계층 방어 아키텍처, Sonnet 4.6 분류기, 0.4% FPR)
+- `getPermissionMode()` 구현: auto 우선 → 캐시 → 허용목록 검증 → bypassPermissions 폴백
+- 전 데몬(Ralph/Research/Dispatch) auto mode 적용 + /vibe 터보모드 통합 (Step 3.7)
+- `/review` 적대적 리뷰 실행: CRITICAL 2건(env 미검증, 쉘 인용), HIGH 3건(폴백 불일치, 파이프라인 env 단절, checkCommand 주입) 전량 수정
+- 보안 강화: buildClaudeEnv() 위험 env 6개 제거, safePath() 경계 수정, dispatch.sh 변수 인용
+
+**이슈**: auto mode는 Research Preview — 안정성 이슈 보고됨 (GitHub issues)
+**빌드**: ✅ (전 파일 구문 검증 통과)
+
+---
+
 ## 2026-03-28 Ralph Loop 자율 개발 데몬 구현 + 최적화
 
 **완료**:

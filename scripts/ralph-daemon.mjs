@@ -13,7 +13,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync, unl
 import { spawnSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { createLogger, sleep, findClaude, buildClaudeEnv, atomicWriteJSON } from './daemon-utils.mjs';
+import { createLogger, sleep, findClaude, buildClaudeEnv, atomicWriteJSON, getPermissionMode } from './daemon-utils.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = process.cwd();
@@ -121,10 +121,13 @@ function spawnClaudeProcess(claudePath, prompt, model) {
     let rawOutput = '';
     let lineBuffer = '';
 
+    const permMode = getPermissionMode();
+    log(`[PERM] permission-mode: ${permMode}`);
+
     const env = buildClaudeEnv();
     const args = [
       '--print',
-      '--permission-mode', 'bypassPermissions',
+      '--permission-mode', permMode,
       '--max-budget-usd', CONFIG.maxBudgetPerIter,
       '--model', model,
       '--output-format', 'stream-json',
@@ -193,9 +196,12 @@ async function mainLoop() {
   writePid();
 
   const state = loadState();
+  // checkCommand를 시작 시 freeze — 런타임 중 state.json 변경으로 인한 명령 주입 방지
+  const frozenCheckCommand = state.checkCommand || null;
   log(`[RALPH] 시작 — PID: ${process.pid}`);
   log(`[RALPH] 태스크: ${state.task}`);
   log(`[RALPH] 모델: ${state.model} | 최대: ${state.maxIterations}회 | 예산: $${state.budgetCapUsd}`);
+  log(`[RALPH] checkCommand (frozen): ${frozenCheckCommand || '없음'}`);
 
   // 별도 브랜치에서 작업 (원본 보호)
   const ralphBranch = ensureRalphBranch(state);
@@ -241,7 +247,7 @@ async function mainLoop() {
 
     // L1: Pre-check gate
     log(`[RALPH] 반복 ${s.currentIteration + 1}/${s.maxIterations} — Pre-check 실행`);
-    if (runPreCheck(s.checkCommand)) {
+    if (runPreCheck(frozenCheckCommand)) {
       log(`[RALPH] ✅ Pre-check 통과 — 태스크 완료!`);
       s.status = 'complete'; saveState(s);
       appendProgress(s, '✅ Pre-check 통과 — 완료 확인됨');
@@ -282,7 +288,7 @@ async function mainLoop() {
 
     if (result.rawOutput.includes(CONFIG.promiseTag)) {
       log(`[RALPH] <promise> 태그 감지 — 완료 검증 중`);
-      if (runPreCheck(s.checkCommand)) {
+      if (runPreCheck(frozenCheckCommand)) {
         log(`[RALPH] ✅ 완료 검증 통과!`);
         s.status = 'complete'; saveState(s);
         appendProgress(s, `✅ 외부 검증 통과 — 완료`);
