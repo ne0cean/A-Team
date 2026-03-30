@@ -2,6 +2,19 @@
 
 ---
 
+## 2026-03-31 bkit 차용 + lib/ 18모듈 도달 (153 tests)
+
+**완료**:
+- bkit 4개 핵심 패턴 TDD 차용: circuit-breaker, state-machine, gate-manager, self-healing
+- orchestrator 연결: circuit-breaker (per-feature 실패 추적) + self-healing (자동 복구 파이프라인)
+- reviewer 연결: gate-manager (pass/retry/fail 정량 판정)
+- 총 18개 lib 모듈, 153 테스트, 0 failures
+
+**이슈**: 없음
+**빌드**: ✅ (tsc --noEmit + vitest run 153/153)
+
+---
+
 ## 2026-03-30 외부 레포 4개 차용 + PIOP + lib/ 14모듈 TDD
 
 **완료**:

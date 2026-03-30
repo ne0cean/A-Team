@@ -75,9 +75,9 @@
   - atomic write (renameSync), pipeline race condition 롤백, 하드코딩 경로 제거, spawn timeout, 경로 트래버설 방지 등
 
 ## Next Tasks
-- [ ] Ralph 결과 머지 (ralph/ 브랜치 → master, formatLearning 포함)
 - [ ] MoA Multi-Layer 실전 테스트 (3 expert × 2 round → judge 호출 시나리오)
 - [ ] MoA Early Stop 검증 (Round 1에서 합의 도달 시 Round 2 스킵 확인)
+- [ ] State Machine을 orchestrator에 실제 적용 (마크다운 산문 → 선언적 FSM 전환)
 - [ ] PIOP LOW priority 연결 (16건 남음 — analytics→vibe, cost-tracker→vibe 등)
 - [ ] Research → Ralph 파이프라인 e2e 테스트
 - [ ] 멀티터미널 디스패치 실전 테스트 (2-agent dispatch → merge e2e)
