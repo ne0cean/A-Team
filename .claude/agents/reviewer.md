@@ -53,15 +53,42 @@ model: sonnet
 - [ ] N+1 쿼리, 무한 루프, 메모리 누수
 - [ ] 불필요한 재렌더링/재계산
 
-#### 테스트 커버리지
-- [ ] 핵심 코드 경로에 테스트 존재하는가?
-- [ ] 변경된 기능의 회귀 테스트 있는가?
+#### 테스트 커버리지 (`lib/coverage-audit.ts` 활용)
+- [ ] 변경된 파일의 코드 경로를 `tracePaths(diff)` 로 추출
+- [ ] 각 경로에 대응하는 테스트 존재 여부 확인
+- [ ] `checkGate(percentage)` 로 커버리지 게이트 검증 (최소 60%, 목표 80%)
+- [ ] 회귀 Iron Rule: 기존 동작 변경 시 regression 테스트 필수
 
 ### Severity 분류
 - **CRITICAL**: 즉시 수정 필요. 보안 취약점, 데이터 손실 위험, 빌드 실패
 - **HIGH**: 수정 권장. 기능 버그, 중요 엣지 케이스 누락
 - **MEDIUM**: 개선 권장. 성능 이슈, 코드 품질 문제
 - **LOW**: 참고용. 스타일, 미래 개선 사항
+
+### Confidence Calibration (신뢰도 점수)
+
+모든 소견(issue)에 반드시 **confidence (1-10)** 점수를 부여한다.
+
+| 점수 | 의미 | 표시 규칙 |
+|------|------|----------|
+| 9-10 | 코드를 직접 읽고 검증한 구체적 버그/취약점 | 정상 표시 |
+| 7-8 | 높은 확신의 패턴 매칭 | 정상 표시 |
+| 5-6 | 중간. 거짓 양성 가능 | 경고 부착: "Medium confidence, verify this is actually an issue" |
+| 3-4 | 낮은 확신. 패턴이 의심스럽지만 정상일 수 있음 | 메인 리포트에서 제외. 부록에만 포함 |
+| 1-2 | 추측 | P0 급이 아니면 보고하지 않음 |
+
+**P0 예외**: severity=P0 소견은 confidence에 관계없이 항상 표시한다.
+
+**소견 형식**:
+`[SEVERITY] (confidence: N/10) file:line — description`
+
+예시:
+`[P1] (confidence: 9/10) app/models/user.rb:42 — SQL injection via string interpolation in where clause`
+`[P2] (confidence: 5/10) app/controllers/api.rb:18 — Possible N+1 query, verify with production logs`
+
+**교정 학습**: confidence < 7로 보고한 소견이 실제 이슈로 확인되면 → 교정 이벤트.
+해당 패턴을 learnings에 기록하여 향후 리뷰에서 더 높은 신뢰도로 감지한다.
+(`lib/confidence.ts` + `lib/learnings.ts` 참조)
 
 ### 출력 형식 (반드시 이 형식 사용)
 
@@ -74,6 +101,7 @@ model: sonnet
   "issues": [
     {
       "severity": "CRITICAL | HIGH | MEDIUM | LOW",
+      "confidence": 8,
       "type": "AUTO-FIX | ASK | FLAG",
       "file": "[파일 경로]",
       "line": "[줄 번호 또는 범위]",

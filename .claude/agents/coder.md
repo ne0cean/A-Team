@@ -25,9 +25,15 @@ model: sonnet
 - 과도한 추상화 금지 — 요청된 것만 구현
 
 ### 구현 후 (필수)
-1. `npm run build` (또는 프로젝트 빌드 명령) 실행
-2. 빌드 실패 시: 오류 읽고 수정 → 재빌드 (최대 2회)
-3. 2회 실패 시: 실패 원인을 output에 기록하고 reviewer에게 에스컬레이션
+1. **Post-Edit Quality Gate** — 수정한 파일에서 잔류 디버그 코드 자가 점검:
+   - `console.log`, `console.dir`, `console.debug` → 제거
+   - `debugger` 문 → 제거
+   - 새로 추가한 `TODO`/`FIXME` → 의도적인 것만 허용, 나머지 제거
+   (`lib/quality-gate.ts` 참조)
+2. **Config Protection** — `.eslintrc`, `.prettierrc`, `tsconfig.json`, `biome.json` 등 린터/포맷터 설정 파일 수정 시도 금지. 코드를 고쳐서 규칙을 통과시킬 것. (`lib/config-protection.ts` 참조)
+3. `npm run build` (또는 프로젝트 빌드 명령) 실행
+4. 빌드 실패 시: 오류 읽고 수정 → 재빌드 (최대 2회)
+5. 2회 실패 시: 실패 원인을 output에 기록하고 reviewer에게 에스컬레이션
 
 ### 출력 형식 (반드시 이 형식 사용)
 

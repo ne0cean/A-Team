@@ -7,6 +7,33 @@
 (없음)
 
 ## Last Completions (2026-03-30)
+- **3개 외부 레포 차용 (7개 모듈, 49 추가 테스트 → 총 116 테스트)**
+  - `lib/adversarial.ts` — 반증 검증 (Bias Delta, Score/Confidence 지표) ← harness-diagnostics
+  - `lib/harness-score.ts` — 12원칙 성숙도 스코어 (4차원 가중, L1-L5 등급) ← harness-diagnostics
+  - `lib/hook-flags.ts` — 3티어 훅 강도 (minimal/standard/strict) ← everything-claude-code
+  - `lib/quality-gate.ts` — Post-Edit 품질 게이트 (console.log/debugger/TODO 감지) ← everything-claude-code
+  - `lib/cost-tracker.ts` — 세션별 토큰/비용 추적 (모델별 분해, 예산 초과 경고) ← everything-claude-code
+  - `lib/instinct.ts` — Instinct 진화 모델 (confidence 가중, project→global 프로모션) ← everything-claude-code
+  - `lib/config-protection.ts` — 린터/포맷터 설정 변경 차단 ← everything-claude-code
+- **Post-Integration Optimization Protocol (PIOP) 생성**
+  - `governance/workflows/post-integration.md` — 5-Phase 자동 최적화 프로토콜 (Integration Map → Cross-Module Wiring → Trigger Optimization → Token Cost Optimization → Validation & Report)
+  - `.claude/commands/optimize.md` — `/optimize` 슬래시 커맨드 (수동/자동 실행)
+  - `.claude/commands/vibe.md` — Step 0.5 PIOP 자동 감지 추가
+  - `.claude/commands/end.md` — Step 3.5 PIOP 검사 추가
+  - `.claude/agents/orchestrator.md` — Phase 5.7 PIOP 자동 실행 추가
+- **gstack 핵심 코드 TDD 차용 (7개 모듈, 67 테스트)**
+  - `lib/learnings.ts` — 크로스세션 학습 시스템 (JSONL, dedup, cross-project, skill/type 필터)
+  - `lib/confidence.ts` — Confidence Calibration (1-10 점수, P0 예외, 교정 학습)
+  - `lib/coverage-audit.ts` — 코드경로 추적 + ASCII 커버리지 다이어그램 + 게이트 (60%/80%)
+  - `lib/skill-gen.ts` — SKILL.md 템플릿 파이프라인 ({{PLACEHOLDER}} → resolver, 신선도 검사)
+  - `lib/eval-store.ts` — Eval 실행 저장/비교 (gate/periodic 2티어, regression/fix 감지)
+  - `lib/analytics.ts` — 스킬 사용 추적 (JSONL, period 필터, repo별 분석, hook fire 이벤트)
+  - `lib/worktree.ts` — WorktreeManager TS (격리 실행 + 패치 harvest + 중복 제거)
+  - `.claude/agents/reviewer.md` — Confidence Calibration 섹션 통합
+  - 테스트 인프라: `package.json` + `vitest` + `tsconfig.json` (67 tests, 0 failures)
+- **MoA Multi-Layer Loop + Judge Agent + Stall Detection 통합**
+  - `.claude/agents/orchestrator.md` — MoA 섹션 전면 확장: Multi-Layer 라운드 루프(max_rounds=3), 전문가 프롬프트 템플릿(이전 라운드 출력 주입), 합의 검사(consensus_score), Early Stop(stall 감지 + 합의 도달), 3단계 Aggregation(강한합의/다수합의/불일치→judge), 비용 제어(max_tokens, 요약 주입)
+  - `.claude/agents/judge.md` — 신규: MoA 충돌 해소 전담 에이전트. 근거 강도 5단계 평가(code>test>doc>experience>reasoning), 합의 판정 전략(강한/다수/완전불일치), ESCALATE 조건, 구조화 JSON 출력
 - **Auto Mode 통합 + 보안 강화**
   - `scripts/daemon-utils.mjs` — `getPermissionMode()`: auto 우선, 캐시, 허용목록 검증, `buildClaudeEnv()` 위험 env 제거(NODE_OPTIONS 등 6개), `safePath()` 경계 수정
   - `scripts/ralph-daemon.mjs` — auto mode 전환 + `checkCommand` freeze (런타임 명령 주입 차단)
@@ -36,7 +63,8 @@
 - [ ] Research → Ralph 파이프라인 e2e 테스트 (connectome 서브넷 감지)
 - [ ] 멀티터미널 디스패치 실전 테스트 (2-agent dispatch → merge e2e)
 - [ ] scripts/checkpoint.sh 실전 테스트 (BLOCKED 시나리오)
-- [ ] orchestrator MoA 모드 실전 테스트
+- [ ] MoA Multi-Layer 실전 테스트 (3 expert × 2 round → judge 호출 시나리오)
+- [ ] MoA Early Stop 검증 (Round 1에서 합의 도달 시 Round 2 스킵 확인)
 
 ## Blockers
 없음

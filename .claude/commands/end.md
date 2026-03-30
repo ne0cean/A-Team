@@ -33,6 +33,22 @@ description: 세션 종료 — 상태 갱신, 빌드 검증, 커밋, push (+ 선
 빌드 스크립트 없으면 eslint / tsc --noEmit 등 정적 분석 실행.
 빌드 실패 시 → 수정 후 재시도 (최대 2회). 2회 실패 시 BLOCK에 기록 후 계속 진행.
 
+## Step 3.5 — 세션 데이터 저장 (자동)
+세션 중 발견된 학습/비용/사용 데이터를 자동 저장:
+- **Learnings**: 세션 중 발견한 pattern/pitfall이 있으면 `lib/learnings.ts` logLearning()으로 기록
+- **Cost**: 세션 토큰/비용 요약 (`lib/cost-tracker.ts` getSummary()) — SESSIONS.md에 포함
+- **Analytics**: 사용한 스킬 목록을 `lib/analytics.ts` logEvent()로 기록
+
+## Step 3.7 — Post-Integration 검사 (자동)
+이 세션 중 `lib/*.ts`, `.claude/agents/*.md`, `governance/` 에 새 파일이 생성되었는지 확인:
+```bash
+git diff --cached --name-only --diff-filter=A 2>/dev/null | grep -E '^(lib/.*\.ts|\.claude/agents/.*\.md|governance/)' || true
+git diff --name-only --diff-filter=A 2>/dev/null | grep -E '^(lib/.*\.ts|\.claude/agents/.*\.md|governance/)' || true
+```
+감지되면: PIOP Phase 1 (Integration Map) 실행.
+- 미연결 항목 발견 시: 즉시 Phase 2 연결 수행 (빌드 검증 포함)
+- 또는 복잡하면: CURRENT.md의 Next Tasks에 `/optimize` TODO 등록
+
 ## Step 4 — 커밋
 빌드 성공 시 커밋:
 ```

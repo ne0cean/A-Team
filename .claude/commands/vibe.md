@@ -5,6 +5,14 @@ description: 세션 시작 — 컨텍스트 로드 + Opus/Gemini 분류 + 즉시
 > **자동 트리거**: SessionStart 훅이 새 세션 시 Step 1~2를 자동 주입합니다.
 > 수동 `/vibe`는 컨텍스트 강제 리로드 또는 태스크 재분류 시 사용.
 
+## Step 0.5 — Post-Integration 감지 (자동)
+이전 세션 이후 메이저 통합이 있었는지 확인:
+```bash
+git diff --name-only HEAD~3..HEAD 2>/dev/null | grep -E '^(lib/.*\.ts|\.claude/agents/.*\.md|governance/)' || true
+```
+감지되면: "메이저 통합 감지. `/optimize` 자동 실행합니다." → PIOP Phase 1-5 수행.
+감지 안 되면: 스킵하고 Step 1로.
+
 ## Step 1 — 컨텍스트 로드 (SessionStart 훅이 자동 수행)
 새 세션이면 이미 주입됨 → 확인만. 수동 호출이면 아래 실행:
 1. `.context/CURRENT.md` 2. `.context/DECISIONS.md` 3. `memory/MEMORY.md`
