@@ -2,6 +2,20 @@
 
 ---
 
+## 2026-04-07 컨텍스트창 최적화 — 서브에이전트 아키텍처 전환
+
+**완료**:
+- 9개 서브에이전트 신규 생성 (cso, adversarial, review-pr, benchmark, qa, doc-sync, autoplan, tdd, guardrail)
+- 9개 슬래시 커맨드 thin 래퍼 교체 (커맨드 총 88KB → 58KB, 호출 시 메인 컨텍스트 90%+ 절감)
+- install-commands.sh cp→symlink 전환 → 스킬 목록 중복 제거
+- vibe.md Daily Tip (매일 2개 유용한 명령어 자동 소개)
+- Tier 2 guardrail 에이전트 (haiku 모델, 디버그 코드/설정 위반/보안 패턴 감지)
+
+**이슈**: 없음
+**빌드**: 153 tests pass
+
+---
+
 ## 2026-03-31 bkit 차용 + lib/ 18모듈 도달 (153 tests)
 
 **완료**:

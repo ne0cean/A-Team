@@ -6,7 +6,17 @@
 ## In Progress Files
 (없음)
 
-## Last Completions (2026-03-30)
+## Last Completions (2026-04-07)
+- **컨텍스트창 최적화 — 서브에이전트 아키텍처 전환**
+  - 9개 서브에이전트 신규 생성: `cso`, `adversarial`, `review-pr`, `benchmark`, `qa`, `doc-sync`, `autoplan`, `tdd`, `guardrail`
+  - 9개 슬래시 커맨드를 thin 래퍼로 교체 (3-5KB → ~350B, 메인 컨텍스트 90%+ 절감)
+  - `install-commands.sh` cp→symlink 전환 (스킬 목록 중복 제거)
+  - `vibe.md` Step 0.3 Daily Tip 추가 (매일 2개 유용한 명령어 자동 소개)
+  - Tier 2 `guardrail` 에이전트 (haiku 모델, 코드 변경 후 품질 자동 체크)
+  - 자동 트리거링: 에이전트 description에 자연어 매칭 → `/command` 없이 자동 라우팅
+  - 빌드 검증: 153 tests pass
+
+## Previous Completions (2026-03-30)
 - **bkit 차용 (4개 모듈, 33 추가 테스트 → 총 153 테스트)**
   - `lib/circuit-breaker.ts` — 3-state 회로 차단기 (closed/open/half_open, per-feature 격리, auto-cooldown)
   - `lib/state-machine.ts` — 선언적 FSM (transition table + guard + action, 와일드카드, 히스토리)
@@ -59,7 +69,7 @@
   - `governance/workflows/vibe.md` — Permission Mode 단계(Step 5) ���가
   - `/review` 적대적 리뷰: CRITICAL 2 + HIGH 3 + MEDIUM 4 전량 수정
 
-## Previous Completions (2026-03-28)
+## Previous Completions 2 (2026-03-28)
 - **Ralph Loop 자율 개발 데몬 구현** (NEW)
   - `scripts/ralph-daemon.mjs` — 5레이어 비용 최적화 (pre-check, stall detection, lean context, model tiering, budget cap)
   - `scripts/ralph-prompts.mjs` — per-iteration lean context 빌더 + AGENTS.md 학습 축적
@@ -75,13 +85,13 @@
   - atomic write (renameSync), pipeline race condition 롤백, 하드코딩 경로 제거, spawn timeout, 경로 트래버설 방지 등
 
 ## Next Tasks
+- [ ] 서브에이전트 실전 트리거 테스트 (자연어 "리뷰해줘" → review-pr 에이전트 자동 라우팅 확인)
+- [ ] orchestrator에서 guardrail 에이전트 자동 호출 연결 (coder 완료 후)
+- [ ] 나머지 Tier 2 커맨드 서브에이전트 전환 검토 (investigate, land, ship, craft)
 - [ ] MoA Multi-Layer 실전 테스트 (3 expert × 2 round → judge 호출 시나리오)
-- [ ] MoA Early Stop 검증 (Round 1에서 합의 도달 시 Round 2 스킵 확인)
 - [ ] State Machine을 orchestrator에 실제 적용 (마크다운 산문 → 선언적 FSM 전환)
 - [ ] PIOP LOW priority 연결 (16건 남음 — analytics→vibe, cost-tracker→vibe 등)
 - [ ] Research → Ralph 파이프라인 e2e 테스트
-- [ ] 멀티터미널 디스패치 실전 테스트 (2-agent dispatch → merge e2e)
-- [ ] scripts/checkpoint.sh 실전 테스트 (BLOCKED 시나리오)
 
 ## Blockers
 없음

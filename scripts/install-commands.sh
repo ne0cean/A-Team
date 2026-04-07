@@ -22,14 +22,27 @@ updated=0
 
 for f in "$SRC"/*.md; do
   name=$(basename "$f")
-  if [ ! -f "$DST/$name" ]; then
-    cp "$f" "$DST/$name"
-    echo "  + $name"
-    ((added++)) || true
-  elif ! diff -q "$f" "$DST/$name" > /dev/null 2>&1; then
-    cp "$f" "$DST/$name"
-    echo "  ~ $name (updated)"
+  target="$DST/$name"
+
+  # Skip source files that are themselves symlinks (e.g. pointing elsewhere)
+  if [ -L "$f" ]; then
+    continue
+  fi
+
+  # Skip if destination is already a correct symlink pointing to this source
+  if [ -L "$target" ] && [ "$(readlink "$target")" = "$f" ]; then
+    continue
+  fi
+
+  # Detect whether destination is a regular file (about to be replaced by symlink)
+  if [ -f "$target" ] && [ ! -L "$target" ]; then
+    ln -sf "$f" "$target"
+    echo "  ~ $name (file → symlink)"
     ((updated++)) || true
+  else
+    ln -sf "$f" "$target"
+    echo "  + $name (symlinked)"
+    ((added++)) || true
   fi
 done
 
