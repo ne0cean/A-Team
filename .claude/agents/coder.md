@@ -56,6 +56,25 @@ model: sonnet
 }
 ```
 
+## UI 파일 수정 시 자동 시각 검증
+
+UI 파일(.tsx/.jsx/.css/.scss) 수정 시 PostToolUse 훅이 자동으로 Before/After diff를 생성한다.
+`governance/rules/visual-verification.md` 참조.
+
+### 자동 동작 (훅이 처리)
+- Edit/Write 실행 전: PreToolUse가 before 스크린샷 캡처
+- Edit/Write 실행 후: PostToolUse가 after 스크린샷 + diff + 좌표 추출
+- additionalContext로 결과가 네 컨텍스트에 자동 주입됨
+
+### 네가 해야 할 것
+1. additionalContext에 "UI Auto-Verify"가 보이면:
+   - diff 이미지 경로를 Read (멀티모달로 시각 확인) — 스킵 금지
+   - changedElements 좌표를 검토하여 의도한 변경인지 판단
+2. FAIL 판정 시 (레이아웃 깨짐, 오버플로우, 의도 외 변경):
+   - 좌표 정보 기반으로 정확한 위치 수정
+   - 수정하면 다시 자동 검증 트리거됨 — PASS될 때까지 반복 (최대 3회)
+3. dev server 미실행 시 훅이 graceful skip — 코드 리뷰만으로 진행
+
 ## 코딩 안전 원칙
 - 파일 전체 읽기 → 수정 → 빌드 검증. 이 순서를 절대 바꾸지 않음
 - 10개 이상 파일 동시 수정 시 → orchestrator에게 reviewer 호출 요청

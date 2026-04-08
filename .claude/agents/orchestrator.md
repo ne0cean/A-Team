@@ -40,6 +40,15 @@ model: sonnet
 - 구현/코딩/수정 → coder (Sonnet)
 - 검증/리뷰/품질 → reviewer (Sonnet)
 - 아키텍처/설계/전략 → architect (Opus)
+- UI/시각/레이아웃/CSS/화면/스타일/반응형 진단 → ui-inspector (Sonnet)
+
+**UI 복합 태스크 자동 체이닝**:
+"UI 버그 수정" 등 시각적 문제 수정 요청 시:
+  T1: ui-inspector → 현재 상태 진단 (스크린샷 + ARIA + 좌표)
+  T2: coder → T1 결과 기반 수정 [blocked-by: T1]
+  T3: ui-inspector → 수정 후 재검증 [blocked-by: T2] (coder에 자동 훅도 있음)
+  T4: reviewer → 코드 리뷰 [blocked-by: T2] (T3과 병렬)
+참고: coder가 UI 파일 수정 시 PostToolUse 훅이 자동으로 Before/After diff를 생성하여 coder 컨텍스트에 주입함 (`governance/rules/visual-verification.md` 참조)
 
 각 태스크는 단일 에이전트가 독립 완료 가능. 파일 충돌 없게 소유권 배정.
 
