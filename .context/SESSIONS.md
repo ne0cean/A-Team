@@ -2,6 +2,23 @@
 
 ---
 
+## [2026-04-09] UI Auto-Inspect 파이프라인 구현
+
+**완료**:
+- UI 자동 시각 검증 시스템 전체 구현 (14파일, 1,470줄)
+- Playwright CLI 기반 스크린샷/diff/좌표 추출 스크립트 6개
+- PreToolUse/PostToolUse 훅으로 UI 파일 수정 시 자동 트리거
+- additionalContext로 Claude 컨텍스트에 검증 결과 자동 주입
+- ui-inspector 에이전트 + 거버넌스 규칙 + orchestrator/coder 연동
+- `~/.claude/settings.json` 글로벌 훅 등록 (모든 프로젝트 적용)
+- Playwright + Chromium 설치, E2E 스크린샷 테스트 PASS
+
+**이슈**: A-Team/ 미러 디렉토리가 .gitignore 되어 있어 루트에 파일 생성 후 미러 수동 복사 필요
+**빌드**: ✅ (Playwright browser test PASS)
+**커밋**: 38acac2 → pushed to master
+
+---
+
 ## 2026-04-07 컨텍스트창 최적화 — 서브에이전트 아키텍처 전환
 
 **완료**:

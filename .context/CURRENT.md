@@ -6,7 +6,22 @@
 ## In Progress Files
 (없음)
 
-## Last Completions (2026-04-07)
+## Last Completions (2026-04-09)
+- **UI Auto-Inspect — 자동 시각 검증 파이프라인**
+  - `scripts/browser/` — Playwright CLI 기반 6개 스크립트 (snapshot, diff, element, flow, report, install)
+  - `templates/hooks/pre-ui-capture.sh` — PreToolUse: UI 파일 수정 전 before 스크린샷 자동 캡처
+  - `templates/hooks/post-ui-verify.sh` — PostToolUse: after 스크린샷 + 픽셀 diff + 좌표 추출 + additionalContext 주입
+  - `.claude/agents/ui-inspector.md` — UI 진단 전문 에이전트 (Bash+Read, MCP 0 오버헤드)
+  - `governance/rules/visual-verification.md` — 자동 검증 거버넌스 (Claude 의무 행동 규정)
+  - `governance/skills/ui-inspect/SKILL.md` — 스킬 카탈로그 등록
+  - orchestrator.md — ui-inspector 라우팅 + UI 복합 태스크 자동 체이닝
+  - coder.md — UI 파일 수정 시 자동 시각 검증 프로토콜 추가
+  - templates/settings.json — PostToolUse 훅 등록
+  - `~/.claude/settings.json` 글로벌 훅 등록 (모든 프로젝트 적용)
+  - Playwright + Chromium 설치 완료, E2E 스크린샷 테스트 PASS
+  - MCP 대비 토큰 93% 절감 (15,000 → ~1,000 tok/검증)
+
+## Previous Completions (2026-04-07)
 - **컨텍스트창 최적화 — 서브에이전트 아키텍처 전환**
   - 9개 서브에이전트 신규 생성: `cso`, `adversarial`, `review-pr`, `benchmark`, `qa`, `doc-sync`, `autoplan`, `tdd`, `guardrail`
   - 9개 슬래시 커맨드를 thin 래퍼로 교체 (3-5KB → ~350B, 메인 컨텍스트 90%+ 절감)
@@ -85,13 +100,12 @@
   - atomic write (renameSync), pipeline race condition 롤백, 하드코딩 경로 제거, spawn timeout, 경로 트래버설 방지 등
 
 ## Next Tasks
+- [ ] UI Auto-Inspect 실전 테스트 (실제 .tsx 수정 → 훅 자동 트리거 → diff Read 검증)
+- [ ] A-Team/ 미러 디렉토리 동기화 스크립트 자동화 (mirror-sync 규칙 활용)
 - [ ] 서브에이전트 실전 트리거 테스트 (자연어 "리뷰해줘" → review-pr 에이전트 자동 라우팅 확인)
 - [ ] orchestrator에서 guardrail 에이전트 자동 호출 연결 (coder 완료 후)
-- [ ] 나머지 Tier 2 커맨드 서브에이전트 전환 검토 (investigate, land, ship, craft)
 - [ ] MoA Multi-Layer 실전 테스트 (3 expert × 2 round → judge 호출 시나리오)
-- [ ] State Machine을 orchestrator에 실제 적용 (마크다운 산문 → 선언적 FSM 전환)
 - [ ] PIOP LOW priority 연결 (16건 남음 — analytics→vibe, cost-tracker→vibe 등)
-- [ ] Research → Ralph 파이프라인 e2e 테스트
 
 ## Blockers
 없음
