@@ -196,7 +196,18 @@ for f in .claude/agents/*.md; do
 done
 ```
 
-### 5.2 최적화 보고서
+### 5.2 Adversarial + Harness 검증
+
+**Adversarial Verification** (`lib/adversarial.ts`):
+- `runAdversarialChecks()` 실행 — 진입점 존재, 쓰레기 파일, 깨진 참조, 컨텍스트 신선도, 에이전트-규칙 중복 검증
+- `calculateBiasDelta()` — Score/Confidence/Bias Delta 출력
+- Bias Delta >= 5 시 경고 표시
+
+**Harness 성숙도** (`lib/harness-score.ts`):
+- 12원칙 점수를 평가하고 L1-L5 등급 출력
+- 이전 측정 대비 변화 추적
+
+### 5.3 최적화 보고서
 Phase 1-4 결과를 구조화 출력:
 
 ```
@@ -232,7 +243,7 @@ Validation:
 ═══════════════════════════════════════
 ```
 
-### 5.3 결과 기록
+### 5.4 결과 기록
 - `.context/CURRENT.md`에 최적화 완료 기록
 - `lib/learnings.ts`로 발견된 패턴/개선사항 자동 기록
 - `lib/analytics.ts`로 최적화 실행 이벤트 기록

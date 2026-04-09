@@ -7,47 +7,27 @@ description: 세션 시작 — 컨텍스트 로드 + Opus/Gemini 분류 + 즉시
 
 ## Step 0.3 — Daily Tip (매일 2개 유용한 명령어 소개)
 
-오늘 날짜 기반으로 아래 팁 목록에서 2개를 순환 선택하여 사용자에게 간결히 소개한다.
-날짜 인덱스 = (월 × 31 + 일) % (팁 수 / 2) × 2
+`governance/reference/daily-tips.md`에서 팁 목록을 읽고, 오늘 날짜 기반 2개를 순환 선택하여 소개.
+인덱스 = (월 × 31 + 일) % (팁 수 / 2) × 2. 출력: `💡 오늘의 팁` + 2줄 요약.
 
-**팁 목록:**
-1. `/adversarial` — 공격자 시각으로 코드를 검토. 인증/결제 코드 변경 시 특히 유용
-2. `/cso` — OWASP Top 10 + STRIDE 전체 보안 감사. 릴리즈 전 필수
-3. `/benchmark --diff` — 성능 회귀만 빠르게 확인. CI에 넣으면 회귀 자동 차단
-4. `/doc-sync` — 코드-문서 drift 점수 측정. "문서 얼마나 썩었지?" 한 방에 파악
-5. `/autoplan` — CEO→디자인→엔지니어링 3단계 자동 검토. 큰 기능 시작 전 리스크 선제 차단
-6. `/tdd` — Red-Green-Refactor 강제. "테스트 먼저" 습관 자동화
-7. `/review` — PR 머지 전 7-Phase 전체 리뷰. `/ship` 전에 한 번
-8. `/qa` — 브라우저 자동화 8카테고리 QA. 헬스 스코어로 앱 상태 수치화
-9. `/investigate` — 버그 근본 원인 체계적 분석. "왜 안 되지?" 대신 체계적 추적
-10. `/retro` — 엔지니어링 회고. 세션 끝에 돌아보면 다음에 더 잘함
-11. `/craft` — PRO Tier 품질 파이프라인. 중요한 코드에 장인 정신
-12. `/land` — 배포 신뢰도 검증. "진짜 배포해도 돼?" 수치로 답변
-13. `/office-hours` — 아이디어 검증 & 설계 발견. 구현 전 30분 투자로 방향 확인
-14. `/ship` — PR 생성 전 완전 검증. review + test + build 한 방에
-15. `Agent(subagent_type="guardrail")` — 코드 변경 후 잔여 디버그/설정 위반 자동 감지
-16. `/ralph` — 야간 자율 개발 데몬. 잠자는 동안 코드 태스크 자동 반복
-17. `/re` — 리서치 모드. 조사가 필요하면 데몬에게 맡기고 다른 일
-18. `/sync` — 자동 저장/커밋 데몬. 작업 중 수동 커밋 부담 제거
-19. `/handoff` — 모델 전환 핸드오프. Opus↔Sonnet 전환 시 맥락 유지
-20. `/pickup` — 토큰 소진 후 재개. 중단된 작업 즉시 이어받기
+## Step 0.5 — 정기/통합 검사 (자동)
+1. **Biweekly Optimization (격주)**:
+   - 마지막 `[biweekly-optimize]` 기록이 14일 경과했는지 `.context/SESSIONS.md` 빈도 체크
+   - 14일 경과 시: `🔄 정기 7축 최적화(Biweekly) 시점입니다.` 표시 후 `/optimize --biweekly` 실행
 
-**출력 형식 (간결하게):**
-```
----
-💡 오늘의 팁
-  1. `/adversarial` — 공격자 시각 코드 검토. 인증 코드 변경 시 필수
-  2. `/benchmark --diff` — 성능 회귀 빠른 확인. CI 자동 차단용
----
-```
+2. **Post-Integration 감지 (상시)**:
+   - 이전 세션 이후 메이저 통합 확인:
+   ```bash
+   git diff --name-only HEAD~3..HEAD 2>/dev/null | grep -E '^(lib/.*\.ts|\.claude/agents/.*\.md|governance/)' || true
+   ```
+   - 감지되면: "메이저 통합 감지. `/optimize` 자동 실행합니다." → PIOP Phase 1-5 수행.
+   - 격주 최적화와 PIOP는 독립적으로 실행함 (동시 실행 가능).
 
-## Step 0.5 — Post-Integration 감지 (자동)
-이전 세션 이후 메이저 통합이 있었는지 확인:
-```bash
-git diff --name-only HEAD~3..HEAD 2>/dev/null | grep -E '^(lib/.*\.ts|\.claude/agents/.*\.md|governance/)' || true
-```
-감지되면: "메이저 통합 감지. `/optimize` 자동 실행합니다." → PIOP Phase 1-5 수행.
-감지 안 되면: 스킵하고 Step 1로.
+## Step 0.8 — Pending Improvements 감지 (자동, A-Team 프로젝트만)
+현재 프로젝트가 A-Team이면 `improvements/pending.md`에서 ⏳ pending 항목 수를 카운트:
+- 1건 이상: `📬 미반영 개선사항 {N}건 대기 중 (P0: X / P1: Y / P2: Z). '/improve apply'로 반영.`
+- P0이 있으면 강조: `🚨 P0 긴급 개선사항 {X}건 — 즉시 반영 권장`
+- 0건이면 스킵
 
 ## Step 0.7 — 학습/Instinct 로드 (자동, 저비용)
 프로젝트에 학습 데이터가 있으면 세션 시작 시 로드:

@@ -2,6 +2,28 @@
 
 ---
 
+## [2026-04-10] A-Team PIOP 최적화 및 격주 유지보수 구조 구현
+
+**완료**:
+- **최근 3건 통합 분석 후 4건 PIOP 최적화 시행**
+  - `optimize.md` → thin 래퍼 전환 (-380 words)
+  - `vibe.md` Daily Tip 외부화 (-314 words/session)
+  - `orchestrator.md` MoA 가이드 외부화 (-427 words)
+  - `state-machine.ts` 고아 모듈 orchestrator 라이프사이클에 연결
+  - 컨텍스트 효율 향상 (커맨드 -8.5%, 에이전트 -5.6%)
+- **역방향 피드백 시스템(`/improve`) 구현**
+  - 글로벌 커맨드 `improve.md` 생성 개별 프로젝트의 변경사항을 A-Team으로 롤업
+  - `improvements/pending.md` + `done.md` 인프라 구축
+- **정기 7축 최적화 (Biweekly Optimization Protocol)**
+  - `vibe.md` 시작 시 14일 경과 감지 자동 알림 로직 주입
+  - `governance/workflows/biweekly-optimize.md` 제정 (체인, 계위, 토큰, 연쇄, 루프폐합, 성능, Dead Path)
+  - `optimize.md` 내 `--biweekly` 스위치 연동
+
+**이슈**: 없음
+**빌드**: ✅ (153/153 tests pass)
+
+---
+
 ## [2026-04-09] UI Auto-Inspect 파이프라인 구현
 
 **완료**:

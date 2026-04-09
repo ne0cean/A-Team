@@ -6,7 +6,30 @@
 ## In Progress Files
 (없음)
 
-## Last Completions (2026-04-09)
+## Last Completions (2026-04-10)
+- **PIOP 최적화 — 토큰 효율성 + 모듈 연결 개선**
+  - `optimize.md` → thin 래퍼 전환 (97줄 → 10줄, -380 words)
+  - `vibe.md` Daily Tip 외부화 → `governance/reference/daily-tips.md` (-314 words/session)
+  - `orchestrator.md` MoA 섹션 외부화 → `governance/workflows/moa.md` (-427 words)
+  - `state-machine.ts` 고아 모듈 연결 → orchestrator phase 라이프사이클 추적
+  - `post-integration.md` Phase 5.2 추가 — adversarial + harness-score 검증 복원
+  - 에이전트 총 토큰: 7,659 → 7,232 words (-5.6%)
+  - 커맨드 총 토큰: 8,202 → 7,508 words (-8.5%)
+  - 고아 모듈: 1개 → 0개 (state-machine 연결)
+  - 153 tests PASS
+- **`/improve` 역방향 피드백 시스템 구현**
+  - `.claude/commands/improve.md` — 글로벌 `/improve` 커맨드 (등록/조회/반영 3모드)
+  - `improvements/pending.md` + `done.md` — 개선사항 pending/완료 저장소
+  - `vibe.md` Step 0.8 — 세션 시작 시 pending 개선사항 감지 알림
+  - `governance/rules/claude-code.md` 6조 — toolkit-improvements → /improve 업데이트
+  - `docs/11-integration-guide.md` — 파이프라인 다이어그램 /improve 기반으로 갱신
+  - `install-commands.sh` 실행 → `~/.claude/commands/improve.md` 심링크 배포 (글로벌 31개)
+- **정기 7축 최적화 (Biweekly Optimization Protocol)**
+  - `governance/workflows/biweekly-optimize.md` — 7축 평가(체인 완전성, 계위 일관성, 토큰, 연쇄 효율성, 루프 폐합, 퍼포먼스, Dead Path) 워크플로우 정의
+  - `.claude/commands/vibe.md` — Step 0.5에 14일 경과 시 정기 최적화 알림 추가
+  - `.claude/commands/optimize.md` — `--biweekly` 인자 지원 추가
+
+## Previous Completions (2026-04-09)
 - **UI Auto-Inspect — 자동 시각 검증 파이프라인**
   - `scripts/browser/` — Playwright CLI 기반 6개 스크립트 (snapshot, diff, element, flow, report, install)
   - `templates/hooks/pre-ui-capture.sh` — PreToolUse: UI 파일 수정 전 before 스크린샷 자동 캡처

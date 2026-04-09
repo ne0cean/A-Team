@@ -47,6 +47,7 @@
 - --no-verify, --force는 사용자 명시 요청 시에만
 
 ## 6. 개선사항 발견 시
-- `toolkit-improvements/` 에 즉시 기록
+- `/improve [내용]` 으로 즉시 A-Team에 등록 (어떤 프로젝트에서든 사용 가능)
 - 형식: 문제 상황 → 발견한 패턴 → 적용 결과
-- 충분히 검증된 패턴은 vibe-toolkit에 PR/업로드 제안
+- A-Team 프로젝트에서 `/improve apply` 로 반영 실행
+- `/improve list` 로 대기 중인 항목 조회
