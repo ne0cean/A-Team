@@ -7,6 +7,31 @@
 (없음)
 
 ## Last Completions (2026-04-11)
+- **Adversarial Review 14건 보안 리메디에이션 패치 (224 tests)**
+  - Red Team 적대적 리뷰로 HIGH 5 / MEDIUM 6 / LOW 3 발견 → 14건 전량 패치
+  - **HIGH 5건**:
+    - #1 `scripts/ralph-daemon.mjs` — `checkCommand` 셸 인젝션 차단 (`sh -c` 제거, `parseCheckCommand()` + `ALLOWED_CHECK_COMMANDS` 화이트리스트)
+    - #2 `scripts/ralph-daemon.mjs` — `state.model` allowlist 강제 (`ALLOWED_MODELS`), 미등록 모델은 sonnet fallback + 경고
+    - #3 `.claude/agents/pre-check.md` + `orchestrator.md` — Prompt Injection 방어 (XML 펜스 `<user_input>` 격리 의무화, 무시 패턴 명시)
+    - #4 `scripts/daemon-utils.mjs` — SDK 환경 오염 차단 (`new Anthropic({ baseURL: 'https://api.anthropic.com' })` 명시, `ANTHROPIC_BASE_URL`을 `DANGEROUS_ENV_VARS`에 추가)
+    - #5 `scripts/ralph-daemon.mjs` — SDK 경로 예산 게이트 (`remainingBudget` 사전 검사, `budget-exhausted` stopReason 추가)
+  - **MEDIUM 6건**:
+    - #6 `lib/model-pricing.json` 신규 — 단일 진실 공급원으로 `cost-tracker.ts`와 `daemon-utils.mjs` 양측 동기화
+    - #7 `scripts/daemon-utils.mjs` — `SimpleCircuitBreaker` 클래스 신규, ralph-daemon SDK 분기에 실제 연결 (기존 수동 비율 계산 대체)
+    - #8 `lib/cost-tracker.ts` — `estimateIterationsCostUsd` 알 수 없는 타입 → Opus 보수적 가격 (양측 동기 패치)
+    - #9 `.claude/agents/orchestrator.md` — `sampling_required` 시 eval-store 기록 의무 명시
+    - #10 `scripts/ralph-daemon.mjs` — 브랜치명 유니코드 공백 제거(`\u200B-\u200F\u2028-\u202F\uFEFF`) + 정규식 최종 검증
+    - #11 `scripts/research-daemon.mjs` — `saveState()` `writeFileSync` → `atomicWriteJSON` 전환
+    - #12 `scripts/ralph-daemon.mjs` — `isNotifyUrlAllowed()` SSRF 차단 (localhost / private IP / metadata endpoint)
+    - #13 `lib/cost-tracker.ts` — `load()` 스키마 검증 (`__proto__`/`constructor`/`prototype` 차단, `sanitizeNumber()` 음수/Infinity/NaN 제거)
+  - **LOW 3건** (#14는 #7과 동시 해결):
+    - #15 `scripts/daemon-utils.mjs` — `ADVISOR_BETA_HEADER` / `ADVISOR_TOOL_TYPE` 상수화 + 환경변수 오버라이드 + 무음 실패 감지
+    - #16 `lib/eval-store.ts` — `validateEvalRun()` — `abVariant`/`qualityScore`/`costUsd`/`taskCategory` 범위/enum 검증
+  - **신규 파일**: `lib/model-pricing.json`, `test/security-remediation.test.ts` (53 신규 보안 테스트)
+  - **테스트**: 171 → 224 (+53, 전량 PASS)
+  - **tsc --noEmit**: 0 errors
+  - **커밋**: `eb538f7 security: Adversarial Review 14건 보안 리메디에이션 패치`
+
 - **토큰 비용 추정 + Pre-Check 에이전트 (171 tests)**
   - `lib/cost-tracker.ts` — `MODEL_PRICING` 상수 (Opus/Sonnet/Haiku) + `estimateCostUsd()` + `estimateIterationsCostUsd()` 함수 export
   - `scripts/daemon-utils.mjs` — MODEL_PRICING JS 미러링 (Node/TS 경계) + `callSdkWithAdvisor` return에 `usage.costUsd` 포함
