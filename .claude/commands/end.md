@@ -36,7 +36,14 @@ description: 세션 종료 — 상태 갱신, 빌드 검증, 커밋, push (+ 선
 ## Step 3.5 — 세션 데이터 저장 (자동)
 세션 중 발견된 학습/비용/사용 데이터를 자동 저장:
 - **Learnings**: 세션 중 발견한 pattern/pitfall이 있으면 `lib/learnings.ts` logLearning()으로 기록
-- **Cost**: 세션 토큰/비용 요약 (`lib/cost-tracker.ts` getSummary()) — SESSIONS.md에 포함
+- **Cost + Analytics 통합**: 세션 비용 요약을 analytics에도 기록 (`lib/cost-tracker.ts` getSummary() → `lib/analytics.ts` logEvent() with event='session_cost'):
+  ```
+  summary = costTracker.getSummary()
+  logEvent({ skill: 'session', event: 'session_cost', repo: projectSlug,
+    totalCostUsd: summary.totalCostUsd, callCount: summary.callCount,
+    preCheckSkipRate: summary.preCheckSkipRate,
+    advisorCallAvg: summary.advisorCallAvg, cacheHitRate: summary.cacheHitRate }, analyticsFile)
+  ```
 - **Analytics**: 사용한 스킬 목록을 `lib/analytics.ts` logEvent()로 기록
 - **Evals**: 세션 중 테스트/빌드 결과가 있으면 `lib/eval-store.ts` save()로 저장 (다음 세션에서 비교 가능)
 

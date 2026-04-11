@@ -29,10 +29,14 @@ description: 세션 시작 — 컨텍스트 로드 + Opus/Gemini 분류 + 즉시
 - P0이 있으면 강조: `🚨 P0 긴급 개선사항 {X}건 — 즉시 반영 권장`
 - 0건이면 스킵
 
-## Step 0.7 — 학습/Instinct 로드 (자동, 저비용)
-프로젝트에 학습 데이터가 있으면 세션 시작 시 로드:
+## Step 0.7 — 학습/Instinct + 비용 통계 로드 (자동, 저비용)
+프로젝트에 학습/비용 데이터가 있으면 세션 시작 시 로드:
 - `lib/learnings.ts` searchLearnings() → 최근 학습 5건 요약 표시
 - `lib/instinct.ts` shouldApply() → 이 프로젝트에 적용할 instinct 목록 표시
+- **Pre-check 통계**: analytics JSONL에서 `event='session_cost'` 최근 5건 평균 → pre-check skip rate 표시
+  - skip rate ≥ 15%면: "Pre-Check 효율적 (skip {N}%)" 표시
+  - skip rate < 5%이고 50+ 세션이면: "Pre-Check skip rate 낮음 — threshold 조정 고려"
+- **Advisor 비용**: 최근 세션 `advisorCallAvg` + `cacheHitRate` 표시 (useSdkPath=true 사용 시)
 - 없으면 무시 (비용 0)
 
 ## Step 1 — 컨텍스트 로드 (SessionStart 훅이 자동 수행)

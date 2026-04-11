@@ -157,3 +157,38 @@ export function searchLearnings(opts: SearchOptions): LearningEntry[] {
 export function formatLearning(entry: LearningEntry): string {
   return `[${entry.skill}] (confidence ${entry.confidence}/10) ${entry.key} — ${entry.insight}`;
 }
+
+// --- Advisor Patterns ---
+
+export interface AdvisorOutcome {
+  model: string;
+  advisorCalls: number;
+  taskCategory?: string;
+  failureCode?: string;
+  iterationCount?: number;
+}
+
+/**
+ * 어드바이저 호출 성공/실패 패턴을 learnings에 기록.
+ * ralph-daemon SDK 경로에서 각 iteration 완료 시 호출.
+ * 크로스 세션 학습으로 advisor 효과적 사용 패턴을 추적한다.
+ */
+export function logAdvisorOutcome(
+  outcome: AdvisorOutcome,
+  opts: LogOptions,
+  success: boolean,
+): void {
+  const insight = success
+    ? `advisor=${outcome.model} calls=${outcome.advisorCalls}/${outcome.iterationCount ?? 1} iter — 성공`
+    : `advisor=${outcome.model} 실패 (${outcome.failureCode ?? 'unknown'}) — CLI fallback`;
+
+  logLearning({
+    skill: 'advisor',
+    type: success ? 'pattern' : 'pitfall',
+    key: `advisor-${success ? 'success' : 'failure'}-${outcome.taskCategory ?? 'general'}`,
+    insight,
+    confidence: success ? 7 : 8,
+    source: 'observed',
+    files: ['scripts/ralph-daemon.mjs', 'scripts/daemon-utils.mjs'],
+  }, opts);
+}

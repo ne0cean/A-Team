@@ -51,3 +51,11 @@
 - 형식: 문제 상황 → 발견한 패턴 → 적용 결과
 - A-Team 프로젝트에서 `/improve apply` 로 반영 실행
 - `/improve list` 로 대기 중인 항목 조회
+
+## 7. Advisor Tool 사용 규칙 (Layer B 전용)
+- **Layer A (Claude Code 서브에이전트)**: advisor tool 직접 사용 금지. MoA + Reviewer 체계 유지.
+- **Layer B (Ralph/Research 데몬)**: `callSdkWithAdvisor()` 사용 가능 (opt-in: `useSdkPath=true`).
+- **Circuit Breaker**: 실패율 20% 초과 시 `SimpleCircuitBreaker`가 CLI fallback 자동 전환.
+- **설정 동기화**: `ADVISOR_TOOL_BREAKER_CONFIG`는 `lib/circuit-breaker.ts` ↔ `scripts/daemon-utils.mjs` 양측 동일 유지. 변경 시 두 파일 모두 업데이트.
+- **비용 추적**: advisor 호출 결과는 `cost-tracker`에 `phase: 'exec', advisorCalls: N` 포함해 기록.
+- **상세 아키텍처**: `governance/workflows/advisor-architecture.md` 참조.

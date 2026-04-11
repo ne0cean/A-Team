@@ -13,7 +13,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync, unl
 import { spawnSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { createLogger, sleep, findClaude, buildClaudeEnv, atomicWriteJSON, getPermissionMode, callSdkWithAdvisor, SimpleCircuitBreaker } from './daemon-utils.mjs';
+import { createLogger, sleep, findClaude, buildClaudeEnv, atomicWriteJSON, getPermissionMode, callSdkWithAdvisor, SimpleCircuitBreaker, ADVISOR_TOOL_BREAKER_CONFIG } from './daemon-utils.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = process.cwd();
@@ -315,12 +315,12 @@ async function mainLoop() {
   const claudePath = findClaude();
   const { collectContext, buildRalphPrompt } = await import('./ralph-prompts.mjs');
 
-  // #7: SDK 경로용 CircuitBreaker 인스턴스
+  // #7: SDK 경로용 CircuitBreaker 인스턴스 — ADVISOR_TOOL_BREAKER_CONFIG 설정 활용
   const sdkCircuitBreaker = new SimpleCircuitBreaker({
-    name: 'sdk-advisor',
-    failureThreshold: 0.5,
-    windowMs: 5 * 60_000,  // 5분 윈도우
-    cooldownMs: 2 * 60_000, // 2분 쿨다운
+    name: ADVISOR_TOOL_BREAKER_CONFIG.name,
+    failureThreshold: ADVISOR_TOOL_BREAKER_CONFIG.failureThreshold,
+    windowMs: ADVISOR_TOOL_BREAKER_CONFIG.windowMs,
+    cooldownMs: ADVISOR_TOOL_BREAKER_CONFIG.cooldownMs,
   });
 
   // Graceful shutdown: state 저장 후 종료

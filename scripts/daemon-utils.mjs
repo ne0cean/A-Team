@@ -149,6 +149,16 @@ function _estimateIterationsCostUsd(iterations, executorModel) {
 export const ADVISOR_BETA_HEADER = process.env.A_TEAM_ADVISOR_BETA_HEADER || 'advisor-tool-2026-03-01';
 export const ADVISOR_TOOL_TYPE = process.env.A_TEAM_ADVISOR_TOOL_TYPE || 'advisor_20260301';
 
+// ─── Advisor Tool Breaker 설정 (lib/circuit-breaker.ts ADVISOR_TOOL_BREAKER_CONFIG 미러) ────
+// TS 버전과 동일 설정값 유지. JSON import 미지원 환경 대응용 JS 미러.
+// 변경 시 lib/circuit-breaker.ts와 동기화 필수.
+export const ADVISOR_TOOL_BREAKER_CONFIG = {
+  name: 'advisor-tool',
+  failureThreshold: 0.20,      // 20% 실패율
+  windowMs: 5 * 60 * 1000,     // 5분 창
+  cooldownMs: 10 * 60 * 1000,  // OPEN 후 10분 쿨다운
+};
+
 // #4: SDK 공식 엔드포인트 상수 (프록시 하이재킹 방지)
 export const DEFAULT_ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
 

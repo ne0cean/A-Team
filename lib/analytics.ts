@@ -14,8 +14,14 @@ export interface AnalyticsEvent {
   skill: string;
   ts: string;
   repo: string;
-  event?: string;     // 'hook_fire' for safety hooks
+  event?: string;     // 'hook_fire' for safety hooks, 'session_cost' for cost summary
   pattern?: string;   // matched pattern for hook fires
+  // Session cost fields (populated when event='session_cost')
+  totalCostUsd?: number;
+  callCount?: number;
+  preCheckSkipRate?: number;
+  advisorCallAvg?: number;
+  cacheHitRate?: number;
 }
 
 // --- Logging ---
@@ -72,8 +78,9 @@ export function filterByPeriod(events: AnalyticsEvent[], period: string): Analyt
 // --- Reporting ---
 
 export function formatReport(events: AnalyticsEvent[], period = 'all'): string {
-  const skillEvents = events.filter(e => e.event !== 'hook_fire');
+  const skillEvents = events.filter(e => e.event !== 'hook_fire' && e.event !== 'session_cost');
   const hookEvents = events.filter(e => e.event === 'hook_fire');
+  const costEvents = events.filter(e => e.event === 'session_cost');
 
   const lines: string[] = [];
   lines.push('A-Team skill usage analytics');
@@ -143,6 +150,18 @@ export function formatReport(events: AnalyticsEvent[], period = 'all'): string {
       const dots = ' ' + '.'.repeat(dotLen) + ' ';
       lines.push(`  ${pattern}${dots}${suffix}`);
     }
+  }
+
+  // Session Cost Summary (most recent session_cost event)
+  if (costEvents.length > 0) {
+    const latest = costEvents.sort((a, b) => b.ts.localeCompare(a.ts))[0];
+    lines.push('');
+    lines.push('Session Cost');
+    if (latest.totalCostUsd !== undefined) lines.push(`  Total cost: $${latest.totalCostUsd.toFixed(4)}`);
+    if (latest.callCount !== undefined) lines.push(`  Calls: ${latest.callCount}`);
+    if (latest.preCheckSkipRate !== undefined) lines.push(`  Pre-check skip rate: ${(latest.preCheckSkipRate * 100).toFixed(1)}%`);
+    if (latest.advisorCallAvg !== undefined) lines.push(`  Advisor calls/session: ${latest.advisorCallAvg.toFixed(2)}`);
+    if (latest.cacheHitRate !== undefined) lines.push(`  Cache hit rate: ${(latest.cacheHitRate * 100).toFixed(1)}%`);
   }
 
   // Total
