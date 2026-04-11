@@ -415,7 +415,7 @@ async function maybeStartRalph() {
     // Ralph 데몬 시작
     const daemonPath = resolve(__dirname, 'ralph-daemon.mjs');
     if (!existsSync(daemonPath)) {
-      log(`[PIPELINE] ❌ ralph-daemon.mjs 없음: ${daemonPath}`);
+      log(`[PIPELINE] ralph-daemon.mjs 없음: ${daemonPath}`);
       return;
     }
 
@@ -439,7 +439,8 @@ async function maybeStartRalph() {
     // spawn 비동기 — error 이벤트 전에 status 변경됨. 실패 시 catch에서 pending으로 롤백
     state.status = 'running';
     state.startedAt = Date.now();
-    writeFileSync(ralphState, JSON.stringify(state, null, 2));
+    // CSO-M02: non-atomic write → atomicWriteJSON (partial write 방지)
+    atomicWriteJSON(ralphState, state);
 
     log(`[PIPELINE] Ralph 데몬 시작됨 (PID: ${proc.pid})`);
   } catch (e) {
@@ -449,7 +450,8 @@ async function maybeStartRalph() {
       const state = JSON.parse(readFileSync(ralphState, 'utf8'));
       if (state.status === 'running') {
         state.status = 'pending';
-        writeFileSync(ralphState, JSON.stringify(state, null, 2));
+        // CSO-M02: atomic write for rollback as well
+        atomicWriteJSON(ralphState, state);
         log(`[PIPELINE] status를 pending으로 롤백`);
       }
     } catch {}

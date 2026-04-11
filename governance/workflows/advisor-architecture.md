@@ -88,7 +88,7 @@ Daemon Iteration
 | advisor 실패율 | <5% / 일 | advisorStats.failures / iterations |
 
 Phase 1 성공 기준:
-- 153 tests PASS 유지 (회귀 없음)
+- 224 tests PASS 유지 (회귀 없음)
 - CLI fallback 정상 동작 (SDK 없어도 동작)
 - state.json opt-in 플래그로 안전하게 활성화
 
@@ -147,4 +147,46 @@ scripts/daemon-utils.mjs                 (callSdkWithAdvisor)
 scripts/ralph-daemon.mjs                 (useSdkPath 분기)
 ```
 
-변경 범위를 최소화하여 기존 153 tests에 영향을 주지 않는 것이 설계 원칙입니다.
+변경 범위를 최소화하여 기존 224 tests에 영향을 주지 않는 것이 설계 원칙입니다.
+
+## Threat Model (CSO-M04)
+
+### Trust Boundaries
+
+```
+User Input → [XML Fence] → Pre-Check Agent → [Haiku] → Verdict
+                                                          ↓
+                                                    Phase 2 Router
+                                                          ↓
+                                                    Coder Agent
+                                                          ↓
+                                                    [Guardrail]
+                                                          ↓
+                                                    Reviewer (조건부)
+```
+
+### Attack Scenarios
+
+| # | Threat | Mitigation | Layer |
+|---|---|---|---|
+| T1 | Prompt Injection via user input | XML fence + 판정 지시 무시 패턴 | pre-check.md |
+| T2 | Model ID injection | ALLOWED_MODELS allowlist | ralph-daemon.mjs |
+| T3 | Shell injection via checkCommand | ALLOWED_CHECK_COMMANDS + shell:false | ralph-daemon.mjs |
+| T4 | SDK baseURL hijacking | 명시적 baseURL + DANGEROUS_ENV_VARS | daemon-utils.mjs |
+| T5 | Session ID leakage | .gitignore (CSO-H01 패치) | .gitignore |
+| T6 | bypassPermissions elevation | 'plan' 폴백 (CSO-H03 패치) | daemon-utils.mjs |
+| T7 | SSRF via RALPH_NOTIFY_URL | isNotifyUrlAllowed() | ralph-daemon.mjs |
+
+### Defense-in-Depth Matrix
+
+| Asset | Layers |
+|---|---|
+| ANTHROPIC_API_KEY | env only + buildClaudeEnv + baseURL 명시 (3 layers) |
+| state.json 무결성 | sh -c 제거 + ALLOWED_CHECK + freeze (3 layers) |
+| 프롬프트 인젝션 | XML 펜스 + confidence ≥ 0.95 (2 layers) |
+
+### Assumptions
+
+1. 로컬 파일시스템은 trusted. 단 에이전트 Write 권한이 경계를 확장할 수 있음.
+2. Anthropic API는 trusted. 하지만 베타 기능은 언제든 변경 가능.
+3. `@anthropic-ai/sdk`는 optional — 미설치 시 graceful 실패.

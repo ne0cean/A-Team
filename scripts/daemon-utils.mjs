@@ -50,7 +50,18 @@ export function findClaude() {
 // ─── Claude 실행 환경 ───────────────────────────────────────────────────────
 // 위험한 코드 주입 환경변수를 제거하고 Claude 프로세스에 전달
 // #4: ANTHROPIC_BASE_URL 추가 — 자식 프로세스에서 프록시 하이재킹 방지
-const DANGEROUS_ENV_VARS = ['CLAUDECODE', 'NODE_OPTIONS', 'NODE_PATH', 'LD_PRELOAD', 'LD_LIBRARY_PATH', 'DYLD_INSERT_LIBRARIES', 'ANTHROPIC_BASE_URL'];
+// CSO-M01: A_TEAM_ADVISOR_* 추가 — 자식 프로세스로 beta header 우회 방지
+const DANGEROUS_ENV_VARS = [
+  'CLAUDECODE',
+  'NODE_OPTIONS',
+  'NODE_PATH',
+  'LD_PRELOAD',
+  'LD_LIBRARY_PATH',
+  'DYLD_INSERT_LIBRARIES',
+  'ANTHROPIC_BASE_URL',
+  'A_TEAM_ADVISOR_BETA_HEADER',
+  'A_TEAM_ADVISOR_TOOL_TYPE',
+];
 export function buildClaudeEnv() {
   const env = { ...process.env };
   for (const key of DANGEROUS_ENV_VARS) delete env[key];
@@ -68,7 +79,8 @@ export function safePath(projectRoot, relativePath) {
 }
 
 // ─── Permission Mode 결정 ──────────────────────────────────────────────────
-// Auto mode 우선, 미지원 환경에서는 bypassPermissions 폴백
+// Auto mode 우선, 미지원 환경에서는 'plan' 폴백 (CSO-H03: 최소 권한 원칙)
+// bypassPermissions는 명시적 환경변수(CLAUDE_PERMISSION_MODE_OVERRIDE=bypassPermissions)로만 허용
 // 환경 변수 CLAUDE_PERMISSION_MODE 로 오버라이드 가능
 // 결과를 프로세스 내 캐시하여 반복 서브프로세스 스폰 방지 (프로세스 경계를 넘지 않음)
 const ALLOWED_MODES = ['auto', 'bypassPermissions', 'acceptEdits', 'plan'];
@@ -98,8 +110,18 @@ export function getPermissionMode() {
     }
   } catch {}
 
-  _cachedPermMode = 'bypassPermissions';
-  return 'bypassPermissions';
+  // CSO-H03: auto 미지원 환경 — 'plan'으로 폴백 (최소 권한)
+  // bypassPermissions는 명시적 환경변수(CLAUDE_PERMISSION_MODE_OVERRIDE=bypassPermissions)로만 허용
+  const overrideMode = process.env.CLAUDE_PERMISSION_MODE_OVERRIDE;
+  if (overrideMode === 'bypassPermissions') {
+    _cachedPermMode = 'bypassPermissions';
+    return 'bypassPermissions';
+  }
+
+  // eslint-disable-next-line no-console
+  console.warn('[daemon-utils] auto mode unavailable — falling back to plan mode (explicit CLAUDE_PERMISSION_MODE_OVERRIDE required for bypass)');
+  _cachedPermMode = 'plan';
+  return 'plan';
 }
 
 // ─── 토큰 기반 비용 추정 ────────────────────────────────────────────────────

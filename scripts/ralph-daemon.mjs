@@ -45,9 +45,9 @@ export function parseCheckCommand(checkCommand) {
   const trimmed = checkCommand.trim();
   if (!trimmed) return null;
 
-  // 셸 메타문자 감지 → 거부
+  // 셸 메타문자 감지 → 거부 (CSO-L02: 명시적 경고 + 가이드)
   if (SHELL_META_RE.test(trimmed)) {
-    log(`[SECURITY] checkCommand 거부 — 셸 메타문자 감지: ${trimmed}`);
+    log(`[RALPH][WARNING] checkCommand에 셸 메타문자 감지: "${trimmed}". 파이프/리다이렉트 대신 래퍼 스크립트(예: scripts/ci-check.sh)를 사용하세요. 데몬은 단순 명령만 실행합니다.`);
     return null;
   }
 
@@ -278,6 +278,25 @@ function spawnClaudeProcess(claudePath, prompt, model) {
   });
 }
 
+// ─── CSO-M03: 이상 감지 ─────────────────────────────────────────────────────
+// 데몬 종료 시 경고 로그 — 최소 범위 구현 (alert/dashboard는 별도 작업)
+export function checkAnomaly(s) {
+  const anomalies = [];
+  if (s.advisorStats?.failures > 10) {
+    anomalies.push(`advisor 실패 ${s.advisorStats.failures}건 — 임계치 초과`);
+  }
+  if (s.totalCostUsd > s.budgetCapUsd * 0.9) {
+    anomalies.push(`비용 ${s.totalCostUsd.toFixed(4)} (예산 ${s.budgetCapUsd}의 90%+)`);
+  }
+  if (s.consecutiveFailures >= 3) {
+    anomalies.push(`연속 실패 ${s.consecutiveFailures}회`);
+  }
+  if (anomalies.length > 0) {
+    log('[RALPH][ANOMALY] ' + anomalies.join(' / '));
+  }
+  return anomalies;
+}
+
 // ─── 메인 루프 ──────────────────────────────────────────────────────────────
 async function mainLoop() {
   ensureDirs();
@@ -495,6 +514,13 @@ async function mainLoop() {
   const finalState = loadState();
   const branch = finalState.branch || getCurrentBranch();
   const orig = finalState.originalBranch || 'master';
+
+  // CSO-M03: 이상 감지 실행 + finalState에 anomalies 필드 저장
+  const anomalies = checkAnomaly(finalState);
+  if (anomalies.length > 0) {
+    finalState.anomalies = anomalies;
+    saveState(finalState);
+  }
 
   log(`[RALPH] 종료 — 상태: ${finalState.status} | 총 ${finalState.currentIteration}회 | 총 $${finalState.totalCostUsd?.toFixed(4)}`);
   log(`[RALPH] ─────────────────────────────────────`);
