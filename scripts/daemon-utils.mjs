@@ -171,14 +171,19 @@ function _estimateIterationsCostUsd(iterations, executorModel) {
 export const ADVISOR_BETA_HEADER = process.env.A_TEAM_ADVISOR_BETA_HEADER || 'advisor-tool-2026-03-01';
 export const ADVISOR_TOOL_TYPE = process.env.A_TEAM_ADVISOR_TOOL_TYPE || 'advisor_20260301';
 
-// ─── Advisor Tool Breaker 설정 (lib/circuit-breaker.ts ADVISOR_TOOL_BREAKER_CONFIG 미러) ────
-// TS 버전과 동일 설정값 유지. JSON import 미지원 환경 대응용 JS 미러.
-// 변경 시 lib/circuit-breaker.ts와 동기화 필수.
+// ─── Advisor Tool Breaker 설정 (단일 진실 공급원: lib/advisor-breaker-config.json) ────
+// lib/circuit-breaker.ts도 같은 JSON을 import한다. 값 변경 시 JSON만 수정.
+const ADVISOR_BREAKER_JSON = JSON.parse(
+  readFileSync(new URL('../lib/advisor-breaker-config.json', import.meta.url), 'utf-8')
+);
 export const ADVISOR_TOOL_BREAKER_CONFIG = {
-  name: 'advisor-tool',
-  failureThreshold: 0.20,      // 20% 실패율
-  windowMs: 5 * 60 * 1000,     // 5분 창
-  cooldownMs: 10 * 60 * 1000,  // OPEN 후 10분 쿨다운
+  name: ADVISOR_BREAKER_JSON.name,
+  failureThreshold: ADVISOR_BREAKER_JSON.failureThreshold,
+  windowMs: ADVISOR_BREAKER_JSON.windowMs,
+  cooldownMs: ADVISOR_BREAKER_JSON.cooldownMs,
+  halfOpenProbes: ADVISOR_BREAKER_JSON.halfOpenProbes,
+  countThreshold: ADVISOR_BREAKER_JSON.countThreshold,
+  windowCount: ADVISOR_BREAKER_JSON.windowCount,
 };
 
 // #4: SDK 공식 엔드포인트 상수 (프록시 하이재킹 방지)

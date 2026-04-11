@@ -1,0 +1,358 @@
+{
+  "audit_date": "2026-04-11",
+  "auditor": "CSO Agent (claude-sonnet-4-6)",
+  "scope": "A-Team full system — architecture, process, supply chain",
+  "perspective": "System/Architecture/Process (complementary to Adversarial code-level review)",
+  "overall_risk": "MEDIUM",
+  "defense_in_depth_score": "5/10",
+  "process_maturity": "L2",
+  "findings_summary": {
+    "critical": 0,
+    "high": 3,
+    "medium": 4,
+    "low": 3,
+    "total": 10
+  },
+  "findings": [
+    {
+      "id": "CSO-H01",
+      "severity": "HIGH",
+      "owasp": "A08",
+      "stride": "Tampering / Information Disclosure",
+      "title": "Session IDs and operational state committed to public git repository",
+      "asset": ".research/daemon.log, .research/state.json, .research/ralph-state.json",
+      "evidence": [
+        "git ls-files --cached confirms .research/daemon.log tracked (4258 lines, 299KB)",
+        "git ls-files --cached confirms .research/state.json, ralph-state.json tracked",
+        "daemon.log contains 100+ Claude session IDs (UUIDs) e.g. e95fb006-bb9c-464c-bc9c-cf68dbb8a3cb",
+        "ralph-state.json in git history contains task text in plaintext: commit efda43a",
+        "GitHub repo is public: https://github.com/ne0cean/A-Team"
+      ],
+      "attack_scenario": "Attacker fetches https://github.com/ne0cean/A-Team/raw/master/.research/daemon.log and extracts Claude session IDs. Session IDs may allow --resume flag replay to reconstruct conversation context, access prior outputs, or enumerate historical work.",
+      "cvss_estimate": "6.5 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N)",
+      "defense_layers": 0,
+      "recommendation": "Add .research/ to .gitignore immediately. Remove tracked files with git rm --cached. Rotate any sessions where sensitive task data was committed."
+    },
+    {
+      "id": "CSO-H02",
+      "severity": "HIGH",
+      "owasp": "A06",
+      "stride": "Tampering",
+      "title": "vite 8.0.3 in dependency tree — 3 active CVEs (dev dep but lockfile shipped)",
+      "asset": "node_modules/vite (via vitest devDependency)",
+      "evidence": [
+        "npm audit: vite 8.0.0-8.0.4 has HIGH severity vulnerabilities",
+        "GHSA-v2wj-q39q-566r: server.fs.deny bypass (HIGH, CWE-284)",
+        "GHSA-p9ff-h696-f583: Arbitrary File Read via WebSocket (HIGH, CWE-200, CWE-306)",
+        "GHSA-4w7w-66w2-5vf9: Path Traversal in .map handling (MODERATE)",
+        "package-lock.json confirms vite@8.0.3 installed",
+        "fixAvailable: true"
+      ],
+      "attack_scenario": "When vite dev server is started (vitest --watch internally), an attacker on the same local network can use the WebSocket vulnerability (GHSA-p9ff-h696-f583) to read arbitrary files outside the project root, potentially including ~/.ssh/id_rsa or ANTHROPIC_API_KEY from shell rc files. While this is a dev-only scenario, the daemon environment runs on the developer machine.",
+      "cvss_estimate": "7.5 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N) per GHSA-p9ff-h696-f583",
+      "defense_layers": 0,
+      "recommendation": "Run: npm update vite. Fix is available (vite >=8.0.5). Verify with npm audit after update."
+    },
+    {
+      "id": "CSO-H03",
+      "severity": "HIGH",
+      "owasp": "A01",
+      "stride": "Elevation of Privilege",
+      "title": "Daemon defaults to bypassPermissions when 'auto' mode unavailable",
+      "asset": "scripts/daemon-utils.mjs getPermissionMode() fallback",
+      "evidence": [
+        "daemon-utils.mjs line 101: _cachedPermMode = 'bypassPermissions'",
+        "Comment line 71: 'Auto mode 우선, 미지원 환경에서는 bypassPermissions 폴백'",
+        "ralph-daemon and research-daemon both call getPermissionMode() for all spawned Claude processes",
+        "ralph-daemon.log confirms fallback was NOT triggered in observed run (used 'auto') but no runtime guard exists"
+      ],
+      "attack_scenario": "In an environment where claude --help does not output the 'auto' permission-mode string (e.g., older Claude CLI version, PATH manipulation, or CI environment), getPermissionMode() silently falls back to bypassPermissions. The autonomously-running Claude subprocess then has unrestricted write/execute access to the entire filesystem — no confirmation dialogs, no tool restrictions. Combined with a compromised task via state.json tampering, this constitutes full RCE with user privileges.",
+      "cvss_estimate": "7.8 (AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H) — local privilege escalation within daemon context",
+      "defense_layers": 1,
+      "recommendation": "Change fallback from bypassPermissions to 'plan' or 'acceptEdits'. Only allow bypassPermissions via explicit opt-in env var (CLAUDE_PERMISSION_MODE=bypassPermissions) with a warning log. Never silently grant maximum permissions."
+    },
+    {
+      "id": "CSO-M01",
+      "severity": "MEDIUM",
+      "owasp": "A05",
+      "stride": "Tampering",
+      "title": "A_TEAM_ADVISOR_BETA_HEADER and A_TEAM_ADVISOR_TOOL_TYPE not in DANGEROUS_ENV_VARS",
+      "asset": "scripts/daemon-utils.mjs callSdkWithAdvisor()",
+      "evidence": [
+        "daemon-utils.mjs line 149-150: ADVISOR_BETA_HEADER and ADVISOR_TOOL_TYPE read from env",
+        "daemon-utils.mjs line 53: DANGEROUS_ENV_VARS list does NOT include these vars",
+        "buildClaudeEnv() strips ANTHROPIC_BASE_URL but not A_TEAM_ADVISOR_* vars",
+        "Child processes inherit A_TEAM_ADVISOR_BETA_HEADER / A_TEAM_ADVISOR_TOOL_TYPE from parent environment"
+      ],
+      "attack_scenario": "An attacker who can set environment variables (e.g., via a compromised .env file, shell profile injection, or CI secrets misconfiguration) sets A_TEAM_ADVISOR_TOOL_TYPE to a different beta tool type. The SDK call uses the attacker-controlled tool type in the API request, potentially enabling unintended beta features or causing unexpected API behavior. The beta header override could be used to version-pin to a vulnerable/deprecated API endpoint.",
+      "cvss_estimate": "4.4 (AV:L/AC:L/PR:H/UI:N/S:U/C:L/I:L/A:N)",
+      "defense_layers": 1,
+      "recommendation": "Add A_TEAM_ADVISOR_BETA_HEADER and A_TEAM_ADVISOR_TOOL_TYPE to DANGEROUS_ENV_VARS in buildClaudeEnv(). Hardcode these values instead of allowing env override — they are protocol constants, not configuration."
+    },
+    {
+      "id": "CSO-M02",
+      "severity": "MEDIUM",
+      "owasp": "A04",
+      "stride": "Tampering",
+      "title": "research-daemon.mjs writes ralph-state.json non-atomically in maybeStartRalph()",
+      "asset": "scripts/research-daemon.mjs lines 442, 452",
+      "evidence": [
+        "Line 442: writeFileSync(ralphState, JSON.stringify(state, null, 2)) — direct write, not atomicWriteJSON",
+        "Line 452: writeFileSync(ralphState, JSON.stringify(state, null, 2)) — rollback path also non-atomic",
+        "Line 89-90: saveState() uses atomicWriteJSON correctly for state.json",
+        "ralph-state.json is tracked in git and read by ralph-daemon on startup"
+      ],
+      "attack_scenario": "If the research-daemon process is killed (SIGKILL, OOM, power loss) precisely during the writeFileSync in maybeStartRalph(), ralph-state.json is left in a corrupt/partial JSON state. On next daemon start, JSON.parse throws, the catch block suppresses the error, and ralph-daemon starts with no valid state. The daemon then either throws (no state.json check) or silently loses task context. This is a data integrity gap rather than a direct security exploit, but creates an unrecoverable state that requires manual intervention.",
+      "cvss_estimate": "3.3 (AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:L/A:L)",
+      "defense_layers": 1,
+      "recommendation": "Replace both writeFileSync calls in maybeStartRalph() with atomicWriteJSON(). The pattern is already imported and used elsewhere in the same file."
+    },
+    {
+      "id": "CSO-M03",
+      "severity": "MEDIUM",
+      "owasp": "A09",
+      "stride": "Repudiation / Information Disclosure",
+      "title": "No anomaly detection pipeline — budget exhaustion, advisor failure spikes, unusual iteration patterns undetected",
+      "asset": "System-wide monitoring",
+      "evidence": [
+        "No alerting code found in lib/ or scripts/ (grep anomaly/alerting returns 0 results)",
+        "advisorStats recorded in state.json but no threshold check triggers alert/notification",
+        "daemon.log grows unbounded (299KB confirmed, no rotation logic found)",
+        "ralph-state.json shows totalCostUsd: 0.512 against budgetCapUsd: 0.5 — budget overrun by 2.4% with no alert",
+        "Session cost data in state.json but no cross-session aggregation or anomaly threshold"
+      ],
+      "attack_scenario": "An attacker who can inject tasks into ralph-state.json (status=pending with a high-cost task) or compromise the advisor tool response can silently exhaust API budget across multiple daemon sessions. Without anomaly detection, the operator has no visibility until manual review of state.json or the monthly Anthropic invoice. Similarly, a prompt injection attack that succeeds would leave no forensic trail beyond the conversation logs (which are not persisted centrally).",
+      "cvss_estimate": "4.0 (AV:N/AC:H/PR:L/UI:N/S:U/C:L/I:N/A:L)",
+      "defense_layers": 1,
+      "recommendation": "Add: (1) Log rotation for daemon.log/ralph-daemon.log (max 1MB, keep 3). (2) Daily cost aggregation check against configurable threshold with RALPH_NOTIFY_URL alert. (3) advisorStats.failures >= 3 should trigger notification, not just silent useSdkPath=false toggle."
+    },
+    {
+      "id": "CSO-M04",
+      "severity": "MEDIUM",
+      "owasp": "A04",
+      "stride": "Repudiation",
+      "title": "Advisor Architecture threat model absent from governance documentation",
+      "asset": "governance/workflows/advisor-architecture.md",
+      "evidence": [
+        "advisor-architecture.md contains Risk table (lines 128-134) listing: beta API instability, SDK not installed, cost spike, test regression, cache miss",
+        "No threat actor modeling section exists in the document",
+        "No trust boundary diagram with verification levels",
+        "No section for: advisor response manipulation, advisor model spoofing, SDK supply chain risk",
+        "Risky table is operational risk only — not adversarial threat model"
+      ],
+      "attack_scenario": "Without a formal threat model for the advisor architecture, new attack surfaces (e.g., a compromised Anthropic SDK version that modifies advisor responses) are not considered during design reviews. The absence means each new integration (Phase 2, Phase 3 in roadmap) will introduce risks without structured adversarial analysis — repeating the pattern that required 14 post-hoc patches in the Adversarial Review.",
+      "cvss_estimate": "N/A — process gap, not exploitable directly",
+      "defense_layers": 0,
+      "recommendation": "Add a 'Threat Model' section to advisor-architecture.md covering: (1) Trust boundaries with verification levels, (2) Advisor response manipulation scenarios, (3) SDK supply chain risk, (4) Trigger: require threat model section for any new Layer B integration."
+    },
+    {
+      "id": "CSO-L01",
+      "severity": "LOW",
+      "owasp": "A07",
+      "stride": "Spoofing",
+      "title": "pre-check agent SKIP verdict has no enforcement mechanism — sampling_required is advisory only",
+      "asset": ".claude/agents/pre-check.md, orchestrator flow",
+      "evidence": [
+        "pre-check.md line 85: sampling_required flag described as 'full pipeline 병행 권고'",
+        "No code enforces sampling_required=true triggers a parallel full-pipeline run",
+        "The SKIP/PROCEED verdict is consumed by orchestrator (prompt-based) — no cryptographic or code-level enforcement",
+        "A prompt injection in user input could influence the pre-check verdict despite XML fence protection (confidence threshold is LLM-determined)"
+      ],
+      "attack_scenario": "A user crafts a request that causes pre-check to return SKIP (confidence 0.97) for a task that should proceed. The XML fence (#3 patch) reduces but does not eliminate this risk — sufficiently context-rich prompt injection could still influence the LLM judgment. The sampling_required advisory is never acted upon programmatically, so no independent verification occurs. Result: legitimate work is silently skipped, creating a denial-of-functionality scenario.",
+      "cvss_estimate": "3.1 (AV:N/AC:H/PR:N/UI:R/S:U/C:N/I:L/A:L)",
+      "defense_layers": 2,
+      "recommendation": "Implement sampling_required enforcement: when true, orchestrator must run a parallel abbreviated pipeline and compare results. This converts an advisory to a mandatory verification path."
+    },
+    {
+      "id": "CSO-L02",
+      "severity": "LOW",
+      "owasp": "A03",
+      "stride": "Tampering",
+      "title": "checkCommand in ralph-state.json with pipe operator is silently rejected — daemon loop runs indefinitely",
+      "asset": "scripts/ralph-daemon.mjs parseCheckCommand() + .research/ralph-state.json",
+      "evidence": [
+        "ralph-state.json checkCommand: 'npx vitest run test/learnings.test.ts 2>&1 | grep -q formatLearning'",
+        "SHELL_META_RE = /[|;&`$><\\\\]/ — pipe character | matches",
+        "parseCheckCommand() returns null for this command (correctly rejects)",
+        "runPreCheck() returns false when parsed=null",
+        "Daemon loop interprets false as 'task not complete' — iterates until maxIterations or budgetCapUsd",
+        "ralph-state.json shows status: budget_exceeded, totalCostUsd: 0.512 (over budget)"
+      ],
+      "attack_scenario": "This is not a security exploit but a logical fault: the security patch (#1) that correctly blocks shell metacharacters also blocks legitimate piped check commands that users naturally write. The daemon burns $0.50 budget on a task that was actually already complete (ralph-daemon.log shows pre-check passed on a similar command). Legitimate check commands with pipes silently fail without user notification.",
+      "cvss_estimate": "2.0 (AV:L/AC:L/PR:H/UI:N/S:U/C:N/I:N/A:L)",
+      "defense_layers": 2,
+      "recommendation": "Log a WARNING when checkCommand contains shell metacharacters at state load time (not just at parse time), before the daemon starts iterating. Document that piped commands are not supported and suggest: 'Use a wrapper script instead of inline pipes.'"
+    },
+    {
+      "id": "CSO-L03",
+      "severity": "LOW",
+      "owasp": "A08",
+      "stride": "Tampering",
+      "title": "No commit signing — git history integrity unverifiable",
+      "asset": "git commit history, governance/* rules",
+      "evidence": [
+        "git config --global commit.gpgsign: not configured",
+        "git log --show-signature HEAD: no GPG signature on commit 497934b",
+        "No .github/workflows CI pipeline exists (no .github dir)",
+        "governance/ rules are loaded by agents as authoritative — if commit history is tampered, rules could be silently modified"
+      ],
+      "attack_scenario": "If an attacker gains write access to the GitHub repository (ne0cean/A-Team), they can push unsigned commits that modify governance/rules/*.md or .claude/agents/*.md — the files that define agent behavior. Without commit signing and CI verification, a compromised governance rule (e.g., lowering the confidence threshold in pre-check.md, or removing security keywords from guardrails.md) would be silently accepted. The toolkit is then deployed to all projects without integrity verification.",
+      "cvss_estimate": "4.2 (AV:N/AC:H/PR:H/UI:R/S:C/C:L/I:L/A:N)",
+      "defense_layers": 1,
+      "recommendation": "Enable GPG commit signing. Add a GitHub Actions workflow to verify signatures and run npm test on PRs. Treat governance/*.md changes as requiring mandatory review."
+    }
+  ],
+  "phase1_asset_inventory": {
+    "Restricted": [
+      "ANTHROPIC_API_KEY (env only — not in git, correct)",
+      "~/.ssh/ keys (referenced in guardrails.md as protected)"
+    ],
+    "Confidential": [
+      ".research/ralph-state.json (task descriptions — IN GIT, RISK)",
+      ".research/state.json (session IDs, run counts — IN GIT, RISK)",
+      ".research/daemon.log (300+ Claude session UUIDs — IN GIT, RISK)"
+    ],
+    "Internal": [
+      ".context/SESSIONS.md (session cost records)",
+      ".research/notes/* (AI research outputs — in git, 302 notes)",
+      "lib/eval-store.ts (evaluation results)",
+      "lib/learnings.ts (cross-session memory)"
+    ],
+    "Public": [
+      ".claude/agents/*.md (agent prompts — in git, intentional)",
+      "governance/* (rules/workflows — in git, intentional)",
+      "lib/*.ts (toolkit code — in git, intentional)"
+    ]
+  },
+  "phase2_trust_boundaries": {
+    "User <-> Claude Code": {
+      "verification": "MODERATE",
+      "notes": "XML fence isolation for pre-check (#3 patched). No structural authentication."
+    },
+    "Claude Code <-> Subagents (Task tool)": {
+      "verification": "WEAK",
+      "notes": "No subagent output signing. Orchestrator trusts subagent JSON response verbatim. sampling_required is advisory only."
+    },
+    "Daemon <-> state.json": {
+      "verification": "WEAK",
+      "notes": "checkCommand frozen at startup (#1 patched). But state.json is tracked in git — writable by any git push actor."
+    },
+    "Daemon <-> Anthropic API (SDK path)": {
+      "verification": "STRONG",
+      "notes": "baseURL hardcoded (#4 patched). API key validated before call. CircuitBreaker present."
+    },
+    "Daemon <-> CLI child process": {
+      "verification": "MODERATE",
+      "notes": "buildClaudeEnv() strips dangerous vars. But A_TEAM_ADVISOR_* not stripped (CSO-M01)."
+    },
+    "Daemon <-> GitHub (push/PR)": {
+      "verification": "NONE",
+      "notes": "No commit signing. No branch protection checks before ralph push. No CI."
+    },
+    "CI <-> Build artifacts": {
+      "verification": "NONE",
+      "notes": "No CI pipeline exists. No build artifact signing."
+    },
+    "research-daemon <-> ralph-daemon (pipeline)": {
+      "verification": "WEAK",
+      "notes": "maybeStartRalph() reads ralph-state.json without schema validation. Only checks status==pending."
+    }
+  },
+  "phase3_threat_actors": {
+    "External attacker": "Can access git history to extract session IDs (CSO-H01). Can exploit vite WebSocket vuln on same network (CSO-H02).",
+    "Malicious dependency": "npm supply chain: @anthropic-ai/sdk is optional, dynamic import. vite has active CVEs (CSO-H02).",
+    "Agent autonomy abuse": "ralph-daemon with bypassPermissions fallback (CSO-H03) has unrestricted filesystem access. No sandbox.",
+    "Accidental misconfiguration": "checkCommand pipe silently rejected (CSO-L02). State committed to git (CSO-H01).",
+    "AI prompt injection": "XML fence reduces risk (#3 patched). sampling_required not enforced (CSO-L01). Category/noteFile from state.json not validated on resume."
+  },
+  "phase4_owasp_mapping": {
+    "A01_Broken_Access_Control": "PARTIAL — bypassPermissions fallback grants unrestricted access (CSO-H03). No role separation between daemons.",
+    "A02_Cryptographic_Failures": "PASS — API key not in git, not logged. No plaintext credential storage found.",
+    "A03_Injection": "PASS — Shell injection patched (#1). Prompt injection reduced (#3). No SQL/LDAP. Residual: category field from state.json not validated on resume.",
+    "A04_Insecure_Design": "PARTIAL — No formal threat model (CSO-M04). maybeStartRalph non-atomic writes (CSO-M02). sampling_required not enforced (CSO-L01).",
+    "A05_Security_Misconfiguration": "PARTIAL — bypassPermissions silent fallback (CSO-H03). A_TEAM_ADVISOR env vars not stripped (CSO-M01). No .gitignore for .research/.",
+    "A06_Vulnerable_Components": "GAP — vite 8.0.3 (3 CVEs, fix available) (CSO-H02). @anthropic-ai/sdk 0.88.0 (no known CVEs, but optional dep with dynamic import).",
+    "A07_Authentication_Failures": "N/A (local tool, no web auth). Pre-check verdict spoofing risk noted (CSO-L01).",
+    "A08_Software_Data_Integrity": "PARTIAL — JSONL integrity patched (#13). But git history unsigned (CSO-L03). State files in git (CSO-H01). ralph-state non-atomic write (CSO-M02).",
+    "A09_Logging_Monitoring": "GAP — Session IDs in git-tracked logs (CSO-H01). No anomaly detection (CSO-M03). No log rotation. No alerting on advisor failure spikes.",
+    "A10_SSRF": "PASS — RALPH_NOTIFY_URL validated (#12 patched). No other external URL fetch found."
+  },
+  "phase5_stride_mapping": {
+    "Spoofing": "PARTIAL — Anthropic API URL hardcoded (#4). Advisor model fixed to Opus (#2 ALLOWED_MODELS). Risk: pre-check SKIP verdict manipulable via prompt injection (CSO-L01).",
+    "Tampering": "PARTIAL — state.json checkCommand frozen (#1). Allowlist for commands (#1) and models (#2). Risk: state.json/ralph-state.json tracked in public git (CSO-H01). Non-atomic write in maybeStartRalph (CSO-M02). Governance rules unsigned (CSO-L03).",
+    "Repudiation": "GAP — Session IDs logged to git-committed daemon.log (CSO-H01). No central audit log for agent actions. No advisor call audit trail beyond state.json advisorStats.",
+    "Information_Disclosure": "GAP — Session IDs, task descriptions, cost data in public git history (CSO-H01). Vite WebSocket arbitrary file read CVE (CSO-H02).",
+    "Denial_of_Service": "PARTIAL — Budget cap per iteration (CONFIG.maxBudgetPerIter). CircuitBreaker for SDK path. Risk: checkCommand pipe rejection causes budget burn to maxIterations (CSO-L02). No daily/weekly budget cap.",
+    "Elevation_of_Privilege": "PARTIAL — ALLOWED_MODELS prevents model substitution. buildClaudeEnv strips dangerous vars. Risk: bypassPermissions silent fallback (CSO-H03). A_TEAM_ADVISOR_* env override (CSO-M01)."
+  },
+  "phase6_defense_in_depth": {
+    "ANTHROPIC_API_KEY": {
+      "layers": 3,
+      "detail": "L1: env var only (not git), L2: buildClaudeEnv isolation, L3: baseURL hardcoded (#4)"
+    },
+    "state.json integrity": {
+      "layers": 3,
+      "detail": "L1: sh -c removed (#1), L2: ALLOWED_CHECK_COMMANDS whitelist (#1), L3: checkCommand frozen at startup (#1)"
+    },
+    "model substitution": {
+      "layers": 2,
+      "detail": "L1: ALLOWED_MODELS set (#2), L2: MODEL_MAP alias resolution"
+    },
+    "prompt injection": {
+      "layers": 2,
+      "detail": "L1: XML fence isolation (#3), L2: confidence>=0.95 threshold for SKIP"
+    },
+    "SSRF": {
+      "layers": 2,
+      "detail": "L1: isNotifyUrlAllowed() validation (#12), L2: private IP ranges blocked"
+    },
+    "daemon_permissions": {
+      "layers": 1,
+      "detail": "L1: auto mode preferred. MISSING L2: no fallback guard (bypassPermissions is full access)"
+    },
+    "git_history_integrity": {
+      "layers": 0,
+      "detail": "No commit signing, no CI, no branch protection"
+    },
+    "session_id_confidentiality": {
+      "layers": 0,
+      "detail": "Session IDs in git-tracked log files — no protection"
+    }
+  },
+  "phase7_process_gaps": {
+    "root_cause_of_14_adversarial_findings": "The guardrail system (guardrail.md + Tier 1/2/3) checks for code quality markers (console.log, hardcoded secrets, config changes) but has no adversarial threat actor model built in. Guardrail scans for accidental mistakes, not deliberate attack vectors. The 14 findings were all injection/trust-boundary issues — none of which are in the guardrail keyword list.",
+    "missing_triggers": [
+      "No mandatory adversarial review when new trust boundary is introduced (e.g., new env var read, new external service call, new file path from state)",
+      "No security review trigger when daemon scripts are modified",
+      "No trigger when .research/ file tracking changes in git"
+    ],
+    "recurrence_risk": "HIGH — Phase 2 (research-daemon advisor integration) and Phase 3 (Layer A advisor) in the roadmap will introduce new trust boundaries. Without a structured adversarial trigger in the integration workflow, similar issues will recur.",
+    "recommended_process_additions": [
+      "Add 'security keywords' list in guardrails.md to include: spawn, exec, env, fetch, readFileSync(state), writeFileSync, permission-mode",
+      "Add mandatory CSO review trigger in post-integration.md Phase 5 when daemon scripts are modified",
+      "Add .research/ to .gitignore as part of project initialization template"
+    ]
+  },
+  "phase8_recommendations": {
+    "Critical_immediate": [],
+    "High_1_week": [
+      "CSO-H01: Add .research/ to .gitignore. Run: git rm --cached .research/state.json .research/ralph-state.json .research/daemon.log .research/ralph-daemon.log .research/daemon.pid. Commit. Rotate sessions where sensitive task data was public.",
+      "CSO-H02: Run npm update vite to >=8.0.5. Verify with npm audit.",
+      "CSO-H03: Change bypassPermissions fallback to 'plan' in daemon-utils.mjs line 101. Require explicit CLAUDE_PERMISSION_MODE=bypassPermissions env var with log warning."
+    ],
+    "Medium_1_month": [
+      "CSO-M01: Add A_TEAM_ADVISOR_BETA_HEADER and A_TEAM_ADVISOR_TOOL_TYPE to DANGEROUS_ENV_VARS in buildClaudeEnv().",
+      "CSO-M02: Replace writeFileSync with atomicWriteJSON in research-daemon.mjs maybeStartRalph() lines 442 and 452.",
+      "CSO-M03: Add log rotation (1MB max, 3 files) to daemon.log and ralph-daemon.log. Add cost anomaly alert when totalCostUsd crosses configurable threshold.",
+      "CSO-M04: Add Threat Model section to governance/workflows/advisor-architecture.md covering trust boundaries and adversarial scenarios."
+    ],
+    "Low_quarter": [
+      "CSO-L01: Implement sampling_required enforcement in orchestrator — when true, run abbreviated parallel pipeline.",
+      "CSO-L02: Log WARNING when checkCommand contains shell metacharacters at daemon startup, before iteration begins.",
+      "CSO-L03: Enable GPG commit signing. Add GitHub Actions workflow for npm test on PR. Mark governance/*.md as requiring review."
+    ]
+  },
+  "status": "DONE_WITH_CONCERNS",
+  "immediate_action_required": true,
+  "immediate_action_reason": "CSO-H01: Session IDs and task data are currently in a public GitHub repository. This is an active information disclosure. CSO-H02: vite CVE with available fix. CSO-H03: bypassPermissions silent fallback creates unconstrained agent execution risk."
+}
