@@ -2,6 +2,73 @@
 
 ---
 
+## [2026-04-11] Unified Advisor Architecture + 7-Pass 최적화 파이프라인
+
+**완료**:
+- **Unified Advisor Architecture Phase 1+2 — `advisor_20260301` 베타 통합**
+  - Anthropic 2026-04-09 공개 advisor tool을 A-Team에 통합
+  - Layer A/B 분리 설계 (Claude Code subagents vs 자율 데몬)
+  - `lib/cost-tracker.ts` CostRecord 확장 (advisor 필드 10개 + 파생 지표 6개)
+  - `lib/circuit-breaker.ts` ADVISOR_TOOL_BREAKER_CONFIG 상수
+  - `scripts/daemon-utils.mjs` `callSdkWithAdvisor()` + beta header 주입
+  - `scripts/ralph-daemon.mjs` + `research-daemon.mjs` SDK 경로 opt-in
+  - `@anthropic-ai/sdk` optional dependency
+
+- **토큰 비용 추정 + Pre-Check Skip Gate 실행체**
+  - `lib/model-pricing.json` 신규 (Opus/Sonnet/Haiku 가격, 단일 진실 공급원)
+  - `estimateCostUsd()` + `estimateIterationsCostUsd()` — 혼합 이터레이션 합산
+  - `.claude/agents/pre-check.md` 신규 (Haiku, SKIP|PROCEED 보수적 판정)
+  - orchestrator Phase 1.5 XML 펜스 격리 의무화
+
+- **Adversarial Review 14건 보안 리메디에이션**
+  - Red Team 리뷰 HIGH 5 + MEDIUM 6 + LOW 3 전량 패치
+  - checkCommand 셸 인젝션, Prompt Injection, SDK 환경 오염, SSRF, prototype pollution 등
+
+- **PIOP Phase 1-5 전체 실행**
+  - 7 Cross-Module Wiring (ADVISOR_TOOL_BREAKER_CONFIG 통합, session_cost 이벤트, logAdvisorOutcome 등)
+  - 에이전트 토큰 -11.8% (7232 → 6376 words)
+  - Harness Score L5 (82.7/100)
+
+- **7-Pass 최적화 파이프라인 실행**
+  1. `/optimize` (PIOP) — 7 연결, deferred 0
+  2. `/benchmark --diff` — NEW BASELINE (npm test 1.47s, tsc 0.74s, 0 regression)
+  3. `/doc-sync` — Health 92/100, STALE 2 auto-fix
+  4. `/cso` — OWASP + STRIDE, HIGH 3 + MEDIUM 4 + LOW 3 → 8건 패치
+     - CSO-H01 `.research/` 세션 UUID 공개 노출 차단 (`git rm --cached` 7종 + .gitignore)
+     - CSO-H02 vite 3 CVEs → `npm audit fix` (0 vulnerabilities)
+     - CSO-H03 bypassPermissions 무음 폴백 → `'plan'` + 명시적 env var 요구
+     - CSO-M04 Threat Model 섹션 추가 (Defense-in-Depth Matrix T1-T7)
+  5. SimpleCircuitBreaker 완전 통합 — `lib/advisor-breaker-config.json` 단일 진실 공급원
+  6. 신규 보안 테스트 +13 (`test/security-remediation.test.ts`)
+  7. 세션 아카이브 (`.context/benchmarks/` + `.context/security-reports/`)
+
+**지표**:
+- Tests: 153 → **237 PASS** (+84, 19 test files)
+- npm audit: 1 HIGH → **0 vulnerabilities**
+- Harness Score: **L5 (82.7/100)**
+- Doc Health: **92/100**
+- Agent tokens: ~6376 words → 7376 words (pre-check 신규 +638, 정상 증가)
+- 보안 발견: Adversarial 14 + CSO 10 = **22건 / 22건 해결**
+- Defense-in-Depth: 5/10
+- 단일 진실 공급원 2건 (model-pricing.json, advisor-breaker-config.json)
+
+**이슈**: 없음
+
+**빌드**: ✅ (237/237 tests pass, tsc --noEmit 0 errors, npm audit 0 vulnerabilities)
+
+**커밋 체인** (6건, remote 동기화 완료):
+```
+2284276 refactor: advisor-breaker-config.json 단일화 + 세션 아카이브 (237 tests)
+2f23743 security: CSO audit remediation — H01/H02/H03 + M01/M02/M03/M04 + L02
+497934b feat: PIOP Phase 1-5 — Cross-Module Wiring + Advisor Config Unification
+248949b docs: CURRENT.md 갱신 — 보안 리메디에이션 14건 기록
+eb538f7 security: Adversarial Review 14건 보안 리메디에이션 패치
+de9c77d [feat]: 토큰 비용 추정 + Pre-Check Skip Gate 실행체 (171 tests)
+7eb08fc [feat]: Unified Advisor Architecture Phase 1+2 — advisor_20260301 통합 (166 tests)
+```
+
+---
+
 ## [2026-04-10] A-Team PIOP 최적화 및 격주 유지보수 구조 구현
 
 **완료**:

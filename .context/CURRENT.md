@@ -232,9 +232,12 @@
 
 ## Next Tasks
 - [ ] **Advisor tool 라이브 API 테스트** (useSdkPath=true + ANTHROPIC_API_KEY → ralph --once 단일 iteration 검증)
-- [ ] **Phase 1.5 Skip Gate 실제 Haiku 호출 구현체** (orchestrator 에이전트 런타임 로직)
-- [ ] **eval-store A/B 수집 개시** (advisor-on/off 50 샘플 → harness-score 비교)
-- [ ] **토큰 기반 비용 추정** (SDK 경로 `costUsd` 필드 채우기 → cost-tracker 완결)
+- [ ] **eval-store A/B 수집 개시** (advisor-on/off 50 샘플 → harness-score 비교, advisor 효과 실측)
+- [ ] **Phase 1.5 skip rate 실측** (pre-check 에이전트 첫 데이터 수집 → confidence 0.95 임계치 조정)
+- [ ] **CSO-L03 GPG 서명 + CI** (GitHub Actions npm test on PR, governance/ 변경 필수 리뷰)
+- [ ] **CSO-L01 sampling_required 런타임 집행** (orchestrator가 true 시 병렬 검증 파이프라인 의무 실행)
+- [ ] **MODEL_PRICING 공식 가격 대조** (Anthropic 공식 페이지와 대조 후 advisor-breaker-config.json도 동일 검증)
+- [ ] **CURRENT.md 분할** (400+줄 도달 — 오래된 Last Completions를 SESSIONS.md archive로 이관)
 - [ ] UI Auto-Inspect 실전 테스트 (실제 .tsx 수정 → 훅 자동 트리거 → diff Read 검증)
 - [ ] A-Team/ 미러 디렉토리 동기화 스크립트 자동화 (mirror-sync 규칙 활용)
 - [ ] 서브에이전트 실전 트리거 테스트 (자연어 "리뷰해줘" → review-pr 에이전트 자동 라우팅 확인)
