@@ -290,10 +290,14 @@ async function runCycle(category) {
       // CLI fallback으로 계속 진행
     } else {
       log(`[ADVISOR] 계획 수립 완료 — advisor 호출: ${sdkResult.advisorCalls}회, 입력: ${sdkResult.usage?.inputTokens || 0} 토큰`);
-      // advisorStats 기록 (성공)
+      // advisorStats 기록 (성공) + SDK 경로 비용 누적 (토큰 기반 추산)
       const s = loadState();
       if (!s.advisorStats) s.advisorStats = { calls: 0, failures: 0, totalCostUsd: 0 };
       s.advisorStats.calls = (s.advisorStats.calls || 0) + 1;
+      if (sdkResult.usage?.costUsd) {
+        s.totalCostUsd = (s.totalCostUsd || 0) + sdkResult.usage.costUsd;
+        s.advisorStats.totalCostUsd = (s.advisorStats.totalCostUsd || 0) + sdkResult.usage.costUsd;
+      }
       saveState(s);
     }
   }

@@ -314,12 +314,19 @@ async function mainLoop() {
         log(`[RALPH] SDK 완료: advisorCalls=${sdkResult.advisorCalls} in=${usage.inputTokens} out=${usage.outputTokens}`);
 
         // advisorStats 업데이트
-        if (!s.advisorStats) s.advisorStats = { totalCalls: 0, totalInputTokens: 0, totalOutputTokens: 0, failures: 0 };
+        if (!s.advisorStats) s.advisorStats = { totalCalls: 0, totalInputTokens: 0, totalOutputTokens: 0, failures: 0, totalCostUsd: 0 };
         s.advisorStats.totalCalls = (s.advisorStats.totalCalls || 0) + sdkResult.advisorCalls;
         s.advisorStats.totalInputTokens = (s.advisorStats.totalInputTokens || 0) + (usage.advisorInputTokens || 0);
         s.advisorStats.totalOutputTokens = (s.advisorStats.totalOutputTokens || 0) + (usage.advisorOutputTokens || 0);
 
-        // SDK 결과를 기존 CLI result 형태에 맞게 변환 (costUsd는 0으로 — SDK는 별도 청구)
+        // SDK 경로 비용 누적 (토큰 기반 추산)
+        if (usage.costUsd) {
+          s.totalCostUsd = (s.totalCostUsd || 0) + usage.costUsd;
+          s.advisorStats.totalCostUsd = (s.advisorStats.totalCostUsd || 0) + usage.costUsd;
+        }
+
+        // SDK 결과를 기존 CLI result 형태에 맞게 변환
+        // costUsd: SDK 경로에서 이미 s.totalCostUsd에 누적했으므로 0 전달 (하단 누적 로직 중복 방지)
         result = {
           code: 0,
           costUsd: 0,

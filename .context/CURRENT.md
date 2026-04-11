@@ -7,6 +7,19 @@
 (없음)
 
 ## Last Completions (2026-04-11)
+- **토큰 비용 추정 + Pre-Check 에이전트 (171 tests)**
+  - `lib/cost-tracker.ts` — `MODEL_PRICING` 상수 (Opus/Sonnet/Haiku) + `estimateCostUsd()` + `estimateIterationsCostUsd()` 함수 export
+  - `scripts/daemon-utils.mjs` — MODEL_PRICING JS 미러링 (Node/TS 경계) + `callSdkWithAdvisor` return에 `usage.costUsd` 포함
+  - `scripts/ralph-daemon.mjs` — SDK 성공 분기에서 `state.totalCostUsd` + `advisorStats.totalCostUsd` 자동 누적
+  - `scripts/research-daemon.mjs` — 동일 패턴, SDK 경로 비용 가시화
+  - `.claude/agents/pre-check.md` (신규, 125줄) — Haiku 서브에이전트, Phase 1.5 Skip Gate 실행체
+    - tools: Read, Glob, Grep / 판정: `SKIP | PROCEED` / confidence ≥ 0.95 보수적
+    - 검증 절차: 중복 감지 → 금지 파일 감지 → 자명한 중복 → 판정
+    - 10% 샘플링(`sampling_required`)으로 거짓 양성 검증 A/B
+    - 자체 budget: input 2000 tok / output 300 tok
+  - `.claude/agents/orchestrator.md` — Phase 1.5 실제 호출 섹션 추가 + verdict 용어 통일 (APPROVED/NEEDS_WORK → SKIP/PROCEED)
+  - 테스트: 166 → 171 (+5, estimateCostUsd 검증 — Sonnet 1M I/O=$18 / Opus 캐시 90% 할인 / 캐시 쓰기 25% 할증 / fallback / 혼합 이터레이션)
+
 - **Unified Advisor Architecture Phase 1+2 — `advisor_20260301` 통합 (166 tests)**
   - **배경**: Anthropic이 2026-04-09 공개한 네이티브 advisor tool (Sonnet executor + Opus advisor 단일 `/v1/messages` 내부 호출) 베타 통합
   - **공식 벤치**: SWE-bench Multilingual 72.1%→74.8% (+2.7pp), 비용 -11.9% / BrowseComp 19.7%→41.2% (2.09×)

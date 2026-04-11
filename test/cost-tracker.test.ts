@@ -4,6 +4,8 @@ import * as path from 'path';
 import * as os from 'os';
 import {
   CostTracker,
+  estimateCostUsd,
+  estimateIterationsCostUsd,
 } from '../lib/cost-tracker.js';
 
 const TEST_DIR = path.join(os.tmpdir(), 'a-team-cost-test-' + process.pid);
@@ -147,5 +149,71 @@ describe('CostTracker', () => {
     expect(summary.totalCostUsd).toBeCloseTo(0.13, 2);
     expect(summary.advisorCallAvg).toBe(0);
     expect(summary.cacheHitRate).toBe(0);
+  });
+});
+
+// ── 토큰 기반 비용 추정 함수 ────────────────────────────────────────────────
+
+describe('estimateCostUsd', () => {
+  it('Sonnet 단순 입출력: 1M in + 1M out = $18', () => {
+    const cost = estimateCostUsd({
+      model: 'claude-sonnet-4-6',
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    // Sonnet: $3/M in + $15/M out = $18
+    expect(cost).toBeCloseTo(18, 5);
+  });
+
+  it('Opus 캐시 히트: 캐시 읽기는 input의 0.1x 할인', () => {
+    // Opus: $15/M in, cacheReadMultiplier=0.1
+    // 1M 캐시 읽기 토큰 → $15 * 0.1 = $1.5
+    // 순수 입력 0, 출력 0
+    const cost = estimateCostUsd({
+      model: 'claude-opus-4-6',
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadInputTokens: 1_000_000,
+    });
+    expect(cost).toBeCloseTo(1.5, 5);
+  });
+
+  it('캐시 쓰기 할증: cacheCreationInputTokens는 input의 1.25x', () => {
+    // Sonnet: $3/M in, cacheWriteMultiplier=1.25
+    // 1M 캐시 쓰기 토큰 → $3 * 1.25 = $3.75
+    const cost = estimateCostUsd({
+      model: 'claude-sonnet-4-6',
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheCreationInputTokens: 1_000_000,
+    });
+    expect(cost).toBeCloseTo(3.75, 5);
+  });
+
+  it('미등록 모델은 Sonnet 가격으로 fallback', () => {
+    // 미등록 모델 → Sonnet($3/M in, $15/M out) fallback
+    const cost = estimateCostUsd({
+      model: 'claude-unknown-model',
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    // Sonnet fallback: $3 + $15 = $18
+    expect(cost).toBeCloseTo(18, 5);
+  });
+});
+
+describe('estimateIterationsCostUsd', () => {
+  it('Sonnet executor + Opus advisor 혼합 이터레이션 비용 합산', () => {
+    // executor(message) 1회: Sonnet, 500K in + 200K out
+    //   → $3/M * 0.5 + $15/M * 0.2 = $1.5 + $3.0 = $4.5
+    // advisor(advisor_message) 1회: Opus, 100K in + 50K out
+    //   → $15/M * 0.1 + $75/M * 0.05 = $1.5 + $3.75 = $5.25
+    // 합계: $9.75
+    const iterations = [
+      { type: 'message', input_tokens: 500_000, output_tokens: 200_000 },
+      { type: 'advisor_message', model: 'claude-opus-4-6', input_tokens: 100_000, output_tokens: 50_000 },
+    ];
+    const cost = estimateIterationsCostUsd(iterations, 'claude-sonnet-4-6');
+    expect(cost).toBeCloseTo(9.75, 5);
   });
 });

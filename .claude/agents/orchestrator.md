@@ -26,8 +26,8 @@ model: sonnet
 
 태스크 복잡도 분류 직후, Haiku 모델로 pre-check 수행:
 1. 입력: 태스크 요약 + 관련 파일 3-5개 (diff 없음)
-2. 출력: `{ verdict: APPROVED | NEEDS_WORK, confidence: 0-1, reason }`
-3. `confidence >= 0.95 && verdict === APPROVED` → Phase 2-5 전체 스킵, 즉시 종료
+2. 출력: `{ verdict: SKIP | PROCEED, confidence: 0-1, reason, evidence[], sampling_required }`
+3. `verdict === "SKIP" && confidence >= 0.95 && !sampling_required` → Phase 2-5 전체 스킵, 즉시 종료
 4. 그 외 → 기존 Phase 2 Router로 진행
 
 **스킵 조건 (보수적)**:
@@ -39,6 +39,30 @@ model: sonnet
 목표 skip rate: 15% (Phase 2에서 점진 상향)
 
 **거짓 양성 방지**: 10% 샘플링으로 스킵 결정한 태스크도 full pipeline 병행 → harness-score 비교로 threshold 검증.
+
+### 실제 호출 (pre-check 서브에이전트)
+
+Phase 1.5는 `.claude/agents/pre-check.md`에 정의된 haiku 서브에이전트에 위임한다:
+
+```
+Task(
+  subagent_type="pre-check",
+  prompt=f"""
+{task_summary}
+
+관련 파일 힌트: {top_3_relevant_files}
+"""
+)
+```
+
+**판정 처리**:
+- `verdict === "SKIP"` && `confidence >= 0.95` && `!sampling_required` → 즉시 종료, CURRENT.md에 skip 사유 기록
+- `sampling_required === true` → SKIP 사유를 로그에 기록하되 Phase 2 Router로 계속 진행 (거짓 양성 검증용 A/B 샘플)
+- 그 외 → Phase 2 Router
+
+**cost-tracker 기록**:
+- pre-check 호출마다 `{ phase: 'pre-check', layer: 'A', skipReason?: 'pre-check-skip' }` 기록
+- 이후 Phase 별 비용과 합산 시 정확한 skip rate 산출 가능
 
 ## Phase 2: 패턴 선택 + 태스크 분해
 

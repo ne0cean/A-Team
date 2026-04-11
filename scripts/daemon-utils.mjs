@@ -98,6 +98,45 @@ export function getPermissionMode() {
   return 'bypassPermissions';
 }
 
+// ─── 토큰 기반 비용 추정 ────────────────────────────────────────────────────
+// lib/cost-tracker.ts의 MODEL_PRICING/estimateIterationsCostUsd와 동기화 필수.
+// Node.js ESM 런타임에서 TypeScript를 직접 import할 수 없으므로 JS로 미러링.
+const MODEL_PRICING_MIRROR = {
+  'claude-opus-4-6':          { inputPerMillion: 15, outputPerMillion: 75,  cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
+  'claude-sonnet-4-6':        { inputPerMillion: 3,  outputPerMillion: 15,  cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
+  'claude-haiku-4-5-20251001':{ inputPerMillion: 1,  outputPerMillion: 5,   cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
+  'claude-haiku-4-5':         { inputPerMillion: 1,  outputPerMillion: 5,   cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
+};
+const SONNET_FALLBACK = MODEL_PRICING_MIRROR['claude-sonnet-4-6'];
+
+/** 단일 호출의 토큰 → USD (lib/cost-tracker.ts estimateCostUsd 미러) */
+function _estimateCostUsd({ model, inputTokens, outputTokens, cacheReadInputTokens = 0, cacheCreationInputTokens = 0 }) {
+  const p = MODEL_PRICING_MIRROR[model] ?? SONNET_FALLBACK;
+  const M = 1_000_000;
+  const cost =
+    (inputTokens * p.inputPerMillion) / M +
+    (outputTokens * p.outputPerMillion) / M +
+    (cacheReadInputTokens * p.inputPerMillion * p.cacheReadMultiplier) / M +
+    (cacheCreationInputTokens * p.inputPerMillion * p.cacheWriteMultiplier) / M;
+  return Number(cost.toFixed(6));
+}
+
+/** iterations[] 전체 합산 USD (lib/cost-tracker.ts estimateIterationsCostUsd 미러) */
+function _estimateIterationsCostUsd(iterations, executorModel) {
+  let total = 0;
+  for (const iter of (iterations || [])) {
+    const model = iter.type === 'advisor_message' ? (iter.model ?? 'claude-opus-4-6') : executorModel;
+    total += _estimateCostUsd({
+      model,
+      inputTokens: iter.input_tokens ?? 0,
+      outputTokens: iter.output_tokens ?? 0,
+      cacheReadInputTokens: iter.cache_read_input_tokens ?? 0,
+      cacheCreationInputTokens: iter.cache_creation_input_tokens ?? 0,
+    });
+  }
+  return Number(total.toFixed(6));
+}
+
 // ─── Advisor Tool SDK 호출 ──────────────────────────────────────────────────
 // Anthropic SDK 직접 호출 + Advisor tool 사용 (beta API)
 // @anthropic-ai/sdk 는 optional dependency — import 실패 시 에러 반환
@@ -161,6 +200,9 @@ The advisor should respond in under 100 words and use enumerated steps, not expl
     const cacheReadInputTokens = advisorIters.reduce((s, it) => s + (it.cache_read_input_tokens || 0), 0);
     const cacheCreationInputTokens = advisorIters.reduce((s, it) => s + (it.cache_creation_input_tokens || 0), 0);
 
+    // iterations[] 전체 토큰 → 비용 추산 (executor + advisor 모두 포함)
+    const costUsd = _estimateIterationsCostUsd(iterations, executorModel);
+
     return {
       content: response.content,
       usage: {
@@ -171,6 +213,7 @@ The advisor should respond in under 100 words and use enumerated steps, not expl
         advisorOutputTokens,
         cacheReadInputTokens,
         cacheCreationInputTokens,
+        costUsd,
       },
       advisorCalls,
       error: null
