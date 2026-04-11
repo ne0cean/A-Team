@@ -7,12 +7,14 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import MODEL_PRICING_JSON from './model-pricing.json';
 
 // ─── 모델별 가격 상수 ───────────────────────────────────────────────────────────
 
 /**
  * Anthropic 모델별 공식 가격 ($/M tokens, 2026-04 기준)
- * 가격 변동 시 이 객체만 업데이트하면 됨
+ * 단일 진실 공급원: lib/model-pricing.json
+ * daemon-utils.mjs도 같은 JSON을 로드하므로 가격 변동 시 model-pricing.json만 업데이트.
  */
 export interface ModelPricing {
   inputPerMillion: number;
@@ -21,33 +23,7 @@ export interface ModelPricing {
   cacheWriteMultiplier: number;  // input 대비 (보통 1.25)
 }
 
-export const MODEL_PRICING: Record<string, ModelPricing> = {
-  'claude-opus-4-6': {
-    inputPerMillion: 15,
-    outputPerMillion: 75,
-    cacheReadMultiplier: 0.1,
-    cacheWriteMultiplier: 1.25,
-  },
-  'claude-sonnet-4-6': {
-    inputPerMillion: 3,
-    outputPerMillion: 15,
-    cacheReadMultiplier: 0.1,
-    cacheWriteMultiplier: 1.25,
-  },
-  'claude-haiku-4-5-20251001': {
-    inputPerMillion: 1,
-    outputPerMillion: 5,
-    cacheReadMultiplier: 0.1,
-    cacheWriteMultiplier: 1.25,
-  },
-  // 별칭 (모델 ID만 다른 경우)
-  'claude-haiku-4-5': {
-    inputPerMillion: 1,
-    outputPerMillion: 5,
-    cacheReadMultiplier: 0.1,
-    cacheWriteMultiplier: 1.25,
-  },
-};
+export const MODEL_PRICING: Record<string, ModelPricing> = MODEL_PRICING_JSON as Record<string, ModelPricing>;
 
 /**
  * 토큰 사용량을 USD 비용으로 환산
@@ -108,7 +84,15 @@ export function estimateIterationsCostUsd(
 ): number {
   let total = 0;
   for (const iter of iterations) {
-    const model = iter.type === 'advisor_message' ? (iter.model ?? 'claude-opus-4-6') : executorModel;
+    // #8: 알 수 없는 타입은 가장 비싼 가격(Opus)으로 보수적 추산
+    let model: string;
+    if (iter.type === 'advisor_message') {
+      model = iter.model ?? 'claude-opus-4-6';
+    } else if (iter.type === 'message') {
+      model = executorModel;
+    } else {
+      model = 'claude-opus-4-6'; // 알 수 없는 타입 — 보수적으로 가장 비싼 가격
+    }
     total += estimateCostUsd({
       model,
       inputTokens: iter.input_tokens ?? 0,
@@ -163,6 +147,13 @@ export interface CostTrackerOptions {
 }
 
 const COST_FILE = 'session-costs.json';
+
+/** #13: 숫자 필드 검증 — NaN, Infinity, 음수 방어 */
+function sanitizeNumber(v: unknown): number {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return n;
+}
 
 export class CostTracker {
   private records: CostRecord[] = [];
@@ -242,7 +233,45 @@ export class CostTracker {
   load(): void {
     const file = path.join(this.dir, COST_FILE);
     if (!fs.existsSync(file)) return;
-    this.records = JSON.parse(fs.readFileSync(file, 'utf-8'));
+    let raw: unknown;
+    try { raw = JSON.parse(fs.readFileSync(file, 'utf-8')); } catch { return; }
+    if (!Array.isArray(raw)) return;
+    // #13: 프로토타입 오염 및 악의적 값 방어
+    this.records = (raw as unknown[])
+      .filter((r): r is Record<string, unknown> => typeof r === 'object' && r !== null)
+      .filter(r => {
+        const keys = Object.keys(r);
+        return !keys.some(k => ['__proto__', 'constructor', 'prototype'].includes(k));
+      })
+      .map(r => {
+        const sanitized: CostRecord = {
+          model: typeof r['model'] === 'string' ? r['model'] : 'unknown',
+          inputTokens: sanitizeNumber(r['inputTokens']),
+          outputTokens: sanitizeNumber(r['outputTokens']),
+          costUsd: sanitizeNumber(r['costUsd']),
+          ts: typeof r['ts'] === 'string' ? r['ts'] : new Date().toISOString(),
+        };
+        // optional fields
+        if (typeof r['advisorCalls'] === 'number') sanitized.advisorCalls = Math.floor(Math.max(0, r['advisorCalls']));
+        if (r['advisorInputTokens'] !== undefined) sanitized.advisorInputTokens = sanitizeNumber(r['advisorInputTokens']);
+        if (r['advisorOutputTokens'] !== undefined) sanitized.advisorOutputTokens = sanitizeNumber(r['advisorOutputTokens']);
+        if (r['cacheReadInputTokens'] !== undefined) sanitized.cacheReadInputTokens = sanitizeNumber(r['cacheReadInputTokens']);
+        if (r['cacheCreationInputTokens'] !== undefined) sanitized.cacheCreationInputTokens = sanitizeNumber(r['cacheCreationInputTokens']);
+        if (r['layer'] === 'A' || r['layer'] === 'B') sanitized.layer = r['layer'];
+        const validPhases = ['pre-check', 'exec', 'guardrail', 'reviewer', 'judge', 'moa-r1', 'moa-r2', 'moa-r3'] as const;
+        if (typeof r['phase'] === 'string' && (validPhases as readonly string[]).includes(r['phase'])) {
+          sanitized.phase = r['phase'] as CostRecord['phase'];
+        }
+        const validSkipReasons = ['pre-check-skip', 'reviewer-skip', 'judge-skip'] as const;
+        if (r['skipReason'] === null) sanitized.skipReason = null;
+        else if (typeof r['skipReason'] === 'string' && (validSkipReasons as readonly string[]).includes(r['skipReason'])) {
+          sanitized.skipReason = r['skipReason'] as CostRecord['skipReason'];
+        }
+        if (r['abVariant'] === 'advisor-on' || r['abVariant'] === 'advisor-off' || r['abVariant'] === null) {
+          sanitized.abVariant = r['abVariant'];
+        }
+        return sanitized;
+      });
   }
 
   isOverBudget(): boolean {

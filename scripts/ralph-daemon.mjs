@@ -13,7 +13,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync, unl
 import { spawnSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { createLogger, sleep, findClaude, buildClaudeEnv, atomicWriteJSON, getPermissionMode, callSdkWithAdvisor } from './daemon-utils.mjs';
+import { createLogger, sleep, findClaude, buildClaudeEnv, atomicWriteJSON, getPermissionMode, callSdkWithAdvisor, SimpleCircuitBreaker } from './daemon-utils.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = process.cwd();
@@ -24,6 +24,76 @@ const LOG_FILE      = `${RESEARCH_DIR}/ralph-daemon.log`;
 const PROGRESS_FILE = `${RESEARCH_DIR}/ralph-progress.md`;
 
 const log = createLogger(LOG_FILE);
+
+// ─── #1: checkCommand 셸 인젝션 방지 ─────────────────────────────────────────
+/** checkCommand 허용 명령어 화이트리스트 (첫 토큰 기준) */
+export const ALLOWED_CHECK_COMMANDS = new Set([
+  'npm', 'pnpm', 'yarn', 'node', 'tsc', 'vitest', 'jest',
+  'bash', 'sh', 'test', 'bun', 'deno',
+]);
+
+/** checkCommand에 허용되지 않는 셸 메타문자 패턴 */
+const SHELL_META_RE = /[|;&`$><\\]/;
+
+/**
+ * checkCommand를 안전하게 파싱해 spawnSync 인자로 반환.
+ * 셸 메타문자, 경로 트래버설, 비허용 명령 거부.
+ * @returns {{ cmd: string, args: string[] } | null} null이면 거부
+ */
+export function parseCheckCommand(checkCommand) {
+  if (!checkCommand || typeof checkCommand !== 'string') return null;
+  const trimmed = checkCommand.trim();
+  if (!trimmed) return null;
+
+  // 셸 메타문자 감지 → 거부
+  if (SHELL_META_RE.test(trimmed)) {
+    log(`[SECURITY] checkCommand 거부 — 셸 메타문자 감지: ${trimmed}`);
+    return null;
+  }
+
+  const tokens = trimmed.split(/\s+/);
+  const cmd = tokens[0];
+  const args = tokens.slice(1);
+
+  // 경로 트래버설 감지 → 거부
+  if (cmd.includes('../') || cmd.includes('..\\')) {
+    log(`[SECURITY] checkCommand 거부 — 경로 트래버설 감지: ${cmd}`);
+    return null;
+  }
+
+  // 화이트리스트 검사 (절대경로/상대경로 시작 제외 후 첫 토큰만)
+  const baseName = cmd.replace(/^.*\//, ''); // 마지막 경로 성분
+  if (!ALLOWED_CHECK_COMMANDS.has(cmd) && !ALLOWED_CHECK_COMMANDS.has(baseName)) {
+    log(`[SECURITY] checkCommand 거부 — 허용 목록 외 명령: ${cmd}`);
+    return null;
+  }
+
+  return { cmd, args };
+}
+
+// ─── #2: 허용 모델 allowlist ───────────────────────────────────────────────────
+const ALLOWED_MODELS = new Set([
+  'claude-opus-4-6',
+  'claude-sonnet-4-6',
+  'claude-haiku-4-5-20251001',
+  'claude-haiku-4-5',
+]);
+
+// ─── #12: SSRF 방지 — notify URL 검증 ──────────────────────────────────────────
+function isNotifyUrlAllowed(url) {
+  try {
+    const u = new URL(url);
+    if (!['http:', 'https:'].includes(u.protocol)) return false;
+    const host = u.hostname;
+    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0') return false;
+    if (/^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
+    if (host === '169.254.169.254') return false; // AWS/GCP metadata
+    if (/^\[?::1\]?$/.test(host) || /^\[?fc/i.test(host)) return false; // IPv6 loopback/private
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // ─── 설정 ──────────────────────────────────────────────────────────────────
 const CONFIG = {
@@ -80,12 +150,18 @@ function ensureRalphBranch(state) {
   state.originalBranch = current;
 
   const date = new Date().toISOString().slice(0, 10);
-  const slug = state.task
-    .replace(/[^a-zA-Z0-9가-힣\s]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .slice(0, 30);
-  const branch = `ralph/${date}-${slug}`;
+  // #10: 유니코드 공백 제거 + 한글 제거 + 안전 문자만 허용
+  const cleanSlug = state.task
+    .replace(/[\u200B-\u200F\u2028-\u202F\uFEFF]/g, '') // 제로폭/유니코드 공백 제거
+    .replace(/[^a-zA-Z0-9\-_]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 50) || 'task';
+  const branch = `ralph/${date}-${cleanSlug}`;
+  // 최종 형식 검증
+  if (!/^ralph\/\d{4}-\d{2}-\d{2}-[a-zA-Z0-9\-_]+$/.test(branch)) {
+    throw new Error(`Invalid branch name: ${branch}`);
+  }
 
   const r = spawnSync('git', ['checkout', '-b', branch], { cwd: PROJECT_ROOT, encoding: 'utf8' });
   if (r.status !== 0) {
@@ -101,8 +177,14 @@ function ensureRalphBranch(state) {
 // ─── L1: Pre-check gate ─────────────────────────────────────────────────────
 function runPreCheck(checkCommand) {
   if (!checkCommand) return false;
-  const r = spawnSync('sh', ['-c', checkCommand], {
-    cwd: PROJECT_ROOT, encoding: 'utf8', timeout: 60_000,
+  // #1: sh -c 제거, 토큰 파싱 후 shell:false 실행
+  const parsed = parseCheckCommand(checkCommand);
+  if (!parsed) {
+    log(`[PRE-CHECK] 명령 거부됨 (보안): ${checkCommand}`);
+    return false;
+  }
+  const r = spawnSync(parsed.cmd, parsed.args, {
+    cwd: PROJECT_ROOT, encoding: 'utf8', timeout: 60_000, shell: false,
   });
   return r.status === 0;
 }
@@ -214,16 +296,32 @@ async function mainLoop() {
   state.branch = ralphBranch;
   saveState(state);
 
-  // 모델 결정 (L4 tiering)
+  // 모델 결정 (L4 tiering) — #2: ALLOWED_MODELS allowlist 적용
   const MODEL_MAP = {
     haiku:  'claude-haiku-4-5-20251001',
     sonnet: 'claude-sonnet-4-6',
     opus:   'claude-opus-4-6',
   };
-  const model = MODEL_MAP[state.model] || state.model || MODEL_MAP.sonnet;
+  let model;
+  if (MODEL_MAP[state.model]) {
+    model = MODEL_MAP[state.model];
+  } else if (ALLOWED_MODELS.has(state.model)) {
+    model = state.model;
+  } else {
+    log(`[RALPH] 알 수 없는 모델 "${state.model}" — 기본값(sonnet) 사용`);
+    model = MODEL_MAP.sonnet;
+  }
 
   const claudePath = findClaude();
   const { collectContext, buildRalphPrompt } = await import('./ralph-prompts.mjs');
+
+  // #7: SDK 경로용 CircuitBreaker 인스턴스
+  const sdkCircuitBreaker = new SimpleCircuitBreaker({
+    name: 'sdk-advisor',
+    failureThreshold: 0.5,
+    windowMs: 5 * 60_000,  // 5분 윈도우
+    cooldownMs: 2 * 60_000, // 2분 쿨다운
+  });
 
   // Graceful shutdown: state 저장 후 종료
   let currentState = state;
@@ -281,6 +379,21 @@ async function mainLoop() {
     const useSdk = (s.useSdkPath ?? CONFIG.useSdkPath) && (s.advisorEnabled ?? CONFIG.advisorEnabled);
 
     if (useSdk) {
+      // #5: SDK 호출 전 예산 잔량 검사
+      const remainingBudget = s.budgetCapUsd - (s.totalCostUsd || 0);
+      if (remainingBudget <= 0) {
+        log('[RALPH] 예산 소진 — SDK 호출 차단');
+        s.stopReason = 'budget-exhausted';
+        s.status = 'budget_exceeded';
+        saveState(s);
+        break;
+      }
+
+      // #7: CircuitBreaker 상태 확인
+      if (!sdkCircuitBreaker.canExecute()) {
+        log('[RALPH] SDK CircuitBreaker OPEN — CLI fallback');
+        result = await spawnClaudeProcess(claudePath, prompt, model);
+      } else {
       log(`[RALPH] SDK Advisor 경로 사용 (model: ${model})`);
       const sdkResult = await callSdkWithAdvisor({
         task: prompt,
@@ -292,8 +405,9 @@ async function mainLoop() {
       });
 
       if (sdkResult.error) {
-        // SDK 실패 → advisor stats 기록 후 CLI fallback
+        // SDK 실패 → #7 CB 기록 → advisor stats 기록 후 CLI fallback
         log(`[RALPH] SDK Advisor 실패 (${sdkResult.error.code}: ${sdkResult.error.message}) — CLI fallback`);
+        sdkCircuitBreaker.recordFailure(); // #7
 
         // advisorStats 실패 카운트 갱신
         if (!s.advisorStats) s.advisorStats = { totalCalls: 0, totalInputTokens: 0, totalOutputTokens: 0, failures: 0 };
@@ -309,7 +423,8 @@ async function mainLoop() {
         // CLI fallback
         result = await spawnClaudeProcess(claudePath, prompt, model);
       } else {
-        // SDK 성공 → result 형태로 변환
+        // SDK 성공 → #7 CB 기록 → result 형태로 변환
+        sdkCircuitBreaker.recordSuccess(); // #7
         const usage = sdkResult.usage || {};
         log(`[RALPH] SDK 완료: advisorCalls=${sdkResult.advisorCalls} in=${usage.inputTokens} out=${usage.outputTokens}`);
 
@@ -336,6 +451,7 @@ async function mainLoop() {
           sessionId: null,
         };
       }
+      } // end sdkCircuitBreaker.canExecute() else block
     } else {
       // 기존 CLI 경로 (변경 없음)
       result = await spawnClaudeProcess(claudePath, prompt, model);
@@ -388,21 +504,28 @@ async function mainLoop() {
   log(`[RALPH] ─────────────────────────────────────`);
 
   // Notify relay server (if running) so iPhone gets push
-  try {
-    const notifyUrl = process.env.RALPH_NOTIFY_URL || 'http://localhost:3001/api/ralph/notify';
-    await fetch(notifyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        task: finalState.task,
-        status: finalState.status,
-        iterations: finalState.currentIteration,
-        cost: finalState.totalCostUsd,
-      }),
-    });
-    log(`[RALPH] 릴레이 서버 알림 전송 완료`);
-  } catch (e) {
-    log(`[RALPH] 릴레이 서버 알림 실패 (무시): ${e.message}`);
+  // #12: SSRF 방지 — URL 검증 후 요청
+  const rawNotifyUrl = process.env.RALPH_NOTIFY_URL;
+  if (rawNotifyUrl) {
+    if (!isNotifyUrlAllowed(rawNotifyUrl)) {
+      log(`[RALPH] 릴레이 서버 알림 건너뜀 — URL 차단됨 (SSRF 방지): ${rawNotifyUrl}`);
+    } else {
+      try {
+        await fetch(rawNotifyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            task: finalState.task,
+            status: finalState.status,
+            iterations: finalState.currentIteration,
+            cost: finalState.totalCostUsd,
+          }),
+        });
+        log(`[RALPH] 릴레이 서버 알림 전송 완료`);
+      } catch (e) {
+        log(`[RALPH] 릴레이 서버 알림 실패 (무시): ${e.message}`);
+      }
+    }
   }
 
   removePid();

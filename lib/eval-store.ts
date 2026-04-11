@@ -48,6 +48,27 @@ export interface RunComparison {
   costDelta: number;      // runB$ - runA$
 }
 
+// --- Validation (#16) ---
+
+const VALID_AB_VARIANTS = ['advisor-on', 'advisor-off', null] as const;
+const VALID_TASK_CATEGORIES = ['coding', 'research', 'refactor', 'design', 'review', 'test', 'docs', 'other'] as const;
+
+export function validateEvalRun(run: Partial<EvalRun>): EvalRun {
+  if (run.abVariant !== undefined && !VALID_AB_VARIANTS.includes(run.abVariant as null)) {
+    throw new Error(`Invalid abVariant: ${String(run.abVariant)}`);
+  }
+  if (run.qualityScore != null && (!Number.isFinite(run.qualityScore) || run.qualityScore < 0 || run.qualityScore > 100)) {
+    throw new Error(`qualityScore must be finite in [0, 100], got: ${run.qualityScore}`);
+  }
+  if (run.costUsd != null && (!Number.isFinite(run.costUsd) || run.costUsd < 0)) {
+    throw new Error(`costUsd must be finite and non-negative, got: ${run.costUsd}`);
+  }
+  if (run.taskCategory != null && !(VALID_TASK_CATEGORIES as readonly string[]).includes(run.taskCategory)) {
+    run.taskCategory = 'other'; // sanitize unknown categories
+  }
+  return run as EvalRun;
+}
+
 // --- Store ---
 
 export class EvalStore {
@@ -59,6 +80,8 @@ export class EvalStore {
   }
 
   save(run: EvalRun): void {
+    // #16: validate before persisting
+    validateEvalRun(run);
     const filePath = path.join(this.dir, `${run.id}.json`);
     fs.writeFileSync(filePath, JSON.stringify(run, null, 2));
   }

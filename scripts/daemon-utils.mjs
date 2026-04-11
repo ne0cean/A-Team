@@ -3,7 +3,10 @@
 
 import { readFileSync, writeFileSync, existsSync, appendFileSync, renameSync, unlinkSync } from 'fs';
 import { spawnSync } from 'child_process';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // ─── 로거 팩토리 ──────────────────────────────────────────────────────────
 export function createLogger(logFile) {
@@ -46,7 +49,8 @@ export function findClaude() {
 
 // ─── Claude 실행 환경 ───────────────────────────────────────────────────────
 // 위험한 코드 주입 환경변수를 제거하고 Claude 프로세스에 전달
-const DANGEROUS_ENV_VARS = ['CLAUDECODE', 'NODE_OPTIONS', 'NODE_PATH', 'LD_PRELOAD', 'LD_LIBRARY_PATH', 'DYLD_INSERT_LIBRARIES'];
+// #4: ANTHROPIC_BASE_URL 추가 — 자식 프로세스에서 프록시 하이재킹 방지
+const DANGEROUS_ENV_VARS = ['CLAUDECODE', 'NODE_OPTIONS', 'NODE_PATH', 'LD_PRELOAD', 'LD_LIBRARY_PATH', 'DYLD_INSERT_LIBRARIES', 'ANTHROPIC_BASE_URL'];
 export function buildClaudeEnv() {
   const env = { ...process.env };
   for (const key of DANGEROUS_ENV_VARS) delete env[key];
@@ -99,14 +103,10 @@ export function getPermissionMode() {
 }
 
 // ─── 토큰 기반 비용 추정 ────────────────────────────────────────────────────
-// lib/cost-tracker.ts의 MODEL_PRICING/estimateIterationsCostUsd와 동기화 필수.
-// Node.js ESM 런타임에서 TypeScript를 직접 import할 수 없으므로 JS로 미러링.
-const MODEL_PRICING_MIRROR = {
-  'claude-opus-4-6':          { inputPerMillion: 15, outputPerMillion: 75,  cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
-  'claude-sonnet-4-6':        { inputPerMillion: 3,  outputPerMillion: 15,  cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
-  'claude-haiku-4-5-20251001':{ inputPerMillion: 1,  outputPerMillion: 5,   cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
-  'claude-haiku-4-5':         { inputPerMillion: 1,  outputPerMillion: 5,   cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
-};
+// #6: lib/model-pricing.json 단일 진실 공급원 로드 (리터럴 이중 정의 제거)
+const MODEL_PRICING_MIRROR = JSON.parse(
+  readFileSync(new URL('../lib/model-pricing.json', import.meta.url), 'utf-8')
+);
 const SONNET_FALLBACK = MODEL_PRICING_MIRROR['claude-sonnet-4-6'];
 
 /** 단일 호출의 토큰 → USD (lib/cost-tracker.ts estimateCostUsd 미러) */
@@ -125,7 +125,15 @@ function _estimateCostUsd({ model, inputTokens, outputTokens, cacheReadInputToke
 function _estimateIterationsCostUsd(iterations, executorModel) {
   let total = 0;
   for (const iter of (iterations || [])) {
-    const model = iter.type === 'advisor_message' ? (iter.model ?? 'claude-opus-4-6') : executorModel;
+    // #8: 알 수 없는 타입은 가장 비싼 가격(Opus)으로 보수적 추산
+    let model;
+    if (iter.type === 'advisor_message') {
+      model = iter.model ?? 'claude-opus-4-6';
+    } else if (iter.type === 'message') {
+      model = executorModel;
+    } else {
+      model = 'claude-opus-4-6'; // 알 수 없는 타입 — 보수적으로 가장 비싼 가격
+    }
     total += _estimateCostUsd({
       model,
       inputTokens: iter.input_tokens ?? 0,
@@ -135,6 +143,71 @@ function _estimateIterationsCostUsd(iterations, executorModel) {
     });
   }
   return Number(total.toFixed(6));
+}
+
+// ─── #15: Advisor beta header 상수 (환경변수 오버라이드 가능) ──────────────────
+export const ADVISOR_BETA_HEADER = process.env.A_TEAM_ADVISOR_BETA_HEADER || 'advisor-tool-2026-03-01';
+export const ADVISOR_TOOL_TYPE = process.env.A_TEAM_ADVISOR_TOOL_TYPE || 'advisor_20260301';
+
+// #4: SDK 공식 엔드포인트 상수 (프록시 하이재킹 방지)
+export const DEFAULT_ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
+
+// ─── #7: SimpleCircuitBreaker — JS 경량 미러 ──────────────────────────────────
+// lib/circuit-breaker.ts의 TS 버전과 동일 인터페이스 (슬라이딩 윈도우 기반)
+export class SimpleCircuitBreaker {
+  constructor({ name, failureThreshold = 0.5, windowMs = 60_000, cooldownMs = 30_000 } = {}) {
+    this.name = name || 'default';
+    this.failureThreshold = failureThreshold;
+    this.windowMs = windowMs;
+    this.cooldownMs = cooldownMs;
+    this.events = []; // [{ ts, success }]
+    this.state = 'CLOSED';
+    this.openedAt = null;
+  }
+
+  recordSuccess() {
+    this.events.push({ ts: Date.now(), success: true });
+    this._trim();
+    this._maybeClose();
+  }
+
+  recordFailure() {
+    this.events.push({ ts: Date.now(), success: false });
+    this._trim();
+    this._maybeOpen();
+  }
+
+  canExecute() {
+    if (this.state === 'OPEN') {
+      if (Date.now() - this.openedAt >= this.cooldownMs) {
+        this.state = 'HALF_OPEN';
+        return true;
+      }
+      return false;
+    }
+    return true;
+  }
+
+  _trim() {
+    const cutoff = Date.now() - this.windowMs;
+    this.events = this.events.filter(e => e.ts >= cutoff);
+  }
+
+  _maybeOpen() {
+    if (this.events.length < 3) return;
+    const fails = this.events.filter(e => !e.success).length;
+    if (fails / this.events.length >= this.failureThreshold) {
+      this.state = 'OPEN';
+      this.openedAt = Date.now();
+    }
+  }
+
+  _maybeClose() {
+    if (this.state === 'HALF_OPEN') {
+      this.state = 'CLOSED';
+      this.openedAt = null;
+    }
+  }
 }
 
 // ─── Advisor Tool SDK 호출 ──────────────────────────────────────────────────
@@ -160,7 +233,18 @@ export async function callSdkWithAdvisor(options) {
     cacheTtl = '1h',
     systemPrompt = '',
     maxTokens = 4096,
+    _startMs = Date.now(), // 내부 타이밍 추적
   } = options;
+
+  // #4: API 키 명시 검증
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return {
+      content: null,
+      usage: null,
+      advisorCalls: 0,
+      error: { message: 'ANTHROPIC_API_KEY 환경변수가 설정되지 않음', code: 'missing_api_key' }
+    };
+  }
 
   // 공식 권장 advisor 시스템 프롬프트 (100단어 + 타이밍)
   const ADVISOR_SYSTEM = `You have access to an advisor tool backed by a stronger reviewer model. Call advisor BEFORE substantive work — before writing, before committing to an interpretation. Also call advisor when the task is complete, when stuck, or when considering a change of approach. On tasks longer than a few steps, call advisor at least once before committing to an approach and once before declaring done.
@@ -174,15 +258,19 @@ The advisor should respond in under 100 words and use enumerated steps, not expl
   try {
     // Dynamic import — SDK는 optional dependency
     const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const client = new Anthropic();
+    // #4: baseURL 명시로 ANTHROPIC_BASE_URL 환경변수 무력화
+    const client = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      baseURL: DEFAULT_ANTHROPIC_BASE_URL,
+    });
 
     const response = await client.beta.messages.create({
       model: executorModel,
       max_tokens: maxTokens,
-      betas: ['advisor-tool-2026-03-01'],
+      betas: [ADVISOR_BETA_HEADER],  // #15: 상수 사용
       system: fullSystem,
       tools: [{
-        type: 'advisor_20260301',
+        type: ADVISOR_TOOL_TYPE,     // #15: 상수 사용
         name: 'advisor',
         model: advisorModel,
         max_uses: maxUses,
@@ -199,6 +287,12 @@ The advisor should respond in under 100 words and use enumerated steps, not expl
     const advisorOutputTokens = advisorIters.reduce((s, it) => s + (it.output_tokens || 0), 0);
     const cacheReadInputTokens = advisorIters.reduce((s, it) => s + (it.cache_read_input_tokens || 0), 0);
     const cacheCreationInputTokens = advisorIters.reduce((s, it) => s + (it.cache_creation_input_tokens || 0), 0);
+
+    // #15: advisor 호출 0회이고 5분 이상 실행 시 무음 실패 경고
+    const elapsedMs = Date.now() - _startMs;
+    if (advisorCalls === 0 && elapsedMs >= 5 * 60_000) {
+      process.stderr.write(`[daemon-utils] 경고: advisor 호출 0회, 실행 ${Math.round(elapsedMs / 60000)}분 경과 — 무음 실패 가능성\n`);
+    }
 
     // iterations[] 전체 토큰 → 비용 추산 (executor + advisor 모두 포함)
     const costUsd = _estimateIterationsCostUsd(iterations, executorModel);

@@ -12,7 +12,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync, unl
 import { spawnSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
-import { findClaude as sharedFindClaude, buildClaudeEnv, getPermissionMode, callSdkWithAdvisor } from './daemon-utils.mjs';
+import { findClaude as sharedFindClaude, buildClaudeEnv, getPermissionMode, callSdkWithAdvisor, atomicWriteJSON } from './daemon-utils.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -86,7 +86,8 @@ function loadState() {
 }
 
 function saveState(state) {
-  writeFileSync(`${RESEARCH_DIR}/state.json`, JSON.stringify(state, null, 2));
+  // #11: non-atomic write → atomicWriteJSON (프로세스 중단 시 파일 손상 방지)
+  atomicWriteJSON(`${RESEARCH_DIR}/state.json`, state);
 }
 
 function writePid() {
