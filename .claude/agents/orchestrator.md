@@ -22,6 +22,24 @@ model: sonnet
 ## Phase 1: 컨텍스트 수집
 `.context/CURRENT.md` + `CLAUDE.md` + 관련 핵심 파일 3-5개
 
+## Phase 1.5 — Pre-Check Skip Gate (Haiku)
+
+태스크 복잡도 분류 직후, Haiku 모델로 pre-check 수행:
+1. 입력: 태스크 요약 + 관련 파일 3-5개 (diff 없음)
+2. 출력: `{ verdict: APPROVED | NEEDS_WORK, confidence: 0-1, reason }`
+3. `confidence >= 0.95 && verdict === APPROVED` → Phase 2-5 전체 스킵, 즉시 종료
+4. 그 외 → 기존 Phase 2 Router로 진행
+
+**스킵 조건 (보수적)**:
+- 이미 구현된 기능 (코드베이스에 동일 로직 존재)
+- 금지 파일 수정 요청
+- 자명한 중복 요청
+
+**측정**: `cost-tracker` 에 `phase: 'pre-check'`, `skipReason: 'pre-check-skip'` 기록.
+목표 skip rate: 15% (Phase 2에서 점진 상향)
+
+**거짓 양성 방지**: 10% 샘플링으로 스킵 결정한 태스크도 full pipeline 병행 → harness-score 비교로 threshold 검증.
+
 ## Phase 2: 패턴 선택 + 태스크 분해
 
 **2.0 — 패턴 자동 선택** (질문 없이 판단):

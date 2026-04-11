@@ -97,3 +97,90 @@ export function getPermissionMode() {
   _cachedPermMode = 'bypassPermissions';
   return 'bypassPermissions';
 }
+
+// ─── Advisor Tool SDK 호출 ──────────────────────────────────────────────────
+// Anthropic SDK 직접 호출 + Advisor tool 사용 (beta API)
+// @anthropic-ai/sdk 는 optional dependency — import 실패 시 에러 반환
+/**
+ * @param {object} options
+ * @param {string} options.task - executor 프롬프트
+ * @param {string} [options.executorModel='claude-sonnet-4-6']
+ * @param {string} [options.advisorModel='claude-opus-4-6']
+ * @param {number} [options.maxUses=3]
+ * @param {'5m'|'1h'} [options.cacheTtl='1h']
+ * @param {string} [options.systemPrompt] - 추가 시스템 프롬프트
+ * @param {number} [options.maxTokens=4096]
+ * @returns {Promise<{content, usage, advisorCalls: number, error: {message:string,code:string}|null}>}
+ */
+export async function callSdkWithAdvisor(options) {
+  const {
+    task,
+    executorModel = 'claude-sonnet-4-6',
+    advisorModel = 'claude-opus-4-6',
+    maxUses = 3,
+    cacheTtl = '1h',
+    systemPrompt = '',
+    maxTokens = 4096,
+  } = options;
+
+  // 공식 권장 advisor 시스템 프롬프트 (100단어 + 타이밍)
+  const ADVISOR_SYSTEM = `You have access to an advisor tool backed by a stronger reviewer model. Call advisor BEFORE substantive work — before writing, before committing to an interpretation. Also call advisor when the task is complete, when stuck, or when considering a change of approach. On tasks longer than a few steps, call advisor at least once before committing to an approach and once before declaring done.
+
+The advisor should respond in under 100 words and use enumerated steps, not explanations.`;
+
+  const fullSystem = systemPrompt
+    ? `${ADVISOR_SYSTEM}\n\n${systemPrompt}`
+    : ADVISOR_SYSTEM;
+
+  try {
+    // Dynamic import — SDK는 optional dependency
+    const { default: Anthropic } = await import('@anthropic-ai/sdk');
+    const client = new Anthropic();
+
+    const response = await client.beta.messages.create({
+      model: executorModel,
+      max_tokens: maxTokens,
+      betas: ['advisor-tool-2026-03-01'],
+      system: fullSystem,
+      tools: [{
+        type: 'advisor_20260301',
+        name: 'advisor',
+        model: advisorModel,
+        max_uses: maxUses,
+        caching: { type: 'ephemeral', ttl: cacheTtl }
+      }],
+      messages: [{ role: 'user', content: task }]
+    });
+
+    // iterations에서 advisor 통계 추출
+    const iterations = response.usage?.iterations || [];
+    const advisorIters = iterations.filter(it => it.type === 'advisor_message');
+    const advisorCalls = advisorIters.length;
+    const advisorInputTokens = advisorIters.reduce((s, it) => s + (it.input_tokens || 0), 0);
+    const advisorOutputTokens = advisorIters.reduce((s, it) => s + (it.output_tokens || 0), 0);
+    const cacheReadInputTokens = advisorIters.reduce((s, it) => s + (it.cache_read_input_tokens || 0), 0);
+    const cacheCreationInputTokens = advisorIters.reduce((s, it) => s + (it.cache_creation_input_tokens || 0), 0);
+
+    return {
+      content: response.content,
+      usage: {
+        inputTokens: response.usage?.input_tokens || 0,
+        outputTokens: response.usage?.output_tokens || 0,
+        advisorCalls,
+        advisorInputTokens,
+        advisorOutputTokens,
+        cacheReadInputTokens,
+        cacheCreationInputTokens,
+      },
+      advisorCalls,
+      error: null
+    };
+  } catch (err) {
+    return {
+      content: null,
+      usage: null,
+      advisorCalls: 0,
+      error: { message: err.message, code: err.code || 'unknown' }
+    };
+  }
+}

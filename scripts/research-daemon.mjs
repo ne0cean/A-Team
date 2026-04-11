@@ -12,7 +12,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync, unl
 import { spawnSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
-import { findClaude as sharedFindClaude, buildClaudeEnv, getPermissionMode } from './daemon-utils.mjs';
+import { findClaude as sharedFindClaude, buildClaudeEnv, getPermissionMode, callSdkWithAdvisor } from './daemon-utils.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -28,6 +28,11 @@ const CONFIG = {
   cycleTimeoutMs: 15 * 60 * 1000,     // 사이클 최대 15분
   interCycleDelayMs: 2 * 60 * 1000,  // 연속 사이클 간 2분 대기
   maxSessionBudgetUsd: 3.50,          // 세션 전체 최대 비용 (7개 카테고리)
+  // Advisor tool 설정 (단기 태스크이므로 ralph보다 적은 값)
+  useSdkPath: false,                  // SDK 경로 사용 여부 (true 시 CLI 대신 SDK로 계획 수립)
+  advisorEnabled: true,               // advisor tool 활성화 여부
+  advisorMaxUses: 2,                  // 계획 수립 단계 advisor 최대 호출 수
+  advisorCacheTtl: '5m',             // advisor 캐시 TTL (단기 태스크)
 };
 
 const CATEGORIES = [
@@ -261,6 +266,39 @@ async function runCycle(category) {
 
   const { buildPrompt } = await import('./research-prompts.mjs');
   const prompt = buildPrompt(category, timestamp, REPO_ROOT);
+
+  // ─── SDK 경로: advisor tool로 계획 수립 ──────────────────────────────────
+  // 계획 수립 단계에만 advisor 적용. 실행(spawnClaude) 단계는 CLI 경로 유지.
+  if (CONFIG.useSdkPath && CONFIG.advisorEnabled) {
+    log(`[ADVISOR] ${category} 계획 수립 — SDK + advisor tool 사용`);
+    const planTask = `## 리서치 계획 수립\n카테고리: ${category}\n타임스탬프: ${timestamp}\n\n${prompt}\n\n계획 수립만 수행하세요. 실제 리서치 실행은 이후 단계에서 진행됩니다.`;
+
+    const sdkResult = await callSdkWithAdvisor({
+      task: planTask,
+      maxUses: CONFIG.advisorMaxUses,
+      cacheTtl: CONFIG.advisorCacheTtl,
+      systemPrompt: `당신은 리서치 계획 수립 에이전트입니다. 코드를 변경하지 않습니다.`,
+    });
+
+    if (sdkResult.error) {
+      log(`[ADVISOR] SDK 실패 (${sdkResult.error.code}): ${sdkResult.error.message} — CLI fallback`);
+      // advisorStats 기록 (실패)
+      const s = loadState();
+      if (!s.advisorStats) s.advisorStats = { calls: 0, failures: 0, totalCostUsd: 0 };
+      s.advisorStats.failures = (s.advisorStats.failures || 0) + 1;
+      saveState(s);
+      // CLI fallback으로 계속 진행
+    } else {
+      log(`[ADVISOR] 계획 수립 완료 — advisor 호출: ${sdkResult.advisorCalls}회, 입력: ${sdkResult.usage?.inputTokens || 0} 토큰`);
+      // advisorStats 기록 (성공)
+      const s = loadState();
+      if (!s.advisorStats) s.advisorStats = { calls: 0, failures: 0, totalCostUsd: 0 };
+      s.advisorStats.calls = (s.advisorStats.calls || 0) + 1;
+      saveState(s);
+    }
+  }
+
+  // ─── CLI 경로: 기존 spawnClaude (실행 단계 — 항상 실행) ──────────────────
   const claudePath = findClaude();
 
   const permMode = getPermissionMode();

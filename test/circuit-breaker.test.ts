@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   CircuitBreaker,
+  ADVISOR_TOOL_BREAKER_CONFIG,
   type CircuitState,
 } from '../lib/circuit-breaker.js';
 
@@ -79,5 +80,37 @@ describe('CircuitBreaker', () => {
     cb.recordFailure('a', 'e3');
     expect(cb.getState('a').state).toBe('open');
     expect(cb.getState('b').state).toBe('closed');
+  });
+});
+
+describe('ADVISOR_TOOL_BREAKER_CONFIG', () => {
+  it('should export advisor-tool config constant with correct name', () => {
+    expect(ADVISOR_TOOL_BREAKER_CONFIG.name).toBe('advisor-tool');
+  });
+
+  it('should have 20% failure threshold config', () => {
+    expect(ADVISOR_TOOL_BREAKER_CONFIG.failureThreshold).toBeCloseTo(0.20, 5);
+  });
+
+  it('should have 5-minute window and 10-minute cooldown', () => {
+    expect(ADVISOR_TOOL_BREAKER_CONFIG.windowMs).toBe(5 * 60 * 1000);
+    expect(ADVISOR_TOOL_BREAKER_CONFIG.cooldownMs).toBe(10 * 60 * 1000);
+  });
+
+  it('should have halfOpenProbes = 1', () => {
+    expect(ADVISOR_TOOL_BREAKER_CONFIG.halfOpenProbes).toBe(1);
+  });
+
+  it('advisor-tool circuit should work with CircuitBreaker using count threshold', () => {
+    // countThreshold=1 means 1 failure triggers open in this test (simulates 20% of windowCount=5)
+    const cb = new CircuitBreaker({
+      failureThreshold: ADVISOR_TOOL_BREAKER_CONFIG.countThreshold,
+      cooldownMs: ADVISOR_TOOL_BREAKER_CONFIG.cooldownMs,
+    });
+
+    expect(cb.getState('advisor-tool').state).toBe('closed');
+    cb.recordFailure('advisor-tool', 'beta API error');
+    expect(cb.getState('advisor-tool').state).toBe('open');
+    expect(cb.canProceed('advisor-tool').allowed).toBe(false);
   });
 });

@@ -14,6 +14,15 @@ export interface CostRecord {
   costUsd: number;
   model: string;
   ts?: string;
+  advisorCalls?: number;
+  advisorInputTokens?: number;
+  advisorOutputTokens?: number;
+  cacheReadInputTokens?: number;
+  cacheCreationInputTokens?: number;
+  layer?: 'A' | 'B';
+  phase?: 'pre-check' | 'exec' | 'guardrail' | 'reviewer' | 'judge' | 'moa-r1' | 'moa-r2' | 'moa-r3';
+  skipReason?: 'pre-check-skip' | 'reviewer-skip' | 'judge-skip' | null;
+  abVariant?: 'advisor-on' | 'advisor-off' | null;
 }
 
 export interface ModelBreakdown {
@@ -29,6 +38,12 @@ export interface CostSummary {
   totalCostUsd: number;
   callCount: number;
   byModel: Record<string, ModelBreakdown>;
+  preCheckSkipRate: number;
+  reviewerCallRate: number;
+  judgeCallRate: number;
+  moaAvgRounds: number;
+  advisorCallAvg: number;
+  cacheHitRate: number;
 }
 
 export interface CostTrackerOptions {
@@ -69,12 +84,41 @@ export class CostTracker {
       byModel[r.model].callCount++;
     }
 
+    const n = this.records.length;
+
+    const preCheckSkips = this.records.filter(r => r.skipReason === 'pre-check-skip').length;
+    const reviewerCalls = this.records.filter(r => r.phase === 'reviewer').length;
+    const judgeCalls    = this.records.filter(r => r.phase === 'judge').length;
+
+    const moaRecords = this.records.filter(r => r.phase?.startsWith('moa-r'));
+    const moaRoundNums = moaRecords.map(r => {
+      const m = r.phase?.match(/moa-r(\d+)/);
+      return m ? parseInt(m[1], 10) : 0;
+    });
+    const moaAvgRounds = moaRoundNums.length > 0
+      ? moaRoundNums.reduce((a, b) => a + b, 0) / moaRoundNums.length
+      : 0;
+
+    const totalAdvisorCalls = this.records.reduce((s, r) => s + (r.advisorCalls ?? 0), 0);
+    const advisorCallAvg = n > 0 ? totalAdvisorCalls / n : 0;
+
+    const totalCacheRead  = this.records.reduce((s, r) => s + (r.cacheReadInputTokens ?? 0), 0);
+    const totalAdvisorIn  = this.records.reduce((s, r) => s + (r.advisorInputTokens ?? 0), 0);
+    const cacheDenom = totalCacheRead + totalAdvisorIn;
+    const cacheHitRate = cacheDenom > 0 ? totalCacheRead / cacheDenom : 0;
+
     return {
       totalInputTokens: totalIn,
       totalOutputTokens: totalOut,
       totalCostUsd: totalCost,
-      callCount: this.records.length,
+      callCount: n,
       byModel,
+      preCheckSkipRate: n > 0 ? preCheckSkips / n : 0,
+      reviewerCallRate: n > 0 ? reviewerCalls / n : 0,
+      judgeCallRate:    n > 0 ? judgeCalls / n : 0,
+      moaAvgRounds,
+      advisorCallAvg,
+      cacheHitRate,
     };
   }
 

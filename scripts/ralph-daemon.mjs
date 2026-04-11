@@ -13,7 +13,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync, unl
 import { spawnSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { createLogger, sleep, findClaude, buildClaudeEnv, atomicWriteJSON, getPermissionMode } from './daemon-utils.mjs';
+import { createLogger, sleep, findClaude, buildClaudeEnv, atomicWriteJSON, getPermissionMode, callSdkWithAdvisor } from './daemon-utils.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = process.cwd();
@@ -32,6 +32,12 @@ const CONFIG = {
   maxBudgetPerIter:      '0.50',      // L4: claude --max-budget-usd 인자
   stallThreshold:        2,           // L2: 연속 no-progress 허용 횟수
   promiseTag:            '<promise>COMPLETE</promise>',
+  // SDK Advisor path 기본값 (state.json으로 opt-in)
+  useSdkPath:            false,
+  advisorEnabled:        false,
+  advisorModel:          'claude-opus-4-6',
+  advisorMaxUses:        3,
+  advisorCacheTtl:       '1h',
 };
 
 // ─── 유틸 ──────────────────────────────────────────────────────────────────
@@ -268,7 +274,65 @@ async function mainLoop() {
 
     const ctx = collectContext(PROJECT_ROOT, s);
     const prompt = buildRalphPrompt(s, ctx, PROJECT_ROOT);
-    const result = await spawnClaudeProcess(claudePath, prompt, model);
+
+    // ── SDK Advisor 분기 (opt-in flag) ───────────────────────────────────────
+    // 기존 CLI 경로는 절대 변경하지 않음. useSdkPath && advisorEnabled 일 때만 SDK 경로 사용.
+    let result;
+    const useSdk = (s.useSdkPath ?? CONFIG.useSdkPath) && (s.advisorEnabled ?? CONFIG.advisorEnabled);
+
+    if (useSdk) {
+      log(`[RALPH] SDK Advisor 경로 사용 (model: ${model})`);
+      const sdkResult = await callSdkWithAdvisor({
+        task: prompt,
+        executorModel: model,
+        advisorModel: s.advisorModel || CONFIG.advisorModel,
+        maxUses: s.advisorMaxUses ?? CONFIG.advisorMaxUses,
+        cacheTtl: s.advisorCacheTtl || CONFIG.advisorCacheTtl,
+        maxTokens: 8192,
+      });
+
+      if (sdkResult.error) {
+        // SDK 실패 → advisor stats 기록 후 CLI fallback
+        log(`[RALPH] SDK Advisor 실패 (${sdkResult.error.code}: ${sdkResult.error.message}) — CLI fallback`);
+
+        // advisorStats 실패 카운트 갱신
+        if (!s.advisorStats) s.advisorStats = { totalCalls: 0, totalInputTokens: 0, totalOutputTokens: 0, failures: 0 };
+        s.advisorStats.failures = (s.advisorStats.failures || 0) + 1;
+
+        // 연속 실패 3회 이상이면 useSdkPath 자동 비활성화
+        const failRate = s.advisorStats.failures / Math.max(1, (s.currentIteration + 1));
+        if (failRate >= 0.20 || s.advisorStats.failures >= 3) {
+          log(`[RALPH] Advisor 실패율 임계치 초과 — useSdkPath=false 자동 전환`);
+          s.useSdkPath = false;
+        }
+
+        // CLI fallback
+        result = await spawnClaudeProcess(claudePath, prompt, model);
+      } else {
+        // SDK 성공 → result 형태로 변환
+        const usage = sdkResult.usage || {};
+        log(`[RALPH] SDK 완료: advisorCalls=${sdkResult.advisorCalls} in=${usage.inputTokens} out=${usage.outputTokens}`);
+
+        // advisorStats 업데이트
+        if (!s.advisorStats) s.advisorStats = { totalCalls: 0, totalInputTokens: 0, totalOutputTokens: 0, failures: 0 };
+        s.advisorStats.totalCalls = (s.advisorStats.totalCalls || 0) + sdkResult.advisorCalls;
+        s.advisorStats.totalInputTokens = (s.advisorStats.totalInputTokens || 0) + (usage.advisorInputTokens || 0);
+        s.advisorStats.totalOutputTokens = (s.advisorStats.totalOutputTokens || 0) + (usage.advisorOutputTokens || 0);
+
+        // SDK 결과를 기존 CLI result 형태에 맞게 변환 (costUsd는 0으로 — SDK는 별도 청구)
+        result = {
+          code: 0,
+          costUsd: 0,
+          rawOutput: sdkResult.content
+            ? sdkResult.content.map(c => c.text || '').join('')
+            : '',
+          sessionId: null,
+        };
+      }
+    } else {
+      // 기존 CLI 경로 (변경 없음)
+      result = await spawnClaudeProcess(claudePath, prompt, model);
+    }
 
     // ── 결과 분석 ────────────────────────────────────────────────────────────
     const postHead = getGitHead();

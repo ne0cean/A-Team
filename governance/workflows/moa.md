@@ -91,6 +91,35 @@ judge가 `ESCALATE` 반환 시 → 사람에게 에스컬레이션.
 }
 ```
 
+## Round 2+ 입력 압축 (Delta-Only, 필수)
+
+Round 2 이후 전문가 프롬프트는 **다음 형식만** 사용:
+
+```
+## 이전 라운드 합의 (1-3줄 요약)
+{consensus_summary}
+
+## 남은 불일치 토픽
+- {topic_1}: {A안 vs B안 1줄}
+- {topic_2}: ...
+
+## 원본 요청 (재참조)
+{original_request}
+```
+
+원본 파일/코드 전체 재전달 금지. 불일치 토픽 해결에 필요한 **최소 컨텍스트**만 추가. 이 패턴은 라운드당 30-40% 입력 토큰 절감.
+
+## 레이어 제약 (중요)
+
+**MoA는 Layer A (Claude Code 서브에이전트)에서만 사용한다.**
+
+Layer B (ralph-daemon, research-daemon 등 자율 데몬)는 MoA 대신 **Anthropic advisor tool (`advisor_20260301`)** 을 사용. 이유:
+- 데몬은 실행 loop이며 설계 결정 빈도가 낮음
+- MoA + advisor 동시 사용은 비용이 선형 증가 (이중 지출)
+- advisor tool은 단일 `/v1/messages` 요청 내 서버사이드 처리로 MoA보다 저렴
+
+Layer 구분 전체 근거는 [advisor-architecture.md](./advisor-architecture.md) 참조.
+
 ## MoA 비용 제어 (`lib/cost-tracker.ts` 활용)
 - 각 라운드 완료 후 `CostTracker.record()` 로 토큰/비용 기록
 - `isOverBudget()` 확인 → 초과 시 남은 라운드 스킵 + 현재까지 결과로 합성

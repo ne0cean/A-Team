@@ -107,3 +107,16 @@ export class CircuitBreaker {
     this.circuits.delete(feature);
   }
 }
+
+// ─── Advisor Tool Breaker 설정 상수 ────────────────────────────────────────
+// daemon-utils.mjs의 callSdkWithAdvisor() 에서 이 설정으로 인스턴스를 등록합니다.
+export const ADVISOR_TOOL_BREAKER_CONFIG = {
+  name: 'advisor-tool',
+  failureThreshold: 0.20,      // 20% 실패율 (실제 count 기반으로 daemon에서 변환)
+  windowMs: 5 * 60 * 1000,     // 5분 창
+  cooldownMs: 10 * 60 * 1000,  // OPEN 후 10분 쿨다운
+  halfOpenProbes: 1,
+  // count 기반 threshold: 5회 시도 중 1회 실패 = 20%
+  countThreshold: 1,
+  windowCount: 5,
+} as const;

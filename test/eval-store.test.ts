@@ -111,6 +111,64 @@ describe('compareRuns', () => {
   });
 });
 
+describe('A/B variant fields', () => {
+  it('should save and load A/B variant metadata', () => {
+    const store = new EvalStore(TEST_DIR);
+    const run: EvalRun = {
+      id: 'run-ab-001',
+      ts: new Date().toISOString(),
+      branch: 'feature/advisor',
+      commit: 'def5678',
+      tier: 'gate',
+      results: [
+        { name: 'coding-task', passed: true, durationMs: 3000, tier: 'gate' },
+      ],
+      totalDurationMs: 3000,
+      totalCostUsd: 0.12,
+      abVariant: 'advisor-on',
+      taskCategory: 'coding',
+      qualityScore: 87.5,
+      latencyMs: 3000,
+    };
+
+    store.save(run);
+
+    const loaded = store.load('run-ab-001');
+    expect(loaded).toBeDefined();
+    expect(loaded!.abVariant).toBe('advisor-on');
+    expect(loaded!.taskCategory).toBe('coding');
+    expect(loaded!.qualityScore).toBe(87.5);
+    expect(loaded!.latencyMs).toBe(3000);
+  });
+
+  it('should load existing runs without A/B fields without regression', () => {
+    const store = new EvalStore(TEST_DIR);
+    const legacyRun: EvalRun = {
+      id: 'run-legacy-001',
+      ts: new Date().toISOString(),
+      branch: 'main',
+      commit: 'abc0000',
+      tier: 'gate',
+      results: [
+        { name: 'legacy-test', passed: true, durationMs: 500, tier: 'gate' },
+      ],
+      totalDurationMs: 500,
+      totalCostUsd: 0.05,
+      // A/B 필드 없음 — 레거시 레코드
+    };
+
+    store.save(legacyRun);
+
+    const loaded = store.load('run-legacy-001');
+    expect(loaded).toBeDefined();
+    expect(loaded!.id).toBe('run-legacy-001');
+    expect(loaded!.abVariant).toBeUndefined();
+    expect(loaded!.taskCategory).toBeUndefined();
+    expect(loaded!.qualityScore).toBeUndefined();
+    expect(loaded!.results[0].passed).toBe(true);
+  });
+});
+
 describe('EvalTier filtering', () => {
   it('should filter results by tier', () => {
     const run: EvalRun = {

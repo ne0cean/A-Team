@@ -30,6 +30,12 @@ export interface EvalRun {
   results: EvalResult[];
   totalDurationMs: number;
   totalCostUsd: number;
+  // A/B 비교 필드 (모두 optional — 하위 호환성 유지)
+  abVariant?: 'advisor-on' | 'advisor-off' | null;
+  taskCategory?: string;   // 'coding' | 'research' | 'refactor' | 등
+  costUsd?: number;
+  qualityScore?: number;   // harness-score 결과
+  latencyMs?: number;
 }
 
 export interface RunComparison {

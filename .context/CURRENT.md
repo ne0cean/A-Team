@@ -6,7 +6,30 @@
 ## In Progress Files
 (없음)
 
-## Last Completions (2026-04-10)
+## Last Completions (2026-04-11)
+- **Unified Advisor Architecture Phase 1+2 — `advisor_20260301` 통합 (166 tests)**
+  - **배경**: Anthropic이 2026-04-09 공개한 네이티브 advisor tool (Sonnet executor + Opus advisor 단일 `/v1/messages` 내부 호출) 베타 통합
+  - **공식 벤치**: SWE-bench Multilingual 72.1%→74.8% (+2.7pp), 비용 -11.9% / BrowseComp 19.7%→41.2% (2.09×)
+  - **Layer A/B 분리 설계**: Claude Code 서브에이전트(Layer A)는 beta header 전달 경로 불확실 → advisor tool은 Layer B(자율 데몬)에만 적용. Layer A는 Pre-Check Skip Gate + 조건부 Reviewer로 동일 경제 효과 재현
+  - **Phase 1 (Layer B 데몬)**:
+    - `lib/cost-tracker.ts` — `CostRecord` optional 필드 10개 (`advisorCalls`, `cacheReadInputTokens`, `layer`, `phase`, `skipReason`, `abVariant` 등) + `CostSummary` 파생 지표 6개 (`preCheckSkipRate`, `reviewerCallRate`, `judgeCallRate`, `moaAvgRounds`, `advisorCallAvg`, `cacheHitRate`)
+    - `lib/circuit-breaker.ts` — `ADVISOR_TOOL_BREAKER_CONFIG` 상수 (20% 실패율, 5분 창, 10분 쿨다운)
+    - `scripts/daemon-utils.mjs` — `callSdkWithAdvisor()` 신규 (dynamic SDK import, beta header `advisor-tool-2026-03-01`, iterations[] 파싱)
+    - `scripts/ralph-daemon.mjs` — `useSdkPath` flag 분기 + 자동 CLI fallback (20% 실패율 초과 시 자동 전환)
+    - `@anthropic-ai/sdk` optional dependency 추가
+  - **Phase 2 (Layer A + governance)**:
+    - `scripts/research-daemon.mjs` — 리서치 계획 단계에 advisor 통합 (max_uses=2, 5m caching)
+    - `.claude/agents/orchestrator.md` — Phase 1.5 Pre-Check Skip Gate 섹션 추가 (Haiku, confidence≥0.95 → Phase 2-5 전체 스킵, 10% 샘플링 검증)
+    - `.claude/agents/reviewer.md` — 출력 스키마 30 토큰 1줄 요약 상단 삽입
+    - `governance/workflows/moa.md` — Round 2+ Delta-Only 입력 강제 + "Layer B MoA 금지" 명시
+    - `lib/eval-store.ts` — A/B variant 필드 (`abVariant`, `taskCategory`, `costUsd`, `qualityScore`, `latencyMs`)
+  - **Documents**:
+    - `governance/workflows/advisor-architecture.md` — 전체 설계 청사진 (Layer 분리 / 4-Way 매트릭스 / 핵심 경로 시퀀스 / Decision Log 7건)
+    - `governance/workflows/advisor.md` — 데몬 운영 가이드 (tiering, 시스템 프롬프트, fallback 시나리오)
+  - **테스트**: 153 → 166 (+13, 신규: cost-tracker 6 / circuit-breaker 5 / eval-store 2)
+  - **성공 기준 (4주 rolling)**: Layer A 태스크당 -31% / Layer B iteration -12% / Pre-Check skip 15% / Reviewer 호출률 40% / harness-score 회귀 없음
+
+## Previous Completions (2026-04-10)
 - **PIOP 최적화 — 토큰 효율성 + 모듈 연결 개선**
   - `optimize.md` → thin 래퍼 전환 (97줄 → 10줄, -380 words)
   - `vibe.md` Daily Tip 외부화 → `governance/reference/daily-tips.md` (-314 words/session)
@@ -123,6 +146,10 @@
   - atomic write (renameSync), pipeline race condition 롤백, 하드코딩 경로 제거, spawn timeout, 경로 트래버설 방지 등
 
 ## Next Tasks
+- [ ] **Advisor tool 라이브 API 테스트** (useSdkPath=true + ANTHROPIC_API_KEY → ralph --once 단일 iteration 검증)
+- [ ] **Phase 1.5 Skip Gate 실제 Haiku 호출 구현체** (orchestrator 에이전트 런타임 로직)
+- [ ] **eval-store A/B 수집 개시** (advisor-on/off 50 샘플 → harness-score 비교)
+- [ ] **토큰 기반 비용 추정** (SDK 경로 `costUsd` 필드 채우기 → cost-tracker 완결)
 - [ ] UI Auto-Inspect 실전 테스트 (실제 .tsx 수정 → 훅 자동 트리거 → diff Read 검증)
 - [ ] A-Team/ 미러 디렉토리 동기화 스크립트 자동화 (mirror-sync 규칙 활용)
 - [ ] 서브에이전트 실전 트리거 테스트 (자연어 "리뷰해줘" → review-pr 에이전트 자동 라우팅 확인)
