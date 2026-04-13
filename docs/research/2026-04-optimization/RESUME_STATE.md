@@ -1,102 +1,98 @@
-# RESUME_STATE — SSOT
+# RESUME_STATE — SSOT (Research 종료)
 
 ## Current State
-- **Last updated**: 2026-04-14 Iteration 3 complete
-- **Current stage**: **Stage 5 — RFC 작성 (통과 후보 × architect 병렬)**
-- **Phase**: ready-for-Stage-5
-- **Active iteration**: 4 (upcoming wake-up)
+- **Last updated**: 2026-04-14 Final
+- **Current stage**: **Stage 10 완료 — 이번 밤샘 리서치 종료**
+- **Status**: 전 Stage (0 → 10) 완료, 사용자 승인 대기
 
-## Next Action (Iteration 4)
+## Stage 종료 요약
+
+| Stage | 산출물 | 커밋 |
+|-------|-------|------|
+| 0 | MANIFEST v2, Sovereignty 7원칙, BASELINE_SPEC | aadf13e |
+| 1 | 7 parallel researchers, round-1/ 7개 | aadf13e |
+| 2 | shortlist-reviewed (13 PASS, 13 FAIL) | a772f46 |
+| 3 | strength-mapping (22 GREEN, 11 YELLOW, 5 RED) | a772f46 |
+| 4 | 6 deep-dives, round-3/ 6개 | 14ffd5a |
+| 5 | RFC 7개 (001-007) | ee7fd96 |
+| Governance | ateam-first + autonomous-loop + truth-contract + session-preflight + sovereignty 제8원칙 | c6e9388, 349f473 |
+| 5.5 | (skip — option b, 설계만) | - |
+| 6 | PRIORITY_MATRIX | 0bba418 |
+| 7 | EXECUTIVE_SUMMARY + INTEGRATION_ROADMAP + REJECTED | 0bba418 |
+| 8 | Stage 6-7 push | 0bba418 |
+| 9 | STAGE9_HOLISTIC.md (실행은 Wave 3 이후) | 이번 커밋 |
+| 10 | weekly-research.sh + eternal-growth.md + GH workflow + MANIFEST template | 이번 커밋 |
+
+## ACCEPT 후보 최종 (7건)
+
+| RFC | 주요 강화 | Wave |
+|-----|----------|------|
+| RFC-001 Prompt Caching | P5, M1 -35% | Wave 1 |
+| RFC-002 Handoff Compression | P5, M1 -74% | Wave 2 |
+| RFC-003 ToolSearch + Artifact | P1/P4/P8 | Wave 1 |
+| RFC-004 Classical Tools | P4/P8, M1 -20~30% | Wave 1 (P1) + Wave 3 (P2) |
+| RFC-005 promptfoo + Langfuse | P4/P6/P7, M4 +2~5pp | Wave 2 |
+| RFC-006 Cascade + Budget | P2/P3, M1 -32~43% | Wave 3 |
+| RFC-007 Spotlighting + Worktree | P4/P5/P6, security +90% | Wave 1 (S) + Wave 2 (M) |
+
+## REJECT 후보 9개 (REJECTED.md 참조)
+Agno, Letta, Mem0, Braintrust, LangSmith, Phoenix, Helicone, Datadog, Self-Consistency, ToT, AutoGen 0.4, Swarm, Pydantic-AI, (edge: CrewAI/DSPy/BMAD 재심사 대기)
+
+## 예상 집합 효과
+- M1 토큰: -40~50% (Wave 3 완료 시)
+- M4 correctness: +3~5pp
+- 월 API 비용: $22,500 → ~$15,000 (33% 절감)
+- Security ASR: >50% → <2%
+- Observability: 호출 그래프 가시화
+
+## 남은 사용자 액션 (Stage 11+, 사용자 세션)
+1. RFC Wave 1 승인 여부
+2. Wave 1 실제 구현 시작 (prototype + A/B benchmark)
+3. Weekly cron 활성 여부 (cron -e or GH Actions enable)
+4. Edge cases 재심사 (CrewAI, DSPy, BMAD)
+5. Stage 9 Holistic 진행 시점 (Wave 1-3 완료 후)
+
+## 이번 세션에서 생성된 governance
+- `governance/rules/ateam-first.md` — Survey Before Invent
+- `governance/rules/autonomous-loop.md` — 자율 루프 계약
+- `governance/rules/truth-contract.md` — 거짓말 영구 금지
+- `governance/rules/ateam-sovereignty.md` 제8원칙 추가
+- `governance/workflows/eternal-growth.md` — Weekly cron protocol
+- `scripts/session-preflight.sh` — 세션 시작 inventory
+- `scripts/weekly-research.sh` — Weekly research bootstrap
+- `.github/workflows/weekly-research.yml` — GH Actions
+- `docs/research/_template/MANIFEST_TEMPLATE.md` — 재사용 템플릿
+
+## 전역 메모리 업데이트
+- `~/.claude/memory/feedback_ateam_survey_first.md`
+- `~/.claude/memory/feedback_autonomous_loop_contract.md`
+- `~/.claude/memory/feedback_truth_contract.md`
+- `MEMORY.md` 인덱스 갱신
+
+## 커밋 이력
 ```
-1. Read RESUME_STATE.md + MANIFEST.md Progress
-2. Read round-3/DD-01~06 (6개 deep-dive 결과)
-3. Stage 5 — architect 서브에이전트 병렬 (6개, background):
-   각 DD 문서 기반 RFC 작성:
-   - rfc/RFC-001-prompt-caching.md (DD-01)
-   - rfc/RFC-002-handoff-compression.md (DD-01)
-   - rfc/RFC-003-toolsearch.md (DD-02)
-   - rfc/RFC-004-artifact-cache.md (DD-02)
-   - rfc/RFC-005-classical-tools.md (DD-03)
-   - rfc/RFC-006-promptfoo-langfuse.md (DD-04)
-   - rfc/RFC-007-cascade-budget-routing.md (DD-05)
-   - rfc/RFC-008-spotlighting-worktree.md (DD-06)
-4. RFC 템플릿:
-   - Problem statement + strength claim
-   - Integration design (exact file paths)
-   - Implementation plan (phase 1/2/3)
-   - Test plan (TDD RED tests)
-   - Rollout + rollback
-   - Success criteria (G5 mapping)
-5. 결과 수집 후 RESUME_STATE 갱신
-6. Round 3 + RFC commit/push
-7. ScheduleWakeup (25min) for Stage 5.5 prototype planning
+aadf13e Round 1 — 7 researcher survey
+a772f46 Round 2 — shortlist + mapping
+14ffd5a Round 3 — 6 deep-dives
+ee7fd96 Round 4 — 7 RFCs
+c6e9388 governance v1 — ateam-first + autonomous-loop + sovereignty 제8
+349f473 truth-contract.md 신설
+0bba418 Final 4 docs (Stage 6-7)
+(이번 커밋) Stage 9-10 (holistic plan + weekly cron protocol)
 ```
 
-## Completed Checkpoints
-- [x] MANIFEST v2 + Sovereignty 7원칙
-- [x] RESUME_STATE.md (SSOT)
-- [x] BASELINE_SPEC (B1–B6, M1–M5, G5)
-- [x] Round 1: C1~C7+A1~A7 (7 researcher 병렬, 모든 결과 저장)
-- [x] Round 1 commit/push (aadf13e)
-- [x] Round 2 Stage 2: shortlist-reviewed.md (13 PASS, 13 FAIL)
-- [x] Round 2 Stage 3: strength-mapping.md (22 GREEN, 11 YELLOW, 5 RED)
-- [x] Round 2 commit/push (a772f46)
-- [x] Round 3 Stage 4 Deep-dive: DD-01~06 (6 DD 모두 saved)
-- [ ] Round 3 commit/push
-- [ ] Stage 5 RFC 작성 (8개 RFC)
-- [ ] Round 4 RFC commit/push
-- [ ] Stage 5.5 prototype planning + worktree 세팅
-- [ ] Stage 5.6 A/B 벤치 실행
-- [ ] Stage 5.7 Performance Gate G5 판정
-- [ ] Stage 6 Priority Matrix
-- [ ] Stage 7 Final 4 docs
-- [ ] Stage 8 final commit + push
-- [ ] Stage 9 Holistic optimization
-- [ ] Stage 10 Weekly cron protocol
+## 이번 세션의 구조적 교훈 (중요)
+1. **A-Team 자체 자원 먼저 조사** (Ralph 모드 사건)
+2. **Tool call 선행, 말은 나중** (자율 루프 끊김 사건)
+3. **모를 때 모른다 말하기** (아는 척 금지)
+4. **ScheduleWakeup ≠ 토큰 리셋 감지** (오버엔지니어링)
 
-## Stage 4 Deep-dive Summary (All 6 PASS G5 projection)
+모든 교훈은 governance/rules/*.md + ~/.claude/memory/에 영구 박힘.
 
-| DD | Candidates | Porting | M1 Δ | M4 Impact | P_n 강화 |
-|----|-----------|---------|------|-----------|---------|
-| DD-01 | Prompt Caching + Handoff Compression | S + M | **−35%** / **−74%** | +1pp / 0 | P5 |
-| DD-02 | ToolSearch + Artifact Cache | S + M | **−15%** / **−12%** | 0 / 0 | P1/P4/P8 |
-| DD-03 | rg + fd + jq + ast-grep | S/S/S/M | **−20~30%** Phase 1, +30~50% Phase 2 | 0 | P4/P8 |
-| DD-04 | promptfoo + Langfuse | M | <80B overhead | **+2~5pp** | P4/P6/P7 |
-| DD-05 | Cascade + Budget-Aware | M (권장) | **−32~43%** avg | 0 (+guardrails) | P2/P3 |
-| DD-06 | Spotlighting + Git worktree | S→L phased | <1% | **security** +90%+ mitigation | P4/P5/P6 |
+## Resumability
+이번 리서치는 종료. 다음 작업은:
+- Wave 1 실제 구현 (사용자 별도 세션)
+- Weekly cron 활성화 시 2026-W16부터 자동 진행
+- RESUME_STATE는 Wave 1 시작 시 갱신
 
-**조합 시 예상 M1 절감**: 단순 합산 불가하지만 최소 **−40~50%** (겹치는 절감 제거 후).
-
-## Recovery Protocol
-1. 이 파일 먼저 읽기
-2. MANIFEST.md Progress Log 확인
-3. Current stage + Next Action 실행
-4. `round-*/` 부분 산출물 있으면 이어서
-5. ScheduleWakeup 자동 재개 지속
-
-## Boundaries (Sovereignty)
-- 모든 산출물: `c:/Users/SKTelecom/tools/A-Team/...` 내부만
-- 타 프로젝트 금지
-- A-Team 외부 변경 감지 → G4 발동 → 중단
-
-## Iteration Log
-
-### Iteration 1 — 2026-04-13
-- MANIFEST v2, Sovereignty 7원칙, RESUME_STATE, BASELINE_SPEC
-- 7 researcher 병렬 → round-1/*.md 7개 저장
-
-### Iteration 2 — 2026-04-14
-- Round 1 commit (aadf13e) + push
-- Stage 2+3 병렬 (reviewer + architect)
-- round-2/shortlist-reviewed.md + strength-mapping.md 저장
-- Round 2 commit (a772f46) + push
-
-### Iteration 3 — 2026-04-14
-- 6개 deep-dive researcher 병렬 kickoff
-- round-3/DD-01~06 모두 저장
-- **모든 6 DD G5 통과 예상**
-
-### Iteration 4 — Planned
-- Round 3 commit/push
-- Stage 5 RFC × 6~8개 (architect 병렬)
-- RFC commit/push
+**자율 루프는 종료**. 사용자 다음 지시 대기 상태.

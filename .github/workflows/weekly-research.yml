@@ -1,0 +1,67 @@
+name: Weekly Auto-Research
+
+on:
+  schedule:
+    - cron: '0 18 * * 0'  # 매주 일요일 18:00 UTC = 월요일 03:00 KST
+  workflow_dispatch:
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set WEEK_TAG
+        run: echo "WEEK_TAG=$(date +%Y-W%V)" >> $GITHUB_ENV
+
+      - name: Bootstrap weekly research
+        run: |
+          chmod +x scripts/weekly-research.sh
+          bash scripts/weekly-research.sh
+
+      - name: Commit bootstrap
+        run: |
+          git config user.name "a-team-bot"
+          git config user.email "bot@ateam.local"
+          git checkout -b "research/${WEEK_TAG}" 2>/dev/null || git checkout "research/${WEEK_TAG}"
+          git add "docs/research/${WEEK_TAG}/" || true
+          git commit -m "research(${WEEK_TAG}): auto-kickoff bootstrap" || echo "nothing to commit"
+          git push origin "research/${WEEK_TAG}" || true
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: research/${{ env.WEEK_TAG }}
+          title: "research(${{ env.WEEK_TAG }}): weekly auto-research kickoff"
+          body: |
+            ## Weekly Auto-Research ${{ env.WEEK_TAG }}
+
+            이 PR은 `scripts/weekly-research.sh`가 자동 생성했습니다.
+
+            ### 현재 상태
+            - Bootstrap 완료 (`docs/research/${{ env.WEEK_TAG }}/` 생성)
+            - AI 리서치 실행은 별도 트리거 필요
+
+            ### Human Action
+            1. bootstrap 내용 확인
+            2. `/ralph start` 또는 orchestrator 수동 실행으로 Round 1 리서치 시작
+            3. G5 통과 후보 확인 후 merge 여부 판단
+            4. 자동 merge 금지 — 반드시 수동 리뷰
+
+            ### 거버넌스
+            - `governance/workflows/eternal-growth.md` 참조
+            - P1–P8 보호자산 침해 여부 필수 검증
+            - `truth-contract.md` 준수: tool output 기반 결과만
+
+            🤖 Auto-generated
+          labels: |
+            auto-research
+            needs-review
+          base: master
