@@ -207,3 +207,30 @@ cd <원래 프로젝트> && <작업 계속>
 
 ## 요약 (1줄)
 > **A-Team은 중앙 허브. 모든 개선은 A-Team 레포에 먼저 push. 프로젝트는 pull만.**
+
+---
+
+## 제8원칙: Survey Before Invent
+
+**새 메커니즘을 설계하기 전에 A-Team 자체 자원을 먼저 조사한다. 발명은 최후 수단.**
+
+### 규칙 요약
+- 자동화/워크플로우/도구/에이전트 설계 요청 시 **A-Team inventory 먼저** (`.claude/commands/`, `governance/skills/`, `scripts/`, `docs/INDEX.md`)
+- 사용자 메시지에 A-Team 고유 용어(랄프/ralph, vibe, PIOP, mirror, handoff, end 등) 포함 시 **첫 행동이 해당 자원 조회**
+- 기존 자원이 완전 부합 → 그대로 사용. 부분 부합 → 확장. 부적합 → 근거 명시 후 발명.
+- 모를 때 "확인해봐야 한다" 명시, **아는 척 금지**
+
+### 위반 사례 (2026-04-14)
+사용자 "리서치+랄프 모드로 밤새 조사해" 요청에:
+- `/ralph` 커맨드 + `scripts/ralph-daemon.mjs` 존재 미확인
+- Ralph Loop를 일반 패턴으로 해석 → ScheduleWakeup 발명
+- 결과: A-Team 자체 도구(OS 레벨 데몬) 대신 세션 의존 메커니즘 사용 → 자율 루프 끊김
+
+### Enforcement
+- `governance/rules/ateam-first.md` 상세 룰
+- `scripts/session-preflight.sh` 세션 시작 시 inventory 자동 덤프
+- 새 설계 PR 템플릿에 Survey 수행 증명 체크박스
+
+---
+
+**Last updated (제8원칙 추가)**: 2026-04-14 (2026-04-14 구조적 실패 사건 후속 조치)
