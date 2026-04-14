@@ -26,6 +26,7 @@
 | `16-project-tiers.md` | 프로젝트 Tier 시스템 | NANO, STANDARD, PRO, DDD, 클린 아키텍처 |
 | `17-tools-and-frameworks.md` | 도구 평가 & 병렬 처리 | 7차원 평가, CrewAI, LangGraph, Superset, Claude Squad, agentmaxxing, 케이스별 선택 |
 | `19-adoption-plan.md` | 도입 계획 (아카이브) | MoA, Guardrail, 체크포인팅, SOP, Phase 1/2/3 |
+| `HISTORY.md` | **전체 히스토리 (Phase 0-14)** | ClawTeam, Vibe-Toolkit, gstack Wave 1-4, Ralph/PIOP, bkit, Thin-wrapper, UI Auto-Inspect, Unified Advisor, CSO, Optimization Research, Sovereignty/Truth Contract |
 
 ---
 
