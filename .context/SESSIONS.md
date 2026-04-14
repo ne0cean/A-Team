@@ -2,6 +2,33 @@
 
 ---
 
+## [2026-04-15] 세션 종결 — /pmi + /autoresearch + jangpm 통합 설계 + 나레이션 금지
+
+**완료** (06:00 KST, 376 tests, 빌드 PASS):
+- `/pmi` skill 신규 — Post-Major-Integration entry point (post-integration.md 의 별칭)
+- PIOP 5-Phase 정식 실행 — 이번 세션 통합을 Integration Map → Wiring → Trigger → Token → Validation 으로 검증
+  - HIGH 3건 즉시 수정: /pickup sleep-mode 감지, /vibe 예약 회고 감지, /pmi entry point
+  - MEDIUM 4건은 Next Tasks (실 파일럿 필요)
+- `autonomous-loop.md` 강제 조항 6 신설 — 나레이션 금지 (2026-04-14 새벽 사건 재발 방지)
+- CLAUDE.md 자율 모드 트리거 의무 read 명시
+- `/sleep` 메타 디스패처 + OS-level launchd 설치 (매일 03:02 KST fire, RESUME.md 기반 자동 재개)
+  - `scripts/sleep-resume.sh` + `scripts/install-sleep-cron.sh` 신규
+  - `~/Library/LaunchAgents/com.ateam.sleep-resume.plist` 설치·검증 완료
+- `/design-retro` skill + 2026-04-22 CronCreate — Design Subsystem 1주 회고 예약
+- `/autoresearch` skill (jangpm-meta-skills 포팅) + blueprint + jangpm-integration-design.md — 외부 레포 통합 설계
+- `.gitignore` Claude runtime + autoresearch 아티팩트 제외
+
+**이슈**:
+- CronCreate `durable: true` 세션-only 휘발 확인 → launchd로 대체
+- sleep.md 1141 words (상한 근접) — 압축 Next Tasks 등록
+- CURRENT.md "## Next Tasks" 섹션 2개 존재 (Phase 14 merge 잔재) — 향후 정리 필요
+
+**빌드**: ✅ 376/376 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities
+
+**커밋 체인**: `d961967` → `57fbcb2` → `5d3da8c` → `97b9d8b` → `f8a245e` → `65ee236` → `eef29cd` → `17d3f84` → `2371fed`
+
+---
+
 ## [2026-04-15] Design Subsystem 3-Phase — AI Smell 차단 인프라 (랄프 모드 자율)
 
 **컨텍스트**: 사용자 페인포인트 — A-Team으로 만든 앱들이 AI 냄새 심하고 디자인 퀄리티 낮음. 광범위 리서치 후 Phase 1→2→3 무정지 진행 지시 ("랄프 모드"). 오늘 새벽 3시 토큰 리셋 대비 자동 재개 인프라도 함께 구축 요청.

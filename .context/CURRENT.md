@@ -9,6 +9,8 @@
 
 ## Next Tasks
 - [ ] **🗓️ 2026-04-22 10:17 KST — `/design-retro` 자동 실행 예약됨** (CronCreate, 1주 실측 후 삭제/튜닝/추가 판정). 크론 소멸 대비 백업 — 이 날짜에 수동으로라도 `/design-retro` 호출.
+- [ ] **`/autoresearch` 파일럿 실행** (jangpm-meta-skills 포팅). target 커맨드 1개 골라 20 iteration 루프 → 품질 개선 실측
+- [ ] **jangpm-integration-design.md 승인/실행** (blueprint MERGE + reflect LEARN 결정)
 - [ ] **PMI MEDIUM 미연결 항목 파일럿** (pmi-2026-04-15.md M1-M4): design-auditor 실제 bash 호출 검증, logDesignAudit/logDesignOutcome 호출 경로, PostToolUse 훅 실제 설정
 - [ ] **sleep.md 압축 검토** (현재 1141 words — 900 이하로, 가독성 유지 전제)
 - [ ] **Design Subsystem 실전 파일럿** (Linear/Stripe/Rauno 3톤 각 1개 샘플 UI 생성)
@@ -78,6 +80,18 @@
   - 사용자가 `/design` 따로 부를 필요 없음 — 맥락상 전부 자동
 
   **커밋 체인**: `e778e73` Phase 1 → `4cdd614` Phase 2 → `0d10ef4` Phase 3 → `5ce67b8` 세션 로그 → `a28ccf2` merge Phase 14 → `74bac24` RESUME complete → `d961967` CSO/doc-sync hardening
+
+  **세션 종료 시점 추가 작업** (2026-04-15 06:00 KST):
+  - `/autoresearch` 스킬 신설 — Karpathy식 프롬프트 자동 최적화 루프 (jangpm-meta-skills 포팅)
+  - `governance/skills/autoresearch/` 7 guide + `governance/skills/blueprint/` 3 파일
+  - `governance/experimental/jangpm-integration-design.md` — 외부 레포 분석 + 통합 계획
+  - `/pmi` 신규 — Post-Major-Integration (PIOP entry point)
+  - `/pickup` Step 2.5 sleep-mode 감지, `/vibe` Step 0.65 예약 회고 감지
+  - `autonomous-loop.md` 강제 조항 6 나레이션 금지 추가
+  - OS-level launchd 설치 (sleep-resume.sh + install-sleep-cron.sh, 매일 03:02 KST fire)
+  - CLAUDE.md 자율 모드 트리거 의무 read 명시
+  - `.gitignore` Claude runtime/autoresearch 제외
+  - `.context/pmi-2026-04-15.md` 리포트 저장 (Phase 1-5 전체 실행)
 
   **Post-Cron Hardening** (`d961967`, 2026-04-15 05:13 KST, cron `d7858883` fire 후):
   - **CSO**: `lib/design-smell-detector.ts` MAX_CONTENT_BYTES 2MB guard (regex DoS 방지), 비문자열/오버사이즈 safe default 반환, 파일경로 metadata-only 명시
