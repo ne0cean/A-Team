@@ -6,163 +6,144 @@
 
 ## 사용 방법
 
-### Wave 완료 시
+### Bench 실행 (dry-run 또는 실측)
 ```bash
-# 1. Wave N 통합 완료 후 B1–B6 × 3 runs 실측
-npm run bench:all -- --runs 3 --output .bench/wave-N/
+# Dry-run (Phase 1, Claude API 호출 없이 synthetic data)
+node scripts/bench-runner.mjs --tag v-baseline --runs 3 --dry-run
 
-# 2. 결과를 이 파일에 append (아래 템플릿)
-
-# 3. Tag 생성
-git tag v-wave-N
-git push origin v-wave-N
+# 실측 (Phase 2, actual Claude invocation)
+node scripts/bench-runner.mjs --tag v-baseline --runs 3
 ```
 
-### 다음 Wave A/B 시
+### G7 verification
 ```bash
-# Baseline = 직전 wave tag
-git checkout v-wave-N
-npm run bench:all -- --runs 3 --output .bench/baseline-wave-N/
-
-# Candidate = Wave N+1 통합 후
-git checkout master  # Wave N+1 적용된 상태
-npm run bench:all -- --runs 3 --output .bench/wave-(N+1)/
-
-# G7 verification
-node scripts/verify-g7.js v-wave-N v-wave-(N+1)
+node scripts/verify-g7.mjs v-baseline v-wave-1
+# exit 0: PASS, exit 1: regression detected
 ```
 
 ---
 
-## Baseline (pre-integration)
+## v-baseline (Dry-Run, 2026-04-14 10:07)
 
-_**아직 측정 전**_. 첫 Wave 1 착수 시 `v-baseline` tag 생성 + 실측 후 이 섹션 채움.
+**Mode**: `dry-run` (synthetic, ±10% noise). 실측 전 테스트 인프라 검증용.
 
-| Metric | B1 | B2 | B3 | B4 | B5 | B6 | Avg |
-|--------|----|----|----|----|----|----|-----|
-| M1 tokens | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| M2 time (s) | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| M3 tool calls | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| M4 correctness | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| M5 regressions | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Composite score | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Metric | B1 | B2 | B3 | B4 | B5 | B6 |
+|--------|----|----|----|----|----|----|
+| **M1 tokens (mean)** | 5051 | 11895 | 24940 | 14565 | 34009 | 18297 |
+| M1 cv | 0.03 | 0.02 | 0.03 | 0.01 | 0.02 | 0.02 |
+| **M2 time (s)** | 61 | 180 | 368 | 302 | 596 | 240 |
+| M3 tool calls | 8 | 15 | 21 | 12 | 6 | 8 |
+| **M4 correctness** | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
+| M5 regressions | 0 | 0 | 0 | 0 | 0 | 0 |
 
-**Measurement spec**: `BASELINE_SPEC.md` 참조. 3회 반복 (향후 5회 상향 검토, F8).
+**Notes**: σ/mean (cv) < 0.1 모두 충족 (G5-e). `results.json` 위치: `.bench/v-baseline/results.json`.
 
 ---
 
-## Wave 1 (Planned: RFC-001/003/004-P1/007-S)
+## v-wave-1-estimate (추정, 2026-04-14 12:12)
 
-_**미착수**_. 통합 완료 후 기록.
+**Mode**: `estimate-only`. RFC-001/003/004/007-S 모두 opt-in 활성 **가정** 시 추정치. **실측 아님**.
 
-### Expected (추정, 실측 전)
-- M1: baseline -20~30%
-- M4: ≥ baseline
-- Security ASR: >50% → <2% (RFC-007 Phase S 효과)
+**⚠️ Earned Integration 원칙**: 이 숫자는 수용 근거가 아님. Phase 2 실측 필요.
 
-### Actual (실측 기록)
-| Metric | B1 | B2 | B3 | B4 | B5 | B6 | Δ vs baseline |
-|--------|----|----|----|----|----|----|---------------|
-| M1 | TBD | ... | ... | ... | ... | ... | TBD |
-| M2 | ... | ... | ... | ... | ... | ... | ... |
-| M3 | ... | ... | ... | ... | ... | ... | ... |
-| M4 | ... | ... | ... | ... | ... | ... | ... |
-| M5 | ... | ... | ... | ... | ... | ... | ... |
+### Per-Benchmark Projection
 
-### G5 (vs baseline) 판정
-- [ ] G5-a: ≥15% 개선 1개+
-- [ ] G5-b: 모든 메트릭 ≤5% 악화
-- [ ] G5-c: M4 ≥ baseline
-- [ ] G5-d: B1–B6 중 4개+ 개선
-- [ ] G5-e: σ < mean × 0.1
+| Bench | Baseline M1 | Candidate M1 | Δ% | Applied RFCs |
+|-------|-------------|--------------|-----|---------------|
+| B1 | 5051 | 3282 | **-35.0%** | prompt_caching, tool_search, classical_tools |
+| B2 | 11895 | 6840 | **-42.5%** | prompt_caching, tool_search |
+| B3 | 24940 | 9041 | **-63.7%** | prompt_caching, tool_search, classical_tools |
+| B4 | 14565 | 9467 | **-35.0%** | prompt_caching |
+| B5 | 34009 | 19844 | **-41.6%** | prompt_caching, tool_search, spotlighting |
+| B6 | 18297 | 8966 | **-51.0%** | prompt_caching, classical_tools |
 
-### G7 (vs 직전 Wave) 판정 — Wave 1은 baseline 대비이므로 G5와 동일
-N/A for Wave 1.
+**Total M1 delta: -48.5%** (overlap 15% 할인 반영)
 
-### Tag
+### G7 Check (v-baseline → v-wave-1-estimate)
 ```
-git tag v-wave-1 (통합 + 전 gate 통과 후)
+✓ G7 PASS: No regression across versions
+- M4 (correctness): 모든 벤치 1.0 유지
+- M1~M3/M5: 전부 개선 방향
 ```
+파일: `.bench/v-wave-1-estimate/results.json`
 
 ---
 
-## Wave 2 (Planned: RFC-002/005/006-P1/007-M)
+## v-wave-1 (실측, 미착수)
 
-_**미착수**_. Wave 1 완료 후 기록.
+**Mode**: _**미착수**_. 실제 Claude API A/B 측정 필요.
 
-### G5 (vs 원본 baseline)
-통과 조건은 위와 동일.
+### 통과 요구사항
+- **G5** (vs v-baseline): M1 ≥ 15% 개선, 모든 메트릭 ≤ 5% 악화, M4 ≥ baseline
+- **G7** (vs v-baseline): 모든 메트릭 ≥ baseline (1% 노이즈 허용), M4 절대 하락 금지
 
-### G7 (vs v-wave-1)
-- [ ] G7-a: 모든 메트릭 ≥ wave-1 (1% 노이즈 허용)
-- [ ] G7-b: M4 절대 하락 금지
-- [ ] G7-c: B1–B6 개별 regression 없음
-- [ ] G7-d: Wave 1 수용 RFC 기능 훼손 없음 (통합 테스트)
-- [ ] G7-e: 이 테이블에 수치 기록 완료
+### 체크리스트
+- [ ] RFC-001 prototype 실측 (ENABLE_PROMPT_CACHING=true × B1-B6)
+- [ ] RFC-003 ToolSearch 실측 (.mcp.json 프로젝트 적용 × B1-B6)
+- [ ] RFC-004 Classical Tools 실측 (A_TEAM_CLASSICAL_TOOLS=1 × B1-B6)
+- [ ] RFC-007 Spotlighting 실측 (A_TEAM_SPOTLIGHT=delimiting × B5)
+- [ ] G5 + G7 판정 통과
+- [ ] `git tag v-wave-1` 생성
 
----
-
-## Wave 3 (Planned: RFC-004-P2/006-P2/007-L)
-
-_**미착수**_.
-
-### G7 (vs v-wave-2)
-Wave 2와 동일 구조.
+### 실측 시 업데이트 위치
+위 table 포맷으로 실측 수치 append.
 
 ---
 
-## Stage 9 Holistic (Planned: 재통합 + 최적화)
+## v-wave-2 (미착수, Wave 1 완료 후)
 
-_**미착수**_. Wave 3 완료 후.
+Planned: RFC-002 Handoff Compression, RFC-005 promptfoo+Langfuse, RFC-006-P1 Cascade, RFC-007-M
 
-### G7 (vs v-wave-3)
-Stage 9는 Wave 1–3 통합 후 집합 최적화이므로, 개별 RFC 성능이 상호 영향으로 **퇴행**하는지 엄격 검증. 집합 개선이 개별 퇴행을 정당화하지 못함.
-
-- [ ] 각 RFC의 단독 메트릭이 v-wave-3 수준 유지
-- [ ] 집합 메트릭이 추가 개선 (중복 제거 효과)
+**G7 baseline = v-wave-1** (v-baseline 아님).
 
 ---
 
-## Regression Detection Automation (미래 구현)
+## v-wave-3 (미착수)
 
-`scripts/verify-g7.js` (Wave 1 착수 시 작성):
-```javascript
-// node scripts/verify-g7.js <prev-tag> <current-tag>
-// Returns: exit 0 if G7 pass, exit 1 if regression
+Planned: RFC-004-P2 ast-grep, RFC-006-P2 Budget-Aware, RFC-007-L worktree
 
-const prevMetrics = parseBenchOutput(`.bench/${prevTag}/results.json`);
-const currMetrics = parseBenchOutput(`.bench/${currTag}/results.json`);
+**G7 baseline = v-wave-2**.
 
-for (const metric of ['M1', 'M2', 'M3', 'M4', 'M5']) {
-  for (const bench of ['B1', 'B2', 'B3', 'B4', 'B5', 'B6']) {
-    const prev = prevMetrics[bench][metric];
-    const curr = currMetrics[bench][metric];
-    const delta = (curr - prev) / prev;
+---
 
-    // M4는 0% 허용치 (절대 하락 금지)
-    if (metric === 'M4' && delta < 0) {
-      console.error(`G7-b FAIL: ${bench} M4 dropped ${delta * 100}%`);
-      process.exit(1);
-    }
+## Stage 9 Holistic (미착수)
 
-    // 다른 메트릭은 1% 노이즈 허용, 낮을수록 좋은 메트릭 (M1/M2/M3/M5) 기준
-    if (['M1', 'M2', 'M3', 'M5'].includes(metric) && delta > 0.01) {
-      console.error(`G7-a FAIL: ${bench} ${metric} regressed ${delta * 100}%`);
-      process.exit(1);
-    }
-  }
-}
+Planned: Wave 1–3 집합 최적화, cross-RFC wiring, dead code 제거
 
-console.log('G7 PASS: No regression detected');
-process.exit(0);
+**G7 baseline = v-wave-3**. 집합 최적화가 **개별 RFC 성능 퇴행**을 일으키면 G7-d 위반으로 rollback.
+
+---
+
+## Regression Detection Automation
+
+**구현 완료**: `scripts/verify-g7.mjs`
+- M4 (correctness): 0% 허용 (절대 하락 금지)
+- M1/M2/M3/M5: 1% 노이즈 허용
+- Exit 0 PASS / 1 FAIL / 2 config error
+
+**CI 통합 (미래)**: GH Actions에서 매 PR 자동 실행 가능.
+
+---
+
+## 파일 구조
+
+```
+.bench/
+├── v-baseline/
+│   └── results.json
+├── v-wave-1-estimate/
+│   └── results.json
+└── v-wave-1/ (실측 후)
+    └── results.json
 ```
 
-CI (GH Actions)에서 매 Wave PR에 자동 실행.
-
 ---
 
-## 참조
+## 관련
+- `BASELINE_SPEC.md` B1–B6 + M1–M5 명세
 - `MANIFEST.md` G5 + G7 정의
-- `BASELINE_SPEC.md` B1–B6 + M1–M5 측정 방식
-- `final/INTEGRATION_ROADMAP.md` Wave 순서 + Gate
-- `final/ADVERSARIAL_REVIEW.md` F3/F7/F8 관련 사항
+- `final/INTEGRATION_ROADMAP.md` Wave 순서
+- `final/ADVERSARIAL_REVIEW.md` F3 (Earned Integration) + F7 (단순 합산 금지) + F20 (G7)
+- `scripts/bench-runner.mjs` 실행기
+- `scripts/bench-wave1-candidate.mjs` 추정 시뮬레이터 (Phase 1 only)
+- `scripts/verify-g7.mjs` 회귀 자동 감지
