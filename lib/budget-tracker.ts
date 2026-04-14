@@ -119,3 +119,37 @@ export function decideBudgetAction(
   if (confidence < 0.7 && state.remainingUsd > 0.05) return 'cheaper';
   return 'proceed';
 }
+
+// ─── cost-tracker 통합 브리지 ────────────────────────────────────────────────
+// RFC-006 Phase 2 × 기존 lib/cost-tracker.ts 연동.
+// cost-tracker는 LLM call (model/input/output tokens) 중심, budget-tracker는 tool call 중심.
+// 두 데이터를 합쳐 total session cost 추출.
+
+export interface CombinedSessionCost {
+  llmUsd: number;           // cost-tracker.getSummary().totalUsd
+  toolUsd: number;          // budget-tracker 합산
+  total: number;
+  budgetRemaining: number;
+  toolBreakdown: Record<string, number>;
+}
+
+/**
+ * Merge budget-tracker state with cost-tracker summary (external).
+ * cost-tracker Instance를 직접 의존하지 않도록 단순 number만 받음.
+ *
+ * @param budgetState BudgetState (tool 비용)
+ * @param llmCostUsd cost-tracker.getSummary().totalUsd
+ */
+export function mergeCosts(
+  budgetState: BudgetState,
+  llmCostUsd: number
+): CombinedSessionCost {
+  const toolUsd = Object.values(budgetState.spentByTool).reduce((s, v) => s + v, 0);
+  return {
+    llmUsd: llmCostUsd,
+    toolUsd,
+    total: llmCostUsd + toolUsd,
+    budgetRemaining: budgetState.remainingUsd,
+    toolBreakdown: { ...budgetState.spentByTool },
+  };
+}

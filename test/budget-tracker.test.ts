@@ -6,6 +6,7 @@ import {
   createBudgetState,
   recordToolCost,
   decideBudgetAction,
+  mergeCosts,
 } from '../lib/budget-tracker.js';
 
 describe('RFC-006 Phase 2 Budget Tracker', () => {
@@ -62,6 +63,25 @@ describe('RFC-006 Phase 2 Budget Tracker', () => {
       const s0 = createBudgetState(0.001);
       const s1 = recordToolCost(s0, 'Agent', 0.15, 'exec');
       expect(s1.remainingUsd).toBe(0);
+    });
+  });
+
+  describe('mergeCosts (budget × cost-tracker integration)', () => {
+    it('combines LLM + tool costs', () => {
+      const budget = createBudgetState(10);
+      const s1 = recordToolCost(budget, 'Grep', 0.003, 'exec');
+      const s2 = recordToolCost(s1, 'WebFetch', 0.02, 'exec');
+      const merged = mergeCosts(s2, 1.25);
+      expect(merged.llmUsd).toBe(1.25);
+      expect(merged.toolUsd).toBeCloseTo(0.023, 3);
+      expect(merged.total).toBeCloseTo(1.273, 3);
+      expect(merged.toolBreakdown.Grep).toBeCloseTo(0.003, 3);
+    });
+
+    it('handles empty budget state', () => {
+      const merged = mergeCosts(createBudgetState(5), 0);
+      expect(merged.total).toBe(0);
+      expect(merged.toolBreakdown).toEqual({});
     });
   });
 
