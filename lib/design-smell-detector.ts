@@ -1,14 +1,22 @@
 /**
  * Design Smell Detector — Static AST/regex-based anti-pattern detection.
  *
- * Implements 22 deterministic rules from governance/design/anti-patterns.md.
- * Zero token cost — pure regex + heuristics. LLM critique (PL-01, PL-02, AI-07)
- * handled by design-auditor subagent separately.
+ * Implements 15 of 24 deterministic rules from governance/design/anti-patterns.md.
+ * Remaining 9 rules (RD-01/03/05, A11Y-05, LS-02/03, AI-07 signal) + LLM critique
+ * (PL-01, PL-02) handled by design-auditor subagent separately.
  *
  * Output: { score 0-100, violations[], summary, tokens_consumed: 0 }
+ *
+ * **Security**: file path is **metadata only** — detector never reads files.
+ * Callers must validate file paths before passing (no traversal from user input).
+ * Content size is capped at MAX_CONTENT_BYTES to prevent regex DoS on huge inputs.
  */
 
 import CONFIG from './design-config.json';
+
+// ──────── Security: content size guard ────────
+
+const MAX_CONTENT_BYTES = 2 * 1024 * 1024; // 2MB — sane cap for single-file UI content
 
 // ──────── Types ────────
 
@@ -407,6 +415,16 @@ const RULES = [
 ];
 
 export function detectDesignSmells(opts: DetectOptions): DetectResult {
+  // Security: oversize content → 조기 차단 (regex DoS 방지)
+  if (typeof opts.content !== 'string' || opts.content.length > MAX_CONTENT_BYTES) {
+    return {
+      score: 100,
+      violations: [],
+      summary: { ai_slop: 0, readability: 0, a11y: 0, layout: 0, polish: 0 },
+      tokens_consumed: 0,
+    };
+  }
+
   const violations: Violation[] = [];
   for (const rule of RULES) {
     try {

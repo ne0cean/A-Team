@@ -311,4 +311,20 @@ describe('design-smell-detector', () => {
       expect(typeof DESIGN_AUDITOR_BREAKER_CONFIG.cooldownMs).toBe('number');
     });
   });
+
+  describe('security guards', () => {
+    it('returns safe default on oversize content (> 2MB)', () => {
+      const huge = 'x'.repeat(3 * 1024 * 1024);
+      const r = detectDesignSmells({ file: 'a.tsx', content: huge });
+      expect(r.score).toBe(100);
+      expect(r.violations.length).toBe(0);
+      expect(r.tokens_consumed).toBe(0);
+    });
+
+    it('returns safe default on non-string content', () => {
+      const r = detectDesignSmells({ file: 'a.tsx', content: null as unknown as string });
+      expect(r.score).toBe(100);
+      expect(r.violations.length).toBe(0);
+    });
+  });
 });
