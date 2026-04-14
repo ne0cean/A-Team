@@ -29,6 +29,35 @@
 
 ---
 
+## [2026-04-15] 세션 연장 — jangpm 통합 Phase 3+4 실행
+
+**컨텍스트**: 앞선 /end 이후 사용자 "설계부터 완벽하게해" → 설계서 작성 → "착수해" → 실행.
+
+**완료** (06:05 KST, 376 tests, 빌드 PASS):
+- `/blueprint` skill 정식 배포 — jangpm-meta-skills 포팅 (`.claude/commands/blueprint.md`)
+  - skill-creator 의존성 제거 → "A-Team 표준 커맨드 규칙"으로 교체
+  - `governance/skills/blueprint/design-principles.md` + `document-template.md` + `example-blueprint.md` 3개 참조
+  - `scripts/validate-blueprint.py` 구조 validator (jangpm validator L108 패치)
+- `/office-hours → /blueprint → /autoplan → /ralph → /autoresearch` 흐름 정식화
+- IMP-20260415-01 등록 (P2) — reflect parallel-consolidate 패턴 /retro/end 적용 검토
+- `install-commands.sh` 실행 → `~/.claude/commands/{autoresearch,blueprint}.md` symlink 배포
+
+**판정 근거** (jangpm-meta-skills 4 스킬 분석):
+- autoresearch: ADOPT (Karpathy 프롬프트 최적화 — A-Team 동등물 없음)
+- blueprint: MERGE (validator + design-principles 가치)
+- reflect: LEARN (4 parallel → dedup 패턴만)
+- deep-dive: SKIP (office-hours/plan-eng/autoplan 중복)
+
+**이슈**: 없음
+
+**빌드**: ✅ 376/376 tests PASS
+
+**커밋 체인**: `c6885ed` (auto-commit hook, Phase 1+설계서) → `2297f39` (Phase 3+4)
+
+**Next**: `/autoresearch` 파일럿 (target 후보 `/office-hours`), `/blueprint` 실사용 1회
+
+---
+
 ## [2026-04-15] Design Subsystem 3-Phase — AI Smell 차단 인프라 (랄프 모드 자율)
 
 **컨텍스트**: 사용자 페인포인트 — A-Team으로 만든 앱들이 AI 냄새 심하고 디자인 퀄리티 낮음. 광범위 리서치 후 Phase 1→2→3 무정지 진행 지시 ("랄프 모드"). 오늘 새벽 3시 토큰 리셋 대비 자동 재개 인프라도 함께 구축 요청.
