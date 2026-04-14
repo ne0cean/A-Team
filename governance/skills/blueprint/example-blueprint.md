@@ -3,6 +3,8 @@
 This file contains an annotated reference blueprint for the n8n workflow automation agent system.
 It is a calibration sample — not intended for direct validation. Read the annotations below before studying the document.
 
+> **⚠️ A-Team 포팅 주의**: 이 예시는 원본(jangpm-meta-skills)에서 가져온 것으로 "스킬 생성 규칙" 섹션(§3)에서 `skill-creator` 스킬을 언급한다. A-Team 규격에서는 이를 **"A-Team 표준 커맨드 규칙"** 섹션으로 교체하고 `.claude/commands/<name>.md` 형식을 사용한다 (자세한 건 `design-principles.md` 참조). `skill-creator` 언급은 무시하고 구조만 참고할 것.
+
 ---
 
 ## What to notice in this example

@@ -3,14 +3,16 @@
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
 **Phase 14 Optimization Research + Wave 1-3 구현 완료** (305 tests, build PASS, 2026-04-14).
+**jangpm-meta-skills 통합 완료** (2026-04-15): `/autoresearch` + `/blueprint` + reflect IMP 등록.
 
 ## In Progress Files
-(없음 — Phase 14 전체 push 완료, `aadf13e` → `9b60d94`)
+(없음 — jangpm-meta-skills 통합 Phase 1+3+4 완료)
 
 ## Next Tasks
 - [ ] **🗓️ 2026-04-22 10:17 KST — `/design-retro` 자동 실행 예약됨** (CronCreate, 1주 실측 후 삭제/튜닝/추가 판정). 크론 소멸 대비 백업 — 이 날짜에 수동으로라도 `/design-retro` 호출.
-- [ ] **`/autoresearch` 파일럿 실행** (jangpm-meta-skills 포팅). target 커맨드 1개 골라 20 iteration 루프 → 품질 개선 실측
-- [ ] **jangpm-integration-design.md 승인/실행** (blueprint MERGE + reflect LEARN 결정)
+- [ ] **`/autoresearch` 파일럿 실행** (통합 완료). target 커맨드 1개(권장: `/office-hours`) 골라 baseline + 3~5 experiments → 품질 개선 실측. 첫 실행 시 `~/.claude/settings.json`에 permissions 추가 필요 (autoresearch.md "project setup" 섹션 참고)
+- [ ] **`/blueprint` 실사용 1회** — Wave 2 또는 다음 기능을 blueprint로 문서화 → `/autoplan`으로 검토
+- [ ] **IMP-20260415-01 처리** — reflect parallel-consolidate 패턴을 `/retro` 또는 `/end`에 적용 (P2, 여유 있을 때)
 - [ ] **PMI MEDIUM 미연결 항목 파일럿** (pmi-2026-04-15.md M1-M4): design-auditor 실제 bash 호출 검증, logDesignAudit/logDesignOutcome 호출 경로, PostToolUse 훅 실제 설정
 - [ ] **sleep.md 압축 검토** (현재 1141 words — 900 이하로, 가독성 유지 전제)
 - [ ] **Design Subsystem 실전 파일럿** (Linear/Stripe/Rauno 3톤 각 1개 샘플 UI 생성)
