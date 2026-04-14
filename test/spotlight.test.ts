@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   applyDelimiting,
+  applyDatamarking,
   getSessionMarker,
   getSpotlightMode,
   spotlight,
@@ -116,6 +117,39 @@ describe('RFC-007 Spotlighting Phase S', () => {
     it('returns empty string unchanged', () => {
       process.env.A_TEAM_SPOTLIGHT = 'delimiting';
       expect(spotlight('', { source: 'WebFetch', isUntrusted: true })).toBe('');
+    });
+  });
+
+  describe('Phase M — Datamarking mode', () => {
+    it('activates datamarking when A_TEAM_SPOTLIGHT=datamarking', () => {
+      process.env.A_TEAM_SPOTLIGHT = 'datamarking';
+      const result = spotlight('some long content here with multiple words for testing interval injection', {
+        source: 'WebFetch',
+        isUntrusted: true,
+      });
+      expect(result).toContain('DATAMARKED');
+      expect(result).toContain('END_DATAMARKED');
+    });
+
+    it('applyDatamarking inserts marker between words', () => {
+      process.env.ATEAM_SESSION_ID = 'test';
+      const input = 'this is a sample text of reasonable length to trigger datamark insertion between spaces';
+      const result = applyDatamarking(input, 'WebFetch');
+      expect(result).toContain('<<DATAMARKED');
+      expect(result).toContain('END_DATAMARKED');
+      // datamark pattern ^xx^
+      expect(result).toMatch(/\^[a-f0-9]{2}\^/);
+      delete process.env.ATEAM_SESSION_ID;
+    });
+
+    it('short content: still wraps with tags (no interval injection)', () => {
+      const result = applyDatamarking('short', 'RAG');
+      expect(result).toContain('DATAMARKED');
+      expect(result).toContain('short');
+    });
+
+    it('empty content returns unchanged', () => {
+      expect(applyDatamarking('', 'RAG')).toBe('');
     });
   });
 });

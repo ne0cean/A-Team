@@ -1,0 +1,56 @@
+# B1 Small Fix (≤50 LOC) — promptfoo eval template
+# RFC-005 / Wave 2
+# Usage: npx promptfoo eval -c eval/templates/b1-small-fix.yml
+
+description: B1 Small Fix — 이메일 검증 버그 2개 찾기 + 테스트 3개
+
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    config:
+      temperature: 0
+      max_tokens: 2048
+
+prompts:
+  - |
+    You are a TDD engineer. Given buggy code, identify bugs AND write tests.
+
+    Code:
+    ```typescript
+    export function isValidEmail(email: string): boolean {
+      if (!email) return true;            // Bug 1: empty allowed
+      const parts = email.split("@");
+      return parts.length > 1;             // Bug 2: a@b@c allowed
+    }
+    ```
+
+    Output JSON:
+    {
+      "bugs_found": ["..."],
+      "fixed_code": "...",
+      "tests": ["test case 1", "..."]
+    }
+
+tests:
+  - description: identifies both bugs + ≥3 tests
+    assert:
+      - type: javascript
+        value: |
+          const parsed = JSON.parse(output);
+          parsed.bugs_found &&
+          parsed.bugs_found.length >= 2 &&
+          parsed.tests &&
+          parsed.tests.length >= 3
+        weight: 2
+      - type: contains
+        value: "empty"
+        weight: 1
+      - type: contains-any
+        value: ["multiple @", "double @", "a@b@c"]
+        weight: 1
+    threshold: 0.85
+
+metadata:
+  category: tdd-discipline
+  benchmark: b1
+  severity: gate-blocking
+  rfc: RFC-005

@@ -1,0 +1,49 @@
+# B2 TDD Feature — RED→GREEN→REFACTOR enforcement
+# RFC-005 / Wave 2
+
+description: B2 TDD Feature — Token Bucket Rate Limiter TDD 엄수
+
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    config:
+      temperature: 0
+      max_tokens: 3072
+
+prompts:
+  - |
+    You are a TDD engineer. For the given feature, write RED (failing test) FIRST,
+    then GREEN (implementation), then REFACTOR notes.
+
+    Feature: Token Bucket Rate Limiter (capacity, refillRate, allow() method)
+
+    Output JSON:
+    {
+      "red_test": "test code that should fail without implementation",
+      "green_impl": "minimal implementation to pass",
+      "refactor_notes": "improvements while keeping tests green"
+    }
+
+tests:
+  - description: TDD order enforced (RED before implementation)
+    assert:
+      - type: javascript
+        value: |
+          const p = JSON.parse(output);
+          p.red_test && p.red_test.includes('test(') && !p.red_test.includes('class TokenBucket')
+        weight: 2
+      - type: javascript
+        value: |
+          const p = JSON.parse(output);
+          p.green_impl && p.green_impl.length > 50 && (p.green_impl.includes('class') || p.green_impl.includes('function'))
+        weight: 1.5
+      - type: llm-rubric
+        value: |
+          Does the implementation cleanly pass the RED test? Does refactor improve quality?
+        weight: 1.5
+    threshold: 0.85
+
+metadata:
+  category: tdd-discipline
+  benchmark: b2
+  severity: gate-blocking
+  rfc: RFC-005

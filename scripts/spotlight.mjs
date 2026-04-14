@@ -43,6 +43,33 @@ export function getSpotlightMode() {
 }
 
 /**
+ * RFC-007 Phase M — Datamarking: inject special token at whitespace boundaries.
+ * Harder for injected instructions to reconstruct coherent imperatives.
+ * @param {string} content
+ * @param {string} source
+ * @returns {string}
+ */
+export function applyDatamarking(content, source = 'unknown') {
+  if (typeof content !== 'string' || content.length === 0) return content;
+  const marker = getSessionMarker();
+  const datamark = `^${marker.slice(0, 2)}^`;
+  // 공백 토큰 사이에 datamark 삽입 (interval ~50 chars)
+  const INTERVAL = 50;
+  let result = '';
+  let since = 0;
+  for (let i = 0; i < content.length; i++) {
+    result += content[i];
+    if (/\s/.test(content[i]) && since >= INTERVAL) {
+      result += datamark + ' ';
+      since = 0;
+    }
+    since++;
+  }
+  // Prefix/suffix tag (source tracking)
+  return `<<DATAMARKED src="${source}">>\n${result}\n<<END_DATAMARKED>>`;
+}
+
+/**
  * Main entry — wrap untrusted content based on current mode.
  * Untrusted tools (default): WebFetch, WebSearch, Read(http*), RAG
  *
@@ -62,10 +89,13 @@ export function spotlight(content, options = {}) {
   if (mode === 'delimiting') {
     return applyDelimiting(content, source);
   }
+  if (mode === 'datamarking') {
+    return applyDatamarking(content, source);
+  }
 
-  // Phase M/L 미구현 — fallback to delimiting
-  console.warn(`[spotlight] ${mode} mode not yet implemented, falling back to delimiting`);
-  return applyDelimiting(content, source);
+  // Phase L (encoding) 미구현 — fallback to datamarking
+  console.warn(`[spotlight] ${mode} mode not yet implemented, falling back to datamarking`);
+  return applyDatamarking(content, source);
 }
 
 /**
