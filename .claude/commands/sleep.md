@@ -65,16 +65,38 @@ next_wakeup_scheduled: (Step 3 tool call 결과로 채워짐)
 (비어있음)
 ```
 
-**Task 선정 기준** (질문 없이 완료 가능):
-- `--check` 명령 있음 (`npm test` 통과로 판정) → Ralph Option A 우선
-- Read-only 조사/리팩토링 (결정 필요 없음)
-- 기존 PLAN.md가 있는 구현 태스크
-- 문서화/README 업데이트
+**Task 분류 (meta-dispatcher)**:
+
+| 태스크 유형 | 기준 | 실행 경로 |
+|---|---|---|
+| **코드 (검증 가능)** | `--check` 명령 있음 (`npm test`, `tsc --noEmit`, grep count 등) | `/ralph start "<task>" --check "<cmd>" --max N --budget $N` (Option A, OS 데몬 = 세션 독립) |
+| **리서치 (탐색)** | "조사", "분석", "비교", "트렌드" 키워드 + 웹/코드베이스 탐색 | `/re pipeline "<topic>"` (research-daemon.mjs, 자율 리서치 → 완료 시 Ralph 자동 연결 가능) |
+| **리팩토링 (read-only 가이드 있음)** | 기존 PLAN/RFC 존재, 기계 검증 가능 | Ralph Option A |
+| **문서화** | README/CURRENT.md/changelog 업데이트 | Ralph Option A (검증: `wc -l < N` 또는 grep presence) |
+| **설계 결정 필요** | 옵션 비교, 아키텍처 결론 | **제외** — Next Tasks에 defer |
+
+**동시 실행 가능**:
+- 리서치 + Ralph 병행 (research-daemon 결과가 Ralph 프롬프트로 자동 연결)
+- 여러 Ralph 인스턴스 (충돌 없는 파일 소유권이면)
 
 **제외**:
-- 설계 결정 필요 태스크
+- 설계 결정 필요 태스크 (MoA, architect)
 - 외부 API 키/승인 필요
-- 파괴적 작업 (prod 배포, force push)
+- 파괴적 작업 (prod 배포, force push, DB 마이그레이션)
+- 디자인/UI 주관 판단 필요 (designer 서브에이전트 호출 불가 — tone 결정이 질문 없이 어려움)
+
+---
+
+## Step 3.5 — 데몬 상태 모니터링
+
+sleep 모드 진입 후 `/sleep`은 **직접 코드를 돌리지 않고** 데몬에 위임. Claude 세션은:
+1. 주기적으로 (ScheduleWakeup 30분 간격) `/ralph status` + `/re status` 확인
+2. 데몬이 BLOCKED / 에러 시 RESUME.md 기록 + recovery 시도
+3. 데몬이 완료 시 다음 Task 디스패치
+
+**세션 기반 wake-up** (ScheduleWakeup) vs **OS 데몬** (Ralph/Research) 역할 분리:
+- OS 데몬: 실제 작업 수행 (세션 독립)
+- Session wake-up: 디스패처 역할만 (토큰 최소 소비)
 
 ---
 
@@ -187,4 +209,21 @@ launchctl load ~/Library/LaunchAgents/com.ateam.sleep-resume.plist
 - 사용자 재차 "묻지 마" 경고 필요
 - 근본 원인: **"자러간다 + 랄프"를 하나의 의도로 묶어 처리하는 단일 entry point 부재**
 
-이 스킬로 3개 요소 (RESUME.md + CronCreate + 나레이션 금지) 단일 진입으로 통합.
+이 스킬로 요소 통합 단일 진입:
+- RESUME.md 세션 상태
+- CronCreate 리셋 이어받기
+- 나레이션 금지 계약
+- **Ralph (코드) + Research (리서치) + 재귀 wake-up 디스패칭**
+
+## 관계도
+
+```
+/sleep (meta-dispatcher)
+├── 코드 태스크 감지 → /ralph start (OS 데몬)
+├── 리서치 태스크 감지 → /re pipeline (research-daemon)
+├── 둘 다 → 병렬 or 파이프라인 (research → ralph)
+├── RESUME.md + CronCreate + 재귀 wake-up (세션 기반)
+└── 나레이션 0 계약 (autonomous-loop.md 조항 6)
+```
+
+`/ralph` 와 `/re` 는 개별 호출도 가능하지만, **수면 의도가 함께 있을 때**는 `/sleep`이 상위 진입.
