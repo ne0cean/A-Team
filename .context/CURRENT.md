@@ -9,6 +9,8 @@
 
 ## Next Tasks
 - [ ] **🗓️ 2026-04-22 10:17 KST — `/design-retro` 자동 실행 예약됨** (CronCreate, 1주 실측 후 삭제/튜닝/추가 판정). 크론 소멸 대비 백업 — 이 날짜에 수동으로라도 `/design-retro` 호출.
+- [ ] **PMI MEDIUM 미연결 항목 파일럿** (pmi-2026-04-15.md M1-M4): design-auditor 실제 bash 호출 검증, logDesignAudit/logDesignOutcome 호출 경로, PostToolUse 훅 실제 설정
+- [ ] **sleep.md 압축 검토** (현재 1141 words — 900 이하로, 가독성 유지 전제)
 - [ ] **Design Subsystem 실전 파일럿** (Linear/Stripe/Rauno 3톤 각 1개 샘플 UI 생성)
 - [ ] **design-smell-detector 룰 확장** (현재 15 / 계획 24 — RD-01/03/05, A11Y-05, LS-02/03 추가)
 - [ ] **design-auditor LLM critique 실전 테스트** (AI-07 / PL-01 / PL-02)

@@ -19,16 +19,26 @@ git diff HEAD~1
 
 다음 파일을 순서대로 읽는다:
 
-1. `.context/CURRENT.md` — 현재 상태 / In Progress / Next Tasks / Blockers
-2. `memory/MEMORY.md` — 프로젝트 패턴 및 규칙
-3. `CLAUDE.md` — 거버넌스 규칙 (있으면)
+1. **`.context/RESUME.md`** — 최우선. 존재 + `status != completed` 이면 sleep-mode 재개 포인트
+2. `.context/CURRENT.md` — 현재 상태 / In Progress / Next Tasks / Blockers
+3. `memory/MEMORY.md` — 프로젝트 패턴 및 규칙
+4. `CLAUDE.md` — 거버넌스 규칙 (있으면)
+
+## Step 2.5 — Sleep-Mode 감지 (자동)
+
+`.context/RESUME.md` frontmatter 에 `mode: sleep` + `status != completed` 확인 시:
+- `governance/rules/autonomous-loop.md` **의무 Read** (6개 강제 조항, 특히 **조항 6 나레이션 금지**)
+- RESUME.md `Completed` 섹션 파싱 → 중복 실행 방지
+- `next_wakeup_scheduled` 있으면 OS-level launchd 살아있는지 확인 (`launchctl list | grep com.ateam.sleep-resume`)
+- `In Progress` 부터 재개, 사용자 대상 텍스트 최소화
 
 ## Step 3 — 재개
 
-- `In Progress Files`에 파일이 있으면: 해당 파일을 읽고 중단된 작업 파악
+- `In Progress Files` (CURRENT.md) 또는 `In Progress` (RESUME.md) 에 파일이 있으면: 해당 파일을 읽고 중단된 작업 파악
 - `Next Tasks` 최우선 항목을 즉시 시작
 - 브리핑 없이 바로 실행
-- 첫 번째 액션 전에 "어디서 이어받는지" 한 줄로만 보고
+- sleep-mode이면 첫 액션 전에 "어디서 이어받는지" 보고 **금지** (조항 6)
+- 일반 pickup이면 한 줄로만 보고
 
 ## Step 4 — CURRENT.md 갱신
 

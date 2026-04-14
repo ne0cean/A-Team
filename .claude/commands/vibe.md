@@ -26,9 +26,15 @@ description: 세션 시작 — 컨텍스트 로드 + Opus/Gemini 분류 + 즉시
 ## Step 0.6 — Resume 감지 (토큰 소진 후 자동 이어받기)
 `.context/RESUME.md` 존재 여부 확인:
 - `created_at` 이 24시간 이내이면: `🔄 이전 중단 세션 감지 ({created_at}). '/pickup' 실행 또는 아래 Next Tasks 확인 후 계속하세요.`
-- `created_at` 24시간 초과이면: 파일 삭제 제안 (stale)
+- `status: completed` 이면: stale 가능, 3일 경과 시 삭제 제안
+- `mode: sleep` + `status != completed` 이면: sleep mode 진행 중 → `/pickup` 강력 권장, `launchctl list | grep com.ateam.sleep-resume` 로 OS 크론 생존 확인
 - 부재 시: 기본 vibe 흐름 진행
-- `/resume-on-reset` 으로 예약된 CronCreate 트리거가 있으면 해당 로그 표시
+- `~/Library/Logs/ateam-sleep-resume.log` 최근 24h 엔트리 있으면 요약 표시
+
+## Step 0.65 — 예약된 회고 감지
+`CURRENT.md` Next Tasks 에 🗓️ 이모지 포함 + 날짜 매치 시:
+- 오늘이 예약일이면: `📅 {task} 예약일 — 자동 실행 제안`
+- 해당 라인에 명시된 스킬 (예: `/design-retro`) 제안
 
 ## Step 0.8 — Pending Improvements 감지 (자동, A-Team 프로젝트만)
 현재 프로젝트가 A-Team이면 `improvements/pending.md`에서 ⏳ pending 항목 수를 카운트:
