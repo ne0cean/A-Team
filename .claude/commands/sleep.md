@@ -113,35 +113,27 @@ CronCreate(
 
 tool 출력에서 job ID + 시간 추출 → RESUME.md `next_wakeup_scheduled` 필드 채움.
 
-**백업**: CronCreate durable=true가 세션 종료 시 휘발 가능. 다음도 병행:
+**백업 (OS-level launchd — 2026-04-15 설치 완료)**:
 1. RESUME.md 디스크 저장 (항상)
 2. git commit + push (crash 시 복구점)
-3. launchd plist 생성 (Darwin) — OS 레벨 fallback:
-```bash
-cat > ~/Library/LaunchAgents/com.ateam.sleep-resume.plist <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key><string>com.ateam.sleep-resume</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>/bin/bash</string>
-    <string>-c</string>
-    <string>cd PROJECT_ROOT && osascript -e 'display notification "Sleep-mode resume" with title "A-Team"'</string>
-  </array>
-  <key>StartCalendarInterval</key>
-  <dict>
-    <key>Hour</key><integer>HH</integer>
-    <key>Minute</key><integer>MM</integer>
-  </dict>
-  <key>RunAtLoad</key><false/>
-</dict>
-</plist>
-PLIST
-launchctl load ~/Library/LaunchAgents/com.ateam.sleep-resume.plist
-```
-이건 notification만 띄움 — Claude를 직접 깨울 수 없음. 사용자가 아침에 볼 때 `/sleep-resume` 수동 호출 유도.
+3. **launchd plist** (Darwin) — 세션·노트북 절전 **완전 독립**:
+   ```bash
+   bash scripts/install-sleep-cron.sh install 03:02
+   # → ~/Library/LaunchAgents/com.ateam.sleep-resume.plist 설치
+   # → 매일 03:02 KST 자동 실행 (RESUME.md status!=completed 일 때만)
+   # → claude -p 헤드리스 모드로 자동 재개 (keychain OAuth 사용, API 키 불필요)
+   ```
+4. 실행 스크립트 `scripts/sleep-resume.sh`:
+   - 프로젝트/RESUME.md 존재 확인 + 상태 체크 (completed면 스킵)
+   - 동일 날짜 중복 실행 차단 (`~/.ateam-sleep-locks/YYYY-MM-DD` 락)
+   - `claude -p --print --dangerously-skip-permissions --model sonnet --max-budget-usd 5.00` 헤드리스 호출
+   - 로그 `~/Library/Logs/ateam-sleep-resume.log`
+5. 관리 명령:
+   - 상태: `bash scripts/install-sleep-cron.sh status`
+   - 제거: `bash scripts/install-sleep-cron.sh uninstall`
+   - 시간 변경: `bash scripts/install-sleep-cron.sh install HH:MM` (재설치)
+6. 수동 테스트: `launchctl start com.ateam.sleep-resume` 후 로그 tail
+7. CronCreate는 **세션 기반 보조** 로 유지 — 세션 살아있으면 5분 더 빠른 반응, 죽으면 launchd가 받음
 
 ---
 
