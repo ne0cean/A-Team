@@ -74,6 +74,15 @@ node ~/Projects/a-team/A-Team/scripts/browser/flow.js \
 - **MEDIUM**: 미관 (간격 불균일, 폰트 불일치)
 - **LOW**: 개선 권장 (접근성, 색상 대비)
 
+## Design-Auditor 연동 (자동)
+
+UI 작업 후 `governance/design/anti-patterns.md` 의 24 rule도 함께 점검:
+- 정적 감지(22 rule): `lib/design-smell-detector.ts` 로 AST/정규식 — 토큰 0
+- LLM critique(2 rule, PL-01 tone mismatch / PL-02 missing personality): 이 에이전트가 스크린샷과 함께 평가
+
+결과는 기존 findings 배열에 `category: 'design-smell'` 로 머지. 점수/위반 건수는 `lib/analytics.ts` 의 `event: 'design_audit'` 으로 기록.
+tone은 `.design-override.md` 에서 로드 (미존재 시 `designer` 서브에이전트 호출 권장).
+
 ## 토큰 절약 원칙
 
 - 전체 페이지 스크린샷: 375×812 = ~406 tok (이것으로 충분)

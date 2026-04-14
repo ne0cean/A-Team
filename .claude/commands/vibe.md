@@ -23,6 +23,13 @@ description: 세션 시작 — 컨텍스트 로드 + Opus/Gemini 분류 + 즉시
    - 감지되면: "메이저 통합 감지. `/optimize` 자동 실행합니다." → PIOP Phase 1-5 수행.
    - 격주 최적화와 PIOP는 독립적으로 실행함 (동시 실행 가능).
 
+## Step 0.6 — Resume 감지 (토큰 소진 후 자동 이어받기)
+`.context/RESUME.md` 존재 여부 확인:
+- `created_at` 이 24시간 이내이면: `🔄 이전 중단 세션 감지 ({created_at}). '/pickup' 실행 또는 아래 Next Tasks 확인 후 계속하세요.`
+- `created_at` 24시간 초과이면: 파일 삭제 제안 (stale)
+- 부재 시: 기본 vibe 흐름 진행
+- `/resume-on-reset` 으로 예약된 CronCreate 트리거가 있으면 해당 로그 표시
+
 ## Step 0.8 — Pending Improvements 감지 (자동, A-Team 프로젝트만)
 현재 프로젝트가 A-Team이면 `improvements/pending.md`에서 ⏳ pending 항목 수를 카운트:
 - 1건 이상: `📬 미반영 개선사항 {N}건 대기 중 (P0: X / P1: Y / P2: Z). '/improve apply'로 반영.`

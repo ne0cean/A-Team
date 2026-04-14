@@ -105,6 +105,24 @@ Task(
   T4: reviewer → 코드 리뷰 [blocked-by: T2] (T3과 병렬)
 참고: coder가 UI 파일 수정 시 PostToolUse 훅이 자동으로 Before/After diff를 생성하여 coder 컨텍스트에 주입함 (`governance/rules/visual-verification.md` 참조)
 
+### Phase 2.2: Design Gate (UI 작업 감지 시 자동)
+
+`governance/design/gate.md` 의 UI 감지 Heuristic 평가:
+- 요청 키워드(UI/화면/컴포넌트/레이아웃/페이지 등) + 변경 파일 `*.tsx/*.vue/*.css` + `tailwind.config` 존재 중 **2개 이상** 충족
+- 또는 CLAUDE.md `design: on` / `.design-override.md` 존재
+
+**UI 작업 판정 시 자동 체인**:
+1. **Gate 평가** — `design: off` 또는 `exemptions` 경로면 design 체인 전체 스킵 (a11y만 유지)
+2. **tone 결정** — `.design-override.md` 에 tone 저장돼 있으면 로드, 없으면 `designer` 서브에이전트(Haiku) 호출해 tone+variant 결정 → `.design-override.md` 생성
+3. **coder 태스크에 주입** — tone + variant + `governance/design/components.md` on-demand 로드하여 coder 프롬프트에 prepend
+4. **생성 후 자동 검증** — coder 완료 후 `design-auditor` 서브에이전트(Haiku)가 `lib/design-smell-detector.ts` 로 **정적 감지 먼저(토큰 0)**, 회색지대만 LLM critique. 점수 < 70 또는 A11Y 위반 시 coder 재호출.
+
+**비 UI 작업**: gate 판정 시 전체 스킵 — 오버헤드 0. 기존 워크플로우 영향 없음.
+
+**Circuit Breaker**: design-auditor / designer 모두 `ADVISOR_TOOL_BREAKER_CONFIG` 공유. 실패 3회 연속 시 자동 차단.
+
+**Analytics**: 세션별 `event: 'design_audit'` 기록 (score, violations). `/prjt` 에서 프로젝트별 추이 노출.
+
 각 태스크는 단일 에이전트가 독립 완료 가능. 파일 충돌 없게 소유권 배정.
 
 ## Phase 3: PARALLEL_PLAN.md 작성
