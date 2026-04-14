@@ -99,11 +99,18 @@ while true; do
 
         log "exec req=$REQ_ID"
 
+        # 명령 실행 — stdout/stderr을 tempfile로 보내 $() 블로킹 방지
+        # 기존: RESULT=$(timeout 60 bash -c "$CMD" 2>&1)
+        # 문제: CMD에 background exec(&)이 있으면 자식이 부모 stdout 상속 → $()가 영원히 대기
+        # 해결: 파일로 리다이렉트, stdin </dev/null로 자식이 stdin block 안 되게
+        OUT_FILE="/sdcard/Download/termux_ctrl.out.$$"
         START_TS=$(date +%s)
-        RESULT=$(timeout 60 bash -c "$CMD" 2>&1)
+        timeout 60 bash -c "$CMD" > "$OUT_FILE" 2>&1 < /dev/null
         RC=$?
         END_TS=$(date +%s)
         DUR=$((END_TS - START_TS))
+        RESULT=$(cat "$OUT_FILE" 2>/dev/null)
+        rm -f "$OUT_FILE"
 
         {
             echo "$REQ_ID"
