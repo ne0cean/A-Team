@@ -8,6 +8,7 @@
 (없음 — Phase 14 전체 push 완료, `aadf13e` → `9b60d94`)
 
 ## Next Tasks
+- [ ] **🗓️ 2026-04-22 10:17 KST — `/design-retro` 자동 실행 예약됨** (CronCreate, 1주 실측 후 삭제/튜닝/추가 판정). 크론 소멸 대비 백업 — 이 날짜에 수동으로라도 `/design-retro` 호출.
 - [ ] **Design Subsystem 실전 파일럿** (Linear/Stripe/Rauno 3톤 각 1개 샘플 UI 생성)
 - [ ] **design-smell-detector 룰 확장** (현재 15 / 계획 24 — RD-01/03/05, A11Y-05, LS-02/03 추가)
 - [ ] **design-auditor LLM critique 실전 테스트** (AI-07 / PL-01 / PL-02)
