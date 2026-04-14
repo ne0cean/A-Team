@@ -7,11 +7,16 @@
 
 ---
 
+## ⚠️ Earned Integration Disclaimer
+
+이 문서의 모든 수치는 **RFC 설계 단계 추정**. 실제 수용은 Stage 5.5 prototype + Stage 5.6 A/B 측정 후 **G5 (+ RFC-007의 G6) gate 통과 시에만** 확정. `final/ADVERSARIAL_REVIEW.md` 19 findings 반영 완료.
+
 ## TL;DR
 
 - **무엇을**: 14개 범주(C1–C7 + A1–A7)에서 최신 멀티에이전트 프레임워크·컨텍스트 엔지니어링·Eval·MCP·보안 기술 ~100개 후보를 surveyed.
 - **얼마나 통과**: Selection Criteria 8개 AND 조건 통과 7개 → **RFC 7건 작성 완료**, 9개 거부, 3개 재심사 보류.
-- **예상 효과**: **M1 토큰 -40~50%**, **M4 Correctness +2~5pp**, 월 API 비용 **$22.5k → $15k (약 33% 절감)**, Prompt Injection ASR **>50% → <2%**.
+- **추정 효과 (실측 전)**: **M1 토큰 -30~50% 범위**, **M4 Correctness +2~5pp**, 월 API 비용 **$22.5k → ~$15k (약 33% 절감 projection)**, Prompt Injection ASR **>50% → <2%** (Microsoft 2025 논문 기반, 자체 측정 미완).
+- **⚠️ 단순 합산 금지**: 개별 RFC의 M1 절감치는 overlap 있음. 실측 전까지 "추정" 명시.
 
 ---
 

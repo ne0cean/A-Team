@@ -124,17 +124,30 @@ Role-based (hook enforced):
 - Worktree는 main 미접촉, rollback = `git worktree remove`
 - 데이터 마이그레이션/스키마 변경 없음 (session log append-only)
 
-## 7. Success Criteria (G5)
+## 7. Success Criteria — G5 + G6 Security Gate (신설)
 
+### G5 (표준 Performance Gate)
 | Metric | Target | 측정 |
 |--------|-------|------|
-| Security mitigation | **+90% ASR 감소** on injection dataset | `spotlight-asr.test.js` CI |
-| M1 latency overhead | **<1% p50** on research sessions | before/after 벤치 n=20 |
+| M1 latency overhead | **≤1% p50** on research sessions | before/after 벤치 n=20 |
 | M4 (task completion) | unchanged vs pre-RFC | A/B 10 tasks |
-| Lethal Trifecta 노출 | **zero unattended** (untrusted × private × outbound) | hook log 수동 감사, human gate 필수 |
 | Developer friction | ≤2 extra prompts/session | session log 샘플링 |
 
-**G5 pass 조건**: 5개 전부 + Longform/Connectome nightly 7일 연속 P0/P1 회귀 없음.
+### G6 Security Gate (이 RFC 전용 신설)
+
+Security는 M1–M5에 포함되지 않으므로 별도 게이트 필요 (ADVERSARIAL_REVIEW F2 반영):
+
+| Gate | Target | 측정 |
+|------|-------|------|
+| **G6-a** ASR 감소 | **<2%** on Lakera prompt-injection-dataset 50 payloads | `spotlight-asr.test.js` CI |
+| **G6-b** Lethal Trifecta | **0 unattended paths** (untrusted × private × outbound) | hook log 수동 감사 + human gate |
+| **G6-c** Token overhead | datamarking 실측 ≤ 1% (낙관 추정 확인 필요, F17) | tiktoken or countTokens() |
+| **G6-d** M4 유지 | security 레이어 추가 후 correctness 퇴행 0 | promptfoo 벤치 |
+| **G6-e** Encoding mode cost | base64 인코딩 실측 overhead ≤ 5% (F18) | 고위험 태스크 10회 |
+
+**Pass 조건**: G5 + G6 모두 통과 + Longform/Connectome nightly 7일 연속 P0/P1 회귀 없음.
+
+**Note (ADVERSARIAL_REVIEW F17 경고)**: "datamarking <1% token" 주장은 실측 전 추정. Stage 5.5 첫 A/B에서 tiktoken으로 **필수 실측**. +5~10% 발생 시 G6-c 재평가.
 
 ## 8. Open Questions
 

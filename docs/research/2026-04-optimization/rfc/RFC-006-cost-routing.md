@@ -2,6 +2,39 @@
 
 **Status**: Proposed | **Protected**: P2 강화, P3 확장, P4 확장 | **Untouched**: P1/P5/P6/P7/P8
 
+## ⚠️ Adversarial Review 반영
+
+**F5 (MED, RFC-003과 충돌)**: Haiku 60% 분포 목표 + **Haiku는 tool_search(RFC-003) 미지원**.
+
+**정합 policy**:
+1. Haiku tier-2: ToolSearch 우회, non-deferred catalog 사용
+2. Sonnet/Opus tier: ToolSearch 적용, ToolSearch 효과 취함
+3. Stage 5.6에서 Haiku 경로와 Sonnet+ 경로 독립 측정
+4. Cascade 분포 실측 후 Haiku 비율 조정 가능
+
+**F9 (LOW, M4 가드레일)**: "red-team test set"이 본문에 명시되지만 구체 dataset 없음.
+
+**해결**: `tests/red-team/cascade-correctness/` 신설, 최소 30 케이스:
+- multi-hop reasoning (>3 추론 단계)
+- ambiguous spec (여러 해석 가능)
+- counter-intuitive logic (Haiku가 속기 쉬운 패턴)
+- edge cases from B1-B6 실제 실패 기록
+
+G5-c (M4 ≥ baseline) 판정은 이 dataset으로만 검증.
+
+**F16 (LOW, tiktoken Node.js)**: A-Team TS 스택에 Python tiktoken 불가.
+
+**의존성 옵션 2개**:
+- (a) `@anthropic-ai/tokenizer` (Anthropic 공식, 권장)
+- (b) `tiktoken-node` fallback (OpenAI 호환 추정, ±5% 오차)
+
+Phase 2 착수 시 (a) 우선, 없으면 (b).
+
+**Earned Integration**: M1 -32~43% 는 실측 전 추정. arXiv 2511.17006의 33% 재현 검증 필수.
+
+---
+
+
 ## 1. Problem Statement
 9개 subagent 전부 `model: sonnet` (Sonnet 4.6). 그러나 상당수 호출이 **저복잡 작업** (researcher URL 수집, planner TodoWrite 분기, reviewer diff 포맷팅) — Haiku 4.5로 충분.
 

@@ -31,7 +31,8 @@ P1/P2/P3/P5/P6/P7 무변경. Sovereignty 8조건 전부 충족.
 
 ```yaml
 ## Classical Tools Routing (A6, opt-in)
-ENV: A_TEAM_CLASSICAL_TOOLS (default=1)
+ENV: A_TEAM_CLASSICAL_TOOLS (default=**0**, opt-in 준수)
+— Criterion 8 강제: 기본 비활성, 명시적 활성화 요구.
 
 Grep 호출 시: which rg && flag==1 → Bash("rg --json <pattern> <path>"), else native Grep
 Glob 호출 시: which fd && flag==1 → Bash("fd <pattern> <path>"), else native Glob
@@ -101,11 +102,19 @@ RED → 구현 → GREEN → REFACTOR 순서 (CLAUDE.md TDD 규칙).
 2. Week 2 Stage 5.6 A/B (baseline vs Phase 1) — G5 판정
 3. Pass → Phase 2. Fail → `REJECTED.md`
 
+**Default 상태**: `A_TEAM_CLASSICAL_TOOLS` 미설정 또는 `=0` → 전체 네이티브. 사용자가 명시적으로 `=1` 설정 시에만 활성화.
+
 **Rollback** (<5초):
 ```bash
+unset A_TEAM_CLASSICAL_TOOLS   # 또는
 export A_TEAM_CLASSICAL_TOOLS=0
 ```
 모든 Grep/Glob → native, `/review` 비활성, ledger silent. 바이너리 제거 불필요. P6 "Opt-in 가능" 조건 핵심.
+
+**활성화** (Wave 1 적용 후):
+```bash
+export A_TEAM_CLASSICAL_TOOLS=1   # 명시적 opt-in
+```
 
 ## 7. Success Criteria — G5
 

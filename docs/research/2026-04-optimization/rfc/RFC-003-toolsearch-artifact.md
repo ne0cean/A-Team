@@ -2,6 +2,30 @@
 
 **Status**: Draft (Stage 5) | **P1/P4/P8 강화** | **Effort**: 4–5일 / ~1,270 LOC TDD
 
+## ⚠️ Adversarial Review 반영
+
+**F5 (MED, Cross-RFC 충돌)**: RFC-006 Cascade Routing 목표 분포 Haiku 60% + **Haiku는 tool_search 미지원** → Cascade 활성 + ToolSearch 활성 시 Haiku tier-2는 ToolSearch 효과 0.
+
+**해결 policy (RFC-006과 정합)**:
+1. **Haiku tier-2 subagent**: non-deferred catalog full load (ToolSearch 우회). 기존 14–16k 토큰 유지.
+2. **Sonnet/Opus tier**: ToolSearch 적용, 968 tok 이득 취함.
+3. **측정 분리**: Stage 5.6 A/B 시 Haiku 경로와 Sonnet+ 경로 **독립 측정**. ToolSearch 효과는 Sonnet+ 전용.
+4. **대안**: Haiku tier-2 Sonnet 업그레이드 (비용 +30%, ToolSearch 효과 +85%). 사용자 판단 필요.
+
+**F7 (MED)**: "합산 -27% (ToolSearch -15% + Artifact Cache -12%)" 는 **단순 합산**. 두 후보가 동일 토큰 경로 일부 중복.
+
+**해결**: Stage 5.6 측정 프로토콜:
+- Run 1: baseline
+- Run 2: baseline + ToolSearch only
+- Run 3: baseline + Artifact Cache only
+- Run 4: baseline + 둘 다
+- 실제 합산 효과 = Run 4 - Run 1 (Run 2 + Run 3 단순 합이 아님)
+
+**Earned Integration**: 위 수치는 실측 전 추정. Stage 5.6 G5 gate 후 확정.
+
+---
+
+
 ## 1. Problem Statement
 MCP tool registry **14–16k tok** 매 턴 지출. Playwright MCP full-page stream **114k tok** (B4 UI), 동일 URL/selector/viewport 반복 60%+ redundancy. 단일 원인: **"모든 tool payload 매 turn 재주입"**.
 

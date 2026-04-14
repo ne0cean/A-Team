@@ -38,12 +38,17 @@
 ## REJECT 후보 9개 (REJECTED.md 참조)
 Agno, Letta, Mem0, Braintrust, LangSmith, Phoenix, Helicone, Datadog, Self-Consistency, ToT, AutoGen 0.4, Swarm, Pydantic-AI, (edge: CrewAI/DSPy/BMAD 재심사 대기)
 
-## 예상 집합 효과
-- M1 토큰: -40~50% (Wave 3 완료 시)
-- M4 correctness: +3~5pp
-- 월 API 비용: $22,500 → ~$15,000 (33% 절감)
-- Security ASR: >50% → <2%
-- Observability: 호출 그래프 가시화
+## 예상 집합 효과 (⚠️ 실측 전 추정 — Earned Integration 원칙)
+
+**중요**: 아래 수치는 **RFC 설계 단계 추정**. 실제 수용은 Stage 5.5 prototype + Stage 5.6 A/B 측정 후 G5/G6 gate 통과 시에만 확정. `ADVERSARIAL_REVIEW.md` F3 준수.
+
+- M1 토큰: **-30~50% 범위 추정** (overlap 미검증, 단순 합산 금지)
+- M4 correctness: **+2~5pp 추정**
+- 월 API 비용: $22,500 → ~$15,000 (33% 절감 projection)
+- Security ASR: >50% → <2% (Microsoft 2025 논문 기반, 자체 측정 미완)
+- Observability: 호출 그래프 가시화 (Langfuse self-hosted)
+
+**Gate 판정 전까지 수치는 "estimate"로 보고**. 승인은 실측만.
 
 ## 남은 사용자 액션 (Stage 11+, 사용자 세션)
 1. RFC Wave 1 승인 여부

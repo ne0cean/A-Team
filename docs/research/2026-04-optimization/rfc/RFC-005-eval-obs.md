@@ -3,6 +3,31 @@
 **Status**: Draft | **Target**: Stage 5.5 Prototype → 5.6 A/B → 5.7 G5 Gate
 **Scope**: promptfoo (correctness eval) + Langfuse (OTEL observability), self-hosted
 
+## ⚠️ Adversarial Review 반영
+
+**F14 (MED, License watch)**: promptfoo OpenAI 인수 (2026) — MIT 유지 표명에도 라이선스 변경 리스크.
+
+**대응**:
+- 버전 고정: `promptfoo@^0.x` (major 업그레이드 수동 승인)
+- CHANGELOG 6개월마다 리뷰
+- Fork fallback: OpenAI가 라이선스 변경 시 마지막 MIT commit fork
+- YAML spec은 오픈 포맷이므로 fork 비용 낮음
+
+**F15 (LOW, Spotlighted content trace policy)**: RFC-007 Spotlighting 적용된 untrusted input이 Langfuse trace에 들어갈 때 처리 정책.
+
+**정합 policy (RFC-007과 교차)**:
+- Datamarking 된 content: **pattern 유지하며 trace** (복원 불필요, 디버깅용)
+- Encoding (base64) 된 content: **원본 저장 금지**, base64 그대로만 trace
+- Delimiting: prefix/suffix 마커 포함 그대로 trace
+- PII 마스킹은 spotlight 이전 원본에 대해 수행 (order: PII mask → spotlight → trace)
+
+`observability/hooks/masking.js` 에 이 순서 명시 + spotlighted 표시 attribute 추가.
+
+**Earned Integration**: M4 +2~5pp는 실측 전 추정.
+
+---
+
+
 ## 1. Problem Statement
 
 **공백 A — Correctness Gate 부재**: TDD(P7 153 tests)는 함수 레벨 검증만. 에이전트가 **명세 자체를 올바르게 생성하는가**(RED phase 실제 실패 테스트, refactor 품질 개선, multi-file dep graph)는 측정 수단 없음. 9-subagent(P1) 특성상 메인이 볼 수 없는 산출물이 90%+ → **외부 correctness gate 필요**. Stage 5.6 A/B 벤치가 의미 가지려면 B1–B6에 기계 검증 assertion 걸려 있어야.
