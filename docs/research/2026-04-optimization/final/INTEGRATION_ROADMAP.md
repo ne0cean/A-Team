@@ -4,6 +4,24 @@
 **Inputs**: `round-2/shortlist-reviewed.md` (PASS 13 / FAIL 13), `round-2/strength-mapping.md`
 **Cadence**: 3 waves over ~5 weeks. Each wave gated by hard exit criteria.
 
+## ⚠️ G7 No Regression Across Versions (2026-04-14 신설)
+
+각 Wave 완료 후:
+1. git tag `v-wave-N` 생성
+2. `PERFORMANCE_LEDGER.md`에 B1–B6 × all metrics 기록
+3. 다음 Wave A/B 벤치 baseline = **가장 최근 v-wave-N tag**
+4. G7-a~e 충족 확인 필수 (MANIFEST 참조)
+
+**핵심**: 새 통합이 이전 수용 버전 대비 regression 발견 시 해당 Wave 통합 **즉시 rollback**. 원본 baseline 대비만 측정하는 G5와 별개로 **누적 version 간 성능 유지** 강제.
+
+### Wave별 baseline 적용
+- Wave 1 baseline: 원본 (pre-integration) A-Team
+- Wave 2 baseline: `v-wave-1` 태그
+- Wave 3 baseline: `v-wave-2` 태그
+- Stage 9 Holistic baseline: `v-wave-3` 태그
+
+각 단계에서 G5 (vs 원본) + G7 (vs 직전 Wave) **둘 다 통과 시에만** 수용.
+
 ---
 
 ## Wave 1 (Week 1–2) — Low Risk, High ROI
