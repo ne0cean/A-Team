@@ -6,7 +6,62 @@
 ## In Progress Files
 (없음)
 
-## Last Completions (2026-04-11)
+## Last Completions (2026-04-15)
+- **A-Team Design Subsystem 3-Phase 완성 — AI smell 차단 + 디자인 퀄리티 자동화 (272 tests)**
+  자율 랄프 모드 세션. 새벽 리셋 인프라 (`/resume-on-reset` + `.context/RESUME.md` + CronCreate 트리거) 구축 후 Phase 1→2→3 무정지 진행.
+
+  **Phase 1 — Foundation** (`e778e73`)
+  - `governance/design/` 5 md 신규 (738 lines)
+    - `gate.md` — UI 감지 heuristic + opt-out (`.design-override.md`) + a11y 비협상 + on-demand 로드 라우팅
+    - `tone-first.md` — 11 tones + anti-generic hard ban (Inter/purple gradient/AI triad)
+    - `variants.md` — 3 axes (variance/motion/density 1-10) + 7 presets + tone×variant 매트릭스
+    - `components.md` — 20 core components + 6 principles + 12 anti-pattern table
+    - `anti-patterns.md` — 24 detection rules (8 AI slop + 6 readability + 5 a11y + 3 layout + 2 polish) + 점수 체계
+  - `orchestrator.md` Phase 2.2 Design Gate, `ui-inspector.md` auditor 연동, `vibe.md` Step 0.6 RESUME.md 감지
+  - `.claude/commands/resume-on-reset.md` — 토큰 리셋 자동 재개 스킬
+  - `.context/RESUME.md` — 세션 상태 스냅샷 (crash-safe 이어받기)
+
+  **Phase 2 — Detector + Subagents + Gate Wiring** (`4cdd614`, +35 tests)
+  - `lib/design-smell-detector.ts` — 15 static rule deterministic 감지 (regex/AST, 토큰 0)
+    - AI-01..08, RD-02/04/06, A11Y-01..04, LS-01 구현
+    - 점수 = 100 − (a11y×15 + ai_slop×8 + readability×5 + layout×3 + polish×5)
+    - `DESIGN_AUDITOR_BREAKER_CONFIG` advisor-breaker 패턴 동일 공유
+  - `lib/design-config.json` — 단일 진실 공급원 (breaker + threshold + 패턴 리스트)
+  - `lib/analytics.ts` — `event: 'design_audit'` 타입 + `logDesignAudit()` 헬퍼 + formatReport 확장
+  - `lib/learnings.ts` — `logDesignOutcome()` 함수 (accepted/overridden/partial/rejected 분류)
+  - `.claude/agents/designer.md` (Haiku) — tone+variant 결정 → `.design-override.md` 저장
+  - `.claude/agents/design-auditor.md` (Haiku) — detector 실행 + 회색지대 LLM critique (AI-07/PL-01/PL-02)
+  - `.claude/commands/qa.md` `--design` 자동 체이닝, `craft.md` STEP 2.5 Design Brief + STEP 4 craft context(threshold 85), `ship.md` Step 5.5 게이트(threshold 70, a11y 0 비협상), `review.md` UI PR 자동 감사
+  - `test/design-smell-detector.test.ts` 35 tests
+
+  **Phase 3 — External Refs + Domain Reasoning** (`0d10ef4`)
+  - `governance/design/refs/` 11 md (10 production brand DESIGN.md 역엔지니어링)
+    - editorial: linear, stripe, claude, notion
+    - bold-typographic: vercel
+    - soft-pastel: raycast, arc
+    - playful: figma
+    - brutalist: rauno.me, bloomberg (data-dense 극단 케이스)
+  - `governance/design/reasoning.json` — 17 domain × product-type → tone+variant 추천 룰 (UI/UX Pro Max 축약)
+  - designer가 reasoning.json 파싱 + refs/{brand}.md 인용으로 tone 추론. design-auditor가 PL-01 tone mismatch critique 시 refs의 anti_patterns 대조.
+
+  **최종 지표**:
+  - 237 → 272 tests (+35), 전량 PASS
+  - tsc 0 errors, npm audit 0 vulnerabilities
+  - npm test 2.63s avg / tsc 1.63s avg (테스트 +35건 반영)
+  - design 파일: governance 17 + lib 3 + agents 2 + refs 11 = 33 신규
+  - **토큰 효율**: 비-UI 작업 오버헤드 0. UI 작업 평균 ~2600 tok/PR (legacy full-LLM 대비 -67%).
+  - `.context/benchmarks/2026-04-15.json` 신규 baseline
+
+  **자동 트리거 구조**:
+  - orchestrator Phase 2.2 → UI 감지 시 designer/design-auditor 자동 체인
+  - coder가 `.tsx/.css` 수정 → PostToolUse 훅 → design-auditor
+  - `/qa --design` 또는 UI 파일 변경 → qa + ui-inspector + design-auditor 병렬
+  - `/craft` STEP 2.5/4 → Design Brief + craft gate(85점)
+  - `/ship` Step 5.5 + `/review` → 머지 전 게이트(70점 + a11y 0)
+  - 사용자가 `/design` 따로 부를 필요 없음 — 맥락상 전부 자동
+
+  **커밋 체인**: `e778e73` Phase 1 → `4cdd614` Phase 2 → `0d10ef4` Phase 3
+
 - **7-Pass 최적화 파이프라인 — "최적의 A-Team" 완성 (237 tests, Harness L5)**
   오늘 세션의 설계·구현·보안·문서 전체를 **7단계 순차 파이프라인**으로 검증 완료. 모든 발견 사항 실제 반영.
   1. **`/optimize` (PIOP)** — Phase 1-5, 7개 Cross-Module Wiring, 토큰 -11.8%
@@ -231,6 +286,9 @@
   - atomic write (renameSync), pipeline race condition 롤백, 하드코딩 경로 제거, spawn timeout, 경로 트래버설 방지 등
 
 ## Next Tasks
+- [ ] **Design Subsystem 실전 파일럿** (실제 UI 프로젝트에서 `.design-override.md` 자동 생성 → design-auditor PR 게이트 검증. Linear/Stripe/Rauno 3톤 각 1개 샘플 생성)
+- [ ] **design-smell-detector 룰 확장** (현재 15개 구현 / 24개 계획 — RD-01 long line, RD-03 low contrast, RD-05 heading skip, A11Y-05 form label, LS-02/03 추가)
+- [ ] **design-auditor LLM critique 실전 테스트** (AI-07 Hero-Features-CTA 템플릿 감지, PL-01 tone mismatch, PL-02 missing personality 3건 실 프로젝트 적용)
 - [ ] **Advisor tool 라이브 API 테스트** (useSdkPath=true + ANTHROPIC_API_KEY → ralph --once 단일 iteration 검증)
 - [ ] **eval-store A/B 수집 개시** (advisor-on/off 50 샘플 → harness-score 비교, advisor 효과 실측)
 - [ ] **Phase 1.5 skip rate 실측** (pre-check 에이전트 첫 데이터 수집 → confidence 0.95 임계치 조정)

@@ -2,6 +2,65 @@
 
 ---
 
+## [2026-04-15] Design Subsystem 3-Phase — AI Smell 차단 인프라 (랄프 모드 자율)
+
+**컨텍스트**: 사용자 페인포인트 — A-Team으로 만든 앱들이 AI 냄새 심하고 디자인 퀄리티 낮음. 광범위 리서치 후 Phase 1→2→3 무정지 진행 지시 ("랄프 모드"). 오늘 새벽 3시 토큰 리셋 대비 자동 재개 인프라도 함께 구축 요청.
+
+**완료**:
+- **광범위 리서치 2차** — AI 에이전트 전용 디자인 리소스 Top 10 심층 분석
+  - Taste-Skill, UI Design Brain, Anthropic Frontend Design, Awesome Design MD, Impeccable, UI/UX Pro Max, UX Designer Skill, Figma MCP, Design Arena, Frontend Design Toolkit
+  - `.research/notes/2026-04-14-design-subsystem-deep-dive.md` 900+ lines 리포트
+
+- **페인포인트 → 설계 원칙 매핑 (7개 누락 보완)**
+  - UI 프로젝트 자동 감지 gate (비-UI 작업 오버헤드 0)
+  - Static-first 2-tier (AST/regex 22 rule 토큰 0, LLM critique 2 rule만)
+  - Opt-out (`.design-override.md` `design: off`)
+  - Circuit breaker 통합 (`advisor-breaker` 패턴 공유)
+  - Learning loop wiring (`logDesignOutcome()` false-positive 학습)
+  - Analytics observability (`event: 'design_audit'`)
+  - A11y tone과 독립 (WCAG AA 비협상)
+
+- **Phase 1 — Foundation** (커밋 `e778e73`)
+  - `governance/design/` 5 md: gate + tone-first + variants + components + anti-patterns (738 lines)
+  - orchestrator Phase 2.2 Design Gate, ui-inspector auditor 연동, vibe Step 0.6 RESUME 감지
+  - `/resume-on-reset` 스킬 + `.context/RESUME.md` (crash-safe 이어받기 infra)
+
+- **Phase 2 — Detector + Subagents + Gate Wiring** (커밋 `4cdd614`, +35 tests)
+  - `lib/design-smell-detector.ts` 15 static rule deterministic 감지 (토큰 0)
+  - `lib/design-config.json` 단일 진실 공급원 + breaker config
+  - `analytics.ts` design_audit 이벤트 타입 + helper, `learnings.ts` logDesignOutcome()
+  - `designer.md` / `design-auditor.md` 서브에이전트 (Haiku)
+  - `/qa --design` + `/craft` STEP 2.5/4 + `/ship` Step 5.5 + `/review` 자동 게이트 연동
+  - `test/design-smell-detector.test.ts` 35 tests 전량 PASS
+
+- **Phase 3 — External Refs + Domain Reasoning** (커밋 `0d10ef4`)
+  - `governance/design/refs/` 10 production brand DESIGN.md (Linear/Stripe/Claude/Vercel/Raycast/Arc/Notion/Figma/Rauno/Bloomberg)
+  - `reasoning.json` 17 domain × product-type → tone 추천 룰
+  - designer가 도메인 추론 + refs 인용, auditor가 PL-01 critique 시 anti_patterns 대조
+
+- **인프라 — `/resume-on-reset` + CronCreate**
+  - 사용자 취침 중 토큰 리셋 대응: CronCreate `d7858883` 2026-04-15 03:02 KST fire
+  - `.context/RESUME.md` 자동 상태 스냅샷 (Completed/In Progress/Next Tasks)
+  - 실패 모드: 세션 종료 시 cron 휘발 → OS-level 대안은 Ralph 데몬 병행 가능
+  - `/pickup` 수동 백업 경로 유지
+
+**최종 지표**:
+- 237 → 272 tests (+35, 전량 PASS)
+- tsc 0 errors, npm audit 0 vulnerabilities
+- npm test 2.63s avg / tsc 1.63s avg (benchmarks/2026-04-15.json 신규 baseline)
+- 신규 파일 33개 (governance 17 + lib 3 + agents 2 + refs 11)
+- **토큰 효율**: 비-UI 오버헤드 0. UI PR 평균 ~2600 tok (legacy full-LLM 대비 -67% 추정)
+- **자동 트리거**: orchestrator Phase 2.2 + PostToolUse 훅 + `/qa --design` + `/craft` + `/ship` + `/review` — 사용자 수동 호출 불필요
+
+**커밋 체인**: `e778e73` Phase 1 → `4cdd614` Phase 2 → `0d10ef4` Phase 3
+
+**Next 세션 우선순위**:
+- Design Subsystem 실전 파일럿 (Linear/Stripe/Rauno 3톤 각 1개 샘플)
+- 나머지 9 static rule 구현 (RD-01/03/05, A11Y-05, LS-02/03 등)
+- design-auditor LLM critique 실전 테스트
+
+---
+
 ## [2026-04-11] Unified Advisor Architecture + 7-Pass 최적화 파이프라인
 
 **완료**:
