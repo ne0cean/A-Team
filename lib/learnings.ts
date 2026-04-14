@@ -192,3 +192,49 @@ export function logAdvisorOutcome(
     files: ['scripts/ralph-daemon.mjs', 'scripts/daemon-utils.mjs'],
   }, opts);
 }
+
+// --- Design Patterns ---
+
+export interface DesignOutcome {
+  tone?: string;
+  variant?: string;
+  score: number;
+  rule?: string;            // violated rule (if negative feedback)
+  userAction: 'accepted' | 'overridden' | 'partial' | 'rejected';
+  reason?: string;
+}
+
+/**
+ * 디자인 감사 결과에 대한 사용자 반응을 learnings에 기록.
+ * - accepted: 사용자가 제안 반영 → pattern (confidence ↑)
+ * - overridden: 사용자가 경고 무시 → pitfall (같은 rule 반복 override 시 globally 튜닝 고려)
+ * - rejected: 사용자가 design 체인 자체 비활성화 → preference
+ * cross-session 학습으로 false positive 패턴 감지.
+ */
+export function logDesignOutcome(
+  outcome: DesignOutcome,
+  opts: LogOptions,
+): void {
+  const type: LearningType =
+    outcome.userAction === 'overridden' || outcome.userAction === 'rejected' ? 'pitfall'
+    : outcome.userAction === 'partial' ? 'preference'
+    : 'pattern';
+
+  const toneHint = outcome.tone ? ` tone=${outcome.tone}` : '';
+  const ruleHint = outcome.rule ? ` rule=${outcome.rule}` : '';
+  const reasonHint = outcome.reason ? ` reason=${outcome.reason}` : '';
+
+  const insight = outcome.userAction === 'accepted'
+    ? `design-audit score=${outcome.score}${toneHint}${ruleHint} — 사용자 수용`
+    : `design-audit score=${outcome.score}${toneHint}${ruleHint}${reasonHint} — ${outcome.userAction}`;
+
+  logLearning({
+    skill: 'design-auditor',
+    type,
+    key: `design-${outcome.userAction}-${outcome.rule ?? outcome.tone ?? 'general'}`,
+    insight,
+    confidence: outcome.userAction === 'accepted' ? 7 : 6,
+    source: 'observed',
+    files: ['lib/design-smell-detector.ts', 'governance/design/anti-patterns.md'],
+  }, opts);
+}

@@ -53,6 +53,18 @@ E2E/복잡한 테스트 갭 → AskUserQuestion
 - BROKEN 항목 발견 시 → 자동 수정 후 계속
 - 수정 불가 항목 → AskUserQuestion
 
+## Step 5.5: Design Gate (UI 변경 감지 시 자동)
+변경 파일에 `*.tsx/.jsx/.vue/.svelte/.css/.scss` 포함 시:
+```bash
+# .design-override.md opt-out 체크
+grep -q "^design:\s*off" .design-override.md 2>/dev/null && echo "Design gate disabled" || \
+  # design-auditor 서브에이전트 호출 (gate_context: 'ship', threshold 70, a11y 0)
+  echo "Running design audit..."
+```
+- a11y 위반 1건이라도 있으면 **즉시 차단** (비협상)
+- 점수 < 70 → AskUserQuestion (수정/override/스킵)
+- `governance/design/gate.md` 규칙 따름
+
 ## Step 6: Pre-landing 리뷰
 reviewer 에이전트 호출 (2-pass 체크리스트).
 - APPROVED / APPROVED_WITH_CONCERNS → 계속

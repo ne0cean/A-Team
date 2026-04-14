@@ -14,7 +14,7 @@ export interface AnalyticsEvent {
   skill: string;
   ts: string;
   repo: string;
-  event?: string;     // 'hook_fire' for safety hooks, 'session_cost' for cost summary
+  event?: string;     // 'hook_fire' | 'session_cost' | 'design_audit'
   pattern?: string;   // matched pattern for hook fires
   // Session cost fields (populated when event='session_cost')
   totalCostUsd?: number;
@@ -22,6 +22,14 @@ export interface AnalyticsEvent {
   preCheckSkipRate?: number;
   advisorCallAvg?: number;
   cacheHitRate?: number;
+  // Design audit fields (populated when event='design_audit')
+  designScore?: number;            // 0-100
+  designViolations?: number;        // total violation count
+  designA11yViolations?: number;    // a11y-only count
+  designAiSlopViolations?: number;  // ai_slop-only count
+  designTone?: string;              // declared tone (brutalist | luxury | ...)
+  designGateContext?: string;       // 'ship' | 'craft' | 'default'
+  designPassed?: boolean;           // meetsThreshold()
 }
 
 // --- Logging ---
@@ -78,9 +86,10 @@ export function filterByPeriod(events: AnalyticsEvent[], period: string): Analyt
 // --- Reporting ---
 
 export function formatReport(events: AnalyticsEvent[], period = 'all'): string {
-  const skillEvents = events.filter(e => e.event !== 'hook_fire' && e.event !== 'session_cost');
+  const skillEvents = events.filter(e => e.event !== 'hook_fire' && e.event !== 'session_cost' && e.event !== 'design_audit');
   const hookEvents = events.filter(e => e.event === 'hook_fire');
   const costEvents = events.filter(e => e.event === 'session_cost');
+  const designEvents = events.filter(e => e.event === 'design_audit');
 
   const lines: string[] = [];
   lines.push('A-Team skill usage analytics');
@@ -164,6 +173,19 @@ export function formatReport(events: AnalyticsEvent[], period = 'all'): string {
     if (latest.cacheHitRate !== undefined) lines.push(`  Cache hit rate: ${(latest.cacheHitRate * 100).toFixed(1)}%`);
   }
 
+  // Design Audit Summary (recent 5 average + latest)
+  if (designEvents.length > 0) {
+    const recent = designEvents.sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 5);
+    const scores = recent.map(e => e.designScore ?? 0).filter(s => s > 0);
+    const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    const latest = recent[0];
+    lines.push('');
+    lines.push('Design Audit');
+    lines.push(`  Recent 5 avg score: ${avg.toFixed(1)}/100`);
+    if (latest.designScore !== undefined) lines.push(`  Latest: ${latest.designScore}/100 (${latest.designViolations ?? 0} violations, ${latest.designA11yViolations ?? 0} a11y)`);
+    if (latest.designTone) lines.push(`  Tone: ${latest.designTone}`);
+  }
+
   // Total
   const totalSkills = skillEvents.length;
   const totalHooks = hookEvents.length;
@@ -171,4 +193,31 @@ export function formatReport(events: AnalyticsEvent[], period = 'all'): string {
   lines.push(`Total: ${totalSkills} skill invocation${totalSkills === 1 ? '' : 's'}, ${totalHooks} hook fire${totalHooks === 1 ? '' : 's'}`);
 
   return lines.join('\n');
+}
+
+// --- Design Audit Helper ---
+
+import type { DetectResult } from './design-smell-detector.js';
+
+/**
+ * 디자인 감사 결과를 analytics에 기록.
+ * design-auditor 서브에이전트가 매 실행 후 호출.
+ */
+export function logDesignAudit(
+  result: DetectResult,
+  ctx: { repo: string; tone?: string; gateContext?: 'ship' | 'craft' | 'default'; passed: boolean },
+  filePath: string,
+): void {
+  logEvent({
+    skill: 'design-auditor',
+    repo: ctx.repo,
+    event: 'design_audit',
+    designScore: result.score,
+    designViolations: result.violations.length,
+    designA11yViolations: result.summary.a11y,
+    designAiSlopViolations: result.summary.ai_slop,
+    designTone: ctx.tone,
+    designGateContext: ctx.gateContext,
+    designPassed: ctx.passed,
+  }, filePath);
 }
