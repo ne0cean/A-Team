@@ -210,6 +210,42 @@ cd <원래 프로젝트> && <작업 계속>
 
 ---
 
+## 제9원칙: On-Demand Context Loading (토큰 효율성)
+
+**매 세션 전체 docs/rules 로드 금지. 트리거 기반 필요 시 grep → 해당 본문만 Read.**
+
+### 근거
+2026-04-14 Phase 14 세션에서 governance/rules/ 1,205 lines + research docs 수만 lines가 축적됨. 전체 자동 로드 시 메인 컨텍스트 소진. 토큰 효율성은 A-Team 최적화의 핵심 지표.
+
+### 3-Tier Context 계층
+- **Tier 0 (항상)**: `CLAUDE.md` + `.context/CURRENT.md` + `TRIGGER-INDEX.md` 인덱스만 (~200 lines 상한)
+- **Tier 1 (상시 준수, 요약만)**: truth-contract / sovereignty / coding-safety 1줄 요약 (memory feedback)
+- **Tier 2 (조건부)**: 키워드 grep → 해당 rule 본문만 Read
+
+### 신규 rule/문서 추가 시 강제 체크
+1. `governance/rules/TRIGGER-INDEX.md`에 1줄 등록 (trigger 조건 + 키워드)
+2. 본문 100 lines 초과 시 1줄 요약 별도 제공
+3. 매 세션 자동 로드 필요성 재검토 (기본: NO)
+4. 상시 적용 rule만 memory feedback 승격
+
+### 금지 패턴
+- ❌ 새 rule 추가하며 TRIGGER-INDEX 등록 누락
+- ❌ CLAUDE.md에 큰 문서 직접 cat
+- ❌ 트리거 조건 없는 "필요할 것 같은" 기본 로드
+
+### Enforcement
+- `scripts/inspect-integration.mjs` 에 토큰 효율 메트릭 (세션 로드 라인 수) 추가 예정
+- 상한 300 lines (Tier 0), 초과 시 재분류 강제
+
+### 관련
+- `governance/rules/TRIGGER-INDEX.md` — 전체 rule trigger 매트릭스
+- `docs/11-integration-guide.md` — 통합 가이드 최우선 원칙
+- `~/.claude/memory/feedback_no_redundant_reads.md` — 재읽기 금지 원칙
+
+**Last updated (제9원칙 추가)**: 2026-04-14 (사용자 토큰 효율성 지적 반영)
+
+---
+
 ## 제8원칙: Survey Before Invent
 
 **새 메커니즘을 설계하기 전에 A-Team 자체 자원을 먼저 조사한다. 발명은 최후 수단.**

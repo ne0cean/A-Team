@@ -21,3 +21,10 @@ export function buildCachedSystemPrompt(
 ): string | CacheBlock[];
 
 export function analyzeCacheUsage(usage: any): CacheUsage;
+
+export function cacheVersionHash(filePath: string): string;
+
+export function withVersionMarker(
+  sessionContent: string,
+  filePath?: string
+): string;

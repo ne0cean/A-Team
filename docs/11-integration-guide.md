@@ -1,5 +1,42 @@
 # A-Team + Vibe-Toolkit 통합 가이드
 
+## ⚡ 최우선 원칙 — On-Demand Context Loading (Phase 14, 2026-04-14)
+
+> **매 세션 전체 docs/rules 로드 금지. 트리거 기반 필요 시 grep → 해당 본문만 Read.**
+> 토큰 효율성은 A-Team 통합의 핵심 지표이며 모든 문서 설계/추가 시 반드시 검토.
+
+### 3-Tier Context 계층
+| Tier | 로드 방식 | 대상 |
+|------|----------|------|
+| **Tier 0 (항상)** | 자동 주입, ~200 lines 상한 | `CLAUDE.md` (25줄) + `.context/CURRENT.md` + `TRIGGER-INDEX.md` (인덱스만) |
+| **Tier 1 (상시 준수, 요약만)** | 1-line summary via memory feedback | `truth-contract`, `sovereignty`, `coding-safety` |
+| **Tier 2 (조건부 Read)** | 키워드 grep → 해당 rule 본문만 | 나머지 12+ governance rules, docs/*, rfc/* |
+
+### 새 문서/rule 추가 시 체크리스트 (필수)
+- [ ] `governance/rules/TRIGGER-INDEX.md`에 1줄 등록 (trigger 조건 + 키워드)
+- [ ] 본문 100 lines 초과 시 1줄 요약 버전 별도 제공
+- [ ] 매 세션 자동 로드 필요성 재검토 (기본: NO)
+- [ ] 상시 적용 필요 rule은 `~/.claude/memory/feedback_*.md`로 분리하여 1줄만 유지
+
+### 금지 패턴
+- ❌ CLAUDE.md에 큰 문서 `cat` 삽입 (예: MIGRATION.md 전체)
+- ❌ 새 rule 추가하며 index 등록 누락
+- ❌ 트리거 조건 없는 "어디선가 필요할 것 같은" 로드
+- ❌ 1205 lines의 governance/rules/ 전체를 세션 시작에 주입
+
+### 권장 패턴
+- ✅ 사용자 메시지에 키워드 감지 → `grep -i "키워드" ~/tools/A-Team/governance/rules/TRIGGER-INDEX.md` → 매칭된 rule만 Read
+- ✅ 큰 Research 문서 (rfc/, final/)는 **이름만** 인덱스에 등록, 실제 로드는 작업 시
+- ✅ Rule 본문 Read 후 요약 1-2줄 기억 → 재로드 금지 (No Redundant Reads)
+
+### 추후 감사
+매 Phase 종료 후 `scripts/inspect-integration.mjs`에 토큰 효율 메트릭 추가:
+- 세션 시작 자동 로드 라인 수 측정
+- 상한: 300 lines (Tier 0 대상 범위)
+- 초과 시 경고 + 재분류 강제
+
+---
+
 ## 핵심 개념
 
 **A-Team = 실행 엔진** / **Vibe-Toolkit = 운영 원칙**

@@ -3,7 +3,10 @@
 // Goal: system prompt에 cache_control 주입 로직 검증
 
 import { describe, it, expect } from 'vitest';
-import { buildCachedSystemPrompt } from '../scripts/prompt-cache.mjs';
+import { buildCachedSystemPrompt, cacheVersionHash, withVersionMarker } from '../scripts/prompt-cache.mjs';
+import { writeFileSync, unlinkSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 describe('RFC-001 Phase 1 — buildCachedSystemPrompt', () => {
   describe('Opt-in behavior (Criterion 8)', () => {
@@ -57,6 +60,45 @@ describe('RFC-001 Phase 1 — buildCachedSystemPrompt', () => {
         expect(result[0].text).toBe('session only');
       }
       delete process.env.ENABLE_PROMPT_CACHING;
+    });
+  });
+
+  describe('RFC-001 × RFC-002 cross — version marker invalidation (F6)', () => {
+    const tmpFile = join(tmpdir(), 'cache-test-' + Date.now() + '.md');
+
+    it('cacheVersionHash returns 8-hex for existing file', () => {
+      writeFileSync(tmpFile, 'test content v1');
+      const h1 = cacheVersionHash(tmpFile);
+      expect(h1).toMatch(/^[a-f0-9]{8}$/);
+      unlinkSync(tmpFile);
+    });
+
+    it('hash changes when file content changes', () => {
+      writeFileSync(tmpFile, 'content v1');
+      const h1 = cacheVersionHash(tmpFile);
+      // wait 2ms to ensure mtime differs
+      const start = Date.now();
+      while (Date.now() - start < 5) {}
+      writeFileSync(tmpFile, 'content v2 with more text');
+      const h2 = cacheVersionHash(tmpFile);
+      expect(h2).not.toBe(h1);
+      unlinkSync(tmpFile);
+    });
+
+    it('returns "nohash" for missing file', () => {
+      expect(cacheVersionHash('/nonexistent/path')).toBe('nohash');
+    });
+
+    it('withVersionMarker prepends comment', () => {
+      writeFileSync(tmpFile, 'anything');
+      const marked = withVersionMarker('session content', tmpFile);
+      expect(marked).toContain('<!-- v:');
+      expect(marked).toContain('session content');
+      unlinkSync(tmpFile);
+    });
+
+    it('withVersionMarker passthrough without filePath', () => {
+      expect(withVersionMarker('plain')).toBe('plain');
     });
   });
 

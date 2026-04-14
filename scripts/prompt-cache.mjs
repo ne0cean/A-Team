@@ -1,7 +1,8 @@
 // RFC-001 Prompt Caching — Phase 1
 // Opt-in via ENABLE_PROMPT_CACHING env flag (default OFF, Criterion 8 준수)
 // Anthropic spec: system prompt에 cache_control 주입하여 1h/5min TTL 캐시
-// Governance: governance/rules/truth-contract.md Cache invalidation via mtime hash
+// Governance: governance/rules/truth-contract.md
+// Cross-RFC-001×002 F6 — Cache invalidation via mtime hash version marker
 
 /**
  * Build a cached system prompt or return plain string based on opt-in flag.
@@ -42,6 +43,45 @@ export function buildCachedSystemPrompt(sessionPrompt, options = {}) {
   });
 
   return blocks;
+}
+
+/**
+ * RFC-001 × RFC-002 Cross-integration — Cache invalidation hash.
+ * Compressed HANDOFF_PROMPT or CURRENT.md의 mtime 기반 version marker 생성.
+ * Cache breakpoint 바로 앞에 `<!-- v:{hash} -->` 주석으로 삽입 → content 변경 시 자동 invalidation.
+ *
+ * @param {string} filePath
+ * @returns {string} short hash (8 hex chars)
+ */
+export function cacheVersionHash(filePath) {
+  try {
+    // Dynamic import — sync API
+    // eslint-disable-next-line
+    const fs = require('fs');
+    const crypto = require('crypto');
+    const stat = fs.statSync(filePath);
+    const mtime = stat.mtimeMs || stat.mtime.getTime();
+    const size = stat.size;
+    return crypto
+      .createHash('sha256')
+      .update(`${filePath}:${mtime}:${size}`)
+      .digest('hex')
+      .slice(0, 8);
+  } catch {
+    return 'nohash';
+  }
+}
+
+/**
+ * Build session block with version marker for cache invalidation.
+ * @param {string} sessionContent
+ * @param {string} [filePath] - Optional path for mtime-based versioning
+ * @returns {string} content with `<!-- v:{hash} -->` prefix
+ */
+export function withVersionMarker(sessionContent, filePath) {
+  if (!filePath) return sessionContent;
+  const hash = cacheVersionHash(filePath);
+  return `<!-- v:${hash} -->\n${sessionContent}`;
 }
 
 /**
