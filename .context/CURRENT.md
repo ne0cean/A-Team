@@ -74,7 +74,13 @@
   - `/ship` Step 5.5 + `/review` → 머지 전 게이트(70점 + a11y 0)
   - 사용자가 `/design` 따로 부를 필요 없음 — 맥락상 전부 자동
 
-  **커밋 체인**: `e778e73` Phase 1 → `4cdd614` Phase 2 → `0d10ef4` Phase 3 → `5ce67b8` 세션 로그
+  **커밋 체인**: `e778e73` Phase 1 → `4cdd614` Phase 2 → `0d10ef4` Phase 3 → `5ce67b8` 세션 로그 → `a28ccf2` merge Phase 14 → `74bac24` RESUME complete → `d961967` CSO/doc-sync hardening
+
+  **Post-Cron Hardening** (`d961967`, 2026-04-15 05:13 KST, cron `d7858883` fire 후):
+  - **CSO**: `lib/design-smell-detector.ts` MAX_CONTENT_BYTES 2MB guard (regex DoS 방지), 비문자열/오버사이즈 safe default 반환, 파일경로 metadata-only 명시
+  - **Doc-Sync**: anti-patterns.md "22 static" 과장 → "15 static 구현 + 9 로드맵" 정직화
+  - **Optimize (PIOP)**: cross-module wiring 재검증 — design-config ↔ detector ↔ auditor ↔ analytics/learnings, refs catalog 일치, 게이트 연결 확인
+  - 보안 테스트 +2 → 376/376 전량 PASS, tsc 0 errors, npm audit 0 vulnerabilities
 
 ## Last Completions (2026-04-14) — Phase 14 Optimization Research
 
