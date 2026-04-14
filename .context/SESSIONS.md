@@ -61,6 +61,34 @@
 
 ---
 
+## [2026-04-14] Phase 14 Optimization Research + Wave 1-3 + PIOP
+
+**완료** (305 tests, build PASS, 20 commits):
+- Research: 14 범주 × ~100 후보 → 7 RFC + Adversarial 19 findings + G7 gate 신설
+- Governance 4 신규 rules (ateam-first, autonomous-loop, truth-contract, tool-search) + Sovereignty 제8원칙
+- Wave 1: RFC-001/003/004/007-S 구현 (7+14 tests)
+- Wave 2: RFC-002/005/006/007-M 구현 (12+18+4 tests)
+- Wave 3 skeleton: `/review` skill + worktree-exec.sh + budget-tracker (13 tests)
+- Bench 인프라: bench-runner + verify-g7 + dry-run estimate (-48.5% 추정, 실측 전)
+- HISTORY.md Phase 0-14 전체 망라
+- MIGRATION.md 8-step 가이드 + README 네비게이션
+- install-commands.sh sync (30 commands global)
+- PIOP Phase 1-5 자동 실행 → `.context/piop-phase14.md` (15/18 연결률 83%)
+
+**구조적 교훈 (2건 사건 영구 박음)**:
+1. Ralph 모드 오해석 → ateam-first.md (Survey Before Invent)
+2. 자율 루프 끊김 (말 vs 실행 괴리) → truth-contract.md + autonomous-loop.md
+
+**전부 opt-in default OFF** (Criterion 8 엄수). Regression 0건.
+
+**Earned Integration**: 모든 수치 실측 전 추정. v-wave-N 공식 tag는 Phase 2 실측 후.
+
+**다음 TODO**: Wave 1 실측 A/B 벤치, v-wave-1 tag, b3-b5 templates, cost-tracker 통합.
+
+**커밋**: `aadf13e` → ... → `9b60d94` (20 commits 전체 `docs/HISTORY.md` Phase 14)
+
+---
+
 ## [2026-04-11] Unified Advisor Architecture + 7-Pass 최적화 파이프라인
 
 **완료**:

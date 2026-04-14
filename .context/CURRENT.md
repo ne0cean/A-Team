@@ -2,12 +2,26 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
+**Phase 14 Optimization Research + Wave 1-3 구현 완료** (305 tests, build PASS, 2026-04-14).
 
 ## In Progress Files
-(없음)
+(없음 — Phase 14 전체 push 완료, `aadf13e` → `9b60d94`)
 
-## Last Completions (2026-04-15)
-- **A-Team Design Subsystem 3-Phase 완성 — AI smell 차단 + 디자인 퀄리티 자동화 (272 tests)**
+## Next Tasks
+- [ ] **Design Subsystem 실전 파일럿** (Linear/Stripe/Rauno 3톤 각 1개 샘플 UI 생성)
+- [ ] **design-smell-detector 룰 확장** (현재 15 / 계획 24 — RD-01/03/05, A11Y-05, LS-02/03 추가)
+- [ ] **design-auditor LLM critique 실전 테스트** (AI-07 / PL-01 / PL-02)
+- [ ] Wave 1 실측 A/B 벤치 (실제 Claude API 호출, RFC-001/003/004/007-S)
+- [ ] G5+G7 판정 후 `v-wave-1` 공식 tag 생성
+- [ ] lib/budget-tracker.ts ↔ lib/cost-tracker.ts 데이터 파이프 통합
+- [ ] scripts/worktree-exec.sh 사용 안내 coder.md 추가
+- [ ] eval/templates b3-b5 추가 (현재 b1/b2/b6 skeleton만)
+- [ ] Wave 2/3 실측 → 공식 tag
+- [ ] Stage 9 Holistic 진행 (Wave 3 실측 완료 후)
+- [ ] Stage 10 Weekly cron 실제 활성화 (crontab 또는 GH Actions Enable)
+
+## Last Completions (2026-04-15) — Design Subsystem 3-Phase
+- **A-Team Design Subsystem 3-Phase 완성 — AI smell 차단 + 디자인 퀄리티 자동화 (272 tests in design branch / 305 tests post-merge)**
   자율 랄프 모드 세션. 새벽 리셋 인프라 (`/resume-on-reset` + `.context/RESUME.md` + CronCreate 트리거) 구축 후 Phase 1→2→3 무정지 진행.
 
   **Phase 1 — Foundation** (`e778e73`)
@@ -60,8 +74,28 @@
   - `/ship` Step 5.5 + `/review` → 머지 전 게이트(70점 + a11y 0)
   - 사용자가 `/design` 따로 부를 필요 없음 — 맥락상 전부 자동
 
-  **커밋 체인**: `e778e73` Phase 1 → `4cdd614` Phase 2 → `0d10ef4` Phase 3
+  **커밋 체인**: `e778e73` Phase 1 → `4cdd614` Phase 2 → `0d10ef4` Phase 3 → `5ce67b8` 세션 로그
 
+## Last Completions (2026-04-14) — Phase 14 Optimization Research
+
+- **PIOP Phase 1-5 자동 실행 완료** (`/optimize`, `.context/piop-phase14.md`)
+  - 18 신규 자원 중 15/18 (83%) 연결
+  - 에이전트 프롬프트 오버사이즈 0건
+  - build + 305/305 tests PASS
+- **20 commit 체인** (aadf13e → 9b60d94) Push 완료
+- **Governance 4 신규 rules** — ateam-first / autonomous-loop / truth-contract / tool-search
+- **Sovereignty 제8원칙** — Survey Before Invent
+- **Wave 1-3 RFC 구현**:
+  - RFC-001 Prompt Caching, RFC-002 Handoff Compression, RFC-003 ToolSearch
+  - RFC-004 Classical Tools (Phase 1 + Phase 2 review skill)
+  - RFC-005 promptfoo templates, RFC-006 Cascade + Budget Tracker
+  - RFC-007 Spotlighting (Phase S + M + L skeleton)
+- **Bench 인프라** — bench-runner + verify-g7 + dry-run estimate
+- **Total M1 delta estimate -48.5%** (실측 전, Earned Integration)
+- **305 tests** (237 → 305, +68 신규)
+- **문서 신규**: MIGRATION.md, HISTORY.md (Phase 0-14), PERFORMANCE_LEDGER.md, ADVERSARIAL_REVIEW.md, STAGE9_HOLISTIC.md
+
+## Previous Completions (2026-04-11)
 - **7-Pass 최적화 파이프라인 — "최적의 A-Team" 완성 (237 tests, Harness L5)**
   오늘 세션의 설계·구현·보안·문서 전체를 **7단계 순차 파이프라인**으로 검증 완료. 모든 발견 사항 실제 반영.
   1. **`/optimize` (PIOP)** — Phase 1-5, 7개 Cross-Module Wiring, 토큰 -11.8%

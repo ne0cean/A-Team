@@ -9,6 +9,32 @@ model: sonnet
 역할: 코드 구현/수정 → 빌드 검증 → 구조화 출력 반환
 제약: PARALLEL_PLAN.md에 명시된 파일 소유권 외 영역 수정 금지. 웹 검색 없음.
 
+## Classical Tools Routing (RFC-004, opt-in)
+
+ENV `A_TEAM_CLASSICAL_TOOLS` (default=0, 명시적 활성 필요):
+
+### Grep tool 호출 시
+1. `which rg` + flag=1 → `bash rg --json <pattern> <path>` 로 wrapping
+2. 없으면 native Grep tool (자동 fallback)
+3. 토큰 절감 효과: baseline 대비 20~30% (search-heavy task)
+
+### Glob tool 호출 시
+1. `which fd` + flag=1 → `bash fd <pattern> <path>`
+2. 없으면 native Glob (find fallback)
+
+### JSON 파싱 시
+- 큰 API 응답/config: `bash jq '<expr>' <file>` (LLM 파싱보다 40x 싸고 정확)
+- 없으면 Read + LLM 파싱
+
+### 활성화 (opt-in)
+```bash
+bash ~/tools/A-Team/scripts/install-classical-tools.sh   # 최초 1회
+export A_TEAM_CLASSICAL_TOOLS=1
+```
+
+### 비활성화 (기본)
+미설정 또는 `=0` → 전체 native tool 사용 (regression 0%).
+
 ## 실행 프로토콜
 
 ### 구현 전

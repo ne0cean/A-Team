@@ -22,7 +22,24 @@ fi
 echo "📝 핸드오프 프롬프트 생성 중..." >&2
 
 LAST_COMMIT=$(git log --oneline -3 2>/dev/null || echo "(없음)")
-CURRENT_STATUS=$(cat "$CURRENT_FILE" 2>/dev/null | head -60 || echo "(CURRENT.md 없음)")
+
+# RFC-002 Handoff Compression (opt-in via COMPRESSION_MODE=on)
+# 활성 시 CURRENT.md를 5-layer 압축 형식으로 변환
+if [ "${COMPRESSION_MODE:-off}" = "on" ] && [ -f "$CURRENT_FILE" ] && command -v node &>/dev/null; then
+  CURRENT_STATUS=$(COMPRESSION_MODE=on node -e "
+    import('$PROJ_ROOT/scripts/handoff-compressor.mjs').then(async (m) => {
+      const fs = await import('fs');
+      const md = fs.readFileSync('$CURRENT_FILE', 'utf8');
+      const r = m.compress5Layer(md);
+      process.stdout.write(r.output);
+    }).catch(() => {
+      const fs = require('fs');
+      process.stdout.write(fs.readFileSync('$CURRENT_FILE', 'utf8').split('\\n').slice(0,60).join('\\n'));
+    });
+  " 2>/dev/null || cat "$CURRENT_FILE" | head -60 || echo "(CURRENT.md 없음)")
+else
+  CURRENT_STATUS=$(cat "$CURRENT_FILE" 2>/dev/null | head -60 || echo "(CURRENT.md 없음)")
+fi
 
 cat > "$HANDOFF_FILE" << EOF
 # 컨텍스트 핸드오프 — $(date '+%Y-%m-%d %H:%M')

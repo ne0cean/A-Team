@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync, existsSync, appendFileSync, renameSync, un
 import { spawnSync } from 'child_process';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { buildCachedSystemPrompt, analyzeCacheUsage } from './prompt-cache.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -301,11 +302,15 @@ The advisor should respond in under 100 words and use enumerated steps, not expl
       baseURL: DEFAULT_ANTHROPIC_BASE_URL,
     });
 
+    // RFC-001 Phase 1: buildCachedSystemPrompt — ENABLE_PROMPT_CACHING=true opt-in
+    // Default OFF (Criterion 8 준수). Flag ON 시 system을 cache_control array로 변환.
+    const cachedSystem = buildCachedSystemPrompt(fullSystem, { longLivedPrefix: '' });
+
     const response = await client.beta.messages.create({
       model: executorModel,
       max_tokens: maxTokens,
       betas: [ADVISOR_BETA_HEADER],  // #15: 상수 사용
-      system: fullSystem,
+      system: cachedSystem,
       tools: [{
         type: ADVISOR_TOOL_TYPE,     // #15: 상수 사용
         name: 'advisor',

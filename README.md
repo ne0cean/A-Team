@@ -1,7 +1,16 @@
 # A-Team — 멀티 에이전트 팀 운영 레퍼런스
 
-> ClawTeam(HKUDS) 분석 기반 + gstack 통합.
+> ClawTeam(HKUDS) 분석 기반 + gstack 통합 + Phase 14 최적화 (RFC-001~007).
 > **에이전트가 망치지 않게 (Harness), 맥락을 잃지 않게 (Mirror), 할 일을 놓치지 않게 (TODO)**
+
+## 📚 빠른 네비게이션
+
+- **[USER_GUIDE.md](USER_GUIDE.md)** — 사용자 가이드
+- **[MIGRATION.md](MIGRATION.md)** — Phase 14 RFC 마이그레이션 가이드 (opt-in 활성화)
+- **[docs/HISTORY.md](docs/HISTORY.md)** — 방법론·이론·스킬 전체 히스토리 (Phase 0-14)
+- **[docs/INDEX.md](docs/INDEX.md)** — 레슨런드 on-demand 인덱스
+- **[governance/rules/ateam-sovereignty.md](governance/rules/ateam-sovereignty.md)** — **8원칙 (필독)**
+- **[governance/rules/truth-contract.md](governance/rules/truth-contract.md)** — **거짓말 금지 (필독)**
 
 ---
 

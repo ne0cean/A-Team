@@ -1,0 +1,57 @@
+# B3 Multi-File Refactor — 4 files, 500 LOC+
+# RFC-005 / Wave 2 skeleton
+
+description: B3 Multi-File Refactor — 300 LOC monolith → 4 modules
+
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    config:
+      temperature: 0
+      max_tokens: 4096
+
+prompts:
+  - |
+    Given monolith.ts (300 LOC, mixed concerns: config parsing + validation + reporting + file I/O),
+    propose split into 4 single-responsibility modules.
+
+    Output JSON:
+    {
+      "modules": [
+        { "name": "config.ts", "responsibility": "...", "exports": ["..."] },
+        { "name": "parser.ts", "responsibility": "...", "exports": ["..."] },
+        { "name": "validator.ts", "responsibility": "...", "exports": ["..."] },
+        { "name": "reporter.ts", "responsibility": "...", "exports": ["..."] }
+      ],
+      "import_graph": [
+        { "from": "parser", "to": "config" },
+        ...
+      ],
+      "preserves_functionality": true
+    }
+
+tests:
+  - description: 4 modules + single responsibility
+    assert:
+      - type: javascript
+        value: |
+          const p = JSON.parse(output);
+          p.modules && p.modules.length === 4 &&
+          p.modules.every(m => m.name && m.responsibility && m.exports)
+        weight: 2
+      - type: javascript
+        value: |
+          const p = JSON.parse(output);
+          p.import_graph && p.import_graph.length >= 3
+        weight: 1
+      - type: llm-rubric
+        value: |
+          Are the 4 modules genuinely single-responsibility?
+          Is the import graph acyclic and sensible?
+        weight: 1.5
+    threshold: 0.85
+
+metadata:
+  category: refactor
+  benchmark: b3
+  severity: gate-blocking
+  rfc: RFC-005
