@@ -72,25 +72,72 @@ if [ -f "$SUCCESS_LOCK" ]; then
   fi
 fi
 
-# ──────── Probe: 토큰 리셋 감지 (rate limit 생존 확인) ────────
+# ──────── Probe: 토큰 리셋 감지 (rate limit 생존 확인) + exponential backoff ────────
+# frankbria + Anthropic SDK + LiteLLM 패턴: 3-tier priority
+#   1. Retry-After 헤더 파싱 (있으면 정확한 대기)
+#   2. Rate limit 메시지 감지 (실제 reset 전)
+#   3. Exponential backoff 5s → 25s → 125s (연결/일시 오류)
 
-log "Probing rate limit (Haiku minimal call)..."
-PROBE_OUT=$(claude -p --model haiku --max-budget-usd 0.02 "ok" 2>&1)
-PROBE_EXIT=$?
+probe_once() {
+  claude -p --model haiku --max-budget-usd 0.02 "ok" 2>&1
+}
 
-if [ $PROBE_EXIT -ne 0 ]; then
-  # rate limit / 인증 / 네트워크 실패 구분 (Claude Code CLI 메시지 패턴 전부)
-  if echo "$PROBE_OUT" | grep -qiE "rate.?limit|quota|429|budget.*exceeded|too many requests|hit your limit|hit the rate|limit.*resets?|5-?hour limit|weekly limit|usage.*limit|credits? exhausted"; then
-    log "STILL RATE-LIMITED — token not reset yet. Will retry next cycle."
-    log "probe snippet: $(echo "$PROBE_OUT" | head -3)"
+# Rate-limit 메시지 패턴 (whitelist 기반 — false positive 방지)
+is_rate_limit_error() {
+  local out="$1"
+  echo "$out" | grep -qiE "rate.?limit|quota|429|budget.*exceeded|too many requests|hit your limit|hit the rate|limit.*resets?|5-?hour limit|weekly limit|usage.*limit|credits? exhausted"
+}
+
+# Retry-After 헤더에서 초 단위 값 추출 (있으면)
+extract_retry_after() {
+  local out="$1"
+  echo "$out" | grep -ioE "Retry-After:\s*[0-9]+" | head -1 | grep -oE "[0-9]+"
+}
+
+log "Probing rate limit (Haiku minimal call, exponential backoff)..."
+
+BACKOFF_SEQ=(5 25 125)
+ATTEMPT=0
+PROBE_OUT=""
+PROBE_EXIT=0
+PROBE_SUCCESS=0
+
+for BACKOFF in "${BACKOFF_SEQ[@]}"; do
+  ATTEMPT=$((ATTEMPT + 1))
+  PROBE_OUT=$(probe_once)
+  PROBE_EXIT=$?
+
+  if [ $PROBE_EXIT -eq 0 ]; then
+    PROBE_SUCCESS=1
+    log "Probe SUCCESS on attempt $ATTEMPT"
+    break
+  fi
+
+  # Rate limit 이면 backoff 없이 즉시 종료 (cron 2분 후 재시도)
+  if is_rate_limit_error "$PROBE_OUT"; then
+    RETRY_AFTER=$(extract_retry_after "$PROBE_OUT")
+    if [ -n "$RETRY_AFTER" ]; then
+      log "STILL RATE-LIMITED — Retry-After: ${RETRY_AFTER}s detected. Exit (cron 2min 또는 ${RETRY_AFTER}s 중 빠른 것)."
+    else
+      log "STILL RATE-LIMITED — token not reset yet. Exit (cron 2min 후 재시도)."
+    fi
+    log "probe snippet: $(echo "$PROBE_OUT" | head -2)"
     FINAL_EXIT=0
     exit 0
-  else
-    log "ERROR: probe failed with non-rate-limit error (exit $PROBE_EXIT)"
-    log "probe output: $(echo "$PROBE_OUT" | head -10)"
-    FINAL_EXIT=1
-    exit 1
   fi
+
+  # 기타 오류 (네트워크/인증/일시 장애) → exponential backoff
+  if [ $ATTEMPT -lt ${#BACKOFF_SEQ[@]} ]; then
+    log "Probe attempt $ATTEMPT failed (exit $PROBE_EXIT). Backoff ${BACKOFF}s..."
+    sleep "$BACKOFF"
+  fi
+done
+
+if [ $PROBE_SUCCESS -ne 1 ]; then
+  log "ERROR: probe failed after $ATTEMPT attempts. Last exit: $PROBE_EXIT"
+  log "probe output (last): $(echo "$PROBE_OUT" | head -10)"
+  FINAL_EXIT=1
+  exit 1
 fi
 
 log "Probe SUCCESS — rate limit reset detected. Proceeding with main task."
