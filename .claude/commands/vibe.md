@@ -5,6 +5,41 @@ description: 세션 시작 — 컨텍스트 로드 + Opus/Gemini 분류 + 즉시
 > **자동 트리거**: SessionStart 훅이 새 세션 시 Step 1~2를 자동 주입합니다.
 > 수동 `/vibe`는 컨텍스트 강제 리로드 또는 태스크 재분류 시 사용.
 
+## Step 0.2 — A-Team Sync (자동 최신 버전 pull)
+
+A-Team 레포가 stale 하면 자동 pull → 새 커맨드/룰/스킬이 반영됨. symlink 구조라 pull만 하면 전체 머신에 전파.
+
+```bash
+# A-Team 레포 경로 탐색 (canonical: ~/Projects/a-team, fallback: ~/tools/A-Team)
+ATEAM_PATH=""
+for candidate in "$HOME/Projects/a-team" "$HOME/tools/A-Team" "$HOME/A-Team"; do
+  [ -d "$candidate/.git" ] && ATEAM_PATH="$candidate" && break
+done
+
+if [ -n "$ATEAM_PATH" ]; then
+  FETCH_FILE="$ATEAM_PATH/.git/FETCH_HEAD"
+  # 마지막 fetch가 6시간 이상 지났으면 pull
+  if [ ! -f "$FETCH_FILE" ] || [ $(($(date +%s) - $(stat -f %m "$FETCH_FILE" 2>/dev/null || echo 0))) -gt 21600 ]; then
+    echo "🔄 A-Team 동기화 (마지막 fetch > 6h)..."
+    (cd "$ATEAM_PATH" && git pull --rebase --autostash origin master 2>&1 | tail -5)
+    NEW_COMMITS=$(cd "$ATEAM_PATH" && git log --oneline HEAD@{1}..HEAD 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$NEW_COMMITS" -gt 0 ] 2>/dev/null; then
+      echo "✅ A-Team $NEW_COMMITS 신규 커밋 반영됨 (symlink 구조 — 재설치 불필요)"
+      echo "📜 $(cd "$ATEAM_PATH" && git log --oneline HEAD@{1}..HEAD | head -3)"
+    fi
+  fi
+fi
+```
+
+**실패 시 처리**:
+- Network/auth 실패 → 경고만 표시하고 세션 진행 (blocking 금지)
+- Merge conflict (로컬 수정 있음) → autostash가 처리, 그래도 실패 시 사용자에게 수동 해결 요청
+
+**심볼릭링크 확인**:
+```bash
+readlink ~/.claude/commands/end.md 2>/dev/null | grep -q a-team && echo "✅ symlink 정상" || echo "⚠️ 복사본 — install-commands.sh 재실행 필요"
+```
+
 ## Step 0.3 — Daily Tip (매일 2개 유용한 명령어 소개)
 
 `governance/reference/daily-tips.md`에서 팁 목록을 읽고, 오늘 날짜 기반 2개를 순환 선택하여 소개.
