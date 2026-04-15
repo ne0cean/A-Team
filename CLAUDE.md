@@ -3,14 +3,15 @@
 ## 이 레포의 역할
 모든 프로젝트에서 끌어다 쓰는 글로벌 툴킷. 특정 프로젝트에 종속되지 않는 독립 레포.
 
-- **원본 레포**: `~/tools/A-Team` (이 디렉토리)
+- **원본 레포**: `~/Projects/a-team` (canonical) — 과거 `~/tools/A-Team` 언급은 deprecated
 - **GitHub**: https://github.com/ne0cean/A-Team
 - **프로젝트별 사본**: `{project}/A-Team` (서브디렉토리로 참조)
 
 ## 작업 시 원칙
-- 변경사항은 반드시 `~/tools/A-Team`에서 작업 후 push
+- 변경사항은 반드시 `~/Projects/a-team`에서 작업 후 push
 - 프로젝트 사본에서 작업한 경우 즉시 push → 원본 pull로 동기화
-- `scripts/install-commands.sh` 로 `~/.claude/commands/`에 배포
+- `scripts/install-commands.sh` 로 `~/.claude/commands/`에 배포 (symlink 구조면 불필요 — 이 머신 기본값)
+- 다른 머신은 `/vibe` Step 0.2 가 6h 초과 시 자동 `git pull`
 
 ## 자율 모드 진입 시 (의무)
 사용자가 "랄프 모드", "자동으로", "자는 동안", "풀자동", "알아서 해" 등 트리거 사용 시:
