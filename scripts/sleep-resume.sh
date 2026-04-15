@@ -55,13 +55,39 @@ if grep -q "^status:\s*completed" "$RESUME_FILE" 2>/dev/null; then
   exit 0
 fi
 
-# 동일 날짜 중복 실행 차단
-TODAY_LOCK="$LOCK_DIR/$(date +%Y-%m-%d)"
-if [ -f "$TODAY_LOCK" ]; then
-  log "SKIP: already ran today ($(cat "$TODAY_LOCK"))"
-  exit 0
+# 성공 실행 간격 제어 — 본작업 성공 직후 30분 내엔 skip (크레딧 한 번에 다 쓰는 것 방지)
+SUCCESS_LOCK="$LOCK_DIR/last-success"
+MIN_SUCCESS_INTERVAL_SEC="${SLEEP_RESUME_MIN_INTERVAL:-1800}"  # 30분
+if [ -f "$SUCCESS_LOCK" ]; then
+  LAST_RUN=$(cat "$SUCCESS_LOCK" 2>/dev/null || echo 0)
+  NOW=$(date +%s)
+  DIFF=$((NOW - LAST_RUN))
+  if [ "$DIFF" -lt "$MIN_SUCCESS_INTERVAL_SEC" ]; then
+    log "SKIP: last success ${DIFF}s ago (< ${MIN_SUCCESS_INTERVAL_SEC}s)"
+    exit 0
+  fi
 fi
-echo "$(date '+%H:%M:%S')" > "$TODAY_LOCK"
+
+# ──────── Probe: 토큰 리셋 감지 (rate limit 생존 확인) ────────
+
+log "Probing rate limit (Haiku minimal call)..."
+PROBE_OUT=$(claude -p --model haiku --max-budget-usd 0.02 "ok" 2>&1)
+PROBE_EXIT=$?
+
+if [ $PROBE_EXIT -ne 0 ]; then
+  # rate limit / 인증 / 네트워크 실패 구분
+  if echo "$PROBE_OUT" | grep -qiE "rate.?limit|quota|429|budget.*exceeded|too many requests"; then
+    log "STILL RATE-LIMITED — token not reset yet. Will retry next cycle."
+    log "probe snippet: $(echo "$PROBE_OUT" | head -3)"
+    exit 0
+  else
+    log "ERROR: probe failed with non-rate-limit error (exit $PROBE_EXIT)"
+    log "probe output: $(echo "$PROBE_OUT" | head -10)"
+    exit 1
+  fi
+fi
+
+log "Probe SUCCESS — rate limit reset detected. Proceeding with main task."
 
 # claude CLI 존재 확인
 if ! command -v claude >/dev/null 2>&1; then
@@ -115,6 +141,11 @@ EXIT_CODE=$?
 log "claude exited with code $EXIT_CODE"
 
 # ──────── Post ────────
+
+# 성공 시에만 success lock 갱신 (실패 시엔 즉시 재시도 가능)
+if [ $EXIT_CODE -eq 0 ]; then
+  date +%s > "$SUCCESS_LOCK"
+fi
 
 # 만약 RESUME.md가 completed로 바뀌었으면 lock 파일 제거 (다음 sleep 세션 허용)
 if grep -q "^status:\s*completed" "$RESUME_FILE" 2>/dev/null; then

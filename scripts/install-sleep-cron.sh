@@ -21,17 +21,61 @@ TIME="${2:-03:02}"
 
 case "$ACTION" in
   install)
-    HOUR="${TIME%:*}"
-    MINUTE="${TIME#*:}"
-
-    echo "Installing launchd plist → $PLIST_PATH"
-    echo "Schedule: daily at $HOUR:$MINUTE local time"
+    # TIME 인자: "HH:MM" (1회) 또는 "every Nh" (매 N시간) 또는 기본값 "every 2h"
+    INTERVAL_MODE="false"
+    INTERVAL_SEC=120  # 기본 2분 (리셋 감지 거의 즉시)
+    if [[ "$TIME" == every* ]]; then
+      INTERVAL_MODE="true"
+      N=${TIME#every }
+      if [[ "$N" == *h ]]; then
+        N=${N%h}
+        INTERVAL_SEC=$((N * 3600))
+        UNIT="h"
+      elif [[ "$N" == *m ]]; then
+        N=${N%m}
+        INTERVAL_SEC=$((N * 60))
+        UNIT="m"
+      elif [[ "$N" == *s ]]; then
+        N=${N%s}
+        INTERVAL_SEC="$N"
+        UNIT="s"
+      else
+        N="$N"
+        INTERVAL_SEC=$((N * 60))  # 숫자만 주면 분 단위
+        UNIT="m"
+      fi
+      echo "Installing launchd plist → $PLIST_PATH"
+      echo "Schedule: every ${N}${UNIT} (StartInterval=${INTERVAL_SEC}s)"
+    elif [[ "$TIME" == *:* ]]; then
+      HOUR="${TIME%:*}"
+      MINUTE="${TIME#*:}"
+      echo "Installing launchd plist → $PLIST_PATH"
+      echo "Schedule: daily at $HOUR:$MINUTE local time"
+    else
+      # 인자 없거나 모름 → 매 2시간
+      INTERVAL_MODE="true"
+      echo "Installing launchd plist → $PLIST_PATH"
+      echo "Schedule: every 2h (StartInterval=${INTERVAL_SEC}s) — 토큰 리셋 사이클 커버"
+    fi
     echo "Script: $RESUME_SCRIPT"
 
     # 스크립트 실행 권한
     chmod +x "$RESUME_SCRIPT"
 
     # plist 생성 (PATH에 claude CLI 경로 포함)
+    if [ "$INTERVAL_MODE" = "true" ]; then
+      SCHEDULE_BLOCK="    <key>StartInterval</key>
+    <integer>${INTERVAL_SEC}</integer>"
+    else
+      SCHEDULE_BLOCK="    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>${HOUR}</integer>
+        <key>Minute</key>
+        <integer>${MINUTE}</integer>
+    </dict>"
+    fi
+
     cat > "$PLIST_PATH" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -44,13 +88,7 @@ case "$ACTION" in
         <string>/bin/bash</string>
         <string>${RESUME_SCRIPT}</string>
     </array>
-    <key>StartCalendarInterval</key>
-    <dict>
-        <key>Hour</key>
-        <integer>${HOUR}</integer>
-        <key>Minute</key>
-        <integer>${MINUTE}</integer>
-    </dict>
+${SCHEDULE_BLOCK}
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
