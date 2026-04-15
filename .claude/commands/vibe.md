@@ -40,6 +40,25 @@ fi
 readlink ~/.claude/commands/end.md 2>/dev/null | grep -q a-team && echo "✅ symlink 정상" || echo "⚠️ 복사본 — install-commands.sh 재실행 필요"
 ```
 
+## Step 0.55 — 주간 /absorb 스캔 (일요일)
+
+A-Team 레포 작업 중일 때만 실행. 다른 프로젝트의 로컬 커맨드/스크립트/규칙을 master 로 역류 흡수.
+
+```bash
+# A-Team 레포 작업 중인지 확인
+if [ -f "./.claude/commands/absorb.md" ] && [ "$(basename $(pwd))" = "a-team" ]; then
+  LAST_SCAN=".last-absorb-scan"
+  TODAY=$(date +%Y-%m-%d)
+  # 일요일 (7) + 오늘 아직 안 돌렸으면
+  if [ "$(date +%u)" = "7" ] && [ "$(cat $LAST_SCAN 2>/dev/null)" != "$TODAY" ]; then
+    echo "📥 /absorb 주간 스캔 제안 — 다른 프로젝트 개선사항 역류 흡수"
+    echo "   실행: /absorb (수동) 또는 스킵"
+  fi
+fi
+```
+
+일요일 아니거나 이미 스캔한 날이면 스킵 (silent).
+
 ## Step 0.3 — Daily Tip (매일 2개 유용한 명령어 소개)
 
 `governance/reference/daily-tips.md`에서 팁 목록을 읽고, 오늘 날짜 기반 2개를 순환 선택하여 소개.
