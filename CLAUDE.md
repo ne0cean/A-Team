@@ -26,6 +26,23 @@
 4. 재귀 wake-up 자동 예약, 토큰 한계 직전 commit/push 후 대기
 5. 아침에 1회 ≤10줄 요약만 허용
 
+## 세션 시작 시 (의무)
+
+A-Team 레포에서 세션 시작 시 (`SessionStart` 훅 후 첫 응답 작성 직전):
+
+1. `.context/AUTORESEARCH-PLAN.md` 파일이 존재하는지 확인
+2. 존재하면 읽고 `Current Phase` 필드 확인
+3. phase가 `COMPLETE` 이외면 **첫 응답 상단에 한 블록으로 알림**:
+   ```
+   🔬 Autoresearch: Phase [N] [name] — [next_action]. [cost/duration]. 진행할까요? (y / skip / 나중에)
+   ```
+4. 알림 후 사용자가 다른 주제를 꺼내면 그것을 우선 처리 (autoresearch는 백그라운드 알림)
+5. 사용자가 "y" / "go" / "진행" / "시작" 류로 응답하면 해당 phase의 `Execution Protocol` 수행
+6. 사용자가 "skip" / "나중에" 응답하면 phase 유지, 다음 세션 재알림
+7. 사용자가 "취소" / "ABORT" / "멈춰" 응답하면 phase를 `ABORTED`로 마킹, 이후 알림 중단
+
+이 의무는 `/vibe`, `/pickup`, 일반 세션 시작 모두에 적용. `.context/AUTORESEARCH-PLAN.md`가 없거나 phase가 `COMPLETE`이면 스킵.
+
 ## 주요 디렉토리
 - `.claude/commands/` — 슬래시 커맨드 원본
 - `docs/` — 레슨런드 (docs/INDEX.md로 on-demand 참조)
