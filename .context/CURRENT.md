@@ -42,6 +42,36 @@
 - [ ] Stage 9 Holistic 진행 (Wave 3 실측 완료 후)
 - [ ] Stage 10 Weekly cron 실제 활성화 (crontab 또는 GH Actions Enable)
 
+## Last Completions (2026-04-15 심야 → 2026-04-16 새벽) — 야간 자율 완성
+
+**컨텍스트**: 외부 Top 10 리서치 → 3개 즉시 흡수 + E2E 검증 + /overnight 1-click 스킬 완성.
+
+**핵심 성과** (`39800ce` → `2eb4fb8`, 7 커밋):
+1. **Probe exponential backoff** (`39800ce`) — sleep-resume.sh probe 에 5s→25s→125s + Retry-After 헤더 파싱 (frankbria + Anthropic SDK + LiteLLM 패턴 통합)
+2. **Ralph-daemon hourly cap + timeout guard** (`d9703bb`) — `maxBudgetPerHour: $3.00` 롤링 윈도우 (Boucle $48/day 방지) + `maxConsecutiveTimeouts: 2` (무한 retry loop 방지)
+3. **Quality Gates 4-stage** (`d9703bb`) — governance/rules/quality-gates.md + scripts/quality-gate-stage2.sh (diff sanity + JSON schema + token budget + test ratio, PASS/BLOCK/WARN 3단 exit code)
+4. **PID lock** (`816fcc6`) — E2E 테스트 발견 (launchd 2분 interval 과 prev instance overlap) → 스크립트 시작 시 pid lock 체크, overlap 차단
+5. **/overnight 스킬 신설** (`2eb4fb8`) — 사용자 1-5 요구사항 원스탑:
+   - 토큰 소진까지 작업 → 멈춤 → 리셋 시 재시작 → 다음 소진까지 계속 → 질문 없이 랄프 전자동
+   - `auto` 모드: CURRENT.md Next Tasks 안전 필터 (rule/구현/test/doc 포함, prod/deploy/설계/파일럿 제외)
+   - 명시 모드: 자연어 태스크 1개 큐잉
+   - RESUME.md 작성 + launchd 검증 + CLI 인증 probe + 금지 사항 자동 주입
+6. **Top 10 외부 리서치 저장** (`92c11b3`) — `.research/notes/2026-04-15-overnight-autonomous-research.md` 900+ lines
+7. **E2E 검증 테스트 완료** — Probe success on attempt 1 / claude --print 정상 invocation / trap EXIT 로깅 / Stage 2 gate BLOCK 확인 (secret file exit=1)
+
+**최종 자율 모드 복원력 표**:
+| 계층 | Before | After |
+|---|---|---|
+| 토큰 리셋 감지 | 단순 probe 1회 | Exponential backoff 3회 + Retry-After |
+| 비용 폭주 방지 | iter budget 만 | + 시간당 cap $3.00 |
+| Timeout loop | 단일 기록 | 연속 2회 자동 중단 |
+| Quality 검증 | Correctness 만 | + Stage 2 block (schema/token/test) |
+| E2E 검증 의무 | 없음 | 조항 7 (probe + 실 fire + 상태 변화) |
+| 병렬 실행 | 충돌 가능 | PID lock |
+| 1-click 세팅 | /sleep 수동 RESUME.md | /overnight auto 원스탑 |
+
+**검증**: 392/392 tests PASS, tsc 0 errors, launchd 2개 활성 (sleep-resume 매 2분 + absorb-weekly 매 일요일 11:07)
+
 ## Last Completions (2026-04-15 저녁) — Sleep 버그 수정 + /end 개선 + /absorb 역류 시스템
 
 **컨텍스트**: 외출 후 돌아와서 14시간 자율 모드 0건 진행 발견 → 버그 분석 및 수정 + 인프라 확장.

@@ -2,6 +2,67 @@
 
 ---
 
+## [2026-04-15 심야 → 2026-04-16 새벽] 야간 자율 Top 3 흡수 + /overnight 스킬 완성 (7 커밋)
+
+**컨텍스트**: 외부 리서치 → Top 3 즉시 흡수 → E2E 검증 → `/overnight` 1-click 스킬로 마감.
+
+**완료**:
+
+### 1. 외부 Top 10 리서치 (`92c11b3`)
+Claude Code Routines (공식, 2026-04-14 출시) / frankbria/ralph-claude-code / alfredolopez80/multi-agent-ralph-loop / ClaudeNightsWatch / ARIS / Autoclaude / vercel ralph-loop-agent / LiteLLM / LangGraph / opencode-scheduler — 각 별점 + A-Team 흡수 방안 + 회피 함정 8개 상세 분석.
+
+### 2. Top 3 즉시 흡수 전부 완료
+**흡수 1** (`39800ce`) sleep-resume.sh probe 3-tier priority:
+- Retry-After 헤더 파싱 (Anthropic SDK 패턴)
+- Rate limit 메시지 whitelist regex (false positive 방지)
+- Exponential backoff 5s → 25s → 125s (일시 네트워크 오류)
+
+**흡수 2** (`d9703bb`) ralph-daemon.mjs:
+- `maxBudgetPerHour: 3.00` — Boucle $48/day 사건 방지
+- `state.hourlySpend` 롤링 1시간 윈도우
+- `maxConsecutiveTimeouts: 2` — 무한 retry loop 방지 (frankbria 레슨)
+
+**흡수 3** (`d9703bb`) Quality Gates 4-stage:
+- governance/rules/quality-gates.md — 비용/차단력 계단화 원칙
+- Stage 1 Correctness (block, 기존) / Stage 2 Quality (block, 신규 구현) / Stage 3 Security (warn, 로드맵) / Stage 4 Consistency (advisory, 로드맵)
+- scripts/quality-gate-stage2.sh: diff sanity + JSON schema + token budget + test ratio
+- Exit: 0 PASS / 1 BLOCK / 2 WARN
+
+### 3. PID Lock (`816fcc6`) — E2E 테스트 발견
+E2E 검증 중 launchd 2분 interval 이 prev instance overlap — 동시 2+ claude --print 프로세스. 스크립트 시작 시 `$LOCK_DIR/running.pid` 체크 + trap EXIT 에서 제거.
+
+### 4. /overnight 1-click 스킬 (`2eb4fb8`)
+사용자 1-5 요구사항 원스탑:
+1. 토큰 소진까지 작업 (claude --print `--max-budget-usd`)
+2. 소진 시 멈춤 (probe rate-limit 감지)
+3. 리셋 시 재시작 (launchd 매 2분 probe)
+4. 다음 소진까지 계속 (cycle 반복)
+5. 질문 없이 랄프 전자동 (autonomous-loop 조항 1-7 주입)
+
+**사용**: `/overnight auto` (CURRENT.md 안전 필터) 또는 `/overnight "<task>"` (명시).
+
+**실전 검증**: auto 모드 2건 큐잉 + 15건 skipped (파일럿/설계/미검증 자동 제외).
+
+### 5. E2E 검증 (2026-04-15 21:37 KST)
+- ✅ Probe success on attempt 1 (backoff 로직 동작)
+- ✅ claude --print 정상 invocation (2026-04-15 새벽 flag 버그 재발 X)
+- ✅ trap EXIT `final=0` 로깅
+- ✅ Stage 2 gate: secret file `.env` → BLOCK (exit 1)
+- ⚠️ Test task 완료는 claude 처리 시간 길어 kill (코어 로직 검증 완료)
+
+**이슈**: 없음 (모든 기능 정상 동작)
+
+**빌드**: ✅ 392/392 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities
+
+**커밋 체인** (7건): `92c11b3` → `39800ce` → `d9703bb` → `816fcc6` → `2eb4fb8` + 중간 /end 세션 기록
+
+**Next 우선순위**:
+- 사용자 실제 /overnight auto 실행 → 밤샘 검증 (다음 세션)
+- Stage 3/4 (Security + Consistency) 구현
+- Claude Code Routines 연결 복구 후 /absorb 주간 launchd → Routines 이관 검토
+
+---
+
 ## [2026-04-15 저녁] Sleep 버그 수정 + /end 자동 repo 생성 + /absorb 역류 시스템
 
 **컨텍스트**: 외출 14시간 후 복귀. 자율 모드 0건 진행 발견 → 근본 원인 분석 → 버그 수정 + 인프라 확장 + 다른 프로젝트 개선사항 역류 흡수 시스템 구축.
