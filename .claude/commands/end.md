@@ -73,10 +73,22 @@ BLOCK: 막힌 점 (없으면 없음)
 - 프로덕션 URL 보고 (있으면)
 
 ## Step 6 — 원격 Push
-커밋이 있으면 **항상 즉시 실행**:
+커밋이 있으면 **항상 즉시 실행**. 브랜치명 자동 감지 (main/master 하드코딩 금지):
 ```bash
-git push origin main
+BRANCH=$(git branch --show-current)
+if git push origin "$BRANCH" 2>&1 | tee /tmp/push.log; then
+  echo "✅ Pushed: $BRANCH"
+else
+  echo "❌ PUSH FAILED — see /tmp/push.log"
+  exit 1
+fi
 ```
+Push 실패 타입별 분기:
+- `error: src refspec does not match` → 로컬 브랜치 미존재 (분석 필요)
+- `rejected (non-fast-forward)` → `git pull --rebase origin "$BRANCH"` 후 재시도
+- 네트워크/인증 실패 → 사용자에게 즉시 보고 (**절대 성공 처리 금지**)
+
+실패 시 **절대 세션 "종료"로 처리하지 말 것** — 사용자가 다른 머신에서 같은 착각 반복 금지.
 
 ## Step 7 — (선택) Research Mode
 자리를 오래 비울 예정이면 "Research Mode를 시작할까요?" 질문.
