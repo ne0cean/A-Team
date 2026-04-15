@@ -100,6 +100,8 @@ const CONFIG = {
   interIterationDelayMs: 10_000,     // iteration 간 10초 (스로틀)
   iterationTimeoutMs:    10 * 60_000, // iteration당 최대 10분
   maxBudgetPerIter:      '0.50',      // L4: claude --max-budget-usd 인자
+  maxBudgetPerHour:      3.00,        // 시간당 총 비용 상한 (Boucle $48/day 사건 방지)
+  maxConsecutiveTimeouts: 2,          // 연속 timeout 허용 횟수 (frankbria 레슨)
   stallThreshold:        2,           // L2: 연속 no-progress 허용 횟수
   promiseTag:            '<promise>COMPLETE</promise>',
   // SDK Advisor path 기본값 (state.json으로 opt-in)
@@ -368,6 +370,27 @@ async function mainLoop() {
       s.status = 'budget_exceeded'; saveState(s); break;
     }
 
+    // Hourly cap: 시간당 총 비용 상한 (Boucle $48/day 사건 방지)
+    // state.hourlySpend = [{ ts: number(ms), cost: number }, ...]
+    const nowMs = Date.now();
+    const ONE_HOUR_MS = 60 * 60 * 1000;
+    s.hourlySpend = (s.hourlySpend || []).filter(e => nowMs - e.ts < ONE_HOUR_MS);
+    const lastHourCost = s.hourlySpend.reduce((sum, e) => sum + (e.cost || 0), 0);
+    if (lastHourCost >= CONFIG.maxBudgetPerHour) {
+      log(`[RALPH] 시간당 비용 상한 초과 ($${lastHourCost.toFixed(4)} / $${CONFIG.maxBudgetPerHour}). 1시간 후 재시도 권장.`);
+      s.status = 'hourly_cap_exceeded'; saveState(s);
+      appendProgress(s, `⏸️ Hourly cap 도달 — 데몬 일시 중단`);
+      break;
+    }
+
+    // 연속 timeout 체크 (frankbria 레슨: 즉시 재시도는 loop 야기)
+    if ((s.consecutiveTimeouts || 0) >= CONFIG.maxConsecutiveTimeouts) {
+      log(`[RALPH] ⚠️ ${CONFIG.maxConsecutiveTimeouts}회 연속 timeout — 중단.`);
+      s.status = 'timeout_stalled'; saveState(s);
+      appendProgress(s, `⛔ 연속 timeout — 데몬 중단`);
+      break;
+    }
+
     // L1: Pre-check gate
     log(`[RALPH] 반복 ${s.currentIteration + 1}/${s.maxIterations} — Pre-check 실행`);
     if (runPreCheck(frozenCheckCommand)) {
@@ -490,7 +513,20 @@ async function mainLoop() {
 
     s.currentIteration++;
     s.totalCostUsd = (s.totalCostUsd || 0) + result.costUsd;
-    log(`[RALPH] 누적 비용: $${s.totalCostUsd.toFixed(4)} / $${s.budgetCapUsd}`);
+
+    // Hourly spend 기록 (시간당 cap 체크용)
+    s.hourlySpend = s.hourlySpend || [];
+    s.hourlySpend.push({ ts: Date.now(), cost: result.costUsd || 0 });
+
+    // timeout 감지 (code 124 = gtimeout/timeout, 143 = SIGTERM 이후)
+    if (result.code === 124 || result.code === 143) {
+      s.consecutiveTimeouts = (s.consecutiveTimeouts || 0) + 1;
+      log(`[RALPH] ⚠️ iteration timeout (consecutive: ${s.consecutiveTimeouts}/${CONFIG.maxConsecutiveTimeouts})`);
+    } else {
+      s.consecutiveTimeouts = 0;
+    }
+
+    log(`[RALPH] 누적 비용: $${s.totalCostUsd.toFixed(4)} / $${s.budgetCapUsd} | 시간당: $${(s.hourlySpend.filter(e => Date.now() - e.ts < 60*60*1000).reduce((sum, e) => sum + e.cost, 0)).toFixed(4)} / $${CONFIG.maxBudgetPerHour}`);
 
     if (result.rawOutput.includes(CONFIG.promiseTag)) {
       log(`[RALPH] <promise> 태그 감지 — 완료 검증 중`);
