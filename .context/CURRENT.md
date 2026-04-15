@@ -42,6 +42,28 @@
 - [ ] Stage 9 Holistic 진행 (Wave 3 실측 완료 후)
 - [ ] Stage 10 Weekly cron 실제 활성화 (crontab 또는 GH Actions Enable)
 
+## Last Completions (2026-04-15 저녁) — Sleep 버그 수정 + /end 개선 + /absorb 역류 시스템
+
+**컨텍스트**: 외출 후 돌아와서 14시간 자율 모드 0건 진행 발견 → 버그 분석 및 수정 + 인프라 확장.
+
+**핵심 성과**:
+1. **Sleep 버그 3개 수정** (`b5529fe`): `claude -p --dangerously-skip-permissions` 플래그 버그 → `--permission-mode bypassPermissions` 교체 (14시간 작업 안 된 근본 원인). Rate-limit regex 확장 ("hit your limit", "resets 9am"). `gtimeout 2700` + `trap EXIT` + plist `AbandonProcessGroup=true`.
+2. **End-to-End 검증 강제 조항** (`7072d24`): `autonomous-loop.md` 강제 조항 7 신설. 자율 루프 인프라 설치 후 실 본작업 1 cycle 성공 확인 없이 외출 허락 금지.
+3. **T1-T6 직접 구현** (`8df9bbc`): RESUME.md 큐잉된 6 rule 대면 세션에서 직접 실행. RD-01/05, A11Y-05, LS-02/03, AI-07. 376 → 392 tests (+16). Static rule 15/24 → 21/24.
+4. **RESUME.md status=completed** (`8d2e7bd`): 다음 /sleep 은 새 RESUME.md 필요.
+5. **/end 버그 수정 + 자동 repo 생성** (`9e71590` + `236de1e`): `git push origin main` 하드코딩 → 브랜치 자동 감지. Remote 미설정 시 `gh repo create` 자동. "Repository not found" 에러에서 계정/이름 파싱해 자동 생성.
+6. **/vibe Step 0.2 A-Team 자동 sync** (`40db289`): 6h 이상 stale 시 `git pull --rebase --autostash origin master` 자동. Symlink 구조로 모든 머신 반영.
+7. **CLAUDE.md canonical path 명시** (`a24dc68`): `~/tools/A-Team` → `~/Projects/a-team`.
+8. **/absorb 역류 시스템 — 순수 bash + 주간 launchd** (`1542c1e` + `136dbdd`): `scripts/absorb-scan.sh` 다른 프로젝트의 `.claude/commands/*.md` 스캔, regex heuristic 분류 (LOCAL/GLOBAL/UNCLEAR), pending.md append. 비용 $0, 5초 실행. 매주 일요일 11:07 KST launchd 자동.
+9. **첫 실전 /absorb 스캔**: 12 프로젝트 → NEW 23 + DIFF 9 = 32 파일 → 30건 pending.md 등록 (IMP-20260415-01 ~ 30).
+
+**검증**:
+- 392/392 tests PASS, tsc 0 errors
+- `launchctl list`: `com.ateam.sleep-resume` (매 2분) + `com.ateam.absorb-weekly` (매 일요일) 둘 다 등록
+- 다른 컴퓨터 push 복구 필요: `cd ~/Projects/a-team && git push origin master` 수동 실행 (기존 커밋 있으면)
+
+**커밋 체인** (10건): `b5529fe` → `7072d24` → `8df9bbc` → `8d2e7bd` → `9e71590` → `236de1e` → `40db289` → `a24dc68` → `1542c1e` → `136dbdd`
+
 ## Last Completions (2026-04-15) — Design Subsystem 3-Phase
 - **A-Team Design Subsystem 3-Phase 완성 — AI smell 차단 + 디자인 퀄리티 자동화 (272 tests in design branch / 305 tests post-merge)**
   자율 랄프 모드 세션. 새벽 리셋 인프라 (`/resume-on-reset` + `.context/RESUME.md` + CronCreate 트리거) 구축 후 Phase 1→2→3 무정지 진행.

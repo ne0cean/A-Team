@@ -2,6 +2,64 @@
 
 ---
 
+## [2026-04-15 저녁] Sleep 버그 수정 + /end 자동 repo 생성 + /absorb 역류 시스템
+
+**컨텍스트**: 외출 14시간 후 복귀. 자율 모드 0건 진행 발견 → 근본 원인 분석 → 버그 수정 + 인프라 확장 + 다른 프로젝트 개선사항 역류 흡수 시스템 구축.
+
+**완료** (392 tests, 빌드 PASS):
+
+### 1. Sleep 버그 수정 (3개)
+- `claude -p --dangerously-skip-permissions <prompt>` 플래그 파싱 버그 → `--permission-mode bypassPermissions` 교체 (근본 원인)
+- Rate-limit regex 확장 ("hit your limit", "resets 9am", "5-hour limit" 등 Claude Code 실제 메시지)
+- `gtimeout 2700` (45분) + `trap EXIT` final 로깅 + plist `AbandonProcessGroup=true` + `ThrottleInterval=30`
+- 격리 테스트로 `claude -p --permission-mode bypassPermissions --model haiku "Print DONE"` → "DONE" 정상 반환 확인
+
+### 2. End-to-End 검증 강제 조항 신설 (재발 방지)
+- `autonomous-loop.md` 강제 조항 7: 자율 루프 인프라 설치 후 실 본작업 1 cycle 성공 관찰 없이 외출 허락 금지
+- 2026-04-15 새벽 사건 재발 방지 목적
+
+### 3. T1-T6 static rule 직접 구현 (대면 세션)
+- RESUME.md 큐잉된 6 rule: RD-01/05, A11Y-05, LS-02/03, AI-07 signal
+- 376 → 392 tests (+16), tsc 0 errors
+- Static rule 15/24 → 21/24 (87.5%)
+- 남은 3: RD-03 WCAG color calc + PL-01/02 LLM critique
+
+### 4. /end 근본 버그 수정 + 자동 repo 생성
+- `git push origin main` 하드코딩 → `git branch --show-current` 로 자동 감지
+- 다른 컴퓨터에서 /end 실행 시 push 실패하고 성공 처리된 사건 근본 원인
+- Remote 미설정 시 `gh repo create <dirname> --private --source=. --remote=origin --push` 자동
+- "Repository not found" 에러 감지 시 계정/이름 파싱해 자동 생성
+- Non-fast-forward 시 `pull --rebase` 후 재시도
+- 실패 시 `exit 1` 강제 (**절대 성공 처리 금지**)
+
+### 5. /vibe Step 0.2 A-Team 자동 sync
+- FETCH_HEAD mtime 6h 초과 시 `git pull --rebase --autostash origin master` 자동
+- Symlink 구조 (`~/.claude/commands/end.md → ~/Projects/a-team/...`) 라 pull만으로 전체 반영
+- 복사본 감지 시 `install-commands.sh` 재실행 안내
+- 경로 탐색: `~/Projects/a-team` → `~/tools/A-Team` → `~/A-Team`
+
+### 6. /absorb 역류 시스템 (다른 프로젝트 → master)
+- **순수 bash 스캐너** (`scripts/absorb-scan.sh`): regex heuristic 분류 (LOCAL/GLOBAL/UNCLEAR). 비용 $0, 5초.
+- **주간 launchd** (`scripts/install-absorb-cron.sh`): 매주 일요일 11:07 KST fire. `com.ateam.absorb-weekly` 등록 완료.
+- **첫 실전 스캔**: 12 프로젝트 → NEW 23 + DIFF 9 = 32 파일 → `improvements/pending.md` 에 30건 등록 (IMP-20260415-01 ~ 30)
+- Top GLOBAL 후보: `connectome/ateam.md`, `connectome/vibe.md` DIFF 213 lines, `do-better-workspace/create-command.md`
+
+**이슈**:
+- 다른 컴퓨터 로컬 커밋 push 필요 (수동 `git push origin master`)
+- sleep.md 1141 words 압축 후보 (Next Tasks)
+- CURRENT.md `## Next Tasks` 섹션 2개 (Phase 14 merge 잔재, 향후 정리)
+
+**빌드**: ✅ 392/392 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities
+
+**커밋 체인** (10건): `b5529fe` → `7072d24` → `8df9bbc` → `8d2e7bd` → `9e71590` → `236de1e` → `40db289` → `a24dc68` → `1542c1e` → `136dbdd`
+
+**Next 우선순위**:
+- 사용자가 `improvements/pending.md` 30건 검토 → GLOBAL 4건부터 `/improve apply`
+- 남은 3 static rule (RD-03 WCAG + PL-01/02 LLM critique)
+- Design Subsystem 실전 파일럿 (Linear/Stripe/Rauno 3톤)
+
+---
+
 ## [2026-04-15] 세션 종결 — /pmi + /autoresearch + jangpm 통합 설계 + 나레이션 금지
 
 **완료** (06:00 KST, 376 tests, 빌드 PASS):
