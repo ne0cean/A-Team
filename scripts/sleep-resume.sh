@@ -34,6 +34,10 @@ log "────── sleep-resume.sh start ──────"
 log "PROJECT_ROOT=$PROJECT_ROOT"
 log "MAX_BUDGET=$MAX_BUDGET_USD MODEL=$MODEL"
 
+# EXIT 시 반드시 exit code 로그 (hang/kill 시에도 최소 마커 남김)
+FINAL_EXIT=0
+trap 'log "[trap EXIT] final=$FINAL_EXIT"' EXIT
+
 # ──────── Pre-checks ────────
 
 if [ ! -d "$PROJECT_ROOT" ]; then
@@ -75,14 +79,16 @@ PROBE_OUT=$(claude -p --model haiku --max-budget-usd 0.02 "ok" 2>&1)
 PROBE_EXIT=$?
 
 if [ $PROBE_EXIT -ne 0 ]; then
-  # rate limit / 인증 / 네트워크 실패 구분
-  if echo "$PROBE_OUT" | grep -qiE "rate.?limit|quota|429|budget.*exceeded|too many requests"; then
+  # rate limit / 인증 / 네트워크 실패 구분 (Claude Code CLI 메시지 패턴 전부)
+  if echo "$PROBE_OUT" | grep -qiE "rate.?limit|quota|429|budget.*exceeded|too many requests|hit your limit|hit the rate|limit.*resets?|5-?hour limit|weekly limit|usage.*limit|credits? exhausted"; then
     log "STILL RATE-LIMITED — token not reset yet. Will retry next cycle."
     log "probe snippet: $(echo "$PROBE_OUT" | head -3)"
+    FINAL_EXIT=0
     exit 0
   else
     log "ERROR: probe failed with non-rate-limit error (exit $PROBE_EXIT)"
     log "probe output: $(echo "$PROBE_OUT" | head -10)"
+    FINAL_EXIT=1
     exit 1
   fi
 fi
@@ -122,23 +128,47 @@ EOF
 
 # ──────── Execute (headless) ────────
 
-log "Invoking claude --print with max-budget=\$${MAX_BUDGET_USD}..."
+log "Invoking claude --print with max-budget=\$${MAX_BUDGET_USD} (timeout 45min)..."
 
-# --dangerously-skip-permissions: cron 환경에서 permission prompt 회피
+# --permission-mode bypassPermissions: cron 환경에서 permission prompt 회피
 # --model: 기본 sonnet (비용 균형). 필요 시 opus (high-quality) / haiku (저비용)
 # --max-budget-usd: 실행 중 최대 지출 한도
 # --add-dir: 작업 디렉토리 명시적 허용
-claude \
-  --print \
-  --dangerously-skip-permissions \
-  --model "$MODEL" \
-  --max-budget-usd "$MAX_BUDGET_USD" \
-  --add-dir "$PROJECT_ROOT" \
-  "$PROMPT" \
-  >> "$LOG_FILE" 2>&1
+# gtimeout (brew coreutils) 또는 perl alarm 으로 45분 타임아웃 강제 (hang 방지)
+TIMEOUT_CMD=""
+if command -v gtimeout >/dev/null 2>&1; then
+  TIMEOUT_CMD="gtimeout 2700"
+elif command -v timeout >/dev/null 2>&1; then
+  TIMEOUT_CMD="timeout 2700"
+fi
 
-EXIT_CODE=$?
+if [ -n "$TIMEOUT_CMD" ]; then
+  $TIMEOUT_CMD claude \
+    --print \
+    --permission-mode bypassPermissions \
+    --model "$MODEL" \
+    --max-budget-usd "$MAX_BUDGET_USD" \
+    --add-dir "$PROJECT_ROOT" \
+    "$PROMPT" \
+    >> "$LOG_FILE" 2>&1
+  EXIT_CODE=$?
+else
+  # timeout 도구 없으면 perl alarm 폴백
+  perl -e 'alarm 2700; exec @ARGV' \
+    claude --print --permission-mode bypassPermissions \
+    --model "$MODEL" \
+    --max-budget-usd "$MAX_BUDGET_USD" \
+    --add-dir "$PROJECT_ROOT" \
+    "$PROMPT" \
+    >> "$LOG_FILE" 2>&1
+  EXIT_CODE=$?
+fi
+
+FINAL_EXIT=$EXIT_CODE
 log "claude exited with code $EXIT_CODE"
+if [ $EXIT_CODE -eq 124 ] || [ $EXIT_CODE -eq 142 ]; then
+  log "TIMEOUT: claude --print exceeded 45min. Resource may need manual review."
+fi
 
 # ──────── Post ────────
 

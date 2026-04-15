@@ -108,6 +108,12 @@ ${SCHEDULE_BLOCK}
     <false/>
     <key>KeepAlive</key>
     <false/>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+    <key>ExitTimeOut</key>
+    <integer>2760</integer>
+    <key>AbandonProcessGroup</key>
+    <true/>
 </dict>
 </plist>
 PLIST
