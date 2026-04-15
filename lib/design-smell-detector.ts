@@ -405,13 +405,175 @@ function ruleLS01(opts: DetectOptions): Violation[] {
   return out;
 }
 
+// RD-01 Long line length (no max-width + long text heuristic)
+function ruleRD01(opts: DetectOptions): Violation[] {
+  const { file, content } = opts;
+  // Text containers with NO max-width/max-w-* + text length > 300 chars
+  const textBlockPattern = /<(p|article|section|div)\b([^>]*)>([^<]{300,})<\/\1>/gi;
+  const out: Violation[] = [];
+  let m: RegExpExecArray | null;
+  const re = new RegExp(textBlockPattern.source, 'gi');
+  while ((m = re.exec(content)) !== null) {
+    const attrs = m[2];
+    const hasMaxWidth = /\bmax-width\s*:|max-w-(?:prose|xl|\[|\d)/i.test(attrs);
+    if (!hasMaxWidth) {
+      out.push({
+        rule: 'RD-01',
+        category: 'readability',
+        severity: 'LOW',
+        file,
+        line: lineOf(content, m.index),
+        match: `<${m[1]}> with ${m[3].length} chars, no max-width`,
+        fix: 'Add max-width: 65ch or Tailwind max-w-prose.',
+      });
+    }
+  }
+  return out;
+}
+
+// RD-05 Heading hierarchy skip
+function ruleRD05(opts: DetectOptions): Violation[] {
+  const { file, content } = opts;
+  const headingPattern = /<h([1-6])\b/gi;
+  const out: Violation[] = [];
+  let prevLevel = 0;
+  let m: RegExpExecArray | null;
+  const re = new RegExp(headingPattern.source, 'gi');
+  while ((m = re.exec(content)) !== null) {
+    const level = parseInt(m[1], 10);
+    if (prevLevel > 0 && level > prevLevel + 1) {
+      out.push({
+        rule: 'RD-05',
+        category: 'readability',
+        severity: 'MEDIUM',
+        file,
+        line: lineOf(content, m.index),
+        match: `h${prevLevel} → h${level} (skip)`,
+        fix: `Use sequential headings: h${prevLevel} → h${prevLevel + 1}`,
+      });
+    }
+    prevLevel = level;
+  }
+  return out;
+}
+
+// A11Y-05 Form field without label (a11y, non-negotiable)
+function ruleA11y05(opts: DetectOptions): Violation[] {
+  const { file, content } = opts;
+  // Find all <input>/<select>/<textarea>
+  const fieldPattern = /<(input|select|textarea)\b([^>]*?)(?:\/\s*)?>/gi;
+  // Find <label for="..."> → set of covered IDs
+  const labelForPattern = /<label\b[^>]*\bfor\s*=\s*["']([^"']+)["']/gi;
+  const coveredIds = new Set<string>();
+  let lm: RegExpExecArray | null;
+  const labelRe = new RegExp(labelForPattern.source, 'gi');
+  while ((lm = labelRe.exec(content)) !== null) {
+    coveredIds.add(lm[1]);
+  }
+
+  const out: Violation[] = [];
+  let m: RegExpExecArray | null;
+  const re = new RegExp(fieldPattern.source, 'gi');
+  while ((m = re.exec(content)) !== null) {
+    const attrs = m[2];
+    // Skip hidden inputs
+    if (/\btype\s*=\s*["']hidden["']/i.test(attrs)) continue;
+    // Check aria-label or aria-labelledby
+    if (/\baria-label(?:ledby)?\s*=\s*["'][^"']+["']/i.test(attrs)) continue;
+    // Check id matches a <label for>
+    const idMatch = attrs.match(/\bid\s*=\s*["']([^"']+)["']/i);
+    if (idMatch && coveredIds.has(idMatch[1])) continue;
+    // Check if wrapped in <label>: look 200 chars before for <label> without >
+    const before = content.slice(Math.max(0, m.index - 200), m.index);
+    if (/<label\b[^>]*>\s*[^<]*$/i.test(before)) continue;
+    // Violation
+    out.push({
+      rule: 'A11Y-05',
+      category: 'a11y',
+      severity: 'HIGH',
+      file,
+      line: lineOf(content, m.index),
+      match: m[0].slice(0, 80),
+      fix: 'Add <label for>, wrap in <label>, or add aria-label.',
+    });
+  }
+  return out;
+}
+
+// LS-02 Absolute positioning overuse (3+ in same file, no flex/grid)
+function ruleLS02(opts: DetectOptions): Violation[] {
+  const { file, content } = opts;
+  const absoluteMatches = content.match(/position\s*:\s*absolute|\babsolute\b(?!-)/gi) || [];
+  if (absoluteMatches.length < 3) return [];
+  const hasFlexOrGrid = /display\s*:\s*(?:flex|grid|inline-flex|inline-grid)|\b(?:flex|grid|inline-flex|inline-grid)\b/i.test(content);
+  if (hasFlexOrGrid) return [];
+  // Find first occurrence for line number
+  const firstMatch = content.match(/position\s*:\s*absolute|\babsolute\b(?!-)/i);
+  const idx = firstMatch ? content.indexOf(firstMatch[0]) : 0;
+  return [{
+    rule: 'LS-02',
+    category: 'layout',
+    severity: 'LOW',
+    file,
+    line: lineOf(content, idx),
+    match: `${absoluteMatches.length}x absolute positioning, no flex/grid`,
+    fix: 'Use flex/grid layout. Reserve absolute for overlays/badges only.',
+  }];
+}
+
+// LS-03 Fixed height on text containers
+function ruleLS03(opts: DetectOptions): Violation[] {
+  const { file, content } = opts;
+  // Text tags (p, h1-h6, span) with inline style height: Npx (not min-height)
+  const pattern = /<(p|h[1-6]|span)\b[^>]*\bstyle\s*=\s*["'][^"']*(?<!min-)\bheight\s*:\s*\d+px/gi;
+  return findAll(content, pattern).map(hit => ({
+    rule: 'LS-03',
+    category: 'layout',
+    severity: 'LOW',
+    file,
+    line: hit.line,
+    match: hit.match.slice(0, 80),
+    fix: 'Use min-height or natural flow for text containers.',
+  }));
+}
+
+// AI-07 Hero-Features-CTA template signal
+function ruleAI07(opts: DetectOptions): Violation[] {
+  const { file, content } = opts;
+  // Signal: (1) <section> with h1 + button, (2) grid-cols-3 with 3+ similar items, (3) final section with CTA
+  const heroPattern = /<section\b[^>]*>[\s\S]{0,500}?<h1\b[\s\S]{0,500}?<(?:button|a\b[^>]*class\s*=\s*["'][^"']*btn)/i;
+  const featuresPattern = /grid-cols-3\b|grid-template-columns:\s*repeat\(3,/i;
+  const ctaSectionPattern = /<section\b[^>]*>[\s\S]{0,1000}?<(?:button|a\b[^>]*class\s*=\s*["'][^"']*(?:btn|cta))[\s\S]{0,500}?<\/section>/i;
+
+  const hasHero = heroPattern.test(content);
+  const hasFeatures = featuresPattern.test(content);
+  const ctaMatches = content.match(/<section\b/gi) || [];
+  const hasMultipleSections = ctaMatches.length >= 3;
+  const hasCTASection = ctaSectionPattern.test(content);
+
+  if (hasHero && hasFeatures && hasMultipleSections && hasCTASection) {
+    const idx = content.search(heroPattern);
+    return [{
+      rule: 'AI-07',
+      category: 'polish',
+      severity: 'MEDIUM',
+      file,
+      line: lineOf(content, idx >= 0 ? idx : 0),
+      match: 'Hero-Features-CTA template signal detected',
+      fix: 'Break the template — add asymmetry, unique sections, or non-standard layout. Requires LLM critique for final judgment.',
+    }];
+  }
+  return [];
+}
+
 // ──────── Main detector ────────
 
 const RULES = [
   ruleAI01, ruleAI02, ruleAI03, ruleAI04, ruleAI05, ruleAI06, ruleAI08,
-  ruleRD02, ruleRD04, ruleRD06,
-  ruleA11y01, ruleA11y02, ruleA11y03, ruleA11y04,
-  ruleLS01,
+  ruleAI07,
+  ruleRD01, ruleRD02, ruleRD04, ruleRD05, ruleRD06,
+  ruleA11y01, ruleA11y02, ruleA11y03, ruleA11y04, ruleA11y05,
+  ruleLS01, ruleLS02, ruleLS03,
 ];
 
 export function detectDesignSmells(opts: DetectOptions): DetectResult {

@@ -1,7 +1,7 @@
 # Design Anti-Patterns — 24 Detection Rules
 
 > **출처**: Impeccable (pbakaus, Google/Anthropic) 24 정량 anti-pattern + A-Team 확장.
-> **구현 현황**: `lib/design-smell-detector.ts`에 **15개 static rule 구현** (v1, 2026-04-15) — AI-01..06/08, RD-02/04/06, A11Y-01..04, LS-01. 나머지 9개는 로드맵 (RD-01/03/05, A11Y-05, LS-02/03, AI-07 signal) + LLM critique 2개 (PL-01, PL-02).
+> **구현 현황**: `lib/design-smell-detector.ts`에 **21개 static rule 구현** (v2, 2026-04-15) — AI-01..08 (포함 AI-07 signal), RD-01/02/04/05/06, A11Y-01..05, LS-01/02/03. 나머지 3개는 로드맵 (RD-03 low contrast = WCAG 색 계산 복잡) + LLM critique 2개 (PL-01 tone mismatch, PL-02 missing personality).
 > **보안 가드**: 입력 content > 2MB 시 detector 조기 반환 (regex DoS 방지). 파일 경로는 **메타데이터 전용** — detector는 파일을 읽지 않음.
 > **사용처**: design-auditor 서브에이전트, `/qa --design`, PR 머지 전 게이트.
 

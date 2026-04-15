@@ -312,6 +312,151 @@ describe('design-smell-detector', () => {
     });
   });
 
+  describe('RD-01 long line length', () => {
+    it('detects long text block without max-width', () => {
+      const longText = 'Lorem ipsum dolor sit amet, '.repeat(20);
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: `<p>${longText}</p>`,
+      });
+      expect(r.violations.some(v => v.rule === 'RD-01')).toBe(true);
+    });
+
+    it('passes with max-w-prose Tailwind class', () => {
+      const longText = 'Lorem ipsum dolor sit amet, '.repeat(20);
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: `<p class="max-w-prose">${longText}</p>`,
+      });
+      expect(r.violations.some(v => v.rule === 'RD-01')).toBe(false);
+    });
+
+    it('passes with inline max-width style', () => {
+      const longText = 'Lorem ipsum dolor sit amet, '.repeat(20);
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: `<p style="max-width: 65ch">${longText}</p>`,
+      });
+      expect(r.violations.some(v => v.rule === 'RD-01')).toBe(false);
+    });
+  });
+
+  describe('RD-05 heading hierarchy skip', () => {
+    it('detects h1 → h3 skip', () => {
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: '<h1>Title</h1><h3>Sub</h3>',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-05')).toBe(true);
+    });
+
+    it('passes h1 → h2 → h3 sequential', () => {
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: '<h1>A</h1><h2>B</h2><h3>C</h3>',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-05')).toBe(false);
+    });
+
+    it('detects h2 → h4 skip', () => {
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: '<h2>A</h2><h4>B</h4>',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-05')).toBe(true);
+    });
+  });
+
+  describe('A11Y-05 form field without label', () => {
+    it('detects input without label', () => {
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: '<form><input type="text" name="email" /></form>',
+      });
+      expect(r.violations.some(v => v.rule === 'A11Y-05')).toBe(true);
+    });
+
+    it('passes with aria-label', () => {
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: '<input type="text" aria-label="Email" />',
+      });
+      expect(r.violations.some(v => v.rule === 'A11Y-05')).toBe(false);
+    });
+
+    it('passes with <label for> matching id', () => {
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: '<label for="email-field">Email</label><input id="email-field" type="text" />',
+      });
+      expect(r.violations.some(v => v.rule === 'A11Y-05')).toBe(false);
+    });
+
+    it('ignores hidden inputs', () => {
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: '<input type="hidden" name="csrf" />',
+      });
+      expect(r.violations.some(v => v.rule === 'A11Y-05')).toBe(false);
+    });
+  });
+
+  describe('LS-02 absolute positioning overuse', () => {
+    it('detects 3+ absolute without flex/grid', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: '.a { position: absolute; } .b { position: absolute; } .c { position: absolute; }',
+      });
+      expect(r.violations.some(v => v.rule === 'LS-02')).toBe(true);
+    });
+
+    it('passes with 2 absolute + flex', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: '.parent { display: flex; } .a { position: absolute; } .b { position: absolute; }',
+      });
+      expect(r.violations.some(v => v.rule === 'LS-02')).toBe(false);
+    });
+  });
+
+  describe('LS-03 fixed height on text containers', () => {
+    it('detects <p> with fixed height', () => {
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: '<p style="height: 40px">text</p>',
+      });
+      expect(r.violations.some(v => v.rule === 'LS-03')).toBe(true);
+    });
+
+    it('passes with min-height', () => {
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: '<p style="min-height: 40px">text</p>',
+      });
+      expect(r.violations.some(v => v.rule === 'LS-03')).toBe(false);
+    });
+  });
+
+  describe('AI-07 Hero-Features-CTA template signal', () => {
+    it('detects full template pattern', () => {
+      const content = `
+        <section><h1>Big Title</h1><button>Get Started</button></section>
+        <section class="grid grid-cols-3"><div>F1</div><div>F2</div><div>F3</div></section>
+        <section><button class="btn cta">Sign Up Now</button></section>
+      `;
+      const r = detectDesignSmells({ file: 'a.tsx', content });
+      expect(r.violations.some(v => v.rule === 'AI-07')).toBe(true);
+    });
+
+    it('does not fire on single hero section alone', () => {
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: '<section><h1>Title</h1><button>CTA</button></section>',
+      });
+      expect(r.violations.some(v => v.rule === 'AI-07')).toBe(false);
+    });
+  });
+
   describe('security guards', () => {
     it('returns safe default on oversize content (> 2MB)', () => {
       const huge = 'x'.repeat(3 * 1024 * 1024);
