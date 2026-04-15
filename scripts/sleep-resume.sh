@@ -30,13 +30,24 @@ log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S %Z')] $*" >> "$LOG_FILE"
 }
 
+# 병렬 실행 방지 (E2E 테스트에서 발견: launchd 2분 interval 이 overlap 가능)
+PID_LOCK="$LOCK_DIR/running.pid"
+if [ -f "$PID_LOCK" ]; then
+  EXISTING_PID=$(cat "$PID_LOCK" 2>/dev/null || echo "")
+  if [ -n "$EXISTING_PID" ] && ps -p "$EXISTING_PID" > /dev/null 2>&1; then
+    log "SKIP: 기존 instance 실행 중 (pid $EXISTING_PID)"
+    exit 0
+  fi
+fi
+echo "$$" > "$PID_LOCK"
+
 log "────── sleep-resume.sh start ──────"
 log "PROJECT_ROOT=$PROJECT_ROOT"
 log "MAX_BUDGET=$MAX_BUDGET_USD MODEL=$MODEL"
 
-# EXIT 시 반드시 exit code 로그 (hang/kill 시에도 최소 마커 남김)
+# EXIT 시 반드시 exit code 로그 + pid lock 제거
 FINAL_EXIT=0
-trap 'log "[trap EXIT] final=$FINAL_EXIT"' EXIT
+trap 'log "[trap EXIT] final=$FINAL_EXIT"; rm -f "$PID_LOCK"' EXIT
 
 # ──────── Pre-checks ────────
 
