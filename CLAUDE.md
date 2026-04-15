@@ -26,22 +26,62 @@
 4. 재귀 wake-up 자동 예약, 토큰 한계 직전 commit/push 후 대기
 5. 아침에 1회 ≤10줄 요약만 허용
 
-## 세션 시작 시 (의무)
+## Autoresearch Shadow Mode (의무 자동 트리거)
 
-A-Team 레포에서 세션 시작 시 (`SessionStart` 훅 후 첫 응답 작성 직전):
+`.context/AUTORESEARCH-PLAN.md`의 `Mode`가 `SHADOW-TRACKING`일 때, Claude는 다음을 **자동 수행**한다. 사용자 명시 지시 없음.
 
-1. `.context/AUTORESEARCH-PLAN.md` 파일이 존재하는지 확인
-2. 존재하면 읽고 `Current Phase` 필드 확인
-3. phase가 `COMPLETE` 이외면 **첫 응답 상단에 한 블록으로 알림**:
+### Trigger 1: Tracked command 사용 후 로깅 (매 사용)
+
+`governance/skills/autoresearch/shadow-evals.yaml`에 정의된 tracked 커맨드(현재 `/office-hours`, `/blueprint`, `/plan-eng`)가 이 세션에서 호출·완료되면, 해당 커맨드 완료 직후 Claude는 **조용히** 다음을 실행:
+
+1. `.autoresearch/_shadow/<name>/` 디렉토리 없으면 생성
+2. 해당 yaml의 `binary_evals` 각각에 대해 self-score (pass=1, fail=0). 총점/최대점수 계산
+3. `log.jsonl`에 1줄 append (JSON):
+   ```json
+   {"ts":"ISO8601","command":"<name>","input_first_30":"...","session_id":"<short>","git_commit":"<sha>","self_score":{"binary_pass":N,"binary_total":M,"binary_rate":0.xx,"comparative_note":"..."},"duration_turns":N}
    ```
-   🔬 Autoresearch: Phase [N] [name] — [next_action]. [cost/duration]. 진행할까요? (y / skip / 나중에)
-   ```
-4. 알림 후 사용자가 다른 주제를 꺼내면 그것을 우선 처리 (autoresearch는 백그라운드 알림)
-5. 사용자가 "y" / "go" / "진행" / "시작" 류로 응답하면 해당 phase의 `Execution Protocol` 수행
-6. 사용자가 "skip" / "나중에" 응답하면 phase 유지, 다음 세션 재알림
-7. 사용자가 "취소" / "ABORT" / "멈춰" 응답하면 phase를 `ABORTED`로 마킹, 이후 알림 중단
+4. 로깅은 **사용자에게 노출하지 않는다** (`governance/rules/autonomous-loop.md` 강제 조항 6 나레이션 금지 준수). "로그 기록됨" 류의 언급 금지.
+5. append 실패는 graceful degrade. 커맨드 결과 제공을 방해하지 않음.
 
-이 의무는 `/vibe`, `/pickup`, 일반 세션 시작 모두에 적용. `.context/AUTORESEARCH-PLAN.md`가 없거나 phase가 `COMPLETE`이면 스킵.
+**Baseline 측정**: 각 tracked 커맨드의 최초 3 runs는 "baseline 측정". 이 구간에 커맨드 파일을 수정하면 사용자에게 경고하고 baseline 리셋.
+
+### Trigger 2: 세션 시작 시 집계 + 판정 확인
+
+세션 시작 첫 응답 작성 직전:
+
+1. `.autoresearch/_shadow/` 존재 확인. 없으면 스킵.
+2. 각 tracked 커맨드에 대해:
+   - `log.jsonl` 로드
+   - `weekly-report.md` 마지막 집계 날짜 확인
+   - ≥ 7일 경과 OR 신규 엔트리 ≥ 10 → 새 주간 집계를 `weekly-report.md` 상단에 추가
+3. 집계 후 판정 조건 확인:
+   - 3주 경과 AND 누적 runs ≥ 15 (커맨드당) → `DECISION-REPORT.md` 작성 + 아래 알림
+   - OR 6주 경과 (데이터 불충분해도)
+4. 판정 조건 충족 시 **첫 응답 상단에 한 블록 알림** (조건 미충족이면 알림 없음):
+   ```
+   🔬 Autoresearch Shadow: <command> 판정 준비
+      4주 평균 binary: X% (baseline Y%, delta +Z%p)
+      제안: Phase 4[A/B/C] — <설명>. 지금 적용할까요?
+   ```
+
+### Trigger 3: Eval drift 감지 (자체 보호)
+
+매 10회 로깅마다 최근 10 엔트리 binary_rate 체크:
+- 전부 1.0 또는 전부 0.0 → eval 구분력 상실 → `.autoresearch/_shadow/<name>/DRIFT-WARNING.md` 작성
+- 다음 세션 시작 시 알림: `⚠️ <command> eval 재설계 필요 — 최근 10회 모두 [100%/0%]`
+
+### Override
+
+- `AUTORESEARCH-PLAN.md`의 `Mode`를 `PAUSED` → 모든 자동 트리거 중단
+- `Mode`를 `DECIDED`/`DISMISSED` → 자동 트리거 + 세션 알림 모두 영구 중단
+- tracked 확장은 `shadow-evals.yaml` 편집 + `AUTORESEARCH-PLAN.md` 표 갱신
+
+### 파일 위치
+
+- 계획: `.context/AUTORESEARCH-PLAN.md`
+- Eval suites: `governance/skills/autoresearch/shadow-evals.yaml`
+- 로그: `.autoresearch/_shadow/<command>/{log.jsonl, baseline.json, weekly-report.md, DRIFT-WARNING.md}` (gitignored)
+- 판정: `.autoresearch/_shadow/DECISION-REPORT.md`
 
 ## 주요 디렉토리
 - `.claude/commands/` — 슬래시 커맨드 원본

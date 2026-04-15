@@ -5,21 +5,20 @@
 **Phase 14 Optimization Research + Wave 1-3 구현 완료** (305 tests, build PASS, 2026-04-14).
 **jangpm-meta-skills 통합 완료** (2026-04-15): `/autoresearch` + `/blueprint` + reflect IMP 등록.
 
-## 🔬 Autoresearch Plan — 세션 시작 시 필수 알림
+## 🔬 Autoresearch — Shadow Mode (자동 트리거, 사용자 명시 호출 불필요)
 
-**`.context/AUTORESEARCH-PLAN.md` 존재 시, Claude는 세션 시작 첫 응답에서 현재 phase 상태를 사용자에게 알려야 한다.**
+**Mode**: `SHADOW-TRACKING` (활성, 2026-04-15 ~)
 
-현재 상태 (2026-04-15): **Phase 2 (파일럿) 대기 중**
-- Target: `/office-hours`
-- 예상 비용: $15~25 / 기간: 2~3일 (자율 루프)
-- Gate: 사용자 확인 + `~/.claude/settings.json` permissions 추가
-- 상세: `.context/AUTORESEARCH-PLAN.md`
+테스트 기간 동안 tracked 커맨드(`/office-hours`, `/blueprint`, `/plan-eng`)가 실제 사용될 때마다 Claude가 **자동으로 로깅 + self-score**. 주간 집계 + 3주+15runs 축적 시 자동 판정.
 
-세션 시작 프로토콜:
-1. `.context/AUTORESEARCH-PLAN.md` 읽기 (현재 phase 확인)
-2. 첫 응답에 한 블록으로 알림 (Korean):
-   `🔬 Autoresearch: Phase 2 파일럿 대기 중. [target + 비용 + 기간]. 진행할까요? (y / skip / 나중에)`
-3. 사용자 응답 따라 진행 / 보류 / 중단
+**Claude 의무**:
+- 매 tracked command 사용 후: `.autoresearch/_shadow/<name>/log.jsonl`에 조용히 로그 (나레이션 금지)
+- 세션 시작 시: 주간 집계 / 판정 조건 확인 / 충족 시만 알림
+- 상세 프로토콜: `CLAUDE.md` "Autoresearch Shadow Mode" 섹션
+- 전체 계획: `.context/AUTORESEARCH-PLAN.md`
+- Eval suites: `governance/skills/autoresearch/shadow-evals.yaml`
+
+**Override**: AUTORESEARCH-PLAN.md의 `Mode`를 `PAUSED`/`DECIDED`/`DISMISSED`로 변경.
 
 ## In Progress Files
 (없음 — jangpm-meta-skills 통합 Phase 1+3+4 완료)

@@ -1,0 +1,154 @@
+# Shadow Mode Eval Suites
+# Tracked 커맨드의 self-scoring용. Claude가 커맨드 실행 후 이 정의로 자기 평가.
+# Tier 1-2 (deterministic) ≥ 50% 강제 → self-eval 편향 최소화.
+#
+# 편집 지침: eval은 tracked 커맨드의 핵심 품질 속성을 측정해야 함.
+# 점수 차이가 너무 작으면 (모두 pass 또는 모두 fail) drift warning 발생.
+
+---
+version: 1
+tracked_commands:
+
+  # ====================================================================
+  # /office-hours — 아이디어 검증 & 설계 발견
+  # ====================================================================
+  office-hours:
+    description: |
+      /office-hours 커맨드의 세션 품질 측정.
+      구조화된 인터뷰 → 대안 생성 → 전제 도전 → 설계 문서 저장의 흐름 준수 여부.
+    baseline_runs: 3     # 최초 3회는 변경 없이 측정 (baseline 고정용)
+    binary_evals:
+      - id: OH-B1
+        name: "모드 선택 제시"
+        tier: 1
+        question: "세션 시작 시 사용자에게 'A) 스타트업 모드' 또는 'B) 빌더 모드' 두 선택지를 명시적으로 제시했는가?"
+        pass_signal: "두 모드 옵션이 문자 그대로 제시됨"
+        fail_signal: "모드 선택 없이 바로 질문 진행 또는 단일 모드만 제안"
+
+      - id: OH-B2
+        name: "질문 1개씩 진행"
+        tier: 1
+        question: "스타트업 모드의 경우 6개 질문을 각각 별도 턴에서 하나씩 진행했는가? (한 턴에 여러 질문 묶음 금지)"
+        pass_signal: "한 턴에 질문 1개 (또는 긴밀히 연결된 2개 미만)"
+        fail_signal: "한 턴에 3개 이상 병렬 질문"
+
+      - id: OH-B3
+        name: "대안 3개 생성"
+        tier: 2
+        question: "설계 문서 작성 전 3가지 서로 다른 접근법(대안)이 생성되어 비교됐는가?"
+        pass_signal: "명시적 대안 3개 + 각각의 트레이드오프 비교"
+        fail_signal: "대안 2개 이하 또는 대안 있지만 비교 없음"
+
+      - id: OH-B4
+        name: "설계 문서 저장"
+        tier: 1
+        question: "대화 완료 후 `~/.gstack/projects/[프로젝트명]-[날짜].md` 형식의 설계 문서가 저장됐는가?"
+        pass_signal: "파일 경로 명시 + 저장 확인"
+        fail_signal: "저장 없이 대화만 종료"
+
+      - id: OH-B5
+        name: "다음 단계 안내"
+        tier: 1
+        question: "세션 종료 시 `/plan-ceo-review` 또는 `/plan-eng-review` 다음 단계 안내가 있는가?"
+        pass_signal: "다음 커맨드 명시적 언급"
+        fail_signal: "다음 단계 안내 없음"
+
+    comparative_evals:
+      - id: OH-C1
+        name: "질문 구체성"
+        dimension: "질문이 추상적이지 않고 검증 가능한 구체적 형태인가?"
+        win_signal: "'3명 이상 인터뷰했나' 같은 증거 기반 질문"
+        loss_signal: "'시장성이 있나요' 같은 일반론"
+
+  # ====================================================================
+  # /blueprint — 에이전트/자동화 설계 문서 생성
+  # ====================================================================
+  blueprint:
+    description: |
+      /blueprint 커맨드 출력 품질. 설계서의 구조 완결성 + validator 통과 여부.
+    baseline_runs: 3
+    binary_evals:
+      - id: BP-B1
+        name: "blueprint-*.md 파일 생성"
+        tier: 1
+        question: "현재 작업 디렉토리에 `blueprint-<task-name>.md` 파일이 생성됐는가?"
+        pass_signal: "파일 존재 + 네이밍 규칙 준수"
+        fail_signal: "파일 미생성 또는 다른 이름"
+
+      - id: BP-B2
+        name: "validator 통과"
+        tier: 1
+        question: "`python scripts/validate-blueprint.py <file>` 실행 시 'structurally valid' 반환했는가?"
+        pass_signal: "exit code 0 + success message"
+        fail_signal: "exit code 1 + validation errors"
+
+      - id: BP-B3
+        name: "필수 섹션 완결"
+        tier: 2
+        question: "문서에 '## 1. 작업 컨텍스트', '## 2. 워크플로우 정의', '## 3. 구현 스펙' 세 최상위 섹션이 모두 존재하는가?"
+        pass_signal: "세 섹션 모두 존재 + 각 섹션 본문 있음"
+        fail_signal: "섹션 누락 또는 빈 섹션"
+
+      - id: BP-B4
+        name: "각 Step 7개 필드 완비"
+        tier: 2
+        question: "모든 `#### Step N:` 블록에 처리 주체/입력/처리 내용/출력/성공 기준/검증 방법/실패 시 처리 7개 필드가 있는가?"
+        pass_signal: "모든 step에서 7 필드 존재"
+        fail_signal: "step 중 1개라도 필드 누락"
+
+      - id: BP-B5
+        name: "A-Team 표준 커맨드 규칙 섹션"
+        tier: 1
+        question: "문서에 'A-Team 표준 커맨드' 또는 '.claude/commands/' 문자열이 포함됐는가?"
+        pass_signal: "둘 중 하나 이상 존재"
+        fail_signal: "둘 다 없음"
+
+    comparative_evals:
+      - id: BP-C1
+        name: "설계 결정 명확성"
+        dimension: "단일 vs 멀티 에이전트, LLM vs 스크립트 구분이 근거와 함께 명시됐는가?"
+        win_signal: "선택 + 근거 (예: 'rule-based가 fragile해서 LLM')"
+        loss_signal: "선택만 명시, 근거 누락 또는 '기본값'만 표기"
+
+  # ====================================================================
+  # /plan-eng — 엔지니어링 계획 검토
+  # ====================================================================
+  plan-eng:
+    description: |
+      /plan-eng 커맨드의 계획 검토 품질. 기술적 리스크 식별 + 대안 제시 + 실행 가능성 평가.
+    baseline_runs: 3
+    binary_evals:
+      - id: PE-B1
+        name: "기존 문서 읽기"
+        tier: 1
+        question: "세션 초반에 PARALLEL_PLAN.md 또는 CURRENT.md 또는 관련 설계 문서를 Read 했는가?"
+        pass_signal: "최소 1개 컨텍스트 파일 Read 확인"
+        fail_signal: "문서 안 읽고 바로 평가 시작"
+
+      - id: PE-B2
+        name: "리스크 3+개 식별"
+        tier: 2
+        question: "기술적 리스크가 최소 3개 명시됐는가?"
+        pass_signal: "리스크 3개 이상 각각 구분"
+        fail_signal: "리스크 2개 이하"
+
+      - id: PE-B3
+        name: "대안 또는 완화책 제시"
+        tier: 2
+        question: "각 주요 리스크에 대해 대안 또는 완화책이 제시됐는가?"
+        pass_signal: "리스크별 완화책 매칭"
+        fail_signal: "리스크만 나열, 대응 없음"
+
+      - id: PE-B4
+        name: "실행 가능성 판정"
+        tier: 1
+        question: "최종 판정(GO / CONDITIONAL-GO / NO-GO)이 명시적으로 제시됐는가?"
+        pass_signal: "판정 키워드 중 하나 명시"
+        fail_signal: "판정 없이 논의만"
+
+    comparative_evals:
+      - id: PE-C1
+        name: "리스크 통찰 깊이"
+        dimension: "식별된 리스크가 표면적(예: '시간 부족')이 아닌 구조적(예: '의존성 순환')인가?"
+        win_signal: "구조/아키텍처 레벨 리스크"
+        loss_signal: "관리/일정 레벨 리스크만"
