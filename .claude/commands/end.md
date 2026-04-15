@@ -72,23 +72,63 @@ BLOCK: 막힌 점 (없으면 없음)
 - 로컬 개발 서버 URL 제공 (예: http://localhost:5173)
 - 프로덕션 URL 보고 (있으면)
 
-## Step 6 — 원격 Push
-커밋이 있으면 **항상 즉시 실행**. 브랜치명 자동 감지 (main/master 하드코딩 금지):
+## Step 6 — 원격 Push (remote 없으면 자동 생성)
+
+커밋이 있으면 **항상 즉시 실행**. 3단계 자동 처리:
+
+### 6.1 Remote 설정 확인
 ```bash
 BRANCH=$(git branch --show-current)
+REMOTE_URL=$(git remote get-url origin 2>/dev/null || true)
+
+if [ -z "$REMOTE_URL" ]; then
+  # Remote 미설정 → GitHub 레포 자동 생성 후 연결
+  REPO_NAME=$(basename "$(pwd)")
+  echo "⚠️ No 'origin' remote. Creating private GitHub repo '$REPO_NAME'..."
+  gh repo create "$REPO_NAME" --private --source=. --remote=origin --push || {
+    echo "❌ gh repo create 실패. 수동으로 remote 설정 후 재시도:"
+    echo "   gh repo create $REPO_NAME --private --source=. --remote=origin --push"
+    exit 1
+  }
+  echo "✅ Repo created + pushed"
+  exit 0
+fi
+```
+
+### 6.2 정상 Push + 에러 타입별 복구
+```bash
 if git push origin "$BRANCH" 2>&1 | tee /tmp/push.log; then
   echo "✅ Pushed: $BRANCH"
 else
-  echo "❌ PUSH FAILED — see /tmp/push.log"
-  exit 1
+  # 에러 분류 + 자동 복구 시도
+  if grep -qE "Repository not found|does not exist|not found" /tmp/push.log; then
+    # Remote URL은 있지만 GitHub에 레포 없음 → 자동 생성
+    REPO_NAME=$(basename "$REMOTE_URL" .git)
+    ACCOUNT=$(echo "$REMOTE_URL" | sed -E 's|.*[:/]([^/]+)/[^/]+$|\1|')
+    echo "⚠️ GitHub repo '$ACCOUNT/$REPO_NAME' 없음. 자동 생성..."
+    gh repo create "$ACCOUNT/$REPO_NAME" --private --source=. --push || {
+      echo "❌ gh repo create 실패. 수동 처리 필요"
+      exit 1
+    }
+  elif grep -qE "rejected.*non-fast-forward|fetch first" /tmp/push.log; then
+    # 원격이 앞서있음 → rebase 후 재시도
+    echo "⚠️ Non-fast-forward. Rebasing..."
+    git pull --rebase origin "$BRANCH" && git push origin "$BRANCH" || {
+      echo "❌ Rebase 충돌. 수동 해결 필요"
+      exit 1
+    }
+  elif grep -qE "src refspec .* does not match" /tmp/push.log; then
+    echo "❌ 로컬 브랜치 '$BRANCH' 에 커밋 없음 — 비정상 상태"
+    exit 1
+  else
+    # 네트워크/인증/기타 → 즉시 사용자 보고
+    echo "❌ PUSH FAILED (unknown) — see /tmp/push.log"
+    exit 1
+  fi
 fi
 ```
-Push 실패 타입별 분기:
-- `error: src refspec does not match` → 로컬 브랜치 미존재 (분석 필요)
-- `rejected (non-fast-forward)` → `git pull --rebase origin "$BRANCH"` 후 재시도
-- 네트워크/인증 실패 → 사용자에게 즉시 보고 (**절대 성공 처리 금지**)
 
-실패 시 **절대 세션 "종료"로 처리하지 말 것** — 사용자가 다른 머신에서 같은 착각 반복 금지.
+**원칙**: 실패 시 **절대 세션 "종료"로 처리하지 말 것** — 다른 머신에서 같은 착각 반복 금지.
 
 ## Step 7 — (선택) Research Mode
 자리를 오래 비울 예정이면 "Research Mode를 시작할까요?" 질문.
