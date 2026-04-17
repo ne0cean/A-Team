@@ -12,14 +12,16 @@
   /marketing-generate --topic "주제" --audience "타깃" --keywords "kw1,kw2" --words 3000
   /marketing-generate --brief path/to/brief.md
   /marketing-generate --url "https://..." (리퍼포징용 원문)
+  /marketing-generate --topic "주제" --research content/research/DATE-SLUG/06-brief.json
 
 플래그:
   --topic       생성할 토픽 (필수, --url 없을 시)
   --url         기존 콘텐츠 URL (리퍼포징 시)
+  --research    /marketing-research가 생성한 브리프 JSON 경로 (Step 2 스킵)
   --audience    타깃 오디언스 (기본: 결정하기 위한 질문 1개 함)
   --keywords    콤마 구분 키워드 리스트
   --tone        콘텐츠 톤 (기본: authoritative)
-  --words       목표 단어 수 (기본: 3000)
+  --words       목표 단어 수 (기본: 3000, --research 있으면 브리프 값 우선)
   --lang        언어 (기본: ko, 옵션: en)
   --no-review   인간 리뷰 건너뜀 (비권장 — 품질 저하 경고)
 ```
@@ -31,8 +33,14 @@
 이 콘텐츠의 주요 독자는 누구입니까? (예: "AI 도구를 쓰는 스타트업 창업자")
 ```
 
-### Step 2: Research (웹 검색 사용)
+### Step 2: Research
 
+**`--research` 플래그 있을 시** (권장):
+- 지정된 `06-brief.json` 로드
+- 브리프의 H1-H3 구조, word counts, [HUMAN INSERT] 마커, unique_angle 추출
+- Step 2 자체 리서치 완전 스킵 → Step 3으로 바로 이동
+
+**`--research` 없을 시** (인라인 리서치):
 `governance/skills/marketing/prompts/blog.md`의 Research Prompt 실행:
 - 경쟁 상위 3개 글 분석 (갭 파악)
 - 오디언스 질문 Top 10 추출
