@@ -8,7 +8,9 @@ description: [Turbo] 세션 시작 및 자율 모드 활성화 (One-Stop Start)
 > `/vibe` 수동 실행은 태스크 재분류 또는 컨텍스트 강제 리로드 시에만 필요.
 
 // turbo-all
-1. **Context Loading** (SessionStart 훅 자동): CURRENT.md + DECISIONS.md + git status + 리서치 노트
+1. **Context Loading** (SessionStart 훅 자동):
+   - **프로젝트 레포 동기화 (필수, 가장 먼저)**: `git pull --rebase --autostash origin <branch>` — 다른 PC/세션 커밋 수신 (push 충돌 방지)
+   - CURRENT.md + DECISIONS.md + git status + 리서치 노트
 2. **Task Classification**: Next Tasks → Opus/Gemini 분류 → GEMINI_TASKS.md 갱신
 3. **Model Recommendation**: 태스크 유형별 추천 모델 안내 (opus/sonnet/haiku)
 4. **Execution Mode**: 에이전트 수 분석 → 🟢 단일 / 🟡 A-Team / 🔴 디스패치 / 🟣 MoA

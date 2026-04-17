@@ -303,3 +303,11 @@
 - **master 경로**: /Users/noir/Projects/a-team/.claude/commands/vibe.md
 - **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
 - **상태**: ⏳ pending
+
+### [IMP-20260417-01] — vibe Step 1: 프로젝트 레포 git pull 누락
+- **날짜**: 2026-04-17
+- **출처**: Trading (Trading)
+- **카테고리**: command
+- **우선순위**: P1
+- **내용**: vibe Step 1에서 `git status && git log`만 하고 `git pull`을 안 함. 다른 PC에서 커밋한 변경사항을 모르고 작업하다 push 시 non-fast-forward 충돌 발생. Step 1 또는 Step 0.2 직후에 `git pull --rebase --autostash origin $(git branch --show-current)` 추가 필요.
+- **상태**: ⏳ pending

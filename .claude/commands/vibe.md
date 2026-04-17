@@ -108,9 +108,24 @@ fi
 
 ## Step 1 — 컨텍스트 로드 (SessionStart 훅이 자동 수행)
 새 세션이면 이미 주입됨 → 확인만. 수동 호출이면 아래 실행:
-1. `.context/CURRENT.md` 2. `.context/DECISIONS.md` 3. `memory/MEMORY.md`
-4. `git status && git log --oneline -5`
-5. 새 리서치 노트: `.research/notes/` 에서 CURRENT.md 이후 파일 확인
+
+**1. 프로젝트 레포 동기화 (필수, 가장 먼저)**
+```bash
+# 다른 PC/세션에서 커밋한 내용을 받아야 push 충돌 방지
+BRANCH=$(git branch --show-current 2>/dev/null)
+if [ -n "$BRANCH" ] && git remote get-url origin >/dev/null 2>&1; then
+  echo "🔄 프로젝트 레포 동기화 ($BRANCH)..."
+  git pull --rebase --autostash origin "$BRANCH" 2>&1 | tail -5 || \
+    echo "⚠️ pull 실패 (네트워크/충돌) — 계속 진행, 나중에 수동 처리 필요"
+fi
+```
+- 실패해도 blocking 금지 (네트워크 끊김 등 대응)
+- merge conflict 발생 시 사용자에게 즉시 보고
+
+**2. 컨텍스트 파일 로드**
+- `.context/CURRENT.md` / `.context/DECISIONS.md` / `memory/MEMORY.md`
+- `git status && git log --oneline -5`
+- 새 리서치 노트: `.research/notes/` 에서 CURRENT.md 이후 파일 확인
 
 ## Step 2 — 태스크 분류 (Opus / Gemini)
 CURRENT.md의 Next Tasks를 분류하고 `.context/GEMINI_TASKS.md` 갱신.
