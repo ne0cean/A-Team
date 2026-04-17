@@ -4,6 +4,7 @@
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
 **Phase 14 Optimization Research + Wave 1-3 구현 완료** (305 tests, build PASS, 2026-04-14).
 **jangpm-meta-skills 통합 완료** (2026-04-15): `/autoresearch` + `/blueprint` + reflect IMP 등록.
+**Marketing Module Phase 1 설계 완료** (2026-04-18): `/marketing` 풀 파이프라인 6개 스킬 + 프롬프트 라이브러리 + CEO 에이전트.
 
 ## 🔬 Autoresearch — Shadow Mode (자동 트리거, 사용자 명시 호출 불필요)
 
@@ -21,7 +22,7 @@
 **Override**: AUTORESEARCH-PLAN.md의 `Mode`를 `PAUSED`/`DECIDED`/`DISMISSED`로 변경.
 
 ## In Progress Files
-(없음 — jangpm-meta-skills 통합 Phase 1+3+4 완료)
+- `governance/skills/marketing/` — Marketing Module (Phase 1 완료, Phase 2-3 진행 예정)
 
 ## Next Tasks
 - [ ] **🗓️ 2026-04-22 10:17 KST — `/design-retro` 자동 실행 예약됨** (CronCreate, 1주 실측 후 삭제/튜닝/추가 판정). 크론 소멸 대비 백업 — 이 날짜에 수동으로라도 `/design-retro` 호출.
