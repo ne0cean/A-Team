@@ -4,7 +4,8 @@
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
 **Phase 14 Optimization Research + Wave 1-3 구현 완료** (305 tests, build PASS, 2026-04-14).
 **jangpm-meta-skills 통합 완료** (2026-04-15): `/autoresearch` + `/blueprint` + reflect IMP 등록.
-**Marketing Module Phase 1 설계 완료** (2026-04-18): `/marketing` 풀 파이프라인 6개 스킬 + 프롬프트 라이브러리 + CEO 에이전트.
+**Marketing Module Phase 1 완성** (2026-04-18): 7개 스킬 커맨드 + 6개 프롬프트 + 5개 에이전트 + 3단계 스택.
+**Design Module Phase 1 완성** (2026-04-18): `governance/skills/design/` — 3 에이전트 + 2 프롬프트 라이브러리 + 3개 스킬 커맨드 + Starter 스택.
 
 ## 🔬 Autoresearch — Shadow Mode (자동 트리거, 사용자 명시 호출 불필요)
 
