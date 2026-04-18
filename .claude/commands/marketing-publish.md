@@ -143,3 +143,37 @@ Postiz MCP 설정 필요:
 ```
 
 미설정 시 수동 가이드 모드로 대체 동작 (graceful degradation).
+
+---
+
+## publish-log.md 스키마
+
+발행 추적 로그. 각 발행 시 append-only:
+
+```markdown
+# Publish Log
+
+## YYYY-MM-DD HH:MM:SS — {content_slug}
+
+| 필드 | 값 |
+|------|-----|
+| content_path | content/repurposed/YYYY-MM-DD-slug/ |
+| platforms | twitter, linkedin, instagram |
+| scheduled_at | 2026-04-19 09:00 KST |
+| published_at | 2026-04-19 09:00 KST (또는 "scheduled") |
+| postiz_job_ids | [{platform: "twitter", id: "abc123"}, ...] |
+| status | scheduled / published / failed / partial |
+| visual_assets | content/visuals/YYYY-MM-DD-slug/thumbnail.png |
+| error | (status=failed 시 사유) |
+
+## (다음 발행 - 새 ## 섹션 추가)
+```
+
+**파싱 규칙**:
+- 상위 헤딩(`# Publish Log`) 1개
+- 각 발행은 `## YYYY-MM-DD HH:MM:SS — {slug}` 헤딩
+- 표 형식 메타데이터
+- `marketing-analytics`가 이 로그를 source-of-truth로 참조
+
+**저장 위치**: `content/publish-log.md` (워크스페이스 루트)
+
