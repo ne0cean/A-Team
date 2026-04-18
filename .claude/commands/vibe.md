@@ -85,6 +85,49 @@ fi
 - 부재 시: 기본 vibe 흐름 진행
 - `~/Library/Logs/ateam-sleep-resume.log` 최근 24h 엔트리 있으면 요약 표시
 
+### Step 0.6b — 자동 재개 launchd 설치 (필수, 모든 프로젝트)
+
+토큰 리셋 시 헤드리스 자동 재개를 보장. 현재 프로젝트별 launchd job 자동 설치/확인.
+
+```bash
+# A-Team 경로 탐색
+ATEAM=""
+for c in "$HOME/Projects/a-team" "$HOME/tools/A-Team" "$HOME/A-Team"; do
+  [ -d "$c/.git" ] && ATEAM="$c" && break
+done
+if [ -z "$ATEAM" ]; then
+  echo "⚠️ A-Team 미발견 — 자동 재개 설정 스킵"
+else
+  PROJ="$(pwd -P)"
+  PROJ_NAME="$(basename "$PROJ" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')"
+  LABEL="com.ateam.sleep-resume.${PROJ_NAME}"
+  if [ "$PROJ" = "$ATEAM" ]; then
+    LABEL="com.ateam.sleep-resume"
+  fi
+
+  # launchd job 등록 여부 확인
+  if launchctl list 2>/dev/null | grep -q "$LABEL"; then
+    echo "✅ 자동 재개 설정됨 ($LABEL) — 토큰 리셋 시 OS 크론이 작업 재개"
+  else
+    # RESUME.md 가 있으면 자동 설치, 없으면 안내만
+    if [ -f "$PROJ/.context/RESUME.md" ]; then
+      echo "🔧 RESUME.md 감지 — 자동 재개 launchd 설치 (매 2h)..."
+      bash "$ATEAM/scripts/install-sleep-cron.sh" --project "$PROJ" install "every 2h" 2>&1 | tail -5
+    else
+      echo "💡 자동 재개 미설정 — 장기 작업 시 다음 실행:"
+      echo "   bash $ATEAM/scripts/install-sleep-cron.sh --project \"$PROJ\" install \"every 2h\""
+    fi
+  fi
+fi
+```
+
+**원칙**:
+- RESUME.md 작성하는 모든 자율 작업은 자동으로 OS-level launchd 가 백업
+- 매 2h interval — 토큰 리셋 사이클을 거의 즉시 감지
+- `sleep-resume.sh` 가 rate limit probe → 통과 시에만 본 작업 시작
+- 프로젝트별 독립 (Trading 과 a-team 동시 가능)
+- 종료: `bash $ATEAM/scripts/install-sleep-cron.sh --project "$PROJ" uninstall`
+
 ## Step 0.65 — 예약된 회고 감지
 `CURRENT.md` Next Tasks 에 🗓️ 이모지 포함 + 날짜 매치 시:
 - 오늘이 예약일이면: `📅 {task} 예약일 — 자동 실행 제안`

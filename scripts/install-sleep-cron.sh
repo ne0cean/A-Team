@@ -11,13 +11,42 @@
 
 set -eu
 
-SERVICE_LABEL="com.ateam.sleep-resume"
+# 프로젝트 지정: --project <path> 또는 $PROJECT_DIR 환경변수
+# 미지정 시 A-Team 자체 (하위 호환)
+ATEAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+RESUME_SCRIPT="$ATEAM_ROOT/scripts/sleep-resume.sh"
+
+# 인자 파싱
+PROJECT_ROOT=""
+ARGS=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --project)
+      PROJECT_ROOT="$2"
+      shift 2
+      ;;
+    *)
+      ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+set -- "${ARGS[@]}"
+
+# 환경변수 fallback
+PROJECT_ROOT="${PROJECT_ROOT:-${PROJECT_DIR:-$ATEAM_ROOT}}"
+
+# 프로젝트 basename 으로 service label 생성 (per-project launchd job)
+PROJECT_NAME="$(basename "$PROJECT_ROOT" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-')"
+if [ "$PROJECT_ROOT" = "$ATEAM_ROOT" ]; then
+  SERVICE_LABEL="com.ateam.sleep-resume"
+else
+  SERVICE_LABEL="com.ateam.sleep-resume.${PROJECT_NAME}"
+fi
 PLIST_PATH="$HOME/Library/LaunchAgents/${SERVICE_LABEL}.plist"
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-RESUME_SCRIPT="$PROJECT_ROOT/scripts/sleep-resume.sh"
 
 ACTION="${1:-status}"
-TIME="${2:-03:02}"
+TIME="${2:-every 2h}"
 
 case "$ACTION" in
   install)
@@ -162,13 +191,17 @@ PLIST
     ;;
 
   *)
-    echo "Usage: $0 {install [HH:MM] | uninstall | status}"
+    echo "Usage: $0 [--project PATH] {install [HH:MM | every Nh] | uninstall | status}"
+    echo ""
+    echo "Project (default: A-Team 자신):"
+    echo "  --project /Users/noir/Projects/Trading"
     echo ""
     echo "Examples:"
-    echo "  $0 install 03:02   # 매일 03:02 KST"
-    echo "  $0 install 04:17   # 매일 04:17 KST (리셋 시각에 맞춤)"
-    echo "  $0 uninstall"
-    echo "  $0 status"
+    echo "  $0 install                                 # A-Team, 매 2h"
+    echo "  $0 install 03:02                           # A-Team, 매일 03:02 KST"
+    echo "  $0 --project /Users/noir/Projects/Trading install   # Trading 자동 재개, 매 2h"
+    echo "  $0 --project /Users/noir/Projects/Trading uninstall"
+    echo "  $0 --project /Users/noir/Projects/Trading status"
     exit 1
     ;;
 esac
