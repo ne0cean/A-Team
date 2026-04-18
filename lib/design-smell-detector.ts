@@ -566,12 +566,100 @@ function ruleAI07(opts: DetectOptions): Violation[] {
   return [];
 }
 
+// ──────── RD-03: Low Contrast (WCAG AA) ────────
+// Color + background-color 쌍을 같은 룰에서 찾고 contrast ratio 4.5:1 미만 플래그.
+// Heuristic: CSS 블록 또는 inline style에서 color/background-color 페어 매칭.
+
+function parseColorToRgb(input: string): [number, number, number] | null {
+  const s = input.trim().toLowerCase();
+  // hex #RGB or #RRGGBB
+  const hex = s.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
+  if (hex) {
+    const h = hex[1];
+    if (h.length === 3) {
+      return [parseInt(h[0] + h[0], 16), parseInt(h[1] + h[1], 16), parseInt(h[2] + h[2], 16)];
+    }
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  // rgb() / rgba()
+  const rgb = s.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (rgb) {
+    return [parseInt(rgb[1]), parseInt(rgb[2]), parseInt(rgb[3])];
+  }
+  // named (basic only)
+  const named: Record<string, [number, number, number]> = {
+    white: [255, 255, 255],
+    black: [0, 0, 0],
+    red: [255, 0, 0],
+    green: [0, 128, 0],
+    blue: [0, 0, 255],
+    gray: [128, 128, 128],
+    grey: [128, 128, 128],
+    silver: [192, 192, 192],
+    yellow: [255, 255, 0],
+  };
+  return named[s] || null;
+}
+
+function relativeLuminance([r, g, b]: [number, number, number]): number {
+  const norm = (v: number) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * norm(r) + 0.7152 * norm(g) + 0.0722 * norm(b);
+}
+
+function contrastRatio(fg: [number, number, number], bg: [number, number, number]): number {
+  const lf = relativeLuminance(fg);
+  const lb = relativeLuminance(bg);
+  const lighter = Math.max(lf, lb);
+  const darker = Math.min(lf, lb);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function ruleRD03(opts: DetectOptions): Violation[] {
+  const { file, content } = opts;
+  const violations: Violation[] = [];
+
+  // CSS 블록 단위 매칭 — { ... color: X; background-color: Y; ... }
+  const blockPattern = /\{[^}]+\}/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = blockPattern.exec(content)) !== null) {
+    const block = match[0];
+    const colorMatch = block.match(/(?<![-\w])color\s*:\s*([^;}\s][^;}]*?)(?:[;}]|$)/);
+    const bgMatch = block.match(/background(?:-color)?\s*:\s*([^;}\s][^;}]*?)(?:[;}]|$)/);
+
+    if (!colorMatch || !bgMatch) continue;
+
+    const fg = parseColorToRgb(colorMatch[1]);
+    const bg = parseColorToRgb(bgMatch[1]);
+
+    if (!fg || !bg) continue;
+
+    const ratio = contrastRatio(fg, bg);
+    if (ratio < 4.5) {
+      violations.push({
+        rule: 'RD-03',
+        category: 'readability',
+        severity: ratio < 3 ? 'HIGH' : 'MEDIUM',
+        file,
+        line: lineOf(content, match.index),
+        match: `WCAG contrast ${ratio.toFixed(2)}:1 (color: ${colorMatch[1].trim()}, bg: ${bgMatch[1].trim()})`,
+        fix: `WCAG AA requires ≥4.5:1 for normal text, ≥3:1 for large text (18pt+/14pt bold). Adjust color or background.`,
+      });
+    }
+  }
+
+  return violations;
+}
+
 // ──────── Main detector ────────
 
 const RULES = [
   ruleAI01, ruleAI02, ruleAI03, ruleAI04, ruleAI05, ruleAI06, ruleAI08,
   ruleAI07,
-  ruleRD01, ruleRD02, ruleRD04, ruleRD05, ruleRD06,
+  ruleRD01, ruleRD02, ruleRD03, ruleRD04, ruleRD05, ruleRD06,
   ruleA11y01, ruleA11y02, ruleA11y03, ruleA11y04, ruleA11y05,
   ruleLS01, ruleLS02, ruleLS03,
 ];

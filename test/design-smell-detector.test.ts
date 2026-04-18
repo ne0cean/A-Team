@@ -122,6 +122,58 @@ describe('design-smell-detector', () => {
       });
       expect(r.violations.some(v => v.rule === 'RD-06')).toBe(true);
     });
+
+    it('RD-03 detects low contrast (gray on white < 4.5:1)', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: 'p { color: #999999; background-color: #ffffff; }',
+      });
+      const v = r.violations.find(x => x.rule === 'RD-03');
+      expect(v).toBeDefined();
+      expect(v!.match).toContain('contrast');
+    });
+
+    it('RD-03 passes high contrast (black on white)', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: 'p { color: #000000; background-color: #ffffff; }',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-03')).toBe(false);
+    });
+
+    it('RD-03 flags HIGH severity for very low contrast (< 3:1)', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: 'p { color: #cccccc; background-color: #eeeeee; }',
+      });
+      const v = r.violations.find(x => x.rule === 'RD-03');
+      expect(v).toBeDefined();
+      expect(v!.severity).toBe('HIGH');
+    });
+
+    it('RD-03 supports rgb() syntax', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: 'p { color: rgb(150, 150, 150); background-color: rgb(255, 255, 255); }',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-03')).toBe(true);
+    });
+
+    it('RD-03 supports named colors (gray on white)', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: 'p { color: gray; background-color: white; }',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-03')).toBe(true);
+    });
+
+    it('RD-03 ignores blocks without both color and bg', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: 'p { color: #999; } div { background: white; }',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-03')).toBe(false);
+    });
   });
 
   describe('A11y rules (non-negotiable)', () => {
