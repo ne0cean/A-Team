@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**406 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-18).
+**411 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-18).
 
 **최근 완성**:
 - **Marketing/Design Module Phase 1+2** (2026-04-18): 풀 콘텐츠+비주얼 자동화 — 8 스킬 커맨드 + 13 프롬프트 + 8 에이전트 + 6 스택 + 4 워크플로우(n8n/Make.com) + 파일럿 검증.
@@ -40,7 +40,7 @@
 ### Medium Priority
 - [ ] **`/autoresearch` 파일럿 실행** — target 커맨드 1개(`/office-hours`) baseline + 3-5 experiments
 - [ ] **`/blueprint` 실사용 1회** — 다음 기능을 blueprint로 문서화 → `/autoplan` 검토
-- [ ] **PMI MEDIUM 미연결 항목** (pmi-2026-04-15.md M1-M4): logDesignAudit/logDesignOutcome 호출 경로, PostToolUse 훅 실제 설정
+- [ ] **PMI MEDIUM M3-M4** (pmi-2026-04-15.md): PostToolUse 훅 (`.claude/settings.json` 사용자 로컬), ralph-daemon sleep-mode flag. M1+M2 완료 (`scripts/audit-design.mjs` CLI).
 - [ ] **eval-store A/B 수집 개시** (advisor-on/off 50 샘플 → harness-score 비교)
 - [ ] **Phase 1.5 skip rate 실측** (pre-check 에이전트 첫 데이터)
 - [ ] **CSO-L03 GPG 서명 + CI** (GitHub Actions npm test on PR)

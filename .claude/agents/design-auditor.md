@@ -26,20 +26,22 @@ model: haiku
 
 ### 1. Static Detector 실행 (토큰 0)
 
-각 파일에 대해:
-```bash
-node -e "
-const { detectDesignSmells } = require('./lib/design-smell-detector.ts');
-const fs = require('fs');
-const content = fs.readFileSync('<file>', 'utf-8');
-const tone = '<tone from .design-override.md>';
-const result = detectDesignSmells({ file: '<file>', content, tone });
-console.log(JSON.stringify(result));
-"
-```
-(실제로는 프로젝트에 맞는 실행 방식 사용: vitest, node --import tsx, 등)
+`scripts/audit-design.mjs` CLI 호출:
 
-결과: `{ score, violations[], summary, tokens_consumed: 0 }`
+```bash
+npx tsx scripts/audit-design.mjs <file1> <file2> --tone=<tone> --gate=<ship|craft|default>
+# tone 생략 시 .design-override.md 자동 로드
+# 옵션: --repo=<name>, --analytics=<path/to/analytics.jsonl>
+```
+
+Exit code:
+- `0` — pass (score ≥ threshold AND a11y === 0)
+- `1` — fail (score 미달 또는 a11y 위반)
+- `2` — error (파일 없음 등)
+
+stdout: `{ status, repo, tone, gate_context, threshold, all_passed, files: [{file, score, passed, summary, violations}], tokens_consumed: 0 }`
+
+`logDesignAudit()` 자동 호출 → `.context/analytics.jsonl` append (M2 closure).
 
 ### 2. LLM Critique (gray-zone 2 rules, 필요 시만)
 
@@ -59,17 +61,10 @@ console.log(JSON.stringify(result));
 
 LLM critique는 **필요 시만** — 기본은 static만으로 결정.
 
-### 3. Analytics 기록
+### 3. Analytics 기록 (자동)
 
-`lib/analytics.ts` `logDesignAudit()` 호출:
-```typescript
-logDesignAudit(result, {
-  repo: <현재 레포>,
-  tone: <tone>,
-  gateContext: <gate_context>,
-  passed: result.score >= threshold && result.summary.a11y === 0,
-}, '<analytics jsonl path>')
-```
+`scripts/audit-design.mjs` 가 내부적으로 `logDesignAudit()` 호출 → `.context/analytics.jsonl` append.
+별도 추가 호출 불필요. 학습 outcome (`logDesignOutcome`)은 사용자 반응 분류 시 orchestrator가 호출.
 
 ### 4. 구조화 출력
 
