@@ -5,7 +5,7 @@
 **Phase 14 Optimization Research + Wave 1-3 구현 완료** (305 tests, build PASS, 2026-04-14).
 **jangpm-meta-skills 통합 완료** (2026-04-15): `/autoresearch` + `/blueprint` + reflect IMP 등록.
 **Marketing Module Phase 1 완성** (2026-04-18): 7개 스킬 커맨드 + 6개 프롬프트 + 5개 에이전트 + 3단계 스택.
-**Design Module Phase 1 완성** (2026-04-18): `governance/skills/design/` — 3 에이전트 + 2 프롬프트 라이브러리 + 3개 스킬 커맨드 + Starter 스택.
+**Design Module Phase 1+2 완성** (2026-04-18): `governance/skills/design/` — 3 에이전트 + 5 프롬프트 (image-gen/thumbnail/social-visual/brand/interactive) + 4 스킬 커맨드 (brief/generate/thumbnail/audit) + 3단계 스택 (starter/pro/enterprise) + INTEGRATION.md (Marketing 연동).
 
 ## 🔬 Autoresearch — Shadow Mode (자동 트리거, 사용자 명시 호출 불필요)
 
