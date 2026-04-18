@@ -41,6 +41,22 @@ describe('design-smell-detector', () => {
       expect(r.violations.some(v => v.rule === 'AI-02')).toBe(true);
     });
 
+    it('AI-02 skipped when paired with monospace', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: 'body { font-family: "Inter", system-ui, sans-serif; } code { font-family: "IBM Plex Mono", monospace; }',
+      });
+      expect(r.violations.some(v => v.rule === 'AI-02')).toBe(false);
+    });
+
+    it('AI-02 skipped when paired with serif display font', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: 'body { font-family: "Inter"; } h1 { font-family: "Playfair Display", serif; }',
+      });
+      expect(r.violations.some(v => v.rule === 'AI-02')).toBe(false);
+    });
+
     it('detects AI-03 AI triad (grid-3 + rounded-2xl + shadow-lg)', () => {
       const r = detectDesignSmells({
         file: 'a.tsx',
@@ -111,6 +127,39 @@ describe('design-smell-detector', () => {
       const r = detectDesignSmells({
         file: 'a.css',
         content: 'p { font-size: 11px; }',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-04')).toBe(true);
+    });
+
+    it('RD-04 skipped for caption class (.meta) at 12px', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: '.meta { font-size: 12px; }',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-04')).toBe(false);
+    });
+
+    it('RD-04 skipped for .footer-meta and .layer-tag at 11px', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: '.footer-meta { font-size: 11px; } .layer-tag { font-size: 11px; }',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-04')).toBe(false);
+    });
+
+    it('RD-04 skipped under tone=editorial-technical at 12px', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: 'p { font-size: 12px; }',
+        tone: 'editorial-technical',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-04')).toBe(false);
+    });
+
+    it('RD-04 still flags 9px even in caption class (under hard floor)', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: '.caption { font-size: 9px; }',
       });
       expect(r.violations.some(v => v.rule === 'RD-04')).toBe(true);
     });

@@ -106,10 +106,14 @@ function ruleAI01(opts: DetectOptions): Violation[] {
 }
 
 // AI-02 Generic font stack (solo usage, no pairing)
+// Skips violation if the file pairs the generic with a distinctive font (mono/serif/display).
 function ruleAI02(opts: DetectOptions): Violation[] {
   const { file, content } = opts;
   const fonts = CONFIG.detectorConfig.genericFonts;
+  const pairingPattern = /font-family\s*:\s*[^;{}]*?(?:monospace|serif|IBM\s+Plex|JetBrains\s+Mono|SF\s+Mono|Plex\s+Mono|Fira\s+Code|Iosevka|PT\s+Serif|Source\s+Serif|Recoleta|Cormorant|Playfair|Geist\s+Mono|Menlo|Consolas|Courier)/i;
+  const hasPairing = pairingPattern.test(content);
   const out: Violation[] = [];
+  if (hasPairing) return out;
   for (const font of fonts) {
     const escaped = font.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const p = new RegExp(`font-family\\s*:\\s*["']?${escaped}["']?`, 'gi');
@@ -261,25 +265,37 @@ function ruleRD02(opts: DetectOptions): Violation[] {
 }
 
 // RD-04 Tiny body text
+// Tone-aware: editorial-technical/brutalist/bold-typographic legitimately use 11-13px captions.
+// Class-aware: when font-size lives inside a caption/meta/label/footer-meta selector, allow ≥10px.
+const RD04_CAPTION_TONES = new Set(['editorial-technical', 'brutalist', 'bold-typographic', 'minimal']);
+const RD04_CAPTION_CLASS = /\.(?:caption|meta|label|footer[-_]?meta|pretitle|pre[-_]?title|tag|hint|small|micro|footnote|tooltip|layer[-_]?tag|chip|badge|crumb|byline|copyright|kbd|code\b)/i;
+const RD04_CAPTION_MIN = 10; // hard floor — anything below 10px is always flagged
+
 function ruleRD04(opts: DetectOptions): Violation[] {
-  const { file, content } = opts;
+  const { file, content, tone } = opts;
+  const isCaptionTone = tone ? RD04_CAPTION_TONES.has(tone) : false;
+  const minBody = CONFIG.detectorConfig.minBodyFontSize;
   const p = /font-size\s*:\s*(\d+)px/gi;
   const out: Violation[] = [];
   let m: RegExpExecArray | null;
-  const re = new RegExp(p.source, 'gi');
-  while ((m = re.exec(content)) !== null) {
+  while ((m = p.exec(content)) !== null) {
     const v = parseInt(m[1], 10);
-    if (v > 0 && v < CONFIG.detectorConfig.minBodyFontSize) {
-      out.push({
-        rule: 'RD-04',
-        category: 'readability',
-        severity: 'LOW',
-        file,
-        line: lineOf(content, m.index),
-        match: m[0],
-        fix: `Body text ≥ ${CONFIG.detectorConfig.minBodyFontSize}px (12px allowed only for meta/caption).`,
-      });
-    }
+    if (v <= 0 || v >= minBody) continue;
+    // Walk back to nearest closing brace (or BOF) to grab the current selector context
+    const before = content.slice(0, m.index);
+    const lastBrace = before.lastIndexOf('}');
+    const selectorContext = before.slice(lastBrace + 1);
+    const isInCaptionClass = RD04_CAPTION_CLASS.test(selectorContext);
+    if (v >= RD04_CAPTION_MIN && (isInCaptionClass || isCaptionTone)) continue;
+    out.push({
+      rule: 'RD-04',
+      category: 'readability',
+      severity: 'LOW',
+      file,
+      line: lineOf(content, m.index),
+      match: m[0],
+      fix: `Body text ≥ ${minBody}px (caption classes may use ≥${RD04_CAPTION_MIN}px; editorial tones relaxed).`,
+    });
   }
   return out;
 }

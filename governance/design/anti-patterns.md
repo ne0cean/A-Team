@@ -33,6 +33,11 @@
 - `Inter`, `Roboto`, `Arial`, `Helvetica Neue`, `Space Grotesk` 단독
 - 페어링 없음 (display + body 구분 없음)
 
+**예외 (페어링 인식)**: 같은 파일에 distinctive font가 함께 선언되면 위반 아님.
+- 키워드: `monospace`, `serif`, `IBM Plex`, `JetBrains Mono`, `Plex Mono`, `SF Mono`,
+  `Fira Code`, `Iosevka`, `PT Serif`, `Source Serif`, `Recoleta`, `Cormorant`,
+  `Playfair`, `Geist Mono`, `Menlo`, `Consolas`, `Courier`.
+
 **Fix**: tone별 추천 페어링 적용. `@font-face` 또는 CSS variable.
 
 ### [AI-03] AI Triad (grid-3 + rounded-2xl + shadow-lg)
@@ -95,7 +100,13 @@
 
 ### [RD-04] Tiny Body Text
 **감지**: body 텍스트 `font-size < 14px` (모바일 대응).
-**Fix**: 최소 14px (본문), 12px 허용은 메타/caption만.
+**예외 (caption 클래스)**: 셀렉터가 `.caption`, `.meta`, `.label`, `.footer-meta`,
+`.pretitle`, `.tag`, `.hint`, `.small`, `.micro`, `.footnote`, `.tooltip`, `.layer-tag`,
+`.chip`, `.badge`, `.crumb`, `.byline`, `.copyright`, `.kbd` 중 하나면 ≥10px 허용.
+**예외 (tone)**: `tone` 옵션이 `editorial-technical`, `brutalist`, `bold-typographic`,
+`minimal` 중 하나면 ≥10px 허용 (Linear/Stripe/Bloomberg/Rauno 톤).
+**하한선**: 10px 미만은 어떤 경우에도 위반.
+**Fix**: 최소 14px (본문), 10-13px는 caption/meta 한정.
 
 ### [RD-05] Heading Hierarchy Skip
 **감지**: DOM에서 h1 → h3, h2 → h4 등 단계 skip.
