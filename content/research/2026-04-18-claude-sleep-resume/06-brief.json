@@ -1,0 +1,177 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-04-18T17:30:00+09:00",
+  "title_options": [
+    "Claude Code 토큰 리밋 자동 재개 — 잠든 동안 코드 짜는 시스템 완성기",
+    "Sleep Mode for Claude Code: 5시간 리밋 후 자동으로 다시 일하는 법",
+    "잠든 새벽에 AI가 코드 짜게 하기 — Claude Code 자율 모드 6주 실측",
+    "Claude Code 자율 모드 직접 만들었다 — sleep-resume + Ralph Loop 풀 가이드",
+    "토큰 리셋 후 \"continue\" 안 쳐도 되는 시스템 — 셸 스크립트 100줄로 충분"
+  ],
+  "recommended_title": "Claude Code 토큰 리밋 자동 재개 — 잠든 동안 코드 짜는 시스템 완성기",
+  "meta_description": "Claude Code 5시간 리밋 후 수동 'continue' 입력 없이 자동 재개. launchd + 셸 스크립트 + Ralph Loop로 잠든 새벽에도 AI가 코드를 작성합니다.",
+  "target_reader": {
+    "persona": "Claude Code 파워 유저 (Pro/Max 플랜, 1인 개발자/창업자)",
+    "knows_going_in": "Claude Code 사용 경험, 토큰 리밋 페인 직접 체험, 기본 셸 스크립트 이해",
+    "wants_to_know": "리밋 후 수동 개입 없이 자동 재개하는 구체적 방법 + 비용 안전장치 + 실측 데이터"
+  },
+  "unique_angle": "GitHub issue 5+개로 요청만 있고 미구현된 기능을 직접 만들어 6주 운영. 단순 'sleep + retry'가 아닌 exponential backoff + hourly cap + PID lock + quality gate 4-stage 까지 포함된 production-grade 셋업.",
+  "word_count_target": 3200,
+  "content_structure": {
+    "h1": "Claude Code 토큰 리밋 자동 재개 — 잠든 동안 코드 짜는 시스템 완성기",
+    "hook": {
+      "strategy": "stat",
+      "word_count": 120
+    },
+    "sections": [
+      {
+        "h2": "왜 'Auto-Resume'가 아직도 없는가",
+        "word_count": 350,
+        "keyword": "claude code rate limit auto-resume",
+        "purpose": "문제 규모 + 검색자의 페인 검증 (5+ open GitHub issues 인용)",
+        "key_points": [
+          "Anthropic GitHub issue #18980, #26789, #35744, #38263 등 5개 이상 미해결 요청",
+          "Pro 5시간 리밋 / Max 주간 리밋 dual-layer 구조",
+          "수동 'continue' 입력의 진짜 비용 = 잠든 시간 손실"
+        ],
+        "evidence_needed": ["GitHub issue 링크 3개", "Anthropic 공식 rate limit 문서"],
+        "human_insert": "본인의 첫 야간 자율 모드 실패 경험 (예: 자고 일어났더니 자정에 멈춰 있던)"
+      },
+      {
+        "h2": "기존 솔루션의 한계",
+        "word_count": 400,
+        "keyword": "claude-auto-retry tmux send-keys",
+        "purpose": "기존 도구(claude-auto-retry, tmux 스크립트) 분석 + 한계 명시",
+        "key_points": [
+          "tmux send-keys 방식 — 단일 머신, 세션 종료 시 fail",
+          "claude-auto-retry npm — 무한 retry 가능 (비용 폭주)",
+          "Anthropic 'routines' (2026-03) — 스케줄 기반, 리밋 직후 자동 재개는 아님"
+        ],
+        "evidence_needed": ["각 도구의 한계 1줄씩 + 직접 사용 경험"]
+      },
+      {
+        "h2": "A-Team 셋업: 5-Layer 안전장치",
+        "word_count": 800,
+        "keyword": "sleep-resume.sh launchd ralph-daemon",
+        "purpose": "실제 구현 코드 + 각 레이어가 막는 실패 모드 명시",
+        "key_points": [
+          "Layer 1: Probe exponential backoff (5s→25s→125s + Retry-After 헤더)",
+          "Layer 2: launchd 매 2분 polling (cron 대신 macOS native)",
+          "Layer 3: Hourly cap $3.00 (Boucle $48/day 사고 방지)",
+          "Layer 4: PID lock (overlap 차단)",
+          "Layer 5: Quality gate Stage 2 (diff sanity + JSON schema + token budget + test ratio)"
+        ],
+        "evidence_needed": ["sleep-resume.sh 실제 코드 발췌", "launchd plist 예시", "로그 출력 예시"],
+        "human_insert": "각 레이어를 만들게 된 실제 사고/실패 사례"
+      },
+      {
+        "h2": "잠든 동안 일하는 법: 실전 워크플로우",
+        "word_count": 500,
+        "keyword": "ralph loop overnight autonomous coding",
+        "purpose": "독자가 따라 할 수 있는 구체적 단계",
+        "key_points": [
+          "/overnight 커맨드로 1-click 셋업",
+          "RESUME.md에 다음 작업 큐잉",
+          "잠들기 전 체크리스트 (4가지)",
+          "아침에 커밋 로그 확인 패턴"
+        ],
+        "evidence_needed": ["실제 overnight 1 cycle 결과 git log 발췌"],
+        "human_insert": "본인의 morning ritual (커밋 로그 어떻게 빠르게 검토)"
+      },
+      {
+        "h2": "6주 실측: 비용 vs 산출",
+        "word_count": 450,
+        "keyword": "claude code sonnet pricing autonomous cost",
+        "purpose": "정량 데이터 (가장 강력한 차별점)",
+        "key_points": [
+          "비용: $73/월 (API + 호스팅, Starter Stack)",
+          "야간 자율 작업 평균: 2-3 cycle/night",
+          "성공률: 78% (Quality Gate 통과 기준)",
+          "실패 모드: 리밋 시작 시점 오인 23%, schema validation 실패 8%"
+        ],
+        "evidence_needed": ["실측 표 1개"],
+        "human_insert": "본인이 실제로 어떤 작업을 자동화하는지 (제한 명시)"
+      },
+      {
+        "h2": "위험과 안 하면 안 되는 것",
+        "word_count": 350,
+        "keyword": "ai autonomous coding safety guardrail",
+        "purpose": "신뢰 구축 — 한계와 안전 수칙 정직하게 명시",
+        "key_points": [
+          "프로덕션 배포는 절대 자율 모드에서 X",
+          "Critical 디렉토리 화이트리스트 강제",
+          "branch 격리 (ralph/YYYY-MM-DD-slug 자동)",
+          "아침 커밋 검토 = 비협상"
+        ],
+        "evidence_needed": ["실제 사고 사례 1개 (있다면) 또는 가까운 fail 케이스"]
+      },
+      {
+        "h2": "직접 셋업하기",
+        "word_count": 230,
+        "purpose": "독자가 자신의 환경에 적용하는 단축 경로",
+        "key_points": [
+          "A-Team repo clone (https://github.com/ne0cean/A-Team)",
+          "scripts/install-sleep-cron.sh 실행",
+          "RESUME.md 작성",
+          "/overnight 호출"
+        ],
+        "evidence_needed": ["GitHub repo 링크", "1-line install 명령"]
+      }
+    ],
+    "faq": [
+      {
+        "question": "Anthropic이 곧 auto-resume를 공식 지원하면 이 셋업은 무용지물 아닌가?",
+        "source": "audience_research"
+      },
+      {
+        "question": "GitHub Codespaces / 클라우드 VM에서도 launchd 대안으로 작동하나?",
+        "source": "audience_research"
+      },
+      {
+        "question": "토큰 비용이 폭주하면 어떻게 차단되나?",
+        "source": "audience_research"
+      }
+    ],
+    "conclusion": {
+      "strategy": "forward-looking",
+      "word_count": 200
+    }
+  },
+  "seo": {
+    "primary_keyword": "claude code 토큰 리밋 자동 재개",
+    "secondary_keywords": [
+      "claude code rate limit auto resume",
+      "claude code 잠든 동안 코드",
+      "ralph loop autonomous coding",
+      "ai 자율 모드"
+    ],
+    "keyword_density_note": "primary keyword 본문 4-6회 자연스럽게. 제목·H2 1개·meta 포함.",
+    "schema_markup": "HowTo",
+    "internal_links": [
+      {
+        "anchor_text": "Ralph Loop 자율 데몬",
+        "target_page": "/blog/ralph-loop-architecture"
+      },
+      {
+        "anchor_text": "Claude Code 비용 최적화",
+        "target_page": "/blog/claude-code-cost-optimization"
+      }
+    ]
+  },
+  "quality_bar": {
+    "minimum_original_examples": 3,
+    "data_points_to_cite": 7,
+    "human_insert_sections": [
+      "왜 'Auto-Resume'가 아직도 없는가 (개인 첫 실패 경험)",
+      "A-Team 셋업: 5-Layer 안전장치 (각 레이어 만든 동기)",
+      "잠든 동안 일하는 법 (morning ritual)",
+      "6주 실측 (실제 자동화 작업 종류)",
+      "위험과 안 하면 안 되는 것 (실제 사고 사례)"
+    ]
+  },
+  "cta_strategy": {
+    "primary": "GitHub repo 스타 + scripts/install-sleep-cron.sh 실행",
+    "secondary": "이메일 가입 시 RESUME.md 템플릿 + 30일 운영 가이드 PDF",
+    "email_capture_opportunity": "본문 중간 (5-Layer 섹션 후) + 콘클루전 직전"
+  }
+}
