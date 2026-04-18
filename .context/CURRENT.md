@@ -26,13 +26,15 @@
 **Override**: AUTORESEARCH-PLAN.md의 `Mode`를 `PAUSED`/`DECIDED`/`DISMISSED`로 변경.
 
 ## In Progress Files
-- `governance/skills/marketing/` — Marketing Module (Phase 1 완료, Phase 2-3 진행 예정)
+- (Phase 3 라이브 검증 종결 — Postiz 인프라 셋업 시 발행 가능)
 
 ## Next Tasks
 
 ### High Priority
 - [ ] **🗓️ 2026-04-22 10:17 KST — `/design-retro` 자동 실행 예약됨** (CronCreate). 크론 소멸 대비 백업으로 수동 실행도 OK.
-- [ ] **마케팅 + 디자인 모듈 실전 파일럿 확장** — 1개 콘텐츠를 실제 발행해서 publish-log + analytics 데이터 흐름 검증
+- [ ] **Postiz Docker 가동 + OAuth** → `content/social/2026-04-18-claude-sleep-resume/` 실제 발행 → publish-log status: scheduled로 전환
+- [ ] **[HUMAN INSERT] 3개 채우기** — LinkedIn 2개 + Instagram caption 1개 (1-2분)
+- [ ] **design-auditor false positive 수정** — RD-04 tone-aware threshold (editorial 11-13px 허용), AI-02 페어링 mono fonts 인식
 - [ ] **Advisor tool 라이브 API 테스트** — `ANTHROPIC_API_KEY` 환경 설정 + `useSdkPath=true` + `ralph --once` (이번 세션에서 키 부재로 스킵)
 
 ### Medium Priority

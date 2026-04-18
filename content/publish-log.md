@@ -15,7 +15,7 @@
 | published_at | — (dry-run) |
 | postiz_job_ids | [{"platform":"twitter","id":"dry-run-tw-001"},{"platform":"linkedin","id":"dry-run-li-001"},{"platform":"instagram","id":"dry-run-ig-001"}] |
 | status | dry-run |
-| visual_assets | content/visuals/2026-04-18-claude-sleep-resume/og-image.html (PNG 미변환) |
+| visual_assets | content/visuals/2026-04-18-claude-sleep-resume/og-image.html + og-image.png (43KB, rendered) |
 | error | — |
 | notes | Phase 3 라이브 검증 파일럿. Native social-first mode. Brief schema validated. 인간 편집 미완료. |
 
@@ -24,7 +24,8 @@
 - [x] Brief schema valid
 - [x] 4 콘텐츠 파일 작성 완료 (Twitter/LinkedIn/Instagram + Art direction brief)
 - [ ] [HUMAN INSERT] 마커 채워짐 (3개 중 0개)
-- [ ] OG image PNG 변환
+- [x] OG image PNG 변환 (Playwright, 43KB)
+- [x] design-auditor 통과 (AI smell 0-1/10, A11Y PASS, ship-ready)
 - [ ] Postiz MCP 연결
 - [ ] Midjourney API 연결
 
