@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**400 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-18).
+**406 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-18).
 
 **최근 완성**:
 - **Marketing/Design Module Phase 1+2** (2026-04-18): 풀 콘텐츠+비주얼 자동화 — 8 스킬 커맨드 + 13 프롬프트 + 8 에이전트 + 6 스택 + 4 워크플로우(n8n/Make.com) + 파일럿 검증.
@@ -34,7 +34,7 @@
 - [ ] **🗓️ 2026-04-22 10:17 KST — `/design-retro` 자동 실행 예약됨** (CronCreate). 크론 소멸 대비 백업으로 수동 실행도 OK.
 - [ ] **Postiz Docker 가동 + OAuth** → `content/social/2026-04-18-claude-sleep-resume/` 실제 발행 → publish-log status: scheduled로 전환
 - [ ] **[HUMAN INSERT] 3개 채우기** — LinkedIn 2개 + Instagram caption 1개 (1-2분)
-- [ ] **design-auditor false positive 수정** — RD-04 tone-aware threshold (editorial 11-13px 허용), AI-02 페어링 mono fonts 인식
+- [x] ~~**design-auditor false positive 수정**~~ ✅ `cdc8f5c` — RD-04 caption-class + tone-aware, AI-02 페어링 감지. og-image 점수 64→92.
 - [ ] **Advisor tool 라이브 API 테스트** — `ANTHROPIC_API_KEY` 환경 설정 + `useSdkPath=true` + `ralph --once` (이번 세션에서 키 부재로 스킵)
 
 ### Medium Priority
