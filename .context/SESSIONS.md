@@ -2,6 +2,143 @@
 
 ---
 
+## [2026-04-11] 7-Pass 최적화 파이프라인 (PIOP + benchmark + doc-sync + CSO + CB 통합)
+
+**최종 지표**: 237 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities, Harness L5 (82.7/100)
+**커밋 체인**: `497934b` PIOP → `2f23743` CSO → `{final}` CB 단일화 + 아카이브
+
+핵심 작업:
+1. **`/optimize` (PIOP)** — Phase 1-5, 7개 Cross-Module Wiring, 토큰 -11.8%
+2. **`/benchmark --diff`** — NEW BASELINE (`.context/benchmarks/2026-04-11.json`)
+   - npm test 1.47s avg, tsc 0.74s, 19 test files / 237 tests
+3. **`/doc-sync`** — Health Score 92/100, STALE 2건 auto-fix, BROKEN 0
+4. **`/cso`** — OWASP Top 10 + STRIDE 8단계, HIGH 3 + MEDIUM 4 + LOW 3 발견 + 8건 즉시 패치
+   - CSO-H01 `.research/` 세션 UUID 노출 차단
+   - CSO-H02 `vite 8.0.0-8.0.4` 3 CVEs → `npm audit fix`
+   - CSO-H03 `daemon-utils.mjs` `bypassPermissions` 무음 폴백 → `'plan'` 명시
+   - CSO-M01~M04: env 전파 / atomicWriteJSON / 이상감지 / Threat Model
+   - CSO-L02: 셸 메타문자 경고 강화
+5. **SimpleCircuitBreaker 완전 통합** — `lib/advisor-breaker-config.json` 단일 진실 공급원
+6. **보안 테스트 +13** — `test/security-remediation.test.ts`
+7. **세션 아카이브** — `.context/benchmarks/` + `.context/security-reports/`
+
+추가 PIOP Phase 1-5 — Cross-Module Wiring + Token Optimization (224 tests):
+- 7개 Cross-Module Wiring (daemon-utils ↔ ralph-daemon ↔ analytics ↔ learnings ↔ end.md ↔ vibe.md ↔ claude-code.md)
+- 에이전트 총 토큰: 7,232 → 6,376 words (-11.8%)
+- Harness Score: L5 (82.7/100)
+
+Adversarial Review 14건 보안 리메디에이션 (224 tests, +53 신규):
+- HIGH 5건: 셸 인젝션 / 모델 allowlist / Prompt Injection / SDK 환경 오염 / 예산 게이트
+- MEDIUM 6건: model-pricing.json / SimpleCircuitBreaker / Opus fallback / sampling_required / 유니코드 공백 / atomicWriteJSON / SSRF / 스키마 검증
+- LOW 3건: ADVISOR 상수화 / eval-store validation
+- 신규: `lib/model-pricing.json`, `test/security-remediation.test.ts`
+
+토큰 비용 추정 + Pre-Check 에이전트 (171 tests):
+- `lib/cost-tracker.ts` MODEL_PRICING + estimateCostUsd
+- `.claude/agents/pre-check.md` (Haiku, Phase 1.5 Skip Gate, confidence ≥ 0.95)
+
+Unified Advisor Architecture Phase 1+2 — `advisor_20260301` 통합 (166 tests):
+- Anthropic 2026-04-09 공개 advisor tool 베타 통합
+- 공식 벤치: SWE-bench +2.7pp, 비용 -11.9%, BrowseComp 2.09×
+- Layer A (Pre-Check + 조건부 Reviewer) + Layer B (advisor tool 데몬)
+- `governance/workflows/advisor-architecture.md` 청사진
+
+---
+
+## [2026-04-09 ~ 2026-04-10] PIOP 최적화 + /improve + UI Auto-Inspect
+
+**2026-04-10 PIOP 최적화** (153 tests):
+- optimize.md → thin 래퍼 (-380 words)
+- vibe.md Daily Tip 외부화 → daily-tips.md
+- orchestrator.md MoA 외부화 → workflows/moa.md
+- state-machine.ts 고아 모듈 → orchestrator phase 라이프사이클 연결
+- 에이전트 총 토큰 -5.6%, 커맨드 총 토큰 -8.5%
+
+**`/improve` 역방향 피드백 시스템**:
+- `.claude/commands/improve.md` (등록/조회/반영 3모드)
+- `improvements/pending.md` + `done.md`
+- vibe.md Step 0.8 세션 시작 시 알림
+
+**정기 7축 최적화**: `governance/workflows/biweekly-optimize.md` (체인/계위/토큰/연쇄/루프/퍼포먼스/Dead Path)
+
+**2026-04-09 UI Auto-Inspect**:
+- `scripts/browser/` Playwright CLI 6개 스크립트
+- PreToolUse + PostToolUse 훅 (캡처 + diff + 좌표 + additionalContext)
+- `.claude/agents/ui-inspector.md` (Bash+Read, MCP 0 오버헤드)
+- `governance/rules/visual-verification.md`
+- MCP 대비 토큰 93% 절감 (15,000 → ~1,000 tok/검증)
+
+---
+
+## [2026-04-07] 컨텍스트창 최적화 — 서브에이전트 아키텍처 전환
+
+- 9개 서브에이전트 신규: cso/adversarial/review-pr/benchmark/qa/doc-sync/autoplan/tdd/guardrail
+- 9개 슬래시 커맨드 → thin 래퍼 (3-5KB → ~350B, 메인 컨텍스트 90%+ 절감)
+- install-commands.sh cp→symlink 전환
+- vibe.md Step 0.3 Daily Tip
+- Tier 2 guardrail 에이전트 (Haiku, 코드 변경 후 자동 체크)
+- 자동 트리거링: 에이전트 description 자연어 매칭
+
+---
+
+## [2026-03-30] bkit 차용 + PIOP MEDIUM wiring + Ralph Loop 실전 + 외부 레포 차용 (153 tests)
+
+**bkit 차용 (4 모듈, 33 신규 테스트)**:
+- `lib/circuit-breaker.ts` 3-state 회로 차단기
+- `lib/state-machine.ts` 선언적 FSM
+- `lib/gate-manager.ts` Quality Gate (pass/retry/fail)
+- `lib/self-healing.ts` 자동 복구 파이프라인 (Error→Fix→Verify, max 5)
+
+**PIOP MEDIUM priority wiring** (연결율 34.3% → 54.3%):
+- vibe.md Step 0.7: learnings/instinct 세션 시작 로드
+- orchestrator.md: Phase 0 hook_tier, Phase 3.7 학습 주입
+- reviewer.md: adversarial counter-check, coverage-audit 검증
+- end.md Step 3.5: eval-store 세션 결과 저장
+
+**Ralph Loop 실전 테스트 성공**: haiku가 `formatLearning()` + 테스트 4건 자율 구현
+
+**3개 외부 레포 차용 (7 모듈, 49 테스트 → 116)**:
+- `lib/adversarial.ts` ← harness-diagnostics
+- `lib/harness-score.ts` ← harness-diagnostics
+- `lib/hook-flags.ts` / `quality-gate.ts` / `cost-tracker.ts` / `instinct.ts` / `config-protection.ts` ← everything-claude-code
+
+**Post-Integration Optimization Protocol (PIOP) 생성**:
+- `governance/workflows/post-integration.md` (5-Phase)
+- `/optimize` 슬래시 커맨드
+- vibe.md Step 0.5 + end.md Step 3.5 + orchestrator.md Phase 5.7
+
+**gstack 핵심 코드 TDD 차용** (7 모듈, 67 테스트):
+- `lib/learnings.ts` / `confidence.ts` / `coverage-audit.ts` / `skill-gen.ts` / `eval-store.ts` / `analytics.ts` / `worktree.ts`
+- 테스트 인프라: vitest + tsconfig.json
+
+**MoA Multi-Layer Loop + Judge Agent + Stall Detection**:
+- orchestrator.md MoA 전면 확장 (max_rounds=3, 합의 검사, 3단계 Aggregation)
+- `.claude/agents/judge.md` 신규 (근거 강도 5단계 평가)
+
+**Auto Mode 통합 + 보안 강화**:
+- daemon-utils.mjs getPermissionMode() / buildClaudeEnv() / safePath()
+- ralph-daemon.mjs auto mode + checkCommand freeze
+- /review 적대적 리뷰: CRITICAL 2 + HIGH 3 + MEDIUM 4 전량 수정
+
+---
+
+## [2026-03-28] Ralph Loop 자율 개발 데몬 구현 (NEW)
+
+- `scripts/ralph-daemon.mjs` 5레이어 비용 최적화 (pre-check, stall detection, lean context, model tiering, budget cap)
+- `scripts/ralph-prompts.mjs` per-iteration lean context 빌더 + AGENTS.md 학습 축적
+- `scripts/daemon-utils.mjs` 공통 유틸 추출
+- `.claude/commands/ralph.md` `/ralph` 글로벌 커맨드
+- 별도 브랜치 안전장치 (`ralph/YYYY-MM-DD-<slug>`)
+
+**Research → Ralph 파이프라인**:
+- research-daemon.mjs 확장: 리서치 완료 → ralph-state.json pending 감지 → Ralph 자동 시작
+- `/re pipeline "task"` 원스탑 커맨드
+- vibe.md Step 3.5 야간 Ralph 태스크 자동 제안
+
+**코드 리뷰 + 최적화**: HIGH 3 + MEDIUM 7 + LOW 3 전량 수정 (atomic write, race condition 롤백, 하드코딩 경로 제거, spawn timeout, 경로 트래버설 방지)
+
+---
+
 ## [2026-04-15 심야 → 2026-04-16 새벽] 야간 자율 Top 3 흡수 + /overnight 스킬 완성 (7 커밋)
 
 **컨텍스트**: 외부 리서치 → Top 3 즉시 흡수 → E2E 검증 → `/overnight` 1-click 스킬로 마감.
