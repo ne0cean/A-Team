@@ -419,6 +419,24 @@ describe('design-smell-detector', () => {
     });
   });
 
+  describe('A11Y-05 JSX htmlFor support (bug fix)', () => {
+    it('recognizes JSX htmlFor= as a valid label', () => {
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: '<label htmlFor="email">Email</label><input id="email" type="email" />',
+      });
+      expect(r.violations.some(v => v.rule === 'A11Y-05')).toBe(false);
+    });
+
+    it('still flags JSX input without label or htmlFor', () => {
+      const r = detectDesignSmells({
+        file: 'a.tsx',
+        content: '<input id="orphan" type="text" />',
+      });
+      expect(r.violations.some(v => v.rule === 'A11Y-05')).toBe(true);
+    });
+  });
+
   describe('A11Y-05 form field without label', () => {
     it('detects input without label', () => {
       const r = detectDesignSmells({

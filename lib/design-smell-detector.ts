@@ -462,12 +462,11 @@ function ruleA11y05(opts: DetectOptions): Violation[] {
   const { file, content } = opts;
   // Find all <input>/<select>/<textarea>
   const fieldPattern = /<(input|select|textarea)\b([^>]*?)(?:\/\s*)?>/gi;
-  // Find <label for="..."> → set of covered IDs
-  const labelForPattern = /<label\b[^>]*\bfor\s*=\s*["']([^"']+)["']/gi;
+  // Find <label for="..."> (HTML) or <label htmlFor="..."> (JSX) → set of covered IDs
+  const labelForPattern = /<label\b[^>]*\b(?:for|htmlFor)\s*=\s*["']([^"']+)["']/gi;
   const coveredIds = new Set<string>();
   let lm: RegExpExecArray | null;
-  const labelRe = new RegExp(labelForPattern.source, 'gi');
-  while ((lm = labelRe.exec(content)) !== null) {
+  while ((lm = labelForPattern.exec(content)) !== null) {
     coveredIds.add(lm[1]);
   }
 
