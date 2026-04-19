@@ -2,6 +2,34 @@
 
 ---
 
+## [2026-04-19] Team Roadmap SSOT + Phase 0 메타 인프라 5/6
+
+**최종 지표**: 425 tests PASS (416→425, +9), tsc 0 errors
+
+**완료** (4 커밋, 전부 push):
+1. **rc.md 멀티 큐 통합** (`f7f196d`) — 다른 머신 수정 분. /api/handovers + fallback, 10분 만료.
+2. **absorb dedup + 60건 archive** (`96e74fe`) — already_known() PENDING/PROCESSED 양쪽 체크. 매주 launchd 재실행해도 중복 등록 안 됨. +3 vitest.
+3. **team-roadmap.md SSOT 7-Phase** (`ab20596`) — 대기업 마케팅/디자인/QA/분석 팀 대체 목표. Phase 0-6 + Gate + Earned integration 거버넌스.
+4. **Phase 0 메타 인프라 5/6** (`ded3cb7`):
+   - `/vibe` Step 0.67 team-roadmap 거버넌스 로드 (새 모듈 요청 시 자동 Gate 검사)
+   - `lib/analytics-schema.json` — 23 EventType JSON Schema
+   - `lib/analytics.ts` — logMarketingEvent() helper + EventType 타입
+   - `scripts/dashboard.mjs` + `/dashboard` 커맨드 — Module Health 표 + JSON 출력
+   - `.context/retros/_template.md` + design-auditor 첫 회고 (10 events 분석, sub-module Gate PASS)
+   - +6 vitest (dashboard 3 + logMarketingEvent 3)
+
+**이슈/발견**:
+- 사용자 "대기업 팀 수준 대체" 진짜 목표 명시 → 7-Phase 로드맵 설계 + 거버넌스 코드베이스 박음
+- 정직한 평가 오류: "마케팅/디자인 모듈 30일 안 씀" → 사용자 지적으로 정정 (만든 지 1-4일)
+- meta-tooling 함정 방지: Earned integration 원칙 + Gate 조건을 vibe.md에 자동 검사로 박음
+
+**남은 Phase 0** (1건):
+- 마케팅 5 커맨드 (research/generate/repurpose/publish/analytics)에 logMarketingEvent 호출 경로 명시 → Phase 0 Gate PASS → Phase 1 BI 진입
+
+**빌드**: ✅ 425/425 PASS
+
+---
+
 ## [2026-04-18 PM] Phase 3 마무리 + Design module M1-M3 완전 종결
 
 **최종 지표**: 416 tests PASS (400→416, +16), tsc 0 errors, npm audit 0 vulnerabilities
