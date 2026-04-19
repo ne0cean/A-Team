@@ -10,26 +10,92 @@ import * as path from 'path';
 
 // --- Types ---
 
+/**
+ * AnalyticsEvent — Single source of truth for module-level telemetry.
+ * Schema: lib/analytics-schema.json (Phase 0 of team-roadmap.md).
+ *
+ * Adding new event types: update both lib/analytics-schema.json (enum) and EventType below.
+ */
+export type EventType =
+  | 'hook_fire'
+  | 'session_cost'
+  | 'design_audit'
+  | 'marketing_research'
+  | 'marketing_generate'
+  | 'marketing_repurpose'
+  | 'marketing_publish'
+  | 'marketing_analytics'
+  | 'design_generate'
+  | 'design_thumbnail'
+  | 'design_brief'
+  | 'intelligence_competitor_diff'
+  | 'intelligence_persona_built'
+  | 'intelligence_trend_signal'
+  | 'bi_external_pull'
+  | 'bi_insight_generated'
+  | 'bi_anomaly_detected'
+  | 'qa_run'
+  | 'ralph_iteration'
+  | 'sleep_resume_probe'
+  | 'ops_pr_monitoring'
+  | 'ops_cs_response';
+
 export interface AnalyticsEvent {
   skill: string;
   ts: string;
   repo: string;
-  event?: string;     // 'hook_fire' | 'session_cost' | 'design_audit'
-  pattern?: string;   // matched pattern for hook fires
-  // Session cost fields (populated when event='session_cost')
+  event?: EventType;
+  pattern?: string;
+
+  // session_cost
   totalCostUsd?: number;
   callCount?: number;
   preCheckSkipRate?: number;
   advisorCallAvg?: number;
   cacheHitRate?: number;
-  // Design audit fields (populated when event='design_audit')
-  designScore?: number;            // 0-100
-  designViolations?: number;        // total violation count
-  designA11yViolations?: number;    // a11y-only count
-  designAiSlopViolations?: number;  // ai_slop-only count
-  designTone?: string;              // declared tone (brutalist | luxury | ...)
-  designGateContext?: string;       // 'ship' | 'craft' | 'default'
-  designPassed?: boolean;           // meetsThreshold()
+
+  // design_audit
+  designScore?: number;
+  designViolations?: number;
+  designA11yViolations?: number;
+  designAiSlopViolations?: number;
+  designTone?: string;
+  designGateContext?: 'ship' | 'craft' | 'default';
+  designPassed?: boolean;
+
+  // marketing_*
+  marketingTopic?: string;
+  marketingPlatform?: 'twitter' | 'linkedin' | 'instagram' | 'tiktok' | 'blog' | 'email' | string;
+  marketingMode?: 'blog-first' | 'social-first' | 'dry-run' | 'scheduled' | 'published';
+  marketingArtifactPath?: string;
+  marketingHumanInsertCount?: number;
+  marketingPostizJobId?: string;
+  marketingImpressions?: number;
+  marketingEngagements?: number;
+  marketingConversionRate?: number;
+
+  // intelligence_*
+  intelligenceSource?: string;
+  intelligenceSignalScore?: number;
+
+  // bi_*
+  biSourceCount?: number;
+  biInsightCount?: number;
+  biAnomalyMagnitude?: number;
+
+  // qa_run
+  qaTestsTotal?: number;
+  qaTestsPassed?: number;
+  qaDurationMs?: number;
+
+  // ralph_iteration
+  ralphIterationN?: number;
+  ralphCheckPassed?: boolean;
+
+  // sleep_resume_probe
+  sleepResumeAttempt?: number;
+  sleepResumeBackoffMs?: number;
+  sleepResumeProbePassed?: boolean;
 }
 
 // --- Logging ---
@@ -220,4 +286,38 @@ export function logDesignAudit(
     designGateContext: ctx.gateContext,
     designPassed: ctx.passed,
   }, filePath);
+}
+
+/**
+ * Marketing 모듈 이벤트 helper. 5종 (research/generate/repurpose/publish/analytics) 통합.
+ * Phase 0 — team-roadmap 분석 인프라 진입점.
+ *
+ * 사용 예:
+ *   logMarketingEvent('marketing_generate', {
+ *     repo: 'a-team',
+ *     marketingTopic: 'claude-sleep-resume',
+ *     marketingPlatform: 'twitter',
+ *     marketingMode: 'social-first',
+ *     marketingArtifactPath: 'content/social/.../twitter-thread.md',
+ *     marketingHumanInsertCount: 0,
+ *   }, '.context/analytics.jsonl');
+ */
+export function logMarketingEvent(
+  event: 'marketing_research' | 'marketing_generate' | 'marketing_repurpose' | 'marketing_publish' | 'marketing_analytics',
+  ctx: {
+    repo: string;
+    marketingTopic?: string;
+    marketingPlatform?: AnalyticsEvent['marketingPlatform'];
+    marketingMode?: AnalyticsEvent['marketingMode'];
+    marketingArtifactPath?: string;
+    marketingHumanInsertCount?: number;
+    marketingPostizJobId?: string;
+    marketingImpressions?: number;
+    marketingEngagements?: number;
+    marketingConversionRate?: number;
+  },
+  filePath: string,
+): void {
+  const skill = event.replace('_', '-'); // marketing_generate → marketing-generate
+  logEvent({ skill, event, ...ctx }, filePath);
 }

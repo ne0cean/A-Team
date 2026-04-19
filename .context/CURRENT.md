@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**419 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-19).
+**425 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-19).
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
 
@@ -46,11 +46,13 @@
 
 ## Phase 0 To-Do (현재 우선순위)
 
-- [ ] `lib/analytics-schema.json` — event 타입 표준화 (design_audit/marketing_*/session_cost 등 통합)
-- [ ] 마케팅 모듈 logEvent 호출 경로 신설 (현재 0건)
-- [ ] `/dashboard` 커맨드 — analytics jsonl 시각화 (skill 별/이벤트 별/모듈 헬스)
-- [ ] `.context/retros/` 첫 회고 1건 작성 (design-auditor 모듈 — 데이터 10건 확보됨)
-- [ ] `/vibe` Step 0.7에 team-roadmap 로드 + 현재 Phase 알림 (거버넌스 자동화)
+- [x] ✅ `/vibe` Step 0.67 team-roadmap 거버넌스 로드 (`vibe.md`)
+- [x] ✅ `lib/analytics-schema.json` — 23종 EventType 표준화 + AnalyticsEvent 확장
+- [x] ✅ `logMarketingEvent()` helper + 3 vitest (`lib/analytics.ts`)
+- [x] ✅ `/dashboard` 커맨드 — Module Health 표 + JSON 출력 + 3 vitest (`scripts/dashboard.mjs`)
+- [x] ✅ design-auditor 첫 회고 작성 (10 events 누적, Phase 4 sub-module Gate PASS)
+- [ ] **마케팅 모듈 logEvent 실 호출 경로** — `marketing-research.md` 등 5개 커맨드에 helper 호출 명시 (Phase 0 마지막)
+- [ ] design-auditor를 connectome + claude-remote에 install-design-hook.sh 적용 (Phase 4 데이터 외부 수집)
 
 ## Next Tasks
 

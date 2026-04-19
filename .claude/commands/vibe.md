@@ -133,6 +133,41 @@ fi
 - 오늘이 예약일이면: `📅 {task} 예약일 — 자동 실행 제안`
 - 해당 라인에 명시된 스킬 (예: `/design-retro`) 제안
 
+## Step 0.67 — Team Roadmap 거버넌스 로드 (필수, A-Team 프로젝트만)
+
+`.context/team-roadmap.md` 가 있으면 SSOT 로 로드 → 이번 세션 작업이 거버넌스 룰을 위반하지 않는지 자동 검사.
+
+```bash
+ROADMAP=".context/team-roadmap.md"
+if [ -f "$ROADMAP" ]; then
+  CURRENT_PHASE=$(grep -E '^current_phase:' "$ROADMAP" | head -1 | sed -E 's/.*: *//' | tr -d '"')
+  PHASE_STATUS=$(grep -E '^status:' "$ROADMAP" | head -1 | sed -E 's/.*: *//' | tr -d '"')
+  echo "🎯 Team Roadmap — 현재 Phase $CURRENT_PHASE ($PHASE_STATUS)"
+  echo "   거버넌스: 새 모듈 빌드 요청 시 현재 Phase Gate 검사 필수"
+  echo "   To-Do: CURRENT.md 'Phase $CURRENT_PHASE To-Do' 섹션 참조"
+fi
+```
+
+**거버넌스 룰** (사용자 새 모듈/기능 요청 시 Claude 자동 검사):
+
+1. **Earned integration 검사**: 사용자가 새 모듈 빌드 요청 시:
+   - 현재 Phase 의 Gate 충족 여부 확인
+   - 미충족이면: "현재 Phase {N} Gate 미충족 ({이유}). 새 모듈 진행 전 Gate 통과 권장합니다. 진행하시겠습니까?" 한 번 confirm
+   - 사용자가 강제로 진행하면 그대로 실행 (블로킹 X)
+
+2. **미사용 모듈 회고 트리거**: 모듈 사용 데이터 0건 + 14일 경과 시:
+   - 첫 응답에 알림: "⚠️ {모듈명} 14일간 사용 0회 — `.context/retros/_template.md` 회고 작성 권장"
+
+3. **데이터 기반 우선순위 재조정**:
+   - analytics.jsonl 누적 데이터 보고 다음 모듈 우선순위 변경 가능
+   - 단, 사용자에게 근거(어떤 데이터·왜 바꾸는지) 명시 후 동의받음
+
+**발화 예시**:
+- 사용자: "이메일 자동 응답 모듈 만들어줘"
+- Claude: "🎯 현재 Phase 0 (메타 인프라) — Gate 미충족. 그 모듈은 Phase 6 (운영) 영역입니다. Phase 0 분석 인프라 먼저 끝내는 게 거버넌스 권장입니다. 그래도 진행할까요? (Y/N)"
+
+상세 룰: `.context/team-roadmap.md` "거버넌스 룰" 섹션
+
 ## Step 0.8 — Pending Improvements 감지 (자동, A-Team 프로젝트만)
 현재 프로젝트가 A-Team이면 `improvements/pending.md`에서 ⏳ pending 항목 수를 카운트:
 - 1건 이상: `📬 미반영 개선사항 {N}건 대기 중 (P0: X / P1: Y / P2: Z). '/improve apply'로 반영.`

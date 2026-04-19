@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 import {
   logEvent,
+  logMarketingEvent,
   parseJSONL,
   filterByPeriod,
   formatReport,
@@ -105,5 +106,56 @@ describe('formatReport', () => {
   it('should handle empty events', () => {
     const report = formatReport([]);
     expect(report).toContain('Total: 0');
+  });
+});
+
+describe('logMarketingEvent', () => {
+  it('writes a marketing_generate event with topic+platform fields', () => {
+    logMarketingEvent('marketing_generate', {
+      repo: 'a-team',
+      marketingTopic: 'claude-sleep-resume',
+      marketingPlatform: 'twitter',
+      marketingMode: 'social-first',
+      marketingArtifactPath: 'content/social/x/twitter-thread.md',
+      marketingHumanInsertCount: 0,
+    }, ANALYTICS_FILE);
+
+    const events = parseJSONL(fs.readFileSync(ANALYTICS_FILE, 'utf-8'));
+    expect(events).toHaveLength(1);
+    expect(events[0].skill).toBe('marketing-generate');
+    expect(events[0].event).toBe('marketing_generate');
+    expect(events[0].marketingTopic).toBe('claude-sleep-resume');
+    expect(events[0].marketingPlatform).toBe('twitter');
+    expect(events[0].marketingMode).toBe('social-first');
+    expect(events[0].marketingHumanInsertCount).toBe(0);
+  });
+
+  it('writes a marketing_publish event with postiz job id', () => {
+    logMarketingEvent('marketing_publish', {
+      repo: 'a-team',
+      marketingTopic: 'claude-sleep-resume',
+      marketingPlatform: 'linkedin',
+      marketingMode: 'dry-run',
+      marketingPostizJobId: 'dry-run-li-001',
+    }, ANALYTICS_FILE);
+
+    const events = parseJSONL(fs.readFileSync(ANALYTICS_FILE, 'utf-8'));
+    expect(events[0].event).toBe('marketing_publish');
+    expect(events[0].marketingPostizJobId).toBe('dry-run-li-001');
+  });
+
+  it('writes a marketing_analytics event with metrics', () => {
+    logMarketingEvent('marketing_analytics', {
+      repo: 'a-team',
+      marketingTopic: 'claude-sleep-resume',
+      marketingPlatform: 'twitter',
+      marketingImpressions: 12500,
+      marketingEngagements: 340,
+      marketingConversionRate: 0.027,
+    }, ANALYTICS_FILE);
+
+    const events = parseJSONL(fs.readFileSync(ANALYTICS_FILE, 'utf-8'));
+    expect(events[0].marketingImpressions).toBe(12500);
+    expect(events[0].marketingConversionRate).toBeCloseTo(0.027);
   });
 });

@@ -43,18 +43,22 @@ DEFINE → BUILD → USE → MEASURE → ITERATE → GATE
 
 ## Phase 별 진척
 
-### Phase 0 — 메타 인프라 (1주) [현재]
+### Phase 0 — 메타 인프라 (1주) [진행 중 — 4/5]
 
 **목표**: 모든 모듈이 측정·회고 가능하게
 
 | 모듈 | 상태 | Gate | 산출물 |
 |------|------|------|--------|
-| analytics 통합 스키마 | ⏳ pending | 마케팅·디자인 모듈 사용 데이터 자동 수집 | `lib/analytics-schema.json` |
-| 대시보드 CLI (`/dashboard`) | ⏳ pending | skill 별/이벤트 별 시각화 | `.claude/commands/dashboard.md` |
-| 회고 템플릿 표준화 | ⏳ pending | 모듈별 회고 1개 작성 | `.context/retros/<module>-<date>.md` |
-| Module Health 대시보드 | ⏳ pending | 사용 빈도/마지막 사용 표 | dashboard 일부 |
+| /vibe team-roadmap 거버넌스 wiring | ✅ 2026-04-19 | Step 0.67 추가 | `.claude/commands/vibe.md` |
+| analytics 통합 스키마 | ✅ 2026-04-19 | EventType 23종 + JSON Schema | `lib/analytics-schema.json` + `lib/analytics.ts` EventType |
+| 마케팅 logEvent helper | ✅ 2026-04-19 | logMarketingEvent() 추가 + 3 vitest | `lib/analytics.ts` |
+| 대시보드 CLI (`/dashboard`) | ✅ 2026-04-19 | Module Health 표 + JSON 출력 + 3 vitest | `scripts/dashboard.mjs`, `.claude/commands/dashboard.md` |
+| 회고 템플릿 표준화 | ✅ 2026-04-19 | design-auditor 첫 회고 작성 | `.context/retros/_template.md`, `design-auditor-2026-04-19.md` |
+| 마케팅 logEvent 호출 경로 | ⏳ 다음 | 마케팅 커맨드들이 helper 실 호출 | `marketing-research.md` 등 명시 |
 
 **Phase 0 Gate**: 1주 동안 마케팅·디자인 모듈 사용 데이터가 자동 수집·시각화됨
+- 디자인: ✅ 10 events 누적, /dashboard 시각화 작동
+- 마케팅: ❌ 0 events (helper만 작성, 실 호출 경로 미연결)
 
 ---
 
