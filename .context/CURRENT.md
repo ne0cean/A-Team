@@ -2,7 +2,23 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**416 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-18).
+**419 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-19).
+
+## 🎯 Team Roadmap (단일 진실의 원천)
+
+> **목표**: 1인 + AI 팀이 대기업 마케팅/디자인/QA/분석 팀 수준 대체
+> **현재 Phase**: 0 (메타 인프라) — analytics 통합 + 대시보드 + 회고 템플릿
+> **거버넌스**: [.context/team-roadmap.md](team-roadmap.md) — 새 모듈 빌드 요청 시 Gate 검사 필수
+
+| Phase | 내용 | 상태 |
+|-------|------|------|
+| 0 | 메타 인프라 (analytics 통합·대시보드·회고) | 🔨 진행 중 |
+| 1 | 분석/BI (외부 데이터 통합·인사이트·이상 감지) | ⏳ blocked |
+| 2 | 시장·사용자 인텔리전스 | ⏳ |
+| 3 | 마케팅 깊이 (브랜드 전략·캠페인 기획·발행) | ⏳ |
+| 4 | 디자인 깊이 (브랜드 시스템·디자인 시스템·UX 리서치) | ⏳ |
+| 5 | QA + 사용성 | ⏳ |
+| 6 | 운영 (PR/CS/세일즈/재무) | ⏳ |
 
 **최근 완성**:
 - **Marketing/Design Module Phase 1+2** (2026-04-18): 풀 콘텐츠+비주얼 자동화 — 8 스킬 커맨드 + 13 프롬프트 + 8 에이전트 + 6 스택 + 4 워크플로우(n8n/Make.com) + 파일럿 검증.
@@ -26,7 +42,15 @@
 **Override**: AUTORESEARCH-PLAN.md의 `Mode`를 `PAUSED`/`DECIDED`/`DISMISSED`로 변경.
 
 ## In Progress Files
-- (Phase 3 라이브 검증 종결 — Postiz 인프라 셋업 시 발행 가능)
+- `.context/team-roadmap.md` — Phase 0 진행 중 (analytics 통합 스키마 + 대시보드 미구현)
+
+## Phase 0 To-Do (현재 우선순위)
+
+- [ ] `lib/analytics-schema.json` — event 타입 표준화 (design_audit/marketing_*/session_cost 등 통합)
+- [ ] 마케팅 모듈 logEvent 호출 경로 신설 (현재 0건)
+- [ ] `/dashboard` 커맨드 — analytics jsonl 시각화 (skill 별/이벤트 별/모듈 헬스)
+- [ ] `.context/retros/` 첫 회고 1건 작성 (design-auditor 모듈 — 데이터 10건 확보됨)
+- [ ] `/vibe` Step 0.7에 team-roadmap 로드 + 현재 Phase 알림 (거버넌스 자동화)
 
 ## Next Tasks
 
