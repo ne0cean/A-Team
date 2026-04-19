@@ -36,6 +36,25 @@ log_scan() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"
 }
 
+# Dedup: 동일 (proj_name, cmd_name) 이 PENDING에 ⏳ pending 또는 processed.md에 deferred 로 이미 있으면 스킵
+PROCESSED="$ATEAM_MASTER/improvements/processed.md"
+[ -f "$PROCESSED" ] || touch "$PROCESSED"
+
+already_known() {
+  local proj="$1" cmd="$2"
+  local needle="command $cmd (from $proj)"
+  # 1) PENDING 에 같은 항목이 ⏳ pending 으로 살아있으면 스킵
+  #    grep -A 30 으로 헤더 뒤 30줄 수집 → 그 안에 ⏳ pending 있으면 살아있음
+  if grep -F -A 30 "$needle" "$PENDING" 2>/dev/null | grep -qF "⏳ pending"; then
+    return 0
+  fi
+  # 2) PROCESSED 에 deferred-no-value 등 종결 마커가 있으면 스킵 (source 변경 없으면 재등록 X)
+  if grep -qF "$needle" "$PROCESSED" 2>/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
 # 헬퍼: 파일 내용 heuristic 분류
 classify() {
   local file="$1"
@@ -108,6 +127,11 @@ for proj_dir in "$HOME"/Projects/*/; do
       if [ ! -f "$master_cmd" ]; then
         # NEW
         NEW_COUNT=$((NEW_COUNT + 1))
+        # Dedup 체크
+        if already_known "$proj_name" "$cmd_name"; then
+          log_scan "DEDUP-SKIP NEW $proj_name/$cmd_name (이미 pending/processed)"
+          continue
+        fi
         verdict=$(classify "$cmd_file")
         if [[ "$verdict" == LOCAL:* ]]; then
           LOCAL_COUNT=$((LOCAL_COUNT + 1))
@@ -137,6 +161,11 @@ for proj_dir in "$HOME"/Projects/*/; do
       elif ! diff -q "$cmd_file" "$master_cmd" >/dev/null 2>&1; then
         # DIFF
         DIFF_COUNT=$((DIFF_COUNT + 1))
+        # Dedup 체크
+        if already_known "$proj_name" "$cmd_name"; then
+          log_scan "DEDUP-SKIP DIFF $proj_name/$cmd_name (이미 pending/processed)"
+          continue
+        fi
         verdict=$(classify "$cmd_file")
         if [[ "$verdict" == LOCAL:* ]]; then
           LOCAL_COUNT=$((LOCAL_COUNT + 1))
