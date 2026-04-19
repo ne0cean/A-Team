@@ -2,6 +2,25 @@
 
 ---
 
+## [2026-04-19 PM] Capability Growth Engine 설계 (Phase 0.5 제안)
+
+**핵심 결정**: 사용자가 a-team 궁극 지향점을 "프로덕트 런칭 + 운영 가능한 하나의 회사"로 명시. 정적 로드맵 → self-growing 구조로 진화 필요.
+
+**산출물**: `.context/designs/capability-growth-engine.md` — 7 컴포넌트 시스템 다이어그램 + 빌드 순서 + Gate 기준
+- Capability Map (60+ 기능 × 커버리지 %)
+- Gap Sensors (friction-log)
+- Priority Engine (impact × freq × feasibility)
+- Roadmap Auto-Update (매주)
+- PRD Generator (/blueprint 확장)
+- /capability CLI (부서별 점수 + 런칭 시나리오 매핑)
+- /vibe Step 0.69 Lifecycle Gate
+
+**상태**: 설계 완료, 빌드는 사용자 confirm 대기. CURRENT.md 에 명시.
+
+**빌드**: ✅ (코드 변경 없음, 설계 문서만)
+
+---
+
 ## [2026-04-19] Team Roadmap SSOT + Phase 0 메타 인프라 5/6
 
 **최종 지표**: 425 tests PASS (416→425, +9), tsc 0 errors

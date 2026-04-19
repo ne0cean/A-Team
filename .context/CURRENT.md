@@ -54,6 +54,24 @@
 - [ ] **마케팅 모듈 logEvent 실 호출 경로** — `marketing-research.md` 등 5개 커맨드에 helper 호출 명시 (Phase 0 마지막)
 - [ ] design-auditor를 connectome + claude-remote에 install-design-hook.sh 적용 (Phase 4 데이터 외부 수집)
 
+## 🚨 Phase 0.5 설계 제안 (사용자 confirm 대기)
+
+**문서**: [.context/designs/capability-growth-engine.md](designs/capability-growth-engine.md)
+
+a-team의 궁극 지향점 = **프로덕트 런칭 + 운영 가능한 하나의 회사**.
+정적 7-Phase 로드맵에 **자동 갭 감지/우선순위/회고 사이클** 추가 → 지속 성장 구조.
+
+7 컴포넌트:
+1. `lib/capability-map.json` — 7부서 60+ 기능 인벤토리 + 커버리지 %
+2. `lib/gap-sensor.ts` + `friction-log.jsonl` — "안 돼/수동" 자동 감지
+3. `scripts/gap-priority.mjs` — impact × frequency × feasibility
+4. `scripts/roadmap-update.mjs` — 매주 자동 우선순위 재정렬 제안
+5. `/blueprint` 확장 — 갭 → PRD 자동 초안
+6. `/capability` CLI — 부서별 점수 + 런칭 시나리오 매핑
+7. `/vibe` Step 0.69 — 라이프사이클 게이트 자동화
+
+→ 사용자 confirm 시 Phase 0 (마케팅 logEvent 1건) 마무리 후 Phase 0.5 빌드 시작 (1주 예상)
+
 ## Next Tasks
 
 ### High Priority
