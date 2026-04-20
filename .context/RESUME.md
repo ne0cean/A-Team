@@ -1,50 +1,50 @@
 ---
-created_at: 2026-04-15T06:05:00+09:00
-completed_at: 2026-04-15T20:15:00+09:00
-reason: user-manual-completion
-status: completed
-mode: sleep
-session_goal: "design-smell-detector 나머지 9 static rule 중 안전한 것 구현 (deterministic, --check=npm test 검증 가능)"
-outcome: "T1-T6 전량 완료 (6 rule 추가 구현). 376→392 tests. 사용자 대면 세션에서 직접 실행 (launchd 자동 루프 우회)."
-final_commits:
-  - 8df9bbc feat(design): 6 static rule 추가 구현
-  - 7072d24 fix(rules): autonomous-loop 강제 조항 7 End-to-End 검증
-  - b5529fe fix(sleep): --dangerously-skip-permissions 플래그 버그 교체
-  - e4875e4 feat(sleep): 2분 폴링 + probe 기반
+mode: zzz
+entered_at: 2026-04-20T12:35:16Z
+next_reset_at: 2026-04-20T17:35:16Z
+contract: autonomous-loop.md v2026-04-15 (강제 조항 1-7)
+narration_budget_bytes: 500
+status: in_progress
+session_goal: "계정 자동 전환 엔진을 a-team 글로벌로 이식하고 claude-remote는 얇은 PTY 어댑터로 재구성"
 ---
 
-## Completed
+## In Progress
+- [ ] Phase 1 엔진 3/4 작성 완료, trigger.mjs + install-auto-switch-cron.sh 남음
 
-- [x] T1 RD-01 Long Line Length rule + 3 tests (commit `8df9bbc`)
-- [x] T2 RD-05 Heading Hierarchy Skip rule + 3 tests (commit `8df9bbc`)
-- [x] T3 A11Y-05 Form Field Without Label rule + 4 tests (commit `8df9bbc`)
-- [x] T4 LS-02 Absolute Positioning Overuse rule + 2 tests (commit `8df9bbc`)
-- [x] T5 LS-03 Fixed Height on Text Containers rule + 2 tests (commit `8df9bbc`)
-- [x] T6 AI-07 Hero-Features-CTA Template Signal rule + 2 tests (commit `8df9bbc`)
-- [x] T7 anti-patterns.md 업데이트 (15 → 21 static rule 반영) (commit `8df9bbc`)
-- [x] T8 CURRENT.md Next Tasks 정리 (로드맵 나머지 3 rule만 남김)
+## Completed This Session
+- [x] 3e51a69: /zzz·/resume 통합 + refs Quantified Constraints (425 tests PASS)
+- [x] 5cc22c0: auto-switch-protocol.md 초안 (Phase 5 재작성 예정)
+- [x] scripts/auto-switch/accounts-state.mjs
+- [x] scripts/auto-switch/check-usage.mjs
+- [x] scripts/auto-switch/swap-keychain.mjs
 
-## 세션 요약
+## Next Immediate Step
+scripts/auto-switch/trigger.mjs 작성:
+  1. 60s 크론 진입점 (accounts-state + check-usage + swap-keychain 조합)
+  2. Telegram 알림 함수 (~/.claude/channels/telegram/access.json의 chat_ids)
+  3. 활성 계정 usage ≥96% OR rate_limit 감지 → swap 후보 선정
+  4. claude-remote /health ping → 살아있으면 POST /internal/auto-switch 위임
+  5. 서버 없으면 Telegram 알림만 (수동 전환 유도)
+  6. 10분 쿨다운 (~/.ateam/auto-switch-state.json)
 
-**시작 의도**: 사용자 외출 (2026-04-15 06:05 KST) 중 launchd 자동 루프로 T1-T6 완료.
-**실제**: launchd 인프라 버그 3개로 14시간 작업 0건 (상세: SESSIONS.md 참조).
-**대면 복구**: 사용자 복귀 후 (19:57 KST) 버그 수정 + T1-T6 직접 구현 + 커밋.
+## Plan (Phase별)
+1. 엔진 4 mjs + install-auto-switch-cron.sh [진행 중, 75%]
+2. trigger.mjs 서버 ping 분기
+3. claude-remote POST /internal/auto-switch + 기존 checkAndAutoSwitch 삭제
+4. accounts.json 마이그레이션 + backup + 90일 클린업
+5. 문서 갱신 (auto-switch-protocol.md / zzz.md / CLAUDE.md)
+6. /end drift 감지 + /absorb 자동 제안 강화
+7. 테스트 + 검증 + 양쪽 레포 커밋
 
-**버그 원인 & 수정**:
-1. `claude -p --dangerously-skip-permissions <prompt>` 플래그 파싱 버그 → `--permission-mode bypassPermissions` 교체
-2. Rate-limit regex 에 실제 Claude Code 메시지 패턴 ("hit your limit", "resets Xam") 누락 → 확장
-3. `claude --print` 타임아웃/종료 로깅 미비 → `gtimeout 2700` + `trap EXIT` + plist `AbandonProcessGroup=true`
-4. **근본 반성**: 설치 후 end-to-end 검증 누락 → `autonomous-loop.md` 강제 조항 7 신설
+## Files Touched
+- a-team: .claude/commands/zzz.md, resume.md, pickup.md, vibe.md
+- a-team: CLAUDE.md
+- a-team: governance/rules/auto-switch-protocol.md
+- a-team: governance/design/refs/*.md (10개)
+- a-team: scripts/auto-switch/{accounts-state,check-usage,swap-keychain}.mjs
+- claude-remote: packages/server/src/session.ts (PTY idle 감지)
+- claude-remote: packages/server/src/index.ts (auto-switch 로직 — 제거 예정)
+- claude-remote: packages/server/src/__tests__/{auto-switch,session-this-sprint}.test.ts
 
-## 최종 상태
-
-- 392/392 tests PASS
-- tsc 0 errors
-- static rule: 21/24 구현 (나머지 3 = RD-03 low contrast + PL-01/02 LLM critique)
-- launchd 설치 유지, 플래그 버그 수정 완료 → 다음 fire 부터 정상 동작 예상
-- 사용자 CURRENT.md 에 Next Tasks 기록, 다음 세션에서 이어갈 수 있음
-
-## 추후 이어받기
-
-이 RESUME.md 는 `status: completed` 이므로 launchd sleep-resume.sh 가 SKIP 함.
-다음 /sleep 모드 진입 시 새 RESUME.md 작성 필요.
+## Resume
+`/pickup` 자동 주입됨. In Progress 부터 바로 실행.
