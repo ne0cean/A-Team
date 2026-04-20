@@ -35,17 +35,30 @@
 3. 위반 시 자율 모드 자동 중단, 다음 iteration에서 이 문서 재독
 
 ## Zzz 모드 (수면 + 자율 조합, 과거 Sleep 모드)
-사용자 메시지에 **수면 의도** ("자러간다", "잘게", "주무세요", "컴 앞에 없을거") + **자율 의도** ("랄프 모드", "자동으로", "묻지 마") **둘 다** 포함 시:
-1. **즉시 `/zzz` 스킬 호출** (`.claude/commands/zzz.md`, 과거 `/sleep` + `/overnight` 통합)
-2. 단일 진입으로 RESUME.md + CronCreate + launchd + 나레이션 금지 통합
-3. `/usage` 파싱 시도 → 실패 시 사용자 명시 시간 → 실패 시 5시간 기본
-4. 재귀 wake-up 자동 예약, 토큰 한계 직전 commit/push 후 대기
-5. 아침에 1회 ≤10줄 요약만 허용
+사용자 메시지에 **수면 의도** ("자러간다", "잘게", "주무세요", "컴 앞에 없을거", "맡겨두고") + **자율 의도** ("랄프 모드", "자동으로", "묻지 마") **둘 다** 포함 시:
+1. **즉시 `/zzz` 스킬 호출** (`.claude/commands/zzz.md`)
+2. **핵심 의도**: "맡겨두고 잘게" = **지금 하던 작업을 그대로 이어서 계속**. 새 태스크 큐가 아님
+3. 단일 진입으로 RESUME.md + CronCreate + launchd + 나레이션 금지 + 계정 자동 전환 통합
+4. `/usage` 파싱 시도 → 실패 시 사용자 명시 시간 → 실패 시 5시간 기본
+5. 재귀 wake-up 자동 예약, 토큰 한계 직전 commit/push 후 대기
+6. 아침에 1회 ≤10줄 요약만 허용
 
 **구분**:
-- `/zzz` — 풀 오토 (수면+자율+리셋 대비). 자율 태스크 큐 + launchd 실행
+- `/zzz` — 풀 오토 (하던 작업 이어서 + 수면 + 리셋 자동 이어받기 + 계정 자동 전환)
+- `/zzz --fresh` — 예외: 새 태스크 큐 디스패치 (구 /overnight 호환)
 - `/resume` — 리셋 후 재개만 (시점 무관, 주간/단기). 자율 작업 없음
 - `/pickup` — 재개 실행 로직 (RESUME.md 읽고 이어받기)
+
+## 계정 자동 전환 (claude-remote 통합, zzz 모드에서 자동 활성)
+claude-remote 서버가 활성 세션 usage를 60초 크론으로 감시. OAuth 계정 ≥ 2개 등록 시 **zzz 진입 즉시 활성화**. 상세 계약: `governance/rules/auto-switch-protocol.md`.
+
+발동: 활성 계정 ≥ 96% OR rate-limit 감지. 서버가 autosave 프롬프트 주입 시 Claude는:
+1. RESUME.md에 현재 상태 저장 + git commit
+2. 마지막 줄에 `READY_TO_SWITCH` 단독 출력
+3. 서버가 keychain swap → `/pickup` 자동 주입
+4. zzz 모드 유지하며 새 계정에서 이어서 진행
+
+타임아웃 180s, 쿨다운 10분, 양 계정 소진 시 Telegram 알림 후 생략.
 
 ## Autoresearch Shadow Mode (의무 자동 트리거)
 
