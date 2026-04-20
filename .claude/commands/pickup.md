@@ -24,9 +24,9 @@ git diff HEAD~1
 3. `memory/MEMORY.md` — 프로젝트 패턴 및 규칙
 4. `CLAUDE.md` — 거버넌스 규칙 (있으면)
 
-## Step 2.5 — Sleep-Mode 감지 (자동)
+## Step 2.5 — Zzz-Mode 감지 (자동, 과거 Sleep-Mode)
 
-`.context/RESUME.md` frontmatter 에 `mode: sleep` + `status != completed` 확인 시:
+`.context/RESUME.md` frontmatter 에 `mode: zzz` (또는 legacy `sleep`) + `status != completed` 확인 시:
 - `governance/rules/autonomous-loop.md` **의무 Read** (6개 강제 조항, 특히 **조항 6 나레이션 금지**)
 - RESUME.md `Completed` 섹션 파싱 → 중복 실행 방지
 - `next_wakeup_scheduled` 있으면 OS-level launchd 살아있는지 확인 (`launchctl list | grep com.ateam.sleep-resume`)

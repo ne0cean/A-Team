@@ -35,11 +35,13 @@ references:
 ```
 
 ### design-auditor
-PL-01 tone mismatch critique 시 선언된 tone의 ref를 기준으로 비교:
-- 선언: `tone: editorial`
-- 실제: shadow-2xl + bounce easing
-- ref (Linear/Stripe): shadow minimal + ease-out
-- → 위반 판정
+PL-01 tone mismatch critique 시 선언된 tone의 ref를 기준으로 **수치 비교** (`## Quantified Constraints` 섹션):
+- 선언: `tone: editorial` → Linear/Stripe/Claude/Notion refs 로드
+- 실제: shadow blur 24px + bounce easing
+- ref 최댓값: `shadow.blur_max_px: 8`, `easing.forbidden: [bounce]`
+- → 수치 비교로 위반 판정 (false positive 감소)
+
+각 ref `## Quantified Constraints` 섹션은 YAML 형식으로 `radius / shadow / easing / transition_ms / gradient / color / typography / density` 키를 제공. 선언 tone과 1차 매칭 후 YAML 상수 위반을 0/1로 판정.
 
 ### 확장
 새 브랜드 추가 시:

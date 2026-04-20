@@ -43,6 +43,40 @@ Browser as a creative space. 다채로운 profile 색상. 부드러운 유기적
 - ❌ Dense data UI (Arc는 broad canvas)
 - ❌ Corporate dark mode without character
 
+## Quantified Constraints
+
+```yaml
+radius:
+  sidebar_tab_px: 12
+  card_max_px: 16
+  command_bar_px: 16
+shadow:
+  allowed: soft-ambient
+  offset_y_max_px: 4
+  blur_max_px: 16
+  opacity_max: 0.1
+easing:
+  allowed: [spring, ease-out]
+  forbidden: [bounce-overshoot-heavy, elastic]
+  allow_soft_spring: true
+transition_ms:
+  min: 200
+  max: 400
+gradient:
+  allowed: profile-wallpaper
+  required_for: profile-switching
+color:
+  accent_count_max: 5
+  saturation: pastel-full-range
+  profile_aware: true
+typography:
+  body_px: [14, 16]
+density:
+  score: 4
+  spacing_base_px: 8
+  sidebar_focused: true
+```
+
 ## 언제 참고
 
 - Creative tool, browser, 생산성 + 자아표현 결합

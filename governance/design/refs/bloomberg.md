@@ -49,6 +49,46 @@
 - ❌ 여백
 - ❌ Motion
 
+## Quantified Constraints
+
+```yaml
+radius:
+  button_max_px: 0
+  card_max_px: 0
+  all_zero: true
+shadow:
+  offset_y_max_px: 0
+  blur_max_px: 0
+  allowed_only: none
+easing:
+  allowed: [linear, none]
+  forbidden: [ease-out, bounce, spring, elastic]
+transition_ms:
+  min: 0
+  max: 16
+  disable_preferred: true
+gradient:
+  allowed: false
+color:
+  primary: "#FF6600"
+  bg: "#000000"
+  signal_saturation: 100
+  semantic_required:
+    up: "#00FF00"
+    down: "#FF0000"
+    warn: "#FFAA00"
+typography:
+  body_px: [10, 14]
+  mono_only: true
+  line_height: [1.1, 1.2]
+density:
+  score: 10
+  spacing_base_px: 2
+  padding_max_px: 8
+  row_height_px: [14, 16]
+consumer_app: forbidden
+```
+
 ## 언제 참고
 
 - Trading terminal, ops dashboard, NOC

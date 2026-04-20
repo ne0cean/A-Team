@@ -52,8 +52,14 @@ stdout: `{ status, repo, tone, gate_context, threshold, all_passed, files: [{fil
 
 **PL-01 Tone Mismatch** — `.design-override.md`의 tone과 실제 스타일 불일치:
 - 입력: tone 선언 + 주요 class 목록 (rounded-*, shadow-*, motion 등)
-- 판단: tone=luxury인데 shadow-2xl + bounce easing? → 위반
-- tone=brutalist인데 shadow-soft + rounded-3xl? → 위반
+- **참조 필수**: 선언 tone과 매칭되는 refs의 `## Quantified Constraints` (governance/design/refs/*.md) 로드 후 YAML 수치와 비교
+  - 예: `tone: editorial` → linear.md / stripe.md / claude.md / notion.md 의 Quantified Constraints Read
+  - 비교 규칙: `radius.card_max_px`, `shadow.blur_max_px`, `easing.forbidden`, `transition_ms.max`, `gradient.allowed` 등 수치 상수 위반 0/1 판정
+- 판단 예시:
+  - tone=editorial 선언 + `rounded-2xl` (16px) → Linear max 12px 위반 → PL-01 violation
+  - tone=editorial + `easing: bounce` → ref forbidden list hit → violation
+  - tone=brutalist 선언 + `shadow-2xl` + `rounded-3xl` → rauno/bloomberg Quantified Constraints 모두 위반
+- false positive 방지: Quantified Constraints에 명시된 예외(`allow_soft_spring`, `allowed: marketing-only` 등)는 존중
 
 **PL-02 Missing Personality** — 모든 섹션이 identical card layout:
 - 입력: 페이지 구조 (반복된 패턴 감지)

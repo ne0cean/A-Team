@@ -48,6 +48,45 @@ Rauno Freiberg's personal site. 실험적 interaction. 가독성-파괴 직전 �
 - ❌ 보라 그라디언트
 - ❌ "Clean modern SaaS" 분위기
 
+## Quantified Constraints
+
+```yaml
+radius:
+  button_max_px: 0
+  card_max_px: 0
+  forbid_pill_rounded: true
+shadow:
+  offset_y_max_px: 0
+  allowed_only: none
+easing:
+  allowed: [physics-based, spring, magnetic]
+  require_reduced_motion_handler: true
+transition_ms:
+  min: 100
+  max: 600
+  allow_complex_choreography: true
+gradient:
+  allowed: false
+  pure_bw_only: true
+color:
+  primary: pure-black-white
+  accent_count_max: 1
+  accent_fluorescent: true
+  forbidden_hues: [pastel, purple, multi-color]
+typography:
+  body_mix_weights: true
+  weight_range: [100, 900]
+  display_scale_max_px: 120
+  letter_spacing_display: tight
+density:
+  score: 6
+  spacing_base_px: irregular
+  broken_grid_allowed: true
+a11y:
+  reduced_motion_required: true
+  focus_state_required: true
+```
+
 ## 언제 참고
 
 - 디자이너/엔지니어 포트폴리오

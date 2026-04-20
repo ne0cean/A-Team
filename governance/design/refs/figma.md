@@ -45,6 +45,41 @@ Design together, live. Multi-color brand. 친근함 + 프로 도구의 정교함
 - ❌ Corporate restraint (Figma는 표현적)
 - ❌ Mono-color system
 
+## Quantified Constraints
+
+```yaml
+radius:
+  button_max_px: 8
+  icon_button_max_px: 4
+  card_max_px: 8
+shadow:
+  offset_y_max_px: 2
+  blur_max_px: 8
+  opacity_max: 0.1
+easing:
+  allowed: [spring, ease-out]
+  forbidden: [bounce-heavy, elastic]
+  allow_soft_spring: true
+transition_ms:
+  min: 150
+  max: 200
+gradient:
+  allowed: subtle
+  forbidden: heavy-generic-purple
+color:
+  accent_count_min: 3
+  brand_multi_color: true
+  core_colors: 5
+  primary: "#0D99FF"
+typography:
+  body_px: [12, 14]
+  allow_serif_body: false
+  ui_font_px_min: 11
+density:
+  score: 6
+  spacing_base_px: 4
+```
+
 ## 언제 참고
 
 - Creative tool, collaborative canvas, design software

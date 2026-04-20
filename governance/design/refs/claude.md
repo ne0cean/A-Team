@@ -50,6 +50,41 @@ Thoughtful. Quiet confidence. 텍스트 콘텐츠가 중심. 흑백 + 딱 하나
 - ❌ Multi-color accents
 - ❌ Rounded-2xl
 
+## Quantified Constraints
+
+```yaml
+radius:
+  button_max_px: 6
+  card_max_px: 8
+  input_max_px: 6
+shadow:
+  offset_y_max_px: 0
+  blur_max_px: 0
+  opacity_max: 0
+  allowed_only: border-based
+easing:
+  allowed: [ease-out]
+  forbidden: [bounce, overshoot, spring, elastic]
+transition_ms:
+  min: 100
+  max: 200
+gradient:
+  allowed: false
+color:
+  accent_count_max: 1
+  brand_terracotta: "#CC785C"
+  forbidden_hues: [purple, magenta, violet]
+typography:
+  body_px: [16, 18]
+  body_line_height: 1.6
+  allow_serif_body: true
+  line_length_ch: 65
+density:
+  score: 4
+  spacing_base_px: 8
+  section_gap_px: [64, 96]
+```
+
 ## 언제 참고
 
 - AI tool, research-facing product, reading-heavy app

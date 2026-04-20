@@ -46,6 +46,40 @@ Your second brain. 빈 캔버스. 블록 = 단위. 사용자가 스타일을 채
 - ❌ 위압적 shadow
 - ❌ Heavy brand color (user content 우선)
 
+## Quantified Constraints
+
+```yaml
+radius:
+  button_max_px: 4
+  card_max_px: 4
+  block_hover_px: 2
+shadow:
+  offset_y_max_px: 1
+  blur_max_px: 3
+  opacity_max: 0.04
+easing:
+  allowed: [ease-out, linear]
+  forbidden: [bounce, overshoot, spring, elastic]
+transition_ms:
+  min: 0
+  max: 100
+gradient:
+  allowed: false
+color:
+  accent_user_selectable: 10
+  default_pastel: true
+  brand_restraint: true
+  hover_bg: "#F7F6F3"
+typography:
+  body_px: [14, 16]
+  body_line_height: 1.5
+  system_font_stack: true
+density:
+  score: 4
+  spacing_base_px: 8
+  page_margin_px: 96
+```
+
 ## 언제 참고
 
 - Document editor, knowledge base, flexible canvas

@@ -47,6 +47,39 @@ macOS native feel. Command palette is the app. Playful micro-interactions. 파�
 - ❌ Rounded-2xl (Raycast는 4-6px)
 - ❌ Serif fonts
 
+## Quantified Constraints
+
+```yaml
+radius:
+  button_max_px: 6
+  card_max_px: 8
+  row_max_px: 6
+shadow:
+  offset_y_max_px: 0
+  allowed_only: native-vibrancy
+easing:
+  allowed: [ease-out]
+  forbidden: [bounce-hard, elastic]
+  allow_soft_spring: true
+transition_ms:
+  min: 150
+  max: 200
+gradient:
+  allowed: accent-subtle
+  forbidden: purple
+color:
+  primary: "#FF6363"
+  accent_count_max: 3
+  pastel_saturation: high-contrast
+  a11y_contrast: AA
+typography:
+  body_px: [13, 15]
+  allow_serif_body: false
+density:
+  score: 5
+  spacing_base_px: 8
+```
+
 ## 언제 참고
 
 - macOS / cross-platform utility, launcher, productivity

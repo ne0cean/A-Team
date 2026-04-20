@@ -81,7 +81,7 @@ fi
 `.context/RESUME.md` 존재 여부 확인:
 - `created_at` 이 24시간 이내이면: `🔄 이전 중단 세션 감지 ({created_at}). '/pickup' 실행 또는 아래 Next Tasks 확인 후 계속하세요.`
 - `status: completed` 이면: stale 가능, 3일 경과 시 삭제 제안
-- `mode: sleep` + `status != completed` 이면: sleep mode 진행 중 → `/pickup` 강력 권장, `launchctl list | grep com.ateam.sleep-resume` 로 OS 크론 생존 확인
+- `mode: zzz` (또는 legacy `sleep`) + `status != completed` 이면: zzz mode 진행 중 → `/pickup` 강력 권장, `launchctl list | grep com.ateam.sleep-resume` 로 OS 크론 생존 확인
 - 부재 시: 기본 vibe 흐름 진행
 - `~/Library/Logs/ateam-sleep-resume.log` 최근 24h 엔트리 있으면 요약 표시
 
