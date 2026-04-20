@@ -57,6 +57,32 @@ git diff --name-only --diff-filter=A 2>/dev/null | grep -E '^(lib/.*\.ts|\.claud
 - 미연결 항목 발견 시: 즉시 Phase 2 연결 수행 (빌드 검증 포함)
 - 또는 복잡하면: CURRENT.md의 Next Tasks에 `/optimize` TODO 등록
 
+## Step 3.8 — A-Team Drift 감지 (자동)
+
+현재 프로젝트가 a-team 자체가 **아닌데** a-team 하위 사본(`A-Team/`, `a-team/`, `.a-team/` 등)이 존재하거나, 프로젝트 내 `.claude/commands/`·`governance/`·`scripts/auto-switch/` 가 수정되었다면 drift 신호. `ateam-sovereignty.md` 제2/7원칙에 따라 **글로벌이 정본**.
+
+```bash
+CURRENT_REPO=$(git rev-parse --show-toplevel 2>/dev/null || echo '')
+ATEAM_GLOBAL="$HOME/Projects/a-team"
+
+if [ "$CURRENT_REPO" != "$ATEAM_GLOBAL" ]; then
+  # 프로젝트 내 a-team 사본 수정 감지
+  DRIFT_PATHS=$(git diff --name-only HEAD~20 HEAD 2>/dev/null | grep -E '^(\.?A-Team/|\.?a-team/|\.claude/commands/|governance/|scripts/auto-switch/)' || true)
+  if [ -n "$DRIFT_PATHS" ]; then
+    echo ""
+    echo "⚠️  A-Team drift 감지 (ateam-sovereignty 제2원칙 위반 가능):"
+    echo "$DRIFT_PATHS" | head -10
+    echo ""
+    echo "권장: 이 변경사항을 a-team 글로벌(~/Projects/a-team)로 역류하세요:"
+    echo "  cd $ATEAM_GLOBAL && /absorb"
+    echo ""
+    echo "무시하려면 다음 세션에서 계속 진행. 단 drift가 누적되면 여러 프로젝트 간 분열 발생."
+  fi
+fi
+```
+
+감지 시 사용자에게 1회 보고 후 세션 종료는 정상 진행. **자동 머지 안 함** (`/absorb` 스킬이 인간 결정 대기 원칙 유지).
+
 ## Step 4 — 커밋
 빌드 성공 시 커밋:
 ```

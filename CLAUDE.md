@@ -49,16 +49,16 @@
 - `/resume` — 리셋 후 재개만 (시점 무관, 주간/단기). 자율 작업 없음
 - `/pickup` — 재개 실행 로직 (RESUME.md 읽고 이어받기)
 
-## 계정 자동 전환 (claude-remote 통합, zzz 모드에서 자동 활성)
-claude-remote 서버가 활성 세션 usage를 60초 크론으로 감시. OAuth 계정 ≥ 2개 등록 시 **zzz 진입 즉시 활성화**. 상세 계약: `governance/rules/auto-switch-protocol.md`.
+## 계정 자동 전환 (a-team 글로벌 엔진, zzz/일반 모드 공통)
+엔진: `scripts/auto-switch/trigger.mjs` (launchd 60초 크론). claude-remote 서버 떠있으면 PTY 기반 실시간 전환, 없으면 Telegram 수동 알림. 상세: `governance/rules/auto-switch-protocol.md`.
 
-발동: 활성 계정 ≥ 96% OR rate-limit 감지. 서버가 autosave 프롬프트 주입 시 Claude는:
+발동: OAuth 계정 ≥ 2개 + 활성 계정 ≥ 96% + 후보 계정 < 80% + 10분 쿨다운 경과. 서버가 autosave 프롬프트 주입 시 Claude는:
 1. RESUME.md에 현재 상태 저장 + git commit
 2. 마지막 줄에 `READY_TO_SWITCH` 단독 출력
 3. 서버가 keychain swap → `/pickup` 자동 주입
 4. zzz 모드 유지하며 새 계정에서 이어서 진행
 
-타임아웃 180s, 쿨다운 10분, 양 계정 소진 시 Telegram 알림 후 생략.
+타임아웃 180s, 쿨다운 10분, 양 계정 소진 시 Telegram 알림 후 생략. 설치: `bash scripts/install-auto-switch-cron.sh install`.
 
 ## Autoresearch Shadow Mode (의무 자동 트리거)
 
