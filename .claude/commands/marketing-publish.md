@@ -177,3 +177,22 @@ Postiz MCP 설정 필요:
 
 **저장 위치**: `content/publish-log.md` (워크스페이스 루트)
 
+## Analytics 로깅 (필수)
+
+Postiz 잡 생성 직후(또는 각 플랫폼 발행 성공 시) `.context/analytics.jsonl` 에 이벤트 append:
+
+```typescript
+import { logMarketingEvent } from './lib/analytics';
+
+logMarketingEvent('marketing_publish', {
+  repo: '<현재 프로젝트명>',
+  marketingTopic: '<슬러그>',
+  marketingPlatform: '<플랫폼>',
+  marketingMode: 'scheduled',
+  marketingArtifactPath: '<발행 대상 파일 경로>',
+  marketingPostizJobId: '<Postiz job id>',
+}, '.context/analytics.jsonl');
+```
+
+dry-run 모드면 `marketingMode: 'dry-run'` 로 기록. 실제 발행 확정 시 `published` 로 업데이트 로그 별도 append.
+

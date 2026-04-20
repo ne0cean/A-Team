@@ -112,3 +112,22 @@ repurposed: false
 - 웹 검색 실패 → 리서치 단계 스킵, 사용자에게 알림 후 진행
 - 단어 수 미달 (<2500) → 자동으로 확장 섹션 추가 요청
 - `--no-review` 사용 시 → "경고: 인간 리뷰 없이 생성된 콘텐츠는 품질 저하 가능" 명시
+
+## Analytics 로깅 (필수)
+
+초안 저장 직후 `.context/analytics.jsonl` 에 이벤트 1건 append:
+
+```typescript
+import { logMarketingEvent } from './lib/analytics';
+
+logMarketingEvent('marketing_generate', {
+  repo: '<현재 프로젝트명>',
+  marketingTopic: '<슬러그>',
+  marketingPlatform: '<blog|twitter|linkedin|instagram|tiktok|email>',
+  marketingMode: '<blog-first|social-first|dry-run>',
+  marketingArtifactPath: 'content/drafts/<날짜-슬러그>.md',
+  marketingHumanInsertCount: <[HUMAN INSERT] 마커 수>,
+}, '.context/analytics.jsonl');
+```
+
+실패 시 graceful (로깅 실패가 생성 결과를 막지 않음).

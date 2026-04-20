@@ -138,3 +138,21 @@ content/repurposed/YYYY-MM-DD-{slug}/
 - 각 포맷은 원문을 모르는 독자가 읽어도 완결된 가치를 전달해야 함
 - 플랫폼별 특성 반영 (LinkedIn = 전문가 / TikTok = 빠른 페이스 / 이메일 = 직접적)
 - [HUMAN INSERT] 마킹: 개인 경험 삽입 권장 위치 표시 (제거 가능하나 권장)
+
+## Analytics 로깅 (필수)
+
+각 리퍼포즈 포맷 저장 시마다 `.context/analytics.jsonl` 에 이벤트 1건씩 append (15 포맷 = 15 이벤트):
+
+```typescript
+import { logMarketingEvent } from './lib/analytics';
+
+logMarketingEvent('marketing_repurpose', {
+  repo: '<현재 프로젝트명>',
+  marketingTopic: '<원문 슬러그>',
+  marketingPlatform: '<플랫폼>',
+  marketingArtifactPath: '<생성된 파일 경로>',
+  marketingHumanInsertCount: <해당 포맷의 마커 수>,
+}, '.context/analytics.jsonl');
+```
+
+배치 실행 시 loop 안에서 호출. 실패 시 graceful.

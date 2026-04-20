@@ -122,3 +122,23 @@ content/analytics/
 
 `/marketing-loop` 에서 주간 자동 실행됨.
 수동 실행도 언제든 가능.
+
+## Analytics 로깅 (필수)
+
+분석 실행 완료 후 (플랫폼별 메트릭 수집 후) `.context/analytics.jsonl` 에 플랫폼별 이벤트 append:
+
+```typescript
+import { logMarketingEvent } from './lib/analytics';
+
+for (const platform of platforms) {
+  logMarketingEvent('marketing_analytics', {
+    repo: '<현재 프로젝트명>',
+    marketingPlatform: platform.name,
+    marketingImpressions: platform.impressions,
+    marketingEngagements: platform.engagements,
+    marketingConversionRate: platform.conversionRate,
+  }, '.context/analytics.jsonl');
+}
+```
+
+실패 시 graceful. 이 이벤트가 `/dashboard` 의 Module Health 표에서 마케팅 모듈 활동 지표로 집계됨.
