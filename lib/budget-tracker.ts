@@ -131,6 +131,9 @@ export interface CombinedSessionCost {
   total: number;
   budgetRemaining: number;
   toolBreakdown: Record<string, number>;
+  llmByModel?: Record<string, { costUsd: number; callCount: number }>;
+  cacheHitRate?: number;
+  llmCallCount?: number;
 }
 
 /**
@@ -151,5 +154,44 @@ export function mergeCosts(
     total: llmCostUsd + toolUsd,
     budgetRemaining: budgetState.remainingUsd,
     toolBreakdown: { ...budgetState.spentByTool },
+  };
+}
+
+/**
+ * CostTracker 인스턴스에서 CostSummary 를 직접 받는 편의 함수.
+ * mergeCosts 보다 풍부한 정보(모델별 브레이크다운, cache hit rate, LLM call count) 반환.
+ *
+ * 호출부 패턴 예시:
+ *   import { CostTracker } from './cost-tracker';
+ *   const tracker = new CostTracker(dir);
+ *   tracker.load();
+ *   const combined = mergeCostsFromSummary(budgetState, tracker.getSummary());
+ *
+ * @param budgetState BudgetState (tool 비용)
+ * @param summary cost-tracker.getSummary() 결과
+ */
+export function mergeCostsFromSummary(
+  budgetState: BudgetState,
+  summary: {
+    totalCostUsd: number;
+    callCount: number;
+    cacheHitRate: number;
+    byModel: Record<string, { costUsd: number; callCount: number }>;
+  }
+): CombinedSessionCost {
+  const toolUsd = Object.values(budgetState.spentByTool).reduce((s, v) => s + v, 0);
+  const llmByModel: Record<string, { costUsd: number; callCount: number }> = {};
+  for (const [model, br] of Object.entries(summary.byModel)) {
+    llmByModel[model] = { costUsd: br.costUsd, callCount: br.callCount };
+  }
+  return {
+    llmUsd: summary.totalCostUsd,
+    toolUsd,
+    total: summary.totalCostUsd + toolUsd,
+    budgetRemaining: budgetState.remainingUsd,
+    toolBreakdown: { ...budgetState.spentByTool },
+    llmByModel,
+    cacheHitRate: summary.cacheHitRate,
+    llmCallCount: summary.callCount,
   };
 }
