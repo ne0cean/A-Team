@@ -7,6 +7,7 @@ import {
   recordToolCost,
   decideBudgetAction,
   mergeCosts,
+  mergeCostsFromSummary,
 } from '../lib/budget-tracker.js';
 
 describe('RFC-006 Phase 2 Budget Tracker', () => {
@@ -82,6 +83,70 @@ describe('RFC-006 Phase 2 Budget Tracker', () => {
       const merged = mergeCosts(createBudgetState(5), 0);
       expect(merged.total).toBe(0);
       expect(merged.toolBreakdown).toEqual({});
+    });
+  });
+
+  describe('mergeCostsFromSummary (CostSummary 직수신)', () => {
+    it('basic: combines tool + LLM summary into CombinedSessionCost', () => {
+      const budget = createBudgetState(10);
+      const s1 = recordToolCost(budget, 'Bash', 0.005, 'exec');
+      const s2 = recordToolCost(s1, 'Read', 0.002, 'exec');
+      const summary = {
+        totalCostUsd: 2.5,
+        callCount: 42,
+        cacheHitRate: 0.0,
+        byModel: {},
+      };
+      const combined = mergeCostsFromSummary(s2, summary);
+      expect(combined.llmUsd).toBe(2.5);
+      expect(combined.toolUsd).toBeCloseTo(0.007, 3);
+      expect(combined.total).toBeCloseTo(2.507, 3);
+      expect(combined.budgetRemaining).toBeCloseTo(9.993, 3);
+      expect(combined.llmCallCount).toBe(42);
+    });
+
+    it('with byModel breakdown: preserves per-model cost and callCount', () => {
+      const budget = createBudgetState(5);
+      const s1 = recordToolCost(budget, 'Agent', 0.15, 'plan');
+      const summary = {
+        totalCostUsd: 3.0,
+        callCount: 100,
+        cacheHitRate: 0.35,
+        byModel: {
+          'claude-sonnet-4-20250514': { costUsd: 2.0, callCount: 60 },
+          'claude-haiku-3': { costUsd: 1.0, callCount: 40 },
+        },
+      };
+      const combined = mergeCostsFromSummary(s1, summary);
+      expect(combined.llmByModel).toBeDefined();
+      expect(combined.llmByModel!['claude-sonnet-4-20250514']).toEqual({
+        costUsd: 2.0,
+        callCount: 60,
+      });
+      expect(combined.llmByModel!['claude-haiku-3']).toEqual({
+        costUsd: 1.0,
+        callCount: 40,
+      });
+      expect(combined.toolBreakdown.Agent).toBeCloseTo(0.15, 2);
+      expect(combined.total).toBeCloseTo(3.15, 2);
+    });
+
+    it('cache hit rate: propagates cacheHitRate from summary', () => {
+      const budget = createBudgetState(5);
+      const summary = {
+        totalCostUsd: 0.5,
+        callCount: 20,
+        cacheHitRate: 0.72,
+        byModel: {
+          'claude-sonnet-4-20250514': { costUsd: 0.5, callCount: 20 },
+        },
+      };
+      const combined = mergeCostsFromSummary(budget, summary);
+      expect(combined.cacheHitRate).toBe(0.72);
+      expect(combined.llmCallCount).toBe(20);
+      // No tool costs recorded — toolUsd should be 0
+      expect(combined.toolUsd).toBe(0);
+      expect(combined.total).toBe(0.5);
     });
   });
 
