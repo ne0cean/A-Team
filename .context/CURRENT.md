@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**425 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-19).
+**428 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-22).
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
 
@@ -93,12 +93,12 @@ a-team의 궁극 지향점 = **프로덕트 런칭 + 운영 가능한 하나의 
 
 ### Low Priority / Future
 - [ ] **IMP-20260415-01 처리** — reflect parallel-consolidate 패턴을 `/retro` 또는 `/end`에 적용
-- [ ] **sleep.md 압축 검토** (1141 → 900 words)
+- [x] ~~**sleep.md 압축 검토**~~ ✅ N/A — `sleep.md` 삭제됨 (`/zzz` 통합 완료)
 - [ ] **Wave 1 실측 A/B 벤치** (실제 Claude API, RFC-001/003/004/007-S)
 - [ ] **G5+G7 판정 후 `v-wave-1` 공식 tag 생성**
-- [ ] lib/budget-tracker.ts ↔ lib/cost-tracker.ts 데이터 파이프 통합
-- [ ] scripts/worktree-exec.sh 사용 안내 coder.md 추가
-- [ ] eval/templates b3-b5 추가 (b1/b2/b6 skeleton만)
+- [x] ~~lib/budget-tracker.ts ↔ lib/cost-tracker.ts 데이터 파이프 통합~~ ✅ `278de73` mergeCostsFromSummary 테스트 3건
+- [x] ~~scripts/worktree-exec.sh 사용 안내 coder.md 추가~~ ✅ `7a29a61`
+- [x] ~~eval/templates b3-b5 추가~~ ✅ 이미 b1-b6 전부 존재
 - [ ] Wave 2/3 실측 → 공식 tag
 - [ ] Stage 9 Holistic 진행 (Wave 3 실측 후)
 - [ ] Stage 10 Weekly cron 실제 활성화
