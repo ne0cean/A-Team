@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**458 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-27).
+**428 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-22).
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
 
@@ -95,7 +95,7 @@ a-team의 궁극 지향점 = **프로덕트 런칭 + 운영 가능한 하나의 
 - [x] ~~**MODEL_PRICING 공식 가격 대조**~~ ✅ 2026-04-26 — Opus 4.6 가격 $15/$75 → $5/$25 정정 (3x 과대 계상 발견). Opus 4.7/4.5/4.1/4 + Sonnet 4.5/4 + Haiku variants 추가 등록. 429 tests PASS.
 
 ### Low Priority / Future
-- [x] ~~**IMP-20260415-01 처리** — reflect parallel-consolidate 패턴~~ ✅ 2026-04-26 — `/retro` 에 적용 (4 Agent parallel + 1 consolidator + dynamic options). `/end` 는 직렬 단계라 SKIP. retro.md 86 → 158 lines, sequential 분석 6개 → parallel 4개 + dedup 1개.
+- [ ] **IMP-20260415-01 처리** — reflect parallel-consolidate 패턴을 `/retro` 또는 `/end`에 적용
 - [x] ~~**sleep.md 압축 검토**~~ ✅ N/A — `sleep.md` 삭제됨 (`/zzz` 통합 완료)
 - [ ] **Wave 1 실측 A/B 벤치** (실제 Claude API, RFC-001/003/004/007-S)
 - [ ] **G5+G7 판정 후 `v-wave-1` 공식 tag 생성**
