@@ -101,6 +101,36 @@ UI 파일(.tsx/.jsx/.css/.scss) 수정 시 PostToolUse 훅이 자동으로 Befor
    - 수정하면 다시 자동 검증 트리거됨 — PASS될 때까지 반복 (최대 3회)
 3. dev server 미실행 시 훅이 graceful skip — 코드 리뷰만으로 진행
 
+## Speculative Execution (worktree-exec.sh)
+
+고위험 편집(대규모 리팩토링, 패키지 업그레이드, 파괴적 마이그레이션 등)은 격리된 worktree에서 먼저 실행하여 main 브랜치를 보호할 수 있다.
+
+### 사용법
+```bash
+bash scripts/worktree-exec.sh <task-id> -- <command> [args...]
+```
+
+### 예시
+```bash
+# 리팩토링 후 테스트 검증을 worktree에서 수행
+bash scripts/worktree-exec.sh refactor-auth -- npm run test
+
+# 의존성 업그레이드 후 빌드 검증
+bash scripts/worktree-exec.sh upgrade-vitest -- npm run build
+```
+
+### 동작 흐름
+1. `.worktrees/<task-id>` 격리 worktree 생성 (HEAD 기준)
+2. 해당 worktree 내에서 `<command>` 실행
+3. **성공** → merge 명령을 콘솔에 출력 (수동 승인 필요, auto-merge 없음)
+4. **실패** → `failed/` 브랜치에 보존 후 worktree 정리
+
+### 사용 시기
+- 5개 이상 파일을 동시 수정하는 리팩토링
+- `package.json` / `tsconfig.json` 변경이 수반되는 구조 변경
+- 실패 시 롤백이 복잡한 마이그레이션 작업
+- **자동 트리거 없음** — 항상 명시적 호출로만 작동
+
 ## 코딩 안전 원칙
 - 파일 전체 읽기 → 수정 → 빌드 검증. 이 순서를 절대 바꾸지 않음
 - 10개 이상 파일 동시 수정 시 → orchestrator에게 reviewer 호출 요청
