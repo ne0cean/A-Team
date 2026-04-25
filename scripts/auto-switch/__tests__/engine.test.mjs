@@ -20,7 +20,7 @@ const BACKUP = join(homedir(), `.ateam.test-backup-${Date.now()}`)
 const hadReal = existsSync(ATEAM)
 if (hadReal) spawnSync('mv', [ATEAM, BACKUP])
 
-const { extractAccessToken, loadUsageCache, saveUsageCache } = await import('../check-usage.mjs')
+const { extractAccessToken, extractRefreshToken, loadUsageCache, saveUsageCache, fetchUsageForToken, refreshAccessToken, updateUsageForAccount } = await import('../check-usage.mjs')
 const { getAccountsState, saveAccountsState, getOAuthAccounts, getActiveAccount, PATHS } = await import('../accounts-state.mjs')
 const { isSupported, swapToAccount } = await import('../swap-keychain.mjs')
 
@@ -28,6 +28,25 @@ t('extractAccessToken null → null', () => extractAccessToken(null) === null)
 t('extractAccessToken bad json → null', () => extractAccessToken('{nope') === null)
 t('extractAccessToken nested claudeAiOauth', () => extractAccessToken(JSON.stringify({ claudeAiOauth: { accessToken: 'x' } })) === 'x')
 t('extractAccessToken root-level', () => extractAccessToken(JSON.stringify({ accessToken: 'y' })) === 'y')
+
+t('extractRefreshToken null → null', () => extractRefreshToken(null) === null)
+t('extractRefreshToken nested', () => extractRefreshToken(JSON.stringify({ claudeAiOauth: { refreshToken: 'r1' } })) === 'r1')
+t('extractRefreshToken root-level', () => extractRefreshToken(JSON.stringify({ refreshToken: 'r2' })) === 'r2')
+
+// fetchUsageForToken now returns {error,status} on failure (not null)
+t('fetchUsageForToken empty → error shape', async () => {
+  const r = await fetchUsageForToken('')
+  return r && r.error === 'no-token' && r.status === 0
+})
+
+// refreshAccessToken null guard
+t('refreshAccessToken null → null', async () => (await refreshAccessToken(null)) === null)
+
+// updateUsageForAccount no-token returns ok:false
+t('updateUsageForAccount no-token → ok:false', async () => {
+  const r = await updateUsageForAccount({ id: 'x', oauthToken: null })
+  return r.ok === false && r.error === 'no-access-token'
+})
 
 rmSync(PATHS.GLOBAL_FILE, { force: true })
 t('getAccountsState returns valid shape', () => {

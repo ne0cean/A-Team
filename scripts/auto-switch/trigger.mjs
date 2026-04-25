@@ -27,6 +27,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import {
   getAccountsState,
+  saveAccountsState,
   getOAuthAccounts,
   getActiveAccount,
   cleanupLegacyIfExpired,
@@ -36,6 +37,7 @@ import {
   updateUsageForAccount,
   loadUsageCache,
 } from './check-usage.mjs'
+import { writeKeychainToken } from './swap-keychain.mjs'
 
 const STATE_DIR = join(homedir(), '.ateam')
 const STATE_FILE = join(STATE_DIR, 'auto-switch-state.json')
@@ -169,6 +171,34 @@ async function delegateToServer(payload) {
   }
 }
 
+// ──────── Swap execution ────────
+
+async function executeSwap(active, candidate, activeUtil, candidateUtil, state, now) {
+  logInfo(`Trigger: ${active.label} ${activeUtil.toFixed(0)}% → ${candidate.label} ${candidateUtil.toFixed(0)}%`)
+  if (await isServerUp()) {
+    logInfo('claude-remote server up — delegating')
+    const result = await delegateToServer({
+      outgoingAccountId: active.id,
+      incomingAccountId: candidate.id,
+      outgoingLabel: active.label,
+      incomingLabel: candidate.label,
+      outgoingUtil: activeUtil,
+      incomingUtil: candidateUtil,
+    })
+    saveState({ ...state, lastSwitchAt: now, lastTriggerAt: now })
+    return result.ok ? 10 : 1
+  }
+  logInfo('claude-remote server down — sending Telegram alert')
+  await sendTelegram(
+    `🔔 <b>계정 전환 필요 (수동)</b>\n` +
+    `활성: ${active.label} (${Math.round(activeUtil)}% 소진)\n` +
+    `여유: ${candidate.label} (${Math.round(candidateUtil)}%)\n` +
+    `claude-remote 서버가 꺼져 있어 자동 전환 불가. 앱에서 수동 전환하세요.`
+  )
+  saveState({ ...state, lastSwitchAt: now, lastTriggerAt: now })
+  return 11
+}
+
 // ──────── Main ────────
 
 async function main() {
@@ -198,15 +228,62 @@ async function main() {
     return 0
   }
 
-  // Fetch fresh usage for active account; candidates use last-known cache
-  const freshActive = await updateUsageForAccount(active)
-  if (!freshActive) {
-    logWarn(`Could not fetch usage for active account ${active.label} (token expired?)`)
+  // Fetch fresh usage for active account; candidates use last-known cache.
+  // On 401, updateUsageForAccount auto-refreshes the OAuth token. We persist
+  // the rotated blob back to accounts.json (and keychain if it's the active).
+  const onTokenRefreshed = async (acc, newInner) => {
+    const updatedBlob = JSON.stringify({ claudeAiOauth: newInner })
+    const state = getAccountsState()
+    const target = state.accounts.find(a => a.id === acc.id)
+    if (target) {
+      target.oauthToken = updatedBlob
+      saveAccountsState(state)
+    }
+    if (state.active === acc.id) {
+      try { writeKeychainToken(updatedBlob) } catch (e) { logWarn(`keychain rewrite failed: ${e.message}`) }
+    }
+    logInfo(`OAuth token refreshed for ${acc.label}`)
+  }
+
+  const freshActive = await updateUsageForAccount(active, { onTokenRefreshed })
+
+  // ──── Fallback: usage API itself rate-limited or unreachable ────
+  // If the active token failed (401-after-refresh, 429, network), this strongly
+  // suggests the account is exhausted. Fall through to candidate selection
+  // using last-known cache, but only if a candidate looks healthy.
+  if (!freshActive.ok) {
+    logWarn(`Active usage fetch failed (${active.label}): ${freshActive.error} status=${freshActive.status}`)
+    const cache = loadUsageCache()
+    const candidates = oauthAccounts
+      .filter(a => a.id !== active.id)
+      .map(a => {
+        const cached = cache[a.id]
+        const util = cached?.data?.five_hour?.utilization
+        return { acc: a, util: typeof util === 'number' ? util : null }
+      })
+    const usable = candidates.find(c => c.util !== null && c.util < CANDIDATE_MAX_UTIL)
+    if (usable) {
+      logInfo(`Active fetch failed but candidate ${usable.acc.label} cached at ${usable.util.toFixed(0)}% — switching`)
+      const fakeActiveUtil = 100  // assume exhausted
+      return await executeSwap(active, usable.acc, fakeActiveUtil, usable.util, state, now)
+    }
+    // No usable candidate via cache — alert once, then cooldown
+    if (freshActive.status === 429 || freshActive.status === 401) {
+      const last = state.lastNoCacheAlertAt ?? 0
+      if (now - last > 30 * 60_000) {
+        await sendTelegram(
+          `⚠️ <b>계정 전환 진단 불가</b>\n` +
+          `활성: ${active.label} usage API ${freshActive.status} (${freshActive.error})\n` +
+          `타 계정 cache도 없음 — 수동으로 swap-keychain 실행 필요.`
+        )
+        saveState({ ...state, lastNoCacheAlertAt: now })
+      }
+    }
     return 0
   }
 
   const activeUtil = freshActive.utilization
-  logInfo(`Active ${active.label}: ${activeUtil.toFixed(1)}%`)
+  logInfo(`Active ${active.label}: ${activeUtil.toFixed(1)}%${freshActive.refreshed ? ' (token just refreshed)' : ''}`)
 
   // TODO(rate-limit): The server stores modelRateLimitCache in its own process.
   // When delegating, server re-checks this. For standalone trigger, we rely on
@@ -240,33 +317,7 @@ async function main() {
     return 20
   }
 
-  logInfo(`Trigger: ${active.label} ${activeUtil.toFixed(0)}% → ${best.acc.label} ${best.util.toFixed(0)}%`)
-
-  // Prefer server path if it's up (owns the PTY session and can inject prompt)
-  if (await isServerUp()) {
-    logInfo('claude-remote server up — delegating')
-    const result = await delegateToServer({
-      outgoingAccountId: active.id,
-      incomingAccountId: best.acc.id,
-      outgoingLabel: active.label,
-      incomingLabel: best.acc.label,
-      outgoingUtil: activeUtil,
-      incomingUtil: best.util,
-    })
-    saveState({ ...state, lastSwitchAt: now, lastTriggerAt: now })
-    return result.ok ? 10 : 1
-  }
-
-  // Fallback: Telegram alert (manual switch required)
-  logInfo('claude-remote server down — sending Telegram alert')
-  await sendTelegram(
-    `🔔 <b>계정 전환 필요 (수동)</b>\n` +
-    `활성: ${active.label} (${Math.round(activeUtil)}% 소진)\n` +
-    `여유: ${best.acc.label} (${Math.round(best.util)}%)\n` +
-    `claude-remote 서버가 꺼져 있어 자동 전환 불가. 앱에서 수동 전환하세요.`
-  )
-  saveState({ ...state, lastSwitchAt: now, lastTriggerAt: now })
-  return 11
+  return await executeSwap(active, best.acc, activeUtil, best.util, state, now)
 }
 
 main()
