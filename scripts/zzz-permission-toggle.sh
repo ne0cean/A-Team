@@ -34,12 +34,41 @@ case "${1:-}" in
   on)
     ensure_jq
     mkdir -p "$(dirname "$BACKUP")"
-    # 각 파일의 원래 defaultMode 기록 → backup.json { "path": "default|acceptEdits|..." }
+
+    # Reentry guard: 이미 active 면 backup 덮어쓰기 금지 (자기-자신 오염 방지).
+    # 새로 발견된 프로젝트(이전 ON 이후 생긴 .claude/settings.local.json)는
+    # 추가 등록만 하고, 기존 entry 의 원본 모드는 보존.
+    if [ -f "$ACTIVE_MARKER" ] && [ -f "$BACKUP" ]; then
+      ADDED=0
+      while IFS= read -r f; do
+        [ -f "$f" ] || { [ "$f" = "$GLOBAL" ] && echo "{}" > "$GLOBAL"; }
+        [ -f "$f" ] || continue
+        EXISTS=$(jq -r --arg k "$f" '.files | has($k)' "$BACKUP" 2>/dev/null || echo "false")
+        if [ "$EXISTS" != "true" ]; then
+          ORIG=$(jq -r '.permissions.defaultMode // "default"' "$f" 2>/dev/null || echo "default")
+          # 새 file 이 이미 bypass 라면 default 로 backup (사용자 의도 가정)
+          [ "$ORIG" = "bypassPermissions" ] && ORIG="default"
+          TMP=$(mktemp)
+          jq --arg k "$f" --arg v "$ORIG" '.files[$k] = $v' "$BACKUP" > "$TMP" && mv "$TMP" "$BACKUP"
+          ADDED=$((ADDED+1))
+        fi
+        TMP=$(mktemp)
+        jq '(.permissions //= {}) | .permissions.defaultMode = "bypassPermissions"' "$f" > "$TMP"
+        mv "$TMP" "$f"
+      done < <(list_targets)
+      COUNT=$(jq '.files | length' "$BACKUP")
+      echo "zzz permission: already active ($COUNT files tracked, +$ADDED new). backup preserved."
+      exit 0
+    fi
+
+    # 첫 활성화: 각 파일의 원래 defaultMode 기록 → backup.json
     BACKUP_JSON='{"backedUpAt":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","files":{}}'
     while IFS= read -r f; do
       [ -f "$f" ] || { [ "$f" = "$GLOBAL" ] && echo "{}" > "$GLOBAL"; }
       [ -f "$f" ] || continue
       ORIG=$(jq -r '.permissions.defaultMode // "default"' "$f" 2>/dev/null || echo "default")
+      # Defensive: 이미 bypass 인 파일은 default 로 backup (이전 비정상 종료 가능성)
+      [ "$ORIG" = "bypassPermissions" ] && ORIG="default"
       BACKUP_JSON=$(echo "$BACKUP_JSON" | jq --arg k "$f" --arg v "$ORIG" '.files[$k] = $v')
       TMP=$(mktemp)
       jq '(.permissions //= {}) | .permissions.defaultMode = "bypassPermissions"' "$f" > "$TMP"

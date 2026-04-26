@@ -85,7 +85,7 @@ a-team의 궁극 지향점 = **프로덕트 런칭 + 운영 가능한 하나의 
 ### Medium Priority
 - [ ] **`/autoresearch` 파일럿 실행** — target 커맨드 1개(`/office-hours`) baseline + 3-5 experiments
 - [ ] **`/blueprint` 실사용 1회** — 다음 기능을 blueprint로 문서화 → `/autoplan` 검토
-- [ ] **PMI MEDIUM M4** (pmi-2026-04-15.md): ralph-daemon sleep-mode flag. M1+M2+M3 완료 (CLI + 1-command hook installer).
+- [x] ~~**PMI MEDIUM M4** ralph-daemon sleep-mode flag~~ ✅ 2026-04-26 **defer 확정** — zzz는 RESUME.md+CronCreate+auto-switch+/pickup으로 이미 충분. ralph 자체에 flag 추가 불필요. 재논의 트리거: 야간 ralph 루프 토큰 리셋 미감지 사례 발생 시.
 - [ ] **eval-store A/B 수집 개시** (advisor-on/off 50 샘플 → harness-score 비교)
 - [ ] **Phase 1.5 skip rate 실측** (pre-check 에이전트 첫 데이터)
 - [ ] **CSO-L03 GPG 서명 + CI** (GitHub Actions npm test on PR)
