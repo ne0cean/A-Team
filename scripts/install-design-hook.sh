@@ -1,43 +1,54 @@
 #!/usr/bin/env bash
-# install-design-hook.sh — design-audit PostToolUse 훅을 사용자 로컬 .claude/settings.json 에 설치
+# install-design-hook.sh — design-audit PostToolUse 훅 설치
 # .claude/settings.json 은 gitignored (머신별 설정) — 이 스크립트가 자동 등록
-# PMI MEDIUM M3 closure
 #
 # 사용:
-#   bash scripts/install-design-hook.sh         # 설치
-#   bash scripts/install-design-hook.sh --dry   # 변경 미리보기
-#   bash scripts/install-design-hook.sh --uninstall  # 제거
+#   bash scripts/install-design-hook.sh                 # 현재 디렉터리($PWD)에 설치
+#   bash scripts/install-design-hook.sh --target=PATH   # 외부 repo에 설치 (예: ~/Projects/connectome)
+#   bash scripts/install-design-hook.sh --dry           # 변경 미리보기
+#   bash scripts/install-design-hook.sh --uninstall     # 제거
 #
 # 동작:
-# 1. .claude/hooks/ 디렉터리 생성 (없으면)
-# 2. templates/hooks/post-design-audit.sh → .claude/hooks/ 복사 (executable)
-# 3. .claude/settings.json PostToolUse[Edit|Write] 에 훅 추가 (중복 등록 방지)
-#    - settings.json 없으면 새로 생성
-# 4. 설치 후 dry-run 1회 실행 (lib/design-smell-detector.ts 자체에 대해)
+# 1. TARGET/.claude/hooks/ 디렉터리 생성 (없으면)
+# 2. A-Team의 templates/hooks/post-design-audit.sh → TARGET/.claude/hooks/ 복사
+# 3. TARGET/.claude/settings.json PostToolUse[Edit|Write] 에 훅 추가 (중복 등록 방지)
+# 4. dry-run 검증 (a-team self-host인 경우만)
+#
+# TARGET이 a-team 자체가 아닐 때 훅은 audit-design.mjs를 ~/Projects/a-team/scripts/
+# 또는 TARGET/A-Team/scripts/ 에서 자동 fallback (templates/hooks/post-design-audit.sh:47-49).
 
 set -e
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SETTINGS="$REPO_ROOT/.claude/settings.json"
-HOOKS_DIR="$REPO_ROOT/.claude/hooks"
-SRC_HOOK="$REPO_ROOT/templates/hooks/post-design-audit.sh"
-DST_HOOK="$HOOKS_DIR/post-design-audit.sh"
-HOOK_CMD="bash \".claude/hooks/post-design-audit.sh\""
+# A-Team 본체 위치 (이 스크립트가 있는 디렉터리의 부모)
+ATEAM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+SRC_HOOK="$ATEAM_ROOT/templates/hooks/post-design-audit.sh"
 
-cd "$REPO_ROOT"
-
+# 설치 타겟 (기본: 현재 디렉터리, --target= 으로 override)
+TARGET="$PWD"
 DRY=0
 UNINSTALL=0
 for arg in "$@"; do
   case "$arg" in
+    --target=*) TARGET="${arg#*=}" ;;
     --dry|--dry-run) DRY=1 ;;
     --uninstall|--remove) UNINSTALL=1 ;;
-    -h|--help)
-      head -16 "$0" | tail -14
-      exit 0
-      ;;
   esac
 done
+
+# Resolve target to absolute path
+TARGET="$(cd "$TARGET" 2>/dev/null && pwd || echo "$TARGET")"
+[ ! -d "$TARGET" ] && { echo "ERROR: target dir not found: $TARGET"; exit 2; }
+
+REPO_ROOT="$TARGET"
+SETTINGS="$REPO_ROOT/.claude/settings.json"
+HOOKS_DIR="$REPO_ROOT/.claude/hooks"
+DST_HOOK="$HOOKS_DIR/post-design-audit.sh"
+HOOK_CMD="bash \".claude/hooks/post-design-audit.sh\""
+
+echo "[install-design-hook] target = $TARGET"
+echo "[install-design-hook] source = $ATEAM_ROOT (templates + scripts)"
+
+cd "$REPO_ROOT"
 
 [ ! -f "$SRC_HOOK" ] && { echo "ERROR: source hook not found: $SRC_HOOK"; exit 2; }
 
@@ -153,11 +164,28 @@ PY
 fi
 
 # ── 3. dry-run 검증 ─────────────────────────────────────────────
-if [ $DRY -eq 0 ] && [ -f "$REPO_ROOT/lib/design-smell-detector.ts" ]; then
-  echo "[verify] running 1 audit on lib/design-smell-detector.ts (sanity check)"
-  npx tsx "$REPO_ROOT/scripts/audit-design.mjs" "$REPO_ROOT/lib/design-smell-detector.ts" --gate=default >/dev/null 2>&1 && \
-    echo "[verify] PASS — audit-design.mjs callable" || \
-    echo "[verify] WARN — audit-design.mjs returned non-zero (may be normal if violations exist)"
+# audit-design.mjs는 항상 ATEAM_ROOT 에 있음 — TARGET 의 .ts 파일 하나로 sanity check
+if [ $DRY -eq 0 ]; then
+  SAMPLE=""
+  if [ -f "$REPO_ROOT/lib/design-smell-detector.ts" ]; then
+    SAMPLE="$REPO_ROOT/lib/design-smell-detector.ts"  # a-team self-host
+  else
+    # 외부 repo: 첫 .tsx/.css 파일을 찾아 sanity check
+    SAMPLE=$(find "$REPO_ROOT" -maxdepth 4 \
+      \( -name "*.tsx" -o -name "*.css" \) \
+      -not -path "*/node_modules/*" \
+      -not -path "*/dist/*" \
+      -not -path "*/.next/*" \
+      2>/dev/null | head -1)
+  fi
+  if [ -n "$SAMPLE" ] && [ -f "$ATEAM_ROOT/scripts/audit-design.mjs" ]; then
+    echo "[verify] running 1 audit on $SAMPLE (sanity check)"
+    npx tsx "$ATEAM_ROOT/scripts/audit-design.mjs" "$SAMPLE" --gate=default >/dev/null 2>&1 && \
+      echo "[verify] PASS — audit-design.mjs callable" || \
+      echo "[verify] WARN — audit-design.mjs returned non-zero (may be normal if violations exist)"
+  else
+    echo "[verify] skipped (no sample file or audit-design.mjs missing)"
+  fi
 fi
 
 echo
