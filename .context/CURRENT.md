@@ -90,8 +90,7 @@ a-team의 궁극 지향점 = **프로덕트 런칭 + 운영 가능한 하나의 
 - [x] ~~**PMI MEDIUM M4** ralph-daemon sleep-mode flag~~ ✅ 2026-04-26 **defer 확정** — zzz는 RESUME.md+CronCreate+auto-switch+/pickup으로 이미 충분. ralph 자체에 flag 추가 불필요. 재논의 트리거: 야간 ralph 루프 토큰 리셋 미감지 사례 발생 시.
 - [ ] **eval-store A/B 수집 개시** (advisor-on/off 50 샘플 → harness-score 비교)
 - [ ] **Phase 1.5 skip rate 실측** (pre-check 에이전트 첫 데이터)
-- [x] ~~**CSO-L03 CI** (GitHub Actions npm test + tsc on PR)~~ done `.github/workflows/ci.yml`
-- [ ] **CSO-L03 GPG 서명** (commit signing 정책)
+- [ ] **CSO-L03 GPG 서명 + CI** (GitHub Actions npm test on PR)
 - [x] ~~**MODEL_PRICING 공식 가격 대조**~~ ✅ 2026-04-26 — Opus 4.6 가격 $15/$75 → $5/$25 정정 (3x 과대 계상 발견). Opus 4.7/4.5/4.1/4 + Sonnet 4.5/4 + Haiku variants 추가 등록. 429 tests PASS.
 
 ### Low Priority / Future
