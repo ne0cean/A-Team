@@ -53,7 +53,7 @@
 - [x] ✅ `/dashboard` 커맨드 — Module Health 표 + JSON 출력 + 3 vitest (`scripts/dashboard.mjs`)
 - [x] ✅ design-auditor 첫 회고 작성 (10 events 누적, Phase 4 sub-module Gate PASS)
 - [ ] **마케팅 모듈 logEvent 실 호출 경로** — `marketing-research.md` 등 5개 커맨드에 helper 호출 명시 (Phase 0 마지막)
-- [ ] design-auditor를 connectome + claude-remote에 install-design-hook.sh 적용 (Phase 4 데이터 외부 수집)
+- [x] ~~design-auditor를 connectome + claude-remote에 install-design-hook.sh 적용~~ ✅ `8aeb07f` 2026-04-26 — `--target=PATH` 옵션 추가 + 양 repo install 완료. 외부 UI 작업 시 PostToolUse 자동 트리거. backup: `.claude/settings.json.bak.20260426-172111`.
 
 ## 🚨 Phase 0.5 설계 제안 (사용자 confirm 대기)
 
