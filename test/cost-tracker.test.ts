@@ -166,8 +166,8 @@ describe('estimateCostUsd', () => {
   });
 
   it('Opus 캐시 히트: 캐시 읽기는 input의 0.1x 할인', () => {
-    // Opus: $15/M in, cacheReadMultiplier=0.1
-    // 1M 캐시 읽기 토큰 → $15 * 0.1 = $1.5
+    // Opus 4.6: $5/M in, cacheReadMultiplier=0.1 (공식 가격, 2026-04-26 정정)
+    // 1M 캐시 읽기 토큰 → $5 * 0.1 = $0.5
     // 순수 입력 0, 출력 0
     const cost = estimateCostUsd({
       model: 'claude-opus-4-6',
@@ -175,7 +175,7 @@ describe('estimateCostUsd', () => {
       outputTokens: 0,
       cacheReadInputTokens: 1_000_000,
     });
-    expect(cost).toBeCloseTo(1.5, 5);
+    expect(cost).toBeCloseTo(0.5, 5);
   });
 
   it('캐시 쓰기 할증: cacheCreationInputTokens는 input의 1.25x', () => {
@@ -206,14 +206,14 @@ describe('estimateIterationsCostUsd', () => {
   it('Sonnet executor + Opus advisor 혼합 이터레이션 비용 합산', () => {
     // executor(message) 1회: Sonnet, 500K in + 200K out
     //   → $3/M * 0.5 + $15/M * 0.2 = $1.5 + $3.0 = $4.5
-    // advisor(advisor_message) 1회: Opus, 100K in + 50K out
-    //   → $15/M * 0.1 + $75/M * 0.05 = $1.5 + $3.75 = $5.25
-    // 합계: $9.75
+    // advisor(advisor_message) 1회: Opus 4.6, 100K in + 50K out (공식 가격, 2026-04-26 정정)
+    //   → $5/M * 0.1 + $25/M * 0.05 = $0.5 + $1.25 = $1.75
+    // 합계: $6.25
     const iterations = [
       { type: 'message', input_tokens: 500_000, output_tokens: 200_000 },
       { type: 'advisor_message', model: 'claude-opus-4-6', input_tokens: 100_000, output_tokens: 50_000 },
     ];
     const cost = estimateIterationsCostUsd(iterations, 'claude-sonnet-4-6');
-    expect(cost).toBeCloseTo(9.75, 5);
+    expect(cost).toBeCloseTo(6.25, 5);
   });
 });

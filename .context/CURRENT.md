@@ -89,7 +89,7 @@ a-team의 궁극 지향점 = **프로덕트 런칭 + 운영 가능한 하나의 
 - [ ] **eval-store A/B 수집 개시** (advisor-on/off 50 샘플 → harness-score 비교)
 - [ ] **Phase 1.5 skip rate 실측** (pre-check 에이전트 첫 데이터)
 - [ ] **CSO-L03 GPG 서명 + CI** (GitHub Actions npm test on PR)
-- [ ] **MODEL_PRICING 공식 가격 대조** (Anthropic 공식 페이지)
+- [x] ~~**MODEL_PRICING 공식 가격 대조**~~ ✅ 2026-04-26 — Opus 4.6 가격 $15/$75 → $5/$25 정정 (3x 과대 계상 발견). Opus 4.7/4.5/4.1/4 + Sonnet 4.5/4 + Haiku variants 추가 등록. 429 tests PASS.
 
 ### Low Priority / Future
 - [ ] **IMP-20260415-01 처리** — reflect parallel-consolidate 패턴을 `/retro` 또는 `/end`에 적용

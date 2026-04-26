@@ -111,8 +111,8 @@ describe('#8 estimateIterationsCostUsd — 알 수 없는 타입 보수적 처�
       { type: 'unknown_future_type', input_tokens: 1_000_000, output_tokens: 0 },
     ];
     const cost = estimateIterationsCostUsd(iterations, 'claude-sonnet-4-6');
-    // Opus: $15/M → 1M in = $15
-    expect(cost).toBeCloseTo(15, 4);
+    // Opus 4.6: $5/M → 1M in = $5 (공식 가격, 2026-04-26 정정)
+    expect(cost).toBeCloseTo(5, 4);
   });
 
   it('message 타입은 executorModel 가격을 사용한다', () => {
@@ -128,9 +128,9 @@ describe('#8 estimateIterationsCostUsd — 알 수 없는 타입 보수적 처�
     const iterations = [
       { type: 'advisor_message', model: 'claude-opus-4-6', input_tokens: 1_000_000, output_tokens: 0 },
     ];
-    // Opus: $15/M in
+    // Opus 4.6: $5/M in (공식 가격, 2026-04-26 정정)
     const cost = estimateIterationsCostUsd(iterations, 'claude-sonnet-4-6');
-    expect(cost).toBeCloseTo(15, 4);
+    expect(cost).toBeCloseTo(5, 4);
   });
 });
 
@@ -152,8 +152,14 @@ describe('#6 MODEL_PRICING — lib/model-pricing.json 동기화', () => {
     expect(p.cacheWriteMultiplier).toBe(1.25);
   });
 
-  it('Opus 가격: $15/M in, $75/M out', () => {
+  it('Opus 4.6 가격: $5/M in, $25/M out (공식, 2026-04-26 검증)', () => {
     const p = MODEL_PRICING['claude-opus-4-6'];
+    expect(p.inputPerMillion).toBe(5);
+    expect(p.outputPerMillion).toBe(25);
+  });
+
+  it('Opus 4 (legacy) 가격: $15/M in, $75/M out', () => {
+    const p = MODEL_PRICING['claude-opus-4'];
     expect(p.inputPerMillion).toBe(15);
     expect(p.outputPerMillion).toBe(75);
   });
