@@ -102,7 +102,7 @@ a-team의 궁극 지향점 = **프로덕트 런칭 + 운영 가능한 하나의 
 - [ ] Wave 2/3 실측 → 공식 tag
 - [ ] Stage 9 Holistic 진행 (Wave 3 실측 후)
 - [ ] Stage 10 Weekly cron 실제 활성화
-- [ ] UI Auto-Inspect 실전 테스트 (실제 .tsx 수정 → 훅 자동 트리거 → diff Read 검증)
+- [x] ~~UI Auto-Inspect 실전 테스트~~ ✅ 2026-04-26 — pre-ui-capture.sh + post-ui-verify.sh 7개 분기 (file 필터/UI ext/test/.d.ts/node_modules/env disable/dev server unreachable) 검증 테스트 16건 추가. snapshot.js Playwright sanity 통과 (closed port에서 정상 에러 JSON 반환). 458 PASS. 실 dev server diff 검증은 외부 React 앱에서 자동 트리거 (a-team 자체엔 dev server 없음).
 - [x] ~~design-smell-detector tone-aware threshold (P3, brutalist 11px 허용)~~ ✅ 2026-04-26 — 로직 이미 RD04_CAPTION_TONES 에 brutalist/bold-typographic/minimal 포함, 검증 누락이 진짜 갭. 테스트 6건 추가 (brutalist 11px 통과 / bold-typographic 11px / minimal 12px / 회귀 3건). 434 PASS.
 - [x] ~~design-auditor className 분석 강화 (P3, JSX 클래스 문자열 → AI smell 패턴)~~ ✅ 2026-04-26 — AI 룰 정규식이 word-boundary 매칭이라 className/clsx/cn/template literal 모두 이미 감지. 검증 누락이 진짜 갭. 테스트 8건 추가 (multiline JSX + clsx + cn + template literal + false positive 가드). 442 PASS.
 
