@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**428 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-22).
+**458 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-27).
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
 
@@ -21,6 +21,7 @@
 | 6 | 운영 (PR/CS/세일즈/재무) | ⏳ |
 
 **최근 완성**:
+- **Self-test 라운드 + zzz 정직화 + Phase 0 마감 보강** (2026-04-26~27, 16 커밋): auto-switch 401/429 fallback + OAuth refresh / install-design-hook --target / PMI M4 defer / zzz Step 0 (CLI flag 게이트) + 3계층 권한 모델 + prefix-wildcard 검증 + 자율 종료 금지 + 다음 작업 픽업 + IDE 반-자동 모드(`/zzz --ide`) / MODEL_PRICING Opus 4.6 $15/$75→$5/$25 정정 / IMP-01 retro parallel-consolidate + raw 데이터 사전 추출 / RD-04 brutalist 11px 검증 + JSX className AI smell 검증 / UI Auto-Inspect 훅 분기 16건 검증. 442→458 PASS. **3회 self-test로 결함 노출→정정 사이클 작동 확인**.
 - **Auto-switch 엔진 + zzz 재설계** (2026-04-20): 계정 자동 전환 엔진 a-team 글로벌 이식 (`scripts/auto-switch/`). claude-remote는 얇은 PTY 어댑터. launchd 60초 크론 + Telegram fallback + 90일 legacy retention. /zzz 의도 수정("하던 작업 이어서"). refs 10개 Quantified Constraints. `/sleep`+`/overnight`→`/zzz` 통합, `/resume-on-reset`→`/resume`.
 - **Marketing/Design Module Phase 1+2** (2026-04-18): 풀 콘텐츠+비주얼 자동화 — 8 스킬 커맨드 + 13 프롬프트 + 8 에이전트 + 6 스택 + 4 워크플로우(n8n/Make.com) + 파일럿 검증.
 - **Design Subsystem 3-Phase** (2026-04-15): static rule 22/24 (RD-03 추가) + LLM critique + tone-first.
@@ -43,7 +44,7 @@
 **Override**: AUTORESEARCH-PLAN.md의 `Mode`를 `PAUSED`/`DECIDED`/`DISMISSED`로 변경.
 
 ## In Progress Files
-- `.context/team-roadmap.md` — Phase 0 진행 중 (analytics 통합 스키마 + 대시보드 미구현)
+- (없음) — 16 커밋 모두 push 완료 (`fe0bffc`까지). 다음 세션 자유 진입.
 
 ## Phase 0 To-Do (현재 우선순위)
 
@@ -52,7 +53,7 @@
 - [x] ✅ `logMarketingEvent()` helper + 3 vitest (`lib/analytics.ts`)
 - [x] ✅ `/dashboard` 커맨드 — Module Health 표 + JSON 출력 + 3 vitest (`scripts/dashboard.mjs`)
 - [x] ✅ design-auditor 첫 회고 작성 (10 events 누적, Phase 4 sub-module Gate PASS)
-- [ ] **마케팅 모듈 logEvent 실 호출 경로** — `marketing-research.md` 등 5개 커맨드에 helper 호출 명시 (Phase 0 마지막)
+- [x] ~~**마케팅 모듈 logEvent 실 호출 경로**~~ ✅ `84ca8e7` — 5개 커맨드 (research/generate/repurpose/publish/analytics) 모두 `logMarketingEvent` 호출 명시 + 변경이력 등록 완료. **Phase 0 마감**.
 - [x] ~~design-auditor를 connectome + claude-remote에 install-design-hook.sh 적용~~ ✅ `8aeb07f` 2026-04-26 — `--target=PATH` 옵션 추가 + 양 repo install 완료. 외부 UI 작업 시 PostToolUse 자동 트리거. backup: `.claude/settings.json.bak.20260426-172111`.
 
 ## 🚨 Phase 0.5 설계 제안 (사용자 confirm 대기)

@@ -2,6 +2,46 @@
 
 ---
 
+## [2026-04-26~27] Self-Test 라운드 + Phase 0 자동 가능 영역 마감 (16 커밋)
+
+**완료** (시간순):
+- `7da5551` auto-switch trigger 401/429 fallback + OAuth refresh (3 신규 테스트)
+- `411002d` design-retro 2주차 회고 + CronCreate 미등록 마커 정리
+- `8aeb07f` install-design-hook --target=PATH (외부 repo 설치 지원, connectome+claude-remote 적용)
+- `7eff949` CURRENT.md design-auditor install 완료 마커
+- `888a66a` zzz-permission-toggle 재진입 가드 (backup 자기-오염 방지)
+- `8a855a4` zzz Step 0 — `--dangerously-skip-permissions` CLI flag 게이트
+- `963fb8b` zzz 3계층 권한 모델 명시 (Bash 단일/복합 + WebFetch)
+- `8b414e7` zzz 권한 모델 정정 — prefix-wildcard 작동, domain-wildcard 미작동 실측
+- `2d11ec7` zzz 자율 종료 금지 + 다음 작업 자동 픽업 (의사결정 결함 발견)
+- `6c0d3fd` MODEL_PRICING Opus 4.6 가격 정정 ($15/$75 → $5/$25, 공식 대조)
+- `f17e357` /retro IMP-20260415-01 parallel-consolidate 패턴 적용 (jangpm/reflect 차용)
+- `683859b` RD-04 brutalist 11px + JSX className AI smell 검증 갭 닫기 (14 테스트)
+- `8e8ac72` UI Auto-Inspect pre/post 훅 분기 16건 검증 테스트
+- `c283da8` /retro Phase 1 raw 데이터 사전 추출 (IMP-01 자기-검증 결과 결함 발견 후 보강)
+- `ac2f7c5` zzz Step 0 검사 정정 — 자식 셸 args 가 아닌 부모 Claude CLI args
+- `fe0bffc` zzz `--ide` 반-자동 모드 신설 (IDE 환경 대응)
+
+**메타 패턴 — Self-test 사이클 작동 확인** (3회):
+1. /retro 패치 → 자기 사용 → researcher 가 git 못 돌림 발견 → Phase 1 raw 데이터 사전 추출 추가
+2. zzz Step 0 패치 → 자기 사용 → `ps -o args= -p $$` false positive 발견 → 부모 트리 climb 검사로 정정
+3. zzz Step 0 정정 → IDE 환경에선 풀-오토 절대 불가 확인 → `/zzz --ide` 반-자동 모드 신설
+
+**핵심 발견**:
+- IDE (Antigravity/VSCode) 환경: `--permission-mode acceptEdits` 강제, CLI 플래그 진입 불가
+- 풀-오토 zzz 는 셸 직접 진입 (`claude --dangerously-skip-permissions`) 세션에서만 가능
+- Bash `Bash(prefix:*)` wildcard 작동 / WebFetch `domain:*.foo.com` 미작동 (실측)
+- P3 task 두 건 ("brutalist 11px 허용" / "JSX className 분석")는 코드 누락이 아닌 **검증 누락**이 진짜 갭
+- /retro 자기-검증으로 자기 결함 발견 후 즉시 보강 — 도구가 자기 검증을 하는 사이클 처음 작동
+
+**이슈/Blocker**:
+- Phase 0 마지막 to-do "마케팅 모듈 logEvent 실 호출 경로" 1건 남음 (`marketing-research.md` 등 5개 커맨드)
+- 사용자 개입 필요 task (Postiz Docker, Advisor API key, Wave 실측 등) 다음 단계 대기
+
+**빌드**: ✅ 458/458 tests PASS, tsc 0 errors
+
+---
+
 ## [2026-04-19 PM] Capability Growth Engine 설계 (Phase 0.5 제안)
 
 **핵심 결정**: 사용자가 a-team 궁극 지향점을 "프로덕트 런칭 + 운영 가능한 하나의 회사"로 명시. 정적 로드맵 → self-growing 구조로 진화 필요.
