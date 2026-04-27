@@ -2,17 +2,6 @@
 
 ---
 
-## [2026-04-27] CSO-L03 CI + zzz 재진입 준비
-
-**완료**:
-- `ca11f44` ci: GitHub Actions CI 추가 (tsc + vitest on PR/push to master)
-- `7a03be9` RESUME.md 갱신 — Phase 0.5 capability-growth-engine + autoresearch 파일럿 큐
-
-**이슈**: IDE(Antigravity) 환경에서 `/zzz` 풀-오토 불가 → `--dangerously-skip-permissions` 재진입 안내
-**빌드**: 458 tests PASS, tsc 0 errors
-
----
-
 ## [2026-04-26~27] Self-Test 라운드 + Phase 0 자동 가능 영역 마감 (16 커밋)
 
 **완료** (시간순):
