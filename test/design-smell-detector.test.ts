@@ -106,6 +106,74 @@ describe('design-smell-detector', () => {
     });
   });
 
+  describe('JSX className extraction (className 안 Tailwind 토큰 감지)', () => {
+    it('detects AI-01 inside multiline JSX className with multiple gradient stops', () => {
+      const content = `
+        export function Card() {
+          return (
+            <div className="bg-gradient-to-r from-purple-500 via-violet-400 to-pink-500 rounded-2xl">
+              x
+            </div>
+          );
+        }`;
+      const r = detectDesignSmells({ file: 'card.tsx', content });
+      expect(r.violations.filter(v => v.rule === 'AI-01').length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('detects full AI triad (AI-03) across multiline JSX className', () => {
+      const content = `
+        <section className="grid grid-cols-3 gap-4 rounded-2xl shadow-lg p-8">
+          <div>card1</div>
+        </section>`;
+      const r = detectDesignSmells({ file: 'features.tsx', content });
+      expect(r.violations.some(v => v.rule === 'AI-03')).toBe(true);
+    });
+
+    it('detects AI-01 inside clsx() function call args', () => {
+      const content = `
+        import { clsx } from 'clsx';
+        const cls = clsx('px-4', 'bg-gradient-to-br from-violet-500 to-purple-600', condition && 'shadow-2xl');`;
+      const r = detectDesignSmells({ file: 'btn.tsx', content });
+      expect(r.violations.some(v => v.rule === 'AI-01')).toBe(true);
+      expect(r.violations.some(v => v.rule === 'AI-05')).toBe(true);
+    });
+
+    it('detects AI-05 inside cn() helper (shadcn pattern)', () => {
+      const content = `
+        export const cn = (...args: string[]) => args.join(' ');
+        export function Hero() {
+          return <div className={cn('p-4', 'shadow-2xl')}>x</div>;
+        }`;
+      const r = detectDesignSmells({ file: 'hero.tsx', content });
+      expect(r.violations.some(v => v.rule === 'AI-05')).toBe(true);
+    });
+
+    it('detects AI-06 transition-all inside JSX className', () => {
+      const content = `<button className="px-4 py-2 transition-all duration-300">x</button>`;
+      const r = detectDesignSmells({ file: 'btn.tsx', content });
+      expect(r.violations.some(v => v.rule === 'AI-06')).toBe(true);
+    });
+
+    it('detects AI-01 inside template literal className', () => {
+      const content = '<div className={`bg-gradient-to-r from-violet-500 ${active ? "shadow-2xl" : ""}`}>x</div>';
+      const r = detectDesignSmells({ file: 'card.tsx', content });
+      expect(r.violations.some(v => v.rule === 'AI-01')).toBe(true);
+      expect(r.violations.some(v => v.rule === 'AI-05')).toBe(true);
+    });
+
+    it('AI-01 NOT triggered for non-purple gradient (e.g. blue-only) — false positive guard', () => {
+      const content = `<div className="bg-gradient-to-r from-blue-500 to-cyan-500">x</div>`;
+      const r = detectDesignSmells({ file: 'a.tsx', content });
+      expect(r.violations.filter(v => v.rule === 'AI-01').length).toBe(0);
+    });
+
+    it('AI-03 NOT triggered when only 2 of triad present (e.g. shadow-lg + rounded-2xl, no grid-cols-3)', () => {
+      const content = `<div className="rounded-2xl shadow-lg p-8">x</div>`;
+      const r = detectDesignSmells({ file: 'a.tsx', content });
+      expect(r.violations.filter(v => v.rule === 'AI-03').length).toBe(0);
+    });
+  });
+
   describe('Readability rules', () => {
     it('detects RD-02 cramped line-height', () => {
       const r = detectDesignSmells({
@@ -154,6 +222,51 @@ describe('design-smell-detector', () => {
         tone: 'editorial-technical',
       });
       expect(r.violations.some(v => v.rule === 'RD-04')).toBe(false);
+    });
+
+    it('RD-04 skipped under tone=brutalist at 11px (data-dense allowed)', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: 'p { font-size: 11px; }',
+        tone: 'brutalist',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-04')).toBe(false);
+    });
+
+    it('RD-04 skipped under tone=bold-typographic at 11px', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: '.label { font-size: 11px; }',
+        tone: 'bold-typographic',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-04')).toBe(false);
+    });
+
+    it('RD-04 skipped under tone=minimal at 12px', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: 'span { font-size: 12px; }',
+        tone: 'minimal',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-04')).toBe(false);
+    });
+
+    it('RD-04 still flags 9px under brutalist tone (under 10px hard floor)', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: 'p { font-size: 9px; }',
+        tone: 'brutalist',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-04')).toBe(true);
+    });
+
+    it('RD-04 still flags 11px under non-caption tone (e.g. luxury)', () => {
+      const r = detectDesignSmells({
+        file: 'a.css',
+        content: 'p { font-size: 11px; }',
+        tone: 'luxury',
+      });
+      expect(r.violations.some(v => v.rule === 'RD-04')).toBe(true);
     });
 
     it('RD-04 still flags 9px even in caption class (under hard floor)', () => {
