@@ -99,22 +99,36 @@ echo "$CLAUDE_ARGS" | grep -qE -- "--dangerously-skip-permissions|--permission-m
 echo "$CLAUDE_ARGS" | grep -qE -- "--permission-mode acceptEdits" && IDE_FORCED=1
 ```
 
-검증 실패 시 **사용자 1회 안내 후 즉시 종료** (자율 모드 진입 금지):
+검증 결과별 분기:
 
+**A. CLI 플래그 (`--dangerously-skip-permissions` 또는 `bypassPermissions`) 통과** → Step 1, 풀-오토 모드 진행
+
+**B. `acceptEdits` 감지 + 사용자가 `/zzz --ide` 명시** → Step 1 진행하되 **반-자동 약속**으로 진입:
+- "자는 동안" 약속 포기
+- 사용자 깨어 있는 시간대에만 의미 있음
+- 매 복합 명령/WebFetch prompt 는 사용자가 클릭해야 진행
+- session_goal 자율 진행, 다음 작업 자동 픽업은 그대로
+
+**C. `acceptEdits` 감지 + 사용자가 `/zzz` (no `--ide`)** → **즉시 종료 + 안내**:
 ```
 ⚠️ /zzz 풀-오토 진입 불가
-   감지: <Claude CLI args 의 --permission-mode 값>
+   감지: --permission-mode acceptEdits (IDE 환경)
 
-   IDE 환경이라면 (acceptEdits 강제):
-   • IDE(VSCode/Antigravity) 닫기
-   • 터미널에서: claude --dangerously-skip-permissions
-   • 그 세션에서 /zzz 다시 호출
+   두 가지 선택:
 
-   IDE 안에서는 매 복합 명령(; | && 2>&1 env-prefix) + WebFetch 마다 prompt
-   띄워 zzz 의미 자체가 사라짐. 풀-오토 약속 절대 못 지킴.
+   1. 진짜 풀-오토 (자는 동안 무인 작업) 원하면:
+      • IDE(VSCode/Antigravity) 닫기
+      • 터미널: claude --dangerously-skip-permissions
+      • 그 세션에서 /zzz
+
+   2. 반-자동 (깨어서 클릭하며 자율 진행) 원하면:
+      • 같은 IDE 세션에서 /zzz --ide
+
+   IDE 안의 풀-오토는 매 복합 명령(; | && 2>&1 env-prefix) + WebFetch
+   에서 멈춤. 약속 못 지킴.
 ```
 
-검증 통과 시 Step 1으로. 단 이 경우에도 Step 1 의 `bypassPermissions` settings 는 보조용으로 적용.
+**D. Claude CLI args 검출 실패** → 보수적 종료 (예외 환경 가능성, 사용자 결정 필요)
 
 > **왜 settings.json 만으로 부족한가**: `defaultMode: bypassPermissions` 는 단일 토큰 명령(`Bash(npm test)`)은 통과시키지만, 복합 명령은 CLI 내부 별도 검증을 거쳐 항상 prompt. 이건 Claude Code 보안 정책으로 settings 로 끌 수 없음. CLI flag 가 유일한 우회.
 
