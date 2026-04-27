@@ -30,8 +30,9 @@ log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S %Z')] $*" >> "$LOG_FILE"
 }
 
-# 병렬 실행 방지 (E2E 테스트에서 발견: launchd 2분 interval 이 overlap 가능)
-PID_LOCK="$LOCK_DIR/running.pid"
+# 병렬 실행 방지 — 프로젝트별 PID 락 (다른 프로젝트 간 간섭 방지)
+PROJ_SLUG="$(basename "$PROJECT_ROOT" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')"
+PID_LOCK="$LOCK_DIR/running-${PROJ_SLUG}.pid"
 if [ -f "$PID_LOCK" ]; then
   EXISTING_PID=$(cat "$PID_LOCK" 2>/dev/null || echo "")
   if [ -n "$EXISTING_PID" ] && ps -p "$EXISTING_PID" > /dev/null 2>&1; then
@@ -71,7 +72,7 @@ if grep -q "^status:\s*completed" "$RESUME_FILE" 2>/dev/null; then
 fi
 
 # 성공 실행 간격 제어 — 본작업 성공 직후 30분 내엔 skip (크레딧 한 번에 다 쓰는 것 방지)
-SUCCESS_LOCK="$LOCK_DIR/last-success"
+SUCCESS_LOCK="$LOCK_DIR/last-success-${PROJ_SLUG}"
 MIN_SUCCESS_INTERVAL_SEC="${SLEEP_RESUME_MIN_INTERVAL:-1800}"  # 30분
 if [ -f "$SUCCESS_LOCK" ]; then
   LAST_RUN=$(cat "$SUCCESS_LOCK" 2>/dev/null || echo 0)
@@ -186,12 +187,15 @@ EOF
 
 # ──────── Execute (headless) ────────
 
-log "Invoking claude --print with max-budget=\$${MAX_BUDGET_USD} (timeout 45min)..."
+ERR_LOG="${LOG_FILE%.log}.err.${PROJ_SLUG}.log"
+OUT_LOG="${LOG_FILE%.log}.out.${PROJ_SLUG}.log"
+
+log "Invoking claude -p with max-budget=\$${MAX_BUDGET_USD} (timeout 45min)..."
 
 # --permission-mode bypassPermissions: cron 환경에서 permission prompt 회피
 # --model: 기본 sonnet (비용 균형). 필요 시 opus (high-quality) / haiku (저비용)
 # --max-budget-usd: 실행 중 최대 지출 한도
-# --add-dir: 작업 디렉토리 명시적 허용
+# NOTE: --add-dir 는 --print 모드와 호환 불가 (2026-04-28 발견). cd로 대체.
 # gtimeout (brew coreutils) 또는 perl alarm 으로 45분 타임아웃 강제 (hang 방지)
 TIMEOUT_CMD=""
 if command -v gtimeout >/dev/null 2>&1; then
@@ -202,24 +206,34 @@ fi
 
 if [ -n "$TIMEOUT_CMD" ]; then
   $TIMEOUT_CMD claude \
-    --print \
+    -p \
     --permission-mode bypassPermissions \
     --model "$MODEL" \
     --max-budget-usd "$MAX_BUDGET_USD" \
-    --add-dir "$PROJECT_ROOT" \
     "$PROMPT" \
-    >> "$LOG_FILE" 2>&1
+    >> "$OUT_LOG" 2>"$ERR_LOG"
   EXIT_CODE=$?
 else
-  # timeout 도구 없으면 perl alarm 폴백
   perl -e 'alarm 2700; exec @ARGV' \
-    claude --print --permission-mode bypassPermissions \
+    claude -p --permission-mode bypassPermissions \
     --model "$MODEL" \
     --max-budget-usd "$MAX_BUDGET_USD" \
-    --add-dir "$PROJECT_ROOT" \
     "$PROMPT" \
-    >> "$LOG_FILE" 2>&1
+    >> "$OUT_LOG" 2>"$ERR_LOG"
   EXIT_CODE=$?
+fi
+
+# 에러 로그가 있으면 메인 로그에도 기록
+if [ -s "$ERR_LOG" ]; then
+  log "STDERR (last 5 lines):"
+  tail -5 "$ERR_LOG" >> "$LOG_FILE"
+fi
+# 산출물 로그 요약
+if [ -s "$OUT_LOG" ]; then
+  LINES=$(wc -l < "$OUT_LOG" | tr -d ' ')
+  log "OUTPUT: ${LINES} lines written to ${OUT_LOG}"
+else
+  log "WARNING: claude produced no output"
 fi
 
 FINAL_EXIT=$EXIT_CODE
