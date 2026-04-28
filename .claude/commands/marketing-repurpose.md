@@ -19,7 +19,7 @@
   --formats   생성할 포맷 선택 (기본: all)
               예: --formats "twitter,linkedin,email"
   --lang      출력 언어 (기본: 원문과 동일)
-  --brand     브랜드 가이드 파일 경로 (기본: governance/skills/marketing/brand.md)
+  --brand     브랜드 가이드 파일 경로 (기본: governance/skills/design/prompts/brand.md)
 ```
 
 ### Step 1: 콘텐츠 분석
