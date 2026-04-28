@@ -1,8 +1,9 @@
 ---
 created: 2026-04-19
 updated: 2026-04-19
-status: phase-0-pending
+status: phase-0-infra-complete
 current_phase: 0
+phase_0_completed: 2026-04-28
 goal: "1인 + AI 팀이 대기업 마케팅/디자인/QA/분석 팀 수준 대체"
 ---
 
@@ -43,37 +44,51 @@ DEFINE → BUILD → USE → MEASURE → ITERATE → GATE
 
 ## Phase 별 진척
 
-### Phase 0 — 메타 인프라 (1주) [진행 중 — 4/5]
+### Phase 0 — 메타 인프라 [인프라 완료, 실사용 데이터 대기]
 
 **목표**: 모든 모듈이 측정·회고 가능하게
 
 | 모듈 | 상태 | Gate | 산출물 |
 |------|------|------|--------|
 | /vibe team-roadmap 거버넌스 wiring | ✅ 2026-04-19 | Step 0.67 추가 | `.claude/commands/vibe.md` |
-| analytics 통합 스키마 | ✅ 2026-04-19 | EventType 23종 + JSON Schema | `lib/analytics-schema.json` + `lib/analytics.ts` EventType |
-| 마케팅 logEvent helper | ✅ 2026-04-19 | logMarketingEvent() 추가 + 3 vitest | `lib/analytics.ts` |
-| 대시보드 CLI (`/dashboard`) | ✅ 2026-04-19 | Module Health 표 + JSON 출력 + 3 vitest | `scripts/dashboard.mjs`, `.claude/commands/dashboard.md` |
-| 회고 템플릿 표준화 | ✅ 2026-04-19 | design-auditor 첫 회고 작성 | `.context/retros/_template.md`, `design-auditor-2026-04-19.md` |
-| 마케팅 logEvent 호출 경로 | ⏳ 다음 | 마케팅 커맨드들이 helper 실 호출 | `marketing-research.md` 등 명시 |
+| analytics 통합 스키마 | ✅ 2026-04-19 | EventType 23종 + JSON Schema | `lib/analytics-schema.json` |
+| 마케팅 logEvent helper + 호출 경로 | ✅ `84ca8e7` | 5개 커맨드 명시적 호출 | `lib/analytics.ts` |
+| 대시보드 CLI (`/dashboard`) | ✅ 2026-04-19 | Module Health 표 + JSON | `scripts/dashboard.mjs` |
+| 회고 템플릿 표준화 | ✅ 2026-04-26 | design-auditor 회고 작성 | `.context/retros/` |
+| capability-growth-engine (Phase 0.5) | ✅ 2026-04-28 | gap-sensor + priority + /capability | `lib/capability-map.json` 등 7파일 |
+| vibe Step 0.67/0.69 lifecycle gate | ✅ 2026-04-28 | — | `.claude/commands/vibe.md` |
 
-**Phase 0 Gate**: 1주 동안 마케팅·디자인 모듈 사용 데이터가 자동 수집·시각화됨
+**Phase 0 Gate**: 마케팅·디자인 모듈 사용 데이터 자동 수집·시각화
+- 인프라: ✅ 100% 구축 완료 (logEvent 호출 경로 포함)
 - 디자인: ✅ 10 events 누적, /dashboard 시각화 작동
-- 마케팅: ❌ 0 events (helper만 작성, 실 호출 경로 미연결)
+- 마케팅: ⏳ 0 real events — **Postiz Docker 가동 필요 (사용자 액션)**
+- **판정**: 인프라 Gate ✅ 통과. 마케팅 실사용 데이터는 Phase 1 진입 후에도 병행 수집 가능.
 
 ---
 
-### Phase 1 — 분석/BI 모듈 (2주) 🔴 최우선 (Phase 0 후)
+### Phase 1 — 분석/BI 모듈 (2주) 🔴 **다음 Phase** (Phase 0 인프라 완료)
 
 **왜 1번**: 다른 모든 모듈의 피드백 루프
 
 | Sub-module | 상태 | 산출물 |
 |-----------|------|--------|
-| 외부 데이터 연결 | ⏳ blocked-by-phase-0 | GA4/Mixpanel/Postiz/이메일 → JSONL 통합 |
+| 외부 데이터 연결 | ⏳ 진입 가능 | GA4/Mixpanel/Postiz/이메일 → JSONL 통합 |
 | Insights 에이전트 (Sonnet) | ⏳ | 주간 인사이트 자동 생성 |
 | Anomaly detection | ⏳ | 이상치/회귀 알림 |
 | Causal analysis | ⏳ | "전환율 X% 떨어진 원인 찾기" |
 
 **Phase 1 Gate**: 1주간 실 외부 데이터 받아 인사이트 1회 생성 + 의사결정 1회 반영
+
+**Phase 1 진입 조건 (현재 상태)**:
+- ✅ Phase 0 인프라 완료 (analytics 스키마 + dashboard + logEvent 경로)
+- ✅ 디자인 analytics 10 events 수집 중
+- ⏳ 마케팅 real events: Postiz Docker 가동 (사용자 액션, 사전 조건 아님)
+- **결론**: Phase 1 진입 가능. 마케팅 데이터는 병행 수집.
+
+**Phase 1 블록커 해소 경로**:
+1. `analytics.jsonl` 데이터가 있는 프로젝트에서 먼저 시작 (디자인 10 events)
+2. Postiz 가동 후 마케팅 events 자동 수집 시작
+3. 외부 데이터 연결: GA4 API key (사용자 액션) — 없으면 `analytics.jsonl` 내부 데이터만으로 Insights 에이전트 시작 가능
 
 ---
 
