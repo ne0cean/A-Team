@@ -168,6 +168,41 @@ fi
 
 상세 룰: `.context/team-roadmap.md` "거버넌스 룰" 섹션
 
+## Step 0.69 — Capability Lifecycle Gate (자동, A-Team 프로젝트만)
+
+`lib/capability-map.json` + `scripts/capability.mjs` 가 있으면 자동 실행.
+
+```bash
+if [ -f "lib/capability-map.json" ] && [ -f "scripts/capability.mjs" ]; then
+  # 종합 점수 + 런칭 준비도 (1줄 요약)
+  SCORES=$(node scripts/capability.mjs --json 2>/dev/null)
+  if [ -n "$SCORES" ]; then
+    OVERALL=$(echo "$SCORES" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['overall'])" 2>/dev/null)
+    echo "📊 Capability: 종합 ${OVERALL}% — '/capability' 로 상세 확인"
+  fi
+
+  # 스테일 모듈 감지: analytics.jsonl에서 14일 이상 사용 0회 모듈
+  if [ -f ".context/analytics.jsonl" ]; then
+    CUTOFF=$(date -v-14d +%Y-%m-%dT%H:%M:%S 2>/dev/null || date -d '14 days ago' +%Y-%m-%dT%H:%M:%S 2>/dev/null)
+    RECENT_CMDS=$(awk -v cutoff="$CUTOFF" '$0 > cutoff' .context/analytics.jsonl 2>/dev/null | grep -o '"command":"[^"]*"' | sort -u | tr -d '"command":' | tr -d '"' || true)
+    # 간단히 출력 (상세 감지는 /capability 커맨드에서)
+    [ -z "$RECENT_CMDS" ] && echo "   ⚠️ analytics.jsonl 데이터 없음 — 모듈 사용 추적 미활성"
+  fi
+fi
+```
+
+**Lifecycle 룰** (새 모듈 요청 시 + 기존 모듈 스테일 감지):
+
+1. **Gap-priority 검사**: 사용자가 새 기능 빌드 요청 시 → `scripts/gap-priority.mjs` top-5 조회
+   - 요청 기능이 top-5 gap에 해당하면: 즉시 진행 (우선순위 정렬됨)
+   - 해당 없으면: "현재 top 갭은 {X}입니다. 요청하신 {Y}는 우선순위 {N}위입니다. 진행할까요?"
+
+2. **스테일 모듈 회고 트리거**: Step 0.67 거버넌스의 "미사용 모듈 회고" 자동 실행
+   - analytics.jsonl에서 14일 이상 이벤트 0건인 모듈 감지 → `.context/retros/` 회고 제안
+
+3. **abandoned 폐기 제안**: 30일 이상 사용 0건 + coverage 0% 모듈
+   - "⚠️ {capability} 30일 미사용 — capability-map에서 제거하거나 coverage 갱신 권장"
+
 ## Step 0.8 — Pending Improvements 감지 (자동, A-Team 프로젝트만)
 현재 프로젝트가 A-Team이면 `improvements/pending.md`에서 ⏳ pending 항목 수를 카운트:
 - 1건 이상: `📬 미반영 개선사항 {N}건 대기 중 (P0: X / P1: Y / P2: Z). '/improve apply'로 반영.`
