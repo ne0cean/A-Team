@@ -82,7 +82,7 @@ for _ in 1 2 3 4 5 6; do
   PARENT=$(ps -p "$PID" -o ppid= 2>/dev/null | tr -d ' ')
   [ -z "$PARENT" ] || [ "$PARENT" = "0" ] || [ "$PARENT" = "1" ] && break
   ARGS=$(ps -o args= -p "$PARENT" 2>/dev/null)
-  if echo "$ARGS" | grep -q "/claude\b"; then
+  if echo "$ARGS" | grep -qE "(^|\/)claude(\s|$)"; then
     CLAUDE_ARGS="$ARGS"
     break
   fi
@@ -128,7 +128,15 @@ echo "$CLAUDE_ARGS" | grep -qE -- "--permission-mode acceptEdits" && IDE_FORCED=
    에서 멈춤. 약속 못 지킴.
 ```
 
-**D. Claude CLI args 검출 실패** → 보수적 종료 (예외 환경 가능성, 사용자 결정 필요)
+**D. `--dangerously-skip-permissions` 없음 (터미널 plain `claude` 포함)** → 안내 후 종료:
+```
+⚠️ /zzz 풀-오토 진입 불가
+   현재 세션: claude (플래그 없음)
+
+   풀-오토로 재진입:
+   • 이 터미널에서: claude --dangerously-skip-permissions
+   • 그 세션에서: /zzz
+```
 
 > **왜 settings.json 만으로 부족한가**: `defaultMode: bypassPermissions` 는 단일 토큰 명령(`Bash(npm test)`)은 통과시키지만, 복합 명령은 CLI 내부 별도 검증을 거쳐 항상 prompt. 이건 Claude Code 보안 정책으로 settings 로 끌 수 없음. CLI flag 가 유일한 우회.
 
