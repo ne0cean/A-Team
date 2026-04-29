@@ -73,7 +73,7 @@ DEFINE → BUILD → USE → MEASURE → ITERATE → GATE
 | Sub-module | 상태 | 산출물 |
 |-----------|------|--------|
 | 외부 데이터 연결 | ⏳ 진입 가능 | GA4/Mixpanel/Postiz/이메일 → JSONL 통합 |
-| Insights 에이전트 (Sonnet) | ⏳ | 주간 인사이트 자동 생성 |
+| Insights 에이전트 (Sonnet) | ✅ 2026-04-29 | `/insights` 커맨드 + `insights` 서브에이전트 + `scripts/insights-aggregate.mjs` |
 | Anomaly detection | ⏳ | 이상치/회귀 알림 |
 | Causal analysis | ⏳ | "전환율 X% 떨어진 원인 찾기" |
 
