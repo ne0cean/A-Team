@@ -21,6 +21,7 @@
 | 6 | 운영 (PR/CS/세일즈/재무) | ⏳ |
 
 **최근 완성**:
+- **태스크 정리 + Phase 1 방향 결정** (2026-04-28): RESUME.md 4개 태스크 상태 확인 (SDK 0.91.1 이미 완료, autoresearch 파일럿 완료, Phase 0.5 완료). Advisor/eval-store/Postiz는 외부 의존으로 보류 처리. Phase 1 Anomaly/Causal/외부데이터 연결은 데이터 축적 후로 보류. Phase 2로 진입 결정.
 - **Continuous Growth System 6-Task** (2026-04-30, `cf1b64c`): analytics emit (log-event.mjs) + /vibe 주간리포트 + CSO 4-axis + lifecycle 60개상한 + PM Gate(pm.md+scope-validator+orchestrator Phase 2.05/2.06) + /cold-review 월간감사. 커맨드 53개.
 - **PMI + zzz Step 0 감지 버그 수정** (2026-04-30): PMI 5-phase 완료 — insights smoke test 7건 + roadmap 갱신. zzz Step 0 `grep /claude\b` → `(^|\/)claude(\s|$)` 수정 (bare 'claude' 터미널 세션 오분류 fix). 471 PASS.
 - **Phase 1 Insights 에이전트** (2026-04-29): scripts/insights-aggregate.mjs (집계+패턴감지) + .claude/agents/insights.md (Sonnet 서브에이전트) + .claude/commands/insights.md (/insights 오케스트레이터) + report-template.md. 464 PASS.
@@ -51,7 +52,7 @@
 **Override**: AUTORESEARCH-PLAN.md의 `Mode`를 `PAUSED`/`DECIDED`/`DISMISSED`로 변경.
 
 ## In Progress Files
-- (없음) — RESUME.md에 zzz 큐 저장 완료 (`7a03be9`). 다음 세션 `--dangerously-skip-permissions` 재진입 후 `/zzz`.
+- (없음)
 
 ## Phase 0 To-Do (현재 우선순위)
 
@@ -84,23 +85,27 @@ a-team의 궁극 지향점 = **프로덕트 런칭 + 운영 가능한 하나의 
 ## Next Tasks
 
 ### High Priority
+- [ ] **Phase 2 시장·사용자 인텔리전스 설계 시작** — `/office-hours` or `/blueprint`
 - [x] ~~**🗓️ 2026-04-22 10:17 KST — `/design-retro` 자동 실행 예약됨**~~ ✅ 2026-04-26 수동 실행. CronCreate 미등록 확인 (CronList 빈 결과). 회고: [retros/design-auditor-2026-04-26.md](retros/design-auditor-2026-04-26.md). 결론: 외부 repo install 전엔 회고 ROI 0 → 시간기반 재예약 안 함.
 - [ ] **Postiz Docker 가동 + OAuth** → `content/social/2026-04-18-claude-sleep-resume/` 실제 발행 → publish-log status: scheduled로 전환
 - [ ] **[HUMAN INSERT] 3개 채우기** — LinkedIn 2개 + Instagram caption 1개 (1-2분)
 - [x] ~~**design-auditor false positive 수정**~~ ✅ `cdc8f5c` — RD-04 caption-class + tone-aware, AI-02 페어링 감지. og-image 점수 64→92.
-- [ ] **Advisor tool 라이브 API 테스트** — `ANTHROPIC_API_KEY` 환경 설정 + `useSdkPath=true` + `ralph --once` (이번 세션에서 키 부재로 스킵)
+- [ ] **Advisor tool 라이브 API 테스트** — `ANTHROPIC_API_KEY` 환경 설정 + `useSdkPath=true` + `ralph --once` (**보류**: Max 플랜은 SDK API 미지원, 별도 API 크레딧 생길 때 진행)
 
 ### Medium Priority
 - [ ] **`/autoresearch` 파일럿 실행** — target 커맨드 1개(`/office-hours`) baseline + 3-5 experiments
 - [ ] **`/blueprint` 실사용 1회** — 다음 기능을 blueprint로 문서화 → `/autoplan` 검토
 - [x] ~~**PMI MEDIUM M4** ralph-daemon sleep-mode flag~~ ✅ 2026-04-26 **defer 확정** — zzz는 RESUME.md+CronCreate+auto-switch+/pickup으로 이미 충분. ralph 자체에 flag 추가 불필요. 재논의 트리거: 야간 ralph 루프 토큰 리셋 미감지 사례 발생 시.
-- [ ] **eval-store A/B 수집 개시** (advisor-on/off 50 샘플 → harness-score 비교)
+- [ ] **eval-store A/B 수집 개시** (advisor-on/off 50 샘플 → harness-score 비교) (**보류**: Advisor API 테스트 선행 필요)
 - [ ] **Phase 1.5 skip rate 실측** (pre-check 에이전트 첫 데이터)
 - [x] ~~**CSO-L03 CI** (GitHub Actions npm test + tsc on PR)~~ done `.github/workflows/ci.yml`
 - [x] ~~**CSO-L03 GPG 서명**~~ ✅ `324a79d` — governance/rules/gpg-signing.md + scripts/setup-gpg-signing.sh. 키 생성은 사용자 1회 액션: `brew install gnupg && gpg --full-generate-key && bash scripts/setup-gpg-signing.sh --global`
 - [x] ~~**MODEL_PRICING 공식 가격 대조**~~ ✅ 2026-04-26 — Opus 4.6 가격 $15/$75 → $5/$25 정정 (3x 과대 계상 발견). Opus 4.7/4.5/4.1/4 + Sonnet 4.5/4 + Haiku variants 추가 등록. 429 tests PASS.
 
 ### Low Priority / Future
+- [ ] **Phase 1 Anomaly detection** — `analytics.jsonl` 기반 세션 비용 급증 / 커맨드 호출 0건 감지 (**보류**: 데이터 충분히 쌓인 후 진행)
+- [ ] **Phase 1 Causal analysis** — 커맨드 추가 전후 사용 패턴 변화 분석 (**보류**: 데이터 충분히 쌓인 후 진행)
+- [ ] **외부 데이터 연결** (GA4/Mixpanel) — 웹 프로젝트 생길 때 + GA4 프로퍼티 설정 후 (**보류**: 비즈니스 데이터 생길 때)
 - [x] ~~**IMP-20260415-01 처리** — reflect parallel-consolidate 패턴~~ ✅ 2026-04-26 — `/retro` 에 적용 (4 Agent parallel + 1 consolidator + dynamic options). `/end` 는 직렬 단계라 SKIP. retro.md 86 → 158 lines, sequential 분석 6개 → parallel 4개 + dedup 1개.
 - [x] ~~**sleep.md 압축 검토**~~ ✅ N/A — `sleep.md` 삭제됨 (`/zzz` 통합 완료)
 - [ ] **Wave 1 실측 A/B 벤치** (실제 Claude API, RFC-001/003/004/007-S)

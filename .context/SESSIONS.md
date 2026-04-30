@@ -2,6 +2,12 @@
 
 ---
 
+## [2026-04-28] 태스크 정리 + Phase 1 방향 결정
+
+**완료**: RESUME.md 4개 태스크 상태 점검. SDK 0.91.1 이미 완료 확인. Advisor/eval-store/Postiz 보류 처리 (외부 의존). Phase 1 Anomaly/Causal/외부데이터 연결 보류 (데이터 부족). 나중에 할 목록 6개 CURRENT.md 기록. Phase 2 진입 결정.
+**이슈**: Advisor tool은 Max 플랜 미지원으로 API 크레딧 확보 전까지 진행 불가.
+**빌드**: ✅ 471 PASS
+
 ## [2026-04-30] Continuous Growth System 6-Task 구현
 
 **완료**:
