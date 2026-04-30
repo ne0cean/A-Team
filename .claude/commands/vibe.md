@@ -299,6 +299,18 @@ CURRENT.md의 Next Tasks 중 **기계 검증 가능한** 항목을 골라 야간
 ## Step 4 — 실행
 브리핑: "마지막 [X] 상태. Opus [N]개 / Gemini [M]개. [모드] + [모델] + [퍼미션]. 시작."
 
+**오늘 관련 명령어** — Step 2 분류 결과 기반, 해당 줄만 출력 (없으면 전체 생략):
+- 구현·리팩토링 Opus 있음 → `/tdd` → `/craft` → `/ship`
+- 설계·아이디어 검토 → `/blueprint` → `/plan-eng` → `/office-hours`
+- 리뷰·머지 예정 → `/review` → `/adversarial` → `/ship`
+- 품질·보안 점검 → `/cso` → `/qa` → `/land`
+- 분석·인사이트 필요 → `/insights` → `/dashboard` → `/retro`
+- 최적화·유지보수 → `/optimize` → `/doc-sync` → `/improve`
+- 야간·장기 자율 → `/zzz` → `/ralph` → `/re`
+- 컨텍스트 이동 → `/rc` → `/handoff` → `/pickup`
+
+전체 목록 보기: `ls ~/.claude/commands/` | 카테고리별 참조: `docs/commands/CHEATSHEET.md`
+
 - **Opus 태스크**: 선택된 모드로 즉시 실행
 - **Gemini 태스크**: GEMINI_TASKS.md에 기록만. 토큰 소진 시 Gemini가 이어받음
 - 리서치 노트 적용 원하면 해당 태스크 우선
