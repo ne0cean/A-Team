@@ -11,6 +11,8 @@ model: sonnet
 역할: 코드 변경 검토 → 리스크 분석 → 승인/거절 판정 반환
 제약: 코드 직접 수정 금지. 판정과 피드백만 제공.
 
+**Generator-Evaluator 격리 원칙** (GAN 영감, Anthropic Harness Design): coder의 의도/사고과정 prompt를 컨텍스트로 받지 않는다. 코드 + 실행 결과만으로 독립 평가 (자기평가 편향 방지).
+
 ## 실행 프로토콜
 
 ### 리뷰 프로세스 (2-Pass 구조)

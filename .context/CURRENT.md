@@ -106,6 +106,8 @@ a-team의 궁극 지향점 = **프로덕트 런칭 + 운영 가능한 하나의 
 - [ ] **Phase 1 Anomaly detection** — `analytics.jsonl` 기반 세션 비용 급증 / 커맨드 호출 0건 감지 (**보류**: 데이터 충분히 쌓인 후 진행)
 - [ ] **Phase 1 Causal analysis** — 커맨드 추가 전후 사용 패턴 변화 분석 (**보류**: 데이터 충분히 쌓인 후 진행)
 - [ ] **외부 데이터 연결** (GA4/Mixpanel) — 웹 프로젝트 생길 때 + GA4 프로퍼티 설정 후 (**보류**: 비즈니스 데이터 생길 때)
+- [ ] **Playwright MCP Evaluator** — qa.md 업그레이드, 정적/LLM critique → 실제 앱 실행 테스트 (Anthropic Harness Design 영상 영감, 2026-04-28)
+- [ ] **Generator→Evaluator 스프린트 루프** — coder→reviewer→coder 명시적 반복 루프 orchestrator에 명문화 (현재는 ad-hoc, Anthropic Harness Design 영상 영감)
 - [x] ~~**IMP-20260415-01 처리** — reflect parallel-consolidate 패턴~~ ✅ 2026-04-26 — `/retro` 에 적용 (4 Agent parallel + 1 consolidator + dynamic options). `/end` 는 직렬 단계라 SKIP. retro.md 86 → 158 lines, sequential 분석 6개 → parallel 4개 + dedup 1개.
 - [x] ~~**sleep.md 압축 검토**~~ ✅ N/A — `sleep.md` 삭제됨 (`/zzz` 통합 완료)
 - [ ] **Wave 1 실측 A/B 벤치** (실제 Claude API, RFC-001/003/004/007-S)
