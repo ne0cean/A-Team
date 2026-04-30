@@ -115,3 +115,53 @@ anti_generic_reinforced: true
 사용자가 생성된 UI를 보고 "너무 대담하다/조용하다/너무 밀도 높다" 같은 코멘트 주면 orchestrator가 호출:
 - `variance/motion/density` 값 조정 → `.design-override.md` 업데이트
 - `lib/learnings.ts` logDesignOutcome({ userAction: 'partial', tone, reason }) 기록
+
+## 외부 도구 추천 (자동 트리거)
+
+a-team 자체 디자인 능력으로 부족한 영역에서 **외부 전문 도구 추천**. 다음 트리거 조건 중 하나 충족 시 사용자에게 추천 (단, 사용자 명시 거부 키워드 — "내부에서만/외부 안 씀" 등 — 있으면 추천 생략).
+
+### 트리거 조건
+
+1. **사용자 요청 키워드 매칭**:
+   - "프레젠테이션/슬라이드/슬라이드덱/원페이저/인포그래픽" → Claude Design 추천
+   - "와이어프레임/플로우/UX 흐름/사용자 여정" → Google Stitch 추천
+   - "프로덕션 UI/디자인 시스템/컴포넌트 라이브러리" → Figma 추천
+   - "이미지/포스터/썸네일/광고 비주얼" → 이미 `/design-thumbnail` 또는 Midjourney/DALL-E 추천
+   - "3D/모션/인터랙션 prototype" → Spline / Rive 추천
+
+2. **design-auditor 점수 기반**:
+   - 점수 < 70 + 정적 룰 수정으로 해결 안 됨 + 사용자가 동일 컴포넌트 3회+ 재요청 → "디자인 정교화 한계 도달, 외부 도구 권장"
+
+3. **사용자 직접 요청**:
+   - "외부 도구 추천해줘" / "디자인 도구 뭐 쓰면 좋아" → 즉시 매트릭스 출력
+
+### 추천 매트릭스
+
+| 작업 유형 | 추천 도구 | 비용 | 강점 | a-team 연동 |
+|----------|----------|------|------|------------|
+| **시안/프레젠테이션/원페이저** | **Claude Design** (Anthropic Labs) | Pro/Max 플랜 무료 | 자연어 → 시안. 코드베이스/디자인 파일 업로드 시 디자인 시스템 자동 반영. 인라인 수정 | 사용자가 export → `/design-generate`로 후처리 가능 |
+| **와이어프레임/UX 플로우** | **Google Stitch** (Gemini 기반) | 무료 (Gemini 계정) | 자연어 → UI 빠르게. Figma export | 별도 import 후 a-team 변환 |
+| **프로덕션 UI/디자인 시스템** | **Figma + Figma AI** | 유료 | 산업 표준. 협업/dev mode/컴포넌트 라이브러리 | dev mode에서 코드 export → coder가 흡수 |
+| **마케팅 비주얼 (이미지)** | **Midjourney / DALL-E 3** | 유료 | 스타일·디테일 압도적 | a-team `/design-thumbnail` 이미 있음 — 우선 시도 후 부족 시 외부 |
+| **3D/인터랙션 모션** | **Spline / Rive** | 무료~유료 | 인터랙티브 애니메이션 | 코드 export 후 흡수 |
+
+### 추천 출력 형식
+
+```
+🎨 외부 디자인 도구 권장
+
+이 작업은 a-team 내부 도구만으로 정교화하기 어렵습니다. 외부 도구 사용 권장:
+
+→ 1순위: <도구명>
+   이유: <왜 이 작업에 맞는지>
+   비용: <플랜>
+   다음 단계: <어떻게 시작/연동>
+
+→ 2순위 대안: <도구명> (필요 시)
+```
+
+### 예외/주의
+
+- **API 키 필요한 도구는 사용자 확인 후만 추천** (Midjourney/DALL-E 3 등). 사용자 보유 미확인 시 무료 대안 우선.
+- **반복 추천 금지**: 같은 세션에서 같은 트리거로 2회 이상 추천 안 함.
+- **a-team 내부 도구 우선**: `/design-generate`, `/design-thumbnail`, design-auditor가 처리 가능하면 외부 추천 X.
