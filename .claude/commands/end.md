@@ -156,6 +156,18 @@ fi
 
 **원칙**: 실패 시 **절대 세션 "종료"로 처리하지 말 것** — 다른 머신에서 같은 착각 반복 금지.
 
+## Step 6.5 — Analytics Emit (자동)
+세션 종료 시 analytics.jsonl에 session_end 이벤트 기록:
+```bash
+CMDS=$(git log --oneline -1 --format="%s" 2>/dev/null | cut -c1-60 || echo "unknown")
+node "$(git rev-parse --show-toplevel 2>/dev/null)/scripts/log-event.mjs" \
+  session_end \
+  "summary=$CMDS" \
+  "branch=$(git branch --show-current 2>/dev/null || echo unknown)" \
+  2>/dev/null || true
+```
+실패해도 세션 종료를 막지 않음 (|| true).
+
 ## Step 7 — (선택) Research Mode
 자리를 오래 비울 예정이면 "Research Mode를 시작할까요?" 질문.
 원하면: `/re start`

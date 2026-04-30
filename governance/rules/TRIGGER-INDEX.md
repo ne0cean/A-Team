@@ -37,8 +37,9 @@ grep -i "키워드" ~/tools/A-Team/governance/rules/TRIGGER-INDEX.md
 | `turbo-auto.md` | 12 | 자동 모드 활성 시 | turbo, 자동 |
 | `vibe-rules.md` | 20 | `/vibe` 실행 시 | vibe, 세션 시작 |
 | `visual-verification.md` | 74 | UI 파일 수정 / 시각 검증 필요 시 | UI, Playwright, 시각 검증 |
+| `lifecycle.md` | 40 | 새 커맨드/에이전트 추가 시 / 커맨드 수 60개 근접 시 | lifecycle, zombie, 상한선, deprecated |
 
-**합계**: 1,205 lines. **트리거 매칭 없이 기본 로드하지 말 것**.
+**합계**: ~1,245 lines. **트리거 매칭 없이 기본 로드하지 말 것**.
 
 ---
 

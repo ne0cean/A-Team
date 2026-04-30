@@ -5,6 +5,14 @@ description: 세션 시작 — 컨텍스트 로드 + Opus/Gemini 분류 + 즉시
 > **자동 트리거**: SessionStart 훅이 새 세션 시 Step 1~2를 자동 주입합니다.
 > 수동 `/vibe`는 컨텍스트 강제 리로드 또는 태스크 재분류 시 사용.
 
+## Step 0.1 — Analytics Emit (자동)
+```bash
+node "$(git rev-parse --show-toplevel 2>/dev/null)/scripts/log-event.mjs" \
+  session_start \
+  "branch=$(git branch --show-current 2>/dev/null || echo unknown)" \
+  2>/dev/null || true
+```
+
 ## Step 0.2 — A-Team Sync (자동 최신 버전 pull)
 
 A-Team 레포가 stale 하면 자동 pull → 새 커맨드/룰/스킬이 반영됨. symlink 구조라 pull만 하면 전체 머신에 전파.
@@ -65,11 +73,26 @@ fi
 인덱스 = (월 × 31 + 일) % (팁 수 / 2) × 2. 출력: `💡 오늘의 팁` + 2줄 요약.
 
 ## Step 0.5 — 정기/통합 검사 (자동)
-1. **Biweekly Optimization (격주)**:
+1. **Monthly Cold Review (월간)**:
+   - analytics.jsonl에서 마지막 `cold_review` 이벤트 날짜 확인:
+   ```bash
+   node -e "
+   const fs=require('fs');
+   try{
+     const lines=fs.readFileSync('.context/analytics.jsonl','utf8').trim().split('\n').filter(Boolean);
+     const last=lines.map(l=>{try{return JSON.parse(l);}catch{}}).filter(e=>e&&e.event==='cold_review').pop();
+     if(!last){console.log('NEVER');}
+     else{const d=new Date(last.ts);const diff=Math.floor((Date.now()-d)/86400000);console.log(diff+'_days');}
+   }catch{console.log('NEVER');}
+   " 2>/dev/null
+   ```
+   - 30일 이상 경과(또는 기록 없음) 시: `🔍 월간 구조 감사(Cold Review) 시점입니다.` 표시 후 `/cold-review` 실행
+
+2. **Biweekly Optimization (격주)**:
    - 마지막 `[biweekly-optimize]` 기록이 14일 경과했는지 `.context/SESSIONS.md` 빈도 체크
    - 14일 경과 시: `🔄 정기 7축 최적화(Biweekly) 시점입니다.` 표시 후 `/optimize --biweekly` 실행
 
-2. **Post-Integration 감지 (상시)**:
+3. **Post-Integration 감지 (상시)**:
    - 이전 세션 이후 메이저 통합 확인:
    ```bash
    git diff --name-only HEAD~3..HEAD 2>/dev/null | grep -E '^(lib/.*\.ts|\.claude/agents/.*\.md|governance/)' || true
@@ -202,6 +225,28 @@ fi
 
 3. **abandoned 폐기 제안**: 30일 이상 사용 0건 + coverage 0% 모듈
    - "⚠️ {capability} 30일 미사용 — capability-map에서 제거하거나 coverage 갱신 권장"
+
+## Step 0.75 — 주간 리포트 + 1건 제안 (자동, 매주 월요일 또는 7일 경과 시)
+
+analytics.jsonl 가 존재하고 7일 이상 데이터가 있을 때만 실행:
+```bash
+ANALYTICS=".context/analytics.jsonl"
+WEEK_AGO=$(date -d '7 days ago' +%Y-%m-%d 2>/dev/null || date -v-7d +%Y-%m-%d 2>/dev/null || echo "")
+[ -f "$ANALYTICS" ] && [ -n "$WEEK_AGO" ] && WEEK_COUNT=$(awk -v d="$WEEK_AGO" '$0 > d' "$ANALYTICS" 2>/dev/null | wc -l) || WEEK_COUNT=0
+```
+
+`WEEK_COUNT` ≥ 3 이면 아래를 출력:
+
+**📊 주간 리포트**
+- analytics.jsonl에서 지난 7일 `session_start` 카운트 → 세션 수
+- `session_end` 이벤트의 `summary` 필드 빈도 → 가장 많이 한 작업 1개
+- `friction` 이벤트 존재 시 → 가장 많이 막힌 것 1개
+
+**💡 이번 주 개선 제안 1건** (friction 최다 항목 → 해결책 1줄):
+> "[friction point] → [구체적 해결 방법]"
+> 반영할까요? (Y/N)
+
+`WEEK_COUNT` < 3 이면 스킵 (데이터 부족).
 
 ## Step 0.8 — Pending Improvements 감지 (자동, A-Team 프로젝트만)
 현재 프로젝트가 A-Team이면 `improvements/pending.md`에서 ⏳ pending 항목 수를 카운트:

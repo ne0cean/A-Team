@@ -89,6 +89,24 @@ Task(
 ```
 모호할 때만 1개 질문. 명확하면 자동 진행.
 
+**2.05 — PM Gate (구현 전 필수 체크)**:
+다음 패턴 중 하나라도 해당하면 coder/architect 전에 **pm 에이전트 먼저** 호출:
+- "만들어줘 / 구현해줘 / 새로 시작" + 스코프 불명확
+- "어떻게 접근해야 할까" (방향 미결)
+- 이전 세션에서 같은 기능을 다시 만든 이력 (git log 확인)
+
+pm 에이전트 반환 후 → 사용자 confirm → 다음 단계 진행.
+- **옵션 C (처음부터)** 판정 시: pm 브리핑 후 → `/office-hours` → `/plan-ceo` → `/plan-eng` 체인 자동 안내
+- **옵션 A/B** 판정 시: pm 브리핑 후 → `/blueprint` → coder
+스코프 명확한 버그픽스/단순 수정은 PM Gate 스킵.
+
+**2.06 — Scope Validator Gate** (coder/architect 호출 직전):
+pm 브리핑이 있는 태스크는 coder/architect 전에 scope-validator 서브에이전트 호출:
+- `verdict === "PASS"` → 즉시 진행
+- `verdict === "WARN"` → 사용자에게 경고 표시 후 계속
+- `verdict === "BLOCK"` → 사용자 재확인 후에만 진행 (자동 중단)
+pm 브리핑 없는 태스크(버그픽스/단순수정)는 Scope Validator 스킵.
+
 **2.1 — 태스크 분해 + 에이전트 라우팅**:
 - 리서치/조사/찾기 → researcher (Haiku)
 - 디버그/원인/에러 → `/investigate` 스킬
@@ -96,6 +114,7 @@ Task(
 - 검증/리뷰/품질 → reviewer (Sonnet)
 - 아키텍처/설계/전략 → architect (Opus)
 - UI/시각/레이아웃/CSS/화면/스타일/반응형 진단 → ui-inspector (Sonnet)
+- 요구사항 불명확/스코프 미결 → pm (Sonnet) [PM Gate]
 
 **UI 복합 태스크 자동 체이닝**:
 "UI 버그 수정" 등 시각적 문제 수정 요청 시:
