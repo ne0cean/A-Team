@@ -38,6 +38,7 @@ grep -i "키워드" ~/tools/A-Team/governance/rules/TRIGGER-INDEX.md
 | `vibe-rules.md` | 20 | `/vibe` 실행 시 | vibe, 세션 시작 |
 | `visual-verification.md` | 74 | UI 파일 수정 / 시각 검증 필요 시 | UI, Playwright, 시각 검증 |
 | `lifecycle.md` | 40 | 새 커맨드/에이전트 추가 시 / 커맨드 수 60개 근접 시 | lifecycle, zombie, 상한선, deprecated |
+| `model-allocation.md` | 70 | **상시 적용** — 매 사용자 메시지 직후 모델 적정성 자가평가 | 모델 적정성, opus, sonnet, 위임, 비용 |
 
 **합계**: ~1,245 lines. **트리거 매칭 없이 기본 로드하지 말 것**.
 
