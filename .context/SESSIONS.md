@@ -2,6 +2,25 @@
 
 ---
 
+## [2026-05-01] 멀티 통합 세션 — 영상 흡수 + DESIGN.md + 모델 적정성
+
+**완료**:
+- GAN 격리 원칙 (orchestrator Phase 2.7 + reviewer.md) — Anthropic Harness Design 영상
+- ECS 원칙 (에이전트 직접 호출 금지) — Array's DevBook 영상
+- /yt YouTube 풀 추출 스킬 (yt-dlp+ffmpeg, 자막+키프레임)
+- 외부 디자인 도구 추천 트리거 (designer.md, 5 도구 매트릭스)
+- DESIGN.md 표준 통합 (Google Labs 2026-04-21) — designer Step 0 + vibe Step 0.66 + gate.md 우선순위
+- PMI 5-phase 실행 — gate.md DESIGN.md wiring 1건 즉시 수정
+- 모델 적정성 자동 평가 룰 (governance/rules/model-allocation.md + CLAUDE.md)
+- RTK 0.38.0 설치 (글로벌 PreToolUse Bash 훅, 60-90% 토큰 절약)
+- yt-dlp 설치, 권한 버그(`//Users/...` glob) 진단+수정
+
+**이슈**:
+- Claude Code 메인 세션 모델 자동 전환은 harness 미지원 — 우회: 자가평가 + 위임 + 사용자 push
+- vibe.md 2432 words (커맨드 기준 1200 초과) — 누적 증가 추세, 별도 최적화 필요
+
+**빌드**: ✅ 471 PASS / 0 tsc / 0 vulns
+
 ## [2026-04-28] 태스크 정리 + Phase 1 방향 결정
 
 **완료**: RESUME.md 4개 태스크 상태 점검. SDK 0.91.1 이미 완료 확인. Advisor/eval-store/Postiz 보류 처리 (외부 의존). Phase 1 Anomaly/Causal/외부데이터 연결 보류 (데이터 부족). 나중에 할 목록 6개 CURRENT.md 기록. Phase 2 진입 결정.
