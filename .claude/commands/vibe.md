@@ -315,12 +315,21 @@ CURRENT.md의 Next Tasks를 분류하고 `.context/GEMINI_TASKS.md` 갱신.
 설계 결정 / 옵션 비교    → 🟣 MoA 모드
 ```
 
-**모델 추천** (governance/rules/model-allocation.md 적용):
+**모델 추천** (governance/rules/model-allocation.md + CLAUDE.md 적용):
+
+**매 작업 시작 전 필수 체크** (CLAUDE.md 모델 적정성 프로토콜):
+1. Opus 필요 여부 판정: (a) 새 설계 / (b) 옵션 비교 / (c) 5+ 파일 의존성 / (d) MoA 충돌
+2. NO면 → **응답 첫 줄**에 모델 전환 제안 + 사용자 승인 대기
+3. 승인 시 `/model [모델]` 전환 실행
+
+**권장 모델**:
 - 아키텍처/설계/옵션 비교/MoA 충돌 → `opus` 권장
-- 구현/리팩토링/문서/통합 영향 분석 → `sonnet` 권장
+- 구현/리팩토링/문서/통합 영향 분석 → `sonnet` 권장 (비용 ~3-5x 절약)
 - 리서치/문서 조사 → `haiku` 권장 (또는 Gemini 위임)
-- **Opus 유지 정당화 부재 시 강한 push**: 현재 Opus + 다음 태스크가 Sonnet 충분이면 첫 응답 1줄에 "`/model sonnet` 권장 (비용 ~3-5x 절약)" 명시
+
+**예외**:
 - 사용자 한 번 거부 시 → 한 세션 내 재추천 금지
+- 자율 모드 → 제안 생략, 서브에이전트 위임
 
 **판정 출력**:
 - 🟢 → 즉시 진행
