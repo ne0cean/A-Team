@@ -108,6 +108,9 @@ a-team의 궁극 지향점 = **프로덕트 런칭 + 운영 가능한 하나의 
 - [ ] **외부 데이터 연결** (GA4/Mixpanel) — 웹 프로젝트 생길 때 + GA4 프로퍼티 설정 후 (**보류**: 비즈니스 데이터 생길 때)
 - [ ] **Playwright MCP Evaluator** — qa.md 업그레이드, 정적/LLM critique → 실제 앱 실행 테스트 (Anthropic Harness Design 영상 영감, 2026-04-28)
 - [ ] **Generator→Evaluator 스프린트 루프** — coder→reviewer→coder 명시적 반복 루프 orchestrator에 명문화 (현재는 ad-hoc, Anthropic Harness Design 영상 영감)
+- [ ] **/design-md 슬래시 커맨드** — DESIGN.md 처음부터 빌드 워크플로우 (영상 3단계: 시안 뽑기 → 카테고리 채우기 → CLAUDE.md @DESIGN.md 한 줄 추가). Maker Evan 영상 영감 (https://www.youtube.com/watch?v=w33YxZ7auZs)
+- [ ] **design-auditor가 DESIGN.md 토큰 위반 감지** — 색상/spacing 위반 정적 룰 추가 (DESIGN.md 정의된 토큰 외 사용 시 violation)
+- [ ] **DESIGN.md ↔ .design-override.md 양방향 변환 도구** — Google CLI(lint/diff/export tailwind/dtcg) 흡수 검토
 - [x] ~~**IMP-20260415-01 처리** — reflect parallel-consolidate 패턴~~ ✅ 2026-04-26 — `/retro` 에 적용 (4 Agent parallel + 1 consolidator + dynamic options). `/end` 는 직렬 단계라 SKIP. retro.md 86 → 158 lines, sequential 분석 6개 → parallel 4개 + dedup 1개.
 - [x] ~~**sleep.md 압축 검토**~~ ✅ N/A — `sleep.md` 삭제됨 (`/zzz` 통합 완료)
 - [ ] **Wave 1 실측 A/B 벤치** (실제 Claude API, RFC-001/003/004/007-S)

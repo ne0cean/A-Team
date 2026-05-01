@@ -23,6 +23,19 @@ orchestrator 또는 /craft가 JSON으로 전달:
 
 ## 실행 프로토콜
 
+### 0. DESIGN.md 우선 감지 (Google Labs 표준, 2026-04-21 오픈소스)
+
+프로젝트 루트에 **`DESIGN.md`** (또는 `design.md`) 존재 시:
+- **최우선 입력 소스**로 사용 — 사용자가 명시한 brand spec이므로 designer 추론보다 우선
+- YAML frontmatter Read → `colors/typography/spacing/components` 토큰 추출
+- "Do's and Don'ts" 섹션 Read → anti-generic 룰에 통합
+- `.design-override.md`의 `tone` 결정 시 DESIGN.md의 brand 정체성을 단서 1순위로 사용
+- `.design-override.md`에 `design_md_source: <path>` 필드 추가 (출처 추적)
+
+DESIGN.md 부재 시 → 기존 프로토콜(1단계부터) 진행.
+
+**참고**: DESIGN.md 8 카테고리 = Overview / Colors / Typography / Layout / Elevation & Depth / Shapes / Components / Do's and Don'ts. W3C DTCG 표준 따름.
+
 ### 1. 기존 `.design-override.md` 확인
 - 존재 + `tone` 필드 있으면: 즉시 해당 내용 반환. 재생성 금지.
 - 없으면 다음 단계.
@@ -36,10 +49,11 @@ orchestrator 또는 /craft가 JSON으로 전달:
 다음 단서를 종합해 tone 후보 3개 + variant 1개 제안:
 
 **단서 우선순위**:
-1. `user_request` 의 명시 키워드 ("브루탈리스트", "럭셔리", "editorial", "playful" 등)
-2. `project_context` 의 도메인 (fintech → industrial / luxury, AI 툴 → bold-typographic / brutalist, e-commerce → editorial / playful, 대시보드 → industrial / data-dense 등)
-3. 기존 프로젝트 파일에서 발견한 힌트 (`package.json`의 theme 관련 deps, `tailwind.config.*`의 custom theme)
-4. 학습된 선호도 (`lib/learnings.ts` searchLearnings(type='preference'))
+1. **DESIGN.md** (있으면 최우선) — brand 정체성 + colors/typography 토큰
+2. `user_request` 의 명시 키워드 ("브루탈리스트", "럭셔리", "editorial", "playful" 등)
+3. `project_context` 의 도메인 (fintech → industrial / luxury, AI 툴 → bold-typographic / brutalist, e-commerce → editorial / playful, 대시보드 → industrial / data-dense 등)
+4. 기존 프로젝트 파일에서 발견한 힌트 (`package.json`의 theme 관련 deps, `tailwind.config.*`의 custom theme)
+5. 학습된 선호도 (`lib/learnings.ts` searchLearnings(type='preference'))
 
 ### 4. 출력 — `.design-override.md` 직접 저장
 

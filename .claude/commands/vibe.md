@@ -156,6 +156,20 @@ fi
 - 오늘이 예약일이면: `📅 {task} 예약일 — 자동 실행 제안`
 - 해당 라인에 명시된 스킬 (예: `/design-retro`) 제안
 
+## Step 0.66 — DESIGN.md 감지 (Google Labs 표준)
+
+프로젝트 루트에 `DESIGN.md` (대소문자 무관) 존재 여부 확인:
+```bash
+DESIGN_MD=$(ls DESIGN.md design.md 2>/dev/null | head -1)
+if [ -n "$DESIGN_MD" ]; then
+  echo "📐 $DESIGN_MD 감지 — 디자인 작업 시 designer 자동 참조 (W3C DTCG 표준)"
+  # YAML frontmatter version/name 표시 (있으면)
+  awk '/^---$/{c++; if(c==2)exit} c==1' "$DESIGN_MD" | grep -E '^(version|name):' | head -2
+fi
+```
+- 부재 시 silent (DESIGN.md는 선택사항)
+- designer 에이전트가 Phase 2.2 Design Gate에서 자동으로 이 파일을 최우선 입력으로 사용
+
 ## Step 0.67 — Team Roadmap 거버넌스 로드 (필수, A-Team 프로젝트만)
 
 `.context/team-roadmap.md` 가 있으면 SSOT 로 로드 → 이번 세션 작업이 거버넌스 룰을 위반하지 않는지 자동 검사.
