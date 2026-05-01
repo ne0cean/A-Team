@@ -21,6 +21,7 @@
 | 6 | 운영 (PR/CS/세일즈/재무) | ⏳ |
 
 **최근 완성**:
+- **Phase 2 설계 + 외부 흡수 + Postiz 가동** (2026-05-02): awesome-harness-engineering 9카테고리 등록(갭 1개: cross-session 메모리) + Headroom 보류(PyPI 미존재) + Phase 2 시장·사용자 인텔리전스 설계(C+Visualping 하이브리드, `/intel` 4서브커맨드) + Postiz Docker 가동(localhost:4007). 설계문서: `~/.gstack/projects/phase2-market-intel-2026-05-02.md`.
 - **세션 통합 7건 완성** (2026-05-01, 8 커밋): GAN 격리 원칙(orchestrator+reviewer) → ECS 원칙(에이전트 직접 호출 금지) → /yt YouTube 풀 추출 스킬(yt-dlp+ffmpeg) → 외부 디자인 도구 추천 트리거(designer.md, 5 도구 매트릭스) → DESIGN.md 표준 통합(designer Step 0/vibe Step 0.66/gate.md 우선순위) → PMI 5-phase 실행(wiring 1건 즉시 수정) → 모델 적정성 자동 평가 룰(governance/rules/model-allocation.md + CLAUDE.md). 권한 버그(`//Users/...` glob 매칭 실패) 진단 + 수정. RTK 0.38.0 글로벌 PreToolUse Bash 훅 설치(60-90% 토큰 절약). yt-dlp 설치. 471 PASS 유지.
 - **태스크 정리 + Phase 1 방향 결정** (2026-04-28): RESUME.md 4개 태스크 상태 확인 (SDK 0.91.1 이미 완료, autoresearch 파일럿 완료, Phase 0.5 완료). Advisor/eval-store/Postiz는 외부 의존으로 보류 처리. Phase 1 Anomaly/Causal/외부데이터 연결은 데이터 축적 후로 보류. Phase 2로 진입 결정.
 - **Continuous Growth System 6-Task** (2026-04-30, `cf1b64c`): analytics emit (log-event.mjs) + /vibe 주간리포트 + CSO 4-axis + lifecycle 60개상한 + PM Gate(pm.md+scope-validator+orchestrator Phase 2.05/2.06) + /cold-review 월간감사. 커맨드 53개.
@@ -86,9 +87,10 @@ a-team의 궁극 지향점 = **프로덕트 런칭 + 운영 가능한 하나의 
 ## Next Tasks
 
 ### High Priority
-- [ ] **Phase 2 시장·사용자 인텔리전스 설계 시작** — `/office-hours` or `/blueprint`
+- [x] ~~**Phase 2 시장·사용자 인텔리전스 설계 시작**~~ ✅ 2026-05-02 — `/office-hours` 빌더모드 완료. 접근법: C+Visualping 하이브리드. 설계문서: `~/.gstack/projects/phase2-market-intel-2026-05-02.md`
 - [x] ~~**🗓️ 2026-04-22 10:17 KST — `/design-retro` 자동 실행 예약됨**~~ ✅ 2026-04-26 수동 실행. CronCreate 미등록 확인 (CronList 빈 결과). 회고: [retros/design-auditor-2026-04-26.md](retros/design-auditor-2026-04-26.md). 결론: 외부 repo install 전엔 회고 ROI 0 → 시간기반 재예약 안 함.
-- [ ] **Postiz Docker 가동 + OAuth** → `content/social/2026-04-18-claude-sleep-resume/` 실제 발행 → publish-log status: scheduled로 전환
+- [x] ~~**Postiz Docker 가동**~~ ✅ 2026-05-02 — `~/Projects/postiz` 에서 `docker compose up -d`. localhost:4007 접속 가능. OAuth 설정은 수동 필요.
+- [ ] **Postiz OAuth 설정 + 실제 발행** → `content/social/2026-04-18-claude-sleep-resume/` 실제 발행 → publish-log status: scheduled로 전환
 - [ ] **[HUMAN INSERT] 3개 채우기** — LinkedIn 2개 + Instagram caption 1개 (1-2분)
 - [x] ~~**design-auditor false positive 수정**~~ ✅ `cdc8f5c` — RD-04 caption-class + tone-aware, AI-02 페어링 감지. og-image 점수 64→92.
 - [ ] **Advisor tool 라이브 API 테스트** — `ANTHROPIC_API_KEY` 환경 설정 + `useSdkPath=true` + `ralph --once` (**보류**: Max 플랜은 SDK API 미지원, 별도 API 크레딧 생길 때 진행)

@@ -24,6 +24,7 @@
 
 | 일자 | 레포 | URL | 흡수한 것 | 반영 위치 | 라이선스 |
 |------|------|-----|---------|---------|---------|
+| 2026-05-02 | ai-boost/awesome-harness-engineering | https://github.com/ai-boost/awesome-harness-engineering | 9 카테고리 큐레이션 (Agent Loop / Planning / Context Delivery / Tool Design / Skills+MCP / Permissions / Memory / Orchestration / Verification) — a-team 갭 자가진단용 SSOT | `governance/external-references.md` 이 섹션 + 자가진단 결과 | CC0 |
 | 2026-05-01 | google-labs-code/design.md | https://github.com/google-labs-code/design.md | DESIGN.md 사양 (8 카테고리: Overview/Colors/Typography/Layout/Elevation/Shapes/Components/Do's-Don'ts), W3C DTCG 표준 | `.claude/agents/designer.md` Step 0 (전체 구조 인지) | Apache 2.0 |
 | 2026-04-28 | rtk-ai/rtk | https://github.com/rtk-ai/rtk | Rust Token Killer — CLI proxy로 Bash 출력 60-90% 압축 | 글로벌 `~/.claude/settings.json` PreToolUse Bash 훅 + `/opt/homebrew/bin/rtk` 심볼릭링크 | (rtk 자체 라이선스) |
 | 2026-04-15 | byungjunjang/jangpm-meta-skills | https://github.com/byungjunjang/jangpm-meta-skills | autoresearch + blueprint 메타 스킬 | `.claude/commands/autoresearch.md` + `.claude/commands/blueprint.md` (A-Team 규격으로 포팅) | MIT |
@@ -119,10 +120,35 @@
 | 2026-04-28 | Anthropic Engineering — Harness Design for Long-Running Apps | https://www.anthropic.com/engineering/harness-design-long-running-apps | 3-step Planner-Generator-Evaluator + 파일 기반 통신 | `.claude/agents/orchestrator.md` Phase 2.7 |
 | 2026-05-01 | Stitch DESIGN.md open-source / Google Blog | https://blog.google/innovation-and-ai/models-and-research/google-labs/stitch-design-md/ | DESIGN.md 오픈소스 공개 (2026-04-21) 배경 | `.claude/agents/designer.md` Step 0 |
 
+## Harness Engineering 9 카테고리 자가진단 (2026-05-02)
+
+> 출처: [awesome-harness-engineering](https://github.com/ai-boost/awesome-harness-engineering) (CC0)
+> a-team 현 상태를 9 카테고리에 매핑해 갭 식별.
+
+| 카테고리 | a-team 현재 상태 | 갭 |
+|---------|---------------|-----|
+| Agent Loop | orchestrator Phase 0-5 + ECS 원칙 | ✅ 충분 |
+| Planning | pm.md + scope-validator | ✅ 충분 |
+| Context Delivery & Compaction | RTK 60-90% | 🟡 Headroom 검토 중 |
+| Tool Design | governance/skills/ 53 commands | ✅ 충분 |
+| Skills & MCP | MCP plugins + /browse | ✅ 충분 |
+| Permissions & Authorization | governance/rules/guardrails.md | ✅ 충분 |
+| Memory & State | RESUME.md + analytics.jsonl | 🔴 **갭**: cross-session 의미 메모리 부재 |
+| Orchestration | orchestrator + parallel-plan | ✅ 충분 |
+| Verification & CI | quality-gate-stage2.sh + ralph --check | ✅ 충분 |
+
+**발견된 갭**: cross-session 의미 메모리 (SimpleMem/Mem0 영역) — Python 의존 + 개인정보 검토 필요. 별도 Phase에서 검토.
+
+---
+
 ## Deferred (반영 보류 — Low Priority)
 
 | 자원 | URL | 보류 사유 | 트리거 조건 |
 |------|-----|---------|-----------|
+| Headroom (토큰 압축) | https://github.com/chopratejas/headroom | PyPI `headroom-ai` 패키지 미존재. `headroom 0.2.7` 설치됐으나 다른 패키지. RTK과 중복 가능. | headroom-ai PyPI 배포 시 또는 GitHub 직접 설치 검토 |
+| Composio Agent Orchestrator | https://github.com/ComposioHQ/agent-orchestrator | 토큰 비용 3배 + ECS 원칙 호환 검토 필요 | 병렬 워크트리 대규모 필요 시 |
+| Instructor (출력 검증) | https://github.com/567-labs/instructor | Python → TypeScript (zod) 변환 부담 | reviewer 출력 검증 강화 작업 시 |
+| SimpleMem (cross-session 메모리) | (리서치 참조) | Python 의존 + 개인정보 검토 필요 | Phase별 메모리 시스템 검토 시 |
 | Playwright MCP Evaluator | (영상 #1 영감) | 새 에이전트/MCP 통합 필요 | qa.md 업그레이드 작업 시 |
 | Generator→Evaluator 스프린트 루프 명시화 | (영상 #1 영감) | orchestrator 큰 구조 변경 | 현재 ad-hoc 구조가 한계 도달 시 |
 | /design-md 슬래시 커맨드 | (영상 #3 영감) | 별도 워크플로우 빌드 필요 | DESIGN.md 첫 작성 케이스 발생 시 |
