@@ -21,9 +21,10 @@
 ## 2. Opt-Out / 프로젝트 Calibration
 
 ### 우선순위 (높은 순)
-1. **`.design-override.md`** 파일이 프로젝트 루트 또는 `.context/`에 있으면 설정 존중
-2. **CLAUDE.md** 내 frontmatter `design:` 블록
-3. **기본값**: `design: auto` (감지 heuristic 따름)
+1. **`DESIGN.md`** (Google Labs 표준, W3C DTCG) 프로젝트 루트에 있으면 brand spec 최우선 — designer가 이를 입력으로 `.design-override.md` 생성
+2. **`.design-override.md`** 파일이 프로젝트 루트 또는 `.context/`에 있으면 설정 존중
+3. **CLAUDE.md** 내 frontmatter `design:` 블록
+4. **기본값**: `design: auto` (감지 heuristic 따름)
 
 ### `.design-override.md` 스키마
 ```markdown
