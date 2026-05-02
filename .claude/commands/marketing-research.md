@@ -14,6 +14,7 @@
 | `--output` | 결과 저장 경로 (기본: content/research/) | `--output research/custom/` |
 | `--skip-serp` | SERP 분석 스킵 (웹 접근 불가 시) | |
 | `--brief-only` | Phase 5 (콘텐츠 브리프)만 생성 | |
+| `--use-intel` | `/intel` 커맨드 통합 (Phase 2 자동화) | ✨ **NEW** |
 
 ## 실행 흐름
 
@@ -60,12 +61,20 @@
 
 ### Phase 2-A: SERP 분석 (경쟁사 구조 파악)
 
+**Intel Integration** (✨ NEW — Phase 2 자동화):
+- `--use-intel` 플래그 있을 시:
+  1. `/intel competitor {topic에서 추출한 회사}` 실행 → `.intel/competitors/` 자동 저장
+  2. `/intel trend {topic}` 실행 → `.intel/trends/` 자동 저장
+  3. 결과를 `02-serp.json`에 병합 (경쟁사 pricing/features + 트렌드 rising/stable)
+  4. SERP 수동 수집 스킵 (intel 데이터로 대체)
+
 **Graceful Degradation**:
 - `--skip-serp` 있음: 스킵 + `02-serp.json`에 `{"skipped": true, "reason": "user_requested"}` 기록
 - WebSearch 도구 실패: 자동 스킵 + `{"skipped": true, "reason": "web_unavailable"}` 기록 + 사용자에게 알림
 - 수동 URL 입력 가능: `--urls "url1,url2,url3"` 플래그로 SERP 데이터 우회
 - 아예 데이터 없음: Phase 2-A 스킵하고 Phase 2-B 수동 URL 역엔지니어링으로 대체
 
+**Legacy Path** (`--use-intel` 없을 시):
 웹 검색으로 상위 5-10개 페이지 수집 후 `research.md` Phase 2-A 프롬프트 적용.
 
 **수집 항목**:
@@ -94,6 +103,13 @@
 
 ### Phase 3-A: 오디언스 인텔리전스 (JTBD)
 
+**Intel Integration** (✨ NEW):
+- `--use-intel` + `--audience` 있을 시:
+  1. `/intel persona {audience}` 실행 → `.intel/personas/` 자동 저장
+  2. 결과를 `04-audience.json`에 병합 (JTBD + pain points + confidence)
+  3. 커뮤니티 스크래핑 스킵 (intel 데이터로 대체)
+
+**Legacy Path** (`--use-intel` 없을 시):
 Reddit, Quora, 네이버 카페, 커뮤니티에서 관련 토론 검색.
 
 **언어별 데이터 소스**:

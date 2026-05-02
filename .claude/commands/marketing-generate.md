@@ -18,6 +18,7 @@
   --topic       생성할 토픽 (필수, --url 없을 시)
   --url         기존 콘텐츠 URL (리퍼포징 시)
   --research    /marketing-research가 생성한 브리프 JSON 경로 (Step 2 스킵)
+  --intel-brief `/intel brief` 결과 경로 (✨ NEW — 경쟁사+트렌드+페르소나 통합)
   --audience    타깃 오디언스 (기본: 결정하기 위한 질문 1개 함)
   --keywords    콤마 구분 키워드 리스트
   --tone        콘텐츠 톤 (기본: authoritative)
@@ -35,12 +36,21 @@
 
 ### Step 2: Research
 
-**`--research` 플래그 있을 시** (권장):
+**`--intel-brief` 플래그 있을 시** (✨ NEW — Phase 2 통합):
+- `/intel brief` 결과 (`IntelBrief` 타입) 로드
+- 경쟁사 pricing/features, 트렌드 rising/stable, 페르소나 JTBD/pain points 추출
+- 콘텐츠 초안에 자동 인용:
+  - "경쟁사 X는 $Y/월, 우리는 이렇게 다름" (CompetitorAnalysis 활용)
+  - "{트렌드}는 {rising/declining} 중입니다" (TrendData 활용)
+  - "타깃 독자는 '{pain}' 문제로 고민 중" (PersonaProfile 활용)
+- Step 2 자체 리서치 스킵 → Step 3으로
+
+**`--research` 플래그 있을 시** (기존 경로):
 - 지정된 `06-brief.json` 로드
 - 브리프의 H1-H3 구조, word counts, [HUMAN INSERT] 마커, unique_angle 추출
 - Step 2 자체 리서치 완전 스킵 → Step 3으로 바로 이동
 
-**`--research` 없을 시** (인라인 리서치):
+**둘 다 없을 시** (인라인 리서치):
 `governance/skills/marketing/prompts/blog.md`의 Research Prompt 실행:
 - 경쟁 상위 3개 글 분석 (갭 파악)
 - 오디언스 질문 Top 10 추출
