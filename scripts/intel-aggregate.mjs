@@ -6,7 +6,7 @@ import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 
 const PROJECT_ROOT = process.cwd();
-const INTEL_DIR = join(PROJECT_ROOT, '.intel');
+const INTEL_DIR = process.env.INTEL_DIR || join(PROJECT_ROOT, '.intel');
 
 /**
  * 프로젝트 키워드로 JSON 파일 필터링
@@ -23,13 +23,18 @@ function filterByProject(files, projectKeyword) {
 }
 
 /**
- * 디렉토리의 모든 JSON 파일 로드
+ * 디렉토리의 모든 JSON 파일 로드 (옵션: 키워드 필터)
  */
-function loadJsonFiles(dir) {
+function loadJsonFiles(dir, projectKeyword = null) {
   try {
-    const files = readdirSync(dir)
+    let files = readdirSync(dir)
       .filter(f => f.endsWith('.json'))
       .map(f => join(dir, f));
+
+    // 키워드 필터링
+    if (projectKeyword) {
+      files = filterByProject(files, projectKeyword);
+    }
 
     return files.map(file => {
       try {
@@ -48,42 +53,20 @@ function loadJsonFiles(dir) {
  * 메인 집계 로직
  */
 function aggregateIntel(projectKeyword) {
-  const competitors = loadJsonFiles(join(INTEL_DIR, 'competitors'));
-  const trends = loadJsonFiles(join(INTEL_DIR, 'trends'));
-  const personas = loadJsonFiles(join(INTEL_DIR, 'personas'));
+  // "all" 키워드는 필터링 하지 않음
+  const filterKeyword = projectKeyword === 'all' ? null : projectKeyword;
 
-  // 키워드 필터링 (옵션)
-  let filteredCompetitors = competitors;
-  let filteredTrends = trends;
-  let filteredPersonas = personas;
-
-  if (projectKeyword) {
-    const allFiles = [
-      ...readdirSync(join(INTEL_DIR, 'competitors')).map(f => join(INTEL_DIR, 'competitors', f)),
-      ...readdirSync(join(INTEL_DIR, 'trends')).map(f => join(INTEL_DIR, 'trends', f)),
-      ...readdirSync(join(INTEL_DIR, 'personas')).map(f => join(INTEL_DIR, 'personas', f)),
-    ].filter(f => f.endsWith('.json'));
-
-    const matched = filterByProject(allFiles, projectKeyword);
-
-    filteredCompetitors = competitors.filter((_, i) =>
-      matched.some(m => m.includes('competitors'))
-    );
-    filteredTrends = trends.filter((_, i) =>
-      matched.some(m => m.includes('trends'))
-    );
-    filteredPersonas = personas.filter((_, i) =>
-      matched.some(m => m.includes('personas'))
-    );
-  }
+  const competitors = loadJsonFiles(join(INTEL_DIR, 'competitors'), filterKeyword);
+  const trends = loadJsonFiles(join(INTEL_DIR, 'trends'), filterKeyword);
+  const personas = loadJsonFiles(join(INTEL_DIR, 'personas'), filterKeyword);
 
   return {
     project: projectKeyword || 'all',
     generatedAt: new Date().toISOString(),
-    competitors: filteredCompetitors,
-    trends: filteredTrends,
-    personas: filteredPersonas,
-    totalFiles: filteredCompetitors.length + filteredTrends.length + filteredPersonas.length,
+    competitors,
+    trends,
+    personas,
+    totalFiles: competitors.length + trends.length + personas.length,
   };
 }
 
