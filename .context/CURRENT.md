@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**471 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-04-30).
+**489 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-05-02).
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
 
@@ -14,13 +14,14 @@
 |-------|------|------|
 | 0 | 메타 인프라 (analytics 통합·대시보드·회고) | ✅ 인프라 완료 |
 | 1 | 분석/BI (외부 데이터 통합·인사이트·이상 감지) | 🔑 **진입 가능** |
-| 2 | 시장·사용자 인텔리전스 | ⏳ |
+| 2 | 시장·사용자 인텔리전스 | 🚀 **T1-T6 구현 완료, 파일럿 준비** |
 | 3 | 마케팅 깊이 (브랜드 전략·캠페인 기획·발행) | ⏳ |
 | 4 | 디자인 깊이 (브랜드 시스템·디자인 시스템·UX 리서치) | ⏳ |
 | 5 | QA + 사용성 | ⏳ |
 | 6 | 운영 (PR/CS/세일즈/재무) | ⏳ |
 
 **최근 완성**:
+- **Phase 2 T1-T6 구현 완료** (2026-05-02, 2 커밋): T1 lib/intel-types.ts (타입+가드+유틸) + T2 .claude/agents/intel-analyzer.md (Sonnet 분석 엔진, 6-step workflow + 5-level Paywalled 우회) + T3 .intel/ 저장소 초기화 + T4 .claude/commands/intel.md (4 서브커맨드) + T5 test/intel.test.ts (단위 14개) + T6 test/intel-integration.test.ts (통합 4개). scripts/intel-aggregate.mjs 리팩토링 (INTEL_DIR 환경변수 지원 + "all" 키워드). blueprint-market-intel.md (726 lines). **489 tests PASS** (+18). 파일럿 가이드: `.context/phase2-pilot-guide.md`.
 - **Phase 2 설계 + 외부 흡수 + Postiz 가동** (2026-05-02): awesome-harness-engineering 9카테고리 등록(갭 1개: cross-session 메모리) + Headroom 보류(PyPI 미존재) + Phase 2 시장·사용자 인텔리전스 설계(C+Visualping 하이브리드, `/intel` 4서브커맨드) + Postiz Docker 가동(localhost:4007). 설계문서: `~/.gstack/projects/phase2-market-intel-2026-05-02.md`.
 - **세션 통합 7건 완성** (2026-05-01, 8 커밋): GAN 격리 원칙(orchestrator+reviewer) → ECS 원칙(에이전트 직접 호출 금지) → /yt YouTube 풀 추출 스킬(yt-dlp+ffmpeg) → 외부 디자인 도구 추천 트리거(designer.md, 5 도구 매트릭스) → DESIGN.md 표준 통합(designer Step 0/vibe Step 0.66/gate.md 우선순위) → PMI 5-phase 실행(wiring 1건 즉시 수정) → 모델 적정성 자동 평가 룰(governance/rules/model-allocation.md + CLAUDE.md). 권한 버그(`//Users/...` glob 매칭 실패) 진단 + 수정. RTK 0.38.0 글로벌 PreToolUse Bash 훅 설치(60-90% 토큰 절약). yt-dlp 설치. 471 PASS 유지.
 - **태스크 정리 + Phase 1 방향 결정** (2026-04-28): RESUME.md 4개 태스크 상태 확인 (SDK 0.91.1 이미 완료, autoresearch 파일럿 완료, Phase 0.5 완료). Advisor/eval-store/Postiz는 외부 의존으로 보류 처리. Phase 1 Anomaly/Causal/외부데이터 연결은 데이터 축적 후로 보류. Phase 2로 진입 결정.
@@ -87,7 +88,14 @@ a-team의 궁극 지향점 = **프로덕트 런칭 + 운영 가능한 하나의 
 ## Next Tasks
 
 ### High Priority
+- [ ] **Phase 2 파일럿 실행** — `/intel` 4 서브커맨드 실행 + Phase 2 Gate 달성 (가이드: `.context/phase2-pilot-guide.md`)
+  1. `/intel competitor vercel` → `.intel/competitors/YYYY-MM-DD-vercel.json`
+  2. `/intel trend "edge computing"` → `.intel/trends/YYYY-MM-DD-edge-computing.json`
+  3. `/intel persona "indie hackers"` → `.intel/personas/YYYY-MM-DD-indie-hackers.json`
+  4. `/intel brief edge-saas-launch` → `.context/briefs/YYYY-MM-DD-edge-saas-launch.md`
+  5. `/marketing-generate --input .context/briefs/...` → 블로그에 intel 데이터 인용
 - [x] ~~**Phase 2 시장·사용자 인텔리전스 설계 시작**~~ ✅ 2026-05-02 — `/office-hours` 빌더모드 완료. 접근법: C+Visualping 하이브리드. 설계문서: `~/.gstack/projects/phase2-market-intel-2026-05-02.md`
+- [x] ~~**Phase 2 T1-T6 구현**~~ ✅ 2026-05-02 — 타입, 에이전트, 커맨드, 집계, 테스트 18개. 489 tests PASS.
 - [x] ~~**🗓️ 2026-04-22 10:17 KST — `/design-retro` 자동 실행 예약됨**~~ ✅ 2026-04-26 수동 실행. CronCreate 미등록 확인 (CronList 빈 결과). 회고: [retros/design-auditor-2026-04-26.md](retros/design-auditor-2026-04-26.md). 결론: 외부 repo install 전엔 회고 ROI 0 → 시간기반 재예약 안 함.
 - [x] ~~**Postiz Docker 가동**~~ ✅ 2026-05-02 — `~/Projects/postiz` 에서 `docker compose up -d`. localhost:4007 접속 가능. OAuth 설정은 수동 필요.
 - [ ] **Postiz OAuth 설정 + 실제 발행** → `content/social/2026-04-18-claude-sleep-resume/` 실제 발행 → publish-log status: scheduled로 전환
