@@ -1,185 +1,255 @@
 ---
-description: Ralph Loop 자율 개발 데몬 — 잠든 새벽에 코드 태스크를 자율 반복 실행
+description: Ralph Loop — Autonomous AI development with intelligent exit detection
 ---
 
-Ralph Loop 데몬을 관리합니다.
-사용자가 입력한 인수를 확인하여 **즉시 실행**합니다. 확인 질문 없이 바로 실행합니다.
+# Ralph Loop for Claude Code
 
-## A-Team 스크립트 경로 탐색 (공통)
+A-Team integrates **frankbria/ralph-claude-code** (v0.11.5) - the production-ready autonomous development loop with 566 passing tests and comprehensive safeguards.
 
-```bash
-ATEAM_SCRIPTS=""
-for candidate in \
-  "$HOME/tools/A-Team/scripts" \
-  "$HOME/Desktop/Projects/A-Team/A-Team/scripts" \
-  "$(git rev-parse --show-toplevel 2>/dev/null)/A-Team/scripts" \
-  "$(git rev-parse --show-toplevel 2>/dev/null)/scripts"; do
-  [ -f "$candidate/ralph-daemon.mjs" ] && ATEAM_SCRIPTS="$candidate" && break
-done
-if [ -z "$ATEAM_SCRIPTS" ]; then
-  echo "❌ ralph-daemon.mjs를 찾을 수 없습니다. A-Team 경로를 확인하세요."
-  exit 1
-fi
-DAEMON="$ATEAM_SCRIPTS/ralph-daemon.mjs"
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-PID_FILE="$REPO_ROOT/.research/ralph-daemon.pid"
-STATE_FILE="$REPO_ROOT/.research/ralph-state.json"
-```
-
----
-
-### start "task" [옵션] — 데몬 시작
-
-옵션:
-- `--check "cmd"` — 완료 판정 bash 명령 (예: `"npm test"`, `"npm run lint && npm test"`)
-- `--model haiku|sonnet|opus` — 모델 선택 (기본: sonnet)
-- `--max N` — 최대 반복 횟수 (기본: 20)
-- `--budget N` — 예산 상한 달러 (기본: 5.00)
-
-**실행 순서:**
-
-1. 이미 실행 중이면 중단
+## First-Time Setup
 
 ```bash
-if [ -f "$PID_FILE" ] && kill -0 $(cat "$PID_FILE") 2>/dev/null; then
-  echo "⚠️  Ralph 데몬이 이미 실행 중입니다. /ralph stop 후 재시작하세요."
-  exit 1
-fi
+# Install Ralph globally (one-time)
+cd ~/Projects/a-team/external/ralph-claude-code
+./install.sh
+
+# Verify installation
+ralph --help
+which ralph
 ```
 
-2. `.research/` 디렉토리 생성
+After installation, `ralph`, `ralph-enable`, `ralph-setup`, and related commands are available globally.
+
+## Quick Start
+
+### Enable in Existing Project
+```bash
+cd your-project
+ralph-enable                    # Interactive wizard
+ralph --monitor                 # Start autonomous development
+```
+
+### Create New Project
+```bash
+ralph-setup my-project
+cd my-project
+# Edit .ralph/PROMPT.md with project goals
+ralph --monitor
+```
+
+### Import from PRD/Specs
+```bash
+ralph-import requirements.md my-project
+cd my-project
+ralph --monitor
+```
+
+## Common Commands
 
 ```bash
-mkdir -p "$REPO_ROOT/.research"
+# Start with integrated monitoring
+ralph --monitor
+
+# Custom settings
+ralph --calls 50 --timeout 30           # 50 API calls/hour, 30min timeout
+ralph --live --verbose                  # Live output + detailed progress
+ralph --auto-reset-circuit              # Unattended operation
+
+# Status & control
+ralph --status                          # Current loop status
+ralph --reset-session                   # Clear session context
+ralph --circuit-status                  # Circuit breaker state
+
+# Backup & rollback
+ralph --backup                          # Enable auto-backup
+ralph --rollback                        # List/restore backups
 ```
 
-3. **Write 도구로** `ralph-state.json` 생성 (사용자 인수를 파싱하여 JSON 작성)
+## Core Features
 
-파일 경로: `{REPO_ROOT}/.research/ralph-state.json`
+- **Autonomous Loop** - Continuous development until completion
+- **Dual-Condition Exit** - Requires BOTH completion indicators AND explicit EXIT_SIGNAL from Claude
+- **Rate Limiting** - 100 calls/hour default, configurable token budgets
+- **Circuit Breaker** - Auto-detects stuck loops, recovers after cooldown
+- **Session Continuity** - 24h context preservation across loops
+- **Live Streaming** - Real-time visibility with `--live`
+- **5-Hour API Limit** - Smart detection + auto-wait for unattended mode
+- **File Protection** - Multi-layer safeguards prevent config deletion
+- **Backup/Rollback** - Git branches before each loop
 
-```json
-{
-  "task": "<사용자가 입력한 task>",
-  "checkCommand": "<--check 값, 없으면 null>",
-  "model": "<haiku|sonnet|opus, 기본 sonnet>",
-  "maxIterations": <--max 값, 기본 20>,
-  "budgetCapUsd": <--budget 값, 기본 5.00>,
-  "currentIteration": 0,
-  "stallCount": 0,
-  "totalCostUsd": 0,
-  "status": "running",
-  "startedAt": <현재 epoch ms>
-}
+## Project Structure
+
+```
+my-project/
+├── .ralph/                 # Ralph config (hidden)
+│   ├── PROMPT.md           # Development instructions
+│   ├── fix_plan.md         # Prioritized tasks
+│   ├── AGENT.md            # Build/run commands
+│   ├── specs/              # Specifications
+│   └── logs/               # Execution logs
+├── .ralphrc                # Project settings
+└── src/                    # Source code
 ```
 
-4. 데몬 백그라운드 시작
+## Configuration (.ralphrc)
 
 ```bash
-cd "$REPO_ROOT"
-nohup node "$DAEMON" \
-  >> "$REPO_ROOT/.research/ralph-daemon.log" 2>&1 &
-# PID는 daemon 내부 writePid()가 관리 — shell에서 중복 작성하지 않음
-sleep 1  # daemon이 PID 파일 쓸 시간 확보
-echo "✅ Ralph Loop 시작됨"
-echo "   태스크: <task>"
-echo "   모델: <model> | 최대: <max>회 | 예산: $<budget>"
-echo ""
-echo "   /ralph status  — 진행 상황 확인"
-echo "   /ralph log     — 실시간 로그"
-echo "   /ralph stop    — 중단"
+PROJECT_NAME="my-project"
+PROJECT_TYPE="typescript"
+
+# Claude CLI (auto-detected)
+CLAUDE_CODE_CMD="claude"
+
+# Loop settings
+MAX_CALLS_PER_HOUR=100
+CLAUDE_TIMEOUT_MINUTES=15
+CLAUDE_OUTPUT_FORMAT="json"
+MAX_TOKENS_PER_HOUR=0  # 0 = disabled
+
+# Tool permissions
+ALLOWED_TOOLS="Write,Read,Edit,Bash(git *),Bash(npm *),Bash(pytest)"
+
+# Session management
+SESSION_CONTINUITY=true
+SESSION_EXPIRY_HOURS=24
+
+# Circuit breaker
+CB_NO_PROGRESS_THRESHOLD=3
+CB_SAME_ERROR_THRESHOLD=5
+CB_COOLDOWN_MINUTES=30
+CB_AUTO_RESET=false
 ```
 
----
+## RALPH_STATUS Block
 
-### stop — 데몬 종료
+Claude includes this in each loop response:
 
+```
+---RALPH_STATUS---
+STATUS: IN_PROGRESS | COMPLETE | BLOCKED
+TASKS_COMPLETED_THIS_LOOP: <number>
+FILES_MODIFIED: <number>
+TESTS_STATUS: PASSING | FAILING | NOT_RUN
+WORK_TYPE: IMPLEMENTATION | TESTING | DOCUMENTATION | REFACTORING
+EXIT_SIGNAL: false | true
+RECOMMENDATION: <next action>
+---END_RALPH_STATUS---
+```
+
+**Set EXIT_SIGNAL: true only when:**
+1. ✅ All fix_plan.md items marked [x]
+2. ✅ All tests passing
+3. ✅ No errors/warnings
+4. ✅ All specs/ requirements implemented
+5. ✅ No meaningful work remaining
+
+## Best Practices
+
+### Effective Prompts
+1. **Be Specific** - Clear requirements → better results
+2. **Prioritize** - Use `.ralph/fix_plan.md` to guide focus
+3. **Set Boundaries** - Define scope clearly
+4. **Include Examples** - Show expected behavior
+
+### File Management
+- `.ralph/PROMPT.md` - High-level goals (customize)
+- `.ralph/fix_plan.md` - Specific tasks (modify freely)
+- `.ralph/AGENT.md` - Build commands (auto-maintained)
+- `.ralph/specs/` - Detailed requirements (add as needed)
+
+## Monitoring
+
+### tmux Integration
 ```bash
-if [ ! -f "$PID_FILE" ]; then
-  echo "실행 중인 Ralph 데몬 없음"
-else
-  node "$DAEMON" stop
-fi
+ralph --monitor              # Integrated session
+
+# Manual control
+tmux list-sessions          # View sessions
+tmux attach -t <name>       # Reattach
+# Ctrl+B then D             # Detach (keeps running)
+# Ctrl+B then ←/→           # Switch panes
 ```
 
----
+Shows real-time:
+- Loop count & status
+- API calls (used/limit)
+- Recent logs
+- Circuit breaker state
+- Rate limit countdown
 
-### status — 현재 상태 확인
+## Troubleshooting
 
+| Issue | Solution |
+|-------|----------|
+| Ralph not found | Run `./install.sh` from `external/ralph-claude-code` |
+| Stuck loops | Check `.ralph/fix_plan.md` clarity |
+| Premature exit | Ralph respects `EXIT_SIGNAL: false` |
+| Timeouts | Increase `--timeout` value |
+| Session lost | `tmux attach -t <name>` |
+| Permission denied | Update `ALLOWED_TOOLS` in `.ralphrc` |
+| macOS timeout error | `brew install coreutils` |
+
+## Advanced Features
+
+### Backup & Rollback
 ```bash
-cd "$REPO_ROOT" && node "$DAEMON" status
+ralph --backup              # Enable auto-backup before each loop
+ralph --rollback            # List available backups
+ralph --rollback <branch>   # Restore specific backup
 ```
 
----
-
-### log [N] — 로그 확인 (기본 최근 30줄)
-
+### Desktop Notifications
 ```bash
-LOG_FILE="$REPO_ROOT/.research/ralph-daemon.log"
-N=${1:-30}
-if [ -f "$LOG_FILE" ]; then
-  tail -n "$N" "$LOG_FILE"
-else
-  echo "로그 파일 없음: $LOG_FILE"
-fi
+ralph --notify              # Enable completion notifications
+# Or in .ralphrc: ENABLE_NOTIFICATIONS=true
 ```
 
----
-
-### notes — 진행 기록 확인
-
+### Token Budgets
 ```bash
-PROGRESS="$REPO_ROOT/.research/ralph-progress.md"
-if [ -f "$PROGRESS" ]; then
-  cat "$PROGRESS"
-else
-  echo "진행 기록 없음 (Ralph Loop 실행 후 생성됨)"
-fi
+# In .ralphrc
+MAX_TOKENS_PER_HOUR=500000  # Cap cumulative tokens (0 = unlimited)
 ```
 
----
-
-## 사용 예시
-
-```
-# 자기 전에:
-/ralph start "백엔드 API 에러 핸들링 완성" --check "npm test" --max 15 --budget 3
-
-/ralph start "테스트 커버리지 80%로 높이기" --check "npm run test:coverage" --model haiku --max 20
-
-/ralph start "README 초안 작성" --max 5 --budget 1
-
-# 아침에 일어나서:
-/ralph status
-/ralph notes
+### Live Streaming
+```bash
+ralph --live                # Real-time output
+tail -f .ralph/live.log     # Watch in another terminal
 ```
 
-## 태스크 작성 가이드
+## Documentation
 
-Ralph는 **기계가 검증 가능한 목표**가 있어야 동작합니다.
+Full docs at `~/Projects/a-team/external/ralph-claude-code/`:
+- `README.md` - Complete guide
+- `IMPLEMENTATION_PLAN.md` - Roadmap
+- `TESTING.md` - Test suite guide
+- `CONTRIBUTING.md` - Development guide
+- `SPECIFICATION_WORKSHOP.md` - Prompt writing
 
-**좋은 태스크 (검증 가능):**
-```
-"모든 API 엔드포인트에 에러 핸들링 추가, npm test 통과"  --check "npm test"
-"테스트 커버리지 80% 이상으로"                          --check "npm run test:cov"
-"TypeScript strict 모드 에러 0개"                       --check "npx tsc --noEmit"
-"ESLint 에러 전부 수정"                                 --check "npm run lint"
-"README.md에 API 문서 작성 (엔드포인트 5개 이상)"        --check "grep -c '###' README.md | grep -q '[5-9]'"
-```
+## Version Info
 
-**나쁜 태스크 (모호/주관적 — Ralph에 부적합):**
-```
-"코드를 깔끔하게 리팩토링해줘"     → 완료 기준 없음
-"좋은 UI 만들어"                   → 미적 판단 필요
-"성능 최적화"                      → 구체적 메트릭 없음
-"보안 취약점 수정"                 → 자동 검증 불가
-```
+- **Current**: v0.11.5 (Active Development)
+- **Tests**: 566 passing (100% pass rate)
+- **Repository**: https://github.com/frankbria/ralph-claude-code
+- **License**: MIT
 
-**팁:** 태스크가 모호하면 `--check` 명령을 먼저 정하고, 그에 맞는 태스크를 역으로 작성하세요.
+## Migration from Old Ralph
 
-## 비용 최적화 가이드
+Old A-Team implementation (`ralph-daemon.mjs`) is deprecated. New features:
+- 566 comprehensive tests vs minimal testing
+- Production-grade circuit breaker
+- Session continuity (24h)
+- Live streaming output
+- File protection (multi-layer)
+- Interactive project setup
+- Community-standard `.ralph/` structure
 
-| 작업 유형 | 권장 모델 | 예상 비용 |
-|---------|---------|--------|
-| 단순 수정 (lint, 포맷) | haiku | $0.20-0.50 |
-| 일반 구현, 리팩토링 | sonnet (기본) | $0.50-2.00 |
-| 복잡한 설계, 아키텍처 | opus | $2.00-5.00 |
+**To migrate:**
+1. Install new Ralph: `cd ~/Projects/a-team/external/ralph-claude-code && ./install.sh`
+2. In project: `ralph-enable` (auto-detects and migrates)
+3. Run: `ralph --monitor`
+
+## Credits
+
+- Original [Ralph technique](https://ghuntley.com/ralph/) by Geoffrey Huntley
+- Implementation by [frankbria](https://github.com/frankbria)
+- Built for [Claude Code](https://claude.ai/code) by Anthropic
