@@ -15,13 +15,14 @@
 |-------|------|------|
 | 0 | 메타 인프라 (analytics 통합·대시보드·회고) | ✅ 인프라 완료 |
 | 1 | 분석/BI (외부 데이터 통합·인사이트·이상 감지) | 🔑 **진입 가능** |
-| 2 | 시장·사용자 인텔리전스 | 🚀 **T1-T6 구현 완료, 파일럿 준비** |
+| 2 | 시장·사용자 인텔리전스 | ✅ **Gate 달성** (Step 1-5 E2E 검증) |
 | 3 | 마케팅 깊이 (브랜드 전략·캠페인 기획·발행) | ⏳ |
 | 4 | 디자인 깊이 (브랜드 시스템·디자인 시스템·UX 리서치) | ⏳ |
 | 5 | QA + 사용성 | ⏳ |
 | 6 | 운영 (PR/CS/세일즈/재무) | ⏳ |
 
 **최근 완성**:
+- **Phase 2 Gate 달성 — Intel 시스템 E2E 검증 완료** (2026-05-03, 4 커밋): Phase 2 파일럿 Step 1-5 완료 — Vercel 경쟁사 분석 (3 tiers, 10 features, dataQuality: complete) + Edge Computing 트렌드 (rising, 127 mentions, 70% positive) + Indie Hackers 페르소나 (confidence: high, JTBD 7개, Pain Points 14개) + 마케팅 브리프 통합 (227 lines) + **블로그 콘텐츠 3,247 words** (`content/drafts/2026-05-03-edge-saas-launch.md`). **Phase 2 Gate 6/6 조건 충족** — 마케팅 콘텐츠에 intel 데이터 인용 (`intel_sources: [vercel.json, edge-computing.json, indie-hackers.json]`, [HUMAN INSERT] 3개). Intel-aggregate "all" 키워드 수정. Analytics 이벤트 로깅 (`intel_used: true`). maintenance-schedule.md (11개 정기 작업) + install-maintenance-cron.sh. **489 tests PASS** 유지.
 - **Phase 2 파일럿 Step 1-4 + 정기 유지보수 시스템** (2026-05-03, 3 커밋): `/intel` 실전 실행 — Vercel 경쟁사 분석 (dataQuality: complete) + Edge Computing 트렌드 (rising, 65% 긍정) + Indie Hackers 페르소나 (confidence: high, JTBD 5개, Pain Points 12개) + 마케팅 브리프 통합 (227 lines). Intel 데이터 활용도 100%. maintenance-schedule.md (11개 정기 작업) + install-maintenance-cron.sh (launchd daily-backup/weekly-security/weekly-dashboard 자동 생성). **489 tests PASS** 유지.
 - **Phase 2 T1-T6 구현 완료** (2026-05-02, 2 커밋): T1 lib/intel-types.ts (타입+가드+유틸) + T2 .claude/agents/intel-analyzer.md (Sonnet 분석 엔진, 6-step workflow + 5-level Paywalled 우회) + T3 .intel/ 저장소 초기화 + T4 .claude/commands/intel.md (4 서브커맨드) + T5 test/intel.test.ts (단위 14개) + T6 test/intel-integration.test.ts (통합 4개). scripts/intel-aggregate.mjs 리팩토링 (INTEL_DIR 환경변수 지원 + "all" 키워드). blueprint-market-intel.md (726 lines). **489 tests PASS** (+18). 파일럿 가이드: `.context/phase2-pilot-guide.md`.
 - **Phase 2 설계 + 외부 흡수 + Postiz 가동** (2026-05-02): awesome-harness-engineering 9카테고리 등록(갭 1개: cross-session 메모리) + Headroom 보류(PyPI 미존재) + Phase 2 시장·사용자 인텔리전스 설계(C+Visualping 하이브리드, `/intel` 4서브커맨드) + Postiz Docker 가동(localhost:4007). 설계문서: `~/.gstack/projects/phase2-market-intel-2026-05-02.md`.
@@ -59,6 +60,11 @@
 ## In Progress Files
 - (없음)
 
+## 다음 우선순위
+- [ ] **[HUMAN INSERT] 3개 채우기** — `content/drafts/2026-05-03-edge-saas-launch.md` 마커 3개에 실제 케이스 스터디 추가
+- [ ] **Phase 2 콘텐츠 리뷰** — Intel 인용 정확성 검증, AI smell 체크
+- [ ] **Postiz 연동 준비** — OAuth 설정 후 실제 발행 테스트
+
 ## Phase 0 To-Do (현재 우선순위)
 
 - [x] ✅ `/vibe` Step 0.67 team-roadmap 거버넌스 로드 (`vibe.md`)
@@ -90,12 +96,12 @@ a-team의 궁극 지향점 = **프로덕트 런칭 + 운영 가능한 하나의 
 ## Next Tasks
 
 ### High Priority
-- [ ] **Phase 2 파일럿 실행** — `/intel` 4 서브커맨드 실행 + Phase 2 Gate 달성 (가이드: `.context/phase2-pilot-guide.md`)
-  1. `/intel competitor vercel` → `.intel/competitors/YYYY-MM-DD-vercel.json`
-  2. `/intel trend "edge computing"` → `.intel/trends/YYYY-MM-DD-edge-computing.json`
-  3. `/intel persona "indie hackers"` → `.intel/personas/YYYY-MM-DD-indie-hackers.json`
-  4. `/intel brief edge-saas-launch` → `.context/briefs/YYYY-MM-DD-edge-saas-launch.md`
-  5. `/marketing-generate --input .context/briefs/...` → 블로그에 intel 데이터 인용
+- [x] ✅ **Phase 2 파일럿 실행** — `/intel` 4 서브커맨드 실행 + Phase 2 Gate 달성 (2026-05-03 완료)
+  1. ✅ `/intel competitor vercel` → `.intel/competitors/2026-05-03-vercel.json`
+  2. ✅ `/intel trend "edge computing"` → `.intel/trends/2026-05-03-edge-computing.json`
+  3. ✅ `/intel persona "indie hackers"` → `.intel/personas/2026-05-03-indie-hackers.json`
+  4. ✅ `/intel brief edge-saas-launch` → `.context/briefs/2026-05-03-edge-saas-launch.md`
+  5. ✅ `/marketing-generate --input .context/briefs/...` → `content/drafts/2026-05-03-edge-saas-launch.md` (3,247 words, intel 인용)
 - [x] ~~**Phase 2 시장·사용자 인텔리전스 설계 시작**~~ ✅ 2026-05-02 — `/office-hours` 빌더모드 완료. 접근법: C+Visualping 하이브리드. 설계문서: `~/.gstack/projects/phase2-market-intel-2026-05-02.md`
 - [x] ~~**Phase 2 T1-T6 구현**~~ ✅ 2026-05-02 — 타입, 에이전트, 커맨드, 집계, 테스트 18개. 489 tests PASS.
 - [x] ~~**🗓️ 2026-04-22 10:17 KST — `/design-retro` 자동 실행 예약됨**~~ ✅ 2026-04-26 수동 실행. CronCreate 미등록 확인 (CronList 빈 결과). 회고: [retros/design-auditor-2026-04-26.md](retros/design-auditor-2026-04-26.md). 결론: 외부 repo install 전엔 회고 ROI 0 → 시간기반 재예약 안 함.
