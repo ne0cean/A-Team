@@ -19,6 +19,7 @@
 | 2026-04-28 | Anthropic Multi-Agent Harness Design (3-step Planner-Generator-Evaluator) | https://www.youtube.com/watch?v=ZDKUsneXgpE | GAN 영감 격리 — Generator는 Evaluator 평가 룰을 모름 | `.claude/agents/orchestrator.md` Phase 2.7 원칙 1 + `.claude/agents/reviewer.md` 격리 원칙 | Anthropic 공식 (인용 자유) |
 | 2026-04-28 | "코드가 복잡해지는 진짜 이유, 범인은 관계다" / Array's DevBook | https://www.youtube.com/watch?v=NSkk3wkZINg | ECS 철학 — 시스템(에이전트) 간 직접 호출 금지, 공유 데이터로만 통신 | `.claude/agents/orchestrator.md` Phase 2.7 원칙 2 | YouTube TOS (인용) |
 | 2026-05-01 | "구글이 사양 공개한 design.md 정체" / Maker Evan | https://www.youtube.com/watch?v=w33YxZ7auZs | DESIGN.md 표준 인지 + 8 카테고리 구조 + 3단계 적용법 | `.claude/agents/designer.md` Step 0 + `.claude/commands/vibe.md` Step 0.66 + `governance/design/gate.md` 우선순위 | YouTube TOS (인용) |
+| 2026-05-03 | "클로드 코드 스킬로 인스타 카드뉴스 자동 생성" / 짐코딩 | https://www.youtube.com/watch?v=501KRO5QSXM | HTML/CSS 기반 카드뉴스 생성 (AI 이미지 생성 대신) — 컨텍스트→계획→구현 워크플로우, Playwright CLI HTML→PNG, skill-creator 템플릿화, 에피소드 디렉터리 구조 | `.claude/commands/card-news.md` (전체 방법론) | YouTube TOS (인용) |
 
 ### GitHub Repositories
 
