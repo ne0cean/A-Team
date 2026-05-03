@@ -2,6 +2,27 @@
 
 ---
 
+## [2026-05-03] Phase 2 Intel 파일럿 + 정기 유지보수 시스템
+
+**완료**:
+- Phase 2 T6 통합 테스트 (intel-aggregate.mjs) — "all" keyword 처리 수정 + 4 테스트 추가 (489 tests)
+- Phase 2 파일럿 Step 1-4 실행:
+  - Vercel 경쟁사 분석 (.intel/competitors/2026-05-03-vercel.json)
+  - Edge computing 트렌드 분석 (.intel/trends/2026-05-03-edge-computing.json)
+  - Indie hackers 페르소나 정의 (.intel/personas/2026-05-03-indie-hackers.json)
+  - Edge SaaS 런칭 브리프 생성 (.context/briefs/2026-05-03-edge-saas-launch.md, 227 lines)
+- .context/phase2-pilot-guide.md 작성 (5-step 파일럿 가이드 + 비용 추정)
+- 정기 유지보수 시스템 구축:
+  - governance/rules/maintenance-schedule.md (11개 정기 작업 스케줄)
+  - scripts/install-maintenance-cron.sh (3개 launchd 작업 자동 생성)
+  - scripts/maintenance/README.md (설치·운영 가이드)
+
+**이슈**: "all" keyword 처리 누락 (integration test에서 발견 → 즉시 수정)
+
+**빌드**: ✅ 489 PASS / 0 tsc / 0 vulns
+
+---
+
 ## [2026-05-01] 멀티 통합 세션 — 영상 흡수 + DESIGN.md + 모델 적정성
 
 **완료**:
