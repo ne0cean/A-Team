@@ -1,227 +1,111 @@
-# Edge SaaS Launch — Marketing Brief
+# Edge SaaS Launch 마케팅 브리프
 
-> Generated: 2026-05-03  
-> Data Sources: 3 intel analyses (competitor + trend + persona)
+> 생성일: 2026-05-03
+> 데이터 소스: 3개 분석 결과 (경쟁사 1개, 트렌드 1개, 페르소나 1개)
 
----
+## 경쟁사 분석
 
-## Executive Summary
+| 항목 | Vercel | 우리 제품 기회 |
+|------|--------|---------------|
+| **포지셔닝** | "Build and deploy the best web experiences with the AI Cloud" | Edge AI + 개발자 경험 차별화 |
+| **가격 구조** | Hobby ($0) → Pro ($20) → Enterprise (협의) | 투명한 가격 + Indie-friendly 티어 |
+| **핵심 기능** | 10개 주요 기능<br/>- Automatic CI/CD<br/>- Global CDN<br/>- WAF<br/>- Framework-defined infra<br/>- AI Gateway<br/>- Cold start prevention<br/>- Image optimization<br/>- Edge Config<br/>- Observability Plus<br/>- SCIM directory sync | **Gap 분석**:<br/>- Cost predictability<br/>- 단순화된 설정<br/>- Indie hacker 특화 도구<br/>- Revenue attribution |
+| **진입 장벽** | 엔터프라이즈 중심, 복잡한 기능 세트 | 단순함 + 빠른 가치 실현 |
 
-**Market Opportunity**: Edge computing market exploding from $710B (2026) → $6T (2035) with 27% CAGR. Strong positive sentiment (72%) driven by AI inference, 5G integration, and hybrid cloud-edge architectures.
-
-**Target Audience**: Indie hackers seeking rapid validation and financial independence through bootstrapped SaaS. Primary pain: isolation and lack of accountability causing goal abandonment.
-
-**Competitive Positioning**: "Indie Hacker Stack" - edge platform with built-in validation/accountability tools, undercutting Vercel's $20/mo pricing while adding community features they lack.
-
----
-
-## Competitive Analysis
-
-### Vercel (Primary Competitor)
-
-| Aspect | Details |
-|--------|---------|
-| **Pricing** | Hobby ($0), Pro ($20/mo), Enterprise (custom) |
-| **Core Features** | Edge Functions, Preview Deployments, Framework-Defined Infrastructure, AI SDK/Gateway, Fluid Compute, Global CDN, WAF/DDoS, CI/CD, Observability, v0 AI generator |
-| **Positioning** | "AI Cloud for frontend developers" - framework-native, zero-config deployment |
-| **Target Market** | Professional dev teams, Next.js ecosystem |
-
-**Identified Gaps**:
-- No accountability/validation tools for solo builders
-- Limited marketing/distribution features
-- Pro tier ($20/mo) expensive for bootstrappers
-- Missing community collaboration layer
+**경쟁 우위 포인트**:
+- Vercel은 엔터프라이즈 기능에 집중 → 소규모 팀/인디 해커는 오버엔지니어링 느낌
+- API 가격 점프 문제 해결 기회
+- "Framework-defined infrastructure" 복잡도 vs. 우리의 단순성
 
 ---
 
-## Target Persona: Indie Hackers
+## 타겟 페르소나
 
-### Jobs To Be Done (JTBD)
+### Indie Hackers (1차 타겟)
 
-1. **Validate product ideas quickly** with minimal investment before committing months of dev time
-2. **Achieve financial independence** through sustainable recurring revenue without investors
-3. **Acquire customers organically** without unsustainable CAC costs
-4. **Build and ship rapidly** using modern tools while balancing side projects
-5. **Get accountability and feedback** from peers to maintain momentum
-6. **Market effectively** despite technical background
-7. **Focus on niche problems** avoiding oversaturated markets
+**핵심 Jobs-to-be-Done (Top 2)**:
+1. **Discover real problems worth solving** — 시장 기회 탐색 및 검증
+2. **Validate ideas quickly** — 빠른 MVP 출시와 시장 반응 측정
 
-### Pain Points (Prioritized)
+**주요 Pain Points (Top 3)**:
+1. **Distribution harder than building** (복잡도) — 기술은 있으나 고객 확보 어려움
+2. **Zero revenue despite years of effort** (비용) — 수익화 실패로 인한 지속가능성 부족
+3. **API pricing jumps** (비용) — 예측 불가능한 비용 증가로 수익성 악화
 
-**#1 Isolation & Accountability** (Quality)
-- Goals evaporate without external commitment
-- Nobody checks progress
-- Decision paralysis in feature prioritization
-
-**#2 Marketing Skills Gap** (Time)
-- Developers waste months learning skills a co-founder might have
-- Distribution harder than building
-
-**#3 Validation Uncertainty** (Quality)
-- Building for months without knowing if features are valuable
-- Shipping to crickets because ideas weren't tested
-
-**#4 Limited Capital** (Cost)
-- Tool costs eating budgets (e.g., X API doubled to $200/mo)
-- Revenue uncertainty - "will people actually pay?"
-
-**#5 Burnout** (Time)
-- Carrying all responsibilities alone
-- Extended sales cycles slower than expected
+**인사이트**:
+- 기술 실행력은 있으나 시장 진입과 수익화에 실패
+- 비용 예측 가능성이 생존 문제와 직결
+- 가시성(visibility)과 차별화가 절실함
 
 ---
 
-## Market Trends: Edge Computing
+## 트렌드 요약
 
-**Trend Direction**: RISING
+### Edge Computing (급상승 중)
 
-**Key Statistics**:
-- 47 mentions analyzed (last 30 days)
-- 72% positive sentiment
-- Market growth: $710B → $6T by 2035 (27% CAGR)
+**핵심 주제**:
+- **Edge AI becoming standard** — AI 추론이 클라우드에서 엣지로 이동
+- **Hybrid cloud-edge architectures** — 단일 플랫폼이 아닌 하이브리드 접근
+- **Hardware-level security** — 칩 수준 보안 강화
+- **5G Advanced integration** — 초저지연 요구사항 증가
+- **Massive infrastructure investments ($100B+)** — 시장 성장 확실성
 
-**Top Topics**:
-1. AI inference at the edge (real-time on-device processing)
-2. 5G Advanced integration (low-latency backbone)
-3. Hybrid cloud-edge architectures (coordinated systems)
-4. Security and privacy challenges (data breaches, attacks)
-5. Industrial IoT applications (manufacturing, predictive maintenance)
+**시장 심리**:
+- 긍정적 70% / 중립 25% / 부정적 5%
+- 127건 언급 (상승세)
 
-**Key Insight**: "From experimental to production necessity" - edge computing no longer optional for modern web apps.
-
----
-
-## Strategic Recommendations
-
-### 1. Differentiation Strategy
-
-**Position as**: "The Indie Hacker Stack for Edge Computing"
-
-**Unique Value Props**:
-- Built-in accountability dashboard (public build logs, peer check-ins)
-- Validation toolkit (landing page A/B tests, analytics, customer interviews)
-- Community layer (share previews, get feedback, find early adopters)
-- Cost transparency (no surprise bills, usage alerts)
-
-### 2. Pricing Strategy
-
-**Undercut Vercel while adding value**:
-
-| Tier | Price | Target | Key Features |
-|------|-------|--------|--------------|
-| **Starter** | $0 | Side projects | 500K edge requests, 50GB transfer, 1 project |
-| **Indie** | $12/mo | Solo founders | 5M requests, 500GB transfer, 5 projects, accountability tools, community access |
-| **Pro** | $49/mo | Small teams | Unlimited requests, 2TB transfer, team collaboration, priority support |
-
-**Rationale**: $12/mo is 40% cheaper than Vercel Pro, targets indie hacker budget sweet spot.
-
-### 3. Go-To-Market (GTM)
-
-**Phase 1: Community Seeding (Weeks 1-4)**
-- Launch on Indie Hackers, Product Hunt, HackerNews
-- 20 customer interviews with solo founders
-- Build in public (daily Twitter/X updates)
-
-**Phase 2: Content Engine (Weeks 5-12)**
-- Case studies: "How [Founder] validated [SaaS] in 30 days with edge previews"
-- Technical guides: "Edge computing for indie hackers"
-- Comparison content: "Vercel vs. [Product] for bootstrappers"
-
-**Phase 3: Ecosystem Integration (Months 4-6)**
-- Integrations with indie hacker tools (Stripe, PostHog, Plausible)
-- Partnership with Indie Hackers, MicroConf
-- Referral program (20% recurring commission)
-
-### 4. Messaging Pillars
-
-**Pillar 1: Speed**
-- "Ship edge-powered previews in 60 seconds"
-- "Validate ideas before competitors wake up"
-
-**Pillar 2: Cost Transparency**
-- "No surprise bills. Ever."
-- "Built for bootstrapper budgets"
-
-**Pillar 3: Community Accountability**
-- "Build in public, ship with confidence"
-- "1,000+ indie hackers validating together"
-
-**Pillar 4: Validation Confidence**
-- "Know if your idea works before writing code"
-- "From landing page to first sale in 7 days"
+**기회 분석**:
+1. **Edge AI 표준화** → 개발자가 Edge AI를 쉽게 배포할 수 있는 툴 필요
+2. **하이브리드 복잡도** → 단순화된 엣지 배포 플랫폼 수요
+3. **인프라 투자 급증** → 시장 확대기, 진입 적기
+4. **5G Advanced** → 초저지연 앱 구축 수요 폭발
 
 ---
 
-## Content Angles (For Campaign Creation)
+## 마케팅 각도 제안
 
-1. **"Why Vercel's $20/mo kills indie SaaS dreams (and what to use instead)"**
-   - Pain: Tool costs eating budgets
-   - Solution: $12/mo Indie tier with same power
+### 1. "Zero to Revenue in 48 Hours" (빠른 가치 실현)
+**타겟**: Indie hackers, 사이드 프로젝트 개발자
+**메시지**:
+- "Distribution is harder than building? Not anymore."
+- Vercel은 엔터프라이즈를 위한 것. 우리는 당신의 첫 $1를 위한 것.
+- 예측 가능한 가격, API 점프 없음, Revenue attribution 내장
 
-2. **"I analyzed 20k solo founder posts. Here's their #1 blocker"**
-   - Pain: Isolation/accountability
-   - Solution: Built-in accountability dashboard
-
-3. **"Edge computing just hit $710B. Here's how indie hackers can ride the wave"**
-   - Trend: Rising market with AI inference
-   - Solution: Indie Hacker Stack positioning
-
-4. **"The 30-day validation framework (used by 500+ bootstrappers)"**
-   - Pain: Building without validation
-   - Solution: Validation toolkit walkthrough
-
-5. **"From idea to first paying customer in 7 days (edge-powered playbook)"**
-   - JTBD: Rapid validation, financial independence
-   - Solution: Speed + validation combo
+**채널**: Indie Hackers 포럼, Hacker News, Product Hunt
+**증거 요소**: 실제 indie hacker 케이스 스터디 (48시간 내 첫 수익 달성)
 
 ---
 
-## Next Steps
+### 2. "Edge AI for Everyone" (기술 민주화)
+**타겟**: AI 앱 빌더, 엣지 컴퓨팅 얼리어답터
+**메시지**:
+- "Edge AI is becoming standard. Your platform should be too."
+- $100B+ 인프라 투자 혜택을 복잡한 설정 없이
+- 5G Advanced 시대, 초저지연 AI 추론을 프레임워크 수준에서 지원
 
-### Immediate Actions
-
-1. **Customer Validation** (Week 1-2)
-   - 20 interviews with indie hackers
-   - Validate pricing ($12 vs $15 vs $20)
-   - Test messaging pillars
-
-2. **MVP Build** (Week 3-6)
-   - Core: Edge functions + preview URLs + analytics
-   - Differentiator: Public build log + accountability check-ins
-   - Integration: Stripe for payments
-
-3. **Launch Prep** (Week 7-8)
-   - Product Hunt assets (demo video, screenshots)
-   - HackerNews "Show HN" post draft
-   - Indie Hackers milestone post
-
-### Content Creation Pipeline
-
-**For immediate campaign generation**, run:
-
-```bash
-/marketing-generate \
-  --topic "edge computing for indie hackers" \
-  --audience "solo founders" \
-  --intel-brief .context/briefs/2026-05-03-edge-saas-launch.md \
-  --keywords "edge computing, indie hackers, saas validation" \
-  --words 2500
-```
-
-This will auto-cite:
-- Vercel pricing comparison
-- Edge computing trend data ($710B → $6T)
-- Indie hacker pain points (#1: isolation)
+**채널**: AI/ML 커뮤니티, Edge Computing 컨퍼런스, Tech Twitter
+**증거 요소**: Edge AI 성능 벤치마크 (Cloud vs. Edge 지연시간 비교)
 
 ---
 
-## Data Sources
+### 3. "Transparent Pricing, Predictable Growth" (비용 투명성)
+**타겟**: API 가격 점프에 좌절한 개발자, 스타트업 CTO
+**메시지**:
+- "Your biggest fear: waking up to a $10K AWS bill. We fix that."
+- Vercel Pro $20 → Enterprise 협의가격? 우리는 모든 티어 공개
+- Zero revenue에서 탈출하려면 비용 예측부터
 
-- **Competitor**: `.intel/competitors/2026-05-03-vercel.json` (10 features, 3 tiers, "complete" quality)
-- **Trend**: `.intel/trends/2026-05-03-edge-computing.json` (47 mentions, 72% positive, rising)
-- **Persona**: `.intel/personas/2026-05-03-indie-hackers.json` (7 JTBD, 15 pains, high confidence)
+**채널**: Cost optimization 커뮤니티, Startup 슬랙 그룹, LinkedIn
+**증거 요소**: 가격 계산기 + 실제 월별 청구서 예시
 
 ---
 
-**Brief Status**: ✅ Ready for campaign creation  
-**Phase 2 Gate**: 🎯 Achieved (intel data → marketing brief with citations)
+## 실행 우선순위
+
+1. **1차**: "Zero to Revenue in 48 Hours" → Indie hacker pain point 직격
+2. **2차**: "Transparent Pricing" → API 가격 점프 불안 해소
+3. **3차**: "Edge AI for Everyone" → 트렌드 선점 (장기 포지셔닝)
+
+---
+
+**다음 단계**: `/marketing-generate --input .context/briefs/2026-05-03-edge-saas-launch.md`
