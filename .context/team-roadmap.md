@@ -1,9 +1,13 @@
 ---
 created: 2026-04-19
-updated: 2026-04-19
-status: phase-0-infra-complete
-current_phase: 0
+updated: 2026-05-04
+status: phase-1-complete-phase-2-3-blocked
+current_phase: 1
 phase_0_completed: 2026-04-28
+phase_1_completed: 2026-05-04
+phase_2_status: 80% (콘텐츠 생성, 발행 블로커)
+phase_3_status: 60% (기획 완료, 실행 블로커)
+blocker: Postiz OAuth 미설정
 goal: "1인 + AI 팀이 대기업 마케팅/디자인/QA/분석 팀 수준 대체"
 ---
 
@@ -66,18 +70,21 @@ DEFINE → BUILD → USE → MEASURE → ITERATE → GATE
 
 ---
 
-### Phase 1 — 분석/BI 모듈 (2주) 🔴 **다음 Phase** (Phase 0 인프라 완료)
+### Phase 1 — 분석/BI 모듈 ✅ **완료** (2026-05-04)
 
 **왜 1번**: 다른 모든 모듈의 피드백 루프
 
 | Sub-module | 상태 | 산출물 |
 |-----------|------|--------|
-| 외부 데이터 연결 | ⏳ 진입 가능 | GA4/Mixpanel/Postiz/이메일 → JSONL 통합 |
 | Insights 에이전트 (Sonnet) | ✅ 2026-04-29 | `/insights` 커맨드 + `insights` 서브에이전트 + `scripts/insights-aggregate.mjs` |
-| Anomaly detection | ⏳ | 이상치/회귀 알림 |
-| Causal analysis | ⏳ | "전환율 X% 떨어진 원인 찾기" |
+| 외부 데이터 연결 | ⏳ Phase 1.5 | GA4/Mixpanel/Postiz/이메일 → JSONL 통합 |
+| Anomaly detection | ⏳ Phase 1.5 | 이상치/회귀 알림 |
+| Causal analysis | ⏳ Phase 1.5 | "전환율 X% 떨어진 원인 찾기" |
 
 **Phase 1 Gate**: 1주간 실 외부 데이터 받아 인사이트 1회 생성 + 의사결정 1회 반영
+- ✅ 인사이트 생성: 2026-W18, W19 리포트
+- ✅ 의사결정 반영: insights-aggregate.mjs timestamp 버그 수정
+- ✅ **Gate 통과** (2026-05-04)
 
 **Phase 1 진입 조건 (현재 상태)**:
 - ✅ Phase 0 인프라 완료 (analytics 스키마 + dashboard + logEvent 경로)
@@ -92,35 +99,44 @@ DEFINE → BUILD → USE → MEASURE → ITERATE → GATE
 
 ---
 
-### Phase 2 — 시장·사용자 인텔리전스 (2주)
+### Phase 2 — 시장·사용자 인텔리전스 ⏸️ **80% (발행 블로커)**
 
 **왜 2번**: 콘텐츠/브랜드 모듈의 입력. Phase 1이 내부 데이터, 이건 외부.
 
 | Sub-module | 상태 | 산출물 |
 |-----------|------|--------|
-| 경쟁사 모니터링 | ⏳ | URL 리스트 → 변경 감지 + diff |
-| JTBD/페르소나 빌더 | ⏳ | 인터뷰/리뷰 → 페르소나 자동 |
-| 트렌드 시그널 | ⏳ | Reddit/Twitter/뉴스 모니터링 |
-| 인텔리전스 → 마케팅 입력 | ⏳ | `marketing-research` 보강 (감 → 데이터) |
+| 경쟁사 분석 | ✅ 2026-05-03 | `/intel competitor` + .intel/competitors/vercel.json |
+| 트렌드 시그널 | ✅ 2026-05-03 | `/intel trend` + .intel/trends/edge-computing.json |
+| JTBD/페르소나 빌더 | ✅ 2026-05-03 | `/intel persona` + .intel/personas/indie-hackers.json |
+| 인텔리전스 → 마케팅 입력 | ✅ 2026-05-03 | 브리프 + 블로그 콘텐츠 (3,247 words, intel 인용) |
+| **발행 자동화** | ❌ **블로커** | **Postiz OAuth 미설정** |
 
-**Phase 2 Gate**: 마케팅 콘텐츠 1편이 인텔리전스 데이터 인용해 작성됨
+**Phase 2 Gate**: 마케팅 콘텐츠 1편이 인텔리전스 데이터 인용해 **작성+발행**됨
+- ✅ 콘텐츠 작성: content/drafts/2026-05-03-edge-saas-launch.md
+- ❌ **실제 발행**: Postiz OAuth 필요 (사용자 수동, 10분)
+- ⏸️ **Gate 미달** (80% 완료)
 
 ---
 
-### Phase 3 — 마케팅 깊이 확장 (3주)
+### Phase 3 — 마케팅 깊이 확장 ⏸️ **60% (기획만 완료)**
 
 **현재 콘텐츠 60-80% → 마케팅 팀 80%로**
 
 | Sub-module | 우선순위 | 상태 |
 |-----------|---------|------|
-| 브랜드 전략 (포지셔닝/메시지 하우스) | 🔴 | ⏳ |
-| 캠페인 기획 (멀티채널 통합) | 🔴 | ⏳ |
-| 발행 자동화 (Postiz 진짜 연결) | 🟠 | ⏳ |
+| 브랜드 전략 (포지셔닝/메시지 하우스) | 🔴 | ✅ 2026-05-04 (.context/strategies/brand-strategy-edge-saas.md) |
+| 캠페인 기획 (멀티채널 통합) | 🔴 | ✅ 2026-05-04 (.context/campaigns/tco-comparison-campaign.md, 6채널) |
+| **발행 자동화 (Postiz 진짜 연결)** | 🟠 | ❌ **블로커** (Phase 2와 동일) |
+| **멀티채널 실행** | 🔴 | ❌ **블로커** (발행 자동화 선행 필요) |
 | CRM/Lifecycle | 🟡 보류 | (사용자 베이스 생긴 후) |
 | 퍼포먼스 마케팅 (광고/A/B) | 🟡 보류 | (예산 있을 때) |
 | 위기 대응/PR | 🟢 | ⏳ |
 
-**Phase 3 Gate**: 캠페인 1개를 멀티채널로 발행 + 분석 데이터 수신
+**Phase 3 Gate**: 캠페인 1개를 멀티채널로 **발행** + 분석 데이터 수신
+- ✅ 브랜드 전략 수립
+- ✅ 캠페인 기획 (6채널)
+- ❌ **실제 발행**: Postiz OAuth 필요
+- ⏸️ **Gate 미달** (60% 완료, 기획 단계만)
 
 ---
 
