@@ -11,10 +11,12 @@ description: analytics.jsonl 집계 → 주간 인사이트 리포트 자동 생
 ## Step 1: 집계 스크립트 실행
 
 ```bash
-node scripts/insights-aggregate.mjs
+node scripts/insights-aggregate.mjs --weeks-ago 1
 ```
 
 출력된 JSON을 `.context/insights/.tmp-aggregate.json`에 저장한다.
+
+**Note**: `--weeks-ago 1`은 "지난 완료된 주"를 집계한다. 이번 주는 데이터가 부족하므로 항상 지난 주 리포트 생성.
 
 `.context/insights/` 디렉토리가 없으면 먼저 생성:
 ```bash

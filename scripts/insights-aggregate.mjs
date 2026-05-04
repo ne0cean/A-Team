@@ -51,7 +51,7 @@ function parseJSONL(path) {
 // --- Aggregate analytics events for a week range ---
 function aggregateAnalytics(events, weekRange) {
   const filtered = events.filter(e => {
-    const ts = new Date(e.ts);
+    const ts = new Date(e.ts || e.timestamp);
     return ts >= weekRange.start && ts < weekRange.end;
   });
 
