@@ -74,28 +74,51 @@ echo "→ Extracting metadata..."
   "$URL" 2>/dev/null > "$OUT/meta.txt"
 cat "$OUT/meta.txt"
 
-# 2. 자막 (한국어 우선, 없으면 영어, 둘 다 없으면 자동 생성)
+# 2. 자막 (youtube-transcript-api 우선, 실패 시 yt-dlp fallback)
 echo "→ Extracting subtitles..."
-"$YT_DLP" --skip-download \
-  --write-auto-sub --write-sub \
-  --sub-lang "ko,en,en-US" \
-  --sub-format vtt \
-  -o "$OUT/sub.%(ext)s" \
-  "$URL" 2>&1 | tail -3 || true
 
-# vtt → 정리된 텍스트 (중복 제거, 태그 제거, 한 줄)
-SUB_FILE=$(ls "$OUT"/sub.*.vtt 2>/dev/null | head -1 || true)
-if [[ -n "$SUB_FILE" ]]; then
-  sed 's/<[^>]*>//g' "$SUB_FILE" \
-    | grep -v "^WEBVTT\|^Kind:\|^Language:\|-->\|^$" \
-    | awk '!seen[$0]++' \
-    | tr '\n' ' ' \
-    | sed 's/  */ /g' > "$OUT/transcript.txt"
-  WORD_COUNT=$(wc -w < "$OUT/transcript.txt" | tr -d ' ')
-  echo "✓ Transcript: $WORD_COUNT words → $OUT/transcript.txt"
-else
-  echo "⚠ No subtitles available. Use --audio + Whisper for transcript."
-  : > "$OUT/transcript.txt"
+# Method 1: youtube-transcript-api (빠르고 API 키 불필요)
+TRANSCRIPT_EXTRACTED=0
+if command -v python3 >/dev/null 2>&1; then
+  python3 << EOF 2>/dev/null && TRANSCRIPT_EXTRACTED=1 || true
+from youtube_transcript_api import YouTubeTranscriptApi
+try:
+    ytt_api = YouTubeTranscriptApi()
+    transcript = ytt_api.fetch("$VIDEO_ID")
+    full_text = ' '.join([entry['text'] for entry in transcript.to_raw_data()])
+    with open('$OUT/transcript.txt', 'w') as f:
+        f.write(full_text)
+    print(f"✓ youtube-transcript-api: {len(full_text)} chars ({transcript.language})")
+except Exception as e:
+    print(f"⚠ youtube-transcript-api failed: {e}")
+    exit(1)
+EOF
+fi
+
+# Method 2: yt-dlp fallback (youtube-transcript-api 실패 시)
+if [[ "$TRANSCRIPT_EXTRACTED" -eq 0 ]]; then
+  echo "→ Fallback to yt-dlp..."
+  "$YT_DLP" --skip-download \
+    --write-auto-sub --write-sub \
+    --sub-lang "en,en-US,ko" \
+    --sub-format vtt \
+    -o "$OUT/sub.%(ext)s" \
+    "$URL" 2>&1 | tail -3 || true
+
+  # vtt → 정리된 텍스트 (중복 제거, 태그 제거, 한 줄)
+  SUB_FILE=$(ls "$OUT"/sub.*.vtt 2>/dev/null | head -1 || true)
+  if [[ -n "$SUB_FILE" ]]; then
+    sed 's/<[^>]*>//g' "$SUB_FILE" \
+      | grep -v "^WEBVTT\|^Kind:\|^Language:\|-->\|^$" \
+      | awk '!seen[$0]++' \
+      | tr '\n' ' ' \
+      | sed 's/  */ /g' > "$OUT/transcript.txt"
+    WORD_COUNT=$(wc -w < "$OUT/transcript.txt" | tr -d ' ')
+    echo "✓ yt-dlp: $WORD_COUNT words"
+  else
+    echo "⚠ No subtitles available. Use --audio + Whisper for transcript."
+    : > "$OUT/transcript.txt"
+  fi
 fi
 
 # 3. 키프레임 (균등 N개 추출)

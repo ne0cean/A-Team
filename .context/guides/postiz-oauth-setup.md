@@ -24,16 +24,22 @@ docker compose up -d
 
 ## OAuth 설정 단계
 
-### Step 1: Postiz 대시보드 접속
+### Step 1: Postiz 대시보드 접속 & 계정 생성
 브라우저에서 열기:
 ```
 http://localhost:4007
 ```
 
-**첫 접속 시**: 계정 생성
-- Email: 원하는 이메일
-- Password: 안전한 비밀번호
-- Organization: "A-Team" (또는 원하는 이름)
+**⚠️ 중요**: Postiz는 이메일/비밀번호 로그인을 사용합니다 (Google OAuth 아님)
+
+**첫 접속 시 계정 생성**:
+1. **"Sign Up"** 또는 **"Create Account"** 버튼 클릭
+2. 다음 정보 입력:
+   - Email: 원하는 이메일 (예: user@example.com)
+   - Password: 안전한 비밀번호 (8자 이상 권장)
+   - Organization: "A-Team" (또는 원하는 이름)
+3. **"Create Account"** 클릭
+4. 계정 생성 후 자동 로그인
 
 ---
 
