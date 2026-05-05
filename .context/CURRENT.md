@@ -61,9 +61,13 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-05)
+- **Prompt Coaching 시스템 구축** — `/end` Step 6.7 신설. 5가지 실패 유형(의도 오해, 스코프 폭주, 결과물 불일치, 컨텍스트 단절, 재작업 루프) 기반 프롬프트 분석 + Before/After 개선 예시 + 주간 트렌드 추적. analytics-schema.json에 `prompt_quality` 이벤트 타입 추가. `/vibe` Step 0.75에 프롬프트 패턴 트렌드 통합. **489 tests PASS** 유지.
+
+## Last Completions (2026-05-04)
+- **YouTube 영상 완전 흡수 — Context Engineering + youtube-transcript-api 통합** (1 커밋): Dex Horthy "No Vibes Allowed" 영상 분석 (23,639 chars 자막 + 8 keyframes). 10가지 핵심 개념 추출 — RPI 워크플로우, Compaction = Context Engineering, Smart Zone (0-40%) vs Dumb Zone (40-100%), Sub-agents for Context Control (not roles), On-demand Compressed Context. 6개 파일 생성/수정: governance/rules/context-engineering.md (167 lines, Smart Zone 원칙 + Compaction 트리거), .claude/agents/README.md (180 lines, Sub-agent 아키텍처 패턴 ✅/❌), orchestrator.md Phase 2.8 (자동 compaction at 40%), scripts/yt-extract.sh (youtube-transcript-api 우선 + yt-dlp fallback), .research/notes/2026-05-04-no-vibes-allowed-dex-horthy.md (270 lines 분석). **489 tests PASS** 유지.
+
 ## 다음 우선순위
-- [x] ✅ **[HUMAN INSERT] 3개 채우기** — PingWatch/FormSnap/ReplyGuard 케이스 스터디 추가 완료 (2026-05-03)
-- [x] ✅ **Phase 2 콘텐츠 리뷰** — Intel 인용 정확성 검증 완료, AI smell 제거 완료 (2026-05-03)
 - [ ] **Postiz OAuth 설정** — localhost:4007에서 소셜 미디어 계정 연동 (수동 작업)
 - [ ] **Phase 2 콘텐츠 실제 발행** — Postiz를 통해 블로그/소셜 미디어 발행
 

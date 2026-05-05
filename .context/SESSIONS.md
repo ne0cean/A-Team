@@ -2,6 +2,60 @@
 
 ---
 
+## [2026-05-05] Prompt Coaching 시스템 — 5가지 실패 유형 기반 피드백 루프
+
+**완료**:
+- `/end` Step 6.7 Prompt Coaching 신설:
+  - 5가지 실패 유형: 의도 오해, 스코프 폭주, 결과물 불일치, 컨텍스트 단절, 재작업 루프
+  - 각 유형별 감지 패턴 + 자가 체크 질문 + 개선 공식
+  - Before/After 구체적 예시 포함 출력
+- `lib/analytics-schema.json` 업데이트:
+  - `prompt_quality` 이벤트 타입 추가
+  - `promptFailureTypes`, `promptReworkCount`, `promptTopPattern` 필드
+- `/vibe` Step 0.75 프롬프트 패턴 트렌드 통합:
+  - 주간 실패 유형 집계
+  - 습관화된 패턴 감지 + 개선 추이 표시
+
+**이슈**: 없음
+
+**빌드**: ✅ 489 PASS / tsc 0
+
+---
+
+## [2026-05-04] YouTube 영상 완전 흡수 — Context Engineering 통합
+
+**완료**:
+- Dex Horthy "No Vibes Allowed" 영상 완전 분석:
+  - youtube-transcript-api로 23,639 chars 자막 추출 (<5초)
+  - 8 keyframes 추출 (frame-01.jpg ~ frame-08.jpg)
+  - 10가지 핵심 개념 추출 + A-Team 적용성 판단
+- 신규 파일 4개:
+  - governance/rules/context-engineering.md (167 lines) — Smart Zone 0-40% vs Dumb Zone 40-100%, Compaction 트리거, Sub-agent 용도
+  - .claude/agents/README.md (180 lines) — Sub-agent 아키텍처 원칙 (컨텍스트 제어 ✅ vs 역할 분리 ❌)
+  - .research/notes/2026-05-04-no-vibes-allowed-dex-horthy.md (270 lines) — 전체 분석 노트
+  - scripts/yt-extract.sh 개선 — youtube-transcript-api 우선, yt-dlp fallback 추가
+- 수정 파일 2개:
+  - .claude/agents/orchestrator.md — Phase 2.8 신설 (Compaction Check, 40% 임계값 자동 압축)
+  - .context/guides/postiz-oauth-setup.md — Google OAuth 오류 설명 수정 (email/password 로그인)
+- 핵심 개념 통합:
+  - Research-Plan-Implement (RPI) → orchestrator Phase 1-5 (이미 구현됨)
+  - Compaction → /handoff + 자동 트리거 (Phase 2.8 신규)
+  - Smart Zone 40% → context-engineering.md (신규)
+  - Sub-agents for context control → README.md 명시 (신규)
+  - Progressive Disclosure → CLAUDE.md 계층 (이미 구현됨)
+
+**이슈**:
+- 초기 superficial analysis (keyframes만) → 사용자 피드백 ("제대로 분석해야지") → 완전 분석 재실행
+- youtube-transcript-api 설치 필요 (pip3 install --user --break-system-packages)
+
+**빌드**: ✅ 489 PASS / 0 tsc / 0 vulns
+
+**커밋**: 1개 (feat: YouTube 영상 완전 흡수 — Context Engineering + youtube-transcript-api)
+
+**다음 단계**: Postiz OAuth 설정, Phase 2 콘텐츠 발행
+
+---
+
 ## [2026-05-03] Phase 2 Gate 달성 — Intel 시스템 E2E 검증
 
 **완료**:

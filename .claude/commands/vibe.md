@@ -256,6 +256,47 @@ WEEK_AGO=$(date -d '7 days ago' +%Y-%m-%d 2>/dev/null || date -v-7d +%Y-%m-%d 2>
 - `session_end` 이벤트의 `summary` 필드 빈도 → 가장 많이 한 작업 1개
 - `friction` 이벤트 존재 시 → 가장 많이 막힌 것 1개
 
+**📝 프롬프트 실패 패턴 트렌드** (prompt_quality 이벤트 집계):
+
+analytics.jsonl에서 최근 7일 `prompt_quality` 이벤트 분석:
+```bash
+node -e "
+const fs=require('fs');
+try{
+  const lines=fs.readFileSync('.context/analytics.jsonl','utf8').trim().split('\n').filter(Boolean);
+  const weekAgo=Date.now()-7*24*60*60*1000;
+  const pq=lines.map(l=>{try{return JSON.parse(l);}catch{}})
+    .filter(e=>e&&e.event==='prompt_quality'&&new Date(e.ts)>weekAgo);
+  if(pq.length<2){console.log('SKIP');process.exit();}
+  const types={};
+  pq.forEach(e=>(e.failureTypes||[]).forEach(t=>{types[t]=(types[t]||0)+1;}));
+  const reworks=pq.reduce((a,e)=>a+(e.reworkCount||0),0);
+  const sorted=Object.entries(types).sort((a,b)=>b[1]-a[1]);
+  console.log(JSON.stringify({sessions:pq.length,reworks,topTypes:sorted.slice(0,3)}));
+}catch{console.log('SKIP');}
+" 2>/dev/null
+```
+
+출력 형식 (데이터 2건 이상일 때만):
+```
+📝 프롬프트 패턴 (최근 N 세션, 재작업 M회):
+   🔴 주요 실패: 1️⃣의도오해 4회, 2️⃣스코프폭주 2회
+   🟢 개선됨: 5️⃣재작업루프 0회 (지난주 3회)
+
+   💡 이번 주 포커스: "대상+행동+기대결과+제약" 구조 연습
+```
+
+**실패 유형 범례**:
+- 1️⃣ 의도 오해 — Claude가 엉뚱한 작업
+- 2️⃣ 스코프 폭주 — 안 해도 될 작업까지
+- 3️⃣ 결과물 불일치 — 원하는 형태 아님
+- 4️⃣ 컨텍스트 단절 — 기존 결정/패턴 무시
+- 5️⃣ 재작업 루프 — 같은 작업 반복
+
+반복 패턴 감지:
+- 같은 유형 3세션 연속 → "⚠️ 습관화된 패턴 — 해당 체크리스트 확인"
+- 재작업 0회 달성 → "✅ 재작업 제로 달성!"
+
 **💡 이번 주 개선 제안 1건** (friction 최다 항목 → 해결책 1줄):
 > "[friction point] → [구체적 해결 방법]"
 > 반영할까요? (Y/N)
