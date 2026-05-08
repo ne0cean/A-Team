@@ -71,6 +71,21 @@
 - [ ] **Postiz OAuth 설정** — localhost:4007에서 소셜 미디어 계정 연동 (수동 작업)
 - [ ] **Phase 2 콘텐츠 실제 발행** — Postiz를 통해 블로그/소셜 미디어 발행
 
+## 🔀 별도 추진: Multi-Model Router (A-Team 본류와 분리)
+
+**설계**: [.context/designs/multi-model-router.md](designs/multi-model-router.md)
+**목표**: Opus는 기획/아키텍처만, 하위 작업은 로컬/저가 모델 자동 분기
+
+| Phase | 내용 | 상태 |
+|-------|------|------|
+| 1 | Ollama 설치 + qwen2.5-coder 7B/14B | ⏳ |
+| 2 | LiteLLM 프록시 설정 | ⏳ |
+| 3 | OpenRouter fallback 연결 | ⏳ |
+| 4 | Claude Code 연결 | ⏳ |
+| 5 | 모니터링 + 예산 상한 | ⏳ |
+
+**예상 효과**: Opus 사용률 100%→20-30%, 토큰 비용 -50~70%, 처리량 2-3x
+
 ## Phase 0 To-Do (현재 우선순위)
 
 - [x] ✅ `/vibe` Step 0.67 team-roadmap 거버넌스 로드 (`vibe.md`)

@@ -142,7 +142,7 @@ scripts/install-sleep-cron.sh
 직접 만든 5-Layer 자동 재개 시스템.
 6주 운영 데이터 + 풀 코드 공개.
 
-[HUMAN INSERT: 본인의 야간 자율 모드 첫 실패 경험 1-2문장]
+zzz 슬래시 명령어를 설정했는데, 안티그래비티 IDE와 CLI에서 작동하지 않았다. 계속 나래이션과 승인을 요구했다.
 
 이 셋업 만든 이유:
 • Anthropic GitHub issue 5+개 18개월 미해결

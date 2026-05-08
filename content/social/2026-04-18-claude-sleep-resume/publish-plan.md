@@ -16,7 +16,7 @@ status: ready_for_publish_pending_visuals
 - [x] Art direction brief written
 - [x] OG image HTML written (og-image.html)
 - [ ] OG image PNG 변환 (Puppeteer/playwright screenshot)
-- [ ] [HUMAN INSERT] 마커 채워짐 (twitter 0개, linkedin 2개, instagram caption 1개)
+- [x] [HUMAN INSERT] 마커 채워짐 (linkedin 3개 + instagram caption 1개 = 4개 완료)
 - [ ] 인간 20% 편집 완료
 - [ ] Brand guard 통과
 

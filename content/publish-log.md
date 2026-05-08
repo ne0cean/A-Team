@@ -23,7 +23,7 @@
 
 - [x] Brief schema valid
 - [x] 4 콘텐츠 파일 작성 완료 (Twitter/LinkedIn/Instagram + Art direction brief)
-- [ ] [HUMAN INSERT] 마커 채워짐 (3개 중 0개)
+- [x] [HUMAN INSERT] 마커 채워짐 (4개 중 4개)
 - [x] OG image PNG 변환 (Playwright, 43KB)
 - [x] design-auditor 통과 (AI smell 0-1/10, A11Y PASS, ship-ready)
 - [ ] Postiz MCP 연결
