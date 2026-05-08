@@ -61,10 +61,23 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-09)
+- **Multi-Model Router Phase 3 진행** — OpenRouter 계정 생성 + API Key 발급 + LiteLLM config 업데이트 (모델명 `claude-3.5-sonnet` → `claude-sonnet-4`). OpenRouter 유료 확인 → **Groq 무료 대안으로 전환 예정**.
+- **D2Coding 폰트 + VS Code 설정** — 터미널 한글 깨짐 수정. D2Coding 폰트 설치 (`~/Library/Fonts/`) + VS Code `terminal.integrated.fontFamily` 설정.
+- **Claude.ai 웹 지침 토큰 효율화** — 6줄 축약 버전 제공 (한국어, 인사말 생략, 핵심만).
+
 ## Last Completions (2026-05-08)
+- **Card News E2E 테스트 완료** — 주제 "AI 마케팅 자동화" 8장 HTML→PNG 캡처 성공. 캡처 스크립트 버그 수정 (`seq -w 1 8` → `01 02 ... 08` 명시적 패딩). 출력: `content/card-news/2026-05-08-ai-marketing-test/` (slide-01~08.png, 53-78KB/장).
+- **CLAUDE.md 2026 재설계** — 사용자 개인 Claude 지침 (`~/.claude/CLAUDE.md`) 완전 재작성. 2025 범용 소프트웨어 개발 가이드라인 → 2026 A-Team 워크플로우 전용 9섹션 112줄. 핵심: 세션 흐름 (/pickup→작업→/end), 토큰=돈, 작업하면서 가르치기 (세션당 1-2 인사이트), 모델 선택 테이블.
+- **Card News 마케팅 모듈 통합** — 짐코딩 유튜브 (https://youtu.be/501KRO5QSXM) 인스타 카드뉴스 자동화 흡수. `--format card-news` 플래그 + 8장 슬라이드 구조 (Hook→Problem→Solution→Summary→CTA) + Playwright PNG 캡처. 4 톤: editorial/bold/minimal/playful.
+  - `/card-news` 커맨드 신설
+  - `templates/card-news/base.html` + `slides.json`
+  - `scripts/card-news-capture.sh`
+  - `governance/skills/marketing/prompts/card-news.md`
+  - `marketing-generate.md` Card-News 섹션 추가
+- **Multi-Model Router Phase 1-2** — Ollama 설치 + LiteLLM Docker 컨테이너 가동 완료. Python 3.14 orjson 호환성 문제로 로컬 설치 대신 Docker 이미지 사용 (`ghcr.io/berriai/litellm:main-latest`).
 - **pickup/vibe 토큰 효율화** — `/pickup` 단일 진입점 통합 + `vibe-init.sh` 스크립트 분리. vibe.md 433줄→82줄 (-81%). 세션 끊김 시 `/pickup`만 사용. 작업 흔적 자동 감지 → 경량 복구 또는 /vibe 제안. **488 tests PASS** 유지.
 - **Ralph/Ouroboros 흡수 설계** — 4개 프로젝트 분석 (snarktank/ralph, frankbria/ralph-claude-code, joi-lab/ouroboros, mikeyobrien/ralph-orchestrator). Circuit breaker 3-threshold, Dual-condition exit, Cognitive checkpoint 등 흡수 대상 정리.
-- **Multi-Model Router 설계** — Opus→로컬/저가 모델 자동 분기. Ollama + LiteLLM 설정 스크립트 작성.
 
 ## Last Completions (2026-05-05)
 - **Prompt Coaching 시스템 구축** — `/end` Step 6.7 신설. 5가지 실패 유형(의도 오해, 스코프 폭주, 결과물 불일치, 컨텍스트 단절, 재작업 루프) 기반 프롬프트 분석 + Before/After 개선 예시 + 주간 트렌드 추적. analytics-schema.json에 `prompt_quality` 이벤트 타입 추가. `/vibe` Step 0.75에 프롬프트 패턴 트렌드 통합. **489 tests PASS** 유지.
@@ -74,6 +87,8 @@
 
 ## 다음 우선순위
 - [ ] **Postiz OAuth 설정** — localhost:4007에서 소셜 미디어 계정 연동 (수동 작업)
+- [x] ✅ **Card News 실사용 테스트** — 8장 PNG 캡처 성공 (`content/card-news/2026-05-08-ai-marketing-test/`, 53-78KB/장)
+- [ ] **Twitter 채널** — 보류 중이나 중요 채널. 다음 발행 사이클에 재논의 필요
 - [ ] **Phase 2 콘텐츠 실제 발행** — Postiz를 통해 블로그/소셜 미디어 발행
 
 ## 🔀 별도 추진: Multi-Model Router (A-Team 본류와 분리)
@@ -83,9 +98,9 @@
 
 | Phase | 내용 | 상태 |
 |-------|------|------|
-| 1 | Ollama 설치 + qwen2.5-coder 7B/14B | ⏳ |
-| 2 | LiteLLM 프록시 설정 | ⏳ |
-| 3 | OpenRouter fallback 연결 | ⏳ |
+| 1 | Ollama 설치 + qwen2.5-coder 7B/14B | ✅ |
+| 2 | LiteLLM 프록시 설정 (Docker) | ✅ |
+| 3 | OpenRouter → Groq 무료 fallback | 🔄 진행중 |
 | 4 | Claude Code 연결 | ⏳ |
 | 5 | 모니터링 + 예산 상한 | ⏳ |
 
