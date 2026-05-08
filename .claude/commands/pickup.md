@@ -1,18 +1,47 @@
 ---
-description: 토큰 소진 후 작업 재개 — 이전 AI가 중단한 지점부터 즉시 이어받기
+description: 세션 재개 기본 진입점 — 상황 자동 감지 후 경량 복구 또는 /vibe 분기
 ---
 
-> **자동 트리거**: SessionStart[resume] 훅이 세션 재개 시 컨텍스트를 자동 주입합니다.
-> 수동 `/pickup`은 자동 재개가 작동하지 않았거나 특정 시점으로 복구할 때 사용하세요.
+> **기본 진입점**: 세션이 끊겼을 때 무조건 `/pickup` 사용.
+> 내부에서 상황 판단 → 작업 흔적 있으면 경량 복구, 없으면 /vibe 제안.
 
-이전 AI 세션이 토큰 소진으로 갑자기 중단되었습니다. 아래 순서대로 컨텍스트를 복원하고 즉시 재개합니다.
-
-## Step 1 — 상태 확인
+## Step 0 — 작업 흔적 감지 (자동 분기)
 
 ```bash
-git log --oneline -10
-git status
-git diff HEAD~1
+# 1. RESUME.md 존재 + 미완료?
+RESUME_ACTIVE=""
+[ -f ".context/RESUME.md" ] && ! grep -q "status:.*completed" ".context/RESUME.md" && RESUME_ACTIVE="1"
+
+# 2. git에 uncommitted 변경?
+GIT_DIRTY=$(git status --porcelain 2>/dev/null | head -1)
+
+# 3. CURRENT.md에 In Progress Files?
+IN_PROGRESS=""
+[ -f ".context/CURRENT.md" ] && \
+  IN_PROGRESS=$(awk '/^## In Progress Files/,/^## /' ".context/CURRENT.md" 2>/dev/null | grep -vE "^##|없음|\(없음\)" | grep -v "^$" | head -1)
+
+# 판정
+if [ -n "$RESUME_ACTIVE" ] || [ -n "$GIT_DIRTY" ] || [ -n "$IN_PROGRESS" ]; then
+  echo "✅ 작업 흔적 감지 — 경량 복구 진행"
+else
+  echo "📭 작업 흔적 없음 — 새 세션입니다. /vibe 실행할까요? (Y/n)"
+  # 사용자가 Y 또는 Enter → /vibe 실행
+  # N → 빈 상태로 시작
+fi
+```
+
+**분기 결과**:
+- 흔적 있음 → Step 1~4 경량 복구 진행
+- 흔적 없음 → 사용자에게 `/vibe` 제안 (1줄), 거절 시 빈 상태 시작
+
+---
+
+## Step 1 — 상태 확인 (흔적 있을 때만)
+
+```bash
+git log --oneline -5
+git status --short
+git diff --stat HEAD~1 2>/dev/null | tail -5
 ```
 
 ## Step 2 — 컨텍스트 로드
