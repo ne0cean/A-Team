@@ -255,14 +255,14 @@ done
 ## 체크리스트
 
 ### Phase 1: Ollama
-- [ ] `brew install ollama`
-- [ ] `ollama pull qwen2.5-coder:7b`
-- [ ] `ollama pull qwen2.5-coder:14b`
-- [ ] `ollama serve` 확인
+- [x] `brew install ollama` — ✅ 0.23.1 설치됨
+- [x] `ollama pull qwen2.5-coder:7b` — ✅ 32b 설치됨 (더 강력)
+- [x] `ollama pull qwen2.5-coder:14b` — ✅ 32b로 대체
+- [x] `ollama serve` 확인 — ✅ 실행 중
 
 ### Phase 2: LiteLLM
-- [ ] `pip install litellm[proxy]`
-- [ ] config.yaml 작성
+- [ ] `pipx install litellm` — Homebrew 권한 복구 필요
+- [x] config.yaml 작성 — ✅ `scripts/multi-model/litellm-config.yaml`
 - [ ] `litellm --config config.yaml` 실행 확인
 
 ### Phase 3: OpenRouter
@@ -276,7 +276,7 @@ done
 
 ### Phase 5: 모니터링
 - [ ] usage 대시보드 확인
-- [ ] 예산 상한 설정
+- [x] 예산 상한 설정 — ✅ config에 $10/day
 
 ## 예상 효과
 
