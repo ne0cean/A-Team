@@ -61,6 +61,11 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-08)
+- **pickup/vibe 토큰 효율화** — `/pickup` 단일 진입점 통합 + `vibe-init.sh` 스크립트 분리. vibe.md 433줄→82줄 (-81%). 세션 끊김 시 `/pickup`만 사용. 작업 흔적 자동 감지 → 경량 복구 또는 /vibe 제안. **488 tests PASS** 유지.
+- **Ralph/Ouroboros 흡수 설계** — 4개 프로젝트 분석 (snarktank/ralph, frankbria/ralph-claude-code, joi-lab/ouroboros, mikeyobrien/ralph-orchestrator). Circuit breaker 3-threshold, Dual-condition exit, Cognitive checkpoint 등 흡수 대상 정리.
+- **Multi-Model Router 설계** — Opus→로컬/저가 모델 자동 분기. Ollama + LiteLLM 설정 스크립트 작성.
+
 ## Last Completions (2026-05-05)
 - **Prompt Coaching 시스템 구축** — `/end` Step 6.7 신설. 5가지 실패 유형(의도 오해, 스코프 폭주, 결과물 불일치, 컨텍스트 단절, 재작업 루프) 기반 프롬프트 분석 + Before/After 개선 예시 + 주간 트렌드 추적. analytics-schema.json에 `prompt_quality` 이벤트 타입 추가. `/vibe` Step 0.75에 프롬프트 패턴 트렌드 통합. **489 tests PASS** 유지.
 
