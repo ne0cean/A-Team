@@ -261,9 +261,9 @@ done
 - [x] `ollama serve` 확인 — ✅ 실행 중
 
 ### Phase 2: LiteLLM
-- [ ] `pipx install litellm` — Homebrew 권한 복구 필요
+- [x] LiteLLM 설치 — ✅ Docker 컨테이너 (ghcr.io/berriai/litellm)
 - [x] config.yaml 작성 — ✅ `scripts/multi-model/litellm-config.yaml`
-- [ ] `litellm --config config.yaml` 실행 확인
+- [x] `litellm` 실행 확인 — ✅ localhost:4000
 
 ### Phase 3: OpenRouter
 - [ ] 계정 생성 및 API Key 발급
