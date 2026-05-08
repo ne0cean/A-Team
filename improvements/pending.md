@@ -73,3 +73,5 @@
   - 근거: 복잡도 증가 중이나 활용도 불명.
   - 선행: P0-1 완료 필수
 
+
+- ⏳ **IMP-20260508-CARD** /card-news 스킬 — 인스타 카드뉴스 8장 자동 생성 (HTML→PNG). 출처: 짐코딩. P2. .research/notes/2026-05-08-card-news-automation.md
