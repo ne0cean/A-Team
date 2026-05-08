@@ -170,6 +170,7 @@ governance/skills/marketing/
   README.md                     ← 이 파일 (아키텍처)
   prompts/
     blog.md                     ← 블로그 생성 마스터 프롬프트
+    card-news.md                ← 인스타 카드뉴스 8장 (짐코딩 방식)
     social-twitter.md
     social-linkedin.md
     carousel.md

@@ -17,11 +17,12 @@
 플래그:
   --topic       생성할 토픽 (필수, --url 없을 시)
   --url         기존 콘텐츠 URL (리퍼포징 시)
+  --format      출력 포맷 (기본: blog, 옵션: blog|card-news)
   --research    /marketing-research가 생성한 브리프 JSON 경로 (Step 2 스킵)
   --intel-brief `/intel brief` 결과 경로 (✨ NEW — 경쟁사+트렌드+페르소나 통합)
   --audience    타깃 오디언스 (기본: 결정하기 위한 질문 1개 함)
   --keywords    콤마 구분 키워드 리스트
-  --tone        콘텐츠 톤 (기본: authoritative)
+  --tone        콘텐츠 톤 (기본: authoritative, card-news: editorial|bold|minimal|playful)
   --words       목표 단어 수 (기본: 3000, --research 있으면 브리프 값 우선)
   --lang        언어 (기본: ko, 옵션: en)
   --no-review   인간 리뷰 건너뜀 (비권장 — 품질 저하 경고)
@@ -116,6 +117,29 @@ word_count: N
 repurposed: false
 ---
 ```
+
+## Card-News 포맷 (--format card-news)
+
+`--format card-news` 사용 시 블로그 대신 인스타그램 카드뉴스 8장 생성:
+
+1. **Step 1-2**: 동일 (리서치/브리프)
+2. **Step 3**: 8장 슬라이드 구성
+   - Hook(1) → Problem(2-3) → Solution(4-6) → Summary(7) → CTA(8)
+3. **Step 4**: HTML 생성 → Playwright 캡처
+4. **Step 5**: `content/card-news/{date}-{slug}/slide-01~08.png` 저장
+
+**템플릿**: `templates/card-news/base.html`
+**캡처**: `bash scripts/card-news-capture.sh {out}`
+
+**톤 옵션**:
+| 톤 | 배경 | 텍스트 | 악센트 |
+|----|------|--------|--------|
+| editorial | #1a1a2e | #ffffff | #4361ee |
+| bold | #000000 | #ffffff | #ff6b6b |
+| minimal | #fafafa | #1a1a1a | #2d3436 |
+| playful | #fff5f5 | #2d3436 | #e17055 |
+
+---
 
 ## 오류 처리
 
