@@ -10,7 +10,7 @@ BROWSER_DIR="$SCRIPT_DIR/browser"
 
 echo "📸 카드뉴스 캡처: $OUTPUT_DIR"
 
-for i in $(seq -w 1 8); do
+for i in 01 02 03 04 05 06 07 08; do
   HTML="$OUTPUT_DIR/slide-$i.html"
   PNG="$OUTPUT_DIR/slide-$i.png"
   [ ! -f "$HTML" ] && continue
