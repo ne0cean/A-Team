@@ -143,6 +143,39 @@ RECOMMENDATION: <next action>
 4. ✅ All specs/ requirements implemented
 5. ✅ No meaningful work remaining
 
+## Completion Signal Tags (snarktank/ralph 차용, 2026-05-08)
+
+원조 Ralph의 명시적 완료 시그널 태그. `EXIT_SIGNAL: true`와 함께 사용하면 더 강력한 종료 판정.
+
+### Promise Tag
+```xml
+<promise>COMPLETE</promise>
+```
+Claude가 이 태그를 출력하면 **작업 완료를 명시적으로 약속**한 것.
+
+### 사용 시점
+- 모든 태스크 완료 + 검증 통과 후
+- `EXIT_SIGNAL: true`와 함께 출력
+- 단독 사용 시에도 종료 트리거 (Dual-condition 예외)
+
+### 종료 판정 우선순위
+```
+1. <promise>COMPLETE</promise> 태그 → 즉시 종료 (최우선)
+2. EXIT_SIGNAL: true + completion_indicators ≥ 2 → 종료 (Dual-condition)
+3. completion_indicators ≥ 5 + EXIT_SIGNAL: false → 강제 종료 (safety breaker)
+4. Permission denial → 즉시 종료
+```
+
+### 검증
+Ralph 데몬은 Promise 태그를 다음과 같이 파싱:
+```bash
+if echo "$output" | grep -q "<promise>COMPLETE</promise>"; then
+  log "Explicit completion signal received"
+  EXIT_SIGNAL=true
+  COMPLETION_INDICATORS=$((COMPLETION_INDICATORS + 2))  # 가중치
+fi
+```
+
 ## Best Practices
 
 ### Effective Prompts

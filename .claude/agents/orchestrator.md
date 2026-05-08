@@ -208,6 +208,50 @@ if context_usage > threshold:
 - **Dumb Zone (40-100%)**: 성과 저하
 - MCP 과다 = 전체 작업 Dumb Zone
 
+### Phase 2.9: Cognitive Checkpoint (joi-lab/ouroboros 차용, 2026-05-08)
+
+> **출처**: Ouroboros BIBLE.md — 50 라운드마다 자기 반성 주입
+
+**자동 트리거 조건** (하나라도 충족 시):
+1. 서브에이전트 iteration 10회 이상 경과 (누적 Task 호출 수)
+2. 동일 에러 패턴 3회 반복 감지
+3. 진행률 정체 (최근 5 iteration 동안 CURRENT.md 변경 없음)
+4. 컨텍스트 사용량 > 60% (Dumb Zone 진입)
+
+**자동 액션** (메인 루프에서 실행):
+```
+1. 진행 상황 평가:
+   - 완료 태스크 / 전체 태스크 비율
+   - 최근 5 iteration 에러율
+   - 에이전트별 성공/실패 현황
+
+2. 막힌 패턴 식별:
+   - 동일 파일 반복 수정 (5회+)
+   - 동일 테스트 반복 실패
+   - Circuit breaker HALF_OPEN/OPEN 상태 에이전트
+
+3. 전략 전환 고려:
+   - 현재 접근법 계속 vs 대안 검토
+   - 에이전트 교체 (coder → architect 에스컬레이션 등)
+   - 태스크 분해 재구성
+
+4. 컨텍스트 압축 필요 여부:
+   - 60%+ → Phase 2.8 Compaction 강제 실행
+   - 불필요한 히스토리 정리 (`/handoff`)
+```
+
+**출력** (PARALLEL_PLAN.md에 append):
+```markdown
+## Cognitive Checkpoint [iteration N]
+- Progress: X/Y tasks (Z%)
+- Error rate (recent 5): W%
+- Blocked agents: [list]
+- Strategy: [continue/pivot/escalate]
+- Compaction: [needed/not needed]
+```
+
+**측정**: checkpoint 발동 횟수 + pivot 비율을 `analytics.jsonl`에 기록. 목표: pivot 후 성공률 > 70%.
+
 ## Phase 3: PARALLEL_PLAN.md 작성
 `templates/PARALLEL_PLAN.md` 형식 참조. 필수 섹션: 에이전트 구성(모델 포함), 파일 소유권, 태스크 DAG, 품질 게이트, 정지 조건.
 

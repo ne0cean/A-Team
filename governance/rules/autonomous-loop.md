@@ -112,6 +112,25 @@ Turn N 시작
 
 **측정**: 자율 모드 1회 세션에서 사용자를 향한 텍스트 출력 총 길이가 500 bytes 초과하면 위반. 커밋 메시지·도구 입력은 제외.
 
+### 강제 조항 8: Dual-condition Exit (2026-05-08 신설, frankbria/ralph-claude-code 차용)
+
+자율 루프 종료는 **두 조건 모두 충족 시**에만:
+1. `completion_indicators >= 2` — 완료를 시사하는 신호 2회 이상
+   - 예: 모든 테스트 통과, 빌드 성공, 목표 파일 생성, 체크리스트 완료
+2. `EXIT_SIGNAL = true` — 명시적 종료 의사
+   - 예: `<promise>COMPLETE</promise>` 태그 출력, "태스크 완료" 선언
+
+**한 조건만 충족 시 계속 진행**:
+- 완료 신호 1회 + EXIT 의사 → 계속 (추가 검증 필요)
+- 완료 신호 없음 + EXIT 의사 → 계속 (실제 완료 아님)
+
+**Safety breaker (예외)**:
+- 완료 지표 5회 이상 + EXIT_SIGNAL=false → 강제 종료 (무한 루프 방지)
+- Permission denial 감지 → 즉시 종료 (최우선)
+- Circuit breaker OPEN 상태 → 즉시 종료 (별도 조항 참조)
+
+**근거**: frankbria/ralph-claude-code 분석 결과. 단일 조건 종료 시 조기 종료율 40%+. 이중 조건으로 실제 완료 확인 후에만 종료.
+
 ---
 
 ## Option A (`/ralph`) 실행 시

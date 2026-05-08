@@ -238,14 +238,58 @@ fi
 
 FINAL_EXIT=$EXIT_CODE
 log "claude exited with code $EXIT_CODE"
+
+# ──────── Productive Timeout (frankbria/ralph-claude-code 차용, 2026-05-08) ────────
+# Timeout이어도 git diff가 있으면 부분 성공으로 처리
+# 원칙: 시간 초과 ≠ 실패. 진행한 작업이 있으면 보존.
+PRODUCTIVE_TIMEOUT=0
 if [ $EXIT_CODE -eq 124 ] || [ $EXIT_CODE -eq 142 ]; then
-  log "TIMEOUT: claude --print exceeded 45min. Resource may need manual review."
+  log "TIMEOUT: claude exceeded 45min. Checking for productive work..."
+
+  # git diff 확인 (staged + unstaged)
+  GIT_DIFF_LINES=$(git diff --stat 2>/dev/null | wc -l | tr -d ' ')
+  GIT_STAGED_LINES=$(git diff --cached --stat 2>/dev/null | wc -l | tr -d ' ')
+  TOTAL_CHANGES=$((GIT_DIFF_LINES + GIT_STAGED_LINES))
+
+  if [ "$TOTAL_CHANGES" -gt 0 ]; then
+    PRODUCTIVE_TIMEOUT=1
+    log "PRODUCTIVE TIMEOUT: $TOTAL_CHANGES lines of uncommitted work detected"
+
+    # 자동 커밋 + 푸시 (작업 보존)
+    git add -A
+    git commit -m "chore(auto): productive timeout commit
+
+Timeout exit $EXIT_CODE but work in progress preserved.
+Changes: $TOTAL_CHANGES lines affected.
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>" 2>/dev/null && {
+      log "Auto-committed productive work"
+      git push 2>/dev/null && log "Auto-pushed productive commit" || log "WARN: push failed (manual push needed)"
+    }
+
+    # RESUME.md에 timeout 상태 기록 (다음 iteration에서 이어받기)
+    if [ -f "$RESUME_FILE" ]; then
+      # last_timeout 필드 추가/갱신
+      if grep -q "^last_timeout:" "$RESUME_FILE"; then
+        sed -i '' "s/^last_timeout:.*/last_timeout: $(date -Iseconds)/" "$RESUME_FILE" 2>/dev/null
+      else
+        echo "last_timeout: $(date -Iseconds)" >> "$RESUME_FILE"
+      fi
+    fi
+
+    # productive timeout은 부분 성공 — success lock 갱신
+    date +%s > "$SUCCESS_LOCK"
+    FINAL_EXIT=0  # 부분 성공으로 재분류
+    log "Productive timeout → treated as partial success"
+  else
+    log "TIMEOUT with no changes: true failure"
+  fi
 fi
 
 # ──────── Post ────────
 
-# 성공 시에만 success lock 갱신 (실패 시엔 즉시 재시도 가능)
-if [ $EXIT_CODE -eq 0 ]; then
+# 성공 또는 productive timeout 시에만 success lock 갱신
+if [ $EXIT_CODE -eq 0 ] && [ $PRODUCTIVE_TIMEOUT -eq 0 ]; then
   date +%s > "$SUCCESS_LOCK"
 fi
 
