@@ -1,0 +1,80 @@
+#!/bin/bash
+# Multi-Model Router CLI Wrapper
+#
+# Usage:
+#   llm "Summarize this text"                    # Default: groq-free
+#   llm -m local-fast "Format this JSON"         # Specific model
+#   cat file.ts | llm -m groq-fast "Review"      # Pipe input
+#   llm -m coder -f ./src/app.ts "Refactor"      # File input
+#
+# Models:
+#   groq-free   - Llama 70B (무료, 추천)
+#   groq-fast   - Llama 8B (무료, 초고속)
+#   local-fast  - Ollama 7B (로컬)
+#   local-strong- Ollama 32B (로컬)
+#   coder       - Claude Sonnet (유료)
+
+REAL_PATH="$(readlink "$0" 2>/dev/null || echo "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$REAL_PATH")" && pwd)"
+
+# Default values
+MODEL="groq-free"
+MAX_TOKENS=1024
+FILE=""
+SYSTEM=""
+VERBOSE=""
+JSON=""
+
+# Parse flags
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -m|--model)
+      MODEL="$2"
+      shift 2
+      ;;
+    -f|--file)
+      FILE="$2"
+      shift 2
+      ;;
+    -s|--system)
+      SYSTEM="$2"
+      shift 2
+      ;;
+    -t|--max-tokens)
+      MAX_TOKENS="$2"
+      shift 2
+      ;;
+    -v|--verbose)
+      VERBOSE="--verbose"
+      shift
+      ;;
+    -j|--json)
+      JSON="--json"
+      shift
+      ;;
+    -h|--help)
+      head -20 "$0" | tail -18
+      exit 0
+      ;;
+    *)
+      # Accumulate non-flag args as prompt
+      if [[ -z "$PROMPT" ]]; then
+        PROMPT="$1"
+      else
+        PROMPT="$PROMPT $1"
+      fi
+      shift
+      ;;
+  esac
+done
+
+# Build command as array (safe quoting)
+CMD=(node "$SCRIPT_DIR/route.mjs" --model "$MODEL" --max-tokens "$MAX_TOKENS")
+[[ -n "$SYSTEM" ]] && CMD+=(--system "$SYSTEM")
+[[ -n "$FILE" ]] && CMD+=(--file "$FILE")
+[[ -n "$VERBOSE" ]] && CMD+=($VERBOSE)
+[[ -n "$JSON" ]] && CMD+=($JSON)
+[[ -n "$PROMPT" ]] && CMD+=(--prompt "$PROMPT")
+
+# Execute
+"${CMD[@]}"
