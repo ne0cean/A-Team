@@ -2,6 +2,10 @@
 description: /optimize — Post-Integration Optimization (PIOP 자동 최적화 실행)
 ---
 
+```bash
+node scripts/log-event.mjs command_start name=optimize
+```
+
 `governance/workflows/post-integration.md` 워크플로우를 읽은 뒤 Phase 1~5를 순서대로 실행하세요.
 
 **매개변수 라우팅**:

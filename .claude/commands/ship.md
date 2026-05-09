@@ -11,6 +11,7 @@ PR 생성 전 자동화된 품질 게이트를 순서대로 실행한다.
 
 ## Step 1: 사전 검사
 ```bash
+node scripts/log-event.mjs command_start name=ship
 # 브랜치 확인
 BRANCH=$(git branch --show-current)
 if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then

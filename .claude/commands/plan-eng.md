@@ -8,6 +8,7 @@
 ## Phase 1: 컨텍스트 로드
 
 ```bash
+node scripts/log-event.mjs command_start name=plan-eng
 # 계획 파일 + CEO 검토 리포트 (있으면) 읽기
 # 기존 코드베이스 구조 파악
 # CLAUDE.md에서 빌드 명령, 기술 스택 확인

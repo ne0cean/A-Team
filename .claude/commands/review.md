@@ -2,6 +2,10 @@
 description: /review — Pre-Landing PR 리뷰 파이프라인
 ---
 
+```bash
+node scripts/log-event.mjs command_start name=review
+```
+
 `review-pr` 서브에이전트(subagent_type="review-pr")를 호출하여 실행하세요.
 
 - 사용자 인자가 있으면 그대로 전달

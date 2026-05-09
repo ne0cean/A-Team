@@ -8,6 +8,7 @@ description: 세션 재개 기본 진입점 — 상황 자동 감지 후 경량 
 ## Step 0 — 작업 흔적 감지 (자동 분기)
 
 ```bash
+node scripts/log-event.mjs command_start name=pickup
 # 1. RESUME.md 존재 + 미완료?
 RESUME_ACTIVE=""
 [ -f ".context/RESUME.md" ] && ! grep -q "status:.*completed" ".context/RESUME.md" && RESUME_ACTIVE="1"

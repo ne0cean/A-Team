@@ -11,6 +11,10 @@
 
 ---
 
+```bash
+node scripts/log-event.mjs command_start name=office-hours
+```
+
 ## 모드 선택
 
 시작 시 AskUserQuestion:

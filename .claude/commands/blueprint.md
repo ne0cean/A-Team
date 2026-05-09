@@ -76,6 +76,7 @@ description: /blueprint — 에이전트/자동화 시스템 설계 문서(.md) 
 A-Team 레포 로컬 경로에서 실행:
 
 ```bash
+node scripts/log-event.mjs command_start name=blueprint
 python scripts/validate-blueprint.py ./blueprint-<task-name>.md
 ```
 
