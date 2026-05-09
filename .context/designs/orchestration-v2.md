@@ -1,6 +1,6 @@
 # Orchestration v2 — Multi-Model Speed & Quality Engine
 
-> **Status**: 설계 완료, 구현 대기
+> **Status**: 설계 완료, Pattern A 실험으로 불가 확인 → Pattern C 우선 구현
 > **Created**: 2026-05-09
 > **Based on**: 4개 병렬 리서치 에이전트 결과 통합
 > **Goal**: 비용 절감이 아닌 **속도 + 품질 극대화**
@@ -66,13 +66,16 @@ Claude가 Agent 호출하려 할 때 **훅이 Groq를 먼저 실행**.
    - 부족 → Agent 정상 진행 (200ms 추가 지연뿐)
 ```
 
-### 왜 작동하는가
+### 실험 결과 (2026-05-09)
 
 | 메커니즘 | 상태 | 근거 |
 |----------|------|------|
 | `updatedInput` | ❌ 버그 (Agent에서 무시) | GitHub #39814 |
 | `additionalContext` | ❌ 미구현 | GitHub #19432, NOT_PLANNED |
-| **`systemMessage`** | ✅ **작동 확인** | 시스템 메시지로 Claude에게 표시 |
+| `systemMessage` | ❌ **UI 전용, 모델에 안 보임** | 직접 실험 확인 — 훅 발동 확인했으나 모델 컨텍스트에 미주입 |
+
+**Pattern A는 현재 Claude Code에서 불가능. PreToolUse로 모델에 정보를 전달하는 작동하는 채널이 없음.**
+향후 `additionalContext` 구현되면 재검토.
 
 ### 분류기 설계
 
@@ -222,28 +225,30 @@ mcp__llm__ask 사용 의무 조건:
 
 규칙 준수 강제력은 없지만, Pattern A (Pre-emption)가 자동 보완.
 
-## Implementation Priority
+## Implementation Priority (Pattern A 불가 반영)
 
 ```
-Phase 1 (즉시): Pattern A — PreToolUse 훅 + Groq 선점
-  - preempt-agent.sh 스크립트
-  - settings.json PreToolUse 훅 등록
-  - 테스트: Agent 호출 시 systemMessage 확인
-
-Phase 2 (1일): Pattern C — 주요 커맨드 llm 파이프라인
-  - dispatch CLI wrapper
+Phase 1 (즉시): Pattern C — 주요 커맨드 llm 파이프라인
+  - dispatch CLI wrapper (race/consensus 지원)
   - /marketing-repurpose에 llm 통합
   - 속도 벤치마크 (before/after)
+  ★ 유일하게 100% 제어 가능한 경로
 
-Phase 3 (2일): Pattern B — Dispatch daemon
+Phase 2 (1일): Pattern B — Dispatch daemon
   - daemon.mjs (fswatch + Groq/Ollama 라우팅)
-  - --race, --consensus 옵션
   - launchd 등록 (상시 실행)
+  - Claude 선택 의존 — CLAUDE.md 규칙 + 사용 편의로 유도
 
-Phase 4 (선택): Pattern D — MCP 통합
+Phase 3 (선택): Pattern D — MCP 통합
   - Claude Code 재시작 후 mcp__llm__ask 확인
   - CLAUDE.md 규칙 강화
-  - 사용률 모니터링
+  - Claude 선택 의존 — 보조적 경로
+
+Phase BLOCKED: Pattern A — PreToolUse 선점
+  - systemMessage: UI 전용, 모델 컨텍스트 미주입 (실험 확인)
+  - additionalContext: 미구현 (GitHub #19432, NOT_PLANNED)
+  - updatedInput: Agent에서 무시 (GitHub #39814)
+  - 재검토 조건: additionalContext 구현 시
 ```
 
 ## Metrics & Monitoring
