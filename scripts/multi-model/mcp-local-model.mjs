@@ -18,6 +18,7 @@
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const DEFAULT_MODEL = process.env.OLLAMA_DEFAULT_MODEL || "qwen2.5-coder:7b";
@@ -37,7 +38,7 @@ const server = new Server({
 });
 
 // Tool 목록
-server.setRequestHandler("tools/list", async () => ({
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: "ask",
@@ -76,7 +77,7 @@ server.setRequestHandler("tools/list", async () => ({
 }));
 
 // Tool 실행
-server.setRequestHandler("tools/call", async (request) => {
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
