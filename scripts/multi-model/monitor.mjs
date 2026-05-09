@@ -1,155 +1,294 @@
 #!/usr/bin/env node
 /**
- * Multi-Model Router Monitor
+ * Multi-Model Monitor (Direct Mode — Groq + Ollama)
  *
  * Usage:
- *   node monitor.mjs              # Show current status
- *   node monitor.mjs --watch      # Live monitoring (5s refresh)
- *   node monitor.mjs --test       # Test all endpoints
+ *   node monitor.mjs              # Status + usage summary
+ *   node monitor.mjs --test       # Health check all endpoints
+ *   node monitor.mjs --budget     # Show budget/rate limit status
+ *   node monitor.mjs --watch      # Live refresh (10s)
  */
 
-const LITELLM_URL = process.env.LITELLM_URL || 'http://localhost:4000';
-const LITELLM_KEY = process.env.LITELLM_KEY || 'sk-ateam-litellm';
-const OLLAMA_URL = 'http://localhost:11434';
+import { readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const MODELS = [
-  { name: 'groq-free', type: 'cloud', desc: 'Llama 70B (무료)' },
-  { name: 'groq-fast', type: 'cloud', desc: 'Llama 8B (무료)' },
-  { name: 'local-fast', type: 'local', desc: 'Qwen 7B (로컬)' },
-  { name: 'local-strong', type: 'local', desc: 'Qwen 32B (로컬)' },
-  { name: 'coder', type: 'paid', desc: 'Claude Sonnet' },
-  { name: 'planner', type: 'paid', desc: 'Claude Sonnet' },
-];
+const __dir = dirname(fileURLToPath(import.meta.url));
+const ANALYTICS_PATH = resolve(__dir, '..', '..', '.context', 'analytics.jsonl');
 
-async function checkLiteLLM() {
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
+const MODELS = {
+  'groq-free':    { provider: 'groq',   api: 'llama-3.3-70b-versatile',  cost: 'free' },
+  'groq-fast':    { provider: 'groq',   api: 'llama-3.1-8b-instant',     cost: 'free' },
+  'local-fast':   { provider: 'ollama', api: 'llama3.2:1b',              cost: 'free' },
+  'local-strong': { provider: 'ollama', api: 'qwen2.5-coder:32b',       cost: 'free' },
+};
+
+// Groq free tier limits (per minute / per day)
+const GROQ_LIMITS = {
+  'llama-3.3-70b-versatile': { rpm: 30, rpd: 14400, tpm: 6000, tpd: 500000 },
+  'llama-3.1-8b-instant':    { rpm: 30, rpd: 14400, tpm: 6000, tpd: 500000 },
+};
+
+// ── Health checks ─────────────────────────────────────────
+
+async function checkGroq() {
+  if (!GROQ_API_KEY) return { status: 'NO_KEY', detail: 'GROQ_API_KEY not set' };
   try {
-    const res = await fetch(`${LITELLM_URL}/health`, { timeout: 3000 });
-    return res.ok ? '✅ Running' : '⚠️ Unhealthy';
-  } catch {
-    return '❌ Offline';
+    const res = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const count = data.data?.length || 0;
+      return { status: 'OK', detail: `${count} models available` };
+    }
+    if (res.status === 429) return { status: 'RATE_LIMITED', detail: 'Rate limit hit' };
+    return { status: 'ERROR', detail: `HTTP ${res.status}` };
+  } catch (e) {
+    return { status: 'OFFLINE', detail: e.message.slice(0, 60) };
   }
 }
 
 async function checkOllama() {
   try {
-    const res = await fetch(`${OLLAMA_URL}/api/tags`, { timeout: 3000 });
-    if (!res.ok) return '❌ Offline';
+    const res = await fetch(`${OLLAMA_URL}/api/tags`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return { status: 'ERROR', detail: `HTTP ${res.status}` };
     const data = await res.json();
-    const models = data.models?.map(m => m.name.split(':')[0]) || [];
-    return `✅ ${models.length} models`;
+    const models = data.models?.map(m => m.name) || [];
+    return { status: 'OK', detail: models.join(', ') || 'no models' };
   } catch {
-    return '❌ Offline';
+    return { status: 'OFFLINE', detail: `${OLLAMA_URL} unreachable` };
   }
 }
 
-async function testModel(model) {
+async function testModel(name, spec) {
   const start = Date.now();
   try {
-    const res = await fetch(`${LITELLM_URL}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LITELLM_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: 'Hi' }],
-        max_tokens: 5,
-      }),
-      timeout: 30000,
-    });
-    const latency = Date.now() - start;
-    if (!res.ok) {
-      const err = await res.text();
-      return { status: '❌', latency: '-', error: err.slice(0, 50) };
+    if (spec.provider === 'groq') {
+      if (!GROQ_API_KEY) return { ok: false, ms: 0, error: 'no API key' };
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: spec.api,
+          messages: [{ role: 'user', content: 'Say "ok"' }],
+          max_tokens: 3,
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const ms = Date.now() - start;
+      if (!res.ok) return { ok: false, ms, error: `HTTP ${res.status}` };
+      const data = await res.json();
+      const tokens = data.usage?.total_tokens || 0;
+      return { ok: true, ms, tokens };
+    } else {
+      const res = await fetch(`${OLLAMA_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: spec.api,
+          messages: [{ role: 'user', content: 'Say "ok"' }],
+          stream: false,
+          options: { num_predict: 3 },
+        }),
+        signal: AbortSignal.timeout(60000),
+      });
+      const ms = Date.now() - start;
+      if (!res.ok) return { ok: false, ms, error: `HTTP ${res.status}` };
+      return { ok: true, ms, tokens: 0 };
     }
-    return { status: '✅', latency: `${latency}ms`, error: null };
   } catch (e) {
-    return { status: '❌', latency: '-', error: e.message.slice(0, 50) };
+    return { ok: false, ms: Date.now() - start, error: e.message.slice(0, 40) };
   }
 }
 
-async function getSpend() {
+// ── Analytics ─────────────────────────────────────────────
+
+function loadAnalytics(sinceDaysAgo = 1) {
   try {
-    const res = await fetch(`${LITELLM_URL}/spend/logs`, {
-      headers: { 'Authorization': `Bearer ${LITELLM_KEY}` },
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data;
+    const since = new Date(Date.now() - sinceDaysAgo * 24 * 60 * 60 * 1000);
+    const lines = readFileSync(ANALYTICS_PATH, 'utf8').trim().split('\n');
+    return lines
+      .map(l => { try { return JSON.parse(l); } catch { return null; } })
+      .filter(e => e && new Date(e.ts) >= since);
   } catch {
-    return null;
+    return [];
   }
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const watchMode = args.includes('--watch');
-  const testMode = args.includes('--test');
+function getUsageStats(events) {
+  const modelCalls = {};
+  const hourly = {};
 
-  const display = async () => {
-    console.clear();
-    console.log('═══════════════════════════════════════════════════');
-    console.log('       Multi-Model Router Status');
-    console.log('═══════════════════════════════════════════════════\n');
+  for (const e of events) {
+    if (e.event === 'agent_start') {
+      const model = (e.model || 'inherit').toLowerCase();
+      let bucket = 'anthropic';
+      if (model.includes('groq')) bucket = 'groq';
+      else if (model.includes('local') || model.includes('ollama')) bucket = 'ollama';
+      else if (model.includes('haiku')) bucket = 'haiku';
+      else if (model.includes('sonnet')) bucket = 'sonnet';
+      else if (model.includes('opus')) bucket = 'opus';
+      modelCalls[bucket] = (modelCalls[bucket] || 0) + 1;
 
-    // Service status
-    const [litellm, ollama] = await Promise.all([checkLiteLLM(), checkOllama()]);
-    console.log(`LiteLLM Proxy : ${litellm}`);
-    console.log(`Ollama        : ${ollama}`);
-    console.log('');
-
-    // Model list
-    console.log('Available Models:');
-    console.log('─────────────────────────────────────────────────');
-    console.log('Name           Type    Description');
-    console.log('─────────────────────────────────────────────────');
-    for (const m of MODELS) {
-      const type = m.type === 'cloud' ? '☁️ ' : m.type === 'local' ? '💻' : '💰';
-      console.log(`${m.name.padEnd(14)} ${type}     ${m.desc}`);
+      const h = new Date(e.ts).toISOString().slice(11, 13);
+      hourly[h] = (hourly[h] || 0) + 1;
     }
-    console.log('');
+  }
 
-    // Test endpoints if requested
-    if (testMode) {
-      console.log('Endpoint Tests:');
-      console.log('─────────────────────────────────────────────────');
-      for (const m of MODELS) {
-        process.stdout.write(`Testing ${m.name}... `);
-        const result = await testModel(m.name);
-        console.log(`${result.status} ${result.latency} ${result.error || ''}`);
-      }
-      console.log('');
+  return { modelCalls, hourly, total: Object.values(modelCalls).reduce((a, b) => a + b, 0) };
+}
+
+function getBudgetStatus(events) {
+  const now = new Date();
+  const oneHourAgo = new Date(now - 60 * 60 * 1000);
+  const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
+
+  let groqLastHour = 0;
+  let groqLastDay = 0;
+  let ollamaLastDay = 0;
+
+  for (const e of events) {
+    if (e.event !== 'agent_start') continue;
+    const model = (e.model || '').toLowerCase();
+    const ts = new Date(e.ts);
+
+    if (model.includes('groq')) {
+      if (ts >= oneDayAgo) groqLastDay++;
+      if (ts >= oneHourAgo) groqLastHour++;
     }
-
-    // Usage stats (if available)
-    const spend = await getSpend();
-    if (spend && spend.length > 0) {
-      console.log('Recent Usage:');
-      console.log('─────────────────────────────────────────────────');
-      const recent = spend.slice(-5);
-      for (const s of recent) {
-        console.log(`${s.model}: ${s.total_tokens} tokens, $${s.spend?.toFixed(4) || '0'}`);
-      }
+    if (model.includes('local') || model.includes('ollama')) {
+      if (ts >= oneDayAgo) ollamaLastDay++;
     }
+  }
 
-    console.log('\n─────────────────────────────────────────────────');
-    console.log('Commands:');
-    console.log('  llm "prompt"           Quick query (groq-free)');
-    console.log('  llm -m local-fast "x"  Use specific model');
-    console.log('  node monitor.mjs --test  Test all endpoints');
-    console.log('═══════════════════════════════════════════════════');
-
-    if (watchMode) {
-      console.log('\n[Refreshing every 5s... Ctrl+C to exit]');
-    }
+  const limits = GROQ_LIMITS['llama-3.3-70b-versatile'];
+  return {
+    groq: {
+      lastHour: groqLastHour,
+      lastDay: groqLastDay,
+      hourLimit: limits.rpm * 60,
+      dayLimit: limits.rpd,
+      hourPct: ((groqLastHour / (limits.rpm * 60)) * 100).toFixed(1),
+      dayPct: ((groqLastDay / limits.rpd) * 100).toFixed(1),
+    },
+    ollama: { lastDay: ollamaLastDay },
   };
-
-  await display();
-
-  if (watchMode) {
-    setInterval(display, 5000);
-  }
 }
 
-main();
+// ── Display ───────────────────────────────────────────────
+
+const STATUS_ICON = { OK: '\u2705', RATE_LIMITED: '\u26A0\uFE0F ', ERROR: '\u274C', OFFLINE: '\u274C', NO_KEY: '\u26D4' };
+
+async function display(opts) {
+  console.log('\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550');
+  console.log('       Multi-Model Monitor (Direct Mode)');
+  console.log(`       ${new Date().toISOString().slice(0, 19)}`);
+  console.log('\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n');
+
+  // Services
+  const [groq, ollama] = await Promise.all([checkGroq(), checkOllama()]);
+  console.log('## Services');
+  console.log(`  Groq API  : ${STATUS_ICON[groq.status] || '?'} ${groq.detail}`);
+  console.log(`  Ollama    : ${STATUS_ICON[ollama.status] || '?'} ${ollama.detail}`);
+  console.log(`  MCP Server: llm (mcp-local-model.mjs)`);
+  console.log('');
+
+  // Models
+  console.log('## Models');
+  console.log('\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  for (const [name, spec] of Object.entries(MODELS)) {
+    const provider = spec.provider === 'groq' ? 'cloud' : 'local';
+    const available = spec.provider === 'groq'
+      ? (groq.status === 'OK' ? 'ready' : groq.status.toLowerCase())
+      : (ollama.status === 'OK' ? 'ready' : 'offline');
+    console.log(`  ${name.padEnd(14)} ${provider.padEnd(6)} ${spec.api.padEnd(28)} ${available}`);
+  }
+  console.log('');
+
+  // Test endpoints
+  if (opts.test) {
+    console.log('## Endpoint Tests');
+    console.log('\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+    for (const [name, spec] of Object.entries(MODELS)) {
+      process.stdout.write(`  ${name.padEnd(14)} `);
+      const r = await testModel(name, spec);
+      if (r.ok) {
+        console.log(`OK  ${String(r.ms).padStart(5)}ms${r.tokens ? `  ${r.tokens} tok` : ''}`);
+      } else {
+        console.log(`FAIL  ${r.error}`);
+      }
+    }
+    console.log('');
+  }
+
+  // Usage from analytics
+  const events = loadAnalytics(1);
+  const stats = getUsageStats(events);
+
+  console.log('## Usage (24h)');
+  console.log('\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+  if (stats.total === 0) {
+    console.log('  (no agent_start events in analytics.jsonl)');
+  } else {
+    for (const [model, count] of Object.entries(stats.modelCalls).sort((a, b) => b[1] - a[1])) {
+      const pct = ((count / stats.total) * 100).toFixed(0);
+      const bar = '\u2588'.repeat(Math.min(Math.ceil(count / stats.total * 30), 30));
+      console.log(`  ${model.padEnd(12)} ${String(count).padStart(4)} (${pct.padStart(2)}%) ${bar}`);
+    }
+    const freeCount = (stats.modelCalls.groq || 0) + (stats.modelCalls.ollama || 0);
+    const freeRate = stats.total > 0 ? ((freeCount / stats.total) * 100).toFixed(0) : 0;
+    console.log(`\n  Free routing: ${freeCount}/${stats.total} calls (${freeRate}%)`);
+  }
+  console.log('');
+
+  // Budget / rate limits
+  if (opts.budget || opts.test) {
+    const budget = getBudgetStatus(events);
+    console.log('## Budget & Rate Limits');
+    console.log('\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
+    console.log(`  Groq (1h) : ${budget.groq.lastHour} calls (${budget.groq.hourPct}% of ${budget.groq.hourLimit})`);
+    console.log(`  Groq (24h): ${budget.groq.lastDay} calls (${budget.groq.dayPct}% of ${budget.groq.dayLimit})`);
+    console.log(`  Ollama    : ${budget.ollama.lastDay} calls (unlimited)`);
+    console.log(`  Cost      : $0.00 (all free tier)`);
+    if (parseFloat(budget.groq.dayPct) > 80) {
+      console.log('\n  WARNING: Groq daily limit approaching. Consider Ollama fallback.');
+    }
+    console.log('');
+  }
+
+  // Quick reference
+  console.log('## Commands');
+  console.log('  llm "prompt"                Groq 70B (free)');
+  console.log('  llm -m groq-fast "prompt"   Groq 8B (ultra-fast)');
+  console.log('  llm -m local-fast "prompt"  Ollama 1B (offline)');
+  console.log('  mcp__llm__ask               MCP tool (in Claude Code)');
+  console.log('\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550');
+}
+
+// ── Main ──────────────────────────────────────────────────
+
+const args = new Set(process.argv.slice(2));
+const opts = {
+  test: args.has('--test'),
+  budget: args.has('--budget'),
+  watch: args.has('--watch'),
+};
+
+await display(opts);
+
+if (opts.watch) {
+  setInterval(async () => {
+    process.stdout.write('\x1B[2J\x1B[H');
+    await display(opts);
+  }, 10000);
+}

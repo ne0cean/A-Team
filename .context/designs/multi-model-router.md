@@ -265,18 +265,23 @@ done
 - [x] config.yaml 작성 — ✅ `scripts/multi-model/litellm-config.yaml`
 - [x] `litellm` 실행 확인 — ✅ localhost:4000
 
-### Phase 3: OpenRouter
-- [ ] 계정 생성 및 API Key 발급
-- [ ] 환경변수 설정
-- [ ] fallback 테스트
+### Phase 3: Groq 무료 fallback (Direct Mode)
+- [x] Groq API Key 발급 — ✅ GROQ_API_KEY 환경변수 설정
+- [x] route.mjs Direct Mode 구현 — ✅ Groq/Ollama 직접 호출
+- [x] llm CLI wrapper — ✅ /usr/local/bin/llm 심볼릭 링크
+- [x] OpenRouter 검토 — ✅ 유료 확인, Groq 무료 대안으로 결정
 
-### Phase 4: 연결
-- [ ] Claude Code → LiteLLM 프록시 연결
-- [ ] 라우팅 규칙 테스트
+### Phase 4: Claude Code 연결
+- [x] MCP 서버 (mcp-local-model.mjs) — ✅ llm 키로 settings.json 등록
+- [x] @modelcontextprotocol/sdk 설치 — ✅ 부팅 정상 확인
+- [x] CLAUDE.md Step 5 라우팅 규칙 — ✅ 단순 작업→llm CLI, 복잡→Agent
+- [ ] Claude Code 재시작 후 mcp__llm__ask 실제 호출 확인
 
-### Phase 5: 모니터링
-- [ ] usage 대시보드 확인
-- [x] 예산 상한 설정 — ✅ config에 $10/day
+### Phase 5: 모니터링 + 예산
+- [x] monitor.mjs Direct Mode 재작성 — ✅ Groq/Ollama 헬스체크 + 사용량 + 예산
+- [x] SubagentStart/Stop 훅 — ✅ analytics.jsonl 에이전트 로깅
+- [x] orchestration-report.mjs — ✅ 모델 분포 + 시간대별 리포트
+- [x] Groq rate limit 추적 — ✅ 무료 tier RPM/RPD/TPM/TPD 모니터링
 
 ## 예상 효과
 
