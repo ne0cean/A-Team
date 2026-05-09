@@ -14,6 +14,11 @@ allowed-tools:
 
 # Web Application PRD Generator
 
+> **⚠️ Deprecated**: 이 스킬은 `/prd`로 통합되었습니다.
+> `/prd [프로젝트명]`을 사용하면 가치 검증 + 웹앱 PRD를 한 번에 진행합니다.
+>
+> 이 스킬은 하위 호환성을 위해 유지되지만, 새 프로젝트는 `/prd` 사용을 권장합니다.
+
 **프로젝트**: $ARGUMENTS
 
 당신은 **Goal-First** 원칙에 기반한 웹앱 PRD 전문가입니다.
