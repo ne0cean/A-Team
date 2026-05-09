@@ -1,16 +1,19 @@
 #!/usr/bin/env node
 /**
- * MCP Server: Local Model (Ollama)
+ * MCP Server: Multi-Model (Ollama + Groq)
  *
- * Claude Code에서 Ollama 로컬 모델을 MCP tool로 사용.
- * 토큰 비용 0, rate limit 없음.
+ * Claude Code에서 로컬/무료 모델을 MCP tool로 사용.
+ * Ollama: 토큰 비용 0, rate limit 없음.
+ * Groq: 무료 tier, 초고속.
  *
  * 설치:
  *   1. ~/.claude/settings.json에 mcpServers 추가
- *   2. ollama serve 실행 중이어야 함
+ *   2. ollama serve 실행 중이어야 함 (로컬 모델용)
+ *   3. GROQ_API_KEY 환경변수 설정 (Groq용)
  *
  * 사용:
- *   mcp__local-model__ask_local({ prompt: "...", model: "qwen2.5-coder:7b" })
+ *   mcp__llm__ask({ prompt: "...", model: "groq-free" })
+ *   mcp__llm__ask({ prompt: "...", model: "local-fast" })
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -18,11 +21,17 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const DEFAULT_MODEL = process.env.OLLAMA_DEFAULT_MODEL || "qwen2.5-coder:7b";
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const TIMEOUT_MS = parseInt(process.env.OLLAMA_TIMEOUT_MS || "120000", 10);
 
+const GROQ_MODELS = {
+  'groq-free': 'llama-3.3-70b-versatile',
+  'groq-fast': 'llama-3.1-8b-instant',
+};
+
 const server = new Server({
-  name: "local-model",
-  version: "1.0.0",
+  name: "llm",
+  version: "2.0.0",
 }, {
   capabilities: { tools: {} }
 });
@@ -31,20 +40,20 @@ const server = new Server({
 server.setRequestHandler("tools/list", async () => ({
   tools: [
     {
-      name: "ask_local",
-      description: "Ask local Ollama model. Free, no rate limit. Best for: summaries, formatting, simple code, log analysis.",
+      name: "ask",
+      description: "Ask a free/local model. Use for summaries, formatting, simple code, log analysis. Models: groq-free (70B, fast), groq-fast (8B, ultra-fast), local-fast (Ollama 1B), local-strong (Ollama 32B).",
       inputSchema: {
         type: "object",
         properties: {
           prompt: {
             type: "string",
-            description: "The question or task for the local model"
+            description: "The question or task"
           },
           model: {
             type: "string",
-            description: "Ollama model to use",
-            enum: ["qwen2.5-coder:7b", "qwen2.5-coder:14b", "qwen2.5-coder:32b"],
-            default: DEFAULT_MODEL
+            description: "Model to use",
+            enum: ["groq-free", "groq-fast", "local-fast", "local-strong"],
+            default: "groq-free"
           },
           system: {
             type: "string",
@@ -55,24 +64,12 @@ server.setRequestHandler("tools/list", async () => ({
       }
     },
     {
-      name: "local_status",
-      description: "Check Ollama server status and available models",
+      name: "status",
+      description: "Check available models and their status (Ollama + Groq)",
       inputSchema: {
         type: "object",
         properties: {},
         required: []
-      }
-    },
-    {
-      name: "local_embed",
-      description: "Generate embeddings using local model",
-      inputSchema: {
-        type: "object",
-        properties: {
-          text: { type: "string", description: "Text to embed" },
-          model: { type: "string", default: "nomic-embed-text" }
-        },
-        required: ["text"]
       }
     }
   ]
@@ -84,12 +81,10 @@ server.setRequestHandler("tools/call", async (request) => {
 
   try {
     switch (name) {
-      case "ask_local":
-        return await handleAskLocal(args);
-      case "local_status":
+      case "ask":
+        return await handleAsk(args);
+      case "status":
         return await handleStatus();
-      case "local_embed":
-        return await handleEmbed(args);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -104,106 +99,111 @@ server.setRequestHandler("tools/call", async (request) => {
   }
 });
 
-async function handleAskLocal({ prompt, model = DEFAULT_MODEL, system }) {
+const OLLAMA_MODELS = {
+  'local-fast': 'llama3.2:1b',
+  'local-strong': 'qwen2.5-coder:32b',
+};
+
+async function handleAsk({ prompt, model = "groq-free", system }) {
+  if (GROQ_MODELS[model]) {
+    return await handleGroq({ prompt, model, system });
+  }
+  if (OLLAMA_MODELS[model]) {
+    return await handleOllama({ prompt, model: OLLAMA_MODELS[model], system });
+  }
+  throw new Error(`Unknown model: ${model}. Use: groq-free, groq-fast, local-fast, local-strong`);
+}
+
+async function handleGroq({ prompt, model, system }) {
+  if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY not set");
+
+  const messages = [];
+  if (system) messages.push({ role: "system", content: system });
+  messages.push({ role: "user", content: prompt });
+
+  const start = Date.now();
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: GROQ_MODELS[model],
+      messages,
+      max_tokens: 4096,
+    }),
+  });
+
+  if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content || "";
+  const latency = Date.now() - start;
+
+  const meta = `${model} (${GROQ_MODELS[model]}) | ${data.usage?.total_tokens || "?"} tokens | ${latency}ms`;
+  return { content: [{ type: "text", text: `${content}\n\n---\n_${meta}_` }] };
+}
+
+async function handleOllama({ prompt, model, system }) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const body = {
-      model,
-      prompt,
-      stream: false,
-      options: {
-        temperature: 0.7,
-        num_predict: 4096
-      }
-    };
+    const messages = [];
+    if (system) messages.push({ role: "system", content: system });
+    messages.push({ role: "user", content: prompt });
 
-    if (system) {
-      body.system = system;
-    }
-
-    const response = await fetch(`${OLLAMA_BASE}/api/generate`, {
+    const response = await fetch(`${OLLAMA_BASE}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ model, messages, stream: false, options: { num_predict: 4096 } }),
       signal: controller.signal
     });
 
-    if (!response.ok) {
-      throw new Error(`Ollama error: ${response.status} ${response.statusText}`);
-    }
-
+    if (!response.ok) throw new Error(`Ollama ${response.status}: ${response.statusText}`);
     const data = await response.json();
+    const content = data.message?.content || "";
 
-    // 메타데이터 포함
     const meta = [
-      `Model: ${model}`,
-      `Tokens: ${data.prompt_eval_count || 0} in / ${data.eval_count || 0} out`,
-      `Time: ${((data.total_duration || 0) / 1e9).toFixed(2)}s`
+      `${model} (local)`,
+      `${(data.prompt_eval_count || 0) + (data.eval_count || 0)} tokens`,
+      `${((data.total_duration || 0) / 1e9).toFixed(2)}s`
     ].join(" | ");
 
-    return {
-      content: [{
-        type: "text",
-        text: `${data.response}\n\n---\n_${meta}_`
-      }]
-    };
+    return { content: [{ type: "text", text: `${content}\n\n---\n_${meta}_` }] };
   } finally {
     clearTimeout(timeout);
   }
 }
 
 async function handleStatus() {
-  const [tagsRes, versionRes] = await Promise.all([
-    fetch(`${OLLAMA_BASE}/api/tags`).catch(() => null),
-    fetch(`${OLLAMA_BASE}/api/version`).catch(() => null)
-  ]);
+  const results = [];
 
-  if (!tagsRes?.ok) {
-    return {
-      content: [{
-        type: "text",
-        text: `Ollama not reachable at ${OLLAMA_BASE}\n\nStart with: ollama serve`
-      }],
-      isError: true
-    };
+  // Groq
+  if (GROQ_API_KEY) {
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/models", {
+        headers: { "Authorization": `Bearer ${GROQ_API_KEY}` },
+      });
+      results.push(res.ok ? "Groq: OK (free tier)" : `Groq: Error ${res.status}`);
+    } catch { results.push("Groq: Unreachable"); }
+  } else {
+    results.push("Groq: GROQ_API_KEY not set");
   }
 
-  const tags = await tagsRes.json();
-  const version = versionRes?.ok ? await versionRes.json() : { version: "unknown" };
+  // Ollama
+  try {
+    const tagsRes = await fetch(`${OLLAMA_BASE}/api/tags`);
+    if (tagsRes.ok) {
+      const tags = await tagsRes.json();
+      const models = tags.models?.map(m => m.name).join(", ") || "none";
+      results.push(`Ollama: OK (${models})`);
+    } else {
+      results.push(`Ollama: Error ${tagsRes.status}`);
+    }
+  } catch { results.push(`Ollama: Offline (${OLLAMA_BASE})`); }
 
-  const models = tags.models?.map(m =>
-    `- ${m.name} (${(m.size / 1e9).toFixed(1)}GB)`
-  ).join("\n") || "No models installed";
-
-  return {
-    content: [{
-      type: "text",
-      text: `Ollama Status\n\nVersion: ${version.version}\nEndpoint: ${OLLAMA_BASE}\n\nModels:\n${models}`
-    }]
-  };
-}
-
-async function handleEmbed({ text, model = "nomic-embed-text" }) {
-  const response = await fetch(`${OLLAMA_BASE}/api/embeddings`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, prompt: text })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Embedding failed: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  return {
-    content: [{
-      type: "text",
-      text: `Embedding generated (${data.embedding?.length || 0} dimensions)`
-    }]
-  };
+  return { content: [{ type: "text", text: results.join("\n") }] };
 }
 
 // 시작
