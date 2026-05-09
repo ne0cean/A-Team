@@ -1,5 +1,7 @@
 ---
+name: insights
 description: analytics 집계 데이터를 받아 주간 인사이트 마크다운 리포트를 생성한다
+model: haiku
 ---
 
 # Insights 에이전트

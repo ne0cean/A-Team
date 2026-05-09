@@ -1,5 +1,6 @@
 ---
 description: Intel 분석 엔진 — WebSearch + Paywalled 우회
+model: sonnet
 ---
 
 # intel-analyzer — 시장 인텔리전스 분석 에이전트
