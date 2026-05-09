@@ -47,8 +47,29 @@ for f in "$SRC"/*.md; do
 done
 
 echo ""
-echo "✅ 완료 — 추가: ${added}개, 업데이트: ${updated}개"
+echo "✅ 커맨드 — 추가: ${added}개, 업데이트: ${updated}개"
 echo "   총 $(ls "$DST" | wc -l | tr -d ' ')개 커맨드 설치됨"
+
+# --- Agents 동기화 ---
+AGENT_SRC="$ATEAM_DIR/.claude/agents"
+AGENT_DST="$HOME/.claude/agents"
+
+if [ -d "$AGENT_SRC" ]; then
+  mkdir -p "$AGENT_DST"
+  a_added=0
+  for f in "$AGENT_SRC"/*.md; do
+    name=$(basename "$f")
+    target="$AGENT_DST/$name"
+    [ -L "$f" ] && continue
+    if [ -L "$target" ] && [ "$(readlink "$target")" = "$f" ]; then
+      continue
+    fi
+    ln -sf "$f" "$target"
+    ((a_added++)) || true
+  done
+  echo "✅ 에이전트 — ${a_added}개 신규/갱신"
+  echo "   총 $(ls "$AGENT_DST"/*.md 2>/dev/null | wc -l | tr -d ' ')개 에이전트 설치됨"
+fi
 
 # Guard: docs/commands/ 에 .claude/commands/에 없는 커맨드가 있으면 경고
 DOCS_CMD="$ATEAM_DIR/docs/commands"
