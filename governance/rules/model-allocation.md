@@ -77,3 +77,63 @@ Claude는 매 5턴마다 자가 점검:
 - 사용자가 "Opus로 계속 해" 명시 → 룰 무시
 - 사용자가 "/model" 명령 직접 사용 → 그 모델 유지
 - `.context/MODEL_PIN.md` 파일 존재 → 해당 모델 고정
+
+---
+
+## LiteLLM 프록시 연동 (Multi-Model Router)
+
+> **설정 파일**: `scripts/multi-model/litellm-config.yaml`
+> **목표**: Opus는 기획/아키텍처만, 하위 작업은 로컬/저가 모델 자동 분기
+
+### 모델 라우팅 테이블
+
+| LiteLLM 모델명 | 실제 모델 | 용도 | 비용 |
+|---------------|----------|------|------|
+| `planner` | Claude Sonnet 4 | 설계/기획/복잡한 판단 | $3/M tok |
+| `coder` | Claude Sonnet 4 | 구현/수정 | $3/M tok |
+| `local-fast` | Ollama qwen2.5-coder:7b | 요약/정리/포맷 | **$0** |
+| `local-strong` | Ollama qwen2.5-coder:32b | 코딩 (오프라인) | **$0** |
+| `groq-free` | Groq Llama 3.3 70B | 빠른 추론 (무료) | **$0** |
+
+### 자동 라우팅 규칙 (향후 구현)
+
+```yaml
+routing_rules:
+  - pattern: "요약|정리|포맷|번역"
+    model: local-fast
+
+  - pattern: "구현|수정|리팩토링|버그"
+    model: coder
+    fallback: local-strong
+
+  - pattern: "설계|아키텍처|비교|전략"
+    model: planner
+
+  - pattern: "분류|판정|필터"
+    model: groq-free  # 무료 + 빠름
+```
+
+### LiteLLM 프록시 실행
+
+```bash
+# Docker 컨테이너 (권장)
+docker run -d --name litellm \
+  -p 4000:4000 \
+  -v $(pwd)/scripts/multi-model/litellm-config.yaml:/app/config.yaml \
+  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
+  -e GROQ_API_KEY=$GROQ_API_KEY \
+  ghcr.io/berriai/litellm:main-latest \
+  --config /app/config.yaml
+
+# API 호출 예시
+curl http://localhost:4000/v1/chat/completions \
+  -H "Authorization: Bearer sk-ateam-litellm" \
+  -d '{"model": "local-fast", "messages": [{"role": "user", "content": "요약해줘"}]}'
+```
+
+### 현재 상태
+
+- Phase 1-2: ✅ Ollama + LiteLLM Docker 가동
+- Phase 3: 🔄 Groq 무료 fallback 추가 중
+- Phase 4: ⏳ Claude Code 에이전트 연결
+- Phase 5: ⏳ 자동 라우팅 + 예산 모니터링
