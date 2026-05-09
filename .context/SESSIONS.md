@@ -2,6 +2,14 @@
 
 ---
 
+## [2026-05-09] Multi-Model Router Phase 3-5 완료 — MCP SDK + 모니터링
+
+**완료**: @modelcontextprotocol/sdk 설치 + mcp-local-model.mjs API 수정 (서버 부팅 정상). monitor.mjs Direct Mode 재작성 (Groq/Ollama 헬스체크 + 엔드포인트 테스트 + analytics 사용량 + Groq rate limit 추적). 설계문서 Phase 3-5 체크리스트 갱신.
+**이슈**: local-strong (32B) cold start 60s 타임아웃 → 테스트 타임아웃 60s로 증가. Claude Code 재시작 필요 (mcp__llm__ask 활성화).
+**빌드**: 489 PASS
+
+---
+
 ## [2026-05-05] Prompt Coaching 시스템 — 5가지 실패 유형 기반 피드백 루프
 
 **완료**:

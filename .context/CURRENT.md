@@ -62,7 +62,7 @@
 - (없음)
 
 ## Last Completions (2026-05-09)
-- **Multi-Model Router Phase 3 진행** — OpenRouter 계정 생성 + API Key 발급 + LiteLLM config 업데이트 (모델명 `claude-3.5-sonnet` → `claude-sonnet-4`). OpenRouter 유료 확인 → **Groq 무료 대안으로 전환 예정**.
+- **Multi-Model Router Phase 3-5 완료** — Groq Direct Mode + MCP SDK 설치 + monitor.mjs 재작성. @modelcontextprotocol/sdk 설치 + mcp-local-model.mjs API 수정 (ListToolsRequestSchema/CallToolRequestSchema). 4 모델 정상: Groq free 212ms, Groq fast 201ms, Ollama 1B 1.6s, Ollama 32B (cold start 60s). monitor.mjs: 헬스체크 + 엔드포인트 테스트 + analytics 사용량 + Groq rate limit 예산 추적. SubagentStart/Stop 훅 + orchestration-report.mjs. CLAUDE.md Step 5 로컬 모델 라우팅 규칙. 설계문서 Phase 3-5 체크리스트 갱신. **489 tests PASS**.
 - **D2Coding 폰트 + VS Code 설정** — 터미널 한글 깨짐 수정. D2Coding 폰트 설치 (`~/Library/Fonts/`) + VS Code `terminal.integrated.fontFamily` 설정.
 - **Claude.ai 웹 지침 토큰 효율화** — 6줄 축약 버전 제공 (한국어, 인사말 생략, 핵심만).
 
@@ -99,10 +99,10 @@
 | Phase | 내용 | 상태 |
 |-------|------|------|
 | 1 | Ollama 설치 + qwen2.5-coder 7B/14B | ✅ |
-| 2 | LiteLLM 프록시 설정 (Docker) | ✅ |
-| 3 | OpenRouter → Groq 무료 fallback | 🔄 진행중 |
-| 4 | Claude Code 연결 | ⏳ |
-| 5 | 모니터링 + 예산 상한 | ⏳ |
+| 2 | LiteLLM → Direct Mode 전환 | ✅ |
+| 3 | Groq 무료 fallback + llm CLI | ✅ |
+| 4 | MCP 서버 + CLAUDE.md 라우팅 | ✅ (재시작 후 확인) |
+| 5 | 모니터링 + 예산 상한 | ✅ |
 
 **예상 효과**: Opus 사용률 100%→20-30%, 토큰 비용 -50~70%, 처리량 2-3x
 
