@@ -61,6 +61,16 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-11)
+- **Orchestration v2 — 실험 기반 설계 확정** (6라운드 레드팀 검증):
+  - **검증된 메커니즘 3개**: (1) PreToolUse Agent `permissionDecision:deny` → Agent 차단 + Groq 답 주입 ✅ (2) PostToolUse Read `additionalContext` → 파일 요약 자동 주입 ✅ (3) UserPromptSubmit 미검증 (발동 안 됨, 다음 세션 재테스트)
+  - **실측 벤치마크**: Groq 272-889ms (실제, "80ms"는 과장), 병렬 5건 767ms, rate limit 15건 연속 OK
+  - **품질 검증**: 영어 요약/포맷/검색 = 우수. **한국어 생성 = 실패** (일본어/중국어 혼입)
+  - **핵심 발견**: `systemMessage`=UI전용(실패), `additionalContext`=hookSpecificOutput 내에서만 작동, `permissionDecision:deny`=Agent 차단 성공
+  - **Explore 에이전트 grep 차단 성공**: bash grep → Groq 해석 → 정확한 답 (이전 22k tok 3.6s → 0 tok 1s)
+  - **거짓말 적발 5건**: 80ms TTFT(실제 272-889ms), 10-25x 빠름(실제 3-7x), marketing 5-6x(한국어 불가), 0-9% 범위(실제 35%), systemMessage 작동(UI전용)
+  - 설계문서: `.context/designs/orchestration-v2.md`
+
 ## Last Completions (2026-05-09)
 - **Multi-Model Router Phase 3-5 완료** — Groq Direct Mode + MCP SDK 설치 + monitor.mjs 재작성. @modelcontextprotocol/sdk 설치 + mcp-local-model.mjs API 수정 (ListToolsRequestSchema/CallToolRequestSchema). 4 모델 정상: Groq free 212ms, Groq fast 201ms, Ollama 1B 1.6s, Ollama 32B (cold start 60s). monitor.mjs: 헬스체크 + 엔드포인트 테스트 + analytics 사용량 + Groq rate limit 예산 추적. SubagentStart/Stop 훅 + orchestration-report.mjs. CLAUDE.md Step 5 로컬 모델 라우팅 규칙. 설계문서 Phase 3-5 체크리스트 갱신. **489 tests PASS**.
 - **D2Coding 폰트 + VS Code 설정** — 터미널 한글 깨짐 수정. D2Coding 폰트 설치 (`~/Library/Fonts/`) + VS Code `terminal.integrated.fontFamily` 설정.

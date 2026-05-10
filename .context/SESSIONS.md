@@ -2,6 +2,14 @@
 
 ---
 
+## [2026-05-11] Orchestration v2 — 6라운드 레드팀 기반 실험 설계
+
+**완료**: 4개 병렬 리서치 (GitHub 28개 프로젝트, 벤치마크, 훅 아키텍처, speculative execution). 실측 벤치마크 (Groq 272-889ms, 병렬 OK, 한국어 실패 확인). 핵심 메커니즘 발견: `permissionDecision:deny` → Agent 차단 + hookSpecificOutput.additionalContext 주입 작동. Explore 에이전트 grep 검색 완전 차단 성공 (0 tok, 1s). 거짓말 5건 적발 및 수정.
+**이슈**: systemMessage UI전용 (모델 컨텍스트 미주입), 한국어 생성 Groq 불가, UserPromptSubmit 발동 미확인, Groq 오답 시 맹신 가능성.
+**빌드**: 489 PASS
+
+---
+
 ## [2026-05-09] Multi-Model Router Phase 3-5 완료 — MCP SDK + 모니터링
 
 **완료**: @modelcontextprotocol/sdk 설치 + mcp-local-model.mjs API 수정 (서버 부팅 정상). monitor.mjs Direct Mode 재작성 (Groq/Ollama 헬스체크 + 엔드포인트 테스트 + analytics 사용량 + Groq rate limit 추적). 설계문서 Phase 3-5 체크리스트 갱신.
