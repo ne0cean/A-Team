@@ -2,6 +2,14 @@
 
 ---
 
+## [2026-05-13] APQC Gap Analysis P0-P3 + 풀오토 오케스트레이션
+
+**완료**: 5개 병렬 리서치 (회사 구조/부서 택소노미/AI 자동화/GitHub 프레임워크/테크스택) + 2개 추가 리서치 (라이선스/Revenue·SEO·Sales). APQC 13 카테고리 vs A-Team 매핑 → 52%→68%. P0: license-checker-rseidelsohn CI + legal 템플릿 (Common Paper CC BY 4.0) + revenue tracking + customer support 설계. P1: /prioritize RICE + feedback-loop + growth-framework. P2: /incident + /okr + health-check.mjs (10항목 전체 PASS). P3: community + budgeting + infrastructure. npm install 보안 감사 PreToolUse 훅. Orchestration v2: permissionDecision:deny Agent 차단 성공 + hookSpecificOutput.additionalContext 주입 확인 + Explore grep 차단 (0 tok). 거짓말 5건 적발/수정.
+**이슈**: systemMessage UI전용 확인. Groq 한국어 생성 불가. UserPromptSubmit 발동 미확인.
+**빌드**: 489 PASS + 10/10 health
+
+---
+
 ## [2026-05-11] Orchestration v2 — 6라운드 레드팀 기반 실험 설계
 
 **완료**: 4개 병렬 리서치 (GitHub 28개 프로젝트, 벤치마크, 훅 아키텍처, speculative execution). 실측 벤치마크 (Groq 272-889ms, 병렬 OK, 한국어 실패 확인). 핵심 메커니즘 발견: `permissionDecision:deny` → Agent 차단 + hookSpecificOutput.additionalContext 주입 작동. Explore 에이전트 grep 검색 완전 차단 성공 (0 tok, 1s). 거짓말 5건 적발 및 수정.

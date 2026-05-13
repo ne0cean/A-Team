@@ -61,6 +61,9 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-13)
+- **APQC Gap Analysis P0-P3 전체 완료** — 커버리지 52%→68%. 11개 리서치 (240KB+), P0 4건 (License Compliance 자동화 + Legal 템플릿 + Revenue Tracking + Customer Support 설계), P1 3건 (/prioritize RICE + Feedback Loop + Growth Framework), P2 3건 (/incident + /okr + health-check.mjs 10항목 모니터링), P3 3건 (Community + Budgeting + Infrastructure 템플릿). 커맨드 66→70개, 템플릿 4→8개. npm install 자동 보안 감사 훅. **489 tests PASS + 10/10 health check.**
+
 ## Last Completions (2026-05-11)
 - **Orchestration v2 — 실험 기반 설계 확정** (6라운드 레드팀 검증):
   - **검증된 메커니즘 3개**: (1) PreToolUse Agent `permissionDecision:deny` → Agent 차단 + Groq 답 주입 ✅ (2) PostToolUse Read `additionalContext` → 파일 요약 자동 주입 ✅ (3) UserPromptSubmit 미검증 (발동 안 됨, 다음 세션 재테스트)
