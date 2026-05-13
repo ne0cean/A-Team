@@ -2,6 +2,14 @@
 
 ---
 
+## [2026-05-13] P4 Governance & Trust + 이사회 + 문서 비대화 해소
+
+**완료**: Analytics anomaly-detect.mjs (6가지 감지) + weekly-report.mjs (통합 리포트, Business KPI 섹션). capability-map APQC P0-P3 반영 (42%→44%). PMI 실행 — CURRENT.md 418→163줄 (-61%), autoresearch -80%, zzz -69%, webapp-prd/dashboard-prd stub화. governance/rules/document-hygiene.md 영구 규칙. P4: /board AI 이사회 제1회 (4인 페르소나, MRR $0 직면, 인프라 모라토리엄 결의) + templates/legal/ (Privacy+ToS+GDPR) + templates/bcp-dr.md + OKR Q2 설정 (Rocks 3개). 레드팀 3건 수정 (ts fallback, ANOMALY_NO_EMIT self-pollution, a11y false positive). 벤치마크 7 프레임워크 + 3 사례 + 7 GitHub 기록.
+**이슈**: 브랜딩 미확정 → Postiz OAuth/소셜 계정 대기. 인프라 모라토리엄 선언 (제품 출시 전 새 커맨드 빌드 금지).
+**빌드**: 507 PASS (+18), 5 commits pushed.
+
+---
+
 ## [2026-05-13] APQC Gap Analysis P0-P3 + 풀오토 오케스트레이션
 
 **완료**: 5개 병렬 리서치 (회사 구조/부서 택소노미/AI 자동화/GitHub 프레임워크/테크스택) + 2개 추가 리서치 (라이선스/Revenue·SEO·Sales). APQC 13 카테고리 vs A-Team 매핑 → 52%→68%. P0: license-checker-rseidelsohn CI + legal 템플릿 (Common Paper CC BY 4.0) + revenue tracking + customer support 설계. P1: /prioritize RICE + feedback-loop + growth-framework. P2: /incident + /okr + health-check.mjs (10항목 전체 PASS). P3: community + budgeting + infrastructure. npm install 보안 감사 PreToolUse 훅. Orchestration v2: permissionDecision:deny Agent 차단 성공 + hookSpecificOutput.additionalContext 주입 확인 + Explore grep 차단 (0 tok). 거짓말 5건 적발/수정.
