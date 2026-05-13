@@ -3,14 +3,20 @@ description: /okr — OKR/KPI 설정·추적·회고 자동화
 ---
 
 분기별 목표 설정 → 주간 추적 → 분기 회고.
+EOS Rocks 패턴 통합: 90일 최우선 과제 3-5개 + 자동 진척 추적.
+
+## 자동 연동
+- `/end` — 세션 종료 시 OKR 파일 존재하면 진행률 자동 업데이트 (자동 측정 가능 KR만)
+- `/board` — 월간 이사회에서 90일 Rocks 점검 자동 포함
+- `/vibe` — 세션 시작 시 현재 OKR 상태 1줄 요약 출력
 
 ## 사용법
 
 ```
-/okr set          — 새 분기 OKR 설정
-/okr check        — 주간 진행률 체크
+/okr set          — 새 분기 OKR + 90일 Rocks 설정
+/okr check        — 주간 진행률 체크 (자동 측정 + 수동 입력)
 /okr retro        — 분기 회고
-/okr status       — 현재 OKR 상태 요약
+/okr status       — 현재 OKR + Rocks 상태 요약
 ```
 
 ## /okr set — 분기 OKR 설정
@@ -73,6 +79,26 @@ description: /okr — OKR/KPI 설정·추적·회고 자동화
 2. 각 KR 달성/미달성 분석
 3. 다음 분기 OKR 초안 제안
 4. 저장: `.context/okr/YYYY-QN-retro.md`
+
+## 90일 Rocks (EOS 패턴)
+
+OKR 설정 시 함께 정의. Rocks = 이번 분기 **반드시 완료해야 할 3-5개 프로젝트**.
+
+```markdown
+## 90-Day Rocks — YYYY Q[N]
+
+| # | Rock | Owner | Due | Status |
+|---|------|-------|-----|--------|
+| 1 | [PLACEHOLDER: 첫 제품 MVP 출시] | CEO | MM/DD | 🟡 |
+| 2 | [PLACEHOLDER: 첫 유료 고객 10명] | CEO | MM/DD | 🔴 |
+| 3 | [PLACEHOLDER: 콘텐츠 발행 시작] | AI | MM/DD | 🟡 |
+```
+
+**OKR과 Rocks 차이**:
+- OKR = "무엇을 측정하나" (방향 + 지표)
+- Rocks = "이번 분기 뭘 끝내나" (구체적 프로젝트)
+
+**자동 추적**: `/okr check` 실행 시 Rocks status도 함께 점검. `/board`에서 90일 Rocks 테이블 자동 포함.
 
 ## 자동 측정 가능한 KPI (A-Team)
 

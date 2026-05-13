@@ -176,6 +176,27 @@ function generateMarkdown(weekLabel, cur, prev, anomalyReport, capSummary) {
   }
   lines.push('');
 
+  // Business KPIs
+  const revenue = safeJSON(resolve(ROOT, '.context/revenue.json'));
+  if (revenue) {
+    lines.push('## Business KPIs');
+    lines.push('| KPI | Value | Prev | Trend |');
+    lines.push('|-----|-------|------|-------|');
+    if (revenue.mrr != null) lines.push(`| MRR | $${revenue.mrr} | $${revenue.prev_mrr ?? '-'} | ${revenue.mrr > (revenue.prev_mrr ?? 0) ? '📈' : revenue.mrr < (revenue.prev_mrr ?? 0) ? '📉' : '➡️'} |`);
+    if (revenue.arr != null) lines.push(`| ARR | $${revenue.arr} | - | - |`);
+    if (revenue.customers != null) lines.push(`| Customers | ${revenue.customers} | ${revenue.prev_customers ?? '-'} | ${revenue.customers > (revenue.prev_customers ?? 0) ? '📈' : '➡️'} |`);
+    if (revenue.churn_rate != null) lines.push(`| Churn Rate | ${(revenue.churn_rate * 100).toFixed(1)}% | - | ${revenue.churn_rate > 0.05 ? '🔴' : '🟢'} |`);
+    if (revenue.published_content != null) lines.push(`| Published Content | ${revenue.published_content} | - | - |`);
+    lines.push('');
+  } else {
+    lines.push('## Business KPIs');
+    lines.push('*No revenue data yet. Create `.context/revenue.json` when first revenue arrives:*');
+    lines.push('```json');
+    lines.push('{"mrr":0,"arr":0,"customers":0,"churn_rate":null,"prev_mrr":0,"prev_customers":0,"published_content":0}');
+    lines.push('```');
+    lines.push('');
+  }
+
   // Anomalies
   if (anomalyReport && anomalyReport.anomalies_found > 0) {
     lines.push('## Anomalies');
