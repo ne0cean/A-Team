@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**502 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-05-13).
+**507 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-05-13).
 **PIOP 최적화 완료** — Phase 2 intel 모듈 100% 연결 (3 wiring, +0.6% token cost).
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
@@ -61,6 +61,16 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-13) — P4 Governance & Trust + 이사회 + OKR
+- **`/board` AI 이사회 제1회 실행** — 4인 페르소나 전략 감사. 경영 성적표 MRR $0 🔴 / 발행 0건 🔴 / 507 tests 🟢. "인프라 모라토리엄" 결의.
+- **OKR 2026-Q2 설정** — O1 첫 제품+매출, O2 외부 존재감, O3 도구 실사용. 90일 Rocks 3개.
+- **Legal 기반** — templates/legal/ (Privacy Policy + ToS + GDPR Cookie Consent)
+- **BCP/DR** — templates/bcp-dr.md 1인 기업 48시간 생존 플랜
+- **Revenue KPI** — weekly-report.mjs Business KPIs 섹션 (MRR/ARR/Churn)
+- **레드팀 3건 수정** — ts fallback 버그, self-pollution 방지 (ANOMALY_NO_EMIT), a11y false positive
+- **벤치마크 기록** — 7 프레임워크 + 3 사례 + 7 GitHub 전체 기록
+- **507 tests PASS** (+5 TDD).
+
 ## Last Completions (2026-05-13) — Analytics 이상감지 + 주간리포트
 - **Capability Map APQC 반영** — operations (incident 50%, okr 50%, health 60%, community 30%, infrastructure 30%, financial 40%), engineering (security 80%, prioritization 65%), sales-cs (customer-support 30%). updated_at 2026-05-13.
 - **Anomaly Detection 엔진** — `scripts/anomaly-detect.mjs` 6가지 감지 (모듈사용 급변, 디자인품질 하락, A11y 위반 급증, 테스트실패 급등, 세션불일치, 이벤트공백). z-score 기반. `--json`/`--alert-only`/`--days N` 지원. exit 1 on critical.
@@ -115,16 +125,17 @@
 Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi-model-router.md)
 
 ## Completed Phases (참조용)
-- **Phase 0** ✅ — 메타 인프라 (analytics + dashboard + logEvent)
-- **Phase 0.5** ✅ — Capability Growth Engine (7 컴포넌트 전부 빌드)
-- **Phase 1** ✅ — 분석/BI (insights + anomaly detection + weekly report)
-- **Phase 2** ⏸️ 80% — 시장 인텔리전스 (콘텐츠 완성, 발행 블로커: Postiz OAuth)
+- **Phase 0-0.5** ✅ — 메타 인프라 + Capability Growth Engine
+- **Phase 1** ✅ — 분석/BI (insights + anomaly + weekly report)
+- **Phase 2** ⏸️ 80% — 인텔리전스 (발행 블로커: 브랜딩 미확정)
+- **P4** ✅ — Governance & Trust (/board + Legal + BCP/DR + OKR Rocks)
 
 ## Next Tasks
 
-### High Priority
-- [ ] **Postiz OAuth 설정 + 실제 발행** — Phase 2/3 Gate 해제 (사용자 수동 10분)
-- [ ] **[HUMAN INSERT] 3개 채우기** — LinkedIn 2개 + Instagram caption 1개
+### High Priority (이사회 결의 2026-05-13)
+- [ ] **제품 출시** — 별도 세션 빌드 완료 즉시 배포 (브랜딩 확정 후)
+- [ ] **브랜딩 확정 → Postiz OAuth + 소셜 계정 + 첫 발행** — 브랜딩 대기 중
+- [ ] **인프라 모라토리엄** — 제품 출시 전 새 커맨드/에이전트 빌드 금지
 
 ### Medium Priority
 - [ ] **`/autoresearch` 파일럿 실행** — `/office-hours` baseline + 3-5 experiments
