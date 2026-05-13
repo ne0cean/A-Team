@@ -50,13 +50,45 @@ Phase 1 HIGH 항목부터 실제 코드 수정으로 연결:
 - PostToolUse / SessionStart 훅 필요한 곳 누락 없는가
 - Circuit breaker / analytics / learnings 연동 누락 확인
 
-### Phase 4 — Token Cost (에이전트 사이즈 측정)
+### Phase 4 — Token Cost + 문서 비대화 방지 (필수)
+
+**원칙**: 모든 문서는 작은 단위로 쪼개져서 필요 시에만 로드. 퍼포먼스 손실 0.
+
 ```bash
 wc -w .claude/agents/*.md .claude/commands/*.md | sort -n | tail -20
+wc -wl .context/CURRENT.md
 ```
-- 에이전트 프롬프트 > 1500 words 시 축약 검토 (orchestrator 예외)
-- 커맨드 프롬프트 > 1200 words 시 on-demand 로드 구조 검토
-- 최근 크기 추이를 `.context/benchmarks/` 에 기록
+
+**4-A. 즉시 로드 파일 상한 (매 세션 컨텍스트에 들어가는 파일)**
+
+| 파일 | 상한 | 위반 시 조치 |
+|------|------|-------------|
+| CURRENT.md | 200줄 | 완료 기록 → SESSIONS.md 이관, 완료 체크리스트 삭제 |
+| CLAUDE.md | 200줄 | 상세 규칙 → governance/rules/ 참조 링크로 분리 |
+
+**4-B. 커맨드/에이전트 상한**
+
+| 유형 | 상한 | 위반 시 조치 |
+|------|------|-------------|
+| 커맨드 (.claude/commands/) | 1200 words | 핵심 로직만 남기고 상세 가이드 → governance/skills/{name}/detail.md 로 분리. 커맨드에서 `Read governance/skills/{name}/detail.md` 지시 |
+| 에이전트 (.claude/agents/) | 1500 words | orchestrator만 예외. 나머지는 역할+입출력만 남기고 상세 → governance/ 참조 |
+| Governance rules | 1500 words | 분할 또는 on-demand Read 구조로 전환 |
+
+**4-C. On-demand 트리거링 패턴**
+```
+# 나쁜 예: 커맨드에 800줄 인라인
+Step 1: (200줄 상세 가이드...)
+
+# 좋은 예: 핵심만 + 필요 시 로드
+Step 1: Read governance/skills/autoresearch/eval-guide.md 후 실행
+```
+
+**4-D. CURRENT.md 위생 규칙**
+- `[x]` 완료 항목은 즉시 삭제 (SESSIONS.md에 이미 기록됨)
+- Last Completions는 최근 2주만 유지, 이전 → SESSIONS.md
+- 완료된 Phase 체크리스트는 1줄 요약으로 축약
+
+최근 크기 추이를 `.context/benchmarks/` 에 기록
 
 ### Phase 5 — Validation
 ```bash
