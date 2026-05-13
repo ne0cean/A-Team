@@ -148,7 +148,7 @@ function detectAnomalies(events) {
     const curA11yRate = curA11y / curDesign.length;
     const prevA11yRate = prevDesign.length > 0 ? prevA11y / prevDesign.length : 0;
 
-    if (curA11yRate > 0.3 && curA11yRate > prevA11yRate * 2) {
+    if (curA11yRate > 0.3 && prevA11yRate > 0 && curA11yRate > prevA11yRate * 2) {
       anomalies.push({
         type: 'a11y_violation_spike',
         severity: 'critical',
@@ -192,7 +192,7 @@ function detectAnomalies(events) {
   // 5. Event gap detection (48h+ without any event)
   if (events.length >= 5) {
     const sorted = events
-      .map(e => new Date(e.ts).getTime())
+      .map(e => new Date(e.ts || e.timestamp).getTime())
       .filter(t => !isNaN(t))
       .sort((a, b) => a - b);
 
@@ -319,8 +319,8 @@ if (jsonMode) {
   }
 }
 
-// Emit analytics event for the scan itself
-if (existsSync(LOG_EVENT)) {
+// Emit analytics event for the scan itself (skip if called from weekly-report or cron to prevent self-pollution)
+if (!process.env.ANOMALY_NO_EMIT) {
   try {
     const logLine = JSON.stringify({
       skill: 'anomaly-detect',

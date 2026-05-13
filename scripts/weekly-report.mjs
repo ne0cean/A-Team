@@ -138,6 +138,7 @@ function runAnomalyDetect(days) {
   try {
     const out = execSync(`node scripts/anomaly-detect.mjs --json --days ${days}`, {
       cwd: ROOT, encoding: 'utf8', timeout: 10000,
+      env: { ...process.env, ANOMALY_NO_EMIT: '1' },
     });
     return JSON.parse(out);
   } catch (e) {

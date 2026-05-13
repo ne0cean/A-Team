@@ -58,8 +58,27 @@ describe('weekly-report', () => {
   it('WoW delta is calculated correctly', () => {
     const out = run('--json --weeks-ago 0');
     const data = JSON.parse(out);
-    // Just verify structure - actual delta depends on data
     expect(typeof data.current.total).toBe('number');
     expect(typeof data.previous.total).toBe('number');
+  });
+
+  it('markdown includes Business KPIs section', () => {
+    const out = run('--weeks-ago 0');
+    expect(out).toContain('## Business KPIs');
+  });
+
+  it('does not pollute analytics via anomaly-detect subprocess', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const analyticsPath = path.resolve(__dirname, '..', '.context/analytics.jsonl');
+    const before = fs.existsSync(analyticsPath)
+      ? fs.readFileSync(analyticsPath, 'utf8').split('\n').filter((l: string) => l.includes('anomaly-detect')).length
+      : 0;
+
+    run('--json --weeks-ago 0');
+
+    const after = fs.readFileSync(analyticsPath, 'utf8').split('\n').filter((l: string) => l.includes('anomaly-detect')).length;
+    // weekly-report calls anomaly-detect with ANOMALY_NO_EMIT=1, so no new anomaly-detect events
+    expect(after).toBe(before);
   });
 });

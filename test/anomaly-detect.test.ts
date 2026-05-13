@@ -66,9 +66,56 @@ describe('anomaly-detect', () => {
   });
 
   it('--alert-only with no critical exits 0', () => {
-    // Should not throw (exit 0 = no critical anomalies)
     const out = run('--alert-only');
-    // May or may not produce output depending on anomalies
     expect(typeof out).toBe('string');
+  });
+
+  it('ANOMALY_NO_EMIT prevents self-pollution', () => {
+    const { execSync: exec } = require('child_process');
+    const fs = require('fs');
+    const path = require('path');
+    const analyticsPath = path.resolve(ROOT, '.context/analytics.jsonl');
+
+    const countAnomalyEvents = () => {
+      if (!fs.existsSync(analyticsPath)) return 0;
+      return fs.readFileSync(analyticsPath, 'utf8')
+        .split('\n')
+        .filter((l: string) => l.includes('"skill":"anomaly-detect"'))
+        .length;
+    };
+
+    const before = countAnomalyEvents();
+
+    // Run with NO_EMIT — anomaly-detect events should NOT increase
+    try {
+      exec('node scripts/anomaly-detect.mjs --json', {
+        cwd: ROOT, encoding: 'utf8', timeout: 10000,
+        env: { ...process.env, ANOMALY_NO_EMIT: '1' },
+      });
+    } catch { /* exit 1 is OK */ }
+
+    const after = countAnomalyEvents();
+    expect(after).toBe(before);
+  });
+
+  it('--days 1 with narrow window still produces valid output', () => {
+    const out = run('--json --days 1');
+    const data = JSON.parse(out);
+    expect(data.scan_window_days).toBe(1);
+    expect(data.anomalies_found).toBeGreaterThanOrEqual(0);
+  });
+
+  it('anomaly types are known values', () => {
+    const out = run('--json --days 30');
+    const data = JSON.parse(out);
+    const knownTypes = [
+      'module_usage_drop', 'module_usage_spike',
+      'design_quality_drop', 'a11y_violation_spike',
+      'test_failure_spike', 'session_mismatch',
+      'event_gap', 'daily_volume_spike', 'daily_volume_drop',
+    ];
+    for (const a of data.anomalies) {
+      expect(knownTypes).toContain(a.type);
+    }
   });
 });
