@@ -49,6 +49,11 @@ OWASP Top 10 + STRIDE 위협 모델링 (Phase 1~8 기존 로직 유지)
 | LLM09 | Misinformation | LLM 환각이 의사결정에 영향 주는 경로 |
 | LLM10 | Unbounded Consumption | 토큰/API 비용 폭주 경로, rate limit 우회 |
 
+**Garak 자동 펜테스트 (Axis 5 실행 시 자동)**:
+Garak CLI 설치 여부 확인 (`which garak`).
+있으면: `garak --model_type litellm --model_name ollama/qwen2.5-coder --probes encoding,knownbadsignatures` 실행. 결과를 LLM01~LLM10 매핑에 통합 (`encoding` → LLM01/LLM05, `knownbadsignatures` → LLM03/LLM07).
+없으면: 스킵. 수동 LLM01~LLM10 체크리스트로 대체. "Garak 미설치 — `pip install garak` 권장" 1줄 안내.
+
 MITRE ATLAS 전술 매핑 (주요 5개):
 - **Reconnaissance**: 에이전트 구조/프롬프트 정보 수집 경로
 - **Initial Access**: 프롬프트 인젝션을 통한 에이전트 제어 획득
