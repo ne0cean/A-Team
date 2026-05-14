@@ -178,6 +178,47 @@ node "$(git rev-parse --show-toplevel 2>/dev/null)/scripts/log-event.mjs" \
 
 요약: 의도오해/스코프폭주/결과물불일치/컨텍스트단절/재작업루프 5유형 분석 → Before/After 예시 → analytics 저장.
 
+## Step 6.8 — Command Usage Coaching (자동)
+
+세션 중 사용된 커맨드 vs 사용 안 했지만 **썼으면 더 좋았을** 커맨드를 분석.
+
+### 분석 기준
+
+| 시나리오 | 놓친 커맨드 | 힌트 |
+|----------|-----------|------|
+| 복잡한 멀티파일 작업을 수동 진행 | `/blueprint` | 설계 문서 먼저 만들면 구현 품질 향상 |
+| 큰 변경 후 wiring 확인 안 함 | `/pmi` | Post-integration 검사로 누락 방지 |
+| 보안 민감 코드 수정 | `/cso` | OWASP/STRIDE 자동 감사 |
+| 제품 아이디어 논의만 하고 문서화 안 함 | `/prd` 또는 `/office-hours` | 구조화된 검증 → PRD 저장 |
+| 여러 접근법 고민 | `/thinking-partner` | 체계적 탐색 |
+| 반복 수정 3회+ | `/tdd` | 테스트 먼저 → 재작업 방지 |
+| 리뷰 없이 push | `/review` 또는 `/ship` | 품질 게이트 |
+| 전략적 결정 없이 구현 | `/plan-ceo` | CEO 관점 검토 |
+| 디버깅 30분+ | `/investigate` | 체계적 근본원인 분석 |
+| 커버리지/성능 의문 | `/benchmark` | 기준선 측정 |
+
+### 출력 형식
+
+```
+🎯 커맨드 활용 피드백
+━━━━━━━━━━━━━━━━━━━━━
+사용한 커맨드: /pickup, /prd, /plan-eng (3개)
+놓친 기회:
+  → /blueprint — 멀티파일 설계 선행했으면 구현 시행착오 줄었을 것
+  → /pmi — 신규 파일 10개+ 추가됨, integration 검사 권장
+```
+
+3개 이하로 간결하게. 해당 없으면 생략.
+
+### Analytics 저장
+
+```bash
+node scripts/log-event.mjs command_coaching \
+  "used=pickup,prd,plan-eng" \
+  "missed=blueprint,pmi" \
+  2>/dev/null || true
+```
+
 ## Step 7 — (선택) Research Mode
 자리를 오래 비울 예정이면 "Research Mode를 시작할까요?" 질문.
 원하면: `/re start`

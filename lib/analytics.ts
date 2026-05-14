@@ -38,7 +38,8 @@ export type EventType =
   | 'ralph_iteration'
   | 'sleep_resume_probe'
   | 'ops_pr_monitoring'
-  | 'ops_cs_response';
+  | 'ops_cs_response'
+  | 'command_coaching';
 
 export interface AnalyticsEvent {
   skill: string;
