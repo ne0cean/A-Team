@@ -2,6 +2,17 @@
 
 ---
 
+## [2026-05-14] PPT 엔진 v3 + 클릭형 인테이크 UI
+
+**완료**:
+- generate_v2.py v3: 12pt 최소 폰트 강제, Y축 겹침 해소, ROUNDED_RECTANGLE+RIGHT_ARROW 도형, oval_dot() 추가, italic 파라미터 버그 수정
+- scripts/ppt/intake.py: questionary 기반 터미널 클릭형 인테이크 (화살표키·체크박스·슬라이더)
+- scripts/ppt/server.py: 로컬 웹 서버 (localhost:7842), 클릭 폼 → 즉시 PPTX 다운로드
+- 반도체 전략 PPT consulting_clean 버전 재생성 (12장, 전체 내용)
+
+**이슈**: Marp 대비 품질 격차 남아있음 — python-pptx 도형 한계. pptxgenjs-jsx 마이그레이션 검토 필요
+**빌드**: ✅ (generate_v2.py 정상 실행, 3커밋 push)
+
 ## [2026-05-13] P4 Governance & Trust + 이사회 + 문서 비대화 해소
 
 **완료**: Analytics anomaly-detect.mjs (6가지 감지) + weekly-report.mjs (통합 리포트, Business KPI 섹션). capability-map APQC P0-P3 반영 (42%→44%). PMI 실행 — CURRENT.md 418→163줄 (-61%), autoresearch -80%, zzz -69%, webapp-prd/dashboard-prd stub화. governance/rules/document-hygiene.md 영구 규칙. P4: /board AI 이사회 제1회 (4인 페르소나, MRR $0 직면, 인프라 모라토리엄 결의) + templates/legal/ (Privacy+ToS+GDPR) + templates/bcp-dr.md + OKR Q2 설정 (Rocks 3개). 레드팀 3건 수정 (ts fallback, ANOMALY_NO_EMIT self-pollution, a11y false positive). 벤치마크 7 프레임워크 + 3 사례 + 7 GitHub 기록.

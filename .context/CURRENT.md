@@ -61,6 +61,12 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-14) — PPT 엔진 v3 + 클릭형 인테이크
+- **generate_v2.py v3** — 12pt 최소 폰트(`fs()` 헬퍼), 텍스트 겹침 해소(Y축 순차 계산), ROUNDED_RECTANGLE+RIGHT_ARROW 도식, oval_dot() 프리미티브, italic 버그 수정
+- **intake.py** — `questionary` 기반 터미널 클릭형 인테이크 (화살표키·체크박스)
+- **server.py** — 로컬 웹 UI 서버 (localhost:7842), 클릭 폼 → PPTX 다운로드
+- **semiconductor-consulting.pptx** — consulting_clean 테마 12장, 전체 내용 반영
+
 ## Last Completions (2026-05-13) — P4 Governance & Trust + 이사회 + OKR
 - **`/board` AI 이사회 제1회 실행** — 4인 페르소나 전략 감사. 경영 성적표 MRR $0 🔴 / 발행 0건 🔴 / 507 tests 🟢. "인프라 모라토리엄" 결의.
 - **OKR 2026-Q2 설정** — O1 첫 제품+매출, O2 외부 존재감, O3 도구 실사용. 90일 Rocks 3개.
