@@ -32,6 +32,30 @@ OWASP Top 10 + STRIDE 위협 모델링 (Phase 1~8 기존 로직 유지)
 - analytics.jsonl에서 30일 이상 호출 기록 없는 커맨드 → zombie 목록
 - description이 없거나 50자 미만인 커맨드 → 문서화 부채
 
+### Axis 5 — LLM 보안 감사 (OWASP LLM Top 10 2025 + MITRE ATLAS)
+
+웹앱 OWASP(Axis 1)와 **병렬** 실행. AI 에이전트/LLM 특화 위협:
+
+| # | 카테고리 | 검토 대상 |
+|---|----------|----------|
+| LLM01 | Prompt Injection | 사용자 입력이 LLM 프롬프트로 직접 전달되는 경로. XML 펜스/spotlighting 적용 여부 |
+| LLM02 | Sensitive Info Disclosure | LLM 출력에 API 키/토큰/개인정보 누출 가능성 |
+| LLM03 | Supply Chain | AI 모델/플러그인/MCP 서버의 무결성 검증 |
+| LLM04 | Data & Model Poisoning | 학습 데이터/RAG 소스 오염 가능성 |
+| LLM05 | Improper Output Handling | LLM 출력을 검증 없이 코드 실행/DB 쿼리에 사용 |
+| LLM06 | Excessive Agency | 에이전트에 과도한 권한 (파일 삭제/네트워크/시스템 명령) |
+| LLM07 | System Prompt Leakage | 시스템 프롬프트가 사용자에게 노출되는 경로 |
+| LLM08 | Vector & Embedding | RAG 검색 조작, 임베딩 오염 |
+| LLM09 | Misinformation | LLM 환각이 의사결정에 영향 주는 경로 |
+| LLM10 | Unbounded Consumption | 토큰/API 비용 폭주 경로, rate limit 우회 |
+
+MITRE ATLAS 전술 매핑 (주요 5개):
+- **Reconnaissance**: 에이전트 구조/프롬프트 정보 수집 경로
+- **Initial Access**: 프롬프트 인젝션을 통한 에이전트 제어 획득
+- **Persistence**: 악성 지시가 CLAUDE.md/RESUME.md에 잔류
+- **Exfiltration**: 에이전트가 외부로 데이터 전송하는 경로
+- **Impact**: 에이전트가 비가역적 행동 (삭제/배포/결제) 수행 가능성
+
 ## 호출 인자
 - (기본): 전체 감사
 - `--diff`: 현재 브랜치 변경사항만
@@ -83,7 +107,8 @@ Critical/High 항목의 수정 방향 제시.
     "security": { "critical": 0, "high": 0 },
     "architecture": { "spof_count": 0, "external_deps_no_fallback": 0 },
     "governance": { "hook_gap_pct": 0, "stale_docs": 0 },
-    "lifecycle": { "command_count": 0, "zombie_commands": [], "over_limit": false }
+    "lifecycle": { "command_count": 0, "zombie_commands": [], "over_limit": false },
+    "llm_security": { "prompt_injection_paths": 0, "excessive_agency": 0, "atlas_findings": 0 }
   },
   "top3_actions": [],
   "report_path": ".context/security-reports/YYYY-MM-DD.json",
@@ -95,5 +120,5 @@ Critical/High 항목의 수정 방향 제시.
 - Read-only: 코드 수정 절대 금지
 - 노이즈 제로 우선: 신뢰도 낮은 발견보다 정확한 발견이 중요
 - 익스플로잇 필수 (보안 축): "취약할 수 있음"이 아닌 "이렇게 공격된다"
-- 4축 모두 실행: --scope 지정 시 해당 축만, 기본은 전체
+- 5축 모두 실행: --scope 지정 시 해당 축만, 기본은 전체. --llm-only로 Axis 5만 실행 가능
 - 면책 조항: 이 도구는 전문 보안 회사 감사를 대체하지 않음
