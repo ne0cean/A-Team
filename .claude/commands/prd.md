@@ -161,6 +161,7 @@ Phase 1-4 진행. 상세: `governance/skills/dashboard-prd/dashboard-principles.
 4. **Phase 경계에서 확인** - "맞나요?" 승인 없이 다음 Phase 진행 금지
 5. **코드 작성 금지** - 이 스킬은 발견, 검증, 설계까지만
 6. **파일 제공 시 자동 분석** - 경로가 주어지면 Read로 직접 읽고 구조 보고
+7. **`_TBD_` 마커 전략** - 불명확한 부분은 발명하지 않고 `_TBD_`로 명시. AI가 추측으로 채우는 것보다 빈 칸이 낫다
 
 ---
 
@@ -183,6 +184,13 @@ PRD 생성 완료! → .context/prds/[파일명].md
 2. /blueprint [프로젝트명]              — 구현 설계 문서
 3. /plan-eng .context/prds/[파일명].md  — 엔지니어링 검토
 4. 구현 시작                            — PRD + blueprint를 Claude Code에 전달
+```
+
+3. **Outcome Tracking**:
+```
+출시 30일 후 → `/board`에서 이 PRD의 KR 달성률 점검.
+미달 시 PRD 재정의 또는 pivot 검토.
+PRD 파일 하단에 "## Outcome Review" 섹션을 빈 상태로 생성해둘 것.
 ```
 
 ---
