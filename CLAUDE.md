@@ -7,6 +7,22 @@
 - **GitHub**: https://github.com/ne0cean/A-Team
 - **프로젝트별 사본**: `{project}/A-Team` (서브디렉토리로 참조)
 
+## 🚀 A-Team Calling Commands (의무)
+세션 시작 시 반드시 다음 명령 중 하나를 호출하여 컨텍스트를 로드합니다.
+
+- **/vibe**: **신규 세션 시작**. 전체 컨텍스트 로드, 태스크 계획 및 모델 배정.
+- **/pickup**: **중단된 세션 재개**. `RESUME.md`, `git status`, `CURRENT.md`를 분석하여 즉시 이어받기.
+- **/zzz**: **수면/자율 모드**. 장시간 자율 작업 진입, 나레이션 금지, 계정 자동 전환 활성화.
+
+## 🤖 Auto-Invoke Protocol (자동화 로직)
+모든 프로젝트는 세션 진입 시 다음 로직을 자동으로 수행해야 합니다:
+
+1. **상태 스캔**: `.context/RESUME.md` 미완료 상태 또는 `git status` dirty 여부 확인.
+2. **자동 분기**:
+   - **흔적 발견 시** → 즉시 **/pickup** 실행.
+   - **흔적 없을 시** → 즉시 **/vibe** 실행.
+3. **거버넌스 주입**: `CLAUDE.md`의 규칙을 즉시 로드하고 작업에 반영.
+
 ## 작업 시 원칙
 - 변경사항은 반드시 `~/Projects/a-team`에서 작업 후 push
 - 프로젝트 사본에서 작업한 경우 즉시 push → 원본 pull로 동기화

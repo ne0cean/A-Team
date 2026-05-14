@@ -327,6 +327,31 @@ cat > CLAUDE.md << EOF
 - \`.agent/rules/\` — 코딩 안전, 동기화, 자율 실행 규칙
 - \`.agent/workflows/\` — 세션 시작/종료 워크플로우
 
+## 🚀 A-Team Skills & Commands
+A-TEAM 스킬을 사용하여 일관성을 유지하세요:
+- **/vibe**: 세션 초기화, 컨텍스트 로드 및 태스크 분류
+- **/pickup**: 중단된 세션 재개 (토큰 소진, 리셋, dirty git 상태 등)
+- **/zzz**: 수면/자율 모드 진입
+- **/blueprint**: 아키텍처 설계 및 기술 계획 수립
+- **/craft**: 고품질 구현 및 리팩토링
+- **/ship**: 최종 검증, 린팅 및 커밋
+- **/end**: 세션 요약, 컨텍스트 업데이트 및 핸드오버
+
+## 🤖 Session Start Protocol (Automated)
+새 세션 시작 시, 다음 로직에 따라 자동으로 분기하여 **A-Team**을 호출합니다:
+
+1. **흔적 감지 (Traces Detection)**:
+   - `.context/RESUME.md`가 존재하고 미완료 상태인가?
+   - `git status --porcelain`에 커밋되지 않은 변경사항이 있는가?
+   - `.context/CURRENT.md`에 "In Progress Files"가 명시되어 있는가?
+
+2. **자동 분기 (Branching)**:
+   - **흔적 발견 시** → **`/pickup` 경로**: 경량 컨텍스트 로드 + 즉시 작업 재개.
+   - **흔적 없을 시** → **`/vibe` 경로**: 전체 컨텍스트 로드 + 태스크 계획 수립.
+
+3. **zzz-mode 감지**:
+   - `RESUME.md`에서 `mode: zzz` 감지 시, `autonomous-loop.md` 조항 6(나레이션 금지)을 즉시 적용합니다.
+
 ## A-Team 에이전트 (언제 쓸까?)
 
 | 상황 | 에이전트 호출 방법 |

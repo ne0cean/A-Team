@@ -3,7 +3,7 @@
 # 모든 Step 0.x 체크를 한 번에 실행, JSON으로 결과 출력
 # Usage: bash scripts/vibe-init.sh [--json]
 
-set -uo pipefail
+set -o pipefail
 
 JSON_MODE=false
 [ "${1:-}" = "--json" ] && JSON_MODE=true
@@ -42,7 +42,7 @@ if [ -n "$REPO_ROOT" ] && [ -f "$REPO_ROOT/scripts/log-event.mjs" ]; then
 fi
 
 # === Step 0.2: A-Team Sync ===
-for candidate in "$HOME/Projects/a-team" "$HOME/tools/A-Team" "$HOME/A-Team"; do
+for candidate in "$HOME/Projects/a-team" "$HOME/tools/A-Team" "$HOME/A-Team" "$HOME/Desktop/Dev Projects/A-Team"; do
   [ -d "$candidate/.git" ] && ATEAM_PATH="$candidate" && break
 done
 
@@ -50,7 +50,11 @@ if [ -n "$ATEAM_PATH" ]; then
   FETCH_FILE="$ATEAM_PATH/.git/FETCH_HEAD"
   FETCH_AGE=999999
   if [ -f "$FETCH_FILE" ]; then
-    FETCH_AGE=$(($(date +%s) - $(stat -f %m "$FETCH_FILE" 2>/dev/null || stat -c %Y "$FETCH_FILE" 2>/dev/null || echo 0)))
+    # Use GNU stat format %Y for modification time (Git Bash compatible)
+    MOD_TIME=$(stat -c %Y "$FETCH_FILE" 2>/dev/null || stat -f %m "$FETCH_FILE" 2>/dev/null || echo 0)
+    # Ensure MOD_TIME is a number
+    [[ "$MOD_TIME" =~ ^[0-9]+$ ]] || MOD_TIME=0
+    FETCH_AGE=$(($(date +%s) - MOD_TIME))
   fi
 
   if [ "$FETCH_AGE" -gt 21600 ]; then

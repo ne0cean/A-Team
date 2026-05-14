@@ -175,17 +175,34 @@ cat > CLAUDE.md << EOF
 - **Commit Format**: \`[type]: 요약\` + NOW/NEXT/BLOCK 구조
 - **컨텍스트 갱신**: 태스크 완료마다 CURRENT.md 갱신
 
-## A-Team 서브에이전트
-\`.claude/agents/\`에 5개 전문 에이전트가 설치되어 있습니다:
-- **orchestrator** — 멀티에이전트 작업 총괄 (Supervisor 패턴)
-- **researcher** — 리서치/조사 전문 (Haiku, 비용 효율)
-- **coder** — 구현/수정 전문 (Sonnet)
-- **reviewer** — 품질 검증 전문 (Sonnet)
-- **architect** — 설계/아키텍처 전문 (Opus)
+## 🚀 A-Team Skills & Commands
+A-TEAM 스킬을 사용하여 일관성을 유지하세요. 모든 명령어는 `governance/skills/` 및 `CHEATSHEET.md`를 참조합니다.
 
-## 빠른 시작
-복잡한 작업 → "이 작업을 A-Team으로 처리해줘" → orchestrator 자동 호출
-단순 작업 → 직접 진행 (에이전트 불필요)
+| 명령어 | 용도 |
+|--------|------|
+| **/vibe** | 세션 초기화, 컨텍스트 로드 및 태스크 분류 |
+| **/pickup** | 중단된 세션 재개 (토큰 소진, 리셋, dirty git 상태 등) |
+| **/zzz** | 수면/자율 모드 진입 (나레이션 최소화, 계정 자동 전환 통합) |
+| **/blueprint** | 아키텍처 설계 및 기술 계획 수립 |
+| **/craft** | 고품질 구현 및 리팩토링 |
+| **/ship** | 최종 검증, 린팅 및 커밋 |
+| **/review** | 코드 리뷰 및 적대적 테스트 |
+| **/end** | 세션 요약, 컨텍스트 업데이트 및 핸드오버 |
+
+## 🤖 Session Start Protocol (Automated)
+새 세션 시작 시, 다음 로직에 따라 자동으로 분기하여 **A-Team**을 호출합니다:
+
+1. **흔적 감지 (Traces Detection)**:
+   - `.context/RESUME.md`가 존재하고 미완료 상태인가?
+   - `git status --porcelain`에 커밋되지 않은 변경사항이 있는가?
+   - `.context/CURRENT.md`에 "In Progress Files"가 명시되어 있는가?
+
+2. **자동 분기 (Branching)**:
+   - **흔적 발견 시** → **`/pickup` 경로**: 경량 컨텍스트 로드 + 즉시 작업 재개.
+   - **흔적 없을 시** → **`/vibe` 경로**: 전체 컨텍스트 로드 + 태스크 계획 수립.
+
+3. **zzz-mode 감지**:
+   - `RESUME.md`에서 `mode: zzz` 감지 시, `autonomous-loop.md` 조항 6(나레이션 금지)을 즉시 적용합니다.
 
 ## 프로젝트 구조
 [프로젝트 구조 설명]
