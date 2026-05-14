@@ -82,6 +82,8 @@
 
 **위임 우선 원칙**: 메인이 Opus여도 작업 80%+를 Sonnet/Haiku 서브에이전트에 위임. 메인은 분배 + 통합 + 대화만.
 
+**Agent Teams**: teammate간 토론/반박/크로스레이어 작업 시 사용. 기존 subagent 정의를 teammate type으로 재사용. 단순 위임은 기존 subagent 유지. 라우팅: orchestrator Phase 2.07.
+
 ### Step 5: 로컬/무료 모델 라우팅 (필수)
 
 서브태스크가 다음에 해당하면 **Anthropic 에이전트 대신** `mcp__llm__ask` 사용:
