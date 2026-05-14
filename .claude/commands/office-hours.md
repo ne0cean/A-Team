@@ -80,8 +80,10 @@ node scripts/log-event.mjs command_start name=office-hours
 아이디어 검증 완료!
 
 다음 단계:
-1. PRD 생성: /prd [프로젝트명] (가치 검증 + 웹앱/대시보드 PRD 통합)
-2. 또는 독립 실행: /plan-ceo-review (CEO 검증) 또는 /plan-eng-review (엔지니어 검증)
+1. /prd [프로젝트명]  — 가치 검증 + PRD 생성 (→ .context/prds/)
+2. /plan-ceo           — CEO 전략 검토 (appetite 포함)
+3. /blueprint          — 구현 설계 문서
+4. /plan-eng           — 엔지니어링 검토
 ```
 
 **Note**: `/prd`는 이 스킬의 검증 단계를 Phase 0으로 포함합니다.
