@@ -6,7 +6,7 @@ A-Team PPT Intake Server
   python scripts/ppt/server.py
   → http://localhost:7842 자동 오픈
 """
-import http.server, json, os, sys, subprocess, threading, webbrowser, socketserver
+import http.server, json, os, re, sys, subprocess, threading, time, uuid, webbrowser, socketserver
 
 PORT = 7842
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
@@ -272,6 +272,24 @@ input[type=range]:hover::-webkit-slider-thumb{background:#5a8fb8}
         <div class="tc-desc">ESG 보고<br>자연/웰빙</div>
       </div>
     </div>
+    <div style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:#a89878;margin:18px 0 10px">컨설팅 펌 스타일</div>
+    <div class="theme-grid" id="consulting-theme" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="theme-card" data-v="consulting_mckinsey" onclick="pickTheme(this)">
+        <div class="dot" style="background:#003366"></div>
+        <div class="tc-name">McKinsey</div>
+        <div class="tc-desc">전략 제안서<br>임원 보고</div>
+      </div>
+      <div class="theme-card" data-v="consulting_bcg" onclick="pickTheme(this)">
+        <div class="dot" style="background:#00a651"></div>
+        <div class="tc-name">BCG</div>
+        <div class="tc-desc">시장 분석<br>BCG 매트릭스</div>
+      </div>
+      <div class="theme-card" data-v="consulting_bain" onclick="pickTheme(this)">
+        <div class="dot" style="background:#cc0000"></div>
+        <div class="tc-name">Bain</div>
+        <div class="tc-desc">투자 DD<br>고객 분석</div>
+      </div>
+    </div>
     <div class="btn-row">
       <button class="btn-back" onclick="goBack(5)">&larr; 이전</button>
       <button class="btn-next" onclick="goNext(5)">다음 &rarr;</button>
@@ -383,9 +401,12 @@ function getChips(groupId){
 }
 
 const THEME_LABELS = {
-  dark_editorial:'Dark Editorial',
-  consulting_clean:'Consulting Clean',
-  executive_deep:'Executive Deep'
+  dark_editorial:'Dark Editorial', consulting_clean:'Consulting Clean',
+  executive_deep:'Executive Deep', midnight_blue:'Midnight Blue',
+  warm_earth:'Warm Earth', nordic_frost:'Nordic Frost',
+  mono_sharp:'Mono Sharp', sage_green:'Sage Green',
+  consulting_mckinsey:'McKinsey (컨설팅)', consulting_bcg:'BCG (컨설팅)',
+  consulting_bain:'Bain (컨설팅)'
 };
 
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -444,7 +465,8 @@ async function generate(){
     const result = await resp.json();
     if(result.ok){
       state.outfile = result.filename;
-      setStatus(`완료: <strong>${result.filename}</strong><br>${result.slides}장 / 테마: ${theme}<br><span style="color:#4a4844">${result.spec_path}</span>`, 'done');
+      const dispName = result.display_name || result.filename;
+      setStatus(`완료: <strong>${dispName}</strong><br>${result.slides}장 / 테마: ${theme}<br><span style="color:#4a4844">${result.spec_path}</span>`, 'done');
       document.getElementById('dl-btn').className = 'dl-btn show';
     } else {
       setStatus('오류: ' + result.error, 'err');
@@ -650,7 +672,31 @@ def build_spec(req):
 
 # ── HTTP 서버 ─────────────────────────────────────────────────
 
-_generated = {}
+_generated = {}  # file_id -> (path, expire_ts)
+
+VALID_THEMES = frozenset([
+    "dark_editorial", "consulting_clean", "executive_deep", "midnight_blue",
+    "warm_earth", "nordic_frost", "mono_sharp", "sage_green",
+    "consulting_mckinsey", "consulting_bcg", "consulting_bain",
+])
+CONSULTING_STYLES = {
+    "consulting_mckinsey": "mckinsey",
+    "consulting_bcg": "bcg",
+    "consulting_bain": "bain",
+}
+_GENERATED_TTL = 3600  # 1 hour
+
+
+def _sanitize_slug(s):
+    s = re.sub(r'\.\.+', '', s)
+    s = re.sub(r'[^\w\u3131-\uD7A3가-힣-]', '-', s[:30])
+    return s.strip('-') or 'ppt'
+
+
+def _cleanup_generated():
+    now = time.time()
+    for k in [k for k, (_, ts) in list(_generated.items()) if ts < now]:
+        del _generated[k]
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -682,9 +728,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _handle_generate(self, req):
         import datetime
         try:
+            # Validate + sanitize
+            theme = req.get("theme", "dark_editorial")
+            if theme not in VALID_THEMES:
+                theme = "dark_editorial"
+            req = dict(req, theme=theme)
+
             spec     = build_spec(req)
             topic    = req.get("topic", "ppt")
-            slug     = topic[:30].replace(" ", "-").replace("/", "-")
+            slug     = _sanitize_slug(topic)
             date_str = datetime.date.today().isoformat()
             out_dir  = os.path.join(CONTENT_DIR, f"{date_str}-{slug}")
             os.makedirs(out_dir, exist_ok=True)
@@ -693,20 +745,31 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with open(spec_path, "w", encoding="utf-8") as f:
                 json.dump(spec, f, ensure_ascii=False, indent=2)
 
-            out_pptx   = os.path.join(out_dir, f"{slug}.pptx")
-            gen_script = os.path.join(SCRIPT_DIR, "generate_v2.py")
-            result = subprocess.run(
-                [PYEXE, gen_script, spec_path,
-                 "--theme", req.get("theme", "dark_editorial"),
-                 "--output", out_pptx],
-                capture_output=True, text=True, timeout=60
-            )
+            out_pptx = os.path.join(out_dir, f"{slug}.pptx")
+            consulting_style = CONSULTING_STYLES.get(theme)
+            if consulting_style:
+                gen_script = os.path.join(SCRIPT_DIR, "generate_consulting.py")
+                result = subprocess.run(
+                    [PYEXE, gen_script, spec_path,
+                     "--style", consulting_style,
+                     "--output", out_pptx],
+                    capture_output=True, text=True, timeout=60
+                )
+            else:
+                gen_script = os.path.join(SCRIPT_DIR, "generate_v2.py")
+                result = subprocess.run(
+                    [PYEXE, gen_script, spec_path,
+                     "--theme", theme,
+                     "--output", out_pptx],
+                    capture_output=True, text=True, timeout=60
+                )
             if result.returncode != 0:
                 raise RuntimeError(result.stderr or result.stdout)
 
-            fname = f"{slug}.pptx"
-            _generated[fname] = out_pptx
-            resp = {"ok": True, "filename": fname,
+            _cleanup_generated()
+            file_id = str(uuid.uuid4())[:8]
+            _generated[file_id] = (out_pptx, time.time() + _GENERATED_TTL)
+            resp = {"ok": True, "filename": file_id, "display_name": f"{slug}.pptx",
                     "slides": len(spec["slides"]), "spec_path": spec_path}
         except Exception as e:
             resp = {"ok": False, "error": str(e)}
@@ -718,18 +781,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _serve_file(self, fname):
+    def _serve_file(self, file_id):
         from urllib.parse import unquote
-        fname = unquote(fname)
-        path  = _generated.get(fname)
-        if not path or not os.path.exists(path):
+        file_id = unquote(file_id)
+        entry = _generated.get(file_id)
+        if not entry or time.time() > entry[1] or not os.path.exists(entry[0]):
             self.send_error(404); return
+        path = entry[0]
+        display = os.path.basename(path)
         with open(path, "rb") as f:
             data = f.read()
         self.send_response(200)
         self.send_header("Content-Type",
             "application/vnd.openxmlformats-officedocument.presentationml.presentation")
-        self.send_header("Content-Disposition", f'attachment; filename="{fname}"')
+        self.send_header("Content-Disposition", f'attachment; filename="{display}"')
         self.send_header("Content-Length", len(data))
         self.end_headers()
         self.wfile.write(data)
