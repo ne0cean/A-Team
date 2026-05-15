@@ -62,6 +62,17 @@ git diff --stat HEAD~1 2>/dev/null | tail -5
 - `next_wakeup_scheduled` 있으면 OS-level launchd 살아있는지 확인 (`launchctl list | grep com.ateam.sleep-resume`)
 - `In Progress` 부터 재개, 사용자 대상 텍스트 최소화
 
+## Step 2.7 — Daily Growth Brief 확인
+
+```bash
+TODAY=$(date +%Y-%m-%d)
+[ -f ".context/briefs/${TODAY}-brief.md" ] && echo "BRIEF_EXISTS" || echo "NO_BRIEF"
+```
+
+- `NO_BRIEF` + 일반 pickup (zzz 아님) → 1줄 제안: "`/daily-brief` 로 오늘 성장 브리핑을 받아보세요"
+- `BRIEF_EXISTS` → Executive Summary 1줄 표시 후 재개
+- zzz/sleep 모드 → 스킵 (나레이션 금지)
+
 ## Step 3 — 재개
 
 - `In Progress Files` (CURRENT.md) 또는 `In Progress` (RESUME.md) 에 파일이 있으면: 해당 파일을 읽고 중단된 작업 파악

@@ -19,6 +19,18 @@ bash scripts/vibe-init.sh
 출력 예: `Gap #1: marketing.performance-marketing (score=16.0, cov=0%) | #2: sales-cs.lead-generation | Total: 28개`
 이 줄을 브리핑 마지막에 포함한다. 없으면 스킵.
 
+**Step 0.7 — Daily Growth Brief** (a-team 레포에서만):
+```bash
+TODAY=$(date +%Y-%m-%d)
+if [ ! -f ".context/briefs/${TODAY}-brief.md" ]; then
+  echo "daily_brief: 오늘 브리핑 없음 — /daily-brief 실행 권장"
+else
+  echo "daily_brief: 오늘 브리핑 존재 — $(head -5 .context/briefs/${TODAY}-brief.md | grep -o '> .*' | head -1)"
+fi
+```
+- 브리핑 없음 → Step 4 브리핑에 `/daily-brief` 제안 포함
+- 브리핑 있음 → Executive Summary 1줄 표시
+
 **출력 해석**:
 - `resume_active: true` → `/pickup` 으로 분기 (경량 복구)
 - `actions` 있음 → 제안된 커맨드 안내
