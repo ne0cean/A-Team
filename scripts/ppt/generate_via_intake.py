@@ -42,12 +42,29 @@ def main():
         json.dump(spec, f, ensure_ascii=False, indent=2)
 
     out_pptx   = os.path.join(out_dir, f"{slug}.pptx")
-    gen_script = os.path.join(SCRIPT_DIR, "generate_v2.py")
 
-    result = subprocess.run(
-        [sys.executable, gen_script, spec_path, "--theme", args.theme, "--output", out_pptx],
-        capture_output=True, text=True, timeout=60
-    )
+    # Consulting 테마는 generate_consulting.py로 라우팅
+    consulting_styles = {
+        "consulting_mckinsey": "mckinsey",
+        "consulting_bcg": "bcg",
+        "consulting_bain": "bain",
+    }
+    consulting_style = consulting_styles.get(args.theme)
+
+    if consulting_style:
+        gen_script = os.path.join(SCRIPT_DIR, "generate_consulting.py")
+        result = subprocess.run(
+            [sys.executable, gen_script, spec_path,
+             "--style", consulting_style, "--output", out_pptx],
+            capture_output=True, text=True, timeout=60
+        )
+    else:
+        gen_script = os.path.join(SCRIPT_DIR, "generate_v2.py")
+        result = subprocess.run(
+            [sys.executable, gen_script, spec_path,
+             "--theme", args.theme, "--output", out_pptx],
+            capture_output=True, text=True, timeout=60
+        )
 
     if result.returncode == 0:
         print(f"\n  완료  {out_pptx}")

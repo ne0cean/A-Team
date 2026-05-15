@@ -56,6 +56,14 @@ cover → agenda → section_break → (big_number/stats_grid/comparison) x N
 → section_break → (icon_grid/bento_grid/flow_diagram) x N
 → quote (선택) → closing
 
+## Consulting 모드 (McKinsey/BCG/Bain)
+
+ppt.md에서 `mode: consulting`으로 호출 시:
+- mckinsey_pptx 네이티브 타입 직접 사용 (convert_spec 변환 불필요)
+- 지원 타입: executive_summary, assessment_table, bubble_chart, column_chart, org_charts, timeline, comparison, process_flow, kpi_dashboard, phases_chevron_3, five_key_areas 등
+- 스펙의 meta.theme을 consulting 스타일로 설정: `"theme": "consulting_mckinsey"` / `"consulting_bcg"` / `"consulting_bain"`
+- 생성 명령: `python scripts/ppt/generate_consulting.py spec.json --style mckinsey --output {path}`
+
 ## 저장
 
 경로: content/ppt/YYYY-MM-DD-{slug}/spec.json
@@ -64,4 +72,5 @@ cover → agenda → section_break → (big_number/stats_grid/comparison) x N
 완료 시 출력:
   spec: {path}
   slides: {N}장 / theme: {theme}
-  실행: python scripts/ppt/generate.py {path}
+  Creative: python scripts/ppt/generate_v2.py {path}
+  Consulting: python scripts/ppt/generate_consulting.py {path} --style {mckinsey|bcg|bain}
