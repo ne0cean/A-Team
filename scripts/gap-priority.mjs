@@ -92,16 +92,37 @@ export function computePriorities(currentPhase = 0) {
   return gaps.sort((a, b) => b.score - a.score);
 }
 
+/**
+ * 1줄 요약 문자열 반환 — /vibe Step 0 연결용
+ * 형식: "Gap #1: <path> (score=X, cov=Y%) | #2: <path> | Total: N gaps"
+ */
+export function gapSummaryLine(currentPhase = 0, topN = 3) {
+  const gaps = computePriorities(currentPhase);
+  if (gaps.length === 0) return 'Gap: 없음 (모든 capability >= 80%)';
+  const top = gaps.slice(0, topN);
+  const parts = top.map((g, i) =>
+    `#${i + 1}: ${g.path} (score=${g.score.toFixed(1)}, cov=${(g.coverage * 100).toFixed(0)}%)`
+  );
+  return `Gap ${parts.join(' | ')} | Total: ${gaps.length}개`;
+}
+
 // CLI
 if (process.argv[1] && process.argv[1].endsWith('gap-priority.mjs')) {
-  const top = parseInt(process.argv[2] || '10', 10);
-  const json = process.argv.includes('--json');
+  const args = process.argv.slice(2);
+  const json = args.includes('--json');
+  const summary = args.includes('--summary');
+  // 숫자 인수: 플래그가 아닌 첫 번째 인수
+  const numArg = args.find(a => /^\d+$/.test(a));
+  const top = numArg ? parseInt(numArg, 10) : 10;
   const gaps = computePriorities(0);
 
-  if (json) {
+  if (summary) {
+    // /vibe 연결용 1줄 출력
+    console.log(gapSummaryLine(0, Math.min(top, 3)));
+  } else if (json) {
     console.log(JSON.stringify(gaps.slice(0, top), null, 2));
   } else {
-    console.log(`\n🔝 Gap Priority (top ${Math.min(top, gaps.length)}):\n`);
+    console.log(`\nGap Priority (top ${Math.min(top, gaps.length)}):\n`);
     for (const [i, g] of gaps.slice(0, top).entries()) {
       const filled = Math.min(10, Math.max(0, Math.round(g.score / 3)));
       const bar = '█'.repeat(filled) + '░'.repeat(10 - filled);

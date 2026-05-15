@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { logFriction, parseFrictionLog, frictionsByCapability, FrictionEntry } from '../lib/gap-sensor';
+import {
+  logFriction,
+  parseFrictionLog,
+  frictionsByCapability,
+  detectFrictionKeywords,
+  analyzeUsageGaps,
+  autoLogFriction,
+  FrictionEntry,
+} from '../lib/gap-sensor';
 import { readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 
@@ -65,6 +73,100 @@ describe('capability-map.json', () => {
     const map = JSON.parse(readFileSync(resolve(__dirname, '..', 'lib', 'capability-map.json'), 'utf-8'));
     const total = Object.values(map.departments).reduce((s: number, d: any) => s + d.weight, 0);
     expect(total).toBeCloseTo(1.0, 2);
+  });
+});
+
+describe('detectFrictionKeywords', () => {
+  it('detects missing-capability keyword', () => {
+    const results = detectFrictionKeywords('이 기능은 안 돼요, 지원이 안됩니다');
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].type).toBe('missing-capability');
+  });
+
+  it('detects manual-step keyword', () => {
+    const results = detectFrictionKeywords('수동으로 입력해야 합니다');
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].type).toBe('manual-step');
+  });
+
+  it('detects external-tool-required keyword', () => {
+    const results = detectFrictionKeywords('외부 도구를 써야 해');
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].type).toBe('external-tool-required');
+  });
+
+  it('returns empty array for clean text', () => {
+    const results = detectFrictionKeywords('잘 작동합니다, 완료됐습니다');
+    expect(results).toHaveLength(0);
+  });
+
+  it('captures raw_text up to 200 chars', () => {
+    const long = '안 돼 '.repeat(100);
+    const results = detectFrictionKeywords(long);
+    expect(results[0].raw_text.length).toBeLessThanOrEqual(200);
+  });
+});
+
+describe('analyzeUsageGaps', () => {
+  it('counts skill usage correctly', () => {
+    const lines = [
+      JSON.stringify({ skill: 'vibe', event: 'start', ts: new Date().toISOString() }),
+      JSON.stringify({ skill: 'vibe', event: 'end', ts: new Date().toISOString() }),
+      JSON.stringify({ skill: 'blueprint', event: 'run', ts: new Date().toISOString() }),
+    ].join('\n');
+
+    const gaps = analyzeUsageGaps(lines);
+    const vibe = gaps.find(g => g.capability_path === 'vibe');
+    const blueprint = gaps.find(g => g.capability_path === 'blueprint');
+    expect(vibe?.usage_count).toBe(2);
+    expect(blueprint?.usage_count).toBe(1);
+  });
+
+  it('marks stale entries (ts older than staleDays)', () => {
+    const oldTs = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
+    const lines = JSON.stringify({ skill: 'old-skill', event: 'run', ts: oldTs });
+    const gaps = analyzeUsageGaps(lines, 14);
+    const old = gaps.find(g => g.capability_path === 'old-skill');
+    expect(old?.stale).toBe(true);
+  });
+
+  it('marks recent entries as not stale', () => {
+    const recentTs = new Date().toISOString();
+    const lines = JSON.stringify({ skill: 'new-skill', event: 'run', ts: recentTs });
+    const gaps = analyzeUsageGaps(lines, 14);
+    const recent = gaps.find(g => g.capability_path === 'new-skill');
+    expect(recent?.stale).toBe(false);
+  });
+
+  it('handles malformed lines gracefully', () => {
+    const lines = ['not json', JSON.stringify({ skill: 'ok', ts: new Date().toISOString() }), ''].join('\n');
+    expect(() => analyzeUsageGaps(lines)).not.toThrow();
+    const gaps = analyzeUsageGaps(lines);
+    expect(gaps.find(g => g.capability_path === 'ok')).toBeDefined();
+  });
+
+  it('returns empty array for empty content', () => {
+    expect(analyzeUsageGaps('')).toHaveLength(0);
+  });
+});
+
+describe('autoLogFriction', () => {
+  const TMP = resolve(__dirname, '..', '.context', 'friction-auto-test.jsonl');
+
+  it('logs detected friction to file', () => {
+    try { unlinkSync(TMP); } catch {}
+    const logged = autoLogFriction('수동으로 처리해야 합니다', 'operations.manual', TMP);
+    expect(logged).toHaveLength(1);
+    expect(logged[0].type).toBe('manual-step');
+    const raw = readFileSync(TMP, 'utf-8');
+    expect(raw).toContain('operations.manual');
+    unlinkSync(TMP);
+  });
+
+  it('returns empty array when no keywords detected', () => {
+    try { unlinkSync(TMP); } catch {}
+    const logged = autoLogFriction('모든 것이 잘 작동합니다', 'engineering.testing', TMP);
+    expect(logged).toHaveLength(0);
   });
 });
 
