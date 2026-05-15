@@ -12,6 +12,13 @@ node scripts/log-event.mjs command_start name=vibe
 bash scripts/vibe-init.sh
 ```
 
+**Step 0.69 — Gap Priority 1줄 요약** (a-team 레포에서만):
+```bash
+[ -f scripts/gap-priority.mjs ] && node scripts/gap-priority.mjs --summary 3 2>/dev/null || true
+```
+출력 예: `Gap #1: marketing.performance-marketing (score=16.0, cov=0%) | #2: sales-cs.lead-generation | Total: 28개`
+이 줄을 브리핑 마지막에 포함한다. 없으면 스킵.
+
 **출력 해석**:
 - `resume_active: true` → `/pickup` 으로 분기 (경량 복구)
 - `actions` 있음 → 제안된 커맨드 안내

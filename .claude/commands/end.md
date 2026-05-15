@@ -36,6 +36,17 @@ description: 세션 종료 — 상태 갱신, 빌드 검증, 커밋, push (+ 선
 빌드 스크립트 없으면 eslint / tsc --noEmit 등 정적 분석 실행.
 빌드 실패 시 → 수정 후 재시도 (최대 2회). 2회 실패 시 BLOCK에 기록 후 계속 진행.
 
+## Step 3.4 — Friction 자동 기록 (자동)
+
+세션 중 사용자가 "안 돼", "수동으로", "불가능", "미지원" 등 키워드를 발화한 경우:
+```bash
+# gap-sensor의 autoLogFriction()이 이미 세션 중 자동 기록함
+# 확인: .context/friction-log.jsonl 마지막 항목
+tail -3 .context/friction-log.jsonl 2>/dev/null || true
+```
+새로 감지된 friction이 있으면 `.context/friction-log.jsonl`에 append됨.
+감지 로직: `lib/gap-sensor.ts` `autoLogFriction()` 참조.
+
 ## Step 3.5 — 세션 데이터 저장 (자동)
 세션 중 발견된 학습/비용/사용 데이터를 자동 저장:
 - **Learnings**: 세션 중 발견한 pattern/pitfall이 있으면 `lib/learnings.ts` logLearning()으로 기록
