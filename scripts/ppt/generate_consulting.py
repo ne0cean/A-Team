@@ -18,14 +18,15 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
 from mckinsey_pptx import PresentationBuilder, DEFAULT_THEME
-from mckinsey_pptx.theme import Typography, Palette, Theme
+from mckinsey_pptx.theme import Typography, Palette, Theme, THEMES
 
 
-def build_theme(font_family="Malgun Gothic", copyright_text=""):
-    """한국어 최적화 테마 생성."""
+def build_theme(style="mckinsey", font_family="Malgun Gothic", copyright_text=""):
+    """스타일별 테마 생성. mckinsey/bcg/bain 선택."""
+    base = THEMES.get(style, DEFAULT_THEME)
     return replace(
-        DEFAULT_THEME,
-        typography=replace(DEFAULT_THEME.typography, family=font_family),
+        base,
+        typography=replace(base.typography, family=font_family),
         copyright_text=copyright_text,
     )
 
@@ -252,12 +253,13 @@ def convert_spec(spec):
     return converted
 
 
-def build_consulting_deck(spec, output_path=None, font="Malgun Gothic", copyright_text=""):
-    """A-Team 스펙 → McKinsey급 .pptx 생성."""
+def build_consulting_deck(spec, output_path=None, style="mckinsey",
+                          font="Malgun Gothic", copyright_text=""):
+    """A-Team 스펙 → 컨설팅 펌급 .pptx 생성. style: mckinsey/bcg/bain."""
     meta = spec.get("meta", {})
     out = output_path or "output_consulting.pptx"
 
-    theme = build_theme(font, copyright_text or meta.get("company", ""))
+    theme = build_theme(style, font, copyright_text or meta.get("company", ""))
     section_marker = meta.get("section_marker", meta.get("title", ""))
 
     b = PresentationBuilder(
@@ -283,6 +285,9 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description="A-Team Consulting PPT Generator (McKinsey-grade)")
     p.add_argument("spec", help="JSON spec file")
     p.add_argument("--output", "-o", default=None, help="Output .pptx path")
+    p.add_argument("--style", "-s", default="mckinsey",
+                   choices=["mckinsey", "bcg", "bain"],
+                   help="Consulting firm style")
     p.add_argument("--font", default="Malgun Gothic", help="Font family")
     p.add_argument("--copyright", default="", help="Copyright text for footer")
     args = p.parse_args()
@@ -290,7 +295,7 @@ if __name__ == "__main__":
     with open(args.spec, encoding="utf-8") as f:
         spec = json.load(f)
 
-    out = build_consulting_deck(spec, args.output, args.font, args.copyright)
+    out = build_consulting_deck(spec, args.output, args.style, args.font, args.copyright)
     n = len(spec.get("slides", []))
-    print(f"Generated (consulting): {out}")
-    print(f"Slides: {n} / Engine: mckinsey_pptx / Font: {args.font}")
+    print(f"Generated ({args.style}): {out}")
+    print(f"Slides: {n} / Style: {args.style} / Font: {args.font}")

@@ -68,4 +68,64 @@ class Theme:
     copyright_text: str = ""
 
 
+# ── McKinsey (default) ────────────────────────────────────────
 DEFAULT_THEME = Theme()
+MCKINSEY_THEME = DEFAULT_THEME
+
+# ── BCG ───────────────────────────────────────────────────────
+BCG_THEME = Theme(
+    palette=Palette(
+        dark_navy=rgb("003F5C"),       # BCG primary data navy
+        deep_navy=rgb("003F5C"),
+        bright_blue=rgb("009639"),     # BCG data accent green
+        mid_blue=rgb("147B58"),        # BCG brand green (Pantone 341C)
+        light_blue=rgb("66BB6A"),
+        royal_blue=rgb("005EB8"),
+        black=rgb("000000"),
+        white=rgb("FFFFFF"),
+        text_dark=rgb("222222"),
+        rule_gray=rgb("CCCCCC"),
+        light_gray=rgb("E0E0E0"),
+        soft_gray=rgb("F5F5F5"),
+        grid_gray=rgb("D0D0D0"),
+        footer_gray=rgb("666666"),
+        placeholder_gray=rgb("999999"),
+        status_green=rgb("2E7D32"),
+        status_amber=rgb("F3C13A"),
+        status_red=rgb("C62828"),
+    ),
+    typography=Typography(family="Arial"),
+    copyright_text="",
+)
+
+# ── Bain ──────────────────────────────────────────────────────
+BAIN_THEME = Theme(
+    palette=Palette(
+        dark_navy=rgb("1A1A1A"),       # Bain near-black
+        deep_navy=rgb("2C2C2C"),
+        bright_blue=rgb("CB2026"),     # Bain brand red (Pantone 1795C)
+        mid_blue=rgb("8B0000"),        # darker red
+        light_blue=rgb("E05555"),
+        royal_blue=rgb("CB2026"),
+        black=rgb("000000"),
+        white=rgb("FFFFFF"),
+        text_dark=rgb("222222"),
+        rule_gray=rgb("CCCCCC"),
+        light_gray=rgb("E0E0E0"),
+        soft_gray=rgb("F5F5F5"),
+        grid_gray=rgb("D0D0D0"),
+        footer_gray=rgb("666666"),
+        placeholder_gray=rgb("999999"),
+        status_green=rgb("2E7D32"),
+        status_amber=rgb("F3C13A"),
+        status_red=rgb("C62828"),
+    ),
+    typography=Typography(family="Arial"),
+    copyright_text="",
+)
+
+THEMES = {
+    "mckinsey": MCKINSEY_THEME,
+    "bcg": BCG_THEME,
+    "bain": BAIN_THEME,
+}
