@@ -124,6 +124,41 @@ anti_generic_reinforced: true
 - **a11y는 비협상**: tone이 무엇이든 `a11y_level: AA` 기본.
 - **기존 override 존중**: 사용자가 이미 세팅한 값 바꾸지 않음.
 
+## Design Token Lifecycle (토큰 생성 + 자동 적응)
+
+### Phase A: 신규 프로젝트 토큰 생성
+
+프로젝트에 디자인 토큰 파일이 없을 때 (vibe Step 0.8 또는 직접 호출):
+
+1. `templates/design-tokens/presets.json` Read — 5개 프리셋 확인
+2. 프로젝트 도메인 + tone 결정에 맞는 프리셋 선택
+3. `templates/design-tokens/variables.css` 템플릿에 프리셋 값 주입하여 프로젝트에 생성
+4. Tailwind 프로젝트면 `templates/design-tokens/tailwind-tokens.js`도 복사 + 설정
+5. `templates/design-tokens/reset.css` 복사
+6. `.design-override.md`에 `token_preset: <preset-name>` 필드 추가
+
+### Phase B: 디자인 드리프트 감지
+
+기존 프로젝트에서 UI 변경 감지 시 (orchestrator 또는 design-auditor 연계):
+
+1. `node scripts/design-drift-detect.mjs <project-path> --json` 실행
+2. 드리프트 점수 확인:
+   - A (90+): 양호, 보고만
+   - B (70-89): 매직넘버 위반 목록 + 토큰 전환 제안
+   - C (50-69): 경고 — 토큰 시스템 재정비 권고
+   - D/F (<50): 토큰 부재 또는 심각한 드리프트 — Phase A 실행 제안
+3. high severity 위반 5건 이상 → 구체적 수정 제안 (어떤 값을 어떤 토큰으로)
+
+### Phase C: 제품 성장 시 토큰 자동 적응
+
+제품이 성장하면서 새 패턴이 필요할 때 (새 컴포넌트 타입, 새 상태 색상 등):
+
+1. 드리프트 감지에서 같은 매직넘버가 3회+ 반복 발견 → "새 토큰 추가 제안"
+   예: `#f97316`이 3 파일에서 반복 → `--color-highlight: #f97316` 토큰 추가 제안
+2. 기존 토큰 범위 부족 감지 → 토큰 확장 제안
+   예: `--space-2xl`(48px)과 `--space-3xl`(64px) 사이 56px 반복 → `--space-2.5xl` 제안
+3. 다크/라이트 모드 전환 필요 감지 → `@media (prefers-color-scheme)` 토큰 분리 제안
+
 ## 학습 피드백
 
 사용자가 생성된 UI를 보고 "너무 대담하다/조용하다/너무 밀도 높다" 같은 코멘트 주면 orchestrator가 호출:

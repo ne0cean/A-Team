@@ -31,6 +31,24 @@ fi
 - 브리핑 없음 → Step 4 브리핑에 `/daily-brief` 제안 포함
 - 브리핑 있음 → Executive Summary 1줄 표시
 
+**Step 0.8 — Design Token Check** (UI가 있는 프로젝트에서만):
+```bash
+# UI 파일 존재 확인
+UI_EXISTS=$(find . -maxdepth 4 -name "*.jsx" -o -name "*.tsx" -o -name "*.vue" -o -name "*.svelte" 2>/dev/null | head -1)
+if [ -n "$UI_EXISTS" ]; then
+  DRIFT=$(node ~/Projects/a-team/scripts/design-drift-detect.mjs . --json 2>/dev/null | head -1)
+  if [ -n "$DRIFT" ]; then
+    TOKEN_FILE=$(echo "$DRIFT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tokenFile','NONE'))" 2>/dev/null)
+    SCORE=$(echo "$DRIFT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('driftScore',0))" 2>/dev/null)
+    RATING=$(echo "$DRIFT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('rating','?'))" 2>/dev/null)
+    echo "design_tokens: ${TOKEN_FILE} (score: ${SCORE}/100, ${RATING})"
+  fi
+fi
+```
+- `NONE` → designer 에이전트 호출하여 토큰 생성 제안: "디자인 토큰이 없습니다. 생성할까요?"
+- D/F 등급 → "디자인 드리프트 심각 (${SCORE}/100). 토큰 정비 권장"
+- A/B 등급 → 1줄 표시 후 진행
+
 **출력 해석**:
 - `resume_active: true` → `/pickup` 으로 분기 (경량 복구)
 - `actions` 있음 → 제안된 커맨드 안내
