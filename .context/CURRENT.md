@@ -61,6 +61,16 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-15) — Daily Growth Brief 시스템
+- **`/daily-brief` 커맨드** — 일간 성장 브리핑 오케스트레이터. 내부 진단 + 외부 트렌드 스캔 + 3카테고리 성장 제안 (즉시/이번주/관찰)
+- **`daily-brief` 에이전트** — Chief of Staff 역할. Sonnet 모델. 웹 검색 + collect.json 분석 + 마크다운 보고서 생성
+- **`daily-brief-collect.mjs`** — 내부 데이터 수집 스크립트. git(24h), capability gaps(8개), anomalies, stale modules, trends, current state, ecosystem watch topics
+- **`/vibe` Step 0.7 + `/pickup` Step 2.7** — 세션 시작 시 오늘 브리핑 없으면 자동 제안
+- **`/daily-review` → `/daily-brief` 흡수** — git 회고 기능 통합, daily-review deprecated
+- **CLAUDE.md 자동 제안 패턴 추가** — "트렌드/경쟁사/성장/최신" 키워드 → `/daily-brief` 자동 제안
+- **조직 거버넌스 주기 완성**: 일간(`/daily-brief`) + 주간(`/insights`) + 월간(`/board`)
+- **532 tests PASS** (기존 유지, 새 스크립트 회귀 없음)
+
 ## Last Completions (2026-05-15) — PPT 엔진 컨설팅급 업그레이드
 - **generate_v2.py 전면 재작성** — 18종 레이아웃(+5 신규: big_number, icon_grid, image_text, bento_grid, comparison), 8종 테마(+5 신규), 그라데이션 배경, 카드 그림자(outerShdw XML), CJK 폰트 정확 적용(<a:ea> XML), 풋터/슬라이드번호 자동, 스피커 노트 삽입, 레이아웃 교차 강제
 - **mckinsey_pptx 통합** — GitHub seulee26/mckinsey-pptx 라이브러리를 `scripts/ppt/mckinsey_pptx/`에 통합. 40종 McKinsey 슬라이드 타입 (executive_summary, assessment_table, bubble_chart, column_chart, org_charts, timeline, comparison, Harvey ball, BCG matrix, issue_tree, gantt 등). McKinsey/BCG/Bain 3사 테마 (공식 컬러 #051C2C/#2251FF, #147B58, #CB2026)
