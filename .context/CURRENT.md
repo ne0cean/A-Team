@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**507 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-05-13).
+**532 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-05-15).
 **PIOP 최적화 완료** — Phase 2 intel 모듈 100% 연결 (3 wiring, +0.6% token cost).
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
@@ -67,6 +67,19 @@
 - **ppt-wizard.sh** — 셸 기반 PPT 마법사 신규 추가
 - **ppt.bat** — Windows 배치 런처 신규 추가
 - **.gitignore** — `content/ppt/**/*.pptx`, `*.pdf`, `__pycache__` 추가
+## Last Completions (2026-05-15) — Critical 3갭 해소 + 최정상 빌드업
+- **Phase 0.5 자기개선 루프 구현** — gap-sensor.ts (friction 감지 + 사용 갭 분석) + gap-priority.mjs (--summary) + /vibe Step 0.69 + /end Step 3.4. 루프 닫힘.
+- **Trajectory Evaluation** — shadow-evals.yaml path_evals 3개 + trajectory-eval.mjs (도구 효율/백트래킹/컨텍스트 보존)
+- **FSM Verification Gate** — governance/rules/verification-gate.md + verification-gate-check.sh (커밋 전 테스트 강제)
+- **레드팀 최상급** — /adversarial Worker-Critic 5관점 + 멀티라운드 이력 + /cso Axis 5 Garak + /review Semgrep + red-team-protocol.md
+- **기획 최상급** — Amazon PR/FAQ 모드 + _TBD_ 마커 + 설계결정 DB + Outcome tracking + PRD 압축
+- **Agent Teams 통합** — orchestrator Phase 2.07 + settings.json 활성화
+- **ralph→zzz 통합** — CB/dual-exit/backup 흡수
+- **커맨드 자동 트리거 35개** — 7→35 패턴 확대
+- **커맨드 코칭** — /end Step 6.8 + analytics
+- **자동 보호** — Stop auto-save+push + health 감시 훅 + 신규 프로젝트 스캐폴딩
+- **경쟁사 분석** — SuperClaude/BMAD/spec-kit 대비 유일한 인프라 레이어 확인
+- **532 tests PASS** (+43)
 
 ## Last Completions (2026-05-14) — PPT 엔진 v3 + 클릭형 인테이크
 - **generate_v2.py v3** — 12pt 최소 폰트(`fs()` 헬퍼), 텍스트 겹침 해소(Y축 순차 계산), ROUNDED_RECTANGLE+RIGHT_ARROW 도식, oval_dot() 프리미티브, italic 버그 수정
@@ -109,24 +122,8 @@
 - **D2Coding 폰트 + VS Code 설정** — 터미널 한글 깨짐 수정. D2Coding 폰트 설치 (`~/Library/Fonts/`) + VS Code `terminal.integrated.fontFamily` 설정.
 - **Claude.ai 웹 지침 토큰 효율화** — 6줄 축약 버전 제공 (한국어, 인사말 생략, 핵심만).
 
-## Last Completions (2026-05-08)
-- **Card News E2E 테스트 완료** — 주제 "AI 마케팅 자동화" 8장 HTML→PNG 캡처 성공. 캡처 스크립트 버그 수정 (`seq -w 1 8` → `01 02 ... 08` 명시적 패딩). 출력: `content/card-news/2026-05-08-ai-marketing-test/` (slide-01~08.png, 53-78KB/장).
-- **CLAUDE.md 2026 재설계** — 사용자 개인 Claude 지침 (`~/.claude/CLAUDE.md`) 완전 재작성. 2025 범용 소프트웨어 개발 가이드라인 → 2026 A-Team 워크플로우 전용 9섹션 112줄. 핵심: 세션 흐름 (/pickup→작업→/end), 토큰=돈, 작업하면서 가르치기 (세션당 1-2 인사이트), 모델 선택 테이블.
-- **Card News 마케팅 모듈 통합** — 짐코딩 유튜브 (https://youtu.be/501KRO5QSXM) 인스타 카드뉴스 자동화 흡수. `--format card-news` 플래그 + 8장 슬라이드 구조 (Hook→Problem→Solution→Summary→CTA) + Playwright PNG 캡처. 4 톤: editorial/bold/minimal/playful.
-  - `/card-news` 커맨드 신설
-  - `templates/card-news/base.html` + `slides.json`
-  - `scripts/card-news-capture.sh`
-  - `governance/skills/marketing/prompts/card-news.md`
-  - `marketing-generate.md` Card-News 섹션 추가
-- **Multi-Model Router Phase 1-2** — Ollama 설치 + LiteLLM Docker 컨테이너 가동 완료. Python 3.14 orjson 호환성 문제로 로컬 설치 대신 Docker 이미지 사용 (`ghcr.io/berriai/litellm:main-latest`).
-- **pickup/vibe 토큰 효율화** — `/pickup` 단일 진입점 통합 + `vibe-init.sh` 스크립트 분리. vibe.md 433줄→82줄 (-81%). 세션 끊김 시 `/pickup`만 사용. 작업 흔적 자동 감지 → 경량 복구 또는 /vibe 제안. **488 tests PASS** 유지.
-- **Ralph/Ouroboros 흡수 설계** — 4개 프로젝트 분석 (snarktank/ralph, frankbria/ralph-claude-code, joi-lab/ouroboros, mikeyobrien/ralph-orchestrator). Circuit breaker 3-threshold, Dual-condition exit, Cognitive checkpoint 등 흡수 대상 정리.
-
-## Last Completions (2026-05-05)
-- **Prompt Coaching 시스템 구축** — `/end` Step 6.7 신설. 5가지 실패 유형(의도 오해, 스코프 폭주, 결과물 불일치, 컨텍스트 단절, 재작업 루프) 기반 프롬프트 분석 + Before/After 개선 예시 + 주간 트렌드 추적. analytics-schema.json에 `prompt_quality` 이벤트 타입 추가. `/vibe` Step 0.75에 프롬프트 패턴 트렌드 통합. **489 tests PASS** 유지.
-
-## Last Completions (2026-05-04)
-- **YouTube 영상 완전 흡수 — Context Engineering + youtube-transcript-api 통합** (1 커밋): Dex Horthy "No Vibes Allowed" 영상 분석 (23,639 chars 자막 + 8 keyframes). 10가지 핵심 개념 추출 — RPI 워크플로우, Compaction = Context Engineering, Smart Zone (0-40%) vs Dumb Zone (40-100%), Sub-agents for Context Control (not roles), On-demand Compressed Context. 6개 파일 생성/수정: governance/rules/context-engineering.md (167 lines, Smart Zone 원칙 + Compaction 트리거), .claude/agents/README.md (180 lines, Sub-agent 아키텍처 패턴 ✅/❌), orchestrator.md Phase 2.8 (자동 compaction at 40%), scripts/yt-extract.sh (youtube-transcript-api 우선 + yt-dlp fallback), .research/notes/2026-05-04-no-vibes-allowed-dex-horthy.md (270 lines 분석). **489 tests PASS** 유지.
+## Last Completions (2026-05-08 이전)
+→ [.context/SESSIONS.md](SESSIONS.md) 참조
 
 ## 다음 우선순위
 - [ ] **Postiz OAuth 설정** — localhost:4007에서 소셜 미디어 계정 연동 (수동 작업)

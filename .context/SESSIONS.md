@@ -15,6 +15,11 @@
 - AskUserQuestion 옵션 최소 2개 제약 — /ppt Q1(자유입력) 패턴 개선 필요
 
 **빌드**: ⚠️ (Windows tsc 미설치, 기존 이슈)
+## [2026-05-15] Critical 3갭 해소 + 최정상 빌드업 (5/13~5/15 마라톤)
+
+**완료**: Phase 0.5 자기개선 루프(gap-sensor+priority+vibe/end 연결), Trajectory eval(path_evals 3개+trajectory-eval.mjs), FSM Verification Gate. 레드팀 최상급(Worker-Critic+Garak+Semgrep+멀티라운드+red-team-protocol). 기획 최상급(Amazon PR/FAQ+_TBD_+설계결정DB+Outcome tracking+PRD 압축). Agent Teams 통합. ralph→zzz(CB/dual-exit/backup). 커맨드 자동 트리거 7→35개. 커맨드 코칭 Step 6.8. Stop auto-save+push. Health 감시 훅. 신규 프로젝트 스캐폴딩. 경쟁사 분석(SuperClaude/BMAD/spec-kit 대비 유일한 인프라 레이어). 비대화 해소(CURRENT -61%, autoresearch -80%, zzz -69%). /board 이사회 제1회. OKR Q2. Legal/BCP-DR 템플릿. anomaly-detect + weekly-report.
+**이슈**: 브랜딩 미확정 → Postiz/소셜 대기. audit-design-cli flaky 5건 기존.
+**빌드**: 532 PASS (+43), 20+ commits
 
 ---
 
