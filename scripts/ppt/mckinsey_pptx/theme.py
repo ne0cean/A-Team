@@ -10,24 +10,25 @@ def rgb(hex_str: str) -> RGBColor:
 
 @dataclass(frozen=True)
 class Palette:
-    dark_navy: RGBColor = field(default_factory=lambda: rgb("0F2A4A"))
-    deep_navy: RGBColor = field(default_factory=lambda: rgb("0A1F3D"))
-    bright_blue: RGBColor = field(default_factory=lambda: rgb("2E9BD6"))
-    mid_blue: RGBColor = field(default_factory=lambda: rgb("1F6FA8"))
+    # McKinsey 2019 rebrand specs (Slideworks/Deckary cross-verified)
+    dark_navy: RGBColor = field(default_factory=lambda: rgb("051C2C"))     # official dark bg
+    deep_navy: RGBColor = field(default_factory=lambda: rgb("051C2C"))
+    bright_blue: RGBColor = field(default_factory=lambda: rgb("2251FF"))   # official primary blue (2019+)
+    mid_blue: RGBColor = field(default_factory=lambda: rgb("24477F"))      # legacy logo blue
     light_blue: RGBColor = field(default_factory=lambda: rgb("4FB2E5"))
-    royal_blue: RGBColor = field(default_factory=lambda: rgb("2A2AE5"))
+    royal_blue: RGBColor = field(default_factory=lambda: rgb("005EB8"))    # MBB common corporate blue
     black: RGBColor = field(default_factory=lambda: rgb("000000"))
     white: RGBColor = field(default_factory=lambda: rgb("FFFFFF"))
-    text_dark: RGBColor = field(default_factory=lambda: rgb("1A1A1A"))
-    rule_gray: RGBColor = field(default_factory=lambda: rgb("999999"))
-    light_gray: RGBColor = field(default_factory=lambda: rgb("E8E8E8"))
-    soft_gray: RGBColor = field(default_factory=lambda: rgb("F2F2F2"))
+    text_dark: RGBColor = field(default_factory=lambda: rgb("222222"))     # near-black (MBB common)
+    rule_gray: RGBColor = field(default_factory=lambda: rgb("CCCCCC"))     # divider lines
+    light_gray: RGBColor = field(default_factory=lambda: rgb("E0E0E0"))
+    soft_gray: RGBColor = field(default_factory=lambda: rgb("F5F5F5"))     # light bg
     grid_gray: RGBColor = field(default_factory=lambda: rgb("D0D0D0"))
-    footer_gray: RGBColor = field(default_factory=lambda: rgb("888888"))
-    placeholder_gray: RGBColor = field(default_factory=lambda: rgb("BFBFBF"))
-    status_green: RGBColor = field(default_factory=lambda: rgb("4CAF50"))
-    status_amber: RGBColor = field(default_factory=lambda: rgb("F4C57A"))
-    status_red: RGBColor = field(default_factory=lambda: rgb("E04E5E"))
+    footer_gray: RGBColor = field(default_factory=lambda: rgb("666666"))   # captions
+    placeholder_gray: RGBColor = field(default_factory=lambda: rgb("999999"))
+    status_green: RGBColor = field(default_factory=lambda: rgb("2E7D32"))
+    status_amber: RGBColor = field(default_factory=lambda: rgb("F3C13A"))  # MBB common gold
+    status_red: RGBColor = field(default_factory=lambda: rgb("C62828"))
 
 
 @dataclass(frozen=True)
@@ -64,7 +65,7 @@ class Theme:
     palette: Palette = field(default_factory=Palette)
     typography: Typography = field(default_factory=Typography)
     layout: Layout = field(default_factory=Layout)
-    copyright_text: str = "Copyright of mckinsey-AX"
+    copyright_text: str = ""
 
 
 DEFAULT_THEME = Theme()
