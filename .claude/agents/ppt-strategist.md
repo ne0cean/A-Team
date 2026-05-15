@@ -27,19 +27,34 @@ model: sonnet
 - 교육형 (교안/설명): 목적 → 핵심 개념 → 사례 → 요약
 - 설득형 (투자/승인): Why now → What → How → 리스크 → 요청
 
-## 레이아웃 선택 기준
+## 레이아웃 선택 기준 (18종)
 
-- 단일 주장 + 근거 3개 이하 → single
-- 비교 / Before-After → two_column
+- 단일 주장 + 근거 3개 이하 → single/bullets
+- 비교 / Before-After → comparison (VS 구분 원 포함)
+- 2개 카테고리 대조 → two_column
 - 수치 데이터 표 → data_table
+- 핵심 수치 1개 극적 강조 → big_number (72pt+)
+- 3-4개 KPI 카드 → stats_grid
+- 3-6개 기능/특징 카드 → icon_grid
+- 대형 1개 + 소형 2-3개 → bento_grid
+- 이미지 + 텍스트 50/50 → image_text
+- 프로세스/단계 → flow_diagram
+- 시간순 → timeline
+- 차트 → bar_chart
 - 챕터 전환 → section_break
 - 핵심 인용 → quote
 - 시작/끝 → cover / closing
 
+## 레이아웃 교차 규칙 (필수)
+
+**동일 레이아웃 2슬라이드 연속 금지** (section_break/cover/closing 제외)
+예: bullets → bullets (X) / bullets → stats_grid → bullets (O)
+
 ## 표준 슬라이드 순서
 
-cover → agenda → section_break → (single/two_column/data_table) x N
-→ section_break → (본문) x N → quote (선택) → closing
+cover → agenda → section_break → (big_number/stats_grid/comparison) x N
+→ section_break → (icon_grid/bento_grid/flow_diagram) x N
+→ quote (선택) → closing
 
 ## 저장
 

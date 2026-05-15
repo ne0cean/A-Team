@@ -230,21 +230,46 @@ input[type=range]:hover::-webkit-slider-thumb{background:#5a8fb8}
       <div class="step-label">Step 5 / 6 &nbsp;&middot;&nbsp; 테마</div>
       <div class="step-title">어떤 분위기의 디자인인가요?</div>
     </div>
-    <div class="theme-grid" id="theme">
+    <div class="theme-grid" id="theme" style="grid-template-columns:1fr 1fr 1fr 1fr">
       <div class="theme-card active" data-v="dark_editorial" onclick="pickTheme(this)">
         <div class="dot" style="background:#4a7fa8"></div>
         <div class="tc-name">Dark Editorial</div>
-        <div class="tc-desc">사업 보고<br>전략 발표<br>데이터 대시보드</div>
+        <div class="tc-desc">사업 보고<br>전략 발표</div>
       </div>
       <div class="theme-card" data-v="consulting_clean" onclick="pickTheme(this)">
         <div class="dot" style="background:#1d4e8a"></div>
         <div class="tc-name">Consulting Clean</div>
-        <div class="tc-desc">컨설팅 보고서<br>내부 제안서<br>교육 자료</div>
+        <div class="tc-desc">컨설팅 보고서<br>내부 제안서</div>
       </div>
       <div class="theme-card" data-v="executive_deep" onclick="pickTheme(this)">
         <div class="dot" style="background:#9f1239"></div>
         <div class="tc-name">Executive Deep</div>
-        <div class="tc-desc">임원 보고<br>투자 제안<br>공식 발표</div>
+        <div class="tc-desc">임원 보고<br>투자 제안</div>
+      </div>
+      <div class="theme-card" data-v="midnight_blue" onclick="pickTheme(this)">
+        <div class="dot" style="background:#3b82f6"></div>
+        <div class="tc-name">Midnight Blue</div>
+        <div class="tc-desc">테크 발표<br>제품 소개</div>
+      </div>
+      <div class="theme-card" data-v="warm_earth" onclick="pickTheme(this)">
+        <div class="dot" style="background:#b45309"></div>
+        <div class="tc-name">Warm Earth</div>
+        <div class="tc-desc">브랜드 제안<br>크리에이티브</div>
+      </div>
+      <div class="theme-card" data-v="nordic_frost" onclick="pickTheme(this)">
+        <div class="dot" style="background:#0ea5e9"></div>
+        <div class="tc-name">Nordic Frost</div>
+        <div class="tc-desc">SaaS 발표<br>클린 리포트</div>
+      </div>
+      <div class="theme-card" data-v="mono_sharp" onclick="pickTheme(this)">
+        <div class="dot" style="background:#0a0a0a"></div>
+        <div class="tc-name">Mono Sharp</div>
+        <div class="tc-desc">미니멀<br>모던 스타일</div>
+      </div>
+      <div class="theme-card" data-v="sage_green" onclick="pickTheme(this)">
+        <div class="dot" style="background:#2d6a4f"></div>
+        <div class="tc-name">Sage Green</div>
+        <div class="tc-desc">ESG 보고<br>자연/웰빙</div>
       </div>
     </div>
     <div class="btn-row">
@@ -446,32 +471,36 @@ document.getElementById('topic').addEventListener('keydown', e=>{
 
 STRUCTURES = {
     "보고형": [
+        ("핵심 지표 — 결론 수치", "big_number"),
         ("핵심 요약 — 3줄 결론", "stats_grid"),
         ("현황 데이터", "data_table"),
-        ("원인 분석", "two_column"),
+        ("원인 분석 — Before vs After", "comparison"),
         ("시사점", "bullets"),
-        ("Next Action", "bullets"),
+        ("Next Action", "icon_grid"),
     ],
     "기획형": [
-        ("문제 정의 — Why Now", "two_column"),
+        ("문제 정의 — Why Now", "image_text"),
         ("기회 및 목표", "stats_grid"),
         ("솔루션 구조", "flow_diagram"),
+        ("핵심 기능", "bento_grid"),
         ("실행 계획", "timeline"),
-        ("기대 효과", "bullets"),
+        ("기대 효과", "big_number"),
     ],
     "교육형": [
-        ("배경 및 목적", "bullets"),
-        ("핵심 개념", "two_column"),
+        ("배경 및 목적", "image_text"),
+        ("핵심 개념", "icon_grid"),
         ("방법론", "flow_diagram"),
         ("적용 사례", "data_table"),
+        ("비교 분석", "comparison"),
         ("요약 정리", "bullets"),
     ],
     "설득형": [
-        ("Why Now — 시장 기회", "stats_grid"),
-        ("문제 정의", "two_column"),
-        ("솔루션", "flow_diagram"),
+        ("Why Now — 시장 기회", "big_number"),
+        ("문제 정의", "comparison"),
+        ("솔루션", "bento_grid"),
+        ("핵심 지표", "stats_grid"),
         ("실행 로드맵", "timeline"),
-        ("투자 요청 / Ask", "bullets"),
+        ("투자 요청 / Ask", "icon_grid"),
     ],
 }
 
@@ -562,6 +591,34 @@ def build_spec(req):
                     {"date": "STEP 3", "title": "점검 단계", "desc": "[DATA: KPI]"},
                     {"date": "STEP 4", "title": "완료 단계", "desc": "[DATA: 결과]"},
                     {"date": "STEP 5", "title": "회고 단계", "desc": "개선사항 반영"},
+                ]
+            elif layout == "big_number":
+                slide["number"] = data_note if has_data else "[DATA]"
+                slide["label"] = f"{topic} 핵심 지표"
+                slide["delta"] = "[+/- %]"
+                slide["detail"] = f"{audience} 관점 핵심 수치 해석"
+            elif layout == "icon_grid":
+                slide["items"] = [
+                    {"title": "항목 1", "description": data_note if has_data else "[DATA]"},
+                    {"title": "항목 2", "description": f"{topic} 세부 포인트"},
+                    {"title": "항목 3", "description": "[DATA: 추가 정보]"},
+                ]
+            elif layout == "comparison":
+                slide["before"] = {"title": "현재", "bullets": [data_note, "[DATA: 비교 수치]", "주요 이슈"]}
+                slide["after"] = {"title": "개선 후", "bullets": ["개선 결과", "기대 효과", "[DATA: 목표치]"]}
+            elif layout == "image_text":
+                slide["image_position"] = "left"
+                slide["bullets"] = [
+                    data_note if has_data else f"[DATA: {topic} 핵심 수치]",
+                    f"{audience} 관점 핵심 포인트",
+                    "추가 인사이트 — [DATA]",
+                ]
+            elif layout == "bento_grid":
+                slide["items"] = [
+                    {"title": f"{topic} 핵심", "description": data_note if has_data else "[DATA: 상세 설명]"},
+                    {"title": "세부 항목 1", "description": "[DATA: 정보]"},
+                    {"title": "세부 항목 2", "description": "[DATA: 정보]"},
+                    {"title": "세부 항목 3", "description": "[DATA: 정보]"},
                 ]
             slides.append(slide)
 

@@ -68,9 +68,14 @@ AskUserQuestion 도구 호출:
 > 4. 15장 (상세)
 >
 > 테마:
-> A. Dark Editorial   — 사업 보고·전략·데이터
-> B. Consulting Clean — 컨설팅·내부 제안서·교육
-> C. Executive Deep   — 임원 보고·투자 제안
+> A. Dark Editorial   — 사업 보고·전략
+> B. Consulting Clean — 컨설팅·교육
+> C. Executive Deep   — 임원 보고·투자
+> D. Midnight Blue    — 테크·제품 소개
+> E. Warm Earth       — 브랜드·크리에이티브
+> F. Nordic Frost     — SaaS·클린 리포트
+> G. Mono Sharp       — 미니멀·모던
+> H. Sage Green       — ESG·자연/웰빙
 
 ---
 
@@ -118,10 +123,15 @@ python scripts/ppt/generate_via_intake.py \
 
 ---
 
-## 테마
+## 테마 (8종)
 
 | 코드 | 이름 | 적합한 상황 |
 |------|------|-----------|
-| `dark_editorial` | Dark Editorial | 사업 보고, 전략 발표, 데이터 |
+| `dark_editorial` | Dark Editorial | 사업 보고, 전략 발표 |
 | `consulting_clean` | Consulting Clean | 컨설팅 보고서, 교육 자료 |
 | `executive_deep` | Executive Deep | 임원 보고, 투자 제안 |
+| `midnight_blue` | Midnight Blue | 테크 발표, 제품 소개 |
+| `warm_earth` | Warm Earth | 브랜드 제안, 크리에이티브 |
+| `nordic_frost` | Nordic Frost | SaaS 발표, 클린 리포트 |
+| `mono_sharp` | Mono Sharp | 미니멀, 모던 스타일 |
+| `sage_green` | Sage Green | ESG 보고, 자연/웰빙 |
