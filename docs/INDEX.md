@@ -26,6 +26,7 @@
 | `16-project-tiers.md` | 프로젝트 Tier 시스템 | NANO, STANDARD, PRO, DDD, 클린 아키텍처 |
 | `17-tools-and-frameworks.md` | 도구 평가 & 병렬 처리 | 7차원 평가, CrewAI, LangGraph, Superset, Claude Squad, agentmaxxing, 케이스별 선택 |
 | `19-adoption-plan.md` | 도입 계획 (아카이브) | MoA, Guardrail, 체크포인팅, SOP, Phase 1/2/3 |
+| `brain-memory-system.md` | 연상 발화 메모리 아키텍처 | 장기 아이데이션, 세션 컨텍스트, Hippocampus, Cortex, Founder Approval Gate, memory/ |
 | `HISTORY.md` | **전체 히스토리 (Phase 0-14)** | ClawTeam, Vibe-Toolkit, gstack Wave 1-4, Ralph/PIOP, bkit, Thin-wrapper, UI Auto-Inspect, Unified Advisor, CSO, Optimization Research, Sovereignty/Truth Contract |
 
 ---
@@ -49,3 +50,4 @@
 | 새 도구/프레임워크 도입 평가 | `17` |
 | 병렬 처리 도구 선택, agentmaxxing | `17` |
 | MoA/Guardrail/체크포인팅 도입 | `19` |
+| 장기 아이데이션 세션 컨텍스트 소실 | `brain-memory-system` |
