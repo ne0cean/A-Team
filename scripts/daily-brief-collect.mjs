@@ -225,12 +225,14 @@ function collectEcosystemContext() {
     watch_topics: [
       'Claude Code updates & new features',
       'AI coding assistant ecosystem (Cursor, Windsurf, Copilot)',
-      'Claude API / model releases',
+      'Claude API / model releases (Opus 4.7+)',
       'AI agent frameworks (LangGraph, CrewAI, AutoGen)',
+      'Composable skill frameworks (Superpowers, awesome-claude-code)',
       'Solo developer / indie hacker tools',
       'Marketing automation AI tools',
       'Design AI tools (Figma AI, Galileo, v0)',
       'Open source AI toolkit projects',
+      'Claude Code hooks & plugin ecosystem',
     ],
     competitors: [
       { name: 'SuperClaude', repo: 'nickbaumann98/super-claude', stars: '22.8k' },
