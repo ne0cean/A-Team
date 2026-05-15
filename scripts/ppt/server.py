@@ -1,13 +1,12 @@
 """
 A-Team PPT Intake Server
-로컬 웹 서버로 클릭형 PPT 인테이크 제공
+로컬 웹 서버로 Wizard 패턴 PPT 인테이크 제공 (6단계 스텝)
 
 사용:
   python scripts/ppt/server.py
   → http://localhost:7842 자동 오픈
 """
-import http.server, json, os, sys, subprocess, threading, webbrowser, time
-from urllib.parse import parse_qs
+import http.server, json, os, sys, subprocess, threading, webbrowser, socketserver
 
 PORT = 7842
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
@@ -24,131 +23,322 @@ HTML = r"""<!DOCTYPE html>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0e0e14;color:#e8e4dc;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
      min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 16px}
-.card{background:#1a1a22;border:0.5px solid #2a2a30;max-width:720px;width:100%;padding:48px 52px}
-h1{font-size:1.15rem;font-weight:300;color:#8a8680;letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px}
-h2{font-size:2rem;font-weight:700;color:#e8e4dc;letter-spacing:-.02em;margin-bottom:40px;line-height:1.2}
-.rule{height:.5px;background:#2a2a30;margin:32px 0}
-.q-label{font-size:.68rem;font-weight:300;letter-spacing:.18em;text-transform:uppercase;color:#a89878;margin-bottom:14px}
+
+/* ── 카드 ── */
+.card{background:#1a1a22;border:0.5px solid #2a2a30;max-width:680px;width:100%;padding:48px 52px}
+
+/* ── 진행 표시기 ── */
+.progress-bar{display:flex;align-items:center;gap:0;margin-bottom:44px}
+.step-dot{width:28px;height:28px;border-radius:50%;border:1.5px solid #2a2a30;
+          display:flex;align-items:center;justify-content:center;
+          font-size:.62rem;font-weight:600;color:#4a4844;flex-shrink:0;
+          transition:all .25s;background:#111116}
+.step-dot.done{background:#4a8060;border-color:#4a8060;color:#e8e4dc}
+.step-dot.active{background:#4a7fa8;border-color:#4a7fa8;color:#e8e4dc;
+                 box-shadow:0 0 0 3px rgba(74,127,168,.18)}
+.step-line{flex:1;height:1px;background:#2a2a30;transition:background .25s}
+.step-line.done{background:#4a8060}
+
+/* ── 헤더 ── */
+.wiz-header{margin-bottom:32px}
+.step-label{font-size:.62rem;font-weight:300;letter-spacing:.2em;text-transform:uppercase;
+            color:#a89878;margin-bottom:10px}
+.step-title{font-size:1.55rem;font-weight:700;color:#e8e4dc;letter-spacing:-.02em;line-height:1.25}
+.step-hint{font-size:.78rem;color:#4a4844;margin-top:8px;line-height:1.6}
+
+/* ── 입력 요소 ── */
 .q-input{width:100%;background:#111116;border:0.5px solid #2a2a30;color:#e8e4dc;
-         font-family:inherit;font-size:1rem;padding:14px 16px;outline:none;
+         font-family:inherit;font-size:1.05rem;padding:16px 18px;outline:none;
          transition:border-color .2s}
 .q-input:focus{border-color:#a89878}
-.chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:4px}
-.chip{background:#111116;border:0.5px solid #2a2a30;color:#8a8680;
-      font-family:inherit;font-size:.82rem;padding:10px 20px;cursor:pointer;
-      transition:all .15s;user-select:none;letter-spacing:.02em}
-.chip:hover{border-color:#a89878;color:#e8e4dc}
-.chip.active{background:#4a7fa8;border-color:#4a7fa8;color:#e8e4dc;font-weight:500}
-.theme-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.theme-card{background:#111116;border:0.5px solid #2a2a30;padding:18px 16px;cursor:pointer;transition:all .15s}
-.theme-card:hover{border-color:#a89878}
-.theme-card.active{border-color:#4a7fa8}
-.theme-card .dot{width:28px;height:4px;margin-bottom:10px}
-.theme-card .name{font-size:.78rem;font-weight:500;color:#e8e4dc;margin-bottom:4px}
-.theme-card .desc{font-size:.7rem;color:#8a8680;line-height:1.5}
-.slide-row{display:flex;align-items:center;gap:20px;margin-top:14px}
-.slide-val{font-size:2rem;font-weight:700;color:#e8e4dc;width:56px;text-align:center}
-input[type=range]{-webkit-appearance:none;flex:1;height:2px;background:#2a2a30;outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;
-  background:#4a7fa8;cursor:pointer;border-radius:50%}
+.q-input::placeholder{color:#3a3834}
+
 .q-textarea{width:100%;background:#111116;border:0.5px solid #2a2a30;color:#e8e4dc;
-           font-family:inherit;font-size:.88rem;padding:14px 16px;resize:vertical;
-           min-height:88px;outline:none;transition:border-color .2s;line-height:1.6}
+            font-family:inherit;font-size:.9rem;padding:16px 18px;resize:vertical;
+            min-height:110px;outline:none;transition:border-color .2s;line-height:1.7}
 .q-textarea:focus{border-color:#a89878}
-.submit-btn{width:100%;background:#4a7fa8;border:none;color:#e8e4dc;
-            font-family:inherit;font-size:1rem;font-weight:500;padding:18px;
-            cursor:pointer;margin-top:36px;letter-spacing:.08em;transition:background .2s}
-.submit-btn:hover{background:#5a8fb8}
-.submit-btn:disabled{background:#2a2a30;color:#4a4844;cursor:not-allowed}
-.status{margin-top:20px;padding:16px;background:#111116;border:0.5px solid #2a2a30;
-        font-size:.82rem;color:#8a8680;display:none;line-height:1.7}
+.q-textarea::placeholder{color:#3a3834}
+
+/* ── 칩 ── */
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{background:#111116;border:0.5px solid #2a2a30;color:#6a6660;
+      font-family:inherit;font-size:.85rem;padding:12px 22px;cursor:pointer;
+      transition:all .15s;user-select:none;line-height:1.5;text-align:left}
+.chip:hover{border-color:#a89878;color:#e8e4dc}
+.chip.active{background:#1e3448;border-color:#4a7fa8;color:#e8e4dc;font-weight:500}
+.chip small{display:block;font-size:.72rem;font-weight:300;opacity:.65;margin-top:2px}
+
+/* ── 테마 카드 ── */
+.theme-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.theme-card{background:#111116;border:0.5px solid #2a2a30;padding:20px 18px;cursor:pointer;
+            transition:all .15s}
+.theme-card:hover{border-color:#a89878}
+.theme-card.active{border-color:#4a7fa8;background:#1e3448}
+.theme-card .dot{width:32px;height:3px;margin-bottom:12px}
+.theme-card .tc-name{font-size:.8rem;font-weight:600;color:#e8e4dc;margin-bottom:6px}
+.theme-card .tc-desc{font-size:.7rem;color:#6a6660;line-height:1.6}
+
+/* ── 슬라이더 ── */
+.slide-row{display:flex;align-items:center;gap:16px;margin-top:8px}
+.slide-val{font-size:2.4rem;font-weight:700;color:#e8e4dc;width:64px;text-align:center;
+           font-variant-numeric:tabular-nums}
+.slide-unit{font-size:.78rem;color:#4a4844}
+input[type=range]{-webkit-appearance:none;flex:1;height:2px;background:#2a2a30;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;
+  background:#4a7fa8;cursor:pointer;border-radius:50%;transition:background .15s}
+input[type=range]:hover::-webkit-slider-thumb{background:#5a8fb8}
+
+/* ── 검토 요약 ── */
+.review-grid{display:grid;grid-template-columns:auto 1fr;gap:10px 20px;align-items:start}
+.rv-label{font-size:.65rem;letter-spacing:.16em;text-transform:uppercase;color:#a89878;
+          padding-top:2px;white-space:nowrap}
+.rv-value{font-size:.92rem;color:#e8e4dc;line-height:1.5}
+.rv-data{font-size:.82rem;color:#6a9fc8;line-height:1.6;background:#111116;
+         border:0.5px solid #2a2a30;padding:10px 14px;margin-top:4px;white-space:pre-wrap}
+.review-grid .rule{grid-column:1/-1;height:.5px;background:#2a2a30}
+
+/* ── 버튼 행 ── */
+.btn-row{display:flex;gap:10px;margin-top:36px}
+.btn-back{flex:0 0 auto;background:transparent;border:0.5px solid #2a2a30;color:#6a6660;
+          font-family:inherit;font-size:.88rem;padding:14px 24px;cursor:pointer;
+          transition:all .15s;letter-spacing:.04em}
+.btn-back:hover{border-color:#a89878;color:#e8e4dc}
+.btn-next{flex:1;background:#4a7fa8;border:none;color:#e8e4dc;
+          font-family:inherit;font-size:.95rem;font-weight:500;padding:16px;
+          cursor:pointer;letter-spacing:.08em;transition:background .2s}
+.btn-next:hover{background:#5a8fb8}
+.btn-next:disabled{background:#2a2a30;color:#4a4844;cursor:not-allowed}
+.btn-generate{flex:1;background:#4a8060;border:none;color:#e8e4dc;
+              font-family:inherit;font-size:.95rem;font-weight:500;padding:16px;
+              cursor:pointer;letter-spacing:.08em;transition:background .2s}
+.btn-generate:hover{background:#5a9070}
+.btn-generate:disabled{background:#2a2a30;color:#4a4844;cursor:not-allowed}
+
+/* ── 상태 ── */
+.status{padding:16px 18px;background:#111116;border:0.5px solid #2a2a30;
+        font-size:.82rem;color:#8a8680;display:none;line-height:1.7;margin-top:16px}
 .status.show{display:block}
 .status.done{border-color:#4a8060;color:#7ab89a}
 .status.err{border-color:#8a4040;color:#c07070}
 .dl-btn{display:none;width:100%;background:#4a8060;border:none;color:#e8e4dc;
-        font-family:inherit;font-size:.95rem;font-weight:500;padding:16px;
-        cursor:pointer;margin-top:12px;letter-spacing:.06em;transition:background .2s}
+        font-family:inherit;font-size:.92rem;font-weight:500;padding:15px;
+        cursor:pointer;margin-top:10px;letter-spacing:.06em;transition:background .2s}
 .dl-btn:hover{background:#5a9070}
 .dl-btn.show{display:block}
-a{color:#6a9fc8}
+
+/* ── 단계 전환 ── */
+.step{display:none;animation:fadeIn .22s ease}
+.step.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.skip-hint{font-size:.72rem;color:#4a4844;margin-top:10px}
 </style>
 </head>
 <body>
 <div class="card">
-  <h1>A-Team</h1>
-  <h2>PPT 생성</h2>
 
-  <div class="q-label">01 &nbsp; 주제 / 제목</div>
-  <input class="q-input" id="topic" type="text" placeholder="예: Q1 영업 성과 보고 / Series A 투자 제안서" autocomplete="off">
-
-  <div class="rule"></div>
-
-  <div class="q-label">02 &nbsp; 발표 유형</div>
-  <div class="chips" id="ptype">
-    <button class="chip" data-v="보고형" onclick="pick('ptype',this)">보고형<br><small style="font-weight:300;opacity:.7">실적·현황·결과</small></button>
-    <button class="chip" data-v="기획형" onclick="pick('ptype',this)">기획형<br><small style="font-weight:300;opacity:.7">제안·계획·전략</small></button>
-    <button class="chip" data-v="교육형" onclick="pick('ptype',this)">교육형<br><small style="font-weight:300;opacity:.7">교육·온보딩·설명</small></button>
-    <button class="chip" data-v="설득형" onclick="pick('ptype',this)">설득형<br><small style="font-weight:300;opacity:.7">투자·승인·외부제안</small></button>
+  <!-- 진행 표시기 -->
+  <div class="progress-bar">
+    <div class="step-dot active" id="pd-1">1</div>
+    <div class="step-line" id="pl-1"></div>
+    <div class="step-dot" id="pd-2">2</div>
+    <div class="step-line" id="pl-2"></div>
+    <div class="step-dot" id="pd-3">3</div>
+    <div class="step-line" id="pl-3"></div>
+    <div class="step-dot" id="pd-4">4</div>
+    <div class="step-line" id="pl-4"></div>
+    <div class="step-dot" id="pd-5">5</div>
+    <div class="step-line" id="pl-5"></div>
+    <div class="step-dot" id="pd-6">6</div>
+    <div class="step-line" id="pl-6"></div>
+    <div class="step-dot" id="pd-7">&#10003;</div>
   </div>
 
-  <div class="rule"></div>
-
-  <div class="q-label">03 &nbsp; 주요 청중</div>
-  <div class="chips" id="audience">
-    <button class="chip" data-v="임원진" onclick="pick('audience',this,true)">임원진</button>
-    <button class="chip" data-v="팀원" onclick="pick('audience',this,true)">팀원</button>
-    <button class="chip" data-v="외부 고객" onclick="pick('audience',this,true)">외부 고객</button>
-    <button class="chip" data-v="투자자" onclick="pick('audience',this,true)">투자자</button>
-    <button class="chip" data-v="전체" onclick="pick('audience',this,true)">전체</button>
-  </div>
-  <input class="q-input" id="audience-etc" type="text" placeholder="직접 입력 (선택)" style="margin-top:10px">
-
-  <div class="rule"></div>
-
-  <div class="q-label">04 &nbsp; 핵심 데이터 / 수치 &nbsp;<span style="color:#4a4844">(없으면 [DATA] 플레이스홀더 처리)</span></div>
-  <textarea class="q-textarea" id="data" placeholder="예) Q1 매출 23억, 목표 대비 +7%&#10;HBM 시장 점유율 38%, YoY +12%p&#10;없으면 비워두세요"></textarea>
-
-  <div class="rule"></div>
-
-  <div class="q-label">05 &nbsp; 테마</div>
-  <div class="theme-grid" id="theme">
-    <div class="theme-card" data-v="dark_editorial" onclick="pickTheme(this)">
-      <div class="dot" style="background:#4a7fa8"></div>
-      <div class="name">Dark Editorial</div>
-      <div class="desc">사업 보고<br>전략 발표<br>데이터 대시보드</div>
+  <!-- STEP 1: 주제 -->
+  <div class="step active" id="step-1">
+    <div class="wiz-header">
+      <div class="step-label">Step 1 / 6 &nbsp;&middot;&nbsp; 주제</div>
+      <div class="step-title">어떤 내용의 PPT인가요?</div>
+      <div class="step-hint">제목이 구체적일수록 슬라이드 내용이 정교해집니다.</div>
     </div>
-    <div class="theme-card" data-v="consulting_clean" onclick="pickTheme(this)">
-      <div class="dot" style="background:#1d4e8a"></div>
-      <div class="name">Consulting Clean</div>
-      <div class="desc">컨설팅 보고서<br>내부 제안서<br>교육 자료</div>
-    </div>
-    <div class="theme-card" data-v="executive_deep" onclick="pickTheme(this)">
-      <div class="dot" style="background:#9f1239"></div>
-      <div class="name">Executive Deep</div>
-      <div class="desc">임원 보고<br>투자 제안<br>공식 발표</div>
+    <input class="q-input" id="topic" type="text" autocomplete="off"
+           placeholder="예: Q1 영업 성과 보고 &middot; Series A 투자 제안서 &middot; AI 온보딩 교육">
+    <div class="btn-row">
+      <button class="btn-next" onclick="goNext(1)">다음 &rarr;</button>
     </div>
   </div>
 
-  <div class="rule"></div>
-
-  <div class="q-label">06 &nbsp; 슬라이드 수</div>
-  <div class="slide-row">
-    <span style="font-size:.75rem;color:#4a4844">5</span>
-    <input type="range" id="slides" min="5" max="20" value="10"
-           oninput="document.getElementById('slideval').textContent=this.value">
-    <span style="font-size:.75rem;color:#4a4844">20</span>
-    <div class="slide-val" id="slideval">10</div>
-    <span style="font-size:.75rem;color:#4a4844">장</span>
+  <!-- STEP 2: 발표 유형 -->
+  <div class="step" id="step-2">
+    <div class="wiz-header">
+      <div class="step-label">Step 2 / 6 &nbsp;&middot;&nbsp; 발표 유형</div>
+      <div class="step-title">어떤 목적의 발표인가요?</div>
+    </div>
+    <div class="chips" id="ptype">
+      <button class="chip" data-v="보고형" onclick="pick('ptype',this)">보고형<small>실적 &middot; 현황 &middot; 결과 보고</small></button>
+      <button class="chip" data-v="기획형" onclick="pick('ptype',this)">기획형<small>제안 &middot; 계획 &middot; 전략 수립</small></button>
+      <button class="chip" data-v="교육형" onclick="pick('ptype',this)">교육형<small>내부 교육 &middot; 온보딩 &middot; 설명</small></button>
+      <button class="chip" data-v="설득형" onclick="pick('ptype',this)">설득형<small>투자 유치 &middot; 경영진 승인 &middot; 외부 제안</small></button>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goBack(2)">&larr; 이전</button>
+      <button class="btn-next" onclick="goNext(2)">다음 &rarr;</button>
+    </div>
   </div>
 
-  <button class="submit-btn" id="submit-btn" onclick="generate()">PPT 생성</button>
+  <!-- STEP 3: 청중 -->
+  <div class="step" id="step-3">
+    <div class="wiz-header">
+      <div class="step-label">Step 3 / 6 &nbsp;&middot;&nbsp; 청중</div>
+      <div class="step-title">누가 보는 PPT인가요?</div>
+      <div class="step-hint">복수 선택 가능. 직접 입력도 됩니다.</div>
+    </div>
+    <div class="chips" id="audience">
+      <button class="chip" data-v="임원진" onclick="pick('audience',this,true)">임원진</button>
+      <button class="chip" data-v="팀원" onclick="pick('audience',this,true)">팀원</button>
+      <button class="chip" data-v="외부 고객" onclick="pick('audience',this,true)">외부 고객</button>
+      <button class="chip" data-v="투자자" onclick="pick('audience',this,true)">투자자</button>
+      <button class="chip" data-v="전체" onclick="pick('audience',this,true)">전체</button>
+    </div>
+    <input class="q-input" id="audience-etc" type="text"
+           placeholder="직접 입력 (예: 개발팀, 파트너사)" style="margin-top:14px">
+    <div class="btn-row">
+      <button class="btn-back" onclick="goBack(3)">&larr; 이전</button>
+      <button class="btn-next" onclick="goNext(3)">다음 &rarr;</button>
+    </div>
+  </div>
 
-  <div class="status" id="status"></div>
-  <button class="dl-btn" id="dl-btn" onclick="download()">PPTX 다운로드</button>
-</div>
+  <!-- STEP 4: 데이터 -->
+  <div class="step" id="step-4">
+    <div class="wiz-header">
+      <div class="step-label">Step 4 / 6 &nbsp;&middot;&nbsp; 데이터</div>
+      <div class="step-title">핵심 수치가 있나요?</div>
+      <div class="step-hint">없으면 비워도 됩니다 &mdash; [DATA] 플레이스홀더로 자동 처리됩니다.</div>
+    </div>
+    <textarea class="q-textarea" id="data"
+      placeholder="예) Q1 매출 23억, 목표 대비 +7%&#10;HBM 시장 점유율 38%, YoY +12%p&#10;고객 만족도 4.3/5.0, 전분기 대비 +0.4"></textarea>
+    <div class="skip-hint">스킵 가능 &mdash; [DATA] 플레이스홀더로 대체됩니다</div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goBack(4)">&larr; 이전</button>
+      <button class="btn-next" onclick="goNext(4)">다음 &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: 테마 -->
+  <div class="step" id="step-5">
+    <div class="wiz-header">
+      <div class="step-label">Step 5 / 6 &nbsp;&middot;&nbsp; 테마</div>
+      <div class="step-title">어떤 분위기의 디자인인가요?</div>
+    </div>
+    <div class="theme-grid" id="theme">
+      <div class="theme-card active" data-v="dark_editorial" onclick="pickTheme(this)">
+        <div class="dot" style="background:#4a7fa8"></div>
+        <div class="tc-name">Dark Editorial</div>
+        <div class="tc-desc">사업 보고<br>전략 발표<br>데이터 대시보드</div>
+      </div>
+      <div class="theme-card" data-v="consulting_clean" onclick="pickTheme(this)">
+        <div class="dot" style="background:#1d4e8a"></div>
+        <div class="tc-name">Consulting Clean</div>
+        <div class="tc-desc">컨설팅 보고서<br>내부 제안서<br>교육 자료</div>
+      </div>
+      <div class="theme-card" data-v="executive_deep" onclick="pickTheme(this)">
+        <div class="dot" style="background:#9f1239"></div>
+        <div class="tc-name">Executive Deep</div>
+        <div class="tc-desc">임원 보고<br>투자 제안<br>공식 발표</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goBack(5)">&larr; 이전</button>
+      <button class="btn-next" onclick="goNext(5)">다음 &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 6: 슬라이드 수 -->
+  <div class="step" id="step-6">
+    <div class="wiz-header">
+      <div class="step-label">Step 6 / 6 &nbsp;&middot;&nbsp; 분량</div>
+      <div class="step-title">슬라이드 몇 장으로 만들까요?</div>
+      <div class="step-hint">10장이 기본값입니다. 간결하면 8장, 상세하면 12&ndash;15장.</div>
+    </div>
+    <div class="slide-row">
+      <span class="slide-unit">5</span>
+      <input type="range" id="slides" min="5" max="20" value="10"
+             oninput="document.getElementById('slideval').textContent=this.value">
+      <span class="slide-unit">20</span>
+      <div class="slide-val" id="slideval">10</div>
+      <span class="slide-unit">장</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goBack(6)">&larr; 이전</button>
+      <button class="btn-next" onclick="goNext(6)">검토 &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 7: 검토 & 생성 -->
+  <div class="step" id="step-7">
+    <div class="wiz-header">
+      <div class="step-label">검토</div>
+      <div class="step-title">이대로 생성할까요?</div>
+    </div>
+    <div class="review-grid" id="review-grid"></div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goBack(7)">&larr; 수정</button>
+      <button class="btn-generate" id="generate-btn" onclick="generate()">PPT 생성 &rarr;</button>
+    </div>
+    <div class="status" id="status"></div>
+    <button class="dl-btn" id="dl-btn" onclick="download()">PPTX 다운로드</button>
+  </div>
+
+</div><!-- .card -->
 
 <script>
-const state = {theme:'dark_editorial', outfile:null};
+const TOTAL = 6;
+const state = {cur:1, theme:'dark_editorial', outfile:null};
+
+function updateProgress(step){
+  for(let i=1; i<=TOTAL+1; i++){
+    const dot = document.getElementById('pd-'+i);
+    if(!dot) continue;
+    dot.classList.toggle('active', i===step);
+    dot.classList.toggle('done', i<step);
+  }
+  for(let i=1; i<=TOTAL; i++){
+    const line = document.getElementById('pl-'+i);
+    if(line) line.classList.toggle('done', i<step);
+  }
+}
+
+function showStep(n){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step-'+n).classList.add('active');
+  state.cur = n;
+  updateProgress(n);
+  if(n===7) buildReview();
+}
+
+function goBack(from){ showStep(from-1); }
+
+function goNext(from){
+  if(from===1){
+    const t = document.getElementById('topic').value.trim();
+    if(!t){ flash('topic'); return; }
+  }
+  if(from===2){
+    if(!getChips('ptype')){ flashGroup('ptype'); return; }
+  }
+  showStep(from+1);
+}
+
+function flash(id){
+  const el = document.getElementById(id);
+  el.style.borderColor='#8a4040'; el.focus();
+  setTimeout(()=>el.style.borderColor='', 1400);
+}
+function flashGroup(id){
+  const el = document.getElementById(id);
+  el.style.outline='1px solid #8a4040';
+  setTimeout(()=>el.style.outline='', 1400);
+}
 
 function pick(groupId, el, multi=false){
   const group = document.getElementById(groupId);
@@ -162,12 +352,43 @@ function pickTheme(el){
   state.theme = el.dataset.v;
 }
 
-// default selections
-document.querySelector('#theme [data-v="dark_editorial"]').classList.add('active');
-
 function getChips(groupId){
   return [...document.getElementById(groupId).querySelectorAll('.chip.active')]
          .map(c=>c.dataset.v).join(', ');
+}
+
+const THEME_LABELS = {
+  dark_editorial:'Dark Editorial',
+  consulting_clean:'Consulting Clean',
+  executive_deep:'Executive Deep'
+};
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function buildReview(){
+  const topic    = document.getElementById('topic').value.trim();
+  const ptype    = getChips('ptype') || '&mdash;';
+  const audience = getChips('audience') || document.getElementById('audience-etc').value.trim() || '&mdash;';
+  const data     = document.getElementById('data').value.trim();
+  const slides   = document.getElementById('slides').value;
+  const theme    = THEME_LABELS[state.theme] || state.theme;
+
+  document.getElementById('review-grid').innerHTML = `
+    <div class="rv-label">주제</div><div class="rv-value">${esc(topic)}</div>
+    <div class="rule"></div>
+    <div class="rv-label">유형</div><div class="rv-value">${ptype}</div>
+    <div class="rule"></div>
+    <div class="rv-label">청중</div><div class="rv-value">${audience}</div>
+    <div class="rule"></div>
+    <div class="rv-label">데이터</div><div class="rv-value">${
+      data ? `<div class="rv-data">${esc(data)}</div>`
+           : '<span style="color:#4a4844">[DATA] 플레이스홀더 처리</span>'
+    }</div>
+    <div class="rule"></div>
+    <div class="rv-label">테마</div><div class="rv-value">${esc(theme)}</div>
+    <div class="rule"></div>
+    <div class="rv-label">슬라이드</div><div class="rv-value">${slides}장</div>
+  `;
 }
 
 function setStatus(msg, type=''){
@@ -184,10 +405,7 @@ async function generate(){
   const slides   = document.getElementById('slides').value;
   const theme    = state.theme;
 
-  if(!topic){ alert('주제를 입력해주세요.'); return; }
-  if(!ptype){ alert('발표 유형을 선택해주세요.'); return; }
-
-  const btn = document.getElementById('submit-btn');
+  const btn = document.getElementById('generate-btn');
   btn.disabled = true; btn.textContent = '생성 중...';
   document.getElementById('dl-btn').className = 'dl-btn';
   setStatus('슬라이드 스펙 생성 중...', '');
@@ -209,12 +427,16 @@ async function generate(){
   } catch(e){
     setStatus('서버 오류: ' + e.message, 'err');
   }
-  btn.disabled = false; btn.textContent = 'PPT 생성';
+  btn.disabled = false; btn.textContent = 'PPT 생성 &rarr;';
 }
 
 function download(){
   if(state.outfile) window.location.href = '/download/' + encodeURIComponent(state.outfile);
 }
+
+document.getElementById('topic').addEventListener('keydown', e=>{
+  if(e.key==='Enter') goNext(1);
+});
 </script>
 </body>
 </html>"""
@@ -288,7 +510,6 @@ def build_spec(req):
     structure = STRUCTURES.get(ptype, STRUCTURES["보고형"])
     sections  = SECTION_NAMES.get(ptype, ["섹션 01", "섹션 02", "섹션 03"])
 
-    # 섹션 break + 콘텐츠 슬라이드
     chunk = max(1, len(structure) // len(sections))
     for si, sec_name in enumerate(sections):
         slides.append({
@@ -297,15 +518,10 @@ def build_spec(req):
             "headline": sec_name,
             "description": topic + " · " + ptype
         })
-        # 해당 섹션 슬라이드
         start = si * chunk
         end   = start + chunk if si < len(sections)-1 else len(structure)
         for title, layout in structure[start:end]:
-            slide = {
-                "layout": layout,
-                "headline": f"{topic} — {title}",
-            }
-            # 레이아웃별 기본 콘텐츠 주입
+            slide = {"layout": layout, "headline": f"{topic} — {title}"}
             if layout == "bullets":
                 slide["bullets"] = [
                     data_note if has_data else f"[DATA: {topic} 핵심 수치]",
@@ -349,7 +565,7 @@ def build_spec(req):
                 ]
             slides.append(slide)
 
-    # Quote 슬라이드
+    # Quote
     slides.append({
         "layout": "quote",
         "quote": f"{topic}의 성공은\n데이터 기반 의사결정에서\n시작된다.",
@@ -364,10 +580,9 @@ def build_spec(req):
         "note": f"별첨: {topic} 상세 데이터 / [DATA] 플레이스홀더 교체 필요"
     })
 
-    # 슬라이드 수 조정 (너무 많으면 trim)
     max_slides = max(n_slides, 6)
     if len(slides) > max_slides:
-        keep_last = 2  # quote + closing
+        keep_last = 2
         slides = slides[:max_slides - keep_last] + slides[-keep_last:]
 
     return {
@@ -378,19 +593,18 @@ def build_spec(req):
 
 # ── HTTP 서버 ─────────────────────────────────────────────────
 
-_generated = {}   # filename → abs path
+_generated = {}
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
-        pass  # 로그 억제
+        pass
 
     def do_GET(self):
-        if self.path == "/" or self.path == "":
+        if self.path in ("/", ""):
             self._serve_html()
         elif self.path.startswith("/download/"):
-            fname = self.path[len("/download/"):]
-            self._serve_file(fname)
+            self._serve_file(self.path[len("/download/"):])
         else:
             self.send_error(404)
 
@@ -409,7 +623,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(HTML.encode("utf-8"))
 
     def _handle_generate(self, req):
-        import datetime, pathlib
+        import datetime
         try:
             spec     = build_spec(req)
             topic    = req.get("topic", "ppt")
@@ -422,7 +636,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with open(spec_path, "w", encoding="utf-8") as f:
                 json.dump(spec, f, ensure_ascii=False, indent=2)
 
-            out_pptx = os.path.join(out_dir, f"{slug}.pptx")
+            out_pptx   = os.path.join(out_dir, f"{slug}.pptx")
             gen_script = os.path.join(SCRIPT_DIR, "generate_v2.py")
             result = subprocess.run(
                 [PYEXE, gen_script, spec_path,
@@ -435,13 +649,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
             fname = f"{slug}.pptx"
             _generated[fname] = out_pptx
-
-            resp = {
-                "ok": True,
-                "filename": fname,
-                "slides": len(spec["slides"]),
-                "spec_path": spec_path,
-            }
+            resp = {"ok": True, "filename": fname,
+                    "slides": len(spec["slides"]), "spec_path": spec_path}
         except Exception as e:
             resp = {"ok": False, "error": str(e)}
 
@@ -461,7 +670,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         with open(path, "rb") as f:
             data = f.read()
         self.send_response(200)
-        self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation")
+        self.send_header("Content-Type",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation")
         self.send_header("Content-Disposition", f'attachment; filename="{fname}"')
         self.send_header("Content-Length", len(data))
         self.end_headers()
