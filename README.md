@@ -1,183 +1,309 @@
-# A-Team — 멀티 에이전트 팀 운영 레퍼런스
+# A-Team
 
-> ClawTeam(HKUDS) 분석 기반 + gstack 통합 + Phase 14 최적화 (RFC-001~007).
-> **에이전트가 망치지 않게 (Harness), 맥락을 잃지 않게 (Mirror), 할 일을 놓치지 않게 (TODO)**
+> The AI team that works while you sleep.
 
-## 📚 빠른 네비게이션
+![Tests](https://img.shields.io/badge/tests-537%20passing-brightgreen)
+![Commands](https://img.shields.io/badge/commands-74-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-- **[USER_GUIDE.md](USER_GUIDE.md)** — 사용자 가이드
-- **[MIGRATION.md](MIGRATION.md)** — Phase 14 RFC 마이그레이션 가이드 (opt-in 활성화)
-- **[docs/HISTORY.md](docs/HISTORY.md)** — 방법론·이론·스킬 전체 히스토리 (Phase 0-14)
-- **[docs/INDEX.md](docs/INDEX.md)** — 레슨런드 on-demand 인덱스
-- **[governance/rules/ateam-sovereignty.md](governance/rules/ateam-sovereignty.md)** — **8원칙 (필독)**
-- **[governance/rules/truth-contract.md](governance/rules/truth-contract.md)** — **거짓말 금지 (필독)**
+A-Team is a business operating system built on top of Claude Code. While other tools stop at coding workflows, A-Team covers the full business loop: planning → development → marketing → deployment → analytics.
+
+You write the direction. A-Team handles the rest — including overnight.
 
 ---
 
-## 핵심 3가지
+## Why A-Team?
 
-| 기능 | 하는 일 | 당신이 할 것 |
-|------|---------|------------|
-| **Harness** | 위험 명령 차단, 빌드 실패 시 세션 종료 불가 | 자동 작동 |
-| **Context** | `.context/CURRENT.md`로 세션 간 상태 보존 | `/vibe`로 시작, `/end`로 닫기 |
-| **25개 커맨드** | 아이디어→계획→구현→검증→배포 전 사이클 커버 | 아래 워크플로우 참고 |
+| Feature | SuperClaude | BMAD | spec-kit | **A-Team** |
+|---------|:-----------:|:----:|:--------:|:----------:|
+| Slash commands | ~20 | ~15 | ~10 | **74** |
+| Specialized agents | — | — | — | **28** |
+| Session continuity | partial | — | — | **CURRENT.md** |
+| Autonomous overnight mode | — | — | — | **/zzz** |
+| Multi-model cost routing | — | — | — | **Opus→Haiku→Groq** |
+| Marketing / content | — | — | — | **8 commands** |
+| Design audit | — | — | — | **AI smell detection** |
+| Business analytics | — | — | — | **/insights /dashboard** |
+| Legal / compliance | — | — | — | **/legal-check** |
+| OKR / strategy | — | — | — | **/okr /board** |
+| Governance rules | — | — | — | **31 rules** |
+| Test coverage | — | — | — | **537 tests** |
+
+### Five things that set A-Team apart
+
+**1. The AI team that works while you sleep (`/zzz`)**
+Autonomous overnight mode. When you go to bed, A-Team keeps working. If Claude hits a token limit, it saves state, waits for reset, and resumes exactly where it left off.
+
+**2. Zero-gap session continuity**
+`/pickup` restores the exact state from your last session in seconds. `CURRENT.md` is the single source of truth. You never re-explain context.
+
+**3. Multi-model cost optimization**
+Tasks are automatically routed to the cheapest capable model. Complex architecture → Opus. Implementation → Sonnet. Summaries → Haiku. Formatting/translation → Groq (free). Typical savings: 60–90% vs. running everything on Opus.
+
+**4. Full business coverage**
+Not just code. A-Team runs marketing campaigns, audits designs for AI smell, generates OKR reviews, checks legal compliance, and produces weekly analytics reports — all from slash commands.
+
+**5. Self-governing with 31 rules**
+Dangerous commands are blocked automatically. Builds must pass before sessions close. Security audits follow OWASP + STRIDE. Every agent outputs a structured status code (`DONE` / `BLOCKED` / `DONE_WITH_CONCERNS`).
 
 ---
 
-## 빠른 시작
+## Quick Start
 
 ```bash
-# 1. A-Team 최신화 및 설치
-cd ~/tools/A-Team && git pull && bash scripts/install-commands.sh
-
-# 2. 프로젝트 초기화 (context + memory + harness + 25개 커맨드 자동 설치)
-# A-Team 저장소가 ~/tools/A-Team 에 있다고 가정합니다.
-bash ~/tools/A-Team/templates/init.sh my-project ~/tools/A-Team
-
-# 3. 세션 시작
-/vibe   # 컨텍스트 로드 + 중단점 파악 + 즉시 실행
+git clone https://github.com/ne0cean/A-Team.git ~/Projects/a-team
+cd ~/Projects/a-team
+bash scripts/install-commands.sh
 ```
 
-이것만으로 `.context/`, `memory/`, `.claude/hooks/` (Harness 4종), 서브에이전트 5종, `~/.claude/commands/` 25개 전역 커맨드가 설치된다.
+Then open Claude Code in any project and run `/vibe`.
 
 ---
 
-## 전체 워크플로우
+## Core Commands
 
-```
-아이디어    → /office-hours         (전제 검증, 범위 발견)
-계획 검증   → /plan-ceo → /plan-eng → /autoplan
-구현        → orchestrator          (A-Team 멀티에이전트 조율)
-디버깅      → /investigate          (근본 원인 분석)
-브라우저    → /browse → /qa         (헤드리스 자동화 + 8카테고리 QA)
-성능        → /benchmark            (도구 자동감지, 기준선 추적)
-보안        → /adversarial → /cso   (4관점 적대적 + OWASP/STRIDE)
-문서        → /doc-sync             (Drift Score 측정 + 자동 수정)
-PR          → /review → /ship       (수동 사전검토 + 자동 검증 파이프라인)
-배포 검증   → /land                 (헬스체크 + 스모크 + 롤백 준비도)
-회고        → /retro                (git 기반 주기적 분석)
-```
+| Command | What it does |
+|---------|-------------|
+| `/vibe` | Start a session — loads context, identifies next action, ready in seconds |
+| `/pickup` | Resume after token reset — reads `RESUME.md`, continues exactly where you stopped |
+| `/end` | Close a session — updates `CURRENT.md`, validates build, commits |
+| `/zzz` | Autonomous overnight mode — works while you sleep, auto-resumes after token reset |
+| `/blueprint` | Architecture planning before touching code |
+| `/review` | 7-step pre-landing review pipeline |
+| `/ship` | Automated verification before PR: tests → doc-sync → review → version → PR |
+| `/daily-brief` | Morning briefing — trends, project status, suggested priorities |
 
 ---
 
-## 슬래시 커맨드 (25개)
+## Full Command Reference
 
-### 세션 관리
-| 커맨드 | 설명 |
-|--------|------|
-| `/vibe` | 세션 시작 — A-Team 업데이트 확인 → 컨텍스트 로드 → 즉시 실행 |
-| `/end` | 세션 종료 — CURRENT.md 갱신 → 빌드 검증 → 커밋 |
-| `/pickup` | 토큰 소진 후 작업 재개 |
-| `/handoff` | 모델 전환 핸드오프 |
-| `/retro` | git 기반 주기적 회고 보고서 |
+<details>
+<summary><strong>Session (5)</strong></summary>
 
-### 개발 워크플로우
-| 커맨드 | 설명 |
-|--------|------|
-| `/investigate` | 체계적 근본 원인 분석 (버그 디버깅 전용) |
-| `/review` | 수동 Pre-Landing 7단계 리뷰 파이프라인 |
-| `/ship` | PR 생성 전 자동 검증 파이프라인 (테스트→doc-sync→리뷰→버전→PR) |
-| `/land` | 배포 후 신뢰도 검증 — 헬스체크 + 스모크 테스트 + 롤백 준비도 |
-| `/adversarial` | 공격자 시각 4관점 적대적 코드 리뷰 |
-| `/cso` | OWASP Top 10 + STRIDE 8단계 보안 감사 (read-only) |
-| `/benchmark` | 성능 기준선 시스템 — 도구 자동감지, 회귀 자동 감지 |
-| `/doc-sync` | 문서 Drift 감지 & 동기화 (상시 감지, ship 시점 아님) |
-| `/browse` | 브라우저 자동화 — ARIA @ref 기반 (browse 바이너리 필요) |
-| `/qa` | 8카테고리 웹앱 QA + 헬스 스코어 (browse 바이너리 필요) |
+| Command | Description |
+|---------|-------------|
+| `/vibe` | New session start — load context, plan tasks |
+| `/pickup` | Resume interrupted session |
+| `/end` | Close session — commit + update CURRENT.md |
+| `/zzz` | Autonomous overnight mode with auto-resume |
+| `/handoff` | Transfer context when switching models |
 
-### 계획 & 설계
-| 커맨드 | 설명 |
-|--------|------|
-| `/office-hours` | 아이디어 검증 & 설계 발견 (코드 작성 전 단계) |
-| `/autoplan` | CEO→디자인→엔지니어링 자동 검토 파이프라인 + 6원칙 자동 결정 |
-| `/plan-ceo` | 전제 도전, 범위 분석, 실패 모드 테이블 |
-| `/plan-eng` | 아키텍처 다이어그램, 테스트 커버리지 맵, 구현 로드맵 |
+</details>
 
-### 프로젝트 관리
-| 커맨드 | 설명 |
-|--------|------|
-| `/prjt` | 전체 프로젝트 현황 조회 |
-| `/repos` | GitHub 레포 목록 조회 |
-| `/todo` | 빠른 메모 관리 |
-| `/sync` | Auto-Sync 데몬 관리 |
-| `/re` | Research Mode 관리 |
+<details>
+<summary><strong>Planning (6)</strong></summary>
+
+| Command | Description |
+|---------|-------------|
+| `/office-hours` | Validate ideas before writing a line of code |
+| `/blueprint` | Architecture diagram + implementation roadmap |
+| `/autoplan` | CEO → Design → Engineering pipeline, auto-decides 6 principles |
+| `/plan-ceo` | Challenge assumptions, scope analysis, failure mode table |
+| `/plan-eng` | Architecture diagram, test coverage map, implementation roadmap |
+| `/prd` | Product requirements document generator |
+
+</details>
+
+<details>
+<summary><strong>Implementation (8)</strong></summary>
+
+| Command | Description |
+|---------|-------------|
+| `/tdd` | Test-driven development workflow |
+| `/investigate` | Systematic root cause analysis for bugs |
+| `/optimize` | Performance optimization with baseline tracking |
+| `/benchmark` | Performance baseline system — auto-detects tools, tracks regression |
+| `/doc-sync` | Detect and fix documentation drift |
+| `/browse` | Browser automation via ARIA @ref |
+| `/qa` | 8-category web app QA + health score |
+| `/craft` | Code quality deep review |
+
+</details>
+
+<details>
+<summary><strong>Quality (6)</strong></summary>
+
+| Command | Description |
+|---------|-------------|
+| `/review` | Manual 7-step pre-landing review |
+| `/ship` | Automated pre-PR verification pipeline |
+| `/adversarial` | 4-perspective adversarial code review |
+| `/cso` | OWASP Top 10 + STRIDE 8-step security audit (read-only) |
+| `/cold-review` | Blind review with no prior context |
+| `/pmi` | Post-merge inspection |
+
+</details>
+
+<details>
+<summary><strong>Marketing (8)</strong></summary>
+
+| Command | Description |
+|---------|-------------|
+| `/marketing-generate` | Generate blog posts, articles, copy |
+| `/marketing-repurpose` | 1 piece of content → 15 formats |
+| `/marketing-social` | Twitter/LinkedIn/Instagram post generation |
+| `/marketing-publish` | Publish to 22 platforms via Postiz |
+| `/marketing-analytics` | Content performance analysis |
+| `/marketing-research` | Audience and trend research |
+| `/card-news` | Instagram card news generation |
+| `/intel` | Competitor and market intelligence |
+
+</details>
+
+<details>
+<summary><strong>Design (6)</strong></summary>
+
+| Command | Description |
+|---------|-------------|
+| `/design-audit` | AI smell detection — 22 rules against generic AI aesthetics |
+| `/design-brief` | Design brief generator |
+| `/design-generate` | AI-assisted design generation |
+| `/design-retro` | Design retrospective |
+| `/design-thumbnail` | Thumbnail generation for content |
+| `/thinking-partner` | Visual thinking and design ideation |
+
+</details>
+
+<details>
+<summary><strong>Analytics (5)</strong></summary>
+
+| Command | Description |
+|---------|-------------|
+| `/insights` | Weekly insights report from project data |
+| `/dashboard` | Project health dashboard |
+| `/daily-brief` | Morning briefing with trends and priorities |
+| `/capability` | Capability assessment and gap analysis |
+| `/retro` | Git-based periodic retrospective |
+
+</details>
+
+<details>
+<summary><strong>Operations (8)</strong></summary>
+
+| Command | Description |
+|---------|-------------|
+| `/okr` | OKR review and tracking |
+| `/board` | AI board of directors monthly review |
+| `/legal-check` | License and compliance check |
+| `/incident` | Incident response workflow |
+| `/prjt` | Full project status overview |
+| `/prioritize` | Feature prioritization framework |
+| `/land` | Post-deploy health check + smoke tests + rollback readiness |
+| `/github-review` | GitHub PR review workflow |
+
+</details>
 
 ---
 
-## 자동 안전 장치 (Harness)
+## Architecture
 
-`.claude/hooks/`에 설치된 훅이 항상 자동 실행됩니다:
+```
+a-team/
+├── .claude/commands/    # 74 slash commands
+├── .claude/agents/      # 28 specialized agents
+├── governance/          # 31 rules + 18 skill packs
+├── scripts/             # 78 automation scripts
+├── templates/           # 18 project templates
+└── test/                # 40 test suites (537 tests)
+```
 
-| 훅 | 역할 |
-|----|------|
-| `pre-bash.sh` | `rm -rf *`, `git push --force` 등 위험 명령 즉시 차단 |
-| `pre-write.sh` | `.env`, SSH 키, git 내부 파일 수정 차단 |
-| `stop-check.sh` | 세션 종료 전 빌드 검증 — 빌드 실패 시 종료 불가 |
-| `subagent-dod.sh` | 서브에이전트 완료 기준(DoD) 검증 + 상태코드 파싱 |
-| `careful-check.sh` | 리스크 스코어 기반 위험 명령 감지 (**opt-in**: `.careful` 파일 생성 시 활성화) |
+### Agent roles
 
-`careful-check.sh` 활성화:
+| Agent | Role | Model |
+|-------|------|-------|
+| orchestrator | Coordinates all agents — plans, distributes, consolidates | Sonnet |
+| researcher | Investigation only — reads, never modifies code | Haiku |
+| coder | Implementation and bug fixes | Sonnet |
+| reviewer | Quality validation — 2-pass: Critical → Informational | Sonnet |
+| architect | System design and architecture decisions | Opus |
+
+All agents output structured status codes: `DONE` / `DONE_WITH_CONCERNS` / `BLOCKED` / `NEEDS_CONTEXT`.
+
+---
+
+## The Sleep Mode (`/zzz`)
+
+The most distinctive feature of A-Team. When you go to sleep, the work continues.
+
+```
+You: /zzz
+     │
+     ▼
+A-Team writes RESUME.md ──► commits current state
+     │
+     ▼
+Works autonomously ──► hits token limit
+     │
+     ▼
+Waits for reset ──────────► resumes via /pickup
+     │
+     ▼
+Continues until done ──────► morning summary (≤10 lines)
+```
+
+**How it handles token resets:**
+1. Before limit: saves full state to `RESUME.md`, commits
+2. After reset: `/pickup` reads `RESUME.md`, restores exact context
+3. Repeats until task is complete or a stop condition is met
+
+**Stop conditions:** task complete / blocked on decision / destructive action required / budget exceeded.
+
+---
+
+## Multi-Model Routing
+
+A-Team routes every task to the cheapest model that can handle it reliably.
+
+```
+Task complexity        Model           Cost
+─────────────────────────────────────────────
+Architecture, design   Opus            $$$
+Implementation, bugs   Sonnet          $$
+Summaries, search      Haiku           $
+Format, translate      Groq (free)     free
+```
+
+**How it works:** Before each subtask, the system evaluates complexity against four criteria. If none require Opus, it proposes a model switch. You approve or override. Over a typical session, this reduces API costs by 60–90% compared to running everything on Opus.
+
+---
+
+## Safety Harness
+
+Four hooks run automatically on every action:
+
+| Hook | What it blocks |
+|------|---------------|
+| `pre-bash.sh` | `rm -rf *`, `git push --force`, and other destructive commands |
+| `pre-write.sh` | `.env` files, SSH keys, git internals |
+| `stop-check.sh` | Session close when build is failing |
+| `subagent-dod.sh` | Agent completion without meeting definition of done |
+
+Optional risk-scoring hook:
 ```bash
-touch .careful   # 프로젝트 루트에 생성 → 리스크 스코어 40+ 시 확인 요청
+touch .careful   # enables risk score ≥ 40 confirmation prompt
 ```
 
 ---
 
-## 에이전트 5종
+## Growth Engine
 
-"이 작업을 A-Team으로 처리해줘" → orchestrator가 자동 분배
+A-Team improves itself. The `/daily-brief` command pulls external trends, compares them against current capabilities, and surfaces specific improvement suggestions. The autoresearch system (`/autoresearch`) runs shadow evaluations on tracked commands over time, measures binary pass rates, and generates weekly reports with upgrade recommendations.
 
-| 에이전트 | 역할 | 모델 |
-|---------|------|------|
-| orchestrator | 총괄 (계획→배분→취합) | Sonnet |
-| researcher | 조사 전문 (읽기만, 코드 수정 금지) | Haiku |
-| coder | 구현/수정 | Sonnet |
-| reviewer | 품질 검증 (2-Pass: Critical→Informational) | Sonnet |
-| architect | 설계/아키텍처 | Opus |
-
-모든 에이전트 상태코드 표준화: `DONE` / `DONE_WITH_CONCERNS` / `BLOCKED` / `NEEDS_CONTEXT`
+This means A-Team gets better the more you use it — not through retraining, but through structured self-observation.
 
 ---
 
-## 구성 문서
+## Contributing
 
-| 파일 | 내용 |
-|------|------|
-| [`PROTOCOL.md`](PROTOCOL.md) | 전체 문서 맵 + 7단계 프로토콜 |
-| [`governance/rules/preamble.md`](governance/rules/preamble.md) | 공통 원칙 단일 파일 (상태코드 + 6가지 자동결정 원칙) |
-| [`docs/commands/README.md`](docs/commands/README.md) | 슬래시 커맨드 상세 목록 |
-| [`docs/commands/CHANGELOG.md`](docs/commands/CHANGELOG.md) | 커맨드 변경 이력 |
-| [`docs/08-orchestration-patterns.md`](docs/08-orchestration-patterns.md) | TAO루프 / Supervisor / Swarm 패턴 |
-| [`docs/12-harness-engineering.md`](docs/12-harness-engineering.md) | 훅/안전장치 상세 |
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
-### 템플릿
-
-| 파일 | 용도 |
-|------|------|
-| [`templates/init.sh`](templates/init.sh) | 통합 프로젝트 초기화 (Harness + 25개 커맨드 포함) |
-| [`templates/settings.json`](templates/settings.json) | Claude Code 설정 템플릿 |
-| [`templates/PARALLEL_PLAN.md`](templates/PARALLEL_PLAN.md) | 병렬 태스크 플랜 템플릿 |
+For architecture decisions and design rationale, see:
+- [governance/rules/ateam-sovereignty.md](governance/rules/ateam-sovereignty.md) — 8 core principles
+- [docs/HISTORY.md](docs/HISTORY.md) — full methodology history (Phase 0–14)
+- [PROTOCOL.md](PROTOCOL.md) — complete document map
 
 ---
 
-## 설계 철학
+## License
 
-1. **에이전트가 에이전트를 만든다** — 리더가 서브에이전트를 동적 조율
-2. **파일 기반 통신** — Zero dependency, 원자적 쓰기로 경합 없음
-3. **수치 없는 판단 금지** — benchmark/doc-sync/adversarial 모두 점수화
-4. **상태코드 기반 에스컬레이션** — BLOCKED 수신 시 자동 차단, 사람에게 위임
-5. **6가지 자동 결정 원칙** — 완전성/보이는건고친다/실용적/DRY/명시적/행동편향
-
----
-
-## ClawTeam 추가 (선택)
-
-ClawTeam은 각 에이전트를 독립 tmux 세션 + git worktree에서 실행합니다.
-단순 멀티에이전트 협업에는 Claude Code 서브에이전트 모드로 충분합니다.
-
-```bash
-pip install clawteam        # Python 3.10+, tmux, git 필요
-clawteam team spawn-team my-team -n leader
-clawteam spawn --team my-team --agent-name worker1 --task "인증 모듈 구현"
-clawteam board attach my-team
-```
+MIT
