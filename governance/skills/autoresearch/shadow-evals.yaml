@@ -7,6 +7,37 @@
 
 ---
 version: 1
+
+# ====================================================================
+# path_evals — 실행 경로(trajectory) 품질 평가
+# Claude가 커맨드 실행 후 자기 평가. trajectory-eval.mjs와 연동.
+# scoring: optimal/pass=1.0, acceptable/minor=0.5~0.7, wasteful/major=0~0.3
+# ====================================================================
+path_evals:
+  - name: "tool_efficiency"
+    description: "불필요한 도구 호출 없이 직선 경로로 도달했는가"
+    scoring: "optimal=1.0, acceptable=0.7, wasteful=0.3"
+    signals:
+      optimal: "Read 1회, Edit 1회, 탐색 없이 목표 도달"
+      acceptable: "Read 2회 이하, 경미한 탐색 후 완료"
+      wasteful: "같은 파일 Read 3회 이상 또는 관련 없는 파일 다수 탐색"
+
+  - name: "no_backtracking"
+    description: "같은 파일을 3회 이상 수정하지 않았는가"
+    scoring: "pass=1.0, minor_backtrack=0.5, major_backtrack=0"
+    signals:
+      pass: "파일당 Edit 2회 이하"
+      minor_backtrack: "파일당 Edit 3회 (단순 오탈자 정도)"
+      major_backtrack: "파일당 Edit 4회 이상 또는 구조 변경 반복"
+
+  - name: "context_preservation"
+    description: "중요 정보를 잃지 않고 작업을 완료했는가"
+    scoring: "pass=1.0, partial_loss=0.5, critical_loss=0"
+    signals:
+      pass: "작업 중 재확인 없이 일관된 맥락 유지"
+      partial_loss: "중간에 이전 정보 재확인 필요 (Read 재호출)"
+      critical_loss: "앞서 확인한 사실과 모순된 행동 또는 같은 실수 반복"
+
 tracked_commands:
 
   # ====================================================================
