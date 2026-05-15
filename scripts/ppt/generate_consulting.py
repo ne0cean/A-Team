@@ -71,7 +71,7 @@ def convert_spec(spec):
         if layout == "cover":
             out["type"] = "cover"
             if "subtitle" not in out:
-                out["subtitle"] = out.pop("subheadline", out.pop("subtitle", None))
+                out["subtitle"] = out.pop("subheadline", None)
             out.setdefault("client", meta.get("company", meta.get("author", "")))
             out.setdefault("date", meta.get("date", ""))
 
@@ -130,7 +130,10 @@ def convert_spec(spec):
                         "status_label": str(row[-1]) if len(row) > 3 else "",
                         "status": "green",
                     })
-            out["categories"] = [{"name": out.get("title", "Data"), "rows": cat_rows}]
+            cat_name = headers[0] if headers else out.get("title", "Data")
+            out["categories"] = [{"name": cat_name, "rows": cat_rows}]
+            if headers:
+                out["column_headers"] = headers
 
         elif layout == "flow_diagram":
             out["type"] = "process_flow"
@@ -151,7 +154,7 @@ def convert_spec(spec):
             out["type"] = "phases_chevron_3"
             events = out.pop("events", out.pop("items", []))
             phases = []
-            for ev in events[:4]:
+            for ev in events:
                 if isinstance(ev, dict):
                     phases.append({
                         "label": ev.get("title", ""),
@@ -165,11 +168,13 @@ def convert_spec(spec):
         elif layout == "bar_chart":
             out["type"] = "column_comparison"
             out.setdefault("categories", [])
-            values = []
-            for ser in out.pop("series", []):
-                values = ser.get("values", [])
-                break
-            out["values"] = values
+            series_list = out.pop("series", [])
+            if series_list:
+                out["values"] = series_list[0].get("values", [])
+                if len(series_list) > 1:
+                    out["series"] = [{"name": s.get("name", ""), "values": s.get("values", [])} for s in series_list]
+            else:
+                out["values"] = []
 
         elif layout == "quote":
             out["type"] = "quote"

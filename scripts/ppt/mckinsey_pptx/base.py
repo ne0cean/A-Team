@@ -33,6 +33,13 @@ def set_run(run, text, *, size=None, bold=False, italic=False, color=None,
     run.font.italic = italic
     if family:
         run.font.name = family
+        # Inject <a:ea> for CJK font rendering (python-pptx CJK bug workaround)
+        _nsmap_a = 'http://schemas.openxmlformats.org/drawingml/2006/main'
+        rPr = run._r.get_or_add_rPr()
+        for ea in rPr.findall(f'{{{_nsmap_a}}}ea'):
+            rPr.remove(ea)
+        ea_el = etree.SubElement(rPr, f'{{{_nsmap_a}}}ea')
+        ea_el.set('typeface', family)
     if color is not None:
         run.font.color.rgb = color
 
