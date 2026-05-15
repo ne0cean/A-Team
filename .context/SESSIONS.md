@@ -2,6 +2,22 @@
 
 ---
 
+## [2026-05-15] PPT AskUserQuestion 인테이크 + 커밋 정리
+
+**완료**:
+- ppt.md: [STOP] 마커 → AskUserQuestion 도구 호출 지시로 전면 교체 (Q1~Q5 + 스펙 확정)
+- generate_via_intake.py, ppt-wizard.sh, ppt.bat 신규 커밋
+- .gitignore: PPTX/PDF 바이너리 출력 제외 추가
+- P0 개선사항 확인 (P0-1 analytics tracking, P0-2 test 비율)
+
+**이슈**:
+- Windows 환경 tsc 미설치 — 빌드 스킵 (PPT Python 스크립트만 수정, TS 무관)
+- AskUserQuestion 옵션 최소 2개 제약 — /ppt Q1(자유입력) 패턴 개선 필요
+
+**빌드**: ⚠️ (Windows tsc 미설치, 기존 이슈)
+
+---
+
 ## [2026-05-14] PPT 엔진 v3 + 클릭형 인테이크 UI
 
 **완료**:

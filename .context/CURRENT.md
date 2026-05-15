@@ -61,6 +61,13 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-15) — PPT 인테이크 AskUserQuestion 적용
+- **ppt.md** — `→ 답변 대기 [STOP]` 마커 → `AskUserQuestion 도구 호출` 지시로 전면 교체 (Q1~Q5 + 스펙 확정). Claude가 텍스트 출력 대신 AskUserQuestion 도구로 순차 질문
+- **generate_via_intake.py** — 인테이크 → PPTX 생성 연결 스크립트 신규 추가
+- **ppt-wizard.sh** — 셸 기반 PPT 마법사 신규 추가
+- **ppt.bat** — Windows 배치 런처 신규 추가
+- **.gitignore** — `content/ppt/**/*.pptx`, `*.pdf`, `__pycache__` 추가
+
 ## Last Completions (2026-05-14) — PPT 엔진 v3 + 클릭형 인테이크
 - **generate_v2.py v3** — 12pt 최소 폰트(`fs()` 헬퍼), 텍스트 겹침 해소(Y축 순차 계산), ROUNDED_RECTANGLE+RIGHT_ARROW 도식, oval_dot() 프리미티브, italic 버그 수정
 - **intake.py** — `questionary` 기반 터미널 클릭형 인테이크 (화살표키·체크박스)
