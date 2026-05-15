@@ -22,8 +22,17 @@ from mckinsey_pptx.theme import Typography, Palette, Theme, THEMES
 
 
 def build_theme(style="mckinsey", font_family="Malgun Gothic", copyright_text=""):
-    """스타일별 테마 생성. mckinsey/bcg/bain 선택."""
+    """스타일별 테마 생성. mckinsey/bcg/bain 선택.
+    한국어 환경: Malgun Gothic. 영문: Arial (기본값 유지).
+    """
     base = THEMES.get(style, DEFAULT_THEME)
+    if font_family == "auto":
+        # 시스템 폰트 자동 감지
+        import platform
+        if platform.system() == "Darwin":
+            font_family = "Apple SD Gothic Neo"
+        else:
+            font_family = "Malgun Gothic"
     return replace(
         base,
         typography=replace(base.typography, family=font_family),
@@ -238,9 +247,9 @@ def convert_spec(spec):
                 out["type"] = "executive_summary_paragraph"
                 out["paragraphs"] = [str(out.get("title", ""))]
 
-        # notes → source/footnote 매핑
+        # notes → footnote 매핑 (mckinsey_pptx는 스피커 노트 미지원, footnote로 대체)
         notes = out.pop("notes", None)
-        if notes and "source" not in out:
+        if notes and "footnote" not in out:
             out["footnote"] = notes
 
         # 불필요 필드 정리
