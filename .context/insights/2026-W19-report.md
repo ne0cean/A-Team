@@ -1,5 +1,5 @@
 # Weekly Report — 2026-W19
-Generated: 2026-05-15T10:13:29Z
+Generated: 2026-05-15T11:17:45Z
 
 ## Overview
 | Metric | This Week | Prev Week | Delta |
@@ -31,7 +31,7 @@ Generated: 2026-05-15T10:13:29Z
 Found 2 (0 critical, 1 warning, 1 info)
 
 - [INFO] 최대 이벤트 공백 3.8일 (2026-04-21 이후)
-- [WARN] 2026-05-13: 520건 (z=3.5, 평균=65.8)
+- [WARN] 2026-05-13: 520건 (z=3.4, 평균=66.8)
 
 ## Capability Coverage
 **Weighted Average: 44%**

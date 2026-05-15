@@ -67,15 +67,14 @@ AskUserQuestion 도구 호출:
 > 3. 12장 (표준)
 > 4. 15장 (상세)
 >
-> 테마:
-> A. Dark Editorial   — 사업 보고·전략
-> B. Consulting Clean — 컨설팅·교육
-> C. Executive Deep   — 임원 보고·투자
-> D. Midnight Blue    — 테크·제품 소개
-> E. Warm Earth       — 브랜드·크리에이티브
-> F. Nordic Frost     — SaaS·클린 리포트
-> G. Mono Sharp       — 미니멀·모던
-> H. Sage Green       — ESG·자연/웰빙
+> 스타일:
+> **1. Consulting (McKinsey급)** — 컨설팅 보고서, 전략 제안, 투자 유치
+> **2. Creative (8테마 선택)** — 제품 발표, 마케팅, 교육, 브랜드
+>
+> Creative 테마 (스타일 2 선택 시):
+> A. Dark Editorial | B. Consulting Clean | C. Executive Deep
+> D. Midnight Blue | E. Warm Earth | F. Nordic Frost
+> G. Mono Sharp | H. Sage Green
 
 ---
 
@@ -98,6 +97,13 @@ AskUserQuestion 도구 호출:
 
 ## 생성 실행
 
+### Consulting 모드 (McKinsey급)
+ppt-strategist 에이전트에 `mode: consulting` 전달. 에이전트가 mckinsey_pptx 스펙 생성 후:
+```bash
+python scripts/ppt/generate_consulting.py spec.json --output {출력경로}
+```
+
+### Creative 모드 (8테마)
 ```bash
 python scripts/ppt/generate_via_intake.py \
   --topic "{제목}" \
