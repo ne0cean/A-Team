@@ -2,6 +2,26 @@
 
 ---
 
+## [2026-05-15] PPT 엔진 컨설팅급 대폭 업그레이드
+
+**완료**:
+- generate_v2.py 전면 재작성 (18종 레이아웃, 8종 테마, 그라데이션/그림자/CJK/풋터/노트)
+- mckinsey_pptx 라이브러리 통합 (40종 McKinsey/BCG/Bain 슬라이드 타입)
+- generate_consulting.py 어댑터 (--style mckinsey/bcg/bain)
+- McKinsey 공식 컬러 적용 (#051C2C, #2251FF)
+- BCG (#147B58) / Bain (#CB2026) 테마 추가
+- 광역 리서치 7건 (Gamma, GenSpark, Skywork, 프로 디자인 원칙, python-pptx 고급, 오픈소스, 컨설팅 스펙)
+- 레드팀 적대적 리뷰 완료 (Critical 1 + High 7 + Medium 4)
+
+**이슈**:
+- 파이프라인 끊김: server.py/ppt-strategist가 consulting 엔진 미연결
+- CJK 폰트 우회가 consulting 엔진에 미적용
+- convert_spec() 데이터 손실 3건 (data_table/bar_chart/timeline)
+- mckinsey_pptx LICENSE 미복사
+- RESUME.md에 수정 계획 6건 기록
+
+**빌드**: ✅ (tsc 0 errors, 530 PASS / 7 FAIL — FAIL은 기존 audit-design 이슈)
+
 ## [2026-05-15] PPT AskUserQuestion 인테이크 + 커밋 정리
 
 **완료**:

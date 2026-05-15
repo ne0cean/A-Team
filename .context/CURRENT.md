@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**532 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-05-15).
+**530 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-05-15).
 **PIOP 최적화 완료** — Phase 2 intel 모듈 100% 연결 (3 wiring, +0.6% token cost).
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
@@ -61,13 +61,18 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-15) — PPT 인테이크 AskUserQuestion 적용
-- **ppt.md** — `→ 답변 대기 [STOP]` 마커 → `AskUserQuestion 도구 호출` 지시로 전면 교체 (Q1~Q5 + 스펙 확정). Claude가 텍스트 출력 대신 AskUserQuestion 도구로 순차 질문
-- **generate_via_intake.py** — 인테이크 → PPTX 생성 연결 스크립트 신규 추가
-- **ppt-wizard.sh** — 셸 기반 PPT 마법사 신규 추가
-- **ppt.bat** — Windows 배치 런처 신규 추가
-- **.gitignore** — `content/ppt/**/*.pptx`, `*.pdf`, `__pycache__` 추가
-## Last Completions (2026-05-15) — Critical 3갭 해소 + 최정상 빌드업
+## Last Completions (2026-05-15) — PPT 엔진 컨설팅급 업그레이드
+- **generate_v2.py 전면 재작성** — 18종 레이아웃(+5 신규: big_number, icon_grid, image_text, bento_grid, comparison), 8종 테마(+5 신규), 그라데이션 배경, 카드 그림자(outerShdw XML), CJK 폰트 정확 적용(<a:ea> XML), 풋터/슬라이드번호 자동, 스피커 노트 삽입, 레이아웃 교차 강제
+- **mckinsey_pptx 통합** — GitHub seulee26/mckinsey-pptx 라이브러리를 `scripts/ppt/mckinsey_pptx/`에 통합. 40종 McKinsey 슬라이드 타입 (executive_summary, assessment_table, bubble_chart, column_chart, org_charts, timeline, comparison, Harvey ball, BCG matrix, issue_tree, gantt 등). McKinsey/BCG/Bain 3사 테마 (공식 컬러 #051C2C/#2251FF, #147B58, #CB2026)
+- **generate_consulting.py** — A-Team 스펙 → mckinsey_pptx 변환 어댑터. `--style mckinsey/bcg/bain` 지원
+- **server.py** — 4유형별 신규 레이아웃 사용 + 8테마 UI
+- **ppt.md / ppt-strategist.md** — Consulting/Creative 듀얼 모드 + 18종 레이아웃 가이드
+- **slide-spec-template.json** — big_number, icon_grid, comparison, bento_grid 예시 추가
+- **광역 리서치 7건** — Gamma/GenSpark/Skywork 분석, 프로 디자인 원칙, python-pptx 고급 기법, 오픈소스 PPT 도구, "사람이 만든 느낌" 핵심, 컨설팅 덱 정밀 스펙, 고품질 템플릿 사냥
+- **레드팀 결과**: Critical 1 + High 7 + Medium 4. 엔진은 작동하지만 파이프라인 끊김 (server.py/ppt-strategist가 consulting 엔진 미연결, CJK 폰트 우회 미적용, convert_spec 데이터 손실 3건). RESUME.md에 수정 계획 기록
+- **530 tests PASS**, tsc 0 errors
+
+## Last Completions (2026-05-15) — PPT 인테이크 AskUserQuestion 적용 + Critical 3갭 해소
 - **Phase 0.5 자기개선 루프 구현** — gap-sensor.ts (friction 감지 + 사용 갭 분석) + gap-priority.mjs (--summary) + /vibe Step 0.69 + /end Step 3.4. 루프 닫힘.
 - **Trajectory Evaluation** — shadow-evals.yaml path_evals 3개 + trajectory-eval.mjs (도구 효율/백트래킹/컨텍스트 보존)
 - **FSM Verification Gate** — governance/rules/verification-gate.md + verification-gate-check.sh (커밋 전 테스트 강제)
@@ -127,7 +132,6 @@
 
 ## 다음 우선순위
 - [ ] **Postiz OAuth 설정** — localhost:4007에서 소셜 미디어 계정 연동 (수동 작업)
-- [x] ✅ **Card News 실사용 테스트** — 8장 PNG 캡처 성공 (`content/card-news/2026-05-08-ai-marketing-test/`, 53-78KB/장)
 - [ ] **Twitter 채널** — 보류 중이나 중요 채널. 다음 발행 사이클에 재논의 필요
 - [ ] **Phase 2 콘텐츠 실제 발행** — Postiz를 통해 블로그/소셜 미디어 발행
 
@@ -148,6 +152,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 - [ ] **인프라 모라토리엄** — 제품 출시 전 새 커맨드/에이전트 빌드 금지
 
 ### Medium Priority
+- [ ] **PPT 레드팀 갭 수정** — RESUME.md 참조. 라이선스/CJK/convert_spec/파이프라인/보안 6건
 - [ ] **`/autoresearch` 파일럿 실행** — `/office-hours` baseline + 3-5 experiments
 - [ ] **`/blueprint` 실사용 1회** — 다음 기능을 blueprint로 문서화
 - [ ] **Phase 1.5 skip rate 실측** (pre-check 에이전트 첫 데이터)
