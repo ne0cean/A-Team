@@ -2,6 +2,21 @@
 
 ---
 
+## [2026-05-16] 디자인 거버넌스 시스템 + PPT 파이프라인 수정
+
+**완료**:
+- 디자인 토큰 템플릿 5프리셋 (`templates/design-tokens/`)
+- 디자인 드리프트 감지기 (`scripts/design-drift-detect.mjs`) — A~F 등급 스코어링
+- designer 에이전트 Phase A/B/C 토큰 라이프사이클 추가
+- vibe Step 0.8 — 세션 시작 시 토큰 유무 자동 감지
+- PPT ppt-strategist consulting 모드 + generate_via_intake consulting 라우팅 수정
+- Growth Engine 일간 실행 GREEN 3건 적용
+
+**이슈**: skt_statistics GitLab URL 미수신 — 토큰 주입 보류
+**빌드**: 531 PASS / 6 flaky (PPT 0)
+
+---
+
 ## [2026-05-15] PPT 엔진 컨설팅급 대폭 업그레이드
 
 **완료**:

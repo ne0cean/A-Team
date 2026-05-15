@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**530 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-05-15).
+**531 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-05-16).
 **PIOP 최적화 완료** — Phase 2 intel 모듈 100% 연결 (3 wiring, +0.6% token cost).
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
@@ -60,6 +60,15 @@
 
 ## In Progress Files
 - (없음)
+
+## Last Completions (2026-05-16) — 디자인 거버넌스 + PPT 파이프라인 수정
+- **디자인 토큰 템플릿** — `templates/design-tokens/` 5프리셋(dark-app/dark-editorial/light-dashboard/light-warm/corporate-blue) + variables.css 템플릿 + tailwind-tokens.js + reset.css
+- **디자인 드리프트 감지기** — `scripts/design-drift-detect.mjs` CSS/JSX 매직넘버·색상·간격 위반 스캔, 밀도 기반 스코어링(A~F), longform A(90) / flair B(73) 검증
+- **designer 에이전트 확장** — Phase A(토큰 생성) + Phase B(드리프트 감지) + Phase C(성장 적응) 3단계 토큰 라이프사이클 추가
+- **vibe Step 0.8** — 세션 시작 시 UI 프로젝트 토큰 유무 자동 감지 → 없으면 designer 호출 제안
+- **PPT 파이프라인 수정 2건** — ppt-strategist consulting 모드 섹션 추가 + generate_via_intake.py consulting 테마 라우팅 (E2E 검증: mckinsey 8장 + dark_editorial 10장)
+- **Growth Engine 일간 실행** — GREEN 3건 자동 적용 (claude-updates-2026-05.md, superpowers 분석, watch_topics 확장)
+- **531 tests PASS** (기존 flaky 6건 동일, PPT/디자인 관련 0 실패)
 
 ## Last Completions (2026-05-15) — Growth Engine (자율 성장 엔진)
 - **`/daily-brief` = 자율 성장 엔진** — 보고만 하는 게 아니라 **크롤링 → 분석 → 자동 적용 → 보고**. scan+apply 기본, --report로 보고 전용
@@ -164,7 +173,8 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 - [ ] **인프라 모라토리엄** — 제품 출시 전 새 커맨드/에이전트 빌드 금지
 
 ### Medium Priority
-- [ ] **PPT 레드팀 갭 수정** — RESUME.md 참조. 라이선스/CJK/convert_spec/파이프라인/보안 6건
+- [x] **PPT 레드팀 갭 수정** — 6건 완료 + 파이프라인 라우팅 2건 추가 수정
+- [ ] **skt_statistics 디자인 토큰 주입** — GitLab clone → drift 분석 → 토큰 적용 (URL 대기)
 - [ ] **`/autoresearch` 파일럿 실행** — `/office-hours` baseline + 3-5 experiments
 - [ ] **`/blueprint` 실사용 1회** — 다음 기능을 blueprint로 문서화
 - [ ] **Phase 1.5 skip rate 실측** (pre-check 에이전트 첫 데이터)
