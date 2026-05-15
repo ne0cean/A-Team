@@ -78,6 +78,7 @@ CronCreate(cron: "<reset+2min>", durable: true, recurring: false, prompt: "/pick
 - **Git Backup**: 매 task 시작 전 자동 stash/branch 백업.
 - **Circuit Breaker**: no-progress 3회 → task 전환, same-error 5회 → task SKIP + cooldown 30분.
 - 현재 작업 완료 → 다음 자동 픽업 (CURRENT.md Next Tasks 안전 항목).
+- **Growth Engine**: 모든 명시 태스크 소진 후, `/daily-brief` (scan+apply) 자동 실행. 의장이 자는 동안에도 A-Team이 성장.
 - **Dual-Exit**: 모든 안전 task 소진 시 `exit_recommended: true` → 자동 종료 안 함, 다음 pickup에서 보고.
 - 토큰 한계 → commit + push + RESUME.md 저장 → 크론 이어받음.
 - 상세 규칙: `governance/rules/zzz-detail.md` Step 6-8 + CB/Dual-Exit/Backup

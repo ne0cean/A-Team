@@ -61,15 +61,17 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-15) — Daily Growth Brief 시스템
-- **`/daily-brief` 커맨드** — 일간 성장 브리핑 오케스트레이터. 내부 진단 + 외부 트렌드 스캔 + 3카테고리 성장 제안 (즉시/이번주/관찰)
-- **`daily-brief` 에이전트** — Chief of Staff 역할. Sonnet 모델. 웹 검색 + collect.json 분석 + 마크다운 보고서 생성
-- **`daily-brief-collect.mjs`** — 내부 데이터 수집 스크립트. git(24h), capability gaps(8개), anomalies, stale modules, trends, current state, ecosystem watch topics
+## Last Completions (2026-05-15) — Growth Engine (자율 성장 엔진)
+- **`/daily-brief` = 자율 성장 엔진** — 보고만 하는 게 아니라 **크롤링 → 분석 → 자동 적용 → 보고**. scan+apply 기본, --report로 보고 전용
+- **`growth-engine` 에이전트** — 외부 트렌드를 크롤링하고 GREEN/YELLOW/RED 안전 등급 판정 후 GREEN은 자동 적용+커밋, YELLOW는 브랜치 생성, RED는 기록만
+- **`governance/rules/growth-engine.md`** — 크롤링 소스 3 Tier (일간/주2회/주1회) + 안전 등급 5개 기준 + 적용 프로토콜 + 안전 장치 5개
+- **`daily-brief-collect.mjs`** — 내부 데이터 수집. git(24h), capability gaps(8개), anomalies, stale modules, trends, ecosystem watch topics
+- **`daily-brief` 에이전트** — 내부 진단 + 외부 스캔 + 성장 제안 마크다운 보고서
 - **`/vibe` Step 0.7 + `/pickup` Step 2.7** — 세션 시작 시 오늘 브리핑 없으면 자동 제안
-- **`/daily-review` → `/daily-brief` 흡수** — git 회고 기능 통합, daily-review deprecated
-- **CLAUDE.md 자동 제안 패턴 추가** — "트렌드/경쟁사/성장/최신" 키워드 → `/daily-brief` 자동 제안
-- **조직 거버넌스 주기 완성**: 일간(`/daily-brief`) + 주간(`/insights`) + 월간(`/board`)
-- **532 tests PASS** (기존 유지, 새 스크립트 회귀 없음)
+- **`/zzz` 통합** — 명시 태스크 소진 후 자동 `/daily-brief` (scan+apply) 실행. 의장 수면 중에도 A-Team 성장
+- **`/daily-review` deprecated** → `/daily-brief`에 흡수
+- **거버넌스 주기 완성**: 일간(`/daily-brief` 자율 적용) + 주간(`/insights` 분석) + 월간(`/board` 전략 감사)
+- **532 tests PASS** (기존 유지, 회귀 없음)
 
 ## Last Completions (2026-05-15) — PPT 엔진 컨설팅급 업그레이드
 - **generate_v2.py 전면 재작성** — 18종 레이아웃(+5 신규: big_number, icon_grid, image_text, bento_grid, comparison), 8종 테마(+5 신규), 그라데이션 배경, 카드 그림자(outerShdw XML), CJK 폰트 정확 적용(<a:ea> XML), 풋터/슬라이드번호 자동, 스피커 노트 삽입, 레이아웃 교차 강제
