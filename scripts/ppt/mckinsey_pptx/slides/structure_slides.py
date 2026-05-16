@@ -109,7 +109,7 @@ def add_section_divider(prs, *,
     tb = add_textbox(slide, 0.5, layout.slide_height_in / 2 - 1.5,
                      panel_w - 1.0, 2.0, anchor=MSO_ANCHOR.MIDDLE)
     write_paragraph(tb.text_frame, str(section_number),
-                    size=typo.title_size + 56, bold=True,
+                    size=min(typo.title_size + 20, 44), bold=True,
                     color=pal.bright_blue, family=typo.family,
                     align=PP_ALIGN.CENTER, first=True)
 
@@ -234,7 +234,7 @@ def add_stat_hero(prs, *,
                      - layout.margin_left_in - layout.margin_right_in,
                      num_h, anchor=MSO_ANCHOR.MIDDLE)
     write_paragraph(tb.text_frame, stat,
-                    size=typo.title_size + 80, bold=True,
+                    size=min(typo.title_size + 24, 48), bold=True,
                     color=pal.deep_navy, family=typo.family,
                     align=PP_ALIGN.CENTER, first=True)
     enable_text_shrink(tb.text_frame)
@@ -296,7 +296,7 @@ def add_quote_slide(prs, *,
     # Big opening quotation mark
     tb = add_textbox(slide, 0.8, body_top, 1.5, 1.5)
     write_paragraph(tb.text_frame, "“",
-                    size=typo.title_size + 60, bold=True,
+                    size=min(typo.title_size + 24, 48), bold=True,
                     color=pal.bright_blue, family=typo.family, first=True)
 
     # Quote body

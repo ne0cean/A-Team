@@ -66,16 +66,35 @@ def main():
             capture_output=True, text=True, timeout=60
         )
 
-    if result.returncode == 0:
-        print(f"\n  완료  {out_pptx}")
-        print(f"  {len(spec['slides'])}장 / 테마: {args.theme}")
-        try:
-            os.startfile(os.path.dirname(out_pptx))
-        except Exception:
-            pass
-    else:
+    if result.returncode != 0:
         print("오류:\n" + (result.stderr or result.stdout), file=sys.stderr)
         sys.exit(1)
+
+    # QA Gate — 통과 못 하면 출력 차단
+    qa_script = os.path.join(SCRIPT_DIR, "qa-pptx.py")
+    qa = subprocess.run(
+        [sys.executable, qa_script, out_pptx, "--spec", spec_path, "--json"],
+        capture_output=True, text=True, timeout=30
+    )
+    if qa.returncode != 0:
+        try:
+            report = json.loads(qa.stdout)
+            print(f"\n  ❌ QA FAILED — {report['score']}/100 ({report['grade']})", file=sys.stderr)
+            for d in report.get('details', [])[:5]:
+                print(f"     Slide {d['slide']}: {d['type']} — {d['detail']}", file=sys.stderr)
+            os.remove(out_pptx)
+            print(f"  파일 삭제됨. 품질 기준(B+) 미달.", file=sys.stderr)
+        except Exception:
+            print(f"\n  ❌ QA 실패 (상세 불명)", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"\n  완료  {out_pptx}")
+    print(f"  {len(spec['slides'])}장 / 테마: {args.theme}")
+    try:
+        qa_report = json.loads(qa.stdout)
+        print(f"  QA: {qa_report['score']}/100 ({qa_report['grade']})")
+    except Exception:
+        pass
 
 if __name__ == "__main__":
     main()

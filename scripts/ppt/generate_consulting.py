@@ -311,5 +311,29 @@ if __name__ == "__main__":
 
     out = build_consulting_deck(spec, args.output, args.style, args.font, args.copyright)
     n = len(spec.get("slides", []))
+
+    # QA Gate
+    qa_script = os.path.join(SCRIPT_DIR, "qa-pptx.py")
+    import subprocess
+    qa = subprocess.run(
+        [sys.executable, qa_script, out, "--spec", args.spec, "--json"],
+        capture_output=True, text=True, timeout=30
+    )
+    qa_score, qa_grade = 0, "?"
+    try:
+        qa_report = json.loads(qa.stdout)
+        qa_score = qa_report.get("score", 0)
+        qa_grade = qa_report.get("grade", "?")
+    except Exception:
+        pass
+
+    if qa.returncode != 0:
+        print(f"QA FAILED: {qa_score}/100 ({qa_grade})", file=sys.stderr)
+        for d in qa_report.get("details", [])[:5]:
+            print(f"  Slide {d['slide']}: {d['type']} — {d['detail']}", file=sys.stderr)
+        os.remove(out)
+        print("Output deleted. Quality gate (B+) not met.", file=sys.stderr)
+        sys.exit(1)
+
     print(f"Generated ({args.style}): {out}")
-    print(f"Slides: {n} / Style: {args.style} / Font: {args.font}")
+    print(f"Slides: {n} / Style: {args.style} / Font: {args.font} / QA: {qa_score}/100 ({qa_grade})")

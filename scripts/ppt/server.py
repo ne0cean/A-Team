@@ -766,11 +766,30 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if result.returncode != 0:
                 raise RuntimeError(result.stderr or result.stdout)
 
+            # QA Gate
+            qa_script = os.path.join(SCRIPT_DIR, "qa-pptx.py")
+            qa = subprocess.run(
+                [PYEXE, qa_script, out_pptx, "--spec", spec_path, "--json"],
+                capture_output=True, text=True, timeout=30
+            )
+            qa_score = 0
+            qa_grade = "?"
+            try:
+                qa_report = json.loads(qa.stdout)
+                qa_score = qa_report.get("score", 0)
+                qa_grade = qa_report.get("grade", "?")
+            except Exception:
+                pass
+            if qa.returncode != 0:
+                os.remove(out_pptx)
+                raise RuntimeError(f"QA failed: {qa_score}/100 ({qa_grade})")
+
             _cleanup_generated()
             file_id = str(uuid.uuid4())[:8]
             _generated[file_id] = (out_pptx, time.time() + _GENERATED_TTL)
             resp = {"ok": True, "filename": file_id, "display_name": f"{slug}.pptx",
-                    "slides": len(spec["slides"]), "spec_path": spec_path}
+                    "slides": len(spec["slides"]), "spec_path": spec_path,
+                    "qa_score": qa_score, "qa_grade": qa_grade}
         except Exception as e:
             resp = {"ok": False, "error": str(e)}
 
