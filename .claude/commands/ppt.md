@@ -116,6 +116,12 @@ python scripts/ppt/generate_via_intake.py \
 
 출력: `content/ppt/YYYY-MM-DD-{slug}/{slug}.pptx`
 
+**주의**: `--data` 값에 `$` 기호 사용 금지 (쉘 변수 치환됨). `$50K` → `50K` 또는 `50천달러`로 표기.
+
+### QA Gate (자동)
+생성 후 `qa-pptx.py`가 자동 실행. B등급(70점) 미만이면 파일 삭제 + 오류 출력.
+통과 시 QA 점수 표시. 생성 완료 후 → `/design-score` 제안.
+
 ---
 
 ## 유형별 슬라이드 구조

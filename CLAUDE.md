@@ -129,6 +129,8 @@
 | 5+ 파일 변경 완료 | → `/pmi` |
 | push 전 리뷰 없음 | → `/review` 또는 `/ship` |
 | UI/CSS/컴포넌트 수정 | → `/design-audit` (자동 훅) |
+| PPT 생성 완료 직후 | → `/design-score` |
+| UI 빌드 후 "이거 괜찮아?", "디자인 평가" | → `/design-score` |
 | 성능 의문, "느려" | → `/benchmark` |
 
 ### 마케팅/콘텐츠
