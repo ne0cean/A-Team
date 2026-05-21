@@ -65,7 +65,7 @@ if [ -n "$ATEAM_PATH" ]; then
     fi
   fi
 
-  if ! readlink ~/.claude/commands/end.md 2>/dev/null | grep -q a-team; then
+  if ! readlink ~/.claude/commands/end.md 2>/dev/null | grep -qi a-team; then
     SYMLINK_OK=false
     add_alert "symlink broken"
   fi
