@@ -124,11 +124,13 @@ if [ -f ".context/RESUME.md" ]; then
   fi
 fi
 
-# === Step 0.6b: launchd 확인 ===
-PROJ_NAME=$(basename "$(pwd -P)" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')
-LABEL="com.ateam.sleep-resume.${PROJ_NAME}"
-[ "$(pwd -P)" = "$ATEAM_PATH" ] && LABEL="com.ateam.sleep-resume"
-launchctl list 2>/dev/null | grep -q "$LABEL" && LAUNCHD_ACTIVE=true
+# === Step 0.6b: launchd 확인 (macOS 전용) ===
+if [[ "$(uname)" == "Darwin" ]]; then
+  PROJ_NAME=$(basename "$(pwd -P)" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')
+  LABEL="com.ateam.sleep-resume.${PROJ_NAME}"
+  [ "$(pwd -P)" = "$ATEAM_PATH" ] && LABEL="com.ateam.sleep-resume"
+  launchctl list 2>/dev/null | grep -q "$LABEL" && LAUNCHD_ACTIVE=true
+fi
 
 # === Step 0.66: DESIGN.md ===
 DESIGN_MD=$(ls DESIGN.md design.md 2>/dev/null | head -1 || true)

@@ -1,4 +1,5 @@
 #!/bin/bash
+if [[ "$(uname)" != "Darwin" ]]; then echo "⚠️  macOS 전용 (launchd). Windows는 수동 스케줄링 필요."; exit 0; fi
 # install-maintenance-cron.sh
 # A-Team 정기 유지보수 작업 launchd cron 설치
 

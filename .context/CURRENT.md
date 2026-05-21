@@ -113,42 +113,7 @@
 - **server.py** — 로컬 웹 UI 서버 (localhost:7842), 클릭 폼 → PPTX 다운로드
 - **semiconductor-consulting.pptx** — consulting_clean 테마 12장, 전체 내용 반영
 
-## Last Completions (2026-05-13) — P4 Governance & Trust + 이사회 + OKR
-- **`/board` AI 이사회 제1회 실행** — 4인 페르소나 전략 감사. 경영 성적표 MRR $0 🔴 / 발행 0건 🔴 / 507 tests 🟢. "인프라 모라토리엄" 결의.
-- **OKR 2026-Q2 설정** — O1 첫 제품+매출, O2 외부 존재감, O3 도구 실사용. 90일 Rocks 3개.
-- **Legal 기반** — templates/legal/ (Privacy Policy + ToS + GDPR Cookie Consent)
-- **BCP/DR** — templates/bcp-dr.md 1인 기업 48시간 생존 플랜
-- **Revenue KPI** — weekly-report.mjs Business KPIs 섹션 (MRR/ARR/Churn)
-- **레드팀 3건 수정** — ts fallback 버그, self-pollution 방지 (ANOMALY_NO_EMIT), a11y false positive
-- **벤치마크 기록** — 7 프레임워크 + 3 사례 + 7 GitHub 전체 기록
-- **507 tests PASS** (+5 TDD).
-
-## Last Completions (2026-05-13) — Analytics 이상감지 + 주간리포트
-- **Capability Map APQC 반영** — operations (incident 50%, okr 50%, health 60%, community 30%, infrastructure 30%, financial 40%), engineering (security 80%, prioritization 65%), sales-cs (customer-support 30%). updated_at 2026-05-13.
-- **Anomaly Detection 엔진** — `scripts/anomaly-detect.mjs` 6가지 감지 (모듈사용 급변, 디자인품질 하락, A11y 위반 급증, 테스트실패 급등, 세션불일치, 이벤트공백). z-score 기반. `--json`/`--alert-only`/`--days N` 지원. exit 1 on critical.
-- **자동 주간 리포트** — `scripts/weekly-report.mjs` analytics + anomaly + capability 통합 리포트. `--save`로 `.context/insights/` 자동 저장. WoW 비교, 이벤트 분류, 커버리지 현황, 추천사항 포함.
-- **가중 커버리지 38%→42%** (analytics anomaly 0→60%, reporting 30→65%).
-- **502 tests PASS** (+13).
-
-## Last Completions (2026-05-13)
-- **APQC Gap Analysis P0-P3 전체 완료** — 커버리지 52%→68%. 11개 리서치 (240KB+), P0 4건 (License Compliance 자동화 + Legal 템플릿 + Revenue Tracking + Customer Support 설계), P1 3건 (/prioritize RICE + Feedback Loop + Growth Framework), P2 3건 (/incident + /okr + health-check.mjs 10항목 모니터링), P3 3건 (Community + Budgeting + Infrastructure 템플릿). 커맨드 66→70개, 템플릿 4→8개. npm install 자동 보안 감사 훅. **489 tests PASS + 10/10 health check.**
-
-## Last Completions (2026-05-11)
-- **Orchestration v2 — 실험 기반 설계 확정** (6라운드 레드팀 검증):
-  - **검증된 메커니즘 3개**: (1) PreToolUse Agent `permissionDecision:deny` → Agent 차단 + Groq 답 주입 ✅ (2) PostToolUse Read `additionalContext` → 파일 요약 자동 주입 ✅ (3) UserPromptSubmit 미검증 (발동 안 됨, 다음 세션 재테스트)
-  - **실측 벤치마크**: Groq 272-889ms (실제, "80ms"는 과장), 병렬 5건 767ms, rate limit 15건 연속 OK
-  - **품질 검증**: 영어 요약/포맷/검색 = 우수. **한국어 생성 = 실패** (일본어/중국어 혼입)
-  - **핵심 발견**: `systemMessage`=UI전용(실패), `additionalContext`=hookSpecificOutput 내에서만 작동, `permissionDecision:deny`=Agent 차단 성공
-  - **Explore 에이전트 grep 차단 성공**: bash grep → Groq 해석 → 정확한 답 (이전 22k tok 3.6s → 0 tok 1s)
-  - **거짓말 적발 5건**: 80ms TTFT(실제 272-889ms), 10-25x 빠름(실제 3-7x), marketing 5-6x(한국어 불가), 0-9% 범위(실제 35%), systemMessage 작동(UI전용)
-  - 설계문서: `.context/designs/orchestration-v2.md`
-
-## Last Completions (2026-05-09)
-- **Multi-Model Router Phase 3-5 완료** — Groq Direct Mode + MCP SDK 설치 + monitor.mjs 재작성. @modelcontextprotocol/sdk 설치 + mcp-local-model.mjs API 수정 (ListToolsRequestSchema/CallToolRequestSchema). 4 모델 정상: Groq free 212ms, Groq fast 201ms, Ollama 1B 1.6s, Ollama 32B (cold start 60s). monitor.mjs: 헬스체크 + 엔드포인트 테스트 + analytics 사용량 + Groq rate limit 예산 추적. SubagentStart/Stop 훅 + orchestration-report.mjs. CLAUDE.md Step 5 로컬 모델 라우팅 규칙. 설계문서 Phase 3-5 체크리스트 갱신. **489 tests PASS**.
-- **D2Coding 폰트 + VS Code 설정** — 터미널 한글 깨짐 수정. D2Coding 폰트 설치 (`~/Library/Fonts/`) + VS Code `terminal.integrated.fontFamily` 설정.
-- **Claude.ai 웹 지침 토큰 효율화** — 6줄 축약 버전 제공 (한국어, 인사말 생략, 핵심만).
-
-## Last Completions (2026-05-08 이전)
+## Last Completions (2026-05-14 이전)
 → [.context/SESSIONS.md](SESSIONS.md) 참조
 
 ## 다음 우선순위

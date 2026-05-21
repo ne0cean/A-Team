@@ -1,4 +1,5 @@
 #!/bin/bash
+if [[ "$(uname)" != "Darwin" ]]; then echo "⚠️  macOS 전용 (launchd). Windows는 수동 스케줄링 필요."; exit 0; fi
 # install-sleep-cron.sh — launchd plist 설치/제거
 #
 # 사용법:

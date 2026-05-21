@@ -1,4 +1,5 @@
 #!/bin/bash
+if [[ "$(uname)" != "Darwin" ]]; then echo "⚠️  macOS 전용 (launchd). Windows는 수동 스케줄링 필요."; exit 0; fi
 # install-absorb-cron.sh — /absorb 주간 launchd 설치/관리
 #
 # 사용법:
