@@ -2,8 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**531 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-05-16).
-**PIOP 최적화 완료** — Phase 2 intel 모듈 100% 연결 (3 wiring, +0.6% token cost).
+**558 tests PASS** (2026-05-22). Wiring integrity 자동 검증 + scheduled-reviews 시스템 가동.
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
 
@@ -61,18 +60,19 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-21) — PPT benchmark corpus + consulting planner
+## Last Completions (2026-05-22) — Wiring Integrity + Scheduled Reviews
 
-- **공식 벤치마크 코퍼스 추가** — `reference/ppt-benchmarks/manifest.json` + `selected-slides.json` + README. McKinsey/BCG/Bain 공식 공개 자료만 기준점으로 등록
-- **벤치마크 수집/렌더 스크립트** — `scripts/ppt/benchmark-corpus.mjs`로 PDF fetch + PyMuPDF fallback render + 캐시 분리
-- **벤치마크 감사기** — `scripts/ppt/benchmark-audit.mjs` 추가. action title / evidence density / placeholder / bloated big number / decorative layout 점수화
-- **컨설팅 narrative planner** — `scripts/ppt/server.py`를 템플릿 나열식에서 intent 기반 스토리라인으로 교체, 생성 직전 benchmark gate 연결
-- **컨설팅 변환 정합성 수정** — `scripts/ppt/generate_consulting.py`의 `bar_chart`/`data_table` 필드 매핑 오류 수정
-- **실전 검증** — 새 spec은 `benchmark-audit`에서 `100/100 A`, consulting PPT도 `QA 100/100 A`, 전체 테스트 `544 PASS`
+- **wiring integrity 테스트 4종** — refs(참조 무결성), agents(subagent_type↔파일), bash($VAR한글 탐지), frontmatter(name+description 필수). npm test마다 자동 실행
+- **scheduled-reviews 시스템** — "지켜보겠다" 거짓 약속 근절. JSON 등록 → vibe/pickup Step 0.75에서 due 항목 자동 표시
+- **governance/rules/no-watch-promises.md** — 모니터링 약속 금지, 즉시 자동화 또는 스케줄 등록 강제
+- **PMI 완전 실행** — Phase 1-5 + adversarial CONFIRMED 5건 수정 (`.claude/` 경로 스캔, 재귀 탐색, 대문자 subagent_type, backtick 매칭, 파일 삭제 방어)
+- **$VAR한글 bash 버그 6건 수정** — absorb-scan.sh 1건 + intel.md 5건 `${VAR}` 중괄호 처리
+- **coding-safety.md §3** — 한국어+Bash 변수 안전 규칙 추가
+- **pmi.md SSOT drift 해소** — adversarial "선택" → "필수"
+- **intel-analyzer.md** — name 필드 추가 (frontmatter 테스트가 발견)
+- **reference/resources.md** — WSJ Guide to Information Graphics 레퍼런스 URL 저장
 
-**이슈**: macOS Quick Look 렌더에서 한글 폰트가 `?`로 보이는 현상 확인. `mckinsey_pptx` CJK 폰트 렌더 경로 추가 점검 필요
-
-**빌드**: ✅ `npm run build`, `npm test`, PPT benchmark audit / generation 검증 통과
+**빌드**: ✅ 558 tests PASS (47 files), 0 failed
 
 ## Last Completions (2026-05-21) — Multi-Agent 지원 + 문서 hygiene
 
@@ -109,38 +109,7 @@
 - **거버넌스 주기 완성**: 일간(`/daily-brief` 자율 적용) + 주간(`/insights` 분석) + 월간(`/board` 전략 감사)
 - **532 tests PASS** (기존 유지, 회귀 없음)
 
-## Last Completions (2026-05-15) — PPT 엔진 컨설팅급 업그레이드
-- **generate_v2.py 전면 재작성** — 18종 레이아웃(+5 신규: big_number, icon_grid, image_text, bento_grid, comparison), 8종 테마(+5 신규), 그라데이션 배경, 카드 그림자(outerShdw XML), CJK 폰트 정확 적용(<a:ea> XML), 풋터/슬라이드번호 자동, 스피커 노트 삽입, 레이아웃 교차 강제
-- **mckinsey_pptx 통합** — GitHub seulee26/mckinsey-pptx 라이브러리를 `scripts/ppt/mckinsey_pptx/`에 통합. 40종 McKinsey 슬라이드 타입 (executive_summary, assessment_table, bubble_chart, column_chart, org_charts, timeline, comparison, Harvey ball, BCG matrix, issue_tree, gantt 등). McKinsey/BCG/Bain 3사 테마 (공식 컬러 #051C2C/#2251FF, #147B58, #CB2026)
-- **generate_consulting.py** — A-Team 스펙 → mckinsey_pptx 변환 어댑터. `--style mckinsey/bcg/bain` 지원
-- **server.py** — 4유형별 신규 레이아웃 사용 + 8테마 UI
-- **ppt.md / ppt-strategist.md** — Consulting/Creative 듀얼 모드 + 18종 레이아웃 가이드
-- **slide-spec-template.json** — big_number, icon_grid, comparison, bento_grid 예시 추가
-- **광역 리서치 7건** — Gamma/GenSpark/Skywork 분석, 프로 디자인 원칙, python-pptx 고급 기법, 오픈소스 PPT 도구, "사람이 만든 느낌" 핵심, 컨설팅 덱 정밀 스펙, 고품질 템플릿 사냥
-- **레드팀 결과**: Critical 1 + High 7 + Medium 4. 엔진은 작동하지만 파이프라인 끊김 (server.py/ppt-strategist가 consulting 엔진 미연결, CJK 폰트 우회 미적용, convert_spec 데이터 손실 3건). RESUME.md에 수정 계획 기록
-- **530 tests PASS**, tsc 0 errors
-
-## Last Completions (2026-05-15) — PPT 인테이크 AskUserQuestion 적용 + Critical 3갭 해소
-- **Phase 0.5 자기개선 루프 구현** — gap-sensor.ts (friction 감지 + 사용 갭 분석) + gap-priority.mjs (--summary) + /vibe Step 0.69 + /end Step 3.4. 루프 닫힘.
-- **Trajectory Evaluation** — shadow-evals.yaml path_evals 3개 + trajectory-eval.mjs (도구 효율/백트래킹/컨텍스트 보존)
-- **FSM Verification Gate** — governance/rules/verification-gate.md + verification-gate-check.sh (커밋 전 테스트 강제)
-- **레드팀 최상급** — /adversarial Worker-Critic 5관점 + 멀티라운드 이력 + /cso Axis 5 Garak + /review Semgrep + red-team-protocol.md
-- **기획 최상급** — Amazon PR/FAQ 모드 + _TBD_ 마커 + 설계결정 DB + Outcome tracking + PRD 압축
-- **Agent Teams 통합** — orchestrator Phase 2.07 + settings.json 활성화
-- **ralph→zzz 통합** — CB/dual-exit/backup 흡수
-- **커맨드 자동 트리거 35개** — 7→35 패턴 확대
-- **커맨드 코칭** — /end Step 6.8 + analytics
-- **자동 보호** — Stop auto-save+push + health 감시 훅 + 신규 프로젝트 스캐폴딩
-- **경쟁사 분석** — SuperClaude/BMAD/spec-kit 대비 유일한 인프라 레이어 확인
-- **532 tests PASS** (+43)
-
-## Last Completions (2026-05-14) — PPT 엔진 v3 + 클릭형 인테이크
-- **generate_v2.py v3** — 12pt 최소 폰트(`fs()` 헬퍼), 텍스트 겹침 해소(Y축 순차 계산), ROUNDED_RECTANGLE+RIGHT_ARROW 도식, oval_dot() 프리미티브, italic 버그 수정
-- **intake.py** — `questionary` 기반 터미널 클릭형 인테이크 (화살표키·체크박스)
-- **server.py** — 로컬 웹 UI 서버 (localhost:7842), 클릭 폼 → PPTX 다운로드
-- **semiconductor-consulting.pptx** — consulting_clean 테마 12장, 전체 내용 반영
-
-## Last Completions (2026-05-14 이전)
+## Last Completions (2026-05-15 이전)
 → [.context/SESSIONS.md](SESSIONS.md) 참조
 
 ## 다음 우선순위
@@ -165,7 +134,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 - [ ] **인프라 모라토리엄** — 제품 출시 전 새 커맨드/에이전트 빌드 금지
 
 ### Medium Priority
-- [x] **PPT 레드팀 갭 수정** — 6건 완료 + 파이프라인 라우팅 2건 추가 수정
+- [ ] **PPT 원칙 레퍼런스 파싱** — WSJ 가이드 (Scribd PDF) 파싱 → PPT 기본 원칙 구축
 - [ ] **skt_statistics 디자인 토큰 주입** — GitLab clone → drift 분석 → 토큰 적용 (URL 대기)
 - [ ] **`/autoresearch` 파일럿 실행** — `/office-hours` baseline + 3-5 experiments
 - [ ] **`/blueprint` 실사용 1회** — 다음 기능을 blueprint로 문서화

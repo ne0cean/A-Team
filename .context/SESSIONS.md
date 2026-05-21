@@ -2,6 +2,24 @@
 
 ---
 
+## [2026-05-22] Wiring Integrity 자동 검증 + Scheduled Reviews 시스템
+
+**완료**:
+- wiring integrity 테스트 4종 (refs/agents/bash/frontmatter) — npm test 자동 실행
+- scheduled-reviews 시스템 — JSON 등록 → vibe/pickup에서 due 항목 자동 표시
+- governance/rules/no-watch-promises.md — "지켜보겠다" 거짓 약속 금지 규칙
+- PMI 완전 실행 — Phase 1-5 + adversarial CONFIRMED 5건 수정
+- $VAR한글 bash 버그 6건 수정 (absorb-scan.sh + intel.md)
+- coding-safety.md §3 한국어+Bash 변수 안전 규칙
+- pmi.md SSOT drift 해소 (adversarial "선택"→"필수")
+- intel-analyzer.md name 필드 추가
+- reference/resources.md WSJ Guide 레퍼런스 저장
+
+**이슈**: WSJ Guide Scribd 페이지 파싱 미완 (인증 벽). 로컬 PDF 확보 후 재시도 필요
+**빌드**: ✅ 558 tests PASS (47 files)
+
+---
+
 ## [2026-05-21] PPT benchmark corpus + consulting planner 연결
 
 **완료**:
