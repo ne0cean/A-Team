@@ -191,7 +191,7 @@ elif [[ "$SUBCOMMAND" == "trend" ]]; then
 
   echo ""
   echo "📈 $KEYWORD 트렌드 분석"
-  echo "   언급: $MENTIONS건 (최근 30일)"
+  echo "   언급: ${MENTIONS}건 (최근 30일)"
   echo "   트렌드: $TREND"
   echo "   긍정도: $(echo "$SENTIMENT * 100" | bc)%"
 
@@ -203,8 +203,8 @@ elif [[ "$SUBCOMMAND" == "persona" ]]; then
 
   echo ""
   echo "👥 $SEGMENT 페르소나 분석"
-  echo "   JTBD: $JTBD_COUNT개"
-  echo "   Pain Points: $PAIN_COUNT개"
+  echo "   JTBD: ${JTBD_COUNT}개"
+  echo "   Pain Points: ${PAIN_COUNT}개"
   echo "   신뢰도: $CONFIDENCE"
 
 elif [[ "$SUBCOMMAND" == "brief" ]]; then
