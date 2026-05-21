@@ -69,6 +69,17 @@ if [ -n "$ATEAM_PATH" ]; then
     SYMLINK_OK=false
     add_alert "symlink broken"
   fi
+
+  # AGENTS.md 자동 동기화 — 현재 프로젝트가 A-Team이 아닐 때만
+  CURRENT_DIR="$(pwd)"
+  if [ "$CURRENT_DIR" != "$ATEAM_PATH" ] && [ -f "$ATEAM_PATH/AGENTS.md" ]; then
+    PROJ_AGENTS="$CURRENT_DIR/AGENTS.md"
+    ATEAM_AGENTS="$ATEAM_PATH/AGENTS.md"
+    # 없거나 내용이 다를 때만 복사
+    if [ ! -f "$PROJ_AGENTS" ] || ! diff -q "$PROJ_AGENTS" "$ATEAM_AGENTS" >/dev/null 2>&1; then
+      cp "$ATEAM_AGENTS" "$PROJ_AGENTS"
+    fi
+  fi
 fi
 
 # === Step 0.55: Absorb 주간 스캔 ===
