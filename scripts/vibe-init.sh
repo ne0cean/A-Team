@@ -70,15 +70,18 @@ if [ -n "$ATEAM_PATH" ]; then
     add_alert "symlink broken"
   fi
 
-  # AGENTS.md 자동 동기화 — 현재 프로젝트가 A-Team이 아닐 때만
+  # AGENTS.md / GEMINI.md 자동 동기화 — 현재 프로젝트가 A-Team이 아닐 때만
   CURRENT_DIR="$(pwd)"
-  if [ "$CURRENT_DIR" != "$ATEAM_PATH" ] && [ -f "$ATEAM_PATH/AGENTS.md" ]; then
-    PROJ_AGENTS="$CURRENT_DIR/AGENTS.md"
-    ATEAM_AGENTS="$ATEAM_PATH/AGENTS.md"
-    # 없거나 내용이 다를 때만 복사
-    if [ ! -f "$PROJ_AGENTS" ] || ! diff -q "$PROJ_AGENTS" "$ATEAM_AGENTS" >/dev/null 2>&1; then
-      cp "$ATEAM_AGENTS" "$PROJ_AGENTS"
-    fi
+  if [ "$CURRENT_DIR" != "$ATEAM_PATH" ]; then
+    for agent_file in AGENTS.md GEMINI.md; do
+      SRC="$ATEAM_PATH/$agent_file"
+      DST="$CURRENT_DIR/$agent_file"
+      if [ -f "$SRC" ]; then
+        if [ ! -f "$DST" ] || ! diff -q "$DST" "$SRC" >/dev/null 2>&1; then
+          cp "$SRC" "$DST"
+        fi
+      fi
+    done
   fi
 fi
 
