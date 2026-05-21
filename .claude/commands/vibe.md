@@ -19,6 +19,14 @@ bash scripts/vibe-init.sh
 출력 예: `Gap #1: marketing.performance-marketing (score=16.0, cov=0%) | #2: sales-cs.lead-generation | Total: 28개`
 이 줄을 브리핑 마지막에 포함한다. 없으면 스킵.
 
+**Step 0.75 — Scheduled Reviews** (전체 프로젝트):
+```bash
+node ~/Projects/a-team/scripts/check-scheduled-reviews.mjs 2>/dev/null || true
+```
+- due 항목 있음 → 브리핑에 포함 + "예약 리뷰 N건 도래. 처리하시겠습니까?" 제안
+- due 항목 없음 → 스킵
+- 처리 후 해당 항목 status를 "done"으로 변경
+
 **Step 0.7 — Daily Growth Brief** (a-team 레포에서만):
 ```bash
 TODAY=$(date +%Y-%m-%d)
