@@ -13,8 +13,9 @@ const TEMPLATE_MARKERS = /[{}\[\]*<>]|YYYY|MM-DD|HH|QN/;
 
 // backtick refs: `governance/rules/foo.md`
 // .context/ 제외 — 런타임 생성 출력 경로라 사전 존재 보장 불가
-const BACKTICK_REF = /`((?:governance|lib|scripts|reference|docs|templates)\/[^`\s]+)`/g;
-const MD_LINK_REF = /\[[^\]]*\]\(((?:governance|lib|scripts|reference|docs|templates)\/[^)]+)\)/g;
+// .claude/agents/, .claude/commands/ 만 검사 (그 외 .claude/ 파일은 런타임 생성)
+const BACKTICK_REF = /`((?:governance|lib|scripts|reference|docs|templates|\.claude\/(?:agents|commands))\/[^`\s]+)`/g;
+const MD_LINK_REF = /\[[^\]]*\]\(((?:governance|lib|scripts|reference|docs|templates|\.claude\/(?:agents|commands))\/[^)]+)\)/g;
 
 interface Ref { source: string; line: number; target: string }
 
@@ -43,15 +44,22 @@ function extractRefs(filePath: string): Ref[] {
   return refs;
 }
 
-function getMdFiles(dir: string): string[] {
+function getMdFilesRecursive(dir: string): string[] {
   if (!existsSync(dir)) return [];
-  return readdirSync(dir)
-    .filter(f => f.endsWith('.md') && f !== 'README.md')
-    .map(f => join(dir, f));
+  const results: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...getMdFilesRecursive(full));
+    } else if (entry.name.endsWith('.md') && entry.name !== 'README.md') {
+      results.push(full);
+    }
+  }
+  return results;
 }
 
 describe('Wiring Integrity: 참조 무결성', () => {
-  const allFiles = [...getMdFiles(AGENTS_DIR), ...getMdFiles(COMMANDS_DIR)];
+  const allFiles = [...getMdFilesRecursive(AGENTS_DIR), ...getMdFilesRecursive(COMMANDS_DIR)];
   const allRefs = allFiles.flatMap(f => extractRefs(f));
 
   it('should have refs to analyze', () => {

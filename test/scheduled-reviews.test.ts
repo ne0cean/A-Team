@@ -11,8 +11,16 @@ describe('Scheduled Reviews 인프라', () => {
     expect(existsSync(SCRIPT_PATH)).toBe(true);
   });
 
+  it('scheduled-reviews.json should exist in a-team repo', () => {
+    // a-team 레포에서는 파일 필수 — 삭제로 리마인드 시스템 우회 방지
+    const isATeam = existsSync(resolve(ROOT, 'AGENTS.md'));
+    if (isATeam) {
+      expect(existsSync(REVIEWS_PATH), 'scheduled-reviews.json 삭제됨 — 리마인드 시스템 무력화').toBe(true);
+    }
+  });
+
   it('scheduled-reviews.json should be valid JSON array', () => {
-    if (!existsSync(REVIEWS_PATH)) return; // 파일 없으면 통과 (신규 프로젝트)
+    if (!existsSync(REVIEWS_PATH)) return;
     const data = JSON.parse(readFileSync(REVIEWS_PATH, 'utf-8'));
     expect(Array.isArray(data)).toBe(true);
   });

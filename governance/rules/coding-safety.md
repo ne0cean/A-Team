@@ -19,7 +19,7 @@
   - Bad: `$COUNT건`, `$PRICE개`
   - Good: `${COUNT}건`, `${PRICE}개`
 - **적용 범위**: `.sh` 스크립트, `.md` 내 bash 코드 블록의 echo/heredoc
-- **검증**: `grep -rn '\$[A-Z_a-z]*[가-힣]' scripts/` 로 잔여 위반 탐지
+- **검증**: `grep -rn '\$[A-Za-z_][A-Za-z0-9_]*[가-힣]' scripts/` 로 잔여 위반 탐지
 
 ## 4. 시각적 검증 (Visual Verification)
 - **실시간 확인**: 프론트엔드 코드 수정 직후에는 반드시 브라우저 도구(`read_browser_page` 등)를 사용하여 변경 사항이 의도대로 반영되었는지 직접 확인합니다.

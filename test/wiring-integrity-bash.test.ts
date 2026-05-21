@@ -34,13 +34,18 @@ function extractBashBlocks(content: string): Array<{ startLine: number; code: st
   let inBlock = false;
   let blockStart = 0;
   let blockLines: string[] = [];
+  let openTicks = '';
 
   for (let i = 0; i < lines.length; i++) {
-    if (/^```(?:bash|sh|shell)\s*$/.test(lines[i].trim())) {
+    const trimmed = lines[i].trim();
+    const openMatch = trimmed.match(/^(`{3,})(?:bash|sh|shell)\s*$/);
+    if (!inBlock && openMatch) {
       inBlock = true;
+      openTicks = openMatch[1]; // 열린 backtick 수 기억
       blockStart = i + 1;
       blockLines = [];
-    } else if (inBlock && lines[i].trim() === '```') {
+    } else if (inBlock && trimmed === openTicks) {
+      // 동일한 backtick 수로만 닫힘
       blocks.push({ startLine: blockStart, code: blockLines.join('\n') });
       inBlock = false;
     } else if (inBlock) {
