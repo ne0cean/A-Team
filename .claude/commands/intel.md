@@ -179,8 +179,8 @@ if [[ "$SUBCOMMAND" == "competitor" ]]; then
 
   echo ""
   echo "📊 $COMPANY 분석 완료"
-  echo "   가격 티어: $PRICING개"
-  echo "   핵심 기능: $FEATURES개"
+  echo "   가격 티어: ${PRICING}개"
+  echo "   핵심 기능: ${FEATURES}개"
   echo "   데이터 품질: $QUALITY"
 
 elif [[ "$SUBCOMMAND" == "trend" ]]; then

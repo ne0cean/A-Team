@@ -98,7 +98,8 @@ npm audit --omit=dev 2>&1 | tail -3
 ```
 - 테스트 수 증감 기록 (이전 baseline 대비)
 - 에러 0, 취약점 0 필수
-- 선택: adversarial 서브에이전트 호출로 red team 1회
+- **필수**: adversarial 서브에이전트 호출로 red team 1회 (SSOT: post-integration.md Phase 5.2)
+- **필수**: 신규 모듈에 대해 기존 테스트 커버리지 확인, 미커버 시 테스트 추가 권고
 
 ---
 
