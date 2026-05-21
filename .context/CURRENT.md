@@ -61,6 +61,19 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-21) — PPT benchmark corpus + consulting planner
+
+- **공식 벤치마크 코퍼스 추가** — `reference/ppt-benchmarks/manifest.json` + `selected-slides.json` + README. McKinsey/BCG/Bain 공식 공개 자료만 기준점으로 등록
+- **벤치마크 수집/렌더 스크립트** — `scripts/ppt/benchmark-corpus.mjs`로 PDF fetch + PyMuPDF fallback render + 캐시 분리
+- **벤치마크 감사기** — `scripts/ppt/benchmark-audit.mjs` 추가. action title / evidence density / placeholder / bloated big number / decorative layout 점수화
+- **컨설팅 narrative planner** — `scripts/ppt/server.py`를 템플릿 나열식에서 intent 기반 스토리라인으로 교체, 생성 직전 benchmark gate 연결
+- **컨설팅 변환 정합성 수정** — `scripts/ppt/generate_consulting.py`의 `bar_chart`/`data_table` 필드 매핑 오류 수정
+- **실전 검증** — 새 spec은 `benchmark-audit`에서 `100/100 A`, consulting PPT도 `QA 100/100 A`, 전체 테스트 `544 PASS`
+
+**이슈**: macOS Quick Look 렌더에서 한글 폰트가 `?`로 보이는 현상 확인. `mckinsey_pptx` CJK 폰트 렌더 경로 추가 점검 필요
+
+**빌드**: ✅ `npm run build`, `npm test`, PPT benchmark audit / generation 검증 통과
+
 ## Last Completions (2026-05-21) — Multi-Agent 지원 + 문서 hygiene
 
 - **AGENTS.md 신설** — 에이전트 무관 universal 컨텍스트 (74개 커맨드 목록, 작업 원칙, 완성 선언 규칙)

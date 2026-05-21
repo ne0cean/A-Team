@@ -2,6 +2,21 @@
 
 ---
 
+## [2026-05-21] PPT benchmark corpus + consulting planner 연결
+
+**완료**:
+- 공식 컨설팅 벤치마크 코퍼스 추가 (`reference/ppt-benchmarks/manifest.json`, `selected-slides.json`, README)
+- `scripts/ppt/benchmark-corpus.mjs` 추가: 공식 PDF fetch, PyMuPDF fallback render, 로컬 캐시 분리
+- `scripts/ppt/benchmark-audit.mjs` 추가: action title / evidence density / placeholder / bloated big number / decorative layout 점수화
+- `scripts/ppt/server.py`를 템플릿 나열식에서 컨설팅 narrative 기반 planner로 교체
+- benchmark gate를 spec 생성 직후 연결
+- `scripts/ppt/generate_consulting.py`의 `bar_chart`/`data_table` 변환 필드 정합성 수정
+- 새 spec benchmark score `100/100 A`, consulting PPT QA `100/100 A`, 전체 테스트 `544 PASS`
+
+**이슈**: macOS Quick Look 썸네일에서 한글이 `?`로 렌더링됨. `mckinsey_pptx` CJK 폰트 경로 추가 점검 필요
+
+**빌드**: ✅ `npm run build`, `npm test`
+
 ## [2026-05-21] Multi-Agent 지원 구조 + 문서 hygiene
 
 **완료**:

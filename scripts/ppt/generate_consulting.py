@@ -132,8 +132,8 @@ def convert_spec(spec):
                     })
             cat_name = headers[0] if headers else out.get("title", "Data")
             out["categories"] = [{"name": cat_name, "rows": cat_rows}]
-            if headers:
-                out["column_headers"] = headers
+            if len(headers) >= 4:
+                out["columns"] = headers[1:5]
 
         elif layout == "flow_diagram":
             out["type"] = "process_flow"
@@ -168,6 +168,8 @@ def convert_spec(spec):
         elif layout == "bar_chart":
             out["type"] = "column_comparison"
             out.setdefault("categories", [])
+            if "unit" in out:
+                out["data_unit"] = out.pop("unit")
             series_list = out.pop("series", [])
             if series_list:
                 out["values"] = series_list[0].get("values", [])
