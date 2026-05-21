@@ -15,9 +15,33 @@ argument-hint: "[hunt 키워드] 또는 [레퍼런스 URL]"
 
 `$ARGUMENTS` 파싱:
 
-- `hunt [키워드]` → **HUNT 모드** (레퍼런스 사냥)
-- URL 포함 → **DISSECT 모드** (해부 + 클론)
-- 인자 없음 → `.design-clone/references/` 목록 보여주고 선택
+- 인자 없음 또는 키워드 → **PRESET 모드** (라이브러리에서 즉시 꺼내기, 기본)
+- `hunt [키워드]` → **HUNT 모드** (프리셋에 없을 때만 웹 사냥)
+- URL 포함 → **DISSECT 모드** (특정 페이지 해부 + 클론)
+
+---
+
+## PRESET 모드 — 사전 해부된 벤치마크 즉시 적용 (기본, 가장 빠름)
+
+### Step 1: 프리셋 매칭
+
+`.design-clone/presets/` 에서 가장 가까운 프리셋을 찾는다.
+
+| 키워드 | 프리셋 |
+|--------|--------|
+| 문짝, 랜딩, pretotype, 검증, 대기자, waitlist | pretotype-landing.md |
+| 카페, 바, 이벤트, 밋업, 모임, 파티 | local-event.md |
+| 앱, 소셜, 커뮤니티, flair, connectome | community-app.md |
+| SaaS, 사이드프로젝트, 인디 | indie-saas.md |
+
+### Step 2: 프리셋 로드 + .design-override.md 즉시 생성
+
+프리셋의 해부 결과를 `.design-override.md`에 `mode: clone`으로 주입.
+사용자에게 한 줄 확인: "pretotype-landing 프리셋으로 적용합니다. OK?"
+
+### Step 3: 프리셋에 없으면 HUNT 제안
+
+"이 유형의 프리셋이 없습니다. `/design-clone hunt [키워드]`로 레퍼런스를 찾을까요?"
 
 ---
 

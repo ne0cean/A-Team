@@ -37,6 +37,7 @@ DESIGN.md 부재 시 → 기존 프로토콜(1단계부터) 진행.
 **참고**: DESIGN.md 8 카테고리 = Overview / Colors / Typography / Layout / Elevation & Depth / Shapes / Components / Do's and Don'ts. W3C DTCG 표준 따름.
 
 ### 1. 기존 `.design-override.md` 확인
+- 존재 + `mode: clone` → **Clone 모드**. 프리셋/해부 결과를 존중. tone 재추론 금지. Intentional Imperfections를 coder에 전달 의무. "개선" 충동 억제 — 레퍼런스보다 세련되면 실패.
 - 존재 + `tone` 필드 있으면: 즉시 해당 내용 반환. 재생성 금지.
 - 없으면 다음 단계.
 
