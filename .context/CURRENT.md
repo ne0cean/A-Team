@@ -61,6 +61,20 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-21) — Multi-Agent 지원 + 문서 hygiene
+
+- **AGENTS.md 신설** — 에이전트 무관 universal 컨텍스트 (74개 커맨드 목록, 작업 원칙, 완성 선언 규칙)
+- **CLAUDE.md 레이어 분리** — Claude Code 전용 오케스트레이션만 담도록 슬림화
+- **GEMINI.md 자동 생성** — Gemini CLI 지원 추가 (Codex·Gemini·Cursor 멀티 에이전트 대응)
+- **scripts/sync-agents.mjs** — commands 변경 시 AGENTS.md + GEMINI.md 자동 재생성 (pre-commit hook)
+- **install-commands.sh** — 프로젝트별 AGENTS.md 배포 (Windows mklink + fallback)
+- **vibe-init.sh** — 세션 시작 시 AGENTS.md + GEMINI.md 자동 최신화
+- **scripts/vibe-init.sh** — symlink 검사 grep -qi (대소문자 무시) 수정 + launchd macOS 가드
+- **문서 drift 3건 수정** — README 537→531, package.json ISC→MIT, PROTOCOL.md 깨진 참조 3개
+- **governance/rules/lifecycle.md** — 커맨드 상한선 60→80 현실화 + 모라토리엄 명시
+- **CURRENT.md 165줄** — 2주 초과 완료항목 이관 (200줄 규칙 준수)
+- **launchctl 무음 실패 제거** — 4개 cron 스크립트 Windows에서 명시적 경고 후 exit
+
 ## Last Completions (2026-05-16) — 디자인 거버넌스 + PPT 파이프라인 수정
 - **디자인 토큰 템플릿** — `templates/design-tokens/` 5프리셋(dark-app/dark-editorial/light-dashboard/light-warm/corporate-blue) + variables.css 템플릿 + tailwind-tokens.js + reset.css
 - **디자인 드리프트 감지기** — `scripts/design-drift-detect.mjs` CSS/JSX 매직넘버·색상·간격 위반 스캔, 밀도 기반 스코어링(A~F), longform A(90) / flair B(73) 검증

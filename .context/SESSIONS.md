@@ -2,6 +2,24 @@
 
 ---
 
+## [2026-05-21] Multi-Agent 지원 구조 + 문서 hygiene
+
+**완료**:
+- AGENTS.md 신설 + CLAUDE.md 레이어 분리 (Claude Code 전용 / Universal 분리)
+- GEMINI.md 자동 생성 → Codex·Gemini CLI 멀티 에이전트 대응
+- scripts/sync-agents.mjs: pre-commit hook으로 AGENTS/GEMINI.md 자동 동기화
+- vibe-init.sh: 세션 시작 시 프로젝트에 AGENTS.md + GEMINI.md 자동 복사
+- 문서 drift 수정: README 537→531, package.json ISC→MIT, PROTOCOL.md 참조 3개
+- governance/rules/lifecycle.md: 커맨드 상한선 60→80 현실화
+- CURRENT.md 200→165줄 (2주 초과분 이관)
+- launchctl 스크립트 4개 Windows 무음 실패 → 명시적 경고 후 exit
+
+**이슈**: Windows에서 mklink symlink 실패 → cp fallback (진짜 symlink 아님, vibe-init 복사로 대체)
+
+**빌드**: ✅ (문서·스크립트·거버넌스 변경, 테스트 없음)
+
+---
+
 ## [2026-05-16] 디자인 거버넌스 시스템 + PPT 파이프라인 수정
 
 **완료**:
