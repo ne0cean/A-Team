@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 # Branch protection 설정 — master 브랜치 보호
 # 실행: bash scripts/setup-branch-protection.sh
-#
-# 설정 내용:
-#   - PR 없이 직접 push 차단
-#   - CI (test job) 통과 필수
-#   - force push 차단
-#   - branch 삭제 차단
 
 set -euo pipefail
 
@@ -24,16 +18,24 @@ gh api \
   --method PUT \
   -H "Accept: application/vnd.github+json" \
   "/repos/$REPO/branches/$BRANCH/protection" \
-  -f 'required_status_checks[strict]=true' \
-  -f 'required_status_checks[contexts][]=test' \
-  -f 'enforce_admins=false' \
-  -f 'required_pull_request_reviews[required_approving_review_count]=0' \
-  -f 'required_pull_request_reviews[dismiss_stale_reviews]=false' \
-  -F 'restrictions=null' \
-  -F 'allow_force_pushes=false' \
-  -F 'allow_deletions=false' \
-  --silent
+  --input - <<'EOF'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ["test"]
+  },
+  "enforce_admins": false,
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 0,
+    "dismiss_stale_reviews": false
+  },
+  "restrictions": null,
+  "allow_force_pushes": false,
+  "allow_deletions": false
+}
+EOF
 
+echo ""
 echo "Done. Branch protection enabled:"
 echo "  - PR required for merge to $BRANCH"
 echo "  - CI 'test' job must pass"
