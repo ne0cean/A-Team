@@ -61,6 +61,75 @@ admin, role, permission, privilege, sudo, root
 
 ---
 
+## PR 프로세스 — 전체 흐름
+
+```
+feature branch 생성
+  ↓
+코드 작성 (Layer 1 자동 검증)
+  ↓
+빌드 완료 → Layer 2 자동 리뷰 → 수정
+  ↓
+/ship (PR 생성 전 검증)
+  ├─ upstream 병합
+  ├─ 테스트 전체 실행
+  ├─ 커버리지 감사 (새 코드 경로 → 테스트 존재 확인)
+  ├─ 문서 drift 체크
+  └─ PR 생성 (gh pr create)
+  ↓
+CI 자동 실행 (GitHub Actions)
+  ├─ test: tsc + npm audit + license + vitest + coverage
+  └─ mutation: Stryker incremental (PR에서만, test 통과 후)
+  ↓
+/github-review 또는 수동 리뷰
+  ├─ reviewer 에이전트가 diff 분석
+  ├─ 보안/로직/성능/컨벤션 검사
+  └─ GitHub 코멘트로 결과 게시
+  ↓
+merge (branch protection: CI test 통과 필수)
+  ↓
+/land (배포 검증, 해당 시)
+  ├─ 헬스체크 (HTTP 상태 + 응답 시간)
+  ├─ 에러 로그 스캔
+  └─ 롤백 판단
+```
+
+### 각 단계별 담당
+
+| 단계 | 자동/수동 | 명령 | 인간 역할 |
+|------|----------|------|----------|
+| 코딩 | 자동 | — | 시그널 단어 포함한 지시 |
+| Layer 2 리뷰 | 자동 | — | 결과 확인 (30초) |
+| PR 생성 | 반자동 | `/ship` | 충돌 해결 판단 |
+| CI | 자동 | — | 실패 시 확인 |
+| PR 리뷰 | 반자동 | `/github-review` | GitHub 코멘트 확인 |
+| Merge | 수동 | — | 최종 승인 |
+| 배포 검증 | 반자동 | `/land` | 롤백 판단 |
+
+### Branch Protection (설정 필요)
+
+```bash
+bash scripts/setup-branch-protection.sh
+```
+
+설정 내용:
+- master 직접 push 차단 → PR 필수
+- CI `test` job 통과 필수
+- Force push / branch 삭제 차단
+- 1인 팀이므로 approving review 0 (self-merge 허용)
+- Mutation job은 선택 (실패해도 머지 가능, 경고만)
+
+### CI 파이프라인 상세 (`.github/workflows/ci.yml`)
+
+| Job | 트리거 | 내용 | 차단 여부 |
+|-----|--------|------|----------|
+| `test` | PR + push to master | tsc + audit + license + vitest + coverage | 필수 (merge 차단) |
+| `mutation` | PR only (test 통과 후) | Stryker incremental + 캐시 | 선택 (경고만) |
+
+Mutation report: `reports/mutation.html` (artifact, 14일 보존)
+
+---
+
 ## Layer 3: 인간 판단 필수 (자동화 불가)
 
 AI가 대체할 수 없는 인간 고유 판단 영역.
