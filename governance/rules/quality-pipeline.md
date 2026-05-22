@@ -42,16 +42,22 @@ admin, role, permission, privilege, sudo, root
 
 ---
 
-## Layer 2: 커밋/세션 종료 시 자동 (인간은 결과만 확인)
+## Layer 2: 빌드 완료 직후 자동 (인간은 결과만 확인)
 
-`/end` 실행 시 자동 수행. 인간은 요약 1줄 확인.
+구현 완료 → **`/end` 호출 이전**에 Claude가 자동 수행. 리뷰에서 문제 발견 시 즉시 수정.
+`/end`는 순수 종료(커밋 + push + 교훈 저장)만 담당. 리뷰/수정은 이 단계에서 끝남.
 
-| 트리거 | 자동 실행 | 비용 |
+| 트리거 | 자동 실행 | 모델 |
 |--------|----------|------|
-| 변경 파일 3+ | Adversarial mini-review (Haiku) | $ |
-| 보안 패턴 감지됨 | CSO mini-scan (Haiku) | $ |
-| 신규 lib/agents/governance 파일 | PIOP Phase 1 (이미 Step 3.7) | $ |
+| 변경 파일 3+ | Adversarial mini-review | Haiku |
+| 보안 민감 패턴 감지 | CSO mini-scan (OWASP Top 10) | Haiku |
+| 새 export 함수 생성 | 테스트 존재 확인 | 0 (파일 검색) |
+| 신규 lib/agents/governance 파일 | PIOP Phase 1 | Sonnet |
 | push 직전 | CI (GitHub Actions: tsc + vitest) | 0 |
+
+```
+코드 완료 → Layer 2 자동 리뷰 → 이슈 있으면 수정 → "완료" 보고 → /end (종료+교훈)
+```
 
 ---
 

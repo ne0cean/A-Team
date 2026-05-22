@@ -156,6 +156,55 @@
 
 **학습**: `/end` Step 6.8에서 놓친 커맨드를 기록. 같은 패턴이 3회 반복되면 제안 강도를 높임 (1줄 → AskUserQuestion).
 
+## 빌드 완료 시 자동 품질 게이트 (Quality Pipeline Layer 2)
+
+사용자에게 "완료" 보고하기 **직전**, `/end` 호출 **이전**에 자동 실행.
+사용자가 별도로 호출할 필요 없음. Claude가 구현 완료 판단 시 즉시 수행.
+
+### 트리거 조건
+
+| 조건 | 자동 실행 | 모델 |
+|------|----------|------|
+| 변경 파일 3+ | Adversarial mini-review | Haiku |
+| 보안 민감 패턴 감지 (auth/crypto/payment/sql/eval 등) | CSO mini-scan | Haiku |
+| 새 export 함수 생성 | 테스트 존재 확인 | 0 (파일 검색) |
+
+### 실행 흐름
+
+```
+코드 작성 완료
+  ↓
+자동 게이트 (Claude 판단, 사용자 개입 0):
+  1. git diff → 변경 파일 수 + 보안 패턴 스캔
+  2. 조건 충족 시 Haiku 서브에이전트로 경량 리뷰
+  3. 새 export → 테스트 파일 존재 확인
+  ↓
+결과 보고 (1-3줄):
+  - LOW/MED: "리뷰 완료. 이슈 없음." → 사용자에게 완료 보고
+  - HIGH: "보안 이슈 발견: [내용]. 수정할까요?" → 수정 후 완료 보고
+  ↓
+사용자: "OK" → /end (순수 종료: 커밋+push+상태저장+교훈기록)
+```
+
+### 보안 민감 패턴 목록
+
+```
+auth, login, session, token, jwt, oauth, password, credential,
+crypto, encrypt, decrypt, hash, secret, key, cert,
+payment, billing, charge, stripe, paypal,
+sql, query, exec, eval, innerHTML, dangerouslySetInnerHTML,
+cors, origin, cookie, csrf, xss, sanitize,
+admin, role, permission, privilege, sudo, root
+```
+
+### 원칙
+
+- `/end`는 종료 + 교훈 저장 명령. 리뷰/수정은 `/end` 이전에 끝나야 함.
+- 리뷰 결과 LOW/MED면 1줄 보고 후 진행. HIGH면 수정 제안 후 사용자 판단 대기.
+- 사용자가 "리뷰 스킵" 명시하면 즉시 완료 보고.
+
+상세: `governance/rules/quality-pipeline.md`
+
 ## 자율 모드 진입 시 (의무)
 사용자가 "랄프 모드", "자동으로", "자는 동안", "풀자동", "알아서 해" 등 트리거 사용 시:
 1. **반드시 `governance/rules/autonomous-loop.md` 먼저 Read** (6개 강제 조항)

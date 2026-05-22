@@ -71,48 +71,6 @@ git diff --name-only --diff-filter=A 2>/dev/null | grep -E '^(lib/.*\.ts|\.claud
 - 미연결 항목 발견 시: 즉시 Phase 2 연결 수행 (빌드 검증 포함)
 - 또는 복잡하면: CURRENT.md의 Next Tasks에 `/optimize` TODO 등록
 
-## Step 3.9 — 자동 품질 리뷰 (Quality Pipeline Layer 2)
-
-변경 규모와 내용에 따라 자동 리뷰를 실행한다. 인간은 결과만 확인.
-
-### 3.9.1 Adversarial Mini-Review (변경 파일 3+)
-
-```bash
-CHANGED=$(git diff --cached --name-only 2>/dev/null | wc -l)
-UNSTAGED=$(git diff --name-only 2>/dev/null | wc -l)
-TOTAL=$((CHANGED + UNSTAGED))
-```
-
-`TOTAL >= 3`이면:
-- Haiku 서브에이전트로 adversarial mini-review 실행
-- 입력: `git diff` 전체
-- 출력: 위험도(LOW/MED/HIGH) + 1줄 요약 + 발견사항 (있으면 3개 이하)
-- HIGH면 사용자에게 경고 후 수정 제안. LOW/MED면 1줄 보고 후 진행.
-
-### 3.9.2 Security Mini-Scan (보안 패턴 감지)
-
-```bash
-SECURITY_HIT=$(git diff --cached -U0 2>/dev/null | grep -iE 'auth|login|session|token|jwt|oauth|password|credential|crypto|encrypt|decrypt|hash|secret|key|cert|payment|billing|stripe|sql|query|exec|eval|innerHTML|dangerouslySetInnerHTML|cors|cookie|csrf|xss|sanitize|admin|role|permission|privilege' | head -5)
-```
-
-`SECURITY_HIT`이 비어있지 않으면:
-- Haiku 서브에이전트로 CSO mini-scan 실행
-- 변경된 보안 관련 코드만 추출하여 OWASP Top 10 기준 검사
-- 위험 발견 시 사용자에게 `/cso` 풀 스캔 권장
-
-### 3.9.3 테스트 커버리지 검증 (새 export 함수)
-
-```bash
-NEW_EXPORTS=$(git diff --cached -U0 2>/dev/null | grep -E '^\+.*(export\s+(function|const|class|async function))' | head -10)
-```
-
-새 export가 있으면:
-- 해당 파일의 테스트 파일 존재 확인 (`*.test.ts`, `*.spec.ts`)
-- 테스트 파일 내에 새 함수명 참조 확인
-- 미커버 시 1줄 경고: "새 export `funcName`에 테스트 없음"
-
-상세 규칙: `governance/rules/quality-pipeline.md`
-
 ## Step 3.8 — A-Team Drift 감지 (자동)
 
 현재 프로젝트가 a-team 자체가 **아닌데** a-team 하위 사본(`A-Team/`, `a-team/`, `.a-team/` 등)이 존재하거나, 프로젝트 내 `.claude/commands/`·`governance/`·`scripts/auto-switch/` 가 수정되었다면 drift 신호. `ateam-sovereignty.md` 제2/7원칙에 따라 **글로벌이 정본**.
