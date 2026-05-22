@@ -138,6 +138,92 @@ AI가 대체할 수 없는 인간 고유 판단 영역.
 
 ---
 
+## 설치된 도구 + 실행 명령
+
+| 도구 | 패키지 | 용도 | 실행 |
+|------|--------|------|------|
+| **StrykerJS** v9.6.1 | `@stryker-mutator/core` + `vitest-runner` + `typescript-checker` | Mutation Testing | `npm run mutate` |
+| **fast-check** v4.8.0 | `fast-check` + `@fast-check/vitest` | Property-Based Testing | `npm test` (자동 포함) |
+| **ArchUnitTS** v2.3.0 | `archunit` | Architecture Fitness Functions | `npm test` (자동 포함) |
+
+### Mutation Testing (npm run mutate)
+
+테스트가 "실행"만 되고 "검증"은 안 하는 케이스를 잡는다.
+
+```bash
+npm run mutate          # 전체 (첫 실행 20-60분, 이후 incremental)
+npm run mutate:changed  # 변경 파일만 (PR당 2-10분)
+```
+
+설정: `stryker.config.mjs`. Thresholds: high=80%, low=60%, break=50%.
+리포트: `reports/mutation.html` + `reports/stryker-incremental.json` (CI 캐시).
+
+**TDD가 놓치는 것 — 구체적 예시**:
+```typescript
+if (price <= 0) throw new Error('invalid')
+// Stryker: <= 를 < 로 변형 → 테스트가 price=0을 안 검증했음을 발견
+// 커버리지 100%여도 mutation score는 70%일 수 있다
+```
+
+### Property-Based Testing (npm test — 자동 포함)
+
+인간이 상상 못한 입력으로 불변조건을 검증한다.
+
+파일: `test/property.test.ts` (12 tests). 6가지 패턴:
+
+| 패턴 | 잡는 것 | 예시 |
+|------|--------|------|
+| **Roundtrip** | 직렬화/역직렬화 손실 | `JSON.parse(JSON.stringify(x)) === x` |
+| **Invariant** | 구조적 속성 위반 | "모든 입력에서 출력 길이 = 입력 길이" |
+| **Idempotent** | 이중 적용 버그 | `normalize(normalize(x)) === normalize(x)` |
+| **Metamorphic** | 정답 모를 때 관계 검증 | "점수 높이면 등급 안 내려감" |
+| **Oracle** | 최적화 구현 vs 참조 구현 | 느린 버전과 빠른 버전 결과 비교 |
+| **Model-Based** | 상태 머신 버그 | 모델 vs 실제 구현 불일치 |
+
+**TDD가 놓치는 것**: `__proto__` 키, 유니코드 이모지, `-0`, `MAX_SAFE_INTEGER`, 빈 배열 + 빈 문자열 조합.
+
+새 순수 함수 추가 시 `test.prop` 테스트 추가 권장:
+```typescript
+import { test, fc } from '@fast-check/vitest';
+test.prop([fc.string()])('is idempotent', (s) => {
+  expect(normalize(normalize(s))).toBe(normalize(s));
+});
+```
+
+### Architecture Fitness Functions (npm test — 자동 포함)
+
+구조적 부패를 자동 감지. 서서히 나빠지는 것을 매 테스트에서 잡는다.
+
+파일: `test/architecture.test.ts` (6 tests):
+
+| 규칙 | 잡는 것 |
+|------|--------|
+| lib/ → scripts/ 금지 | 라이브러리가 스크립트에 의존하면 독립성 파괴 |
+| lib/ → .claude/ 금지 | 라이브러리가 에이전트 설정에 의존하면 이식 불가 |
+| lib/ → governance/ 금지 | 역방향 의존성 |
+| 순환 의존성 탐지 | A→B→C→A 순환이 생기면 리팩토링 불가 |
+| 모듈 독립성 | lib/ 파일이 2단계 이상 상위로 탈출 금지 |
+
+**위반 시 `npm test` 실패** → CI 차단 → 구조 부패 원천 차단.
+
+---
+
+## 탐지 능력 비교 — Before vs After
+
+| 버그 유형 | Before (TDD + 레드팀) | After (Quality Pipeline) |
+|----------|----------------------|--------------------------|
+| 사양 위반 | O (TDD) | O |
+| 보안 취약점 | O (레드팀) | O + 자동 감지 |
+| 경계값 누락 (price=0) | **X** | **O** (Mutation) |
+| 유니코드/특수입력 | **X** | **O** (Property-Based) |
+| 테스트가 있지만 검증 안 함 | **X** | **O** (Mutation) |
+| 순환 의존성 점진 누적 | **X** | **O** (Fitness) |
+| 레이어 경계 위반 | **X** | **O** (Fitness) |
+| 정답 모를 때 관계 위반 | **X** | **O** (Metamorphic) |
+| 프로토타입 오염 (__proto__) | **X** | **O** (Property-Based) |
+
+---
+
 ## 방법론 상세 레퍼런스
 
 ### Contract-First Development
@@ -147,18 +233,33 @@ AI가 대체할 수 없는 인간 고유 판단 영역.
 
 ### Property-Based Testing
 - 구체적 예시 대신 "모든 입력에 대해 성립하는 속성" 검증
-- 도구: fast-check (JS/TS)
-- 예: `fc.assert(fc.property(fc.string(), s => decode(encode(s)) === s))`
+- 도구: fast-check v4.8 + @fast-check/vitest
+- Zod 스키마 → fast-check arbitrary 자동 변환: `zod-fast-check`
+- 6가지 패턴: roundtrip, invariant, idempotent, oracle, metamorphic, model-based
+- 참조: `test/property.test.ts`
 
 ### Mutation Testing
-- 코드를 일부러 변형(+를 -로, true를 false로)
+- 코드를 일부러 변형(+를 -로, true를 false로, <=를 <로)
 - 테스트가 변형을 잡지 못하면 → 테스트가 약한 것
-- 도구: Stryker (JS/TS)
+- 도구: StrykerJS v9.6.1 + vitest-runner + typescript-checker
+- Incremental 모드: 변경 파일만 재검증 (PR당 2-10분)
+- 설정: `stryker.config.mjs`
+
+### Architecture Fitness Functions
+- 아키텍처 건강을 자동 수치화, npm test마다 실행
+- 레이어 경계 강제, 순환 의존성 탐지, 모듈 독립성 검증
+- 도구: ArchUnitTS (vitest 내장) + 커스텀 DFS
+- 참조: `test/architecture.test.ts`
+
+### Metamorphic Testing
+- 정답을 모를 때 입출력 관계를 검증
+- "필터 좁히면 결과 줄어야" / "점수 높이면 등급 안 내려감"
+- fast-check 내에서 구현 (별도 도구 불필요)
 
 ### Golden Master / Snapshot Testing
 - 현재 정상 출력을 스냅샷으로 저장
 - 이후 변경 시 diff → 의도된 변경인지 확인
-- 도구: vitest snapshot, jest snapshot
+- 도구: vitest snapshot (`expect(x).toMatchSnapshot()`)
 
 ### Strangler Fig Pattern
 - 기존 코드를 한 번에 교체하지 않음
@@ -174,11 +275,6 @@ AI가 대체할 수 없는 인간 고유 판단 영역.
 - 전체 파이프라인을 최소 기능으로 관통
 - DB → API → UI 한 줄씩 → E2E 동작 확인
 - 그 후 각 층에 살 붙이기
-
-### Fitness Functions
-- 아키텍처 건강을 자동 수치화
-- 측정: 순환 의존성 수, 모듈 결합도, 빌드 시간
-- CI에서 자동 실행, 임계값 초과 시 경고
 
 ### ADR (Architecture Decision Record)
 - 결정 배경 + 고려 옵션 + 선택 이유 문서화
