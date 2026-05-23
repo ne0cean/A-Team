@@ -1,0 +1,129 @@
+---
+title: "MVP"
+created: 2025-02-23T11:39:53Z
+modified: 2025-02-23T11:39:53Z
+source: onenote
+notebook: "InterStellar"
+section: "MK1"
+---
+
+보도자료를 써보라
+
+<https://eopla.net/magazines/10491>
+
+  
+
+AI 최적화 사이클: 단순하게 시작해서 점진적 개선
+
+1. 일단 돌아가는 걸 먼저 만든다 (비용이 좀 들어도 OK)
+2. 빠르게 배포하고 피드백 수집
+3. 중간급 모델로 전환해 비용 절감
+4. 성능 검증(Eval)으로 품질 유지
+5. 파인튜닝 등으로 추가 비용 절감
+  
+
+  
+
+제품 안에 AI를 녹여 넣기
+
+- AI는 단순한 챗봇 UI를 넘어, 앱 내부 구성 요소로 자연스럽게 통합돼야 함
+- 예: generateText() 같은 함수 한두 줄로 AI 기능을 시스템 레벨로 흡수
+- 사용자는 AI를 “대화하는 존재”가 아니라, 기능의 일부로 체감해야 진짜 경험이 됨
+
+  
+출처: <<https://news.hada.io/topic?id=20439&utm_source=discord&utm_medium=bot&utm_campaign=280>> 
+  
+  
+
+1. 개발 환경 설정
+
+React + Next.js + Firebase를 사용
+
+[Node.js 설치](https://nodejs.org/) - React 프로젝트 실행에 필수적
+
+[코드](https://code.visualstudio.com/) 편집기 (VS Code) 설치 - 코드 작성과 실행이 편리합니다.
+
+✅ 설치 후 필요한 확장 프로그램 설치:
+
+- ES7+ React/Redux/React-Native snippets
+- Prettier - Code formatter
+- Tailwind CSS IntelliSense (디자인을 Tailwind로 할 경우)
+
+  
+  
+
+2. 프로젝트 생성
+
+![](attachments/2bccfe7c99ed.png)
+
+npm install firebase
+
+  
+  
+
+// Import the functions you need from the SDKs you need
+
+import { initializeApp } from "firebase/app";
+
+import { getAnalytics } from "firebase/analytics";
+
+// TODO: Add SDKs for Firebase products that you want to use
+
+// <https://firebase.google.com/docs/web/setup#available-libraries>
+
+  
+
+// Your web app's Firebase configuration
+
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+
+const firebaseConfig = {
+
+apiKey: "AIzaSyAd1Z\_vKKzlY-CysH8m4ybE6mgDvfZJhBw",
+
+authDomain: "geo-connectome.firebaseapp.com",
+
+projectId: "geo-connectome",
+
+storageBucket: "geo-connectome.firebasestorage.app",
+
+messagingSenderId: "450279800762",
+
+appId: "1:450279800762:web:7c0de5e2429acf30072783",
+
+measurementId: "G-91K13FSZK4"
+
+};
+
+  
+
+// Initialize Firebase
+
+const app = initializeApp(firebaseConfig);
+
+const analytics = getAnalytics(app);
+
+  
+  
+
+클라우드 개발환경 셋팅
+
+<https://docs.github.com/ko/codespaces/developing-in-a-codespace/using-github-codespaces-in-visual-studio-code>
+
+  
+
+[(개발지식) 1 - Github 폴더/파일 한번에 올리기 (Git Bash 이용)](https://hjsong96.tistory.com/43) - [Git bash](https://git-scm.com/downloads/win) 설치
+
+<https://steady-eschoi.tistory.com/94>
+
+<https://soda-dev.tistory.com/12> 깃 업로드
+
+[깃 업로드(Mac)](https://cocococo.tistory.com/entry/Git-Git%EC%97%90-%ED%8F%B4%EB%8D%94-%EC%97%85%EB%A1%9C%EB%93%9C-%EB%B0%A9%EB%B2%95)
+
+<https://github.com/ne0cean/MK1.git> 내 라퍼지토리
+
+참고 서비스들
+
+[Linktree](https://linktr.ee/)￼[liinks](https://eopla.net/magazines/26680#)
+
+[Google Earth Studio](https://www.threads.net/@if_youmybest/post/DGkV3fzz_Aw?xmt=AQGz5Mmcn4RUVm1_s1bPmNpvubSmCYd4TnEiQNo49qbJZw)

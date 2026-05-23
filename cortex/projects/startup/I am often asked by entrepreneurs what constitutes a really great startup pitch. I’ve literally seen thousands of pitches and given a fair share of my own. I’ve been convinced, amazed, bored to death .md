@@ -1,0 +1,54 @@
+---
+title: "I am often asked by entrepreneurs what constitutes a really great startup pitch.  I’ve literally seen thousands of pitches and given a fair share of my own.  I’ve been convinced, amazed, bored to death and even moved to tears.  I’ve given more than a thou"
+created: 2022-06-28T04:13:46Z
+modified: 2022-06-28T04:13:46Z
+source: onenote
+notebook: "InterStellar"
+section: "MK1"
+---
+
+[![VENTlJRES ](attachments/c049573cc349.png)](https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F352e0b55-27ff-48b3-97ef-b667cfa6bcd8_1280x527.jpeg) 
+
+I am often asked by entrepreneurs what constitutes a really great startup pitch.  I’ve literally seen thousands of pitches and given a fair share of my own.  I’ve been convinced, amazed, bored to death and even moved to tears.  I’ve given more than a thousand myself – to receptions ranging from standing ovation to heads-on-table.
+
+- VC로 일하면서, 굉장히 많은 창업가들의 Pitch를 볼 기회가 있었습니다. 물론 좋은 Pitch도 있었고, 그렇지 않은 Pitch도 있었는데요.
+- 그런 경험을 바탕으로 'Great Startup Pitch'가 무엇인지에 대해서 많이들 물어보셔서, 이에 대한 생각을 얘기해볼까 합니다.
+
+Fundamentally, a good pitch is a good story.  It’s not just facts and figures and analysis.  In addition to understanding a business opportunity logically, investors need to feel a business opportunity emotionally.  A good story (told by a compelling storyteller) does just that. It activates our gut and makes us viscerally excited by the business proposition.  In discussing this post, my entrepreneur friend [@danmartell](https://twitter.com/danmartell) reminded me of the venerable sales proverb: “people buy on emotion and justify with logic.”
+
+- 좋은 Pitch는 '스토리'를 가져서 사람을 '설득'시킬 수 있는 Pitch라고 이야기 할 수 있을 것 같습니다.
+- 제 친구중 한 명은  “people buy on emotion and justify with logic.” 라는 이야기를 해주었는데요. 맘에 드는 사람이 있으면, 이 사람이 왜 맘에 드는지 이유를 찾는다는 의미고. 스타트업 Pitch도 비슷한 것 같습니다. 숫자와 로직도 물론 중요하지만, '왜' 이 회사가 'emotionally' 좋은지 appealing 될 수 있어야 하는 것 같습니다. 좋은 스토리, 좋은 이야기가 함께, 그리고 숫자와 함께라면 그보다 더 좋은 Pitch는 없는 것 같네요.
+
+Many entrepreneurs in our business have technical or analytical backgrounds and love to expound on the “what” and “how” of their technology solutions.  That is all fine, but often what I really care about – and what I have come to see as a common thread in the best presentations – is “why”. Specifically, there are “3 Whys” that I want to see in every pitch:
+
+- 대부분 창업가들은 굉장히 분석적인 분들입니다. '무엇'을 '어떻게' 할지에 대해서 많이들 얘기하시는데요. (이것도 당연히 필요합니다.)
+- 하지만, 더 중요한건 'WHY'이고, 저는 특히 좋은 이야기에는 3가지 'WHY'가 들어갔으면 한다고 생각합니다. (아래에 있는 3WHY - BIG, NOW, YOU)
+
+1. WHY BIG?Most entrepreneurs answer this question by simply including a market size chart in their presentation. Whether calculated through bottoms-up analysis (often bogus) or citing a market research firm ([always bogus](http://www.savethepostoffice.com/sites/default/files/resize/wishful%20thinking%20cartoon-350x366.jpg)), this is a basic and necessary exercise.  But what makes a good pitch into a great pitch is when entrepreneurs can articulate the scale of the opportunity in a way that I can feel in my gut and not just get in my head.
+
+- 많은 창업가들이 통계청에서 가져온 자료들을 바탕으로 '시장이 큼'이라고 이야기 하시는데요. 물론 필요하고, 아주 기본적인 작업이라고 생각합니다.
+- 하지만, 더 중요한 사실은 단순히 '통계'가 말해준다는 사실이 아니라, 이 시장이 성장한다 (혹은 크다)라는 사실이 무엇을 의미하는지, 그리고 그 성장하는 시장 속에서 창업가가 어떤 기회를 바라보고 있고, 이 성장하는 트렌드를 어떻게 잡을 수 있을지를 어필해주는 게 중요하다고 생각합니다.
+
+Social science has shown that people are far more moved by stories told in terms of actual individuals rather than in aggregate figures that can be too much for our simple brains to grasp. In the same way, the most effective entrepreneurs describe the problem they are solving in very personal terms. They talk about a specific customer or about their own experience with the pain they are trying to solve.
+
+- 단순히 숫자를 던지고 '시장 크죠?'정도의 접근이 아니라, 시장이 큰다는 의미는 왜 인지, 그리고 시장이 성장한다면(크다면) 왜 사람들은 그 시장 성장에 기여하고 있는지, 거기서 본인은 어떤 pain을 느꼈고, 어떤 인사이트가 있는지를 설명해주는 것이 필요하지 않을까 싶네요.
+
+2. WHY NOW This next point is one that entrepreneurs almost always miss and so it is one that I have come to feel is the most critical. So much of startup success is dictated by good timing.  I launched a social bookmarking startup in 2000 with a terrific technical team and top-tier venture investors; but we were simply too early – nine years earlier than [Delicious](https://delicious.com/) and [StumbleUpon](http://www.stumbleupon.com/), companies that succeeded with almost identical services at a different time.
+
+- 그 다음은 WHY NOW입니다. 당연히 이 질문은 중요합니다. 왜냐면, 대부분 스타트업들의 성공은 '타이밍'이 중요한 변수이기 때문이죠. 저는 예전에 한 스타트업을 창업한 적이 있는데, 엄청난 개발자들 벤처투자자들의 지원을 받아 시작했습니다. (하지만 잘 안됐죠) 그리고, 그 뒤에 조금 늦은 타이밍에 큰 회사들이 등장했습니다. (거의 비슷한 서비스로) 그래서, 타이밍은 굉장히 중요합니다.
+
+A great startup pitch MUST answer the question “why now” – why market conditions, user behaviours, technology trends or other macro forces are combining in just the right way to smooth your path to success.
+
+- 좋은 스타트업 Pitch에서는 왜 이 서비스가 '마켓이 성장하는, 큰 시장에서' 굳이 '지금' 이뤄져야 하는지를 잘 설명해야 합니다. 마켓의 컨디션이 어떻게 변화하고 있고, 소비자들은, 기술은, 그리고 거시적인 요소들은 어떻게 바뀌어서 지금이 '적시'인지를 설득할 수 있어야 하죠.
+
+3. WHY YOU Finally, if the market is big and happening now, investors need to understand why YOU and your product are the right ones to bet on.  This is the jockey part of the famous [horse vs. jockey debate](http://www.edegan.com/pdfs/Kaplan%20Sensoy%20Stromberg%20%282009%29%20-%20What%20Are%20Firms%20Evolution%20From%20Birth%20To%20Public%20Companies.pdf) in venture investing. For every great market opportunity, we assume there are dozens of smart and potentially well-financed teams around the world going after it.  What about your expertise and team give you a clear advantage – your domain experience, your tenacity, your coding skills?  What about your product makes it clearly superior to others in technical approach or customer perception?  Why will you have the “last mover advantage” and dominate the category in the long-run?
+
+- 마지막으로, 제일 중요한 질문입니다. '왜 우리여야만 하는가' 이죠. 성장하는 시장, 유망한 시장이라면 비슷한 비즈니스를 하는 엄청 많은 스마트가이들이 있을 겁니다. (후보군들이 많다는 의미죠) 당신의 전문성은, 당신의 팀은 그들에 비해서 어떤 장점을 가졌는지, 당신이 만든 제품이 왜 다른 '유사한' 제품들보다 더 쟁력있는지, 왜 하필이면 이미 선도주자가 있음에도 불구하고, 더 잘할 수 있는지 설명해야 합니다.
+
+These three simple questions – why big, why now, why you – are at the heart of what distinguishes a great story from a merely good one.  If you want your startup pitch to stand out, make sure you’ve nailed the answers.
+
+- 결국은 스토리고, 스토리 내에 왜 이 시장이 중요하고, 지금이고, 당신이어야만 하는지를 설명하는 과정에서 당신의 팀의 개성이 드러날 것이라 믿습니다. 이 질문들에 대해서 잘 고민해보고 솔직한 답을 해주신다면, 멋진 Pitch가 나올것이라 믿습니다.
+
+  
+  
+출처: <<https://bzcf.substack.com/p/7-why-big-why-now-why-you-altos-ventures>>
