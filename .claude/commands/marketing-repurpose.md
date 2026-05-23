@@ -1,5 +1,7 @@
 # /marketing-repurpose — 1→15 콘텐츠 변환
 
+> Analytics: `node scripts/log-event.mjs command_start name=marketing-repurpose` — 실행 시작 시 반드시 호출
+
 **용도**: 블로그 1개 → 15개 포맷 자동 변환. A-Team 마케팅의 핵심 무기.
 
 ## 실행 흐름

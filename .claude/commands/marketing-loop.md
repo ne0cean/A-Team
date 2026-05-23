@@ -1,5 +1,7 @@
 # /marketing-loop — 주간 자가 개선 루프
 
+> Analytics: `node scripts/log-event.mjs command_start name=marketing-loop` — 실행 시작 시 반드시 호출
+
 **용도**: 주 1회 실행. 성과 분석 → 인사이트 → 프롬프트 개선 → 다음 주 전략. 마케팅 시스템의 자가 개선 엔진.
 
 ## 실행 흐름

@@ -12,6 +12,8 @@ allowed-tools:
   - Bash
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=prd` — 실행 시작 시 반드시 호출
+
 # PRD — 아이디어 검증 + 웹앱/대시보드 PRD 통합 생성기
 
 **프로젝트**: $ARGUMENTS

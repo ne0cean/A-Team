@@ -2,6 +2,8 @@
 description: analytics.jsonl 집계 → 주간 인사이트 리포트 자동 생성
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=insights` — 실행 시작 시 반드시 호출
+
 # /insights — 주간 인사이트 파이프라인
 
 ## 역할

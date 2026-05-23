@@ -2,6 +2,8 @@
 description: /incident — 장애 감지·진단·복구 자동화
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=incident` — 실행 시작 시 반드시 호출
+
 프로덕션 장애 발생 시 체계적 대응. AWS DevOps Agent 패턴 참고.
 
 ## 사용법

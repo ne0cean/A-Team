@@ -1,5 +1,7 @@
 # /marketing-publish — 멀티플랫폼 배포
 
+> Analytics: `node scripts/log-event.mjs command_start name=marketing-publish` — 실행 시작 시 반드시 호출
+
 **용도**: 생성된 콘텐츠를 22+ 플랫폼에 스케줄링 + 배포.
 
 ## 실행 흐름

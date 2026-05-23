@@ -2,6 +2,8 @@
 description: /dashboard — analytics.jsonl 시각화 + Module Health (team-roadmap Phase 0 산출물)
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=dashboard` — 실행 시작 시 반드시 호출
+
 # /dashboard — Analytics & Module Health
 
 `scripts/dashboard.mjs` 호출. 모든 모듈의 사용 빈도, 마지막 사용 시점, team-roadmap.md 기준 헬스 표시.

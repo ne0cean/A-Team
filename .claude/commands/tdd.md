@@ -2,6 +2,8 @@
 description: /tdd — TDD Red-Green-Refactor 루프
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=tdd` — 실행 시작 시 반드시 호출
+
 `tdd` 서브에이전트(subagent_type="tdd")를 호출하여 실행하세요.
 
 - 구현할 기능 설명을 그대로 전달

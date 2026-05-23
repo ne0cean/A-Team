@@ -1,5 +1,7 @@
 # /design-audit — AI 냄새 감지 + 브랜드 체크
 
+> Analytics: `node scripts/log-event.mjs command_start name=design-audit` — 실행 시작 시 반드시 호출
+
 **용도**: 생성된 이미지/비주얼의 AI 냄새 감지, 브랜드 일관성 검사, 개선안 제시.
 발행 전 필수 게이트. `/design-generate` 후 자동 호출 또는 수동 실행.
 

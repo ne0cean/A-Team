@@ -2,6 +2,8 @@
 description: GitHub 이슈 트리아지 — 자동 분류, 우선순위 배정, CURRENT.md Next Tasks 동기화
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=issue-triage` — 실행 시작 시 반드시 호출
+
 GitHub 이슈를 분류하고 우선순위를 배정합니다. 인수 없으면 열린 이슈 전체를 트리아지합니다.
 
 ## 실행 흐름

@@ -1,5 +1,7 @@
 # /pmi — Post-Major-Integration (PIOP 자동 실행)
 
+> Analytics: `node scripts/log-event.mjs command_start name=pmi` — 실행 시작 시 반드시 호출
+
 > **용도**: 메이저 통합(새 서브시스템, 대규모 리팩토링, governance/규칙 대폭 수정) 직후 실행하는 5-Phase 최적화 파이프라인.
 > **관계**: `governance/workflows/post-integration.md` (PIOP)의 짧은 별칭 + 실행 entry point. `/optimize` 와 동일한 workflow를 가리키지만 **메이저 통합 트리거용 전용 이름**.
 > **자동 호출 지점**: orchestrator Phase 5.7, vibe Step 0.5, end.md. 명시 호출은 `/pmi` 또는 `/optimize`.

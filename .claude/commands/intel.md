@@ -2,6 +2,8 @@
 description: 시장·사용자 인텔리전스 수집 (경쟁사/트렌드/페르소나)
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=intel` — 실행 시작 시 반드시 호출
+
 # /intel — 시장 인텔리전스 커맨드
 
 > Phase 2: 경쟁사 분석, 트렌드 모니터링, 페르소나 연구 자동화

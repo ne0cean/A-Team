@@ -2,6 +2,8 @@
 description: /ppt — 업무용 PPT 자동 생성. 질문을 하나씩 순차 진행 → 스펙 확정 → PPTX 생성.
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=ppt` — 실행 시작 시 반드시 호출
+
 # /ppt — 업무용 프레젠테이션 생성
 
 > **엔진**: python-pptx (generate_v2.py) — 편집 가능 PPTX

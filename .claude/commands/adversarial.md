@@ -2,6 +2,8 @@
 description: /adversarial -- 적대적 코드 리뷰
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=adversarial` — 실행 시작 시 반드시 호출
+
 `adversarial` 서브에이전트(subagent_type="adversarial")를 호출하여 실행하세요.
 
 - 사용자 인자(경로, --depth, --full 등)가 있으면 그대로 전달

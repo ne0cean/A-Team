@@ -4,6 +4,8 @@ description: 실제 사람이 만든 레퍼런스를 찾고 해부해서 모사 
 argument-hint: "[hunt 키워드] 또는 [레퍼런스 URL]"
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=design-clone` — 실행 시작 시 반드시 호출
+
 # /design-clone — 벤치마크 모사 디자인 모듈
 
 > AI 냄새 지우기 ❌ → 사람이 만든 걸 먼저 찾고 그걸 모사 ✅

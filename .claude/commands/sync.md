@@ -2,6 +2,8 @@
 description: Auto-Sync 데몬 관리 — 백그라운드 자동 저장/커밋 시작·정지·상태 확인
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=sync` — 실행 시작 시 반드시 호출
+
 Auto-Sync 데몬을 관리합니다. 인수에 따라 즉시 실행합니다. 인수 없으면 status 실행.
 
 **자율 실행 원칙:** 확인 질문 없이 바로 실행, 결과만 간결하게 보고.

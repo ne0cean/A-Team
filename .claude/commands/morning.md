@@ -3,6 +3,8 @@ name: morning
 description: 아침 루틴 — 목표 상기 + One Thing 강제 + 오늘 할 일
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=morning` — 실행 시작 시 반드시 호출
+
 # /morning — 아침 시작 의식
 
 ## Step 1: 목표 상기

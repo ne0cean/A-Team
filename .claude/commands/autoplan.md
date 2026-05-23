@@ -2,6 +2,8 @@
 description: /autoplan — 자동 계획 검토 파이프라인
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=autoplan` — 실행 시작 시 반드시 호출
+
 `autoplan` 서브에이전트(subagent_type="autoplan")를 호출하여 실행하세요.
 
 - 검토할 계획 파일이 지정되었으면 그대로 전달

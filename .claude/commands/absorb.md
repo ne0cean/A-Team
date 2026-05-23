@@ -2,6 +2,8 @@
 description: /absorb — 다른 프로젝트의 로컬 A-Team 개선사항 역류 흡수. 글로벌 가치 점검 후 master 에 promote.
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=absorb` — 실행 시작 시 반드시 호출
+
 master A-Team 이 다른 프로젝트들의 `.claude/commands/`, `governance/`, `scripts/` 를 스캔해 **역류 가능한 개선사항**을 찾아 `improvements/pending.md` 에 후보로 등록. **자동 머지 안 함** — 사람 결정 대기.
 
 ## 사용 시점

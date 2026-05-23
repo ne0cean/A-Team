@@ -1,5 +1,7 @@
 # /design-brief — 디자인 브리핑 생성
 
+> Analytics: `node scripts/log-event.mjs command_start name=design-brief` — 실행 시작 시 반드시 호출
+
 **용도**: 비주얼 작업 착수 전 방향 설정. Art Director Agent가 스타일·도구·프롬프트를 결정.
 비주얼 생성 전 **반드시** 실행. 브리핑 없이 생성하면 AI 냄새 위험 급증.
 
