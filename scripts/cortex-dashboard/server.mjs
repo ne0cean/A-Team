@@ -17,8 +17,19 @@ const DATA_DIR = join(__dirname, '../../cortex/areas/life/ritual-routine');
 // Ensure data dir exists
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 
+const TEMPLATES_PATH = join(DATA_DIR, 'templates.json');
+
 function getDataPath(yearMonth) {
   return join(DATA_DIR, `${yearMonth}.json`);
+}
+
+function loadTemplates() {
+  if (existsSync(TEMPLATES_PATH)) return JSON.parse(readFileSync(TEMPLATES_PATH, 'utf-8'));
+  return { daily: [], monthly: [], yearly: [] };
+}
+
+function saveTemplates(data) {
+  writeFileSync(TEMPLATES_PATH, JSON.stringify(data, null, 2), 'utf-8');
 }
 
 function getMdPath(yearMonth) {
@@ -178,6 +189,57 @@ const server = createServer((req, res) => {
         saveMonth(ym, data);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // Templates API
+  if (url.pathname === '/api/templates' && req.method === 'GET') {
+    const tpl = loadTemplates();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(tpl));
+  }
+
+  if (url.pathname === '/api/templates' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        saveTemplates(data);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  if (url.pathname === '/api/inject' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const { ym, day } = JSON.parse(body);
+        const data = loadMonth(ym);
+        const tpl = loadTemplates();
+        if (!data.days[day]) data.days[day] = {};
+        const dayData = data.days[day];
+        for (const item of tpl.daily) {
+          const cat = item.category;
+          if (!dayData[cat]) dayData[cat] = [];
+          const exists = dayData[cat].some(i => i.text === item.text);
+          if (!exists) dayData[cat].push({ text: item.text, url: '', done: false });
+        }
+        saveMonth(ym, data);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, injected: tpl.daily.length }));
       } catch (e) {
         res.writeHead(400);
         res.end(JSON.stringify({ error: e.message }));

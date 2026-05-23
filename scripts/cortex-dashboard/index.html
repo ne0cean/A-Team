@@ -56,6 +56,25 @@
   .stats { padding: 6px 16px; background: #161b22; border-top: 1px solid #30363d; display: flex; gap: 20px; font-size: 11px; color: #8b949e; }
   .stats .stat-value { color: #56d364; font-weight: 600; }
 
+  .templates-section { padding: 12px 16px; background: #161b22; border-top: 1px solid #30363d; }
+  .templates-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: pointer; }
+  .templates-header h2 { font-size: 12px; color: #f0c040; }
+  .templates-header .toggle { color: #484f58; font-size: 10px; }
+  .templates-body { display: none; }
+  .templates-body.open { display: block; }
+  .tpl-group { margin-bottom: 8px; }
+  .tpl-group-label { font-size: 10px; color: #8b949e; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+  .tpl-item { display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 11px; }
+  .tpl-item .tpl-cat { color: #f0c040; font-size: 9px; min-width: 36px; }
+  .tpl-item .tpl-del { color: #484f58; cursor: pointer; font-size: 10px; }
+  .tpl-item .tpl-del:hover { color: #f85149; }
+  .tpl-add { display: flex; gap: 4px; margin-top: 4px; }
+  .tpl-add select, .tpl-add input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 2px 4px; border-radius: 2px; }
+  .tpl-add input { flex: 1; }
+  .tpl-add button { background: #238636; border: none; color: #fff; padding: 2px 8px; border-radius: 2px; cursor: pointer; font-size: 11px; }
+  .inject-btn { background: #238636; border: none; color: #fff; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-left: 8px; }
+  .inject-btn:hover { background: #2ea043; }
+
   /* New item input */
   .new-item { display: none; padding: 2px 0; }
   .new-item.active { display: flex; gap: 3px; align-items: center; }
@@ -81,6 +100,39 @@
 <div class="grid" id="calendarGrid"></div>
 
 <div class="stats" id="stats"></div>
+
+<div class="templates-section">
+  <div class="templates-header" onclick="toggleTemplates()">
+    <h2>상시 업무 / Recurring Templates</h2>
+    <span class="toggle" id="tplToggle">▶ 펼치기</span>
+    <button class="inject-btn" onclick="event.stopPropagation();injectToday()">오늘에 주입</button>
+  </div>
+  <div class="templates-body" id="tplBody">
+    <div class="tpl-group">
+      <div class="tpl-group-label">Daily (매일)</div>
+      <div id="tplDaily"></div>
+      <div class="tpl-add">
+        <select id="tplCat">
+          <option value="ritual">R&R</option>
+          <option value="input">Input</option>
+          <option value="work">Work</option>
+          <option value="outcome">Out</option>
+        </select>
+        <input type="text" id="tplText" placeholder="새 상시 항목..."
+          onkeydown="if(event.key==='Enter')addTemplate()">
+        <button onclick="addTemplate()">추가</button>
+      </div>
+    </div>
+    <div class="tpl-group">
+      <div class="tpl-group-label">Monthly (월간)</div>
+      <div id="tplMonthly"><span style="color:#484f58;font-size:10px">항목 없음</span></div>
+    </div>
+    <div class="tpl-group">
+      <div class="tpl-group-label">Yearly (연간)</div>
+      <div id="tplYearly"><span style="color:#484f58;font-size:10px">항목 없음</span></div>
+    </div>
+  </div>
+</div>
 
 <script>
 const API = '';
@@ -315,7 +367,73 @@ function prevMonth() { currentMonth--; if(currentMonth<1){currentMonth=12;curren
 function nextMonth() { currentMonth++; if(currentMonth>12){currentMonth=1;currentYear++;} loadMonth(); }
 function goToday() { const n=new Date(); currentYear=n.getFullYear(); currentMonth=n.getMonth()+1; loadMonth(); }
 
+// --- Templates ---
+let templates = { daily: [], monthly: [], yearly: [] };
+
+async function loadTemplates() {
+  const res = await fetch(`${API}/api/templates`);
+  templates = await res.json();
+  renderTemplates();
+}
+
+function renderTemplates() {
+  const el = document.getElementById('tplDaily');
+  if (!templates.daily.length) {
+    el.innerHTML = '<span style="color:#484f58;font-size:10px">항목 없음</span>';
+    return;
+  }
+  el.innerHTML = templates.daily.map((t, i) =>
+    `<div class="tpl-item">
+      <span class="tpl-cat">${CAT_NAMES[t.category]||t.category}</span>
+      <span>${escHtml(t.text)}</span>
+      <span class="tpl-del" onclick="delTemplate(${i})">×</span>
+    </div>`
+  ).join('');
+}
+
+async function addTemplate() {
+  const cat = document.getElementById('tplCat').value;
+  const text = document.getElementById('tplText').value.trim();
+  if (!text) return;
+  templates.daily.push({ category: cat, text });
+  await fetch(`${API}/api/templates`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(templates)
+  });
+  document.getElementById('tplText').value = '';
+  renderTemplates();
+}
+
+async function delTemplate(idx) {
+  templates.daily.splice(idx, 1);
+  await fetch(`${API}/api/templates`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(templates)
+  });
+  renderTemplates();
+}
+
+async function injectToday() {
+  const today = new Date().getDate();
+  await fetch(`${API}/api/inject`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ ym: ym(), day: String(today) })
+  });
+  await loadMonth();
+}
+
+function toggleTemplates() {
+  const body = document.getElementById('tplBody');
+  const toggle = document.getElementById('tplToggle');
+  body.classList.toggle('open');
+  toggle.textContent = body.classList.contains('open') ? '▼ 접기' : '▶ 펼치기';
+}
+
 init();
+loadTemplates();
 </script>
 </body>
 </html>
