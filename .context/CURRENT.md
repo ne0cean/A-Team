@@ -60,17 +60,23 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-23) — OneNote 마이그레이션 + Quality Pipeline + PRD
+## Last Completions (2026-05-23) — Cortex 통합 + Ritual Dashboard + OneNote 마이그레이션
 
-- **OneNote → Obsidian 마이그레이션** — InterStellar 노트북 375/~475페이지 마이그레이션 완료 (79%). Microsoft Graph API + device code flow + markdownify. `~/ObsidianVault/InterStellar/` 12섹션 17디렉토리. 이미지 다운로드 포함. API 속도제한(429) + 토큰 만료로 나머지 ~100페이지(1. Character 섹션 후반) 미완료. 스크립트: `/tmp/onenote-migration/migrate.py` (재실행 시 skip-existing)
-- **Quality Pipeline 3-Layer** — quality-pipeline.md SSOT. Property-Based(fast-check 12t) + Mutation(StrykerJS) + Fitness Functions(6t) + Layer 2 자동 리뷰 + CI mutation job + Branch Protection
-- **A-Team PRD v1.0** — `/office-hours` Amazon 모드 → PR/FAQ → PRD 작성. 제품 정의: "AI 비즈니스 운영 시스템". 핵심 3축: 구체화+리서치 / 전사 분기 / 24h 풀오토. 핵심 문제 발견: 74개 중 5개만 사용, 인간 호출 의존 구조
-- **PRD Gate** — `governance/rules/prd-gate.md` + vibe Step 0.9. 모든 프로젝트 PRD 없이 빌드 금지
-- **do-better 마이그레이션 Phase 1** — researcher.md 업그레이드(소스 체이닝+질문 분해), analysis-worker.md 신규(6단계 분석 방법론), content-worker.md 신규(슬롭 점검+편집=삭제)
-- **Anti-Slop 원칙** — quality-pipeline.md에 콘텐츠 품질 원칙 추가. 템플릿 냄새 감지, 프레임워크 남용 방지, 소스 체이닝
-- **A-Team-1 → a-team 통합** — 중복 clone 제거, 단일 디렉토리로 통합
+- **Cortex 통합 (961 files)** — OneNote InterStellar 447페이지 cortex 분류 완료 (areas/projects/archives). 6 Hexagonal Pillars (Cha/Fam/Soli/Inter/Life/Ass) 구조 확인. Connectome 관련 31페이지 별도 분류. classify.py 2회 실행.
+- **Cortex 웹 대시보드 (localhost:7843)** — Ritual & Routine contenteditable 캘린더 그리드. 체크박스 클릭 → .json+.md 즉시 저장. 인라인 편집, One Thing, 카테고리별 항목 추가/삭제. launchd 자동시작 설정.
+- **OneNote 링크 주입** — inject-links.py로 139파일 frontmatter에 onenote_url 추가. 원본 대조 가능.
+- **OneNote snapshot/sync 시스템** — snapshot.py (변경 감지), sync.py (차분 동기화 --dry-run 지원). staging 192페이지 다운로드 (360 남음, 토큰 만료).
+- **Thinking Toolkit** — `cortex/thinking-toolkit.md`. 개념/접근법 축적 시스템. 자동감지 + /end 수확 프로토콜. Ideation Frameworks 5개 (Morphological/Behavior/Inversion/Human/12-Framework).
+- **`/morning` 스킬** — 목표 상기 + One Thing 강제 + 오늘 할 일. Pillar 연결.
+- **ritual-routine 스크립트** — archive.sh (주간 백업), new-month.sh (월 자동 생성)
 
 **빌드**: ✅ 563 tests PASS, 기존 flaky 1건 (ppt-benchmark-audit)
+
+## Last Completions (2026-05-23 이전) — Quality Pipeline + PRD
+
+- **Quality Pipeline 3-Layer** — property-based + mutation + fitness + Layer 2 자동 리뷰
+- **A-Team PRD v1.0** — 제품 정의 "AI 비즈니스 운영 시스템", 74개 중 5개만 사용 발견
+- **PRD Gate + do-better Phase 1 + Anti-Slop + A-Team-1→a-team 통합**
 
 ## Last Completions (2026-05-22) — Wiring Integrity + Scheduled Reviews
 
