@@ -30,14 +30,21 @@ node ~/Projects/a-team/scripts/check-scheduled-reviews.mjs 2>/dev/null || true
 **Step 0.7 — Daily Growth Brief** (a-team 레포에서만):
 ```bash
 TODAY=$(date +%Y-%m-%d)
-if [ ! -f ".context/briefs/${TODAY}-brief.md" ]; then
-  echo "daily_brief: 오늘 브리핑 없음 — /daily-brief 실행 권장"
+mkdir -p .context/briefs
+# collect.json 없으면 자동 생성 (경량, Claude 불필요)
+if [ ! -f ".context/briefs/${TODAY}-collect.json" ]; then
+  node scripts/daily-brief-collect.mjs --save 2>/dev/null &&     echo "daily_brief: collect 자동 생성 완료" ||     echo "daily_brief: collect 실패 (scripts/daily-brief-collect.mjs 확인)"
+fi
+# growth.md 존재 여부 확인
+if [ ! -f ".context/briefs/${TODAY}-growth.md" ]; then
+  echo "daily_brief: growth 없음 — /daily-brief 실행 권장"
 else
-  echo "daily_brief: 오늘 브리핑 존재 — $(head -5 .context/briefs/${TODAY}-brief.md | grep -o '> .*' | head -1)"
+  echo "daily_brief: $(head -3 .context/briefs/${TODAY}-growth.md | grep -o '#.*' | head -1)"
 fi
 ```
-- 브리핑 없음 → Step 4 브리핑에 `/daily-brief` 제안 포함
-- 브리핑 있음 → Executive Summary 1줄 표시
+- collect.json 없음 → 자동 실행 (무조건, 사용자 확인 불필요)
+- growth.md 없음 → Step 4 브리핑에 `/daily-brief` 제안 포함
+- growth.md 있음 → Executive Summary 1줄 표시
 
 **Step 0.8 — Design Token Check** (UI가 있는 프로젝트에서만):
 ```bash
