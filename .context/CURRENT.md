@@ -132,7 +132,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 
 ### Medium Priority
 - [x] ~~do-better 마이그레이션 Phase 2~~ — wiki-ingest + wiki-lint (2026-05-24)
-- [ ] **do-better 마이그레이션 Phase 3** — transcript-organizer + web-crawler-ocr 포팅
+- [x] ~~do-better 마이그레이션 Phase 3~~ — transcript-organizer + web-crawler-ocr 포팅 (2026-05-24)
 - [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정 (PRD 성공 기준 기반)
 - [ ] **Stryker 첫 full run** — mutation score baseline 측정
 
