@@ -67,6 +67,20 @@ fi
 - `resume_active` 또는 `git_dirty > 5` 또는 `in_progress` 있음 → **pickup 경량 경로**
 - 그 외 → **vibe 풀 경로** (Step 1~4)
 
+**Step 0.9 — PRD Gate** (전체 프로젝트):
+```bash
+PRD_EXISTS=$(find . -maxdepth 3 -name "*prd*" -o -name "*PRD*" 2>/dev/null | grep -iE '\.md$' | head -1)
+if [ -z "$PRD_EXISTS" ]; then
+  echo "prd_gate: PRD 없음 — /prd 실행 필요"
+else
+  echo "prd_gate: $PRD_EXISTS"
+fi
+```
+- PRD 없음 → 브리핑에 포함: "이 프로젝트에 PRD가 없습니다. `/prd`로 먼저 정의할까요?"
+- PRD 있음 → 1줄 표시 후 진행
+- hotfix/버그 수정 세션은 면제 (사용자가 명시)
+- 상세: `governance/rules/prd-gate.md`
+
 ---
 
 ## Step 1 — 컨텍스트 로드
