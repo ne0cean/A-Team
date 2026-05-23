@@ -231,9 +231,10 @@ function render() {
         html += `<div class="item ${doneClass}" data-d="${d}" data-cat="${cat}" data-idx="${idx}">
           <input type="checkbox" ${checked} onchange="toggleItem(${d},'${cat}',${idx})">
           <span class="item-text" contenteditable="true"
+            onclick="this.focus()"
             onblur="editItem(${d},'${cat}',${idx},this.textContent)"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
-          >${textContent}</span>
+            onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
+          >${escHtml(item.text)}</span>
           <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">×</span>
         </div>`;
       });
@@ -314,6 +315,36 @@ async function editItem(d, cat, idx, newText) {
   if (newText.trim() === '') return;
   day[cat][idx].text = newText.trim();
   await save();
+  // Don't re-render — preserve undo history and focus
+}
+
+function handleItemKey(event, d, cat, idx) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    const text = event.target.textContent.trim();
+    if (text) editItem(d, cat, idx, text);
+    // Create new item below and focus it
+    addNewItemAfter(d, cat, idx);
+  } else if (event.key === 'Backspace' && event.target.textContent.trim() === '') {
+    event.preventDefault();
+    delItem(d, cat, idx);
+  }
+}
+
+async function addNewItemAfter(d, cat, afterIdx) {
+  const day = ensureDay(d);
+  day[cat].splice(afterIdx + 1, 0, { text: '', url: '', done: false });
+  await save();
+  render();
+  // Focus the new item
+  setTimeout(() => {
+    const items = document.querySelectorAll(`.item[data-d="${d}"][data-cat="${cat}"]`);
+    const target = items[afterIdx + 1];
+    if (target) {
+      const span = target.querySelector('.item-text');
+      span.focus();
+    }
+  }, 30);
 }
 
 async function delItem(d, cat, idx) {
