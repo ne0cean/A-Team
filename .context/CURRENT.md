@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**558 tests PASS** (2026-05-22). Wiring integrity 자동 검증 + scheduled-reviews 시스템 가동.
+**576 tests PASS** (2026-05-23). Quality Pipeline 3-Layer + Property-Based + Mutation + Fitness Functions 가동.
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
 
@@ -60,6 +60,19 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-23) — Quality Pipeline + 탑 클래스 개발 프로세스
+
+- **Quality Pipeline 3-Layer 시스템** — `governance/rules/quality-pipeline.md` SSOT. Layer 1(빌드 중 자동) + Layer 2(완료 직후 자동 리뷰) + Layer 3(인간 판단). `/end`에서 리뷰 분리 → 빌드 완료 시점으로 이동
+- **12개 개발 방법론 시그널 자동 전환** — CLAUDE.md에 시그널 테이블 11개 추가. "확실히 맞아야 해" → TDD+Mutation 자동, "큰 리팩토링" → Strangler Fig 자동 등. 명시 호출 불필요
+- **Property-Based Testing** — fast-check v4.8 + @fast-check/vitest. `test/property.test.ts` 12 tests. confidence.ts + harness-score.ts에 invariant/metamorphic/idempotent 패턴 적용
+- **Mutation Testing** — StrykerJS v9.6.1 + vitest-runner + typescript-checker. `stryker.config.mjs` + incremental 모드. `npm run mutate` / `npm run mutate:changed`
+- **Architecture Fitness Functions** — `test/architecture.test.ts` 6 tests. 레이어 경계 강제 (lib→scripts/claude/governance 금지) + 순환 의존성 DFS 탐지 + 모듈 독립성
+- **CI 파이프라인 강화** — `ci.yml`에 mutation job 추가 (PR only, test 통과 후, incremental 캐시). Stryker report artifact 14일 보존
+- **Branch Protection 가동** — `scripts/setup-branch-protection.sh` + 실행 완료. master 직접 push 차단, PR+CI 필수, force push 차단
+- **PR 템플릿 강화** — quality gates 체크리스트 (mutation score, security, methodology)
+
+**빌드**: ✅ 576 tests PASS (49 files), 기존 flaky 1건 (ppt-benchmark-audit)
+
 ## Last Completions (2026-05-22) — Wiring Integrity + Scheduled Reviews
 
 - **wiring integrity 테스트 4종** — refs(참조 무결성), agents(subagent_type↔파일), bash($VAR한글 탐지), frontmatter(name+description 필수). npm test마다 자동 실행
@@ -88,28 +101,7 @@
 - **CURRENT.md 165줄** — 2주 초과 완료항목 이관 (200줄 규칙 준수)
 - **launchctl 무음 실패 제거** — 4개 cron 스크립트 Windows에서 명시적 경고 후 exit
 
-## Last Completions (2026-05-16) — 디자인 거버넌스 + PPT 파이프라인 수정
-- **디자인 토큰 템플릿** — `templates/design-tokens/` 5프리셋(dark-app/dark-editorial/light-dashboard/light-warm/corporate-blue) + variables.css 템플릿 + tailwind-tokens.js + reset.css
-- **디자인 드리프트 감지기** — `scripts/design-drift-detect.mjs` CSS/JSX 매직넘버·색상·간격 위반 스캔, 밀도 기반 스코어링(A~F), longform A(90) / flair B(73) 검증
-- **designer 에이전트 확장** — Phase A(토큰 생성) + Phase B(드리프트 감지) + Phase C(성장 적응) 3단계 토큰 라이프사이클 추가
-- **vibe Step 0.8** — 세션 시작 시 UI 프로젝트 토큰 유무 자동 감지 → 없으면 designer 호출 제안
-- **PPT 파이프라인 수정 2건** — ppt-strategist consulting 모드 섹션 추가 + generate_via_intake.py consulting 테마 라우팅 (E2E 검증: mckinsey 8장 + dark_editorial 10장)
-- **Growth Engine 일간 실행** — GREEN 3건 자동 적용 (claude-updates-2026-05.md, superpowers 분석, watch_topics 확장)
-- **531 tests PASS** (기존 flaky 6건 동일, PPT/디자인 관련 0 실패)
-
-## Last Completions (2026-05-15) — Growth Engine (자율 성장 엔진)
-- **`/daily-brief` = 자율 성장 엔진** — 보고만 하는 게 아니라 **크롤링 → 분석 → 자동 적용 → 보고**. scan+apply 기본, --report로 보고 전용
-- **`growth-engine` 에이전트** — 외부 트렌드를 크롤링하고 GREEN/YELLOW/RED 안전 등급 판정 후 GREEN은 자동 적용+커밋, YELLOW는 브랜치 생성, RED는 기록만
-- **`governance/rules/growth-engine.md`** — 크롤링 소스 3 Tier (일간/주2회/주1회) + 안전 등급 5개 기준 + 적용 프로토콜 + 안전 장치 5개
-- **`daily-brief-collect.mjs`** — 내부 데이터 수집. git(24h), capability gaps(8개), anomalies, stale modules, trends, ecosystem watch topics
-- **`daily-brief` 에이전트** — 내부 진단 + 외부 스캔 + 성장 제안 마크다운 보고서
-- **`/vibe` Step 0.7 + `/pickup` Step 2.7** — 세션 시작 시 오늘 브리핑 없으면 자동 제안
-- **`/zzz` 통합** — 명시 태스크 소진 후 자동 `/daily-brief` (scan+apply) 실행. 의장 수면 중에도 A-Team 성장
-- **`/daily-review` deprecated** → `/daily-brief`에 흡수
-- **거버넌스 주기 완성**: 일간(`/daily-brief` 자율 적용) + 주간(`/insights` 분석) + 월간(`/board` 전략 감사)
-- **532 tests PASS** (기존 유지, 회귀 없음)
-
-## Last Completions (2026-05-15 이전)
+## Last Completions (2026-05-16 이전)
 → [.context/SESSIONS.md](SESSIONS.md) 참조
 
 ## 다음 우선순위

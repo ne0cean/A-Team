@@ -2,6 +2,42 @@
 
 ---
 
+## [2026-05-23] Quality Pipeline + 탑 클래스 개발 프로세스
+
+**완료**:
+- Quality Pipeline 3-Layer 시스템 (governance/rules/quality-pipeline.md SSOT)
+- 12개 개발 방법론 시그널 자동 전환 (CLAUDE.md)
+- Property-Based Testing — fast-check v4.8, 12 tests (confidence.ts + harness-score.ts)
+- Mutation Testing — StrykerJS v9.6.1, stryker.config.mjs, npm run mutate
+- Architecture Fitness Functions — 6 tests (레이어 경계 + 순환 의존성 + 모듈 독립)
+- CI mutation job 추가 (PR only, incremental 캐시)
+- Branch Protection 설정 완료 (master PR+CI 필수)
+- PR 템플릿 quality gates 강화
+- /end에서 리뷰 제거 → Layer 2 (빌드 완료 시점)로 이동
+**이슈**: 없음
+**빌드**: ✅ 576 tests PASS (기존 flaky 1건)
+
+## [2026-05-16] 디자인 거버넌스 + PPT 파이프라인 수정
+
+**완료**:
+- 디자인 토큰 템플릿 5프리셋 + variables.css + tailwind-tokens.js
+- 디자인 드리프트 감지기 (CSS/JSX 매직넘버 스캔, A~F 등급)
+- designer 에이전트 3단계 토큰 라이프사이클
+- PPT 파이프라인 consulting 모드 + 테마 라우팅
+- Growth Engine 일간 실행 GREEN 3건 적용
+**이슈**: 없음
+**빌드**: ✅ 531 tests PASS
+
+## [2026-05-15] Growth Engine (자율 성장 엔진)
+
+**완료**:
+- /daily-brief 자율 성장 엔진 (크롤링→분석→자동 적용→보고)
+- growth-engine 에이전트 (GREEN/YELLOW/RED 안전 등급)
+- 거버넌스 주기 완성: 일간(/daily-brief) + 주간(/insights) + 월간(/board)
+- /daily-review deprecated → /daily-brief 흡수
+**이슈**: 없음
+**빌드**: ✅ 532 tests PASS
+
 ## [2026-05-22] Wiring Integrity 자동 검증 + Scheduled Reviews 시스템
 
 **완료**:
