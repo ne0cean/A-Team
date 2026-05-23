@@ -10,6 +10,14 @@ argument-hint: "[아이디어 또는 현재 작업 컨텍스트]"
 > `/office-hours`, `/pretotype`, `/prd` 등 어느 단계 중에서도 호출 가능.
 > 호출 → 3단계 병렬 실행 → 결과 수령 → 원래 단계로 복귀.
 
+## Step -1 — Ideation Frameworks 로드 (필수)
+
+```bash
+cat ~/Projects/a-team/cortex/thinking-toolkit.md | grep -A 200 "## Ideation Frameworks"
+```
+
+8프레임(F1-F8)을 읽고, EXPAND 단계에서 적절한 프레임을 선택 적용한다.
+
 ---
 
 ## 구조: 3중 루프
