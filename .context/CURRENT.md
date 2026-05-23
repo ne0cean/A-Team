@@ -60,8 +60,9 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-23) — Quality Pipeline + PRD + 마이그레이션
+## Last Completions (2026-05-23) — OneNote 마이그레이션 + Quality Pipeline + PRD
 
+- **OneNote → Obsidian 마이그레이션** — InterStellar 노트북 375/~475페이지 마이그레이션 완료 (79%). Microsoft Graph API + device code flow + markdownify. `~/ObsidianVault/InterStellar/` 12섹션 17디렉토리. 이미지 다운로드 포함. API 속도제한(429) + 토큰 만료로 나머지 ~100페이지(1. Character 섹션 후반) 미완료. 스크립트: `/tmp/onenote-migration/migrate.py` (재실행 시 skip-existing)
 - **Quality Pipeline 3-Layer** — quality-pipeline.md SSOT. Property-Based(fast-check 12t) + Mutation(StrykerJS) + Fitness Functions(6t) + Layer 2 자동 리뷰 + CI mutation job + Branch Protection
 - **A-Team PRD v1.0** — `/office-hours` Amazon 모드 → PR/FAQ → PRD 작성. 제품 정의: "AI 비즈니스 운영 시스템". 핵심 3축: 구체화+리서치 / 전사 분기 / 24h 풀오토. 핵심 문제 발견: 74개 중 5개만 사용, 인간 호출 의존 구조
 - **PRD Gate** — `governance/rules/prd-gate.md` + vibe Step 0.9. 모든 프로젝트 PRD 없이 빌드 금지

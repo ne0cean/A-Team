@@ -2,6 +2,23 @@
 
 ---
 
+## [2026-05-23] OneNote → Obsidian 마이그레이션
+
+**완료**:
+- OneNote InterStellar 노트북 → Obsidian 마이그레이션 375/~475페이지 (79%)
+- Microsoft Graph API + device code flow + markdownify HTML→MD 변환
+- 12섹션(1_, 2.SLL, 3.HFK, 5.Sport, A TEAM, Dashboard, MK1, MKT_FB, Side hustle, Writing, 1.Character 등) 17디렉토리
+- skip-existing 재실행 가능 스크립트 (`/tmp/onenote-migration/migrate.py`)
+
+**이슈**:
+- API 속도제한(429 Too Many Requests) — REQUEST_DELAY 1.0s + 점진적 백오프로 대응
+- 토큰 1시간 만료 — 재인증 1회 수행, 2차 만료로 ~100페이지 미완료 (1. Character 61/100~)
+- device code flow에서 인증과 마이그레이션을 별도 프로세스로 실행하면 토큰 유실 → `auth_and_run.py` 통합 스크립트로 해결
+
+**빌드**: ✅ 563 tests PASS
+
+---
+
 ## [2026-05-23] Quality Pipeline + PRD + do-better 마이그레이션
 
 **완료**:
