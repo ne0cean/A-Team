@@ -5,6 +5,7 @@ modified: 2025-08-11T10:02:45.62Z
 source: onenote
 notebook: "InterStellar"
 section: "3. HFK"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7915&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F2.%20Mo%20chuisle.one%7C34975c17-3cac-4fd6-99cf-23b4be6673e0%2F%EC%A7%91%7Ce92bc11d-dc9a-4437-b44a-1233914e2e5e%2F%29"
 ---
 
 ## 정보 수집-[x] 원문 내용 분석 및 핵심 메시지 추출￼-[x] 전략 시각화의 주요 규칙 정리￼-[x] 캐피텍 사례 주요 포인트 정리￼

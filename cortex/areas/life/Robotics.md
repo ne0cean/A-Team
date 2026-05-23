@@ -5,6 +5,7 @@ modified: 2025-09-15T01:44:51.327Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FRobotics%7Ce4332d84-8222-4375-88d1-ca933c32b937%2F%29"
 ---
 
 K-휴머노이드 연합

@@ -5,6 +5,7 @@ modified: 2025-01-11T11:07:30Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FLesson%7Cd59efa66-00f1-f543-ba94-587658f45880%2F%29"
 ---
 
 제젶제ㅈ품품으을을 기깋기ㄱ회획획 ㅇㅇㅇ

@@ -5,6 +5,7 @@ modified: 2022-09-08T08:55:55.413Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FStudy%7C72ff39d4-9e79-45d0-95c0-370ab70b62cd%2F%29"
 ---
 
 Books\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_

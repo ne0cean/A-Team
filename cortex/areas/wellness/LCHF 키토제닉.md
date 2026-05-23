@@ -5,6 +5,7 @@ modified: 2020-05-31T02:52:54.994Z
 source: onenote
 notebook: "InterStellar"
 section: "1. Character"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7914&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F1.%20Character.one%7C76321e21-ff54-4a14-a84f-a292ef10b3fe%2FLCHF%20%ED%82%A4%ED%86%A0%EC%A0%9C%EB%8B%89%7C97eeaeed-5bbc-4ce7-8055-b6123edd6705%2F%29"
 ---
 
 |  |  |  |  |

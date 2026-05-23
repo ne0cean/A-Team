@@ -5,6 +5,7 @@ modified: 2025-05-28T07:15:44.712Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FBCG%7C0387b3c0-7683-4701-afe6-e8638e9164d3%2F%29"
 ---
 
 p.3 전략적 방향성 까지 ok, 그 이후 방향성에 대한 Why - How to가 이어져야 하는데

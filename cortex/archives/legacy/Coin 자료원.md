@@ -5,6 +5,7 @@ modified: 2017-08-16T04:01:32.01Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7914&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F1.%20Character.one%7C76321e21-ff54-4a14-a84f-a292ef10b3fe%2F%EC%9E%90%EB%A3%8C%EC%9B%90%7Ccdc507d9-644e-4bb6-9f36-9b5571baaded%2F%29"
 ---
 
 [국내 미디어]

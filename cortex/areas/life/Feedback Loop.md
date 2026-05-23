@@ -5,6 +5,7 @@ modified: 2024-09-18T06:14:50.915Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FFeedback%20Loop%7C5ebeb2b4-a6d8-48f6-b38c-17e98e7ba26c%2F%29"
 ---
 
 OKR의 Initiative 수행에 초점을 맞춰, 그날 하기로 한 걸 했느냐가 중요해

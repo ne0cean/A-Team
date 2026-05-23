@@ -5,6 +5,7 @@ modified: 2022-09-16T02:00:31Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FCrypto%28%ED%81%AC%EB%A6%BD%ED%86%A0%5C%29%EC%97%90%20%EB%8C%80%ED%95%9C%20%EC%9E%85%EB%AC%B8%EC%84%9C%7C6445d023-dc80-4ca3-96f2-76a6688750e6%2F%29"
 ---
 
 Crypto(크립토)에 대한 입문서

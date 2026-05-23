@@ -5,6 +5,7 @@ modified: 2026-01-11T04:08:20.823Z
 source: onenote
 notebook: "InterStellar"
 section: "A TEAM"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!s702e65de0d614a6cbbd92296ab8dff3d&wd=target%281_Projects%2FA%20TEAM.one%7C3beb0a10-2ecc-439f-9ac9-2817aadfad77%2FCommit%7Ca8aea726-6b07-e64c-b355-fa01ab112b76%2F%29"
 ---
 
 3️⃣ Trunk-Based Dev → 혼자 쓰는 실전 커밋 & 개발 루틴

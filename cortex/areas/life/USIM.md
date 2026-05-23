@@ -5,6 +5,7 @@ modified: 2025-12-02T06:43:51.417Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FUSIM%7C87af6480-4ac3-40e7-b09d-bedab5d8f832%2F%29"
 ---
 
 전표 처리\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_

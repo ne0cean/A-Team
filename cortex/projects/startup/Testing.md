@@ -5,6 +5,7 @@ modified: 2023-06-19T11:02:46.003Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FTesting%7C0f2c47ec-b367-4216-8c0c-a030850552a9%2F%29"
 ---
 
 모든 기업이 답해봐야 할 7가지 질문(피터 틸)

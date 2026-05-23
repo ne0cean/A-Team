@@ -5,6 +5,7 @@ modified: 2024-09-16T10:07:43.236Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2F%EC%9D%B8%EC%83%9D%EC%A0%84%EB%9E%B5%5C%2F%EC%82%AC%EC%A0%84%EB%B6%80%EA%B2%80%5C%2F%ED%9A%8C%EA%B3%A0%20Pre-Mortem%20Method%7C3ebf9fd1-9098-7742-92e2-035fd6b16d42%2F%29"
 ---
 
 [인생전략]

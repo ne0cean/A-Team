@@ -5,6 +5,7 @@ modified: 2021-11-22T13:14:36Z
 source: onenote
 notebook: "InterStellar"
 section: "5. Sport"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!8025&wd=target%281_Projects%2F5.%20Sport.one%7Cc2a27236-7a2c-664a-9c9e-415e04007521%2FTennis%7C5133deed-774e-499f-aa76-a13b32a5aa52%2F%29"
 ---
 
 (교정사항)

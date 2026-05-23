@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cortex — Ritual & Routine</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'Pretendard', sans-serif; background: #0d1117; color: #e0e0e0; font-size: 12px; }
+
+  .header { padding: 12px 16px; background: #161b22; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 14px; color: #f0c040; }
+  .vision { font-size: 11px; color: #8b949e; margin-top: 4px; }
+  .nav { display: flex; gap: 8px; align-items: center; }
+  .nav button { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .nav button:hover { background: #30363d; }
+  .nav .month-label { font-size: 14px; font-weight: 600; min-width: 100px; text-align: center; }
+
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #21262d; margin: 0; }
+  .day-header { background: #161b22; padding: 6px; text-align: center; font-weight: 600; color: #8b949e; font-size: 11px; }
+  .day-header.sun { color: #f85149; }
+  .day-header.sat { color: #58a6ff; }
+
+  .day-cell { background: #0d1117; min-height: 120px; padding: 6px; cursor: pointer; position: relative; transition: background 0.1s; }
+  .day-cell:hover { background: #161b22; }
+  .day-cell.today { border: 2px solid #f0c040; }
+  .day-cell.other-month { opacity: 0.3; }
+  .day-cell .day-num { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+  .day-cell .day-num.sun { color: #f85149; }
+  .day-cell .day-num.sat { color: #58a6ff; }
+  .day-cell .one-thing { background: #1c3a1c; padding: 2px 4px; border-radius: 2px; font-size: 10px; color: #56d364; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .category { margin-bottom: 3px; }
+  .cat-label { font-size: 9px; color: #f0c040; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .item { display: flex; align-items: flex-start; gap: 3px; padding: 1px 0; font-size: 11px; line-height: 1.3; }
+  .item input[type="checkbox"] { margin-top: 2px; accent-color: #56d364; cursor: pointer; flex-shrink: 0; }
+  .item.done { text-decoration: line-through; color: #484f58; }
+  .item a { color: #58a6ff; text-decoration: none; }
+  .item a:hover { text-decoration: underline; }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; }
+  .modal-overlay.active { display: flex; justify-content: center; align-items: center; }
+  .modal { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; width: 500px; max-height: 80vh; overflow-y: auto; }
+  .modal h2 { font-size: 16px; margin-bottom: 12px; color: #f0c040; }
+  .modal h3 { font-size: 13px; margin: 12px 0 6px; color: #c9d1d9; }
+  .modal input[type="text"], .modal textarea { width: 100%; background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; padding: 8px; border-radius: 4px; font-size: 12px; margin-bottom: 8px; }
+  .modal textarea { height: 60px; resize: vertical; }
+  .modal select { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; padding: 6px; border-radius: 4px; font-size: 12px; }
+  .modal .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+  .modal button { padding: 6px 16px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; }
+  .modal .btn-primary { background: #238636; color: #fff; }
+  .modal .btn-secondary { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+
+  .stats { padding: 8px 16px; background: #161b22; border-top: 1px solid #30363d; display: flex; gap: 20px; font-size: 11px; color: #8b949e; }
+  .stats .stat-value { color: #56d364; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Cortex — Ritual & Routine</h1>
+    <div class="vision">Vision: "아침에 일어나서 원하는 것을 할 수 있는 것, 즉 자유" | 6 Pillars: Cha · Fam · Soli · Inter · Life · Ass</div>
+  </div>
+  <div class="nav">
+    <button onclick="prevMonth()">◀</button>
+    <span class="month-label" id="monthLabel"></span>
+    <button onclick="nextMonth()">▶</button>
+    <button onclick="goToday()">Today</button>
+  </div>
+</div>
+
+<div class="grid" id="calendarGrid"></div>
+
+<div class="stats" id="stats"></div>
+
+<!-- Add Item Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h2 id="modalTitle">항목 추가</h2>
+    <div>
+      <label>카테고리</label>
+      <select id="addCategory">
+        <option value="ritual">Ritual & Routine</option>
+        <option value="input">출근전 - Input/R&D</option>
+        <option value="work">Work - 1H Blocks</option>
+        <option value="outcome">퇴근후 - Outcome</option>
+      </select>
+    </div>
+    <div style="margin-top:8px">
+      <input type="text" id="addText" placeholder="할 일 입력">
+    </div>
+    <div>
+      <input type="text" id="addUrl" placeholder="링크 URL (선택)">
+    </div>
+
+    <h3>One Thing</h3>
+    <input type="text" id="addOneThing" placeholder="오늘의 One Thing (선택)">
+
+    <div class="btn-row">
+      <button class="btn-primary" onclick="submitAdd()">추가</button>
+      <button class="btn-secondary" onclick="closeModal()">취소</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let currentYear, currentMonth, monthData;
+
+function init() {
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth() + 1;
+  loadMonth();
+}
+
+function ym() { return `${currentYear}-${String(currentMonth).padStart(2,'0')}`; }
+
+async function loadMonth() {
+  const res = await fetch(`${API}/api/month?ym=${ym()}`);
+  monthData = await res.json();
+  render();
+}
+
+function render() {
+  document.getElementById('monthLabel').textContent = `${currentYear}년 ${currentMonth}월`;
+
+  const grid = document.getElementById('calendarGrid');
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  let html = days.map((d, i) =>
+    `<div class="day-header ${i===0?'sun':''} ${i===6?'sat':''}">${d}</div>`
+  ).join('');
+
+  const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth;
+
+  // Previous month padding
+  const prevDays = new Date(currentYear, currentMonth - 1, 0).getDate();
+  for (let i = firstDay - 1; i >= 0; i--) {
+    html += `<div class="day-cell other-month"><div class="day-num">${prevDays - i}</div></div>`;
+  }
+
+  // Current month
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dow = new Date(currentYear, currentMonth - 1, d).getDay();
+    const isToday = isCurrentMonth && today.getDate() === d;
+    const dayData = monthData.days?.[String(d)] || {};
+
+    let cellHtml = `<div class="day-cell ${isToday ? 'today' : ''}" ondblclick="openAdd(${d})">`;
+    cellHtml += `<div class="day-num ${dow===0?'sun':''} ${dow===6?'sat':''}">${d}</div>`;
+
+    if (dayData.one_thing) {
+      cellHtml += `<div class="one-thing">★ ${dayData.one_thing}</div>`;
+    }
+
+    const cats = [
+      ['ritual', 'R&R'],
+      ['input', 'Input'],
+      ['work', 'Work'],
+      ['outcome', 'Out']
+    ];
+
+    for (const [key, label] of cats) {
+      const items = dayData[key] || [];
+      if (items.length === 0) continue;
+      cellHtml += `<div class="category"><div class="cat-label">${label}</div>`;
+      items.forEach((item, idx) => {
+        const checked = item.done ? 'checked' : '';
+        const doneClass = item.done ? 'done' : '';
+        const textHtml = item.url
+          ? `<a href="${item.url}" target="_blank">${item.text}</a>`
+          : item.text;
+        cellHtml += `<div class="item ${doneClass}">
+          <input type="checkbox" ${checked} onchange="toggle(${d},'${key}',${idx})">
+          <span>${textHtml}</span>
+        </div>`;
+      });
+      cellHtml += `</div>`;
+    }
+
+    cellHtml += `</div>`;
+    html += cellHtml;
+  }
+
+  // Next month padding
+  const totalCells = firstDay + daysInMonth;
+  const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (let i = 1; i <= remaining; i++) {
+    html += `<div class="day-cell other-month"><div class="day-num">${i}</div></div>`;
+  }
+
+  grid.innerHTML = html;
+  renderStats();
+}
+
+function renderStats() {
+  let total = 0, done = 0;
+  const days = monthData.days || {};
+  for (const d of Object.values(days)) {
+    for (const cat of ['ritual', 'input', 'work', 'outcome']) {
+      const items = d[cat] || [];
+      total += items.length;
+      done += items.filter(i => i.done).length;
+    }
+  }
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+  document.getElementById('stats').innerHTML = `
+    <span>이번달: <span class="stat-value">${done}/${total}</span> (${pct}%)</span>
+    <span>오늘: ${new Date().toLocaleDateString('ko-KR', {weekday:'long', month:'long', day:'numeric'})}</span>
+  `;
+}
+
+async function toggle(day, category, index) {
+  await fetch(`${API}/api/toggle`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ym: ym(), day: String(day), category, index })
+  });
+  await loadMonth();
+}
+
+let addDay = null;
+function openAdd(day) {
+  addDay = day;
+  document.getElementById('modalTitle').textContent = `${currentMonth}/${day} 항목 추가`;
+  const dayData = monthData.days?.[String(day)] || {};
+  document.getElementById('addOneThing').value = dayData.one_thing || '';
+  document.getElementById('addText').value = '';
+  document.getElementById('addUrl').value = '';
+  document.getElementById('addModal').classList.add('active');
+  document.getElementById('addText').focus();
+}
+
+function closeModal() {
+  document.getElementById('addModal').classList.remove('active');
+}
+
+async function submitAdd() {
+  const text = document.getElementById('addText').value.trim();
+  const url = document.getElementById('addUrl').value.trim();
+  const category = document.getElementById('addCategory').value;
+  const oneThing = document.getElementById('addOneThing').value.trim();
+
+  if (text) {
+    await fetch(`${API}/api/add-item`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ym: ym(), day: String(addDay), category, text, url })
+    });
+  }
+
+  if (oneThing) {
+    await fetch(`${API}/api/one-thing`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ym: ym(), day: String(addDay), text: oneThing })
+    });
+  }
+
+  closeModal();
+  await loadMonth();
+}
+
+// Keyboard shortcut
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+function prevMonth() {
+  currentMonth--;
+  if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+  loadMonth();
+}
+
+function nextMonth() {
+  currentMonth++;
+  if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+  loadMonth();
+}
+
+function goToday() {
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth() + 1;
+  loadMonth();
+}
+
+init();
+</script>
+</body>
+</html>

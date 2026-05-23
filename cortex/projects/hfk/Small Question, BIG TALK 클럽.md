@@ -5,6 +5,7 @@ modified: 2024-09-17T13:06:52Z
 source: onenote
 notebook: "InterStellar"
 section: "3. HFK"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7918&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F5.%20Life%20Xlab.one%7Ca25568a3-3728-af43-94ea-c2eae78dab49%2FMall%7C3d0b84a0-e71c-4ea7-9a4a-fad801a3f152%2F%29"
 ---
 
 동생과의 가족관계 계속 가져갈…. 다면 어떻게? - 가족?

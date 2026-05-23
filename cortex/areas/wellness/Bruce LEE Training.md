@@ -5,6 +5,7 @@ modified: 2017-09-04T08:55:11.736Z
 source: onenote
 notebook: "InterStellar"
 section: "1. Character"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7914&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F1.%20Character.one%7C76321e21-ff54-4a14-a84f-a292ef10b3fe%2FBruce%20LEE%20Training%20%7Cb719ab97-6981-49fb-861d-7e938abf76d7%2F%29"
 ---
 
 스쿼트, 풀오버, 컬 기본 동작 3세트씩

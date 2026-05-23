@@ -5,6 +5,7 @@ modified: 2014-01-12T09:52:48.173Z
 source: onenote
 notebook: "InterStellar"
 section: "1. Character"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7914&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F1.%20Character.one%7C76321e21-ff54-4a14-a84f-a292ef10b3fe%2FSkin%20care%7C5637bbeb-6d83-483f-85f4-7950264b8f64%2F%29"
 ---
 
 12월 피코프락셀 - 모공

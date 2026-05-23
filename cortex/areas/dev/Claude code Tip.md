@@ -5,6 +5,7 @@ modified: 2025-09-04T07:05:55.951Z
 source: onenote
 notebook: "InterStellar"
 section: "A TEAM"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!s702e65de0d614a6cbbd92296ab8dff3d&wd=target%281_Projects%2FA%20TEAM.one%7C3beb0a10-2ecc-439f-9ac9-2817aadfad77%2FClaude%20code%20Tip%7C6af096e8-62d5-4b53-b618-b18137d3b7b6%2F%29"
 ---
 
 <https://vivvers.com/>

@@ -5,6 +5,7 @@ modified: 2025-09-27T09:25:16.638Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7920&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F6.%20Snowball.one%7C3e0441d9-12e5-4abc-aad5-3068d98ba84c%2FHSH%7C578f8197-6393-4727-8d64-6ae1d5dfc5e6%2F%29"
 ---
 
 그냥 사, 5월 말 이전까지 종부세 회피하려 매도하는 물량이 1~2월에 나올 것이다.

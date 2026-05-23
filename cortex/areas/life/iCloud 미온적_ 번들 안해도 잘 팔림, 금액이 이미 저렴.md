@@ -5,6 +5,7 @@ modified: 2026-01-08T05:06:33.843Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FiCloud%20%EB%AF%B8%EC%98%A8%EC%A0%81%20%EB%B2%88%EB%93%A4%20%EC%95%88%ED%95%B4%EB%8F%84%20%EC%9E%98%20%ED%8C%94%EB%A6%BC%2C%20%EA%B8%88%EC%95%A1%EC%9D%B4%20%EC%9D%B4%EB%AF%B8%20%7Cca8c06d0-5bf2-436f-b344-bebd516556ce%2F%29"
 ---
 
 iCloud 미온적: 번들 안해도 잘 팔림, 금액이 이미 저렴

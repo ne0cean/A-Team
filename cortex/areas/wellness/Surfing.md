@@ -5,6 +5,7 @@ modified: 2025-04-16T02:26:59.743Z
 source: onenote
 notebook: "InterStellar"
 section: "5. Sport"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!8025&wd=target%281_Projects%2F5.%20Sport.one%7Cc2a27236-7a2c-664a-9c9e-415e04007521%2FSurfing%7Ca9cd5aec-f6c4-4970-b51a-12c0c41f6949%2F%29"
 ---
 
 [김건표](https://m.youtube.com/@surfwithgunpyo8081) 서핑

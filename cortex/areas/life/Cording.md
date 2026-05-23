@@ -5,6 +5,7 @@ modified: 2017-09-11T10:17:58.835Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FCording%7C4026b9f6-66ae-4619-b8fc-1953f218fa18%2F%29"
 ---
 
 dApp 은 기본적으로 스마트 컨트랙트 + 사용자 인터페이스 입니다.

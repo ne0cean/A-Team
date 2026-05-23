@@ -5,6 +5,7 @@ modified: 2021-06-02T12:53:19.93Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2F%EC%8B%9C%EA%B0%84%20X%20%EA%B3%B5%EA%B0%84%20X%20%EC%9D%B8%EA%B0%84%7Cb1b6701c-22fc-43cd-a8fe-cb92f7d26d4a%2F%29"
 ---
 
 결국 내 업, 1 > 2 >= 3

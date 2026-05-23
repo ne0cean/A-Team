@@ -5,6 +5,7 @@ modified: 2022-05-23T01:00:52Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FGeek%20work%7C836fad38-7a28-49ba-8933-0fa3625d6d70%2F%29"
 ---
 
 ![앱 이야기] 긱 워커를 위한 일거리 정보 앱 '요긱' < 앱이야기 < 기사본문 - 애플경제](attachments/64783e7bd86c.png)

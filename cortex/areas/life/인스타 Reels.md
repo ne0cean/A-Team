@@ -5,6 +5,7 @@ modified: 2026-02-23T10:33:10.007Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2F%EC%9D%B8%EC%8A%A4%ED%83%80%20Reels%7C7d913496-bd63-f84f-99af-c839f40abef9%2F%29"
 ---
 
 ![지 금 부 터 하 나 씩 해 부 해 보 자 . 

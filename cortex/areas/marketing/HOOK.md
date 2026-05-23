@@ -5,6 +5,7 @@ modified: 2024-08-23T06:39:41.414Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FHOOK%7Ca1aa1bc6-8351-482c-bd5a-a7000a14fd40%2F%29"
 ---
 
 ‘훅hooked’, 사람의 마음을 ‘꿴다’는 뜻이야. 니르는 이 과정을 단계별로 정리했어. 트리거, 행동, 가변적 보상, 투자의 4단계로 나눴지. 한눈에 들어오도록, 그래프로 먼저 정리해 봤어.

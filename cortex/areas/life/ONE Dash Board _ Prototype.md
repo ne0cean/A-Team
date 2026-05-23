@@ -5,6 +5,7 @@ modified: 2019-02-06T15:12:30Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FONE%20Dash%20Board%20_%20Prototype%7Ce37eef03-0a4f-4fba-8d8d-7c742a0770d7%2F%29"
 ---
 
 insanity is doing the same thing over and over again but expecting different results

@@ -5,6 +5,7 @@ modified: 2023-12-07T02:27:21Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FMac%20settings%7C469c9a4e-ee16-174c-8a44-3ada2291c133%2F%29"
 ---
 
 Ractangle pro free 버전 다운로드 - ctrl + command + 커서로 화면 배치 가능

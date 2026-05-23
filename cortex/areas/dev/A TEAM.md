@@ -5,6 +5,7 @@ modified: 2026-03-20T08:41:33.179Z
 source: onenote
 notebook: "InterStellar"
 section: "A TEAM"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!s702e65de0d614a6cbbd92296ab8dff3d&wd=target%281_Projects%2FA%20TEAM.one%7C3beb0a10-2ecc-439f-9ac9-2817aadfad77%2FA%20TEAM%7C0421cc68-a418-41a7-afe9-4d0d24eb2f9a%2F%29"
 ---
 
 🏗️ A-Team 브리핑 — 사용자 가이드

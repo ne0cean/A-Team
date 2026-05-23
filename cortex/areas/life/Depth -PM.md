@@ -5,6 +5,7 @@ modified: 2021-10-10T07:27:59.052Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FDepth%20-PM%7C350e2dd7-0ee7-4a3b-a636-e0cd64d85e66%2F%29"
 ---
 
 [사례로 보는 기업가치 평가](https://www.youtube.com/channel/UC85-GDTeNIp3MQs_2zG3pFw/playlists) - [율곡출판사 자료실](http://www.yulgokbooks.co.kr/bbs/pds_view.php?no=54)

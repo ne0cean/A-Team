@@ -5,6 +5,7 @@ modified: 2025-11-28T03:19:22.257Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2F%EC%A4%91%EA%B3%A0%20SUV%20%EA%B5%AC%EB%A7%A4%7Ca854263f-2523-4547-95c4-08888ddde316%2F%29"
 ---
 
 기아 EV6 롱레인지가 아이오닉5보다 나은 대안입니다.

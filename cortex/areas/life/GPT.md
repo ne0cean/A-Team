@@ -5,6 +5,7 @@ modified: 2025-04-09T04:55:49.445Z
 source: onenote
 notebook: "InterStellar"
 section: "2. SLL"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7920&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F6.%20Snowball.one%7C3e0441d9-12e5-4abc-aad5-3068d98ba84c%2F7%EA%B0%80%EC%A7%80%20ChatGPT%20%ED%94%84%EB%A1%AC%ED%94%84%ED%8A%B8%EB%A1%9C%20%EC%A3%BC%EC%8B%9D%20%EB%A6%AC%EC%84%9C%EC%B9%98%20%EC%88%98%EC%A4%80%20%EC%97%85%EA%B7%B8%EB%A0%88%EC%9D%B4%EB%93%9C%7C974ee181-7504-4a81-ab3c-b3c85f2e19fc%2F%29"
 ---
 
 1. 대화 내용 추론

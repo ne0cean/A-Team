@@ -5,6 +5,7 @@ modified: 2022-06-28T04:13:46Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FI%20am%20often%20asked%20by%20entrepreneurs%20what%20constitutes%20a%20really%20%7Ccb53238f-0080-4479-9b1f-5829cf022142%2F%29"
 ---
 
 [![VENTlJRES ](attachments/c049573cc349.png)](https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F352e0b55-27ff-48b3-97ef-b667cfa6bcd8_1280x527.jpeg) 

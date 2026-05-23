@@ -5,6 +5,7 @@ modified: 2026-01-28T08:44:16.783Z
 source: onenote
 notebook: "InterStellar"
 section: "Side hutle"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!scf9b552750a847af894915b8b52c0b2e&wd=target%281_Projects%2FSide%20hutle.one%7C67ad77f7-8e2c-744f-831e-1274cbb2fe31%2Fnpm%20install%20firebase%7C2d1818f5-0066-457f-a9cc-1f20374699cc%2F%29"
 ---
 
 npm install firebase

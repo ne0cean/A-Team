@@ -5,6 +5,7 @@ modified: 2015-01-17T12:38:05.459Z
 source: onenote
 notebook: "InterStellar"
 section: "1. Character"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7914&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F1.%20Character.one%7C76321e21-ff54-4a14-a84f-a292ef10b3fe%2FAttitude%7C03cea352-92f8-4f29-9870-a00fb2b207b5%2F%29"
 ---
 
 1.[SEE] 상위 0.1%를 (직접) 모방하라! (See)

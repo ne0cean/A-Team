@@ -5,6 +5,7 @@ modified: 2017-08-16T08:44:09.545Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!scf9b552750a847af894915b8b52c0b2e&wd=target%281_Projects%2FSide%20hutle.one%7C67ad77f7-8e2c-744f-831e-1274cbb2fe31%2FBiz%20idea%7C89facd1a-4b6d-7c48-8da5-f769ae209ccf%2F%29"
 ---
 
 ㅇ 광고를 보는 만큼 리워드 제공(아이트래킹 기술 활용) e.g pubilq

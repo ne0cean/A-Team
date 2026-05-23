@@ -5,6 +5,7 @@ modified: 2025-07-08T03:19:35.256Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FBM%5C%2FPricing%7C9dbaf888-045e-494a-b991-7a0ac275ea11%2F%29"
 ---
 
 Q. 수익 모델은 어떻게 되나요?

@@ -5,6 +5,7 @@ modified: 2023-12-09T03:43:51Z
 source: onenote
 notebook: "InterStellar"
 section: "3. HFK"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!seac84fd4795d46aaa03aeb6ffad8496d&wd=target%281_Projects%2F3.%20HFK.one%7C08102a5d-0209-41de-9a8f-376345f4f4a6%2FFigma%20ppt%7C305935e3-b035-824e-918e-35bd14632c4c%2F%29"
 ---
 
 미러링/미리보기 - figma.com/mirror

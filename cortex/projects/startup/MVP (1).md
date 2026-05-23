@@ -5,6 +5,7 @@ modified: 2023-01-25T00:19:06Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FMVP%7Ce8d3c1f2-8eb8-4fa2-a1eb-2b30674f7aa9%2F%29"
 ---
 
 <https://brunch.co.kr/@taewookim/66>

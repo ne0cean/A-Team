@@ -5,6 +5,7 @@ modified: 2022-03-16T05:16:02.255Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FMVP%7C78f00e96-c1dd-4785-8ca7-63238508ea71%2F%29"
 ---
 
 MVP는 '내가 생각하는 이상적인 제품의 최소 형태'가 아니라 실험하려는 가설을 검증하기 위한 최소한의 실험셋팅이다. 

@@ -5,6 +5,7 @@ modified: 2024-12-09T12:28:40Z
 source: onenote
 notebook: "InterStellar"
 section: "3. HFK"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!seac84fd4795d46aaa03aeb6ffad8496d&wd=target%281_Projects%2F3.%20HFK.one%7C08102a5d-0209-41de-9a8f-376345f4f4a6%2FQ-LIST%7C7ac9c5a8-e9ba-314a-a7d2-16cbcb41723e%2F%29"
 ---
 
 아니 tq 우리 동생 어떡게하죠:ㅎㅎ하하ㅎㅎㅎ아앙앙오올옳올해ㅇㅇㅇ

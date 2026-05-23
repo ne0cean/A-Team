@@ -5,6 +5,7 @@ modified: 2025-04-02T00:38:30.098Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FAT%5C%2FDT_%EC%88%98%EC%9A%94%EC%9E%90%20%EC%9E%85%EC%9E%A5%7Cd60e5158-ccbc-402d-bba6-d02b1f3b6e54%2F%29"
 ---
 
 AICC 솔루션 판매 김욱태 팀장 쪽 현황 파악

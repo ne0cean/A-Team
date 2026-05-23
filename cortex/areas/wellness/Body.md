@@ -5,6 +5,7 @@ modified: 2014-01-12T09:51:30.796Z
 source: onenote
 notebook: "InterStellar"
 section: "1. Character"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7914&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F1.%20Character.one%7C76321e21-ff54-4a14-a84f-a292ef10b3fe%2FBody%7C2bbddc26-bcf4-498a-afdf-13bdbcfc0eba%2F%29"
 ---
 
 [(빅스마일 특가) 벨루젠 온열 진동 눈마사지기 EYE-Q - 옥션 (auction.co.kr)](http://itempage3.auction.co.kr/DetailView.aspx?itemno=C225130011)

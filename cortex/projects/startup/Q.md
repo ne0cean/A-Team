@@ -5,6 +5,7 @@ modified: 2022-08-15T09:15:26.693Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FQ%7C3958e0a6-fd90-464a-8bdb-310184073a9d%2F%29"
 ---
 
 과시욕-관음증

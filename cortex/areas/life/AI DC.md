@@ -5,6 +5,7 @@ modified: 2025-05-28T05:37:24.212Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FAI%20DC%7C557a66f3-e22d-4749-a900-eb40523ef005%2F%29"
 ---
 
 전력, 냉각, 보안, 컴플라이언스 제어 요구 사항 및 상호 연결성

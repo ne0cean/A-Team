@@ -5,6 +5,7 @@ modified: 2021-12-31T02:11:22.575Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FNFT%7Cc558b463-1fe4-4c0f-bd7b-6a36d2b94d35%2F%29"
 ---
 
 NFT가 뭐기에 https://outstanding.kr/nft20211110

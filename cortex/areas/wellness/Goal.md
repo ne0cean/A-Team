@@ -5,6 +5,7 @@ modified: 2014-01-12T09:49:23.581Z
 source: onenote
 notebook: "InterStellar"
 section: "1. Character"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7915&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F2.%20Mo%20chuisle.one%7C34975c17-3cac-4fd6-99cf-23b4be6673e0%2FGoal%7C944994a2-7979-4eaa-9e46-8b83455bfea5%2F%29"
 ---
 
 모두가 사랑하는 에너지를 가진 캐릭터

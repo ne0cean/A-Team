@@ -5,6 +5,7 @@ modified: 2014-10-21T07:15:36.232Z
 source: onenote
 notebook: "InterStellar"
 section: "5. Sport"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!8025&wd=target%281_Projects%2F5.%20Sport.one%7Cc2a27236-7a2c-664a-9c9e-415e04007521%2FGolf%20Note%7Cdf505d9e-17bd-415d-a184-9ac61449dff5%2F%29"
 ---
 
 ㅇ 목표 : 80타

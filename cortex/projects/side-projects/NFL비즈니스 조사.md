@@ -5,6 +5,7 @@ modified: 2025-05-15T05:12:15.826Z
 source: onenote
 notebook: "InterStellar"
 section: "Side hutle"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!scf9b552750a847af894915b8b52c0b2e&wd=target%281_Projects%2FSide%20hutle.one%7C67ad77f7-8e2c-744f-831e-1274cbb2fe31%2FNFL%EB%B9%84%EC%A6%88%EB%8B%88%EC%8A%A4%20%EC%A1%B0%EC%82%AC%7Cad8bd976-0eeb-4c2a-8ba0-d79bcbaa7eba%2F%29"
 ---
 
 - ① NFL 굿즈 해외직구/이커머스: 한국에 아직 NFL 상품을 취급하는 공식 매장이 적기 때문에, 팬들은 유니폼이나 모자 등을 주로 해외직구에 의존합니다. 개인이 \*\*해외 공식샵(예: NFL Shop, Fanatics)\*\*에서 물량을 확보하여 자체 온라인몰이나 오픈마켓(쿠팡, G마켓 등)에서 판매하면, 첫 상품 등록 후 판매 발생 시 바로 매출 실현이 가능합니다. 예를 들어 인기 팀인 댈러스 카우보이즈나 캔자스시티 치프스의 상품을 수입해 팔거나, 슈퍼볼 한정판 기념품을 판매하면 팬들의 즉각적인 구매로 이어질 수 있습니다. 초기에는 재고를 많이 두지 않고 주문형 수입(구매대행) 방식으로 운영해 리스크를 낮출 수 있고, 점차 수요가 확인되면 재고를 늘려 마진을 높이는 전략을 취할 수 있습니다. 다만, NFL 라이선스 정품만을 취급해야 신뢰를 얻을 수 있으며, 배송기간 등 고객서비스 관리에 신경써야 합니다.

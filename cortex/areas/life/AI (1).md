@@ -5,6 +5,7 @@ modified: 2021-12-17T01:02:03.447Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!scf9b552750a847af894915b8b52c0b2e&wd=target%281_Projects%2FSide%20hutle.one%7C67ad77f7-8e2c-744f-831e-1274cbb2fe31%2FAI%20%7Cfab69bf4-14ce-4855-a9bf-5c40a8e3e6cf%2F%29"
 ---
 
 모두의 딥러닝 - 입문

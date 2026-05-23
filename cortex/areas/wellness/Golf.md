@@ -5,6 +5,7 @@ modified: 2022-05-09T02:33:21.761Z
 source: onenote
 notebook: "InterStellar"
 section: "5. Sport"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!8025&wd=target%281_Projects%2F5.%20Sport.one%7Cc2a27236-7a2c-664a-9c9e-415e04007521%2FGolf%7C9432f042-2b91-4a4c-bfd7-94a5ab2e6bc4%2F%29"
 ---
 
 A: 임규영 / C: 김현오

@@ -5,6 +5,7 @@ modified: 2020-03-15T13:49:15.834Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FStart-up%20%EB%A1%9C%EA%B7%B8%7C2fe2653c-dceb-4caf-aebd-2bf6b961afae%2F%29"
 ---
 
 미국법인? 한국 법인?<https://verticalplatform.kr/archives/4271>

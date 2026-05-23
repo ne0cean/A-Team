@@ -5,6 +5,7 @@ modified: 2026-01-04T19:26:09.169Z
 source: onenote
 notebook: "InterStellar"
 section: "Side hutle"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!scf9b552750a847af894915b8b52c0b2e&wd=target%281_Projects%2FSide%20hutle.one%7C67ad77f7-8e2c-744f-831e-1274cbb2fe31%2FPriority%7Ceaa4736d-54b5-084c-a763-083693933f7d%2F%29"
 ---
 
 ## Five guys 종합 의견\_\_\_\_\_\_\_\_\_\_\_\_

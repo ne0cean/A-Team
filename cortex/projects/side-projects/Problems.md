@@ -5,6 +5,7 @@ modified: 2026-01-04T10:48:01.73Z
 source: onenote
 notebook: "InterStellar"
 section: "Side hutle"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!scf9b552750a847af894915b8b52c0b2e&wd=target%281_Projects%2FSide%20hutle.one%7C67ad77f7-8e2c-744f-831e-1274cbb2fe31%2FProblems%7C17090cf1-d357-fe42-a3a1-404cc8170683%2F%29"
 ---
 
 한국 거주 외인들, 특히 수도권 학생들의 painpoint?

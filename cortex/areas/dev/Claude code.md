@@ -5,6 +5,7 @@ modified: 2025-08-12T07:02:14.079Z
 source: onenote
 notebook: "InterStellar"
 section: "A TEAM"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!s702e65de0d614a6cbbd92296ab8dff3d&wd=target%281_Projects%2FA%20TEAM.one%7C3beb0a10-2ecc-439f-9ac9-2817aadfad77%2FClaude%20code%7C805e90fa-a728-4ee4-bea2-2c242b0c5e0c%2F%29"
 ---
 
 [Claude Code creator Boris shares his setup with 13 detailed steps](https://www.reddit.com/r/ClaudeAI/comments/1q2c0ne/claude_code_creator_boris_shares_his_setup_with/) \_ [Geek news](https://news.hada.io/topic?id=25570)

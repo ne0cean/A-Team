@@ -5,6 +5,7 @@ modified: 2025-02-17T11:26:03.704Z
 source: onenote
 notebook: "InterStellar"
 section: "3. HFK"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!seac84fd4795d46aaa03aeb6ffad8496d&wd=target%281_Projects%2F3.%20HFK.one%7C08102a5d-0209-41de-9a8f-376345f4f4a6%2FGPT%7C2c774e0a-e330-4a5e-b964-118c609fa661%2F%29"
 ---
 
 협상에 대해 여전히 잘못 알고 있는 것들

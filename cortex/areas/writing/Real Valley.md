@@ -5,6 +5,7 @@ modified: 2024-12-13T01:25:40Z
 source: onenote
 notebook: "InterStellar"
 section: "Writing"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!8024&wd=target%281_Projects%2FWriting.one%7C58eac1a0-a5bb-4d14-bf8d-bad757c3b6ef%2FReal%20Valley%7C833e6c03-42d2-dc48-a78b-785c2cd23996%2F%29"
 ---
 
 평정심을 유지해야 꾸준함, 발전, 습관을 유지 할 수 있다. 평정심이란 항상 놀랄 준비를 하라.

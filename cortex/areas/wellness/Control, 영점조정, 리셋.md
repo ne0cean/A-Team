@@ -5,6 +5,7 @@ modified: 2023-07-08T13:08:06.486Z
 source: onenote
 notebook: "InterStellar"
 section: "1. Character"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7914&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F1.%20Character.one%7C76321e21-ff54-4a14-a84f-a292ef10b3fe%2FControl%2C%20%EC%98%81%EC%A0%90%EC%A1%B0%EC%A0%95%2C%20%EB%A6%AC%EC%85%8B%7C442236f4-fe3d-4751-b0bc-1b4346ecf085%2F%29"
 ---
 
 스트레스 디톡스 & 멘탈/ 바디 최적화

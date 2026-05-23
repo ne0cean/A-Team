@@ -5,6 +5,7 @@ modified: 2024-12-30T10:35:31.977Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FPrompt%7C99f76740-d55e-e844-ac92-4489f489f006%2F%29"
 ---
 
 [프롬프트](https://platform.openai.com/chat/edit?optimize=true) 옵티마이저

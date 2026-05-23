@@ -5,6 +5,7 @@ modified: 2019-05-22T01:23:52Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2F%E6%97%A5%E6%96%B0%E5%8F%88%E6%97%A5%E6%96%B0_Crape%20Cake%7C8844cc4b-c285-42b3-bc93-9ae54f949c60%2F%29"
 ---
 
 SHA(Shareholders Agreement) 주주간 계약서/ ssa

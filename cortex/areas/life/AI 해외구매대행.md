@@ -5,6 +5,7 @@ modified: 2026-02-24T10:34:28.262Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FAI%20%ED%95%B4%EC%99%B8%EA%B5%AC%EB%A7%A4%EB%8C%80%ED%96%89%7Ce99e6b60-35cc-c943-bad2-1209e95a2467%2F%29"
 ---
 
 ![AI 로 하 루 2 시 간 , 월 순 익 300 이 상 버 는 AI 구 매 대 행 초 고 속 성 장 로 드 맵 

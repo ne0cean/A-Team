@@ -5,6 +5,7 @@ modified: 2024-01-10T02:15:30.315Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FTool%20kit%7Ca92182df-4100-42a4-84f9-001a391b2435%2F%29"
 ---
 
 <https://nino.app/>

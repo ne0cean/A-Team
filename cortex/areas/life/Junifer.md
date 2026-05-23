@@ -5,6 +5,7 @@ modified: 2025-04-03T23:51:02.286Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FJunifer%7C115a4698-be20-1a47-8249-432969b91ee4%2F%29"
 ---
 
 삼성카드 - 캐시백 받을 수 있는 카드로, 설계사 통하지 말고 가입

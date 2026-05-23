@@ -5,6 +5,7 @@ modified: 2025-11-24T11:54:21.511Z
 source: onenote
 notebook: "InterStellar"
 section: "A TEAM"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!s702e65de0d614a6cbbd92296ab8dff3d&wd=target%281_Projects%2FA%20TEAM.one%7C3beb0a10-2ecc-439f-9ac9-2817aadfad77%2FCurriculum%7Cf534766b-af49-9045-83a0-26fe04fd491e%2F%29"
 ---
 
 📚 강의 vs AI 도구 역할 분담

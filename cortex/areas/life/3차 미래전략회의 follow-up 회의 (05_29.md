@@ -5,6 +5,7 @@ modified: 2025-05-30T00:19:41.249Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2F3%EC%B0%A8%20%EB%AF%B8%EB%9E%98%EC%A0%84%EB%9E%B5%ED%9A%8C%EC%9D%98%20follow-up%20%ED%9A%8C%EC%9D%98%20%2805%5C%2F29%7C1ed956d5-83fe-425d-b32a-6668f8559520%2F%29"
 ---
 
 3차 미래전략회의 follow-up 회의 (05/29)

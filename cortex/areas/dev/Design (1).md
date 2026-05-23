@@ -5,6 +5,7 @@ modified: 2025-12-01T05:34:12.587Z
 source: onenote
 notebook: "InterStellar"
 section: "A TEAM"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!s702e65de0d614a6cbbd92296ab8dff3d&wd=target%281_Projects%2FA%20TEAM.one%7C3beb0a10-2ecc-439f-9ac9-2817aadfad77%2FDesign%7Cf5ae25df-5340-458b-9ec1-d77c3e22e0b1%2F%29"
 ---
 
 [라킴] [오후 2:21] 저는 웹앱 제작하는데 디자인할때

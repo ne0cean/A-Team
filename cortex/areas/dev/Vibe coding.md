@@ -5,6 +5,7 @@ modified: 2025-03-21T01:30:48.706Z
 source: onenote
 notebook: "InterStellar"
 section: "A TEAM"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!s702e65de0d614a6cbbd92296ab8dff3d&wd=target%281_Projects%2FA%20TEAM.one%7C3beb0a10-2ecc-439f-9ac9-2817aadfad77%2FVibe%20coding%7C2e6d3be8-2e63-4b12-9f81-a29cef856f5b%2F%29"
 ---
 
 [Ryan Carson](https://www.lennysnewsletter.com/p/a-3-step-ai-coding-workflow-for-solo)의 [3](https://tilnote.io/pages/68b9d26c1e08f5ca7887b8c2) File system [1](https://github.com/snarktank/ai-dev-tasks) [2](https://lilys.ai/digest/7600493/8327574) [3](https://vibecoders.school/blog/solo-founder-ai-workflow-ryan-carson) - 제품 요구사항(PRD), 작업 리스트(Task 분해), 실행 규칙 파일로 단계적으로 접근

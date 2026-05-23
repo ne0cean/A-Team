@@ -5,6 +5,7 @@ modified: 2022-05-16T00:41:39Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FBM%20Design%7Cea7d69e7-b061-4677-a32c-95ca87bbc038%2F%29"
 ---
 
 ![SNS, 당신의 목적은 무엇인가요?(블로그,페이스북,인스타그램 등등) : 네이버 블로그](attachments/5b04fa0c165f.png)

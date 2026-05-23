@@ -5,6 +5,7 @@ modified: 2026-01-07T20:23:24.207Z
 source: onenote
 notebook: "InterStellar"
 section: "Writing"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!8024&wd=target%281_Projects%2FWriting.one%7C58eac1a0-a5bb-4d14-bf8d-bad757c3b6ef%2FTranscription%20%20Speaking%20%20Listening%7C84d0c959-76c5-524d-bf3d-e79d8b580f1f%2F%29"
 ---
 
 [Erin McKean: Go ahead, make up new words!](https://www.ted.com/talks/erin_mckean_go_ahead_make_up_new_words)

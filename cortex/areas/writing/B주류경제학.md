@@ -5,6 +5,7 @@ modified: 2024-11-26T04:10:12.177Z
 source: onenote
 notebook: "InterStellar"
 section: "Writing"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!8024&wd=target%281_Projects%2FWriting.one%7C58eac1a0-a5bb-4d14-bf8d-bad757c3b6ef%2FB%EC%A3%BC%EB%A5%98%EA%B2%BD%EC%A0%9C%ED%95%99%7C1ef1ad2e-e517-4f32-964a-44a33e290ba7%2F%29"
 ---
 
 B주류경제학

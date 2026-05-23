@@ -5,6 +5,7 @@ modified: 2026-02-22T10:30:56.787Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FAI%20%EB%A1%B1%ED%8F%BC%20%EC%95%A0%EB%8B%88%EB%A9%94%EC%9D%B4%EC%85%98%7C31b95d32-86fd-ba4e-a5e7-39cfad900473%2F%29"
 ---
 
 [리버스](https://claude.ai/chat/1d2e50d2-051f-4985-8538-4da55d1c6324) 엔지니어링

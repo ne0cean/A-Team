@@ -5,6 +5,7 @@ modified: 2021-02-18T06:49:01.638Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FSNOWBALL%7C2edd5ef3-06e8-481b-94c1-25ddb1118b9e%2F%29"
 ---
 
 볼린저밴드

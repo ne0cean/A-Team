@@ -5,6 +5,7 @@ modified: 2021-01-19T15:48:08Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2F%E2%97%8B%20Palette%E2%94%82%20Ritual%20%20Routine%7Ccbf8027e-3923-4ea4-9b96-b94e2651398d%2F%29"
 ---
 
 |  |  |  |

@@ -5,6 +5,7 @@ modified: 2024-02-15T08:59:49Z
 source: onenote
 notebook: "InterStellar"
 section: "3. HFK"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7916&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F3.%20String.one%7C242ede8e-63eb-4a66-a237-165605c1da03%2FHFK%7C8be67b39-f6bd-4dd3-94a1-d5348d42b251%2F%29"
 ---
 
 |  |  |

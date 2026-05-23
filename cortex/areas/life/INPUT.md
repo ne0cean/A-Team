@@ -5,6 +5,7 @@ modified: 2020-12-30T12:53:59.05Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7914&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F1.%20Character.one%7C76321e21-ff54-4a14-a84f-a292ef10b3fe%2FInput%7C9efad81b-7c22-4728-8cc5-4972952523f5%2F%29"
 ---
 
 브라우저 - 서핏 / 즐겨찾기

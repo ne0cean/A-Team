@@ -5,6 +5,7 @@ modified: 2026-01-06T20:26:03.212Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FSources%7C1bb71ae2-6bb5-7947-9807-e791c22787a4%2F%29"
 ---
 
 <https://www.perplexity.ai/search/culryeog-ganeunghan-yeongeo-ji-jt8aHI4ITImaSABo1t3RyQ>

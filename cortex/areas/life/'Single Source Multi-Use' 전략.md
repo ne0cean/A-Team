@@ -5,6 +5,7 @@ modified: 2026-01-04T19:48:59.894Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2F%27Single%20Source%20Multi-Use%27%20%EC%A0%84%EB%9E%B5%7C50c9e50f-0963-2746-a4a4-f138d45bae91%2F%29"
 ---
 
 Reading > listening 강화 >>> Writing > Speaking 강화

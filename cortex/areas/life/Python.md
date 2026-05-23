@@ -5,6 +5,7 @@ modified: 2025-01-01T11:34:32.798Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FPython%7Ca54163d4-e260-504c-88ae-adec04446298%2F%29"
 ---
 
 환경설정

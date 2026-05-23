@@ -5,6 +5,7 @@ modified: 2024-11-11T03:57:52.331Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FThe%20SYSTEM%7C1be5f0ef-f3b7-41fc-83a3-a7bd5fad4189%2F%29"
 ---
 
 목표가 아니라 시스템을 지녀야 한다.

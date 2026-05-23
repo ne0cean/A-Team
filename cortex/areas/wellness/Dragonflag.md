@@ -5,6 +5,7 @@ modified: 2020-07-05T10:27:43Z
 source: onenote
 notebook: "InterStellar"
 section: "1. Character"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7914&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F1.%20Character.one%7C76321e21-ff54-4a14-a84f-a292ef10b3fe%2FDragonflag%7Ce2e34f9a-a74c-4002-9801-5bf41ed48e86%2F%29"
 ---
 
 [최고의 복근운동 Best4! 효율적인 헬스장 복근 운동 루틴](https://www.youtube.com/watch?v=KfvrfhffdH4&feature=youtu.be)

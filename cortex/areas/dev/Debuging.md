@@ -5,6 +5,7 @@ modified: 2025-07-08T11:17:13.872Z
 source: onenote
 notebook: "InterStellar"
 section: "A TEAM"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!s702e65de0d614a6cbbd92296ab8dff3d&wd=target%281_Projects%2FA%20TEAM.one%7C3beb0a10-2ecc-439f-9ac9-2817aadfad77%2FDebuging%7C9c5b0842-359a-4cb9-8b13-ee3f4f5d18da%2F%29"
 ---
 
 '겹겹이 쌓인 잘못된 코드'는 금물!

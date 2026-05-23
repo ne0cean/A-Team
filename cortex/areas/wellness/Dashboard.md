@@ -5,6 +5,7 @@ modified: 2024-06-10T23:44:53Z
 source: onenote
 notebook: "InterStellar"
 section: "1. Character"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7914&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F1.%20Character.one%7C76321e21-ff54-4a14-a84f-a292ef10b3fe%2FDashboard%7C3cc22ed2-4773-404e-81f2-cd44efb3b438%2F%29"
 ---
 
 3시 저녁 식사 - 8시간 수면 - 운동

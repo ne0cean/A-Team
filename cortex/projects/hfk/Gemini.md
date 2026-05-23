@@ -5,6 +5,7 @@ modified: 2025-04-03T06:47:02.013Z
 source: onenote
 notebook: "InterStellar"
 section: "3. HFK"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!seac84fd4795d46aaa03aeb6ffad8496d&wd=target%281_Projects%2F3.%20HFK.one%7C08102a5d-0209-41de-9a8f-376345f4f4a6%2FGemini%7C8ea52375-4c4e-4dd3-90d4-5c7edb4fe640%2F%29"
 ---
 
 |  |  |

@@ -5,6 +5,7 @@ modified: 2025-07-08T11:19:02.301Z
 source: onenote
 notebook: "InterStellar"
 section: "A TEAM"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!s702e65de0d614a6cbbd92296ab8dff3d&wd=target%281_Projects%2FA%20TEAM.one%7C3beb0a10-2ecc-439f-9ac9-2817aadfad77%2F1_PDR%5C%2FTDR%20%EC%9E%91%EC%84%B1%7Cba661290-f04e-4658-ad02-4cc2c9bea883%2F%29"
 ---
 
 중간중간 기획을 피봇할 가능성을 최소화한다는 생각으로 기획을 철저하게 준비해 놓고 시작하는 것이 중요하다. 코딩 못하는 우리가 중간중간 상세 기획을 피봇하게 되면 코드 수정에 꽤 많은 시간이 들어가고 충돌 리스크도 존재

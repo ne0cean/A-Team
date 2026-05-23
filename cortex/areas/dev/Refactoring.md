@@ -5,6 +5,7 @@ modified: 2026-01-11T04:07:08.278Z
 source: onenote
 notebook: "InterStellar"
 section: "A TEAM"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!s702e65de0d614a6cbbd92296ab8dff3d&wd=target%281_Projects%2FA%20TEAM.one%7C3beb0a10-2ecc-439f-9ac9-2817aadfad77%2FRefactoring%7C94608194-d40c-7b49-8c27-9358eab62bc5%2F%29"
 ---
 
 2️⃣ Error Budget → 속도 vs 품질 판단 시스템

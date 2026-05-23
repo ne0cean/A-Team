@@ -5,6 +5,7 @@ modified: 2026-01-04T06:00:12.025Z
 source: onenote
 notebook: "InterStellar"
 section: "A TEAM"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!s702e65de0d614a6cbbd92296ab8dff3d&wd=target%281_Projects%2FA%20TEAM.one%7C3beb0a10-2ecc-439f-9ac9-2817aadfad77%2FTeam%20up%7C544008b9-7af4-0347-ba25-0989053dbbeb%2F%29"
 ---
 
 바이브 코딩 효율화 방법 계속 찾기 - 결국 내가 효율화 되어야해 그러려면 위시캣/크몽 프로젝트를 계속 해나가야함

@@ -5,6 +5,7 @@ modified: 2022-11-13T23:55:33.254Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FPretotyping%7Cb2a146b8-b36c-4b28-91d8-769612960c7e%2F%29"
 ---
 
 [Google](https://mapsly.com/ko/integrations/google-sheets/) 스프레드시트용 지도: 지리적 위치, 경로, 지역, 자동화 - Mapsly

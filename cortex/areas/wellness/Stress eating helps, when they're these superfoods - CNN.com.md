@@ -5,6 +5,7 @@ modified: 2015-04-25T14:15:56.409Z
 source: onenote
 notebook: "InterStellar"
 section: "1. Character"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7914&wd=target%282_6%20hexagonal%20pillars_Rocks_Helm%2F1.%20Character.one%7C76321e21-ff54-4a14-a84f-a292ef10b3fe%2FStress%20eating%20helps%2C%20when%20they%27re%20these%20superfoods%20%7C20ae248b-7e75-44c8-8fc3-85a15d96a336%2F%29"
 ---
 
 Stress eating helps, when they're these superfoods

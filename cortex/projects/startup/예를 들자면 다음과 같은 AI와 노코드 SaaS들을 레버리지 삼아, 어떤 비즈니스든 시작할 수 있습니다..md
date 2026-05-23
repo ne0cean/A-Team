@@ -5,6 +5,7 @@ modified: 2024-01-04T05:14:39.003Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2F%EC%98%88%EB%A5%BC%20%EB%93%A4%EC%9E%90%EB%A9%B4%20%EB%8B%A4%EC%9D%8C%EA%B3%BC%20%EA%B0%99%EC%9D%80%20AI%EC%99%80%20%EB%85%B8%EC%BD%94%EB%93%9C%20SaaS%EB%93%A4%EC%9D%84%20%EB%A0%88%EB%B2%84%EB%A6%AC%EC%A7%80%20%EC%82%BC%EC%95%84%2C%7Cb5ec01ca-9721-459e-8b35-2d08b18d30b6%2F%29"
 ---
 
 예를 들자면 다음과 같은 AI와 노코드 SaaS들을 레버리지 삼아, 어떤 비즈니스든 시작할 수 있습니다.

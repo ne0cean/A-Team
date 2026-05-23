@@ -5,6 +5,7 @@ modified: 2021-10-10T07:01:29.705Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2F%EC%A0%95%EC%B2%B4%EC%84%B1%EC%9D%80%20%EC%A7%81%EC%9E%A5%EC%9D%B8%28%EB%A7%88%EC%BC%80%ED%84%B0%20%EC%B6%9C%EC%8B%A0%20%ED%88%AC%EC%9E%90%EC%9E%90%5C%29%20%2B%20%EC%9B%8C%EB%93%9C%EB%82%98%20%EC%97%91%EC%85%80%2C%7Cdb57b580-6e0b-4de1-81f1-65b29820a4e6%2F%29"
 ---
 
 정체성은 직장인(마케터 출신 투자자) + 워드나 엑셀, ppt에 글을 쓰고 캡쳐, 감성글은??? 카톡에 쓰고 캡쳐

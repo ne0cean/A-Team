@@ -5,6 +5,7 @@ modified: 2025-08-23T12:17:24.295Z
 source: onenote
 notebook: "InterStellar"
 section: "A TEAM"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!s702e65de0d614a6cbbd92296ab8dff3d&wd=target%281_Projects%2FA%20TEAM.one%7C3beb0a10-2ecc-439f-9ac9-2817aadfad77%2FReplit%7C47354e0e-98d9-cc48-b06e-240a29e81994%2F%29"
 ---
 
 📌 레플릿 $10 크레딧 및 10% 할인 쿠폰 안내

@@ -5,6 +5,7 @@ modified: 2016-06-18T09:54:19.438Z
 source: onenote
 notebook: "InterStellar"
 section: "MK1"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FT-asking%7Cc2b52783-6cf5-490e-b77c-025bae9538b8%2F%29"
 ---
 
 ㅇ 어떠한 불편을 해소하는가? 어떠한 니즈를 충족하는가?

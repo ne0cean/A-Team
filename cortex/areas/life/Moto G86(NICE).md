@@ -5,6 +5,7 @@ modified: 2026-04-06T07:03:44.616Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7913&wd=target%281_Projects%2FDashbaord.one%7Ce9cde048-4aae-724e-8aff-602155331a19%2FMoto%20G86%28NICE%5C%29%7Ca5ae185c-edbf-4aaf-80fd-4fb47ddde37c%2F%29"
 ---
 
 영상통화 이슈

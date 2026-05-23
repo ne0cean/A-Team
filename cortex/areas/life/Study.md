@@ -5,6 +5,7 @@ modified: 2017-08-22T04:32:17.485Z
 source: onenote
 notebook: "InterStellar"
 section: "Dashbaord"
+onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edit&resid=733661839CC53BA5!7896&parId=733661839CC53BA5!7919&wd=target%281_Projects%2FMK1.one%7Cb8e15e0a-fc3f-cd4b-a2a5-e4187d737662%2FStudy%7C72ff39d4-9e79-45d0-95c0-370ab70b62cd%2F%29"
 ---
 
 비트코인(Bitcoin)은 [2009년](https://ko.wikipedia.org/wiki/2009%EB%85%84) [나카모토 사토시](https://ko.wikipedia.org/wiki/%EB%82%98%EC%B9%B4%EB%AA%A8%ED%86%A0_%EC%82%AC%ED%86%A0%EC%8B%9C)[[3]](https://ko.wikipedia.org/wiki/%EB%B9%84%ED%8A%B8%EC%BD%94%EC%9D%B8#cite_note-whoissn-3)가 만든 [디지털 통화](https://ko.wikipedia.org/w/index.php?title=%EB%94%94%EC%A7%80%ED%84%B8_%ED%86%B5%ED%99%94&action=edit&redlink=1)로, 통화를 발행하고 관리하는 중앙 장치가 존재하지 않는 구조를 가지고 있다. 대신, 비트코인의 거래는 [P2P](https://ko.wikipedia.org/wiki/P2P) 기반 [분산 데이터베이스](https://ko.wikipedia.org/wiki/%EB%B6%84%EC%82%B0_%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%B2%A0%EC%9D%B4%EC%8A%A4)에 의해 이루어지며, [공개 키 암호 방식](https://ko.wikipedia.org/wiki/%EA%B3%B5%EA%B0%9C_%ED%82%A4_%EC%95%94%ED%98%B8_%EB%B0%A9%EC%8B%9D) 기반으로 거래를 수행한다. 비트코인은 공개성을 가지고 있다. 비트코인은 지갑 파일의 형태로 저장되며, 이 지갑에는 각각의 고유 주소가 부여되며, 그 주소를 기반으로 비트코인의 거래가 이루어진다. 비트코인은 1998년 웨이따이가 사이버펑크 메일링 리스트에 올린 [암호통화](https://ko.wikipedia.org/wiki/%EC%95%94%ED%98%B8%ED%86%B5%ED%99%94)(cryptocurrency)란 구상을 최초로 구현한 것 중의 하나이다.[[4]](https://ko.wikipedia.org/wiki/%EB%B9%84%ED%8A%B8%EC%BD%94%EC%9D%B8#cite_note-4)[[5]](https://ko.wikipedia.org/wiki/%EB%B9%84%ED%8A%B8%EC%BD%94%EC%9D%B8#cite_note-5)
