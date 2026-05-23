@@ -2,6 +2,28 @@
 
 ---
 
+## [2026-05-24] Cortex 통합 + Ritual Dashboard + Thinking Toolkit
+
+**완료**:
+- OneNote InterStellar 447페이지 cortex 분류 완료 (961 files). classify.py 2회 실행. 6 Hexagonal Pillars 구조 확인.
+- Cortex 웹 대시보드 (localhost:7843) — contenteditable 캘린더 그리드. 체크/편집 → .json+.md 즉시 저장. launchd 자동시작.
+- OneNote 링크 주입 (inject-links.py) — 139파일 frontmatter에 onenote_url 추가
+- snapshot.py + sync.py — OneNote 변경 감지 + 차분 동기화
+- staging 192페이지 추가 다운로드 (6기둥 섹션). 360페이지 남음 (토큰 만료)
+- Thinking Toolkit (`cortex/thinking-toolkit.md`) — 자동감지 + /end 수확 프로토콜. Ideation Frameworks 5개.
+- `/morning` 스킬 — 목표 상기 + One Thing 강제 + Pillar 연결
+- ritual-routine-archive.sh + new-month.sh
+
+**이슈**:
+- OneNote API 토큰 1시간 만료 — 360페이지 미완료 (6기둥 본체)
+- markdownify 변환 품질 — 원노트 spatial layout → .md 변환 시 가독성 저하
+- 스크린샷 OCR 오류 — 원본 API 데이터가 아닌 캡처에서 텍스트 추출한 실수. 원본 .md 파일 활용으로 수정 방향 확정.
+- 대시보드 하단 섹션 (상시/Yearly/Monthly/Vision/Character) 마이그레이션 미착수 — 다음 세션
+
+**빌드**: ✅ 563 tests PASS
+
+---
+
 ## [2026-05-23] OneNote → Obsidian 마이그레이션
 
 **완료**:

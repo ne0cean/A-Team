@@ -111,11 +111,12 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 
 ## Next Tasks
 
-### High Priority (PRD 기반)
+### High Priority
+- [ ] **OneNote 마이그레이션 완료** — 360페이지 남음 (6기둥 섹션). 재인증 후 migrate-staging.py 실행
+- [ ] **Cortex 6기둥 재분류** — 기존 areas/projects → 6 Hexagonal Pillars 중심 구조 전환
+- [ ] **대시보드 하단 섹션 마이그레이션** — 상시 업무/Yearly/Monthly → 자동 주입 시스템 설계
 - [ ] **제품 빌드 시작** — 커넥톰 등 프로젝트 A-Team으로 실전 빌드 (플라이휠 증거)
 - [ ] **자동화 배선 강화** — daily-brief/growth-engine이 의장 호출 없이 자동 실행
-- [ ] **제품 경계 확정** — 74개 커맨드 → 핵심/보조/비핵심 분류
-- [ ] **브랜딩 확정 → Postiz OAuth + 소셜 계정 + 첫 발행** — 브랜딩 대기 중
 
 ### Medium Priority
 - [ ] **do-better 마이그레이션 Phase 2** — Wiki 복리 시스템 도입 (SCHEMA + wiki-ingest + wiki-lint)
@@ -137,7 +138,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 2026-04-18 이전 세션 기록 → [.context/SESSIONS.md](SESSIONS.md)
 
 ## Blockers
-없음
+- OneNote API 토큰 만료 — 재인증 필요 (device code flow). 360페이지 미완료.
 
 ## 배포 현황
 - GitHub: https://github.com/ne0cean/A-Team (master)
