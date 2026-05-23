@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**563 tests PASS** (2026-05-23). Quality Pipeline + PRD Gate + do-better 마이그레이션 Phase 1 + A-Team PRD v1.0.
+**570 tests PASS** (2026-05-24). Quality Pipeline + PRD Gate + do-better Phase 1+2 + Wiki 복리 시스템 + 자동화 배선 강화.
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
 
@@ -71,6 +71,13 @@
 - **Wiki 복리 시스템 (do-better Phase 2)** — wiki-ingest.mjs (6기둥 키워드 자동 분류 + inbox 스캔 + 이동), wiki-lint.mjs (중복 8건/깨진링크 18건/빈파일/frontmatter 검사). cortex 770파일 lint 완료.
 
 **빌드**: 563 tests PASS
+
+## Last Completions (2026-05-24) — 자동화 배선 강화 + do-better Phase 2
+
+- **자동화 배선 강화** — vibe Step 0.7: `${TODAY}-brief.md` → `${TODAY}-collect.json` 체크 수정 + collect 자동 실행. `com.ateam.daily-brief-collect.plist` launchd 07:30 등록. install-maintenance-cron.sh에 섹션 추가.
+- **do-better 마이그레이션 Phase 2 완료** — Wiki 복리 시스템: `lib/wiki-types.ts` (WikiEntry/WikiFrontmatter/WikiLintResult 타입) + `scripts/wiki-ingest.mjs` (신규/업데이트 CLI) + `scripts/wiki-lint.mjs` (품질 채점 0-100, --fix/--json) + `test/wiki.test.ts` (7 tests PASS). seed 엔트리: `bash-variable-korean-bug` (score: 75).
+
+**빌드**: ✅ 570 tests PASS (7 wiki tests 추가)
 
 ## Last Completions (2026-05-23) — Cortex 통합 + Ritual Dashboard + OneNote 마이그레이션
 
