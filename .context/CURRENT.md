@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**576 tests PASS** (2026-05-23). Quality Pipeline 3-Layer + Property-Based + Mutation + Fitness Functions 가동.
+**563 tests PASS** (2026-05-23). Quality Pipeline + PRD Gate + do-better 마이그레이션 Phase 1 + A-Team PRD v1.0.
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
 
@@ -60,18 +60,16 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-23) — Quality Pipeline + 탑 클래스 개발 프로세스
+## Last Completions (2026-05-23) — Quality Pipeline + PRD + 마이그레이션
 
-- **Quality Pipeline 3-Layer 시스템** — `governance/rules/quality-pipeline.md` SSOT. Layer 1(빌드 중 자동) + Layer 2(완료 직후 자동 리뷰) + Layer 3(인간 판단). `/end`에서 리뷰 분리 → 빌드 완료 시점으로 이동
-- **12개 개발 방법론 시그널 자동 전환** — CLAUDE.md에 시그널 테이블 11개 추가. "확실히 맞아야 해" → TDD+Mutation 자동, "큰 리팩토링" → Strangler Fig 자동 등. 명시 호출 불필요
-- **Property-Based Testing** — fast-check v4.8 + @fast-check/vitest. `test/property.test.ts` 12 tests. confidence.ts + harness-score.ts에 invariant/metamorphic/idempotent 패턴 적용
-- **Mutation Testing** — StrykerJS v9.6.1 + vitest-runner + typescript-checker. `stryker.config.mjs` + incremental 모드. `npm run mutate` / `npm run mutate:changed`
-- **Architecture Fitness Functions** — `test/architecture.test.ts` 6 tests. 레이어 경계 강제 (lib→scripts/claude/governance 금지) + 순환 의존성 DFS 탐지 + 모듈 독립성
-- **CI 파이프라인 강화** — `ci.yml`에 mutation job 추가 (PR only, test 통과 후, incremental 캐시). Stryker report artifact 14일 보존
-- **Branch Protection 가동** — `scripts/setup-branch-protection.sh` + 실행 완료. master 직접 push 차단, PR+CI 필수, force push 차단
-- **PR 템플릿 강화** — quality gates 체크리스트 (mutation score, security, methodology)
+- **Quality Pipeline 3-Layer** — quality-pipeline.md SSOT. Property-Based(fast-check 12t) + Mutation(StrykerJS) + Fitness Functions(6t) + Layer 2 자동 리뷰 + CI mutation job + Branch Protection
+- **A-Team PRD v1.0** — `/office-hours` Amazon 모드 → PR/FAQ → PRD 작성. 제품 정의: "AI 비즈니스 운영 시스템". 핵심 3축: 구체화+리서치 / 전사 분기 / 24h 풀오토. 핵심 문제 발견: 74개 중 5개만 사용, 인간 호출 의존 구조
+- **PRD Gate** — `governance/rules/prd-gate.md` + vibe Step 0.9. 모든 프로젝트 PRD 없이 빌드 금지
+- **do-better 마이그레이션 Phase 1** — researcher.md 업그레이드(소스 체이닝+질문 분해), analysis-worker.md 신규(6단계 분석 방법론), content-worker.md 신규(슬롭 점검+편집=삭제)
+- **Anti-Slop 원칙** — quality-pipeline.md에 콘텐츠 품질 원칙 추가. 템플릿 냄새 감지, 프레임워크 남용 방지, 소스 체이닝
+- **A-Team-1 → a-team 통합** — 중복 clone 제거, 단일 디렉토리로 통합
 
-**빌드**: ✅ 576 tests PASS (49 files), 기존 flaky 1건 (ppt-benchmark-audit)
+**빌드**: ✅ 563 tests PASS, 기존 flaky 1건 (ppt-benchmark-audit)
 
 ## Last Completions (2026-05-22) — Wiring Integrity + Scheduled Reviews
 
@@ -87,21 +85,7 @@
 
 **빌드**: ✅ 558 tests PASS (47 files), 0 failed
 
-## Last Completions (2026-05-21) — Multi-Agent 지원 + 문서 hygiene
-
-- **AGENTS.md 신설** — 에이전트 무관 universal 컨텍스트 (74개 커맨드 목록, 작업 원칙, 완성 선언 규칙)
-- **CLAUDE.md 레이어 분리** — Claude Code 전용 오케스트레이션만 담도록 슬림화
-- **GEMINI.md 자동 생성** — Gemini CLI 지원 추가 (Codex·Gemini·Cursor 멀티 에이전트 대응)
-- **scripts/sync-agents.mjs** — commands 변경 시 AGENTS.md + GEMINI.md 자동 재생성 (pre-commit hook)
-- **install-commands.sh** — 프로젝트별 AGENTS.md 배포 (Windows mklink + fallback)
-- **vibe-init.sh** — 세션 시작 시 AGENTS.md + GEMINI.md 자동 최신화
-- **scripts/vibe-init.sh** — symlink 검사 grep -qi (대소문자 무시) 수정 + launchd macOS 가드
-- **문서 drift 3건 수정** — README 537→531, package.json ISC→MIT, PROTOCOL.md 깨진 참조 3개
-- **governance/rules/lifecycle.md** — 커맨드 상한선 60→80 현실화 + 모라토리엄 명시
-- **CURRENT.md 165줄** — 2주 초과 완료항목 이관 (200줄 규칙 준수)
-- **launchctl 무음 실패 제거** — 4개 cron 스크립트 Windows에서 명시적 경고 후 exit
-
-## Last Completions (2026-05-16 이전)
+## Last Completions (2026-05-22 이전)
 → [.context/SESSIONS.md](SESSIONS.md) 참조
 
 ## 다음 우선순위
@@ -120,17 +104,17 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 
 ## Next Tasks
 
-### High Priority (이사회 결의 2026-05-13)
-- [ ] **제품 출시** — 별도 세션 빌드 완료 즉시 배포 (브랜딩 확정 후)
+### High Priority (PRD 기반)
+- [ ] **제품 빌드 시작** — 커넥톰 등 프로젝트 A-Team으로 실전 빌드 (플라이휠 증거)
+- [ ] **자동화 배선 강화** — daily-brief/growth-engine이 의장 호출 없이 자동 실행
+- [ ] **제품 경계 확정** — 74개 커맨드 → 핵심/보조/비핵심 분류
 - [ ] **브랜딩 확정 → Postiz OAuth + 소셜 계정 + 첫 발행** — 브랜딩 대기 중
-- [ ] **인프라 모라토리엄** — 제품 출시 전 새 커맨드/에이전트 빌드 금지
 
 ### Medium Priority
-- [ ] **PPT 원칙 레퍼런스 파싱** — WSJ 가이드 (Scribd PDF) 파싱 → PPT 기본 원칙 구축
-- [ ] **skt_statistics 디자인 토큰 주입** — GitLab clone → drift 분석 → 토큰 적용 (URL 대기)
-- [ ] **`/autoresearch` 파일럿 실행** — `/office-hours` baseline + 3-5 experiments
-- [ ] **`/blueprint` 실사용 1회** — 다음 기능을 blueprint로 문서화
-- [ ] **Phase 1.5 skip rate 실측** (pre-check 에이전트 첫 데이터)
+- [ ] **do-better 마이그레이션 Phase 2** — Wiki 복리 시스템 도입 (SCHEMA + wiki-ingest + wiki-lint)
+- [ ] **do-better 마이그레이션 Phase 3** — transcript-organizer + web-crawler-ocr 포팅
+- [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정 (PRD 성공 기준 기반)
+- [ ] **Stryker 첫 full run** — mutation score baseline 측정
 
 ### Low Priority / Future
 - [ ] Phase 1 Causal analysis (**보류**: 데이터 축적 후)

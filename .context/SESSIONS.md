@@ -2,6 +2,22 @@
 
 ---
 
+## [2026-05-23] Quality Pipeline + PRD + do-better 마이그레이션
+
+**완료**:
+- Quality Pipeline 3-Layer (property-based + mutation + fitness + Layer 2 자동 리뷰 + CI mutation job)
+- Branch Protection 설정 (master PR+CI 필수)
+- A-Team PRD v1.0 작성 (/office-hours Amazon 모드 → PR/FAQ → PRD)
+- 핵심 발견: 74개 중 5개만 사용, 인간 호출 의존 구조
+- PRD Gate (governance/rules/prd-gate.md + vibe Step 0.9) — PRD 없이 빌드 금지
+- do-better-workspace-v2 라인바이라인 분석 (119파일, 23K줄, 22 skills, 5 agents)
+- do-better 마이그레이션 Phase 1: researcher 소스 체이닝 업그레이드, analysis-worker/content-worker 신규 (슬롭 점검+6단계 분석)
+- Anti-Slop 원칙 quality-pipeline.md 반영
+- A-Team-1 → a-team 중복 clone 통합
+- bypass 모드 활성화
+**이슈**: 없음
+**빌드**: ✅ 563 tests PASS (기존 flaky 1건)
+
 ## [2026-05-23] Quality Pipeline + 탑 클래스 개발 프로세스
 
 **완료**:
