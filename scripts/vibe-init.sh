@@ -154,6 +154,16 @@ if [ -f "improvements/pending.md" ]; then
   [ "$PENDING_P0" -gt 0 ] && add_alert "P0: ${PENDING_P0}"
 fi
 
+# === Step 0.7: Daily Brief 자동 수집 ===
+if [ "$(basename "$(pwd -P)")" = "a-team" ]; then
+  TODAY=$(date +%Y-%m-%d)
+  BRIEF_DIR=".context/briefs"
+  mkdir -p "$BRIEF_DIR" 2>/dev/null
+  if [ ! -f "${BRIEF_DIR}/${TODAY}-collect.json" ]; then
+    node scripts/daily-brief-collect.mjs --save 2>/dev/null && add_alert "daily-brief: collected" || true
+  fi
+fi
+
 # === Git 상태 ===
 GIT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 GIT_DIRTY=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ' || echo 0)
