@@ -111,24 +111,8 @@
 
 ### 방법론 시그널 (자동 전환, 명시 호출 불필요)
 
-사용자 작업 지시에 **시그널 단어**가 포함되면 해당 방법론을 자동 적용한다.
-제안이 아니라 **즉시 적용**. 사용자는 시그널 한 마디만 하면 됨.
-
-| 시그널 | 방법론 | Claude 행동 |
-|--------|--------|-------------|
-| "실패하면 Y여야 해", "X면 에러" | Contract-First | 타입 + 실패 테스트 먼저 → 구현 |
-| "확실히 맞아야 해", "절대 깨지면 안 돼" | TDD + Mutation | Red-Green-Refactor + 코드 변형 검증 |
-| "이상한 입력도 버텨야 해", "엣지 케이스" | Property-Based | fast-check 랜덤 불변조건 검증 |
-| "지금 출력 그대로 유지해", "회귀 방지" | Golden Master | 현재 출력 스냅샷 → 변경 시 diff |
-| "보안 중요", "인증", "결제" | Security-First | CSO 사전 스캔 + OWASP 체크 |
-| "큰 리팩토링", "전면 교체" | Strangler Fig | 감싸고 점진 이관. 한 번에 안 바꿈 |
-| "프로토타입", "빠르게 확인" | Spike & Stabilize | 최소 구현 → 동작 확인 → 테스트 고정 |
-| "처음부터", "새 프로젝트" | Walking Skeleton | E2E 파이프라인 먼저 → 살 붙이기 |
-| "아직 미완성인데 배포" | Feature Flags | 플래그로 감싸서 안전 배포 |
-| "다른 방법은?", "비교해봐" | ADR | 옵션 매트릭스 + 트레이드오프 문서화 |
-| "의존성 정리", "결합도" | Fitness Functions | 순환 참조/결합도 자동 측정 |
-
-상세: `governance/rules/quality-pipeline.md`
+시그널 단어 포함 시 해당 방법론 즉시 적용. "확실히" → TDD+Mutation, "엣지 케이스" → Property-Based, "큰 리팩토링" → Strangler Fig, "보안 중요" → Security-First 등 11개.
+상세 테이블: `governance/rules/quality-pipeline.md` "개발 방법론 시그널 사전"
 
 ### 마케팅/콘텐츠
 | 감지 패턴 | 제안 |
@@ -158,50 +142,7 @@
 
 ## 빌드 완료 시 자동 품질 게이트 (Quality Pipeline Layer 2)
 
-사용자에게 "완료" 보고하기 **직전**, `/end` 호출 **이전**에 자동 실행.
-사용자가 별도로 호출할 필요 없음. Claude가 구현 완료 판단 시 즉시 수행.
-
-### 트리거 조건
-
-| 조건 | 자동 실행 | 모델 |
-|------|----------|------|
-| 변경 파일 3+ | Adversarial mini-review | Haiku |
-| 보안 민감 패턴 감지 (auth/crypto/payment/sql/eval 등) | CSO mini-scan | Haiku |
-| 새 export 함수 생성 | 테스트 존재 확인 | 0 (파일 검색) |
-
-### 실행 흐름
-
-```
-코드 작성 완료
-  ↓
-자동 게이트 (Claude 판단, 사용자 개입 0):
-  1. git diff → 변경 파일 수 + 보안 패턴 스캔
-  2. 조건 충족 시 Haiku 서브에이전트로 경량 리뷰
-  3. 새 export → 테스트 파일 존재 확인
-  ↓
-결과 보고 (1-3줄):
-  - LOW/MED: "리뷰 완료. 이슈 없음." → 사용자에게 완료 보고
-  - HIGH: "보안 이슈 발견: [내용]. 수정할까요?" → 수정 후 완료 보고
-  ↓
-사용자: "OK" → /end (순수 종료: 커밋+push+상태저장+교훈기록)
-```
-
-### 보안 민감 패턴 목록
-
-```
-auth, login, session, token, jwt, oauth, password, credential,
-crypto, encrypt, decrypt, hash, secret, key, cert,
-payment, billing, charge, stripe, paypal,
-sql, query, exec, eval, innerHTML, dangerouslySetInnerHTML,
-cors, origin, cookie, csrf, xss, sanitize,
-admin, role, permission, privilege, sudo, root
-```
-
-### 원칙
-
-- `/end`는 종료 + 교훈 저장 명령. 리뷰/수정은 `/end` 이전에 끝나야 함.
-- 리뷰 결과 LOW/MED면 1줄 보고 후 진행. HIGH면 수정 제안 후 사용자 판단 대기.
-- 사용자가 "리뷰 스킵" 명시하면 즉시 완료 보고.
+구현 완료 → `/end` 이전에 자동 실행. 변경 3+ 파일 시 Haiku adversarial, 보안 패턴 감지 시 CSO mini-scan, 새 export 시 테스트 존재 확인. `/end`는 리뷰 끝난 상태에서 종료+교훈 저장만.
 
 상세: `governance/rules/quality-pipeline.md`
 
