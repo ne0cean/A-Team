@@ -60,6 +60,18 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-24) — 순차 시행 7건
+
+- **P0 Analytics tracking 복구** — 75/77 커맨드에 log-event.mjs wired (scripts/wire-analytics.sh 일괄). 2개 심링크(prjt/todo) 글로벌 관리.
+- **Cortex 6기둥 완성** — pillars/ 디렉토리 생성, staging에서 353파일 이동 (character 38 + mo-chuisle 63 + string 28 + interstellar 95 + life-x-lab 96 + snowball 33). PARA 병행 유지.
+- **대시보드 상시업무 시스템** — templates.json + API 3개 (GET/POST /api/templates, POST /api/inject) + 하단 UI (추가/삭제/오늘에 주입, 중복 방지).
+- **대시보드 UX 개선** — Enter→같은 카테고리 새 항목 생성, 빈 항목 Backspace 삭제, 항목 즉시 편집, Ctrl+Z 지원.
+- **OneNote 6기둥 완전 이관** — migrate-staging.py 재실행, Life Xlab 96 + Snowball 33 새로 다운로드. staging↔cortex 353:353 완전 일치 확인.
+- **자동화 배선 강화** — vibe-init.sh Step 0.7 daily-brief 자동 수집 (당일 brief 없으면 collect.mjs 실행).
+- **Wiki 복리 시스템 (do-better Phase 2)** — wiki-ingest.mjs (6기둥 키워드 자동 분류 + inbox 스캔 + 이동), wiki-lint.mjs (중복 8건/깨진링크 18건/빈파일/frontmatter 검사). cortex 770파일 lint 완료.
+
+**빌드**: 563 tests PASS
+
 ## Last Completions (2026-05-23) — Cortex 통합 + Ritual Dashboard + OneNote 마이그레이션
 
 - **Cortex 통합 (961 files)** — OneNote InterStellar 447페이지 cortex 분류 완료 (areas/projects/archives). 6 Hexagonal Pillars (Cha/Fam/Soli/Inter/Life/Ass) 구조 확인. Connectome 관련 31페이지 별도 분류. classify.py 2회 실행.
@@ -112,14 +124,14 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **OneNote 마이그레이션 완료** — 360페이지 남음 (6기둥 섹션). 재인증 후 migrate-staging.py 실행
-- [ ] **Cortex 6기둥 재분류** — 기존 areas/projects → 6 Hexagonal Pillars 중심 구조 전환
-- [ ] **대시보드 하단 섹션 마이그레이션** — 상시 업무/Yearly/Monthly → 자동 주입 시스템 설계
+- [x] ~~OneNote 마이그레이션 완료~~ — 353파일 6기둥 완전 이관 (2026-05-24)
+- [x] ~~Cortex 6기둥 재분류~~ — pillars/ 353파일 (2026-05-24)
+- [x] ~~대시보드 하단 섹션 마이그레이션~~ — templates API + UI (2026-05-24)
 - [ ] **제품 빌드 시작** — 커넥톰 등 프로젝트 A-Team으로 실전 빌드 (플라이휠 증거)
-- [ ] **자동화 배선 강화** — daily-brief/growth-engine이 의장 호출 없이 자동 실행
+- [x] ~~자동화 배선 강화~~ — vibe-init daily-brief 자동 수집 (2026-05-24)
 
 ### Medium Priority
-- [ ] **do-better 마이그레이션 Phase 2** — Wiki 복리 시스템 도입 (SCHEMA + wiki-ingest + wiki-lint)
+- [x] ~~do-better 마이그레이션 Phase 2~~ — wiki-ingest + wiki-lint (2026-05-24)
 - [ ] **do-better 마이그레이션 Phase 3** — transcript-organizer + web-crawler-ocr 포팅
 - [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정 (PRD 성공 기준 기반)
 - [ ] **Stryker 첫 full run** — mutation score baseline 측정
