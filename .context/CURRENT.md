@@ -60,6 +60,22 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-24) — 글로벌 스킬/에이전트 대규모 구축 + OneNote 완료
+
+- **글로벌 스킬 11개 신규 구축** — `/launchd`(macOS job 관리), `/notify`(텔레그램 3곳 통합), `/watchdog`(프로세스 감시 4곳 통합), `/sync-templates`(CLAUDE.md 18개 프로젝트 drift 동기화), `/deploy-device`(ADB 배포), `/pwa-setup`(모바일 UX 체크리스트), `/sms-relay`(iPhone OTP 릴레이), `/portfolio`(포트폴리오 교차 분석), `/data-race`(엑셀 블리츠), `/cortex-graph`(지식 그래프 추출), `session-handoff.sh`(범용 pickup/end)
+- **에이전트 1개 신규** — `data-racer.md` (복잡도 자동 판정 + 병렬 분석)
+- **디자인 모듈 강화** — AI-09~15 anti-slop 룰 7개 추가 (taste-skill 흡수). DESIGN.md 72개 브랜드 레퍼런스 수집 (`reference/design-systems/`). Design Taste Evaluator 3-Phase 설계 완료.
+- **OneNote InterStellar 562파일 다운로드** — Azure AD 앱 등록 + device code flow 인증. staging에 562파일 저장. 기존 353 + 신규 562 = 915파일 총 확보.
+- **Ritual Board 모바일 접근** — server.mjs 0.0.0.0 바인딩. `http://192.168.20.31:7843` 폰에서 접근 가능.
+- **대시보드 25일 버그 수정** — 비오늘 날짜에서 빈 카테고리 미표시 → 항목 추가 불가 fix (`_editing` 플래그).
+- **보호 설정 5개 프로젝트** — a-team/Trading/connectome/claude-remote/mole `settings.local.json`에 deny 규칙 추가 (bypass 모드에서도 핵심 영역 보호).
+- **VDI 동기화 설계** — 사내 서버 GitLab CE Docker 확정. Confluence 중계 ❌, Gitea ❌.
+- **디자인 5개 레포 레드팀 분석** — design.md SKIP(이미 구현), taste-skill REFERENCE_ONLY(4개 룰 흡수), awesome-design-md REFERENCE_ONLY, stitch-skills SKIP, figma-implement-design REFERENCE_ONLY.
+- **agentskills 검토** — A-Team 커맨드와 철학 동일, name 필드만 추가하면 호환. 즉시 마이그레이션 불필요.
+- **YouTube 파이프라인 통합 제안** — extract/analyze/knowledge 3 서브커맨드 설계. Trading dense+phash 패턴 범용화.
+
+**빌드**: ✅ 570 tests PASS
+
 ## Last Completions (2026-05-24) — 순차 시행 7건
 
 - **P0 Analytics tracking 복구** — 75/77 커맨드에 log-event.mjs wired (scripts/wire-analytics.sh 일괄). 2개 심링크(prjt/todo) 글로벌 관리.
@@ -131,17 +147,15 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [x] ~~OneNote 마이그레이션 완료~~ — 353파일 6기둥 완전 이관 (2026-05-24)
-- [x] ~~Cortex 6기둥 재분류~~ — pillars/ 353파일 (2026-05-24)
-- [x] ~~대시보드 하단 섹션 마이그레이션~~ — templates API + UI (2026-05-24)
 - [ ] **제품 빌드 시작** — 커넥톰 등 프로젝트 A-Team으로 실전 빌드 (플라이휠 증거)
-- [x] ~~자동화 배선 강화~~ — vibe-init daily-brief 자동 수집 (2026-05-24)
+- [ ] **Design Taste Evaluator 구현** — INDEX.md 구축 → taste-evaluator.md 에이전트 → designer 연결 (3-Phase)
+- [ ] **VDI GitLab CE 설치** — 사내 서버 VM 확보 → Docker 설치 → cortex/ 동기화
 
 ### Medium Priority
-- [x] ~~do-better 마이그레이션 Phase 2~~ — wiki-ingest + wiki-lint (2026-05-24)
-- [x] ~~do-better 마이그레이션 Phase 3~~ — transcript-organizer + web-crawler-ocr 포팅 (2026-05-24)
 - [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정 (PRD 성공 기준 기반)
 - [ ] **Stryker 첫 full run** — mutation score baseline 측정
+- [ ] **OneNote staging 562파일 분류** — cortex/pillars 등으로 정리
+- [ ] **Ritual Board 이름/구조 확정** — 하단 섹션 별도 탭 vs 통합
 
 ### Low Priority / Future
 - [ ] Phase 1 Causal analysis (**보류**: 데이터 축적 후)
@@ -157,7 +171,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 2026-04-18 이전 세션 기록 → [.context/SESSIONS.md](SESSIONS.md)
 
 ## Blockers
-- OneNote API 토큰 만료 — 재인증 필요 (device code flow). 360페이지 미완료.
+- VDI GitLab CE — 사내 서버(VM) 확보 필요 (IT팀 협의)
 
 ## 배포 현황
 - GitHub: https://github.com/ne0cean/A-Team (master)
