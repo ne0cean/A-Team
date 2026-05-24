@@ -54,68 +54,71 @@ err_log_path() {
   echo "${LOG_DIR}/${label}.error.log"
 }
 
-# interval 파싱 → plist XML 스니펫 반환
-# 출력: TYPE=interval|calendar  VALUE=<seconds>|<xml-dict-body>
+# interval 파싱 → 전역 변수로 결과 반환 (eval/subshell 없이 XML 안전 처리)
+# 설정: _IV_TYPE=interval|calendar, _IV_SECONDS, _IV_CAL_PRETTY
+_IV_TYPE=""
+_IV_SECONDS=""
+_IV_CAL_PRETTY=""
+
 parse_interval() {
   local spec="$1"
+  _IV_TYPE="" _IV_SECONDS="" _IV_CAL_PRETTY=""
 
   # every Xm / every Xh
   if [[ "$spec" =~ ^every[[:space:]]+([0-9]+)(m|h)$ ]]; then
-    local n="${BASH_REMATCH[1]}"
-    local unit="${BASH_REMATCH[2]}"
-    local seconds
+    local n="${BASH_REMATCH[1]}" unit="${BASH_REMATCH[2]}"
+    _IV_TYPE="interval"
     if [[ "$unit" == "m" ]]; then
-      seconds=$(( n * 60 ))
+      _IV_SECONDS=$(( n * 60 ))
     else
-      seconds=$(( n * 3600 ))
+      _IV_SECONDS=$(( n * 3600 ))
     fi
-    echo "TYPE=interval"
-    echo "SECONDS=${seconds}"
     return 0
   fi
 
   # daily HH:MM
   if [[ "$spec" =~ ^daily[[:space:]]+([0-9]{1,2}):([0-9]{2})$ ]]; then
-    local hour="${BASH_REMATCH[1]}"
-    local minute="${BASH_REMATCH[2]}"
-    echo "TYPE=calendar"
-    echo "CALENDAR_XML=<key>Hour</key><integer>${hour}</integer><key>Minute</key><integer>${minute}</integer>"
+    _IV_TYPE="calendar"
+    _IV_CAL_PRETTY="        <key>Hour</key>
+        <integer>${BASH_REMATCH[1]}</integer>
+        <key>Minute</key>
+        <integer>${BASH_REMATCH[2]}</integer>"
     return 0
   fi
 
   # weekly WEEKDAY HH:MM  (0=일 ... 6=토)
   if [[ "$spec" =~ ^weekly[[:space:]]+([0-6])[[:space:]]+([0-9]{1,2}):([0-9]{2})$ ]]; then
-    local weekday="${BASH_REMATCH[1]}"
-    local hour="${BASH_REMATCH[2]}"
-    local minute="${BASH_REMATCH[3]}"
-    echo "TYPE=calendar"
-    echo "CALENDAR_XML=<key>Weekday</key><integer>${weekday}</integer><key>Hour</key><integer>${hour}</integer><key>Minute</key><integer>${minute}</integer>"
+    _IV_TYPE="calendar"
+    _IV_CAL_PRETTY="        <key>Weekday</key>
+        <integer>${BASH_REMATCH[1]}</integer>
+        <key>Hour</key>
+        <integer>${BASH_REMATCH[2]}</integer>
+        <key>Minute</key>
+        <integer>${BASH_REMATCH[3]}</integer>"
     return 0
   fi
 
   # cron MIN HOUR DOM MON DOW  (5-field)
   if [[ "$spec" =~ ^cron[[:space:]]+(.+)$ ]]; then
+    local IFS=' '
+    set -f  # glob 확장 비활성화 (* 문자 보호)
     local fields=( ${BASH_REMATCH[1]} )
+    set +f  # glob 확장 복원
     if [[ "${#fields[@]}" -ne 5 ]]; then
       echo "ERROR: cron spec must have exactly 5 fields (min hour dom mon dow)" >&2
       exit 1
     fi
-    local min="${fields[0]}"
-    local hour="${fields[1]}"
-    local dom="${fields[2]}"
-    local mon="${fields[3]}"
-    local dow="${fields[4]}"
-
+    local min="${fields[0]}" hour="${fields[1]}" dom="${fields[2]}" mon="${fields[3]}" dow="${fields[4]}"
+    _IV_TYPE="calendar"
     local xml=""
-
-    [[ "$min"  != "*" ]] && xml+="<key>Minute</key><integer>${min}</integer>"
-    [[ "$hour" != "*" ]] && xml+="<key>Hour</key><integer>${hour}</integer>"
-    [[ "$dom"  != "*" ]] && xml+="<key>Day</key><integer>${dom}</integer>"
-    [[ "$mon"  != "*" ]] && xml+="<key>Month</key><integer>${mon}</integer>"
-    [[ "$dow"  != "*" ]] && xml+="<key>Weekday</key><integer>${dow}</integer>"
-
-    echo "TYPE=calendar"
-    echo "CALENDAR_XML=${xml}"
+    [[ "$min"  != "*" ]] && xml+="        <key>Minute</key>\n        <integer>${min}</integer>\n"
+    [[ "$hour" != "*" ]] && xml+="        <key>Hour</key>\n        <integer>${hour}</integer>\n"
+    [[ "$dom"  != "*" ]] && xml+="        <key>Day</key>\n        <integer>${dom}</integer>\n"
+    [[ "$mon"  != "*" ]] && xml+="        <key>Month</key>\n        <integer>${mon}</integer>\n"
+    [[ "$dow"  != "*" ]] && xml+="        <key>Weekday</key>\n        <integer>${dow}</integer>\n"
+    # printf %b로 \n 변환 후 마지막 빈 줄 제거
+    _IV_CAL_PRETTY="$(printf '%b' "$xml")"
+    _IV_CAL_PRETTY="${_IV_CAL_PRETTY%$'\n'}"
     return 0
   fi
 
@@ -168,22 +171,26 @@ create_job() {
     launchctl unload "$plist" 2>/dev/null || true
   fi
 
-  # interval 파싱
-  local parsed
-  parsed=$(parse_interval "$interval")
-  eval "$parsed"
+  # interval 파싱 (전역 변수 _IV_* 에 결과 저장)
+  parse_interval "$interval"
 
   # 로그 디렉토리 보장
   mkdir -p "$LOG_DIR"
 
-  # command를 ProgramArguments 배열로 분해
-  # bash -c "..." 형태로 래핑하여 파이프/리다이렉트 지원
-  local prog_args
-  prog_args="$(printf '        <string>/bin/bash</string>\n        <string>-c</string>\n        <string>%s</string>' "$cmd")"
+  local log_out err_out
+  log_out=$(log_path "$name")
+  err_out=$(err_log_path "$name")
+
+  # XML 특수문자 이스케이프 (& < > " 순서 중요: &가 먼저)
+  local cmd_xml
+  cmd_xml="${cmd//&/&amp;}"
+  cmd_xml="${cmd_xml//</&lt;}"
+  cmd_xml="${cmd_xml//>/&gt;}"
+  cmd_xml="${cmd_xml//\"/&quot;}"
 
   # plist 생성
-  if [[ "${TYPE:-}" == "interval" ]]; then
-    cat > "$plist" <<EOF
+  if [[ "$_IV_TYPE" == "interval" ]]; then
+    cat > "$plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -192,31 +199,23 @@ create_job() {
     <string>${label}</string>
     <key>ProgramArguments</key>
     <array>
-${prog_args}
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>${cmd_xml}</string>
     </array>
     <key>StartInterval</key>
-    <integer>${SECONDS}</integer>
+    <integer>${_IV_SECONDS}</integer>
     <key>StandardOutPath</key>
-    <string>$(log_path "$name")</string>
+    <string>${log_out}</string>
     <key>StandardErrorPath</key>
-    <string>$(err_log_path "$name")</string>
+    <string>${err_out}</string>
     <key>RunAtLoad</key>
     <false/>
 </dict>
 </plist>
-EOF
+PLIST
   else
-    # calendar 타입 — XML을 pretty하게 변환
-    local cal_xml="${CALENDAR_XML}"
-    local cal_pretty=""
-    # 각 key/integer 쌍을 줄바꿈으로 분리
-    cal_pretty=$(echo "$cal_xml" | sed \
-      -e 's|<key>|\n        <key>|g' \
-      -e 's|<integer>|\n        <integer>|g' \
-      -e 's|</integer>|</integer>|g' \
-      | grep -v '^$')
-
-    cat > "$plist" <<EOF
+    cat > "$plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -225,21 +224,23 @@ EOF
     <string>${label}</string>
     <key>ProgramArguments</key>
     <array>
-${prog_args}
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>${cmd_xml}</string>
     </array>
     <key>StartCalendarInterval</key>
     <dict>
-${cal_pretty}
+${_IV_CAL_PRETTY}
     </dict>
     <key>StandardOutPath</key>
-    <string>$(log_path "$name")</string>
+    <string>${log_out}</string>
     <key>StandardErrorPath</key>
-    <string>$(err_log_path "$name")</string>
+    <string>${err_out}</string>
     <key>RunAtLoad</key>
     <false/>
 </dict>
 </plist>
-EOF
+PLIST
   fi
 
   # launchctl load

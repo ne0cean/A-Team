@@ -272,7 +272,7 @@ const server = createServer((req, res) => {
   res.end('Not found');
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Cortex Dashboard: http://localhost:${PORT}`);
   console.log(`Data: ${DATA_DIR}`);
 });
