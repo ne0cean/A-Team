@@ -1,7 +1,7 @@
-# Design Anti-Patterns — 24 Detection Rules
+# Design Anti-Patterns — 31 Detection Rules
 
-> **출처**: Impeccable (pbakaus, Google/Anthropic) 24 정량 anti-pattern + A-Team 확장.
-> **구현 현황**: `lib/design-smell-detector.ts`에 **22개 static rule 구현** (v3, 2026-04-18) — AI-01..08 (포함 AI-07 signal), RD-01/02/03/04/05/06, A11Y-01..05, LS-01/02/03. 나머지 2개는 LLM critique (PL-01 tone mismatch, PL-02 missing personality) — design-auditor 에이전트가 처리.
+> **출처**: Impeccable (pbakaus, Google/Anthropic) 24 정량 anti-pattern + A-Team 확장 + taste-skill (Leonxlnx) anti-slop 신규 7개 (2026-05-24).
+> **구현 현황**: `lib/design-smell-detector.ts`에 **22개 static rule 구현** (v3, 2026-04-18) — AI-01..08 (포함 AI-07 signal), RD-01/02/03/04/05/06, A11Y-01..05, LS-01/02/03. 나머지 2개는 LLM critique (PL-01 tone mismatch, PL-02 missing personality) — design-auditor 에이전트가 처리. **AI-09..15 (7개) 문서 추가됨 — detector 구현 대기.**
 > **보안 가드**: 입력 content > 2MB 시 detector 조기 반환 (regex DoS 방지). 파일 경로는 **메타데이터 전용** — detector는 파일을 읽지 않음.
 > **사용처**: design-auditor 서브에이전트, `/qa --design`, PR 머지 전 게이트.
 
@@ -9,7 +9,7 @@
 
 ## 분류
 
-- **AI Slop** (8) — LLM이 기본값으로 회귀 시 나오는 전형적 패턴
+- **AI Slop** (15) — LLM이 기본값으로 회귀 시 나오는 전형적 패턴 (AI-01..08 detector 구현, AI-09..15 문서 추가)
 - **Readability** (6) — 가독성 저하
 - **A11y** (5) — 접근성 위반 (비협상)
 - **Layout/Spacing** (3) — 그리드 일관성
@@ -17,7 +17,7 @@
 
 ---
 
-## AI Slop (8)
+## AI Slop (15)
 
 ### [AI-01] Purple Gradient
 **감지**: CSS/JSX에 다음 패턴 중 1개:
@@ -78,6 +78,65 @@
 - Lorem ipsum (`lorem`, `ipsum`, `dolor sit amet`)
 
 **Fix**: 도메인 구체 카피로 교체.
+
+### [AI-09] Pure Black Color
+**감지**: 색상 값이 순수 검정:
+- `#000000` / `rgb(0, 0, 0)` / `black` (CSS keyword)
+- Tailwind `text-black` / `bg-black` / `border-black`
+
+**예외**: SVG 아이콘 `fill="currentColor"` 또는 `currentColor` 상속 컨텍스트.
+**Fix**: Off-Black 계열로 교체. `#0a0a0a`, `zinc-950`, `slate-950`, `gray-950`.
+
+### [AI-10] Gradient Text on Large Headings
+**감지**: 대형 헤딩에 텍스트 그라디언트:
+- `background-clip: text` + `color: transparent` + heading 요소 (h1~h3)
+- Tailwind `bg-clip-text text-transparent` + `text-[3xl|4xl|5xl|6xl|7xl|8xl|9xl]`
+- `-webkit-background-clip: text; -webkit-text-fill-color: transparent`
+
+**예외**: `text-lg` 이하 소형 레이블/배지에 사용 시 허용. tone=`playful` 선언 시 warning only.
+**Fix**: 단색 텍스트 + weight/size 위계로 강조. 그라디언트는 배경 요소에만.
+
+### [AI-11] Custom Mouse Cursor
+**감지**: 마우스 커서 커스터마이징:
+- `cursor: url(...)` (이미지 커서)
+- `cursor: none` + JS로 DOM 기반 커서 구현 (`className.*cursor` / `id.*cursor` / `cursor-follower`)
+- `document.body.style.cursor = 'none'`
+
+**Fix**: 시스템 기본 커서 유지. 인터랙티브 요소에는 `cursor-pointer` 등 표준 Tailwind cursor 클래스만 허용.
+
+### [AI-12] Oversized Hero Heading
+**감지**: hero/랜딩 첫 번째 h1의 폰트 사이즈가 과도하게 큼:
+- `text-[8xl|9xl]` (Tailwind) 또는 `font-size >= 96px`
+- viewport width의 20% 초과 (vw 단위: `font-size: 20vw+`)
+
+**예외**: `DESIGN_VARIANCE > 7` 또는 tone=`brutalist`/`bold-typographic` 선언 시 warning only.
+**Fix**: 최대 `text-7xl` (72px). 위계는 weight (`font-black`) + color contrast + spacing 조합으로.
+
+### [AI-13] Placeholder Person Names
+**감지**: 목업/데모 데이터에 전형적 placeholder 인명:
+- `John Doe`, `Jane Doe`, `Sarah Chan`, `Jack Su`, `Test User`, `Sample User`
+- 성(surname) 없이 `John`, `Jane` 단독 + 주변에 avatar/card 구조
+
+**Fix**: 맥락에 맞는 구체적 이름 사용. 다국적 구성 권장. 실제처럼 보이는 유기적 이름으로 교체.
+
+### [AI-14] Generic Avatar Placeholder
+**감지**: 아바타/프로필 영역에 기본 SVG 실루엣:
+- Lucide/Heroicons의 `UserIcon`, `User2Icon` 직접 아바타로 사용
+- SVG path가 사람 실루엣 표현 (`M12 12 c... circle head + body outline`)
+- `bg-gray-200` / `bg-gray-300` + 내부 user 아이콘 조합 (egg avatar 패턴)
+
+**예외**: icon button의 `aria-label` 용도 (A11Y-02 범위). 네비게이션 내 계정 메뉴 아이콘.
+**Fix**: `picsum.photos/seed/{name}/64/64`, UI Avatars (`ui-avatars.com/api/?name=...`), 이니셜 기반 컬러 배지.
+
+### [AI-15] Fake Round Numbers
+**감지**: 통계/지표 섹션에 과도하게 반올림된 숫자:
+- `99.99%`, `99.9%`, `100%`, `50%`, `10x`, `3x` (정확히 이 값들)
+- `1,000,000`, `1000000` (백만 단위 정수)
+- `$1M`, `$10M`, `$100M` (M 단위 정수)
+- 전화번호 패턴: `1234567`, `000-0000`, `(555) 555-5555`
+
+**예외**: 실제 측정값 또는 SLA 계약 수치 (코멘트로 명시 시).
+**Fix**: 유기적이고 불규칙한 수치 사용. `47.2%`, `+1 (312) 847-1928`, `$2.3M`, `8,431`.
 
 ---
 
