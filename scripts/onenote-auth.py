@@ -1,132 +1,96 @@
 #!/usr/bin/env python3
-"""OneNote API - MSAL Device Code Flow 인증 + 토큰 저장"""
+"""OneNote API - Live Connect OAuth2 (개인 Microsoft 계정 전용)
+로컬 서버로 redirect 받아 토큰 획득. Azure AD 불필요.
+"""
 
 import json
+import http.server
 import sys
 import time
+import urllib.request
+import urllib.parse
+import webbrowser
+import threading
 from pathlib import Path
-import msal
 
-# Microsoft public client for native apps (supports personal accounts + device code)
-CLIENT_ID = "1950a258-227b-4e31-a9cf-717495945fc2"  # Azure PowerShell
-AUTHORITY = "https://login.microsoftonline.com/consumers"
-SCOPES = ["Notes.Read", "User.Read"]
+# Live Connect에서는 별도 앱 등록 없이 사용 가능한 공개 클라이언트 없음
+# → https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps 대신
+# → https://apps.dev.microsoft.com 또는 Entra admin center에서 등록
+#
+# 대안: Microsoft Graph에 직접 interactive login
+# 아래는 localhost redirect 방식
 
 TOKEN_FILE = Path(__file__).parent.parent / "cortex" / ".onenote-token.json"
-CACHE_FILE = Path(__file__).parent.parent / "cortex" / ".onenote-msal-cache.json"
+
+# ── 방법 1: Interactive browser login (가장 단순) ──
+# MSAL이 설치되어 있으므로 interactive flow 사용 (device code 대신)
+
+import msal
+
+CLIENT_ID = "1950a258-227b-4e31-a9cf-717495945fc2"
+AUTHORITY = "https://login.microsoftonline.com/consumers"
+SCOPES = ["https://graph.microsoft.com/Notes.Read"]
+
+PORT = 8400  # localhost redirect port
 
 
-def get_cache():
-    cache = msal.SerializableTokenCache()
-    if CACHE_FILE.exists():
-        cache.deserialize(CACHE_FILE.read_text())
-    return cache
-
-
-def save_cache(cache):
-    if cache.has_state_changed:
-        CACHE_FILE.write_text(cache.serialize())
-
-
-def get_app(cache=None):
-    return msal.PublicClientApplication(
+def interactive_login():
+    """브라우저 팝업 → 로그인 → localhost로 redirect → 토큰 획득"""
+    app = msal.PublicClientApplication(
         CLIENT_ID,
         authority=AUTHORITY,
-        token_cache=cache,
     )
 
+    # Interactive flow - 브라우저가 자동으로 열림
+    print("브라우저에서 Microsoft 로그인 창이 열립니다...")
+    print("로그인 후 자동으로 토큰을 받습니다.\n")
 
-def device_code_flow():
-    cache = get_cache()
-    app = get_app(cache)
-
-    # 캐시에서 기존 계정 확인
-    accounts = app.get_accounts()
-    if accounts:
-        print(f"기존 계정 발견: {accounts[0]['username']}")
-        result = app.acquire_token_silent(SCOPES, account=accounts[0])
-        if result and "access_token" in result:
-            save_cache(cache)
-            save_token(result)
-            print("캐시에서 토큰 획득 성공!")
-            return result
-
-    # Device code flow 시작
-    flow = app.initiate_device_flow(scopes=SCOPES)
-    if "user_code" not in flow:
-        print(f"Device flow 실패: {flow.get('error_description', flow)}")
-        return None
-
-    print("\n" + "=" * 50)
-    print(f"  브라우저에서 열기: {flow['verification_uri']}")
-    print(f"  코드 입력:        {flow['user_code']}")
-    print("=" * 50)
-    print(f"\n{flow.get('message', '')}\n")
-
-    result = app.acquire_token_by_device_flow(flow)
+    result = app.acquire_token_interactive(
+        scopes=SCOPES,
+        port=PORT,
+    )
 
     if "access_token" in result:
-        save_cache(cache)
-        save_token(result)
-        print(f"\n인증 성공! 토큰 저장: {TOKEN_FILE}")
-        return result
+        token_data = {
+            "access_token": result["access_token"],
+            "token_type": result.get("token_type", "Bearer"),
+            "expires_in": result.get("expires_in", 3600),
+            "obtained_at": int(time.time()),
+            "account": result.get("id_token_claims", {}).get("preferred_username", ""),
+        }
+        TOKEN_FILE.write_text(json.dumps(token_data, indent=2))
+        print(f"인증 성공! 계정: {token_data['account']}")
+        print(f"토큰 저장: {TOKEN_FILE}")
+        return token_data
     else:
-        print(f"\n인증 실패: {result.get('error_description', result.get('error', 'unknown'))}")
+        error = result.get("error_description", result.get("error", "unknown"))
+        print(f"인증 실패: {error}")
         return None
-
-
-def save_token(result):
-    token_data = {
-        "access_token": result["access_token"],
-        "token_type": result.get("token_type", "Bearer"),
-        "expires_in": result.get("expires_in", 3600),
-        "obtained_at": int(time.time()),
-    }
-    TOKEN_FILE.write_text(json.dumps(token_data, indent=2))
-
-
-def refresh_token():
-    cache = get_cache()
-    app = get_app(cache)
-    accounts = app.get_accounts()
-
-    if not accounts:
-        print("저장된 계정 없음. 재인증 필요.")
-        return device_code_flow()
-
-    result = app.acquire_token_silent(SCOPES, account=accounts[0])
-    if result and "access_token" in result:
-        save_cache(cache)
-        save_token(result)
-        print(f"토큰 갱신 성공! ({accounts[0]['username']})")
-        return result
-    else:
-        print("Silent 갱신 실패. 재인증...")
-        return device_code_flow()
 
 
 def get_access_token():
-    cache = get_cache()
-    app = get_app(cache)
-    accounts = app.get_accounts()
+    """유효한 토큰 반환. 없거나 만료 시 재인증."""
+    if TOKEN_FILE.exists():
+        data = json.loads(TOKEN_FILE.read_text())
+        elapsed = time.time() - data.get("obtained_at", 0)
+        if elapsed < data.get("expires_in", 3600) - 300:
+            print(f"캐시 토큰 사용 (만료까지 {int(data['expires_in'] - elapsed)}초)")
+            return data["access_token"]
+        print("토큰 만료. 재인증...")
 
-    if accounts:
-        result = app.acquire_token_silent(SCOPES, account=accounts[0])
-        if result and "access_token" in result:
-            save_cache(cache)
-            save_token(result)
-            return result["access_token"]
-
-    result = device_code_flow()
-    if result:
-        return result["access_token"]
-    return None
+    result = interactive_login()
+    return result["access_token"] if result else None
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "refresh":
-        refresh_token()
-    else:
-        token = get_access_token()
-        if token:
-            print(f"\naccess_token (앞 50자): {token[:50]}...")
+    token = get_access_token()
+    if token:
+        # 토큰 검증 - Graph API 호출
+        req = urllib.request.Request("https://graph.microsoft.com/v1.0/me")
+        req.add_header("Authorization", f"Bearer {token}")
+        try:
+            with urllib.request.urlopen(req) as resp:
+                me = json.loads(resp.read())
+                print(f"\n로그인 확인: {me.get('displayName', '?')} ({me.get('userPrincipalName', '?')})")
+        except Exception as e:
+            print(f"\n프로필 조회 실패 (토큰은 저장됨): {e}")
