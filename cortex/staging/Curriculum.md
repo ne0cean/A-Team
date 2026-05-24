@@ -1,0 +1,93 @@
+---
+title: "Curriculum"
+notebook: "InterStellar"
+section_group: "1_Projects"
+section: "A TEAM"
+onenote_id: "0-ac6175f5bb668d070b1238c89de10e7e!1-733661839CC53BA5!s702e65de0d614a6cbbd92296ab8dff3d"
+---
+
+Curriculum
+		
+		
+	
+	
+		
+			
+				
+&#128218; 강의 vs AI 도구 역할 분담
+				
+강의로 배울 것 (개념 이해)
+				
+- 1주차: 웹 개발 기초 개념 (30분/일)
+				
+- HTML/CSS/JavaScript가 뭔지
+				
+- React가 뭔지, 왜 쓰는지
+				
+- 데이터베이스가 뭔지
+				
+- 2주차: Next.js 기본 (30분/일)
+				
+- 페이지 만들기
+				
+- 데이터 가져오기
+				
+- API 만들기
+				
+AI 도구로 할 것 (실제 구현)
+				
+- 로그인 기능 만들기
+				
+- 지도에 위치 표시하기
+				
+- 데이터베이스 연결
+				
+- 배포하기
+				
+
+				
+&#127891; 추천 강의 (무료 + 한국어)
+				
+필수 (주차별 1개씩만)
+				
+1주차: 기초 개념
+				
+- [노마드코더](https://nomadcoders.co/) &quot;바닐라 JS로 크롬 앱 만들기&quot; (무료)
+				
+- 시간: 총 3시간 (하루 30분씩)
+				
+- 목표: JavaScript 감 잡기
+				
+- 언제 볼까?&#160;아침 운동 후 출근길 or 점심시간
+				
+2주차: React + Next.js
+				
+- 노마드코더 &quot;NextJS 시작하기&quot; (무료)
+				
+- 시간: 총 4시간
+				
+- 목표: Next.js로 페이지 만드는 법
+				
+- 언제 볼까?&#160;저녁 카페 가기 전 20분 보고 → 바로 따라하기
+				
+3주차: 실전
+				
+- YouTube &quot;Supabase + Next.js 튜토리얼&quot; (영문, 한글 자막)
+				
+- 검색어: &quot;Supabase Next.js authentication&quot;
+				
+- 목표: 로그인, DB 연결
+				
+- 언제 볼까?&#160;막힐 때만 해당 부분 검색
+				
+
+				
+- 프론트엔드 (사용자 화면): 가벼운 웹/모바일 프레임워크 (예: React Native 또는 Flutter의 기초)
+				
+- 백엔드 (서버): 간단한 API 서버 구축 (예: Python의 Flask 또는 JavaScript의 Node.js 기초)
+				
+- 지도/위치 API: Google Maps API 또는 유사 서비스의 기본 사용법
+				
+- AI 연동: 선택한 LLM (Claude, Gemini, OpenAI 등) API 연동 방법
+				
+-

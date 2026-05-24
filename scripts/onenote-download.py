@@ -101,6 +101,7 @@ def list_notebooks(token):
 
 def list_sections(token, notebook_id):
     sections = []
+    # Direct sections
     url = f"{GRAPH_BASE}/notebooks/{notebook_id}/sections?$top=100"
     while url:
         data = graph_get(url, token)
@@ -108,6 +109,19 @@ def list_sections(token, notebook_id):
             break
         sections.extend(data.get("value", []))
         url = data.get("@odata.nextLink")
+
+    # Section groups → nested sections
+    url = f"{GRAPH_BASE}/notebooks/{notebook_id}/sectionGroups?$top=100"
+    data = graph_get(url, token)
+    if data:
+        for sg in data.get("value", []):
+            sg_name = sg["displayName"]
+            sg_url = f"{GRAPH_BASE}/sectionGroups/{sg['id']}/sections?$top=100"
+            sg_data = graph_get(sg_url, token)
+            if sg_data:
+                for s in sg_data.get("value", []):
+                    s["_sectionGroup"] = sg_name
+                sections.extend(sg_data.get("value", []))
     return sections
 
 
@@ -133,10 +147,12 @@ def list_all_pages(token):
         sections = list_sections(token, nb["id"])
         for sec in sections:
             sec_name = sec["displayName"]
+            sg_name = sec.get("_sectionGroup", "")
             pages = list_pages_in_section(token, sec["id"])
             for p in pages:
                 p["_notebook"] = nb_name
                 p["_section"] = sec_name
+                p["_sectionGroup"] = sg_name
             all_pages.extend(pages)
             if pages:
                 print(f"  [{nb_name}/{sec_name}] {len(pages)}페이지", flush=True)
@@ -186,6 +202,7 @@ def download_pages(token, limit=None):
         title = page.get("title", "untitled")
         section = page.get("_section", "unknown")
         notebook = page.get("_notebook", "unknown")
+        section_group = page.get("_sectionGroup", "")
         filename = sanitize_filename(title)
 
         print(f"[{i}/{len(pending)}] [{notebook}/{section}] {title[:50]}", flush=True)
@@ -197,6 +214,7 @@ def download_pages(token, limit=None):
                 f'---\n'
                 f'title: "{title.replace(chr(34), chr(39))}"\n'
                 f'notebook: "{notebook}"\n'
+                f'section_group: "{section_group}"\n'
                 f'section: "{section}"\n'
                 f'onenote_id: "{pid}"\n'
                 f'created: "{page.get("createdDateTime", "")}"\n'
