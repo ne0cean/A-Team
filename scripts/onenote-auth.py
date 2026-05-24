@@ -1,136 +1,132 @@
 #!/usr/bin/env python3
-"""OneNote API - Device Code Flow 인증 + 토큰 저장"""
+"""OneNote API - MSAL Device Code Flow 인증 + 토큰 저장"""
 
 import json
+import sys
 import time
-import urllib.request
-import urllib.parse
 from pathlib import Path
+import msal
 
-# Microsoft Graph - 공용 클라이언트 (device code flow용)
-# Azure AD > App registrations에서 직접 등록한 앱이 있으면 교체
-CLIENT_ID = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"  # Azure CLI public client
-TENANT = "common"
-SCOPE = "Notes.Read Notes.Read.All User.Read offline_access"
+# Microsoft public client for native apps (supports personal accounts + device code)
+CLIENT_ID = "1950a258-227b-4e31-a9cf-717495945fc2"  # Azure PowerShell
+AUTHORITY = "https://login.microsoftonline.com/consumers"
+SCOPES = ["Notes.Read", "User.Read"]
 
 TOKEN_FILE = Path(__file__).parent.parent / "cortex" / ".onenote-token.json"
+CACHE_FILE = Path(__file__).parent.parent / "cortex" / ".onenote-msal-cache.json"
 
-DEVICE_CODE_URL = f"https://login.microsoftonline.com/{TENANT}/oauth2/v2.0/devicecode"
-TOKEN_URL = f"https://login.microsoftonline.com/{TENANT}/oauth2/v2.0/token"
+
+def get_cache():
+    cache = msal.SerializableTokenCache()
+    if CACHE_FILE.exists():
+        cache.deserialize(CACHE_FILE.read_text())
+    return cache
+
+
+def save_cache(cache):
+    if cache.has_state_changed:
+        CACHE_FILE.write_text(cache.serialize())
+
+
+def get_app(cache=None):
+    return msal.PublicClientApplication(
+        CLIENT_ID,
+        authority=AUTHORITY,
+        token_cache=cache,
+    )
 
 
 def device_code_flow():
-    """Device code flow로 인증 시작"""
-    data = urllib.parse.urlencode({
-        "client_id": CLIENT_ID,
-        "scope": SCOPE,
-    }).encode()
+    cache = get_cache()
+    app = get_app(cache)
 
-    req = urllib.request.Request(DEVICE_CODE_URL, data=data)
-    with urllib.request.urlopen(req) as resp:
-        result = json.loads(resp.read())
+    # 캐시에서 기존 계정 확인
+    accounts = app.get_accounts()
+    if accounts:
+        print(f"기존 계정 발견: {accounts[0]['username']}")
+        result = app.acquire_token_silent(SCOPES, account=accounts[0])
+        if result and "access_token" in result:
+            save_cache(cache)
+            save_token(result)
+            print("캐시에서 토큰 획득 성공!")
+            return result
+
+    # Device code flow 시작
+    flow = app.initiate_device_flow(scopes=SCOPES)
+    if "user_code" not in flow:
+        print(f"Device flow 실패: {flow.get('error_description', flow)}")
+        return None
 
     print("\n" + "=" * 50)
-    print(f"  브라우저에서 열기: {result['verification_uri']}")
-    print(f"  코드 입력:        {result['user_code']}")
-    print("=" * 50 + "\n")
+    print(f"  브라우저에서 열기: {flow['verification_uri']}")
+    print(f"  코드 입력:        {flow['user_code']}")
+    print("=" * 50)
+    print(f"\n{flow.get('message', '')}\n")
 
-    # 폴링으로 토큰 대기
-    interval = result.get("interval", 5)
-    device_code = result["device_code"]
-    expires_in = result.get("expires_in", 900)
-    start = time.time()
+    result = app.acquire_token_by_device_flow(flow)
 
-    while time.time() - start < expires_in:
-        time.sleep(interval)
-        try:
-            token_data = urllib.parse.urlencode({
-                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-                "client_id": CLIENT_ID,
-                "device_code": device_code,
-            }).encode()
+    if "access_token" in result:
+        save_cache(cache)
+        save_token(result)
+        print(f"\n인증 성공! 토큰 저장: {TOKEN_FILE}")
+        return result
+    else:
+        print(f"\n인증 실패: {result.get('error_description', result.get('error', 'unknown'))}")
+        return None
 
-            token_req = urllib.request.Request(TOKEN_URL, data=token_data)
-            with urllib.request.urlopen(token_req) as token_resp:
-                tokens = json.loads(token_resp.read())
 
-            tokens["obtained_at"] = int(time.time())
-            TOKEN_FILE.write_text(json.dumps(tokens, indent=2))
-            print(f"인증 성공! 토큰 저장: {TOKEN_FILE}")
-            return tokens
-
-        except urllib.error.HTTPError as e:
-            error_body = json.loads(e.read())
-            error_code = error_body.get("error", "")
-            if error_code == "authorization_pending":
-                print(".", end="", flush=True)
-                continue
-            elif error_code == "slow_down":
-                interval += 5
-                continue
-            else:
-                print(f"\n인증 실패: {error_body.get('error_description', error_code)}")
-                return None
-
-    print("\n시간 초과. 다시 시도해주세요.")
-    return None
+def save_token(result):
+    token_data = {
+        "access_token": result["access_token"],
+        "token_type": result.get("token_type", "Bearer"),
+        "expires_in": result.get("expires_in", 3600),
+        "obtained_at": int(time.time()),
+    }
+    TOKEN_FILE.write_text(json.dumps(token_data, indent=2))
 
 
 def refresh_token():
-    """저장된 refresh_token으로 갱신"""
-    if not TOKEN_FILE.exists():
-        print("저장된 토큰 없음. device_code_flow 먼저 실행.")
-        return None
+    cache = get_cache()
+    app = get_app(cache)
+    accounts = app.get_accounts()
 
-    tokens = json.loads(TOKEN_FILE.read_text())
-    rt = tokens.get("refresh_token")
-    if not rt:
-        print("refresh_token 없음. 재인증 필요.")
-        return None
+    if not accounts:
+        print("저장된 계정 없음. 재인증 필요.")
+        return device_code_flow()
 
-    data = urllib.parse.urlencode({
-        "client_id": CLIENT_ID,
-        "grant_type": "refresh_token",
-        "refresh_token": rt,
-        "scope": SCOPE,
-    }).encode()
-
-    req = urllib.request.Request(TOKEN_URL, data=data)
-    try:
-        with urllib.request.urlopen(req) as resp:
-            new_tokens = json.loads(resp.read())
-        new_tokens["obtained_at"] = int(time.time())
-        TOKEN_FILE.write_text(json.dumps(new_tokens, indent=2))
-        print(f"토큰 갱신 성공! 저장: {TOKEN_FILE}")
-        return new_tokens
-    except urllib.error.HTTPError as e:
-        print(f"갱신 실패: {e.read().decode()}")
-        return None
+    result = app.acquire_token_silent(SCOPES, account=accounts[0])
+    if result and "access_token" in result:
+        save_cache(cache)
+        save_token(result)
+        print(f"토큰 갱신 성공! ({accounts[0]['username']})")
+        return result
+    else:
+        print("Silent 갱신 실패. 재인증...")
+        return device_code_flow()
 
 
 def get_access_token():
-    """유효한 access_token 반환 (만료 시 자동 갱신)"""
-    if not TOKEN_FILE.exists():
-        return device_code_flow()
+    cache = get_cache()
+    app = get_app(cache)
+    accounts = app.get_accounts()
 
-    tokens = json.loads(TOKEN_FILE.read_text())
-    obtained = tokens.get("obtained_at", 0)
-    expires_in = tokens.get("expires_in", 3600)
+    if accounts:
+        result = app.acquire_token_silent(SCOPES, account=accounts[0])
+        if result and "access_token" in result:
+            save_cache(cache)
+            save_token(result)
+            return result["access_token"]
 
-    if time.time() - obtained > expires_in - 300:
-        print("토큰 만료 임박, 갱신 중...")
-        tokens = refresh_token()
-        if not tokens:
-            return device_code_flow()
-
-    return tokens
+    result = device_code_flow()
+    if result:
+        return result["access_token"]
+    return None
 
 
 if __name__ == "__main__":
-    import sys
     if len(sys.argv) > 1 and sys.argv[1] == "refresh":
         refresh_token()
     else:
-        result = get_access_token()
-        if result:
-            print(f"\naccess_token (앞 50자): {result['access_token'][:50]}...")
+        token = get_access_token()
+        if token:
+            print(f"\naccess_token (앞 50자): {token[:50]}...")
