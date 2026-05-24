@@ -18,6 +18,11 @@ DOWNLOAD_LOG = CORTEX_DIR / ".onenote-download-log.json"
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0/me/onenote"
 
+# onenote-auth.py와 동일한 client_id
+import importlib.util
+spec = importlib.util.spec_from_file_location("auth", str(Path(__file__).parent / "onenote-auth.py"))
+auth_mod = importlib.util.module_from_spec(spec)
+
 
 def get_token():
     """저장된 access_token 로드"""

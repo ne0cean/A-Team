@@ -9,7 +9,7 @@ from pathlib import Path
 
 # Microsoft Graph - 공용 클라이언트 (device code flow용)
 # Azure AD > App registrations에서 직접 등록한 앱이 있으면 교체
-CLIENT_ID = "YOUR_CLIENT_ID_HERE"  # <-- Azure AD 앱 client_id 입력
+CLIENT_ID = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"  # Azure CLI public client
 TENANT = "common"
 SCOPE = "Notes.Read Notes.Read.All User.Read offline_access"
 
