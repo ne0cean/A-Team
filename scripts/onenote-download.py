@@ -1,43 +1,31 @@
 #!/usr/bin/env python3
-"""OneNote 페이지 다운로드 - 미완료 360페이지 가져오기"""
+"""OneNote 페이지 다운로드 - 미완료 페이지 가져오기"""
 
 import json
-import os
 import re
+import sys
 import time
 import urllib.request
-import urllib.parse
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).parent
-CORTEX_DIR = SCRIPT_DIR.parent / "cortex"
+CORTEX_DIR = Path(__file__).parent.parent / "cortex"
 STAGING_DIR = CORTEX_DIR / "staging"
-INDEX_FILE = CORTEX_DIR / ".onenote-page-index.json"
 TOKEN_FILE = CORTEX_DIR / ".onenote-token.json"
 DOWNLOAD_LOG = CORTEX_DIR / ".onenote-download-log.json"
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0/me/onenote"
 
-# onenote-auth.py와 동일한 client_id
-import importlib.util
-spec = importlib.util.spec_from_file_location("auth", str(Path(__file__).parent / "onenote-auth.py"))
-auth_mod = importlib.util.module_from_spec(spec)
-
 
 def get_token():
-    """저장된 access_token 로드"""
     if not TOKEN_FILE.exists():
-        print("토큰 없음. 먼저 onenote-auth.py 실행.")
+        print("토큰 없음. onenote-auth.py 먼저 실행.")
         return None
-    tokens = json.loads(TOKEN_FILE.read_text())
-    return tokens.get("access_token")
+    return json.loads(TOKEN_FILE.read_text())["access_token"]
 
 
 def graph_get(url, token):
-    """Graph API GET 요청"""
     req = urllib.request.Request(url)
     req.add_header("Authorization", f"Bearer {token}")
-    req.add_header("Accept", "application/json")
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read())
@@ -52,32 +40,27 @@ def graph_get(url, token):
 
 
 def graph_get_html(url, token):
-    """Graph API GET - HTML 콘텐츠"""
     req = urllib.request.Request(url)
     req.add_header("Authorization", f"Bearer {token}")
-    req.add_header("Accept", "text/html")
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             return resp.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as e:
         if e.code == 429:
             retry = int(e.headers.get("Retry-After", 10))
-            print(f"  Rate limited. {retry}s 대기...")
             time.sleep(retry)
             return graph_get_html(url, token)
-        print(f"  HTTP {e.code}: {e.read().decode()[:200]}")
+        print(f"  HTTP {e.code}")
         return None
 
 
 def sanitize_filename(name):
-    """파일명 안전 변환"""
     name = re.sub(r'[<>:"/\\|?*]', '_', name)
     name = re.sub(r'\s+', ' ', name).strip()
     return name[:100] if name else "untitled"
 
 
 def html_to_markdown(html):
-    """간단한 HTML→Markdown 변환"""
     if not html:
         return ""
     text = html
@@ -94,143 +77,180 @@ def html_to_markdown(html):
     text = re.sub(r'<a[^>]*href="([^"]*)"[^>]*>(.*?)</a>', r'[\2](\1)', text)
     text = re.sub(r'<li[^>]*>', '\n- ', text)
     text = re.sub(r'</li>', '', text)
-    text = re.sub(r'<[^>]+>', '', text)  # 나머지 태그 제거
+    text = re.sub(r'<img[^>]*data-fullres-src="([^"]*)"[^>]*/>', r'\n![image](\1)\n', text)
+    text = re.sub(r'<img[^>]*src="([^"]*)"[^>]*/>', r'\n![image](\1)\n', text)
+    text = re.sub(r'<[^>]+>', '', text)
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
 
 
-def load_download_log():
-    """다운로드 로그 로드"""
+def load_log():
     if DOWNLOAD_LOG.exists():
         return json.loads(DOWNLOAD_LOG.read_text())
-    return {"downloaded": [], "failed": [], "total": 0}
+    return {"downloaded": [], "failed": []}
 
 
-def save_download_log(log):
-    """다운로드 로그 저장"""
+def save_log(log):
     DOWNLOAD_LOG.write_text(json.dumps(log, indent=2, ensure_ascii=False))
 
 
-def list_all_pages(token):
-    """모든 OneNote 페이지 목록 (페이지네이션 포함)"""
-    pages = []
-    url = f"{GRAPH_BASE}/pages?$top=100&$select=id,title,createdDateTime,lastModifiedDateTime,parentSection&$expand=parentSection($select=displayName)&$orderby=lastModifiedDateTime desc"
+def list_notebooks(token):
+    data = graph_get(f"{GRAPH_BASE}/notebooks", token)
+    return data.get("value", []) if data else []
 
+
+def list_sections(token, notebook_id):
+    sections = []
+    url = f"{GRAPH_BASE}/notebooks/{notebook_id}/sections?$top=100"
+    while url:
+        data = graph_get(url, token)
+        if not data:
+            break
+        sections.extend(data.get("value", []))
+        url = data.get("@odata.nextLink")
+    return sections
+
+
+def list_pages_in_section(token, section_id):
+    pages = []
+    url = (f"{GRAPH_BASE}/sections/{section_id}/pages?$top=100"
+           f"&$select=id,title,createdDateTime,lastModifiedDateTime")
     while url:
         data = graph_get(url, token)
         if not data:
             break
         pages.extend(data.get("value", []))
         url = data.get("@odata.nextLink")
-        print(f"  {len(pages)}페이지 수집...")
-
     return pages
 
 
+def list_all_pages(token):
+    all_pages = []
+    notebooks = list_notebooks(token)
+    print(f"노트북 {len(notebooks)}개 발견")
+    for nb in notebooks:
+        nb_name = nb["displayName"]
+        sections = list_sections(token, nb["id"])
+        for sec in sections:
+            sec_name = sec["displayName"]
+            pages = list_pages_in_section(token, sec["id"])
+            for p in pages:
+                p["_notebook"] = nb_name
+                p["_section"] = sec_name
+            all_pages.extend(pages)
+            if pages:
+                print(f"  [{nb_name}/{sec_name}] {len(pages)}페이지", flush=True)
+    print(f"전체 {len(all_pages)}페이지 수집 완료")
+    return all_pages
+
+
+def get_existing_ids():
+    """이미 cortex에 있는 onenote_id 수집"""
+    ids = set()
+    for f in CORTEX_DIR.rglob("*.md"):
+        try:
+            content = f.read_text(errors="replace")[:500]
+            m = re.search(r'onenote_id:\s*"([^"]+)"', content)
+            if m:
+                ids.add(m.group(1))
+        except Exception:
+            pass
+    return ids
+
+
 def download_pages(token, limit=None):
-    """미다운로드 페이지 다운로드"""
     STAGING_DIR.mkdir(parents=True, exist_ok=True)
-    log = load_download_log()
+    log = load_log()
     downloaded_ids = set(log["downloaded"])
 
-    # 기존 cortex 파일명에서 이미 있는 것 확인
-    existing_files = set()
-    for f in CORTEX_DIR.rglob("*.md"):
-        existing_files.add(f.stem.lower())
+    # 기존 cortex 파일의 onenote_id
+    existing_ids = get_existing_ids()
+    skip_ids = downloaded_ids | existing_ids
+    print(f"이미 처리된 ID: {len(skip_ids)}개")
 
     print("OneNote 페이지 목록 가져오는 중...")
     all_pages = list_all_pages(token)
-    print(f"전체 {len(all_pages)}페이지 발견")
+    print(f"전체 {len(all_pages)}페이지")
 
-    # 미다운로드 필터
-    pending = [p for p in all_pages if p["id"] not in downloaded_ids]
-    print(f"미다운로드: {len(pending)}페이지")
+    pending = [p for p in all_pages if p["id"] not in skip_ids]
+    print(f"다운로드 대상: {len(pending)}페이지")
 
     if limit:
         pending = pending[:limit]
-        print(f"  (limit {limit} 적용)")
 
     success = 0
     fail = 0
 
     for i, page in enumerate(pending, 1):
-        page_id = page["id"]
+        pid = page["id"]
         title = page.get("title", "untitled")
-        section = page.get("parentSection", {}).get("displayName", "unknown")
+        section = page.get("_section", "unknown")
+        notebook = page.get("_notebook", "unknown")
         filename = sanitize_filename(title)
 
-        print(f"[{i}/{len(pending)}] {title[:50]}... ({section})")
+        print(f"[{i}/{len(pending)}] [{notebook}/{section}] {title[:50]}", flush=True)
 
-        # 콘텐츠 다운로드
-        content_url = f"{GRAPH_BASE}/pages/{page_id}/content"
-        html = graph_get_html(content_url, token)
-
+        html = graph_get_html(f"{GRAPH_BASE}/pages/{pid}/content", token)
         if html:
             md = html_to_markdown(html)
-
-            # frontmatter 추가
-            frontmatter = f"""---
-title: "{title.replace('"', "'")}"
-section: "{section}"
-onenote_id: "{page_id}"
-created: "{page.get('createdDateTime', '')}"
-modified: "{page.get('lastModifiedDateTime', '')}"
----
-
-"""
-            out_path = STAGING_DIR / f"{filename}.md"
-            # 중복 방지
-            counter = 1
-            while out_path.exists():
-                out_path = STAGING_DIR / f"{filename}_{counter}.md"
-                counter += 1
-
-            out_path.write_text(frontmatter + md, encoding="utf-8")
-            downloaded_ids.add(page_id)
-            log["downloaded"].append(page_id)
+            frontmatter = (
+                f'---\n'
+                f'title: "{title.replace(chr(34), chr(39))}"\n'
+                f'notebook: "{notebook}"\n'
+                f'section: "{section}"\n'
+                f'onenote_id: "{pid}"\n'
+                f'created: "{page.get("createdDateTime", "")}"\n'
+                f'modified: "{page.get("lastModifiedDateTime", "")}"\n'
+                f'---\n\n'
+            )
+            out = STAGING_DIR / f"{filename}.md"
+            c = 1
+            while out.exists():
+                out = STAGING_DIR / f"{filename}_{c}.md"
+                c += 1
+            out.write_text(frontmatter + md, encoding="utf-8")
+            log["downloaded"].append(pid)
             success += 1
         else:
-            log["failed"].append({"id": page_id, "title": title})
+            log["failed"].append({"id": pid, "title": title})
             fail += 1
 
-        # 10페이지마다 로그 저장
         if i % 10 == 0:
-            log["total"] = len(all_pages)
-            save_download_log(log)
-            print(f"  -- 중간 저장 (성공: {success}, 실패: {fail})")
+            save_log(log)
+            print(f"  -- 중간 저장 (성공: {success}, 실패: {fail})", flush=True)
 
-        # API 속도 제한 방지
-        time.sleep(0.5)
+        time.sleep(0.3)
 
-    log["total"] = len(all_pages)
-    save_download_log(log)
-
+    save_log(log)
     print(f"\n완료: 성공 {success}, 실패 {fail}")
-    print(f"staging 디렉토리: {STAGING_DIR}")
-    print(f"다운로드 로그: {DOWNLOAD_LOG}")
-    return success, fail
+    print(f"staging: {STAGING_DIR}")
 
 
 if __name__ == "__main__":
-    import sys
     token = get_token()
     if not token:
         sys.exit(1)
 
     limit = None
     if len(sys.argv) > 1:
-        try:
-            limit = int(sys.argv[1])
-            print(f"limit: {limit}페이지만 다운로드")
-        except ValueError:
-            if sys.argv[1] == "list":
-                pages = list_all_pages(token)
-                print(f"\n전체 {len(pages)}페이지:")
-                for p in pages[:20]:
-                    section = p.get("parentSection", {}).get("displayName", "?")
-                    print(f"  [{section}] {p.get('title', '?')[:60]}")
-                if len(pages) > 20:
-                    print(f"  ... 외 {len(pages)-20}개")
-                sys.exit(0)
+        if sys.argv[1] == "list":
+            pages = list_all_pages(token)
+            notebooks = {}
+            for p in pages:
+                nb = p.get("_notebook", "?")
+                notebooks.setdefault(nb, []).append(p)
+            for nb, ps in sorted(notebooks.items()):
+                print(f"\n[{nb}] {len(ps)}페이지")
+                for p in ps[:5]:
+                    print(f"  - {p.get('title', '?')[:60]}")
+                if len(ps) > 5:
+                    print(f"  ... 외 {len(ps)-5}개")
+            print(f"\n총 {len(pages)}페이지")
+            sys.exit(0)
+        else:
+            try:
+                limit = int(sys.argv[1])
+            except ValueError:
+                pass
 
     download_pages(token, limit)
