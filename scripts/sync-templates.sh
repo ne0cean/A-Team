@@ -493,9 +493,8 @@ for proj_dir in "${PROJECT_DIRS[@]}"; do
       | head -80 || true
     echo ""
   else
-    # 변경 요약만 출력
-    # grep 매치 없을 때 exit 1 → || true 로 무력화 (pipefail 환경)
-    diff_out=$(diff <(echo "$original_content") <(echo "$updated_content") || true)
+    # 변경 요약만 출력 (unified diff, grep 매치 없을 때 exit 1 → || true)
+    diff_out=$(diff --unified=0 <(echo "$original_content") <(echo "$updated_content") || true)
     added=$(echo "$diff_out" | { grep '^+' || true; } | { grep -v '^+++' || true; } | wc -l | tr -d ' ')
     removed=$(echo "$diff_out" | { grep '^-' || true; } | { grep -v '^---' || true; } | wc -l | tr -d ' ')
     echo "  +${added} / -${removed} 라인"

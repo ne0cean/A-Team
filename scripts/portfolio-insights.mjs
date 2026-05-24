@@ -114,7 +114,13 @@ function parseCurrent(content, filePath) {
     // Blockers 섹션
     if (currentSection && /blocker|블로커|차단/i.test(currentSection)) {
       const itemMatch = line.match(/^[-*]\s+(.+)/);
-      if (itemMatch) result.blockers.push(itemMatch[1].trim());
+      if (itemMatch) {
+        const text = itemMatch[1].trim();
+        // "없음" 텍스트는 블로커로 취급하지 않음
+        if (!/^(없음|none|없음\.?)$/i.test(text)) {
+          result.blockers.push(text);
+        }
+      }
     }
 
     // In Progress 섹션
@@ -225,11 +231,21 @@ function analyzePortfolio(projects) {
   const idle = projects.filter(p => p.statusClass === 'idle');
   const cold = projects.filter(p => p.statusClass === 'cold');
 
-  // 블로커 주제 클러스터링 (키워드 기반)
+  // 블로커 주제 클러스터링 — 의미 있는 키워드만 (5자+ 한국어, 4자+ 영어)
+  const STOP_WORDS = new Set([
+    '문제', '필요', '불가', '이상', '추정', '확인', '해결', '사용',
+    '가능', '방법', '때문', '없음', '완료', '진행', '이번', '에서',
+    'when', 'with', 'that', 'this', 'from', 'have', 'been', 'will',
+    'after', 'before', 'during', 'until',
+  ]);
   const blockerKeywords = {};
   for (const p of blocked) {
     for (const b of p.blockers) {
-      const words = b.toLowerCase().match(/[가-힣a-z]{3,}/g) || [];
+      // 한국어: 5자+, 영어: 4자+
+      const words = [
+        ...(b.match(/[가-힣]{5,}/g) || []),
+        ...(b.toLowerCase().match(/[a-z]{4,}/g) || []),
+      ].filter(w => !STOP_WORDS.has(w));
       for (const w of words) {
         blockerKeywords[w] = (blockerKeywords[w] || []);
         blockerKeywords[w].push(p.name);
@@ -237,8 +253,10 @@ function analyzePortfolio(projects) {
     }
   }
   const sharedBlockers = Object.entries(blockerKeywords)
-    .filter(([, ps]) => ps.length >= 2)
-    .map(([kw, ps]) => ({ keyword: kw, projects: [...new Set(ps)] }));
+    .filter(([, ps]) => new Set(ps).size >= 2)   // 서로 다른 프로젝트 2개+
+    .map(([kw, ps]) => ({ keyword: kw, projects: [...new Set(ps)] }))
+    .sort((a, b) => b.projects.length - a.projects.length)
+    .slice(0, 5);  // 상위 5개만
 
   // 방치 위험 (idle 중 다음 태스크 있는 것)
   const idleWithTasks = idle.filter(p => p.nextTasks.length > 0);
