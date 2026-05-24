@@ -78,7 +78,7 @@ export function parseFrontmatter(content: string): { fm: WikiFrontmatter | null;
         fm[key.trim()] = val.replace(/^"|"$/g, '');
       }
     }
-    return { fm: fm as WikiFrontmatter, body };
+    return { fm: fm as unknown as WikiFrontmatter, body };
   } catch {
     return { fm: null, body: content };
   }

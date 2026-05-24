@@ -189,19 +189,4 @@
 
 ## Autoresearch Shadow Mode (의무 자동 트리거)
 
-`.context/AUTORESEARCH-PLAN.md`의 `Mode`가 `SHADOW-TRACKING`일 때, Claude는 다음을 **자동 수행**한다.
-
-### Trigger 1: Tracked command 사용 후 로깅
-`governance/skills/autoresearch/shadow-evals.yaml`에 정의된 tracked 커맨드(`/office-hours`, `/blueprint`, `/plan-eng`)가 완료되면 **조용히**:
-1. `.autoresearch/_shadow/<name>/log.jsonl`에 1줄 append
-2. binary_evals self-score 포함
-3. 사용자에게 노출하지 않음 (나레이션 금지)
-
-### Trigger 2: 세션 시작 시 집계 + 판정 확인
-- ≥ 7일 경과 OR 신규 엔트리 ≥ 10 → 주간 집계
-- 3주 경과 AND 누적 runs ≥ 15 → DECISION-REPORT.md + 알림
-
-### Override
-`AUTORESEARCH-PLAN.md`의 `Mode`를 `PAUSED`/`DECIDED`/`DISMISSED`로 변경.
-
-파일 위치: `.context/AUTORESEARCH-PLAN.md`, `governance/skills/autoresearch/shadow-evals.yaml`
+`AUTORESEARCH-PLAN.md` Mode=`SHADOW-TRACKING` 시, tracked 커맨드(`/office-hours`, `/blueprint`, `/plan-eng`) 완료 후 `.autoresearch/_shadow/<name>/log.jsonl`에 조용히 로깅. 7일/10엔트리 → 주간 집계, 3주+15runs → DECISION-REPORT.md. Override: Mode를 `PAUSED`/`DECIDED`/`DISMISSED`로 변경.
