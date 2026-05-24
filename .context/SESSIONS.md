@@ -1156,3 +1156,15 @@ de9c77d [feat]: 토큰 비용 추정 + Pre-Check Skip Gate 실행체 (171 tests)
 - 45cd5e6 fix: 누락 커맨드 배포 + orphan 감지 가드 추가
 - 8d11d21 docs: 통합 평가 프레임워크 추가 (17번 doc)
 - 2c0caa3 feat: 멀티 에이전트 패턴 Phase 1 통합 (MoA + Guardrail + Checkpointing)
+
+## [2026-05-25] PMI + Design INDEX + Cortex PARA 재편
+
+**완료**:
+- PMI 5-Phase — fast-check 설치, wiki-types TSC 수정, CLAUDE.md 축소, 583 tests PASS
+- Design Taste Evaluator Phase 1 — INDEX.md 72 brands, 8 categories, tone clusters
+- Cortex 재편 — staging 587파일 OneNote 원본 구조 복원, pillars/areas 중복 제거, Dashboard 100개 6기둥 분류
+- OneNote 누락 658개 다운로드 (2_6 pillars 2~6번 전체)
+- claude 실행 문제 해결 (claude-remote 서버 종료)
+
+**이슈**: OneNote 3_Archive 미다운로드 (Microsoft API 장애)
+**빌드**: ✅ 583 tests PASS (50 files)

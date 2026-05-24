@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**570 tests PASS** (2026-05-24). Quality Pipeline + PRD Gate + do-better Phase 1+2 + Wiki 복리 시스템 + 자동화 배선 강화.
+**583 tests PASS** (2026-05-25). PMI + Design Taste INDEX.md + Cortex PARA 재편 + OneNote 누락 658개 다운로드.
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
 
@@ -60,80 +60,18 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-24) — 글로벌 스킬/에이전트 대규모 구축 + OneNote 완료
+## Last Completions (2026-05-25) — PMI + Design INDEX + Cortex PARA 재편
 
-- **글로벌 스킬 11개 신규 구축** — `/launchd`(macOS job 관리), `/notify`(텔레그램 3곳 통합), `/watchdog`(프로세스 감시 4곳 통합), `/sync-templates`(CLAUDE.md 18개 프로젝트 drift 동기화), `/deploy-device`(ADB 배포), `/pwa-setup`(모바일 UX 체크리스트), `/sms-relay`(iPhone OTP 릴레이), `/portfolio`(포트폴리오 교차 분석), `/data-race`(엑셀 블리츠), `/cortex-graph`(지식 그래프 추출), `session-handoff.sh`(범용 pickup/end)
-- **에이전트 1개 신규** — `data-racer.md` (복잡도 자동 판정 + 병렬 분석)
-- **디자인 모듈 강화** — AI-09~15 anti-slop 룰 7개 추가 (taste-skill 흡수). DESIGN.md 72개 브랜드 레퍼런스 수집 (`reference/design-systems/`). Design Taste Evaluator 3-Phase 설계 완료.
-- **OneNote InterStellar 562파일 다운로드** — Azure AD 앱 등록 + device code flow 인증. staging에 562파일 저장. 기존 353 + 신규 562 = 915파일 총 확보.
-- **Ritual Board 모바일 접근** — server.mjs 0.0.0.0 바인딩. `http://192.168.20.31:7843` 폰에서 접근 가능.
-- **대시보드 25일 버그 수정** — 비오늘 날짜에서 빈 카테고리 미표시 → 항목 추가 불가 fix (`_editing` 플래그).
-- **보호 설정 5개 프로젝트** — a-team/Trading/connectome/claude-remote/mole `settings.local.json`에 deny 규칙 추가 (bypass 모드에서도 핵심 영역 보호).
-- **VDI 동기화 설계** — 사내 서버 GitLab CE Docker 확정. Confluence 중계 ❌, Gitea ❌.
-- **디자인 5개 레포 레드팀 분석** — design.md SKIP(이미 구현), taste-skill REFERENCE_ONLY(4개 룰 흡수), awesome-design-md REFERENCE_ONLY, stitch-skills SKIP, figma-implement-design REFERENCE_ONLY.
-- **agentskills 검토** — A-Team 커맨드와 철학 동일, name 필드만 추가하면 호환. 즉시 마이그레이션 불필요.
-- **YouTube 파이프라인 통합 제안** — extract/analyze/knowledge 3 서브커맨드 설계. Trading dense+phash 패턴 범용화.
+- **PMI 5-Phase 완료** — `@fast-check/vitest` 설치 (property tests 13개 복구), `wiki-types.ts:81` 타입 캐스팅 수정, CLAUDE.md 207→192줄 축소. 583 tests PASS.
+- **Design Taste Evaluator Phase 1 — INDEX.md 구축** — `reference/design-systems/INDEX.md` 생성. 72 brands, 8 categories, tone clusters, incomplete entries 식별. taste-evaluator 에이전트 연결 준비 완료.
+- **Cortex PARA+6기둥 재편** — staging 587파일 OneNote 원본 구조(notebook/section_group/section)로 복원. pillars/+areas/ 중복 구조 통합 → InterStellar/2_6 hexagonal pillars/ 단일화. Dashboard 100개 6기둥 분류(interstellar 44, snowball 25, character 14, life-xlab 12, string 5). 중복 22개 해소. archives/legacy 11개 snowball 편입. 신입연수 22개 삭제.
+- **OneNote 누락 658개 다운로드** — 2_6 hexagonal pillars 2~6번 + Zeroing + Futures options 전체 다운로드 (level/order 메타데이터 포함). 3_Archive는 Microsoft API 장애로 미완료.
+- **Claude 실행 문제 해결** — claude-remote 서버 WebSocket 장애 → bun 프로세스 종료 → alias fallback 정상화.
 
-**빌드**: ✅ 570 tests PASS
+**빌드**: ✅ 583 tests PASS (50 files)
 
-## Last Completions (2026-05-24) — 순차 시행 7건
-
-- **P0 Analytics tracking 복구** — 75/77 커맨드에 log-event.mjs wired (scripts/wire-analytics.sh 일괄). 2개 심링크(prjt/todo) 글로벌 관리.
-- **Cortex 6기둥 완성** — pillars/ 디렉토리 생성, staging에서 353파일 이동 (character 38 + mo-chuisle 63 + string 28 + interstellar 95 + life-x-lab 96 + snowball 33). PARA 병행 유지.
-- **대시보드 상시업무 시스템** — templates.json + API 3개 (GET/POST /api/templates, POST /api/inject) + 하단 UI (추가/삭제/오늘에 주입, 중복 방지).
-- **대시보드 UX 개선** — Enter→같은 카테고리 새 항목 생성, 빈 항목 Backspace 삭제, 항목 즉시 편집, Ctrl+Z 지원.
-- **OneNote 6기둥 완전 이관** — migrate-staging.py 재실행, Life Xlab 96 + Snowball 33 새로 다운로드. staging↔cortex 353:353 완전 일치 확인.
-- **자동화 배선 강화** — vibe-init.sh Step 0.7 daily-brief 자동 수집 (당일 brief 없으면 collect.mjs 실행).
-- **Wiki 복리 시스템 (do-better Phase 2)** — wiki-ingest.mjs (6기둥 키워드 자동 분류 + inbox 스캔 + 이동), wiki-lint.mjs (중복 8건/깨진링크 18건/빈파일/frontmatter 검사). cortex 770파일 lint 완료.
-
-**빌드**: 563 tests PASS
-
-## Last Completions (2026-05-24) — 자동화 배선 강화 + do-better Phase 2
-
-- **자동화 배선 강화** — vibe Step 0.7: `${TODAY}-brief.md` → `${TODAY}-collect.json` 체크 수정 + collect 자동 실행. `com.ateam.daily-brief-collect.plist` launchd 07:30 등록. install-maintenance-cron.sh에 섹션 추가.
-- **do-better 마이그레이션 Phase 2 완료** — Wiki 복리 시스템: `lib/wiki-types.ts` (WikiEntry/WikiFrontmatter/WikiLintResult 타입) + `scripts/wiki-ingest.mjs` (신규/업데이트 CLI) + `scripts/wiki-lint.mjs` (품질 채점 0-100, --fix/--json) + `test/wiki.test.ts` (7 tests PASS). seed 엔트리: `bash-variable-korean-bug` (score: 75).
-
-**빌드**: ✅ 570 tests PASS (7 wiki tests 추가)
-
-## Last Completions (2026-05-23) — Cortex 통합 + Ritual Dashboard + OneNote 마이그레이션
-
-- **Cortex 통합 (961 files)** — OneNote InterStellar 447페이지 cortex 분류 완료 (areas/projects/archives). 6 Hexagonal Pillars (Cha/Fam/Soli/Inter/Life/Ass) 구조 확인. Connectome 관련 31페이지 별도 분류. classify.py 2회 실행.
-- **Cortex 웹 대시보드 (localhost:7843)** — Ritual & Routine contenteditable 캘린더 그리드. 체크박스 클릭 → .json+.md 즉시 저장. 인라인 편집, One Thing, 카테고리별 항목 추가/삭제. launchd 자동시작 설정.
-- **OneNote 링크 주입** — inject-links.py로 139파일 frontmatter에 onenote_url 추가. 원본 대조 가능.
-- **OneNote snapshot/sync 시스템** — snapshot.py (변경 감지), sync.py (차분 동기화 --dry-run 지원). staging 192페이지 다운로드 (360 남음, 토큰 만료).
-- **Thinking Toolkit** — `cortex/thinking-toolkit.md`. 개념/접근법 축적 시스템. 자동감지 + /end 수확 프로토콜. Ideation Frameworks 5개 (Morphological/Behavior/Inversion/Human/12-Framework).
-- **`/morning` 스킬** — 목표 상기 + One Thing 강제 + 오늘 할 일. Pillar 연결.
-- **ritual-routine 스크립트** — archive.sh (주간 백업), new-month.sh (월 자동 생성)
-
-**빌드**: ✅ 563 tests PASS, 기존 flaky 1건 (ppt-benchmark-audit)
-
-## Last Completions (2026-05-23 이전) — Quality Pipeline + PRD
-
-- **Quality Pipeline 3-Layer** — property-based + mutation + fitness + Layer 2 자동 리뷰
-- **A-Team PRD v1.0** — 제품 정의 "AI 비즈니스 운영 시스템", 74개 중 5개만 사용 발견
-- **PRD Gate + do-better Phase 1 + Anti-Slop + A-Team-1→a-team 통합**
-
-## Last Completions (2026-05-22) — Wiring Integrity + Scheduled Reviews
-
-- **wiring integrity 테스트 4종** — refs(참조 무결성), agents(subagent_type↔파일), bash($VAR한글 탐지), frontmatter(name+description 필수). npm test마다 자동 실행
-- **scheduled-reviews 시스템** — "지켜보겠다" 거짓 약속 근절. JSON 등록 → vibe/pickup Step 0.75에서 due 항목 자동 표시
-- **governance/rules/no-watch-promises.md** — 모니터링 약속 금지, 즉시 자동화 또는 스케줄 등록 강제
-- **PMI 완전 실행** — Phase 1-5 + adversarial CONFIRMED 5건 수정 (`.claude/` 경로 스캔, 재귀 탐색, 대문자 subagent_type, backtick 매칭, 파일 삭제 방어)
-- **$VAR한글 bash 버그 6건 수정** — absorb-scan.sh 1건 + intel.md 5건 `${VAR}` 중괄호 처리
-- **coding-safety.md §3** — 한국어+Bash 변수 안전 규칙 추가
-- **pmi.md SSOT drift 해소** — adversarial "선택" → "필수"
-- **intel-analyzer.md** — name 필드 추가 (frontmatter 테스트가 발견)
-- **reference/resources.md** — WSJ Guide to Information Graphics 레퍼런스 URL 저장
-
-**빌드**: ✅ 558 tests PASS (47 files), 0 failed
-
-## Last Completions (2026-05-22 이전)
+## Last Completions (2026-05-24 이전)
 → [.context/SESSIONS.md](SESSIONS.md) 참조
-
-## 다음 우선순위
-- [ ] **Postiz OAuth 설정** — localhost:4007에서 소셜 미디어 계정 연동 (수동 작업)
-- [ ] **Twitter 채널** — 보류 중이나 중요 채널. 다음 발행 사이클에 재논의 필요
-- [ ] **Phase 2 콘텐츠 실제 발행** — Postiz를 통해 블로그/소셜 미디어 발행
 
 ## Multi-Model Router ✅
 Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi-model-router.md)
@@ -148,13 +86,13 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 
 ### High Priority
 - [ ] **제품 빌드 시작** — 커넥톰 등 프로젝트 A-Team으로 실전 빌드 (플라이휠 증거)
-- [ ] **Design Taste Evaluator 구현** — INDEX.md 구축 → taste-evaluator.md 에이전트 → designer 연결 (3-Phase)
+- [ ] **Design Taste Evaluator Phase 2** — taste-evaluator.md 에이전트 구현 → designer 연결
 - [ ] **VDI GitLab CE 설치** — 사내 서버 VM 확보 → Docker 설치 → cortex/ 동기화
 
 ### Medium Priority
 - [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정 (PRD 성공 기준 기반)
 - [ ] **Stryker 첫 full run** — mutation score baseline 측정
-- [ ] **OneNote staging 562파일 분류** — cortex/pillars 등으로 정리
+- [ ] **OneNote 3_Archive 다운로드** — Microsoft API 복구 후 `python3 -u scripts/onenote-download-missing.py` 실행
 - [ ] **Ritual Board 이름/구조 확정** — 하단 섹션 별도 탭 vs 통합
 
 ### Low Priority / Future
@@ -172,6 +110,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 
 ## Blockers
 - VDI GitLab CE — 사내 서버(VM) 확보 필요 (IT팀 협의)
+- OneNote 3_Archive — Microsoft Graph API 일시 장애 (토큰 유효, 서비스 복구 대기)
 
 ## 배포 현황
 - GitHub: https://github.com/ne0cean/A-Team (master)
