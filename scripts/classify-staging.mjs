@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * classify-staging.mjs — staging 파일을 6기둥 + areas/archives로 자동 분류
+ * classify-staging.mjs — staging 파일을 OneNote 메타데이터 기반으로 분류
  *
  * Usage:
  *   node scripts/classify-staging.mjs --dry-run     # 분류 결과만 출력
@@ -9,98 +9,89 @@
  */
 
 import { readdir, readFile, rename, mkdir } from 'fs/promises';
-import { join, basename } from 'path';
+import { join } from 'path';
 
 const CORTEX = join(process.env.HOME, 'Projects/a-team/cortex');
 const STAGING = join(CORTEX, 'staging');
 
-// 6 Hexagonal Pillars + areas + archives
-const RULES = [
-  // snowball — 투자, 재테크, 부동산, 금융
+// Priority 1: OneNote section → pillar mapping
+const SECTION_MAP = {
+  '1. Character': 'pillars/character',
+  'Writing': 'pillars/character',
+  '2. SLL': 'pillars/string',
+  '3. HFK': 'pillars/mo-chuisle',
+  '5. Sport': 'pillars/life-x-lab',
+  // Work sections → interstellar
+  'MK1': 'pillars/interstellar',
+  'Dashbaord': 'pillars/interstellar',
+  "'16_정책팀": 'pillars/interstellar',
+  "'17_CVM": 'pillars/interstellar',
+  "'18_CVM": 'pillars/interstellar',
+  "'19_PPG": 'pillars/interstellar',
+  'Operation': 'pillars/interstellar',
+  'MKT_FB': 'pillars/interstellar',
+  "'12년 Jump-up": 'pillars/interstellar',
+  'Side hutle': 'pillars/interstellar',
+  'A TEAM': 'pillars/interstellar',
+  'Note': 'pillars/interstellar',
+  '1_': 'pillars/interstellar',
+};
+
+// Priority 2: notebook-based fallback
+const NOTEBOOK_MAP = {
+  '2018 SK그룹 신입연수': 'pillars/interstellar',
+  'Archive': 'archives/legacy',
+};
+
+// Priority 3: keyword-based fallback (for files without useful metadata)
+const KEYWORD_RULES = [
   {
     dest: 'pillars/snowball',
-    keywords: [
-      '투자', '주식', '코인', 'ETF', '리밸런싱', '배당', '환율', '선물', '옵션',
-      'ICO', '스켈핑', '매매', '트레이딩', '차트', 'chart', '해외거래소', '비트코인',
-      'bitcoin', 'crypto', '부동산', '전세', '월세', '아파트', '매수', '매도',
-      '포트폴리오', 'portfolio', '자산', 'valuation', 'equity', '재무제표',
-      'enterprise value', '해자', '복리', '펀드', '증권', 'stock', 'swing',
-    ],
+    keywords: ['투자', '주식', '코인', 'ETF', '환율', '선물', '옵션', 'ICO', '매매',
+      '트레이딩', '비트코인', 'crypto', '부동산', '전세', '아파트', '포트폴리오',
+      'valuation', 'equity', '재무제표', 'enterprise value', '증권', 'stock', 'IPO',
+      'investment', '리밸런싱', '배당', '해자', '펀드', '스켈핑'],
   },
-  // character — 자기개발, 영어, 글쓰기, 독서, 영화, 교양
-  {
-    dest: 'pillars/character',
-    keywords: [
-      'IELTS', '영어', 'english', 'reading', 'writing', 'vocab', '독서', '책',
-      '취향', '교양', '글쓰기', '에세이', '영화', 'movie', 'film', '다큐', '소설',
-      '시', '음악', '예술', 'art', '미술', '전시', '공부', '학습', '자기개발',
-      'self', '성장', '습관', '루틴', 'routine', 'ritual', '명상', '일기',
-      'journal', '회고', 'summer', 'MAGIC', 'input', '퍼블리',
-    ],
-  },
-  // interstellar — 업무, 커리어, 통신, CRM, 마케팅, 기술
-  {
-    dest: 'pillars/interstellar',
-    keywords: [
-      'CRM', '정책회의', '해지상담', '통합offering', 'VAS', '요금제', '판매',
-      '마케팅', '캠페인', 'campaign', '동의율', '청약', '사은품', '고객',
-      'customer', '세일즈', 'sales', '실적', 'KPI', 'OKR', '인터뷰',
-      '업무', '보고', '회의', 'meeting', '프로젝트', 'project', '개발',
-      'coding', 'code', '코드', '프로그래밍', 'API', 'deploy', '배포',
-      'git', 'docker', '서버', 'server', '데이터', 'data', 'SQL',
-      '컨퍼런스', 'conference', '발표', '프레젠테이션', 'PPT', 'ppt',
-      '이력서', '자소서', '경력', 'career', 'resume', 'cv',
-      '통신', 'telecom', 'SKT', 'KT', 'LGU', 'T월드', '다이렉트',
-      '법무', '약관', '동의', '청구', '수당', 'issue', '검토',
-      'Speed', '011', '2G', 'Mig', 'Apple', 'QBR',
-      '오퍼링', 'offering', 'PDR', 'TDR', '타겟',
-      'single source', 'multi-use', 'deep change', 'jump-up',
-      '채널', '컨텐츠', 'SNS', '클럽하우스',
-      '프롬프트', 'prompt', 'GPT', 'AI', 'LLM',
-    ],
-  },
-  // life-x-lab — 건강, 요리, 라이프스타일, 여행, 운동
   {
     dest: 'pillars/life-x-lab',
-    keywords: [
-      '건강', '운동', '식사', '요리', '레시피', 'recipe', '음식', 'food',
-      '다이어트', '체중', '피부', '수면', 'sleep', '병원', '의사',
-      '영양', '비타민', '단백질', '칼로리', '식품', '한과',
-      '여행', 'travel', '캠핑', '호텔', '하나투어',
-      '집', '인테리어', '정리', '청소', '살림',
-      '패션', '옷', 'suit', '뷰티', '피부톤', '잡티',
-      '카페', '맛집', '점심', '식당',
-      '풍경', '사진', 'photo',
-      '최강의 식사', '코칭',
-    ],
+    keywords: ['건강', '운동', '식사', '요리', '레시피', '음식', '다이어트', '피부',
+      '영양', '여행', 'travel', '캠핑', '패션', 'suit', '선크림', '카페', '맛집',
+      '최강의 식사', '한과', '섬유유연제', '풍경', '건진', '3초 운동'],
   },
-  // mo-chuisle — 가족, 육아
   {
-    dest: 'pillars/mo-chuisle',
-    keywords: [
-      '가족', '아이', '아기', '육아', '아빠', '엄마', '부모', '자녀',
-      '임신', '출산', '유치원', '학교', '교육', '돌봄',
-    ],
+    dest: 'pillars/character',
+    keywords: ['IELTS', '영어', 'english', 'reading', '독서', '책', '취향', '교양',
+      '글쓰기', '에세이', '영화', 'movie', '자기개발', '습관', '명상', '일기',
+      'speaking', 'elements of style'],
   },
-  // string — 인간관계, 네트워크
   {
     dest: 'pillars/string',
-    keywords: [
-      '인간관계', '관계', '인맥', 'network', 'contact', '소통',
-      '대화', '감정', '공감', '리더십', 'leadership', '팀',
-      '눈빛', '표정', '몸짓', '감동', '사람',
-      'key person', 'senior', 'group', 'net',
-    ],
+    keywords: ['인간관계', '인맥', 'network', 'contact', '소통', '공감', '리더십',
+      '눈빛', '표정', '감동'],
+  },
+  {
+    dest: 'pillars/mo-chuisle',
+    keywords: ['가족', '아이', '육아', '아빠', '엄마', '부모'],
+  },
+  {
+    dest: 'pillars/interstellar',
+    keywords: ['CRM', '마케팅', '캠페인', '고객', '세일즈', '업무', '개발', 'coding',
+      '코드', 'API', '서버', '데이터', 'SQL', '컨퍼런스', '이력서', '경력',
+      '통신', '약관', '청구', '프롬프트', 'GPT', '사업', '창업', 'branding',
+      '기업문화', 'UX', 'UI', 'dashboard'],
   },
 ];
 
-// Fallback: areas
-const AREA_RULES = [
-  { dest: 'areas/dev', keywords: ['개발', 'dev', 'code', '코드', 'API', 'docker', 'git'] },
-  { dest: 'areas/marketing', keywords: ['마케팅', 'SNS', '콘텐츠', '블로그'] },
-  { dest: 'areas/life', keywords: ['건강', '운동', '요리', '여행'] },
-  { dest: 'areas/writing', keywords: ['글쓰기', '에세이', '글감'] },
-];
+function extractMeta(content) {
+  const meta = {};
+  const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!fmMatch) return meta;
+  for (const line of fmMatch[1].split('\n')) {
+    const m = line.match(/^(\w[\w_]*?):\s*"?([^"]*)"?\s*$/);
+    if (m) meta[m[1]] = m[2];
+  }
+  return meta;
+}
 
 async function classify() {
   const args = process.argv.slice(2);
@@ -112,83 +103,101 @@ async function classify() {
   const mdFiles = files.filter(f => f.endsWith('.md'));
   console.log(`Staging: ${mdFiles.length} files\n`);
 
-  const results = { classified: 0, unclassified: 0, duplicate: 0, byDest: {} };
+  const results = { byDest: {}, byMethod: { section: 0, notebook: 0, keyword: 0, fallback: 0 } };
   const moves = [];
 
   for (const file of mdFiles) {
-    const filePath = join(STAGING, file);
     let content = '';
     try {
-      content = await readFile(filePath, 'utf-8');
+      content = await readFile(join(STAGING, file), 'utf-8');
     } catch { continue; }
 
-    const nameLC = file.toLowerCase();
-    const contentLC = content.toLowerCase().slice(0, 2000); // first 2KB for speed
-    const combined = nameLC + ' ' + contentLC;
+    const meta = extractMeta(content);
+    let dest = null;
+    let method = 'fallback';
 
-    let matched = null;
-    let bestScore = 0;
-
-    for (const rule of RULES) {
-      let score = 0;
-      for (const kw of rule.keywords) {
-        const kwLC = kw.toLowerCase();
-        // filename match = 3 points, content match = 1 point
-        if (nameLC.includes(kwLC)) score += 3;
-        if (contentLC.includes(kwLC)) score += 1;
-      }
-      if (score > bestScore) {
-        bestScore = score;
-        matched = rule.dest;
-      }
+    // Priority 1: section metadata
+    if (meta.section && SECTION_MAP[meta.section]) {
+      dest = SECTION_MAP[meta.section];
+      method = 'section';
     }
 
-    // Minimum threshold
-    if (bestScore < 2) {
-      // Try area rules
-      for (const rule of AREA_RULES) {
+    // Priority 2: notebook fallback
+    if (!dest && meta.notebook && NOTEBOOK_MAP[meta.notebook]) {
+      dest = NOTEBOOK_MAP[meta.notebook];
+      method = 'notebook';
+    }
+
+    // Priority 3: keyword matching
+    if (!dest) {
+      const nameLC = file.toLowerCase();
+      const contentLC = content.toLowerCase().slice(0, 2000);
+      let bestScore = 0;
+
+      for (const rule of KEYWORD_RULES) {
+        let score = 0;
         for (const kw of rule.keywords) {
-          if (combined.includes(kw.toLowerCase())) {
-            matched = rule.dest;
-            bestScore = 2;
-            break;
-          }
+          const kwLC = kw.toLowerCase();
+          if (nameLC.includes(kwLC)) score += 3;
+          if (contentLC.includes(kwLC)) score += 1;
         }
-        if (bestScore >= 2) break;
+        if (score > bestScore) {
+          bestScore = score;
+          dest = rule.dest;
+        }
+      }
+      if (bestScore >= 2) {
+        method = 'keyword';
+      } else {
+        dest = 'archives/legacy';
+        method = 'fallback';
       }
     }
 
-    if (bestScore < 2) {
-      matched = 'archives/legacy';
-      results.unclassified++;
-    } else {
-      results.classified++;
+    // Post-correction: override interstellar → snowball for finance content
+    if (dest === 'pillars/interstellar') {
+      const nameLC = file.toLowerCase();
+      const contentLC = content.toLowerCase().slice(0, 2000);
+      const financeKW = ['투자', '주식', '코인', 'etf', '환율', '선물', '옵션', 'ico',
+        '매매', '트레이딩', '비트코인', 'crypto', '부동산', '전세', '아파트',
+        'valuation', 'equity', '재무제표', '증권', 'stock', 'ipo', 'investment',
+        '리밸런싱', '배당', '해자', '스켈핑', 'nft', 'defi', '스테이킹'];
+      let finScore = 0;
+      for (const kw of financeKW) {
+        if (nameLC.includes(kw)) finScore += 3;
+        if (contentLC.includes(kw)) finScore += 1;
+      }
+      if (finScore >= 3) {
+        dest = 'pillars/snowball';
+        method = 'keyword-override';
+      }
     }
 
-    results.byDest[matched] = (results.byDest[matched] || 0) + 1;
-    moves.push({ file, dest: matched, score: bestScore });
+    results.byDest[dest] = (results.byDest[dest] || 0) + 1;
+    results.byMethod[method] = (results.byMethod[method] || 0) + 1;
+    moves.push({ file, dest, method });
   }
 
   // Stats
-  console.log('=== Classification Results ===');
-  const sorted = Object.entries(results.byDest).sort((a, b) => b[1] - a[1]);
-  for (const [dest, count] of sorted) {
+  console.log('=== By Destination ===');
+  for (const [dest, count] of Object.entries(results.byDest).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${dest}: ${count}`);
   }
-  console.log(`\nClassified: ${results.classified}, Unclassified→archives: ${results.unclassified}`);
+  console.log(`\n=== By Method ===`);
+  for (const [method, count] of Object.entries(results.byMethod)) {
+    console.log(`  ${method}: ${count}`);
+  }
 
   if (statsOnly) return;
 
-  // Show moves
   if (dryRun) {
-    console.log('\n=== Moves (dry-run) ===');
+    console.log('\n=== Moves ===');
     for (const m of moves) {
-      console.log(`  [${m.score}] ${m.file} → ${m.dest}`);
+      console.log(`  [${m.method}] ${m.file} → ${m.dest}`);
     }
     return;
   }
 
-  // Apply moves
   if (apply) {
     let moved = 0;
     for (const m of moves) {
@@ -203,10 +212,9 @@ async function classify() {
       }
     }
     console.log(`\nMoved: ${moved}/${moves.length}`);
-    return;
+  } else {
+    console.log('\nUse --dry-run to preview or --apply to execute.');
   }
-
-  console.log('\nUse --dry-run to preview or --apply to execute.');
 }
 
 classify().catch(console.error);
