@@ -767,11 +767,17 @@ function closeLinkPopup() {
   popup.dataset.mode = '';
   linkTarget = null;
   frameLinkTarget = null;
+  mrLinkIdx = null;
 }
 
 async function saveLink() {
   const popup = document.getElementById('linkPopup');
   const url = document.getElementById('linkUrl').value.trim();
+  if (popup.dataset.mode === 'mr' && mrLinkIdx !== null) {
+    standingData.monthly_recurring[mrLinkIdx].url = url;
+    saveStandingData(); renderStandingOrders(); closeLinkPopup();
+    return;
+  }
   if (popup.dataset.mode === 'frame' && frameLinkTarget) {
     const { ftype, cat, idx } = frameLinkTarget;
     const item = getFrameItem(ftype, cat, idx);
@@ -788,6 +794,11 @@ async function saveLink() {
 
 async function removeLink() {
   const popup = document.getElementById('linkPopup');
+  if (popup.dataset.mode === 'mr' && mrLinkIdx !== null) {
+    delete standingData.monthly_recurring[mrLinkIdx].url;
+    saveStandingData(); renderStandingOrders(); closeLinkPopup();
+    return;
+  }
   if (popup.dataset.mode === 'frame' && frameLinkTarget) {
     const { ftype, cat, idx } = frameLinkTarget;
     const item = getFrameItem(ftype, cat, idx);
@@ -1219,6 +1230,7 @@ function moveSOItem(section, idx, dir) {
   let arr;
   if (section === 'standing') arr = standingData.standing;
   else if (section === 'weekly_recurring') arr = standingData.weekly_recurring;
+  else if (section === 'monthly_recurring') arr = standingData.monthly_recurring;
   else if (section === 'monthly') arr = standingData.monthly[ym()] || [];
   else if (section === 'yearly') arr = standingData.yearly;
   else return;
@@ -1254,6 +1266,35 @@ function addMonthlyItem(text) {
   if (!standingData.monthly[k]) standingData.monthly[k] = [];
   standingData.monthly[k].push(text.trim());
   saveStandingData(); renderStandingOrders();
+}
+
+// --- Monthly Recurring CRUD ---
+function editMR(i, field, val) {
+  if (field === 'text') standingData.monthly_recurring[i].text = val.trim();
+  else standingData.monthly_recurring[i][field] = val;
+  saveStandingData();
+}
+function delMR(i) { standingData.monthly_recurring.splice(i, 1); saveStandingData(); renderStandingOrders(); }
+function addMR(text) {
+  if (!text?.trim()) return;
+  if (!standingData.monthly_recurring) standingData.monthly_recurring = [];
+  const day = +(document.getElementById('newMRDay')?.value || 0);
+  standingData.monthly_recurring.push({ day, text: text.trim() });
+  saveStandingData(); renderStandingOrders();
+}
+
+let mrLinkIdx = null;
+function openMRLink(event, idx) {
+  mrLinkIdx = idx;
+  const item = standingData.monthly_recurring[idx];
+  const popup = document.getElementById('linkPopup');
+  const input = document.getElementById('linkUrl');
+  input.value = item.url || '';
+  popup.classList.add('open');
+  popup.dataset.mode = 'mr';
+  popup.style.left = Math.min(event.clientX || 100, window.innerWidth - 300) + 'px';
+  popup.style.top = Math.min(event.clientY || 100, window.innerHeight - 100) + 'px';
+  setTimeout(() => input.focus(), 50);
 }
 
 function editWeeklyDow(i, dow) { standingData.weekly_recurring[i].dow = dow; saveStandingData(); }
