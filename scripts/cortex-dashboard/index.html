@@ -58,8 +58,16 @@
   .one-thing:empty::before { content: 'ONE THING...'; color: #2d5a2d; }
   .one-thing:focus { outline: 1px solid #56d364; background: #1a3a1a; }
 
-  .category { margin-bottom: 2px; }
-  .cat-label { font-size: 8px; color: #f0c040; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: flex; justify-content: space-between; }
+  .category { margin-bottom: 2px; border-left: 2px solid transparent; padding-left: 3px; }
+  .category.cat-ritual { border-left-color: #f0c040; }
+  .category.cat-input { border-left-color: #58a6ff; }
+  .category.cat-work { border-left-color: #56d364; }
+  .category.cat-outcome { border-left-color: #bc8cff; }
+  .cat-label { font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: flex; justify-content: space-between; }
+  .cat-label.cl-ritual { color: #f0c040; }
+  .cat-label.cl-input { color: #58a6ff; }
+  .cat-label.cl-work { color: #56d364; }
+  .cat-label.cl-outcome { color: #bc8cff; }
   .cat-label .cat-add { cursor: pointer; color: #484f58; font-size: 10px; display: none; }
   .category:hover .cat-add { display: inline; }
   .cat-add:hover { color: #f0c040 !important; }
@@ -80,11 +88,8 @@
 
   /* Notes */
   .day-notes { font-size: 10px; color: #8b949e; margin-top: 3px; padding: 2px 4px; background: #161b22; border-radius: 2px; min-height: 14px; display: none; }
-  .day-notes.has-content, .day-notes.editing { display: block; }
+  .day-notes.has-content { display: block; }
   .day-notes:focus { outline: 1px solid #484f58; color: #c9d1d9; }
-  .notes-toggle { font-size: 9px; cursor: pointer; color: #484f58; display: none; }
-  .day-cell:hover .notes-toggle { display: inline; }
-  .notes-toggle:hover { color: #f0c040 !important; }
 
   /* New item input */
   .new-item { display: none; padding: 2px 0; }
@@ -475,17 +480,12 @@ function renderDayCellContent(d, isToday, isWeek) {
   const dowClass = dow === 0 ? ' sun' : dow === 6 ? ' sat' : '';
   const typeClass = dayData.day_type ? ` type-${dayData.day_type}` : '';
 
-  let html = `<div class="day-num${dowClass}">
-    <span>${d}`;
-  if (dayData.day_type) {
-    html += `<span class="day-type-badge ${TYPE_COLORS[dayData.day_type]}" onclick="cycleDayType(${d})">${TYPE_LABELS[dayData.day_type]}</span>`;
-  }
-  html += `</span>
-    <span>
-      <span class="notes-toggle" onclick="toggleNotes(${d})">&#128221;</span>
-      <span class="add-btn" onclick="addItemPrompt(${d})">+</span>
-      ${!dayData.day_type ? `<span class="add-btn" onclick="cycleDayType(${d})" style="font-size:10px">&#9679;</span>` : ''}
-    </span>
+  const badgeHtml = dayData.day_type
+    ? ` <span class="day-type-badge ${TYPE_COLORS[dayData.day_type]}" onclick="event.stopPropagation();cycleDayType(${d})">${TYPE_LABELS[dayData.day_type]}</span>`
+    : '';
+  html += `<div class="day-num${dowClass}" onclick="cycleDayType(${d})" style="cursor:pointer" title="Set day type">
+    <span>${d}${badgeHtml}</span>
+    <span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span>
   </div>`;
 
   // One Thing
@@ -500,8 +500,8 @@ function renderDayCellContent(d, isToday, isWeek) {
     const items = dayData[cat] || [];
     if (items.length === 0 && !isToday) continue;
 
-    html += `<div class="category">
-      <div class="cat-label">
+    html += `<div class="category cat-${cat}">
+      <div class="cat-label cl-${cat}">
         <span>${CAT_NAMES[cat]}</span>
         <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span>
       </div>`;
@@ -533,7 +533,7 @@ function renderDayCellContent(d, isToday, isWeek) {
   if (isToday) {
     for (const cat of CATS) {
       if ((dayData[cat] || []).length > 0) continue;
-      html += `<div class="category"><div class="cat-label"><span>${CAT_NAMES[cat]}</span>
+      html += `<div class="category cat-${cat}"><div class="cat-label cl-${cat}"><span>${CAT_NAMES[cat]}</span>
         <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span></div>
         <div class="new-item" id="new-${d}-${cat}">
           <input type="text" placeholder="..." onkeydown="if(event.key==='Enter'){addNewItem(${d},'${cat}',this.value);this.value='';}"
