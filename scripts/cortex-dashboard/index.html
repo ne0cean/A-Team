@@ -381,69 +381,71 @@ function renderMonthView() {
     if (currentWeekIdx === -1) currentWeekIdx = weeks.length - 1;
   }
 
+  // Collect past weeks stats
+  const pastWeeks = weeks.filter((_, i) => i < currentWeekIdx);
+  let pastTotal = 0, pastDone = 0;
+  pastWeeks.forEach(week => week.forEach(d => {
+    const dd = monthData.days[String(d)] || {};
+    CATS.forEach(cat => { const items = dd[cat] || []; pastTotal += items.length; pastDone += items.filter(i => i.done).length; });
+  }));
+
   let html = '';
-  weeks.forEach((week, wIdx) => {
-    const isPast = wIdx < currentWeekIdx;
-    const isCurrent = wIdx === currentWeekIdx;
-    const weekStart = week[0];
-    const weekEnd = week[week.length - 1];
 
-    // Collapsed past weeks — click to expand
-    if (isPast) {
-      // Summary: count done/total for the week
-      let wTotal = 0, wDone = 0;
-      week.forEach(d => {
-        const dd = monthData.days[String(d)] || {};
-        CATS.forEach(cat => {
-          const items = dd[cat] || [];
-          wTotal += items.length;
-          wDone += items.filter(i => i.done).length;
-        });
-      });
-      const pct = wTotal > 0 ? Math.round(wDone / wTotal * 100) : 0;
-      html += `<div class="collapsed-week" onclick="expandWeek(this)">
-        <span>${currentMonth}/${weekStart} - ${currentMonth}/${weekEnd}</span>
-        <span style="color:#56d364">${wDone}/${wTotal} (${pct}%)</span>
-        <span style="color:#484f58">&#9654; expand</span>
-      </div>`;
-      // Hidden grid
-      html += `<div class="week-expandable" style="display:none">`;
-    }
-
-    // Week grid
-    html += '<div class="grid">';
-    DAY_NAMES.forEach((n, i) => {
-      const cls = i === 0 ? ' sun' : i === 6 ? ' sat' : '';
-      html += `<div class="day-header${cls}">${n}</div>`;
+  // Single collapsed bar for all past weeks
+  if (pastWeeks.length > 0) {
+    const firstDay = pastWeeks[0][0];
+    const lastDay = pastWeeks[pastWeeks.length - 1][pastWeeks[pastWeeks.length - 1].length - 1];
+    const pct = pastTotal > 0 ? Math.round(pastDone / pastTotal * 100) : 0;
+    html += `<div class="collapsed-week" onclick="togglePastWeeks()">
+      <span>${currentMonth}/${firstDay} - ${currentMonth}/${lastDay} (${pastWeeks.length} weeks)</span>
+      <span style="color:#56d364">${pastDone}/${pastTotal} (${pct}%)</span>
+      <span id="pastToggleIcon" style="color:#484f58">&#9654;</span>
+    </div>`;
+    html += `<div id="pastWeeksContainer" style="display:none">`;
+    pastWeeks.forEach(week => {
+      html += renderWeekGrid(week, todayDate);
     });
-    // Pad start of week
-    const firstDow = new Date(currentYear, currentMonth - 1, weekStart).getDay();
-    for (let i = 0; i < firstDow; i++)
-      html += `<div class="day-cell other-month"></div>`;
-    // Days
-    week.forEach(d => {
-      const isToday = d === todayDate;
-      html += renderDayCell(d, isToday, false);
-    });
-    // Pad end of week
-    const lastDow = new Date(currentYear, currentMonth - 1, weekEnd).getDay();
-    for (let i = lastDow + 1; i < 7; i++)
-      html += `<div class="day-cell other-month"></div>`;
     html += '</div>';
+  }
 
-    if (isPast) html += '</div>'; // close week-expandable
+  // Current + future weeks (always visible)
+  weeks.forEach((week, wIdx) => {
+    if (wIdx < currentWeekIdx) return; // already rendered above
+    html += renderWeekGrid(week, todayDate);
   });
 
   return html;
 }
 
-function expandWeek(el) {
-  const expandable = el.nextElementSibling;
-  if (expandable) {
-    const isOpen = expandable.style.display !== 'none';
-    expandable.style.display = isOpen ? 'none' : '';
-    el.querySelector('span:last-child').innerHTML = isOpen ? '&#9654; expand' : '&#9660; collapse';
-  }
+function renderDayHeaders() {
+  let html = '<div class="grid" style="position:sticky;top:0;z-index:10">';
+  DAY_NAMES.forEach((n, i) => {
+    const cls = i === 0 ? ' sun' : i === 6 ? ' sat' : '';
+    html += `<div class="day-header${cls}">${n}</div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderWeekGrid(week, todayDate) {
+  const weekStart = week[0];
+  const weekEnd = week[week.length - 1];
+  let html = '<div class="grid">';
+  const firstDow = new Date(currentYear, currentMonth - 1, weekStart).getDay();
+  for (let i = 0; i < firstDow; i++) html += `<div class="day-cell other-month"></div>`;
+  week.forEach(d => html += renderDayCell(d, d === todayDate, false));
+  const lastDow = new Date(currentYear, currentMonth - 1, weekEnd).getDay();
+  for (let i = lastDow + 1; i < 7; i++) html += `<div class="day-cell other-month"></div>`;
+  html += '</div>';
+  return html;
+}
+
+function togglePastWeeks() {
+  const c = document.getElementById('pastWeeksContainer');
+  const icon = document.getElementById('pastToggleIcon');
+  const open = c.style.display !== 'none';
+  c.style.display = open ? 'none' : '';
+  icon.innerHTML = open ? '&#9654;' : '&#9660;';
 }
 
 function renderWeekView() {
