@@ -833,11 +833,17 @@ function renderStandingOrders() {
   html += '<div class="tab" onclick="showSOTab(\'yearly\',this)">Yearly</div>';
   html += '</div>';
 
-  // Standing
+  // Standing — editable
   html += '<div id="soTab-standing">';
-  (standingData.standing || []).forEach(s => {
-    html += `<div class="so-item"><input type="checkbox" ${s.active?'checked':''} disabled> ${esc(s.text)}</div>`;
+  (standingData.standing || []).forEach((s, i) => {
+    html += `<div class="so-item">
+      <input type="checkbox" ${s.active?'checked':''} onchange="toggleSOActive(${i})">
+      <span contenteditable="true" style="flex:1" onblur="editSOText(${i},this.textContent)">${esc(s.text)}</span>
+      <span class="del-btn" onclick="delSO(${i})" style="display:inline">&#215;</span>
+    </div>`;
   });
+  html += `<div class="frame-add"><input placeholder="Add standing order..." onkeydown="if(event.key==='Enter'){addSO(this.value);this.value='';}">
+    <button onclick="addSO(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button></div>`;
   // HF dates
   const hfThisMonth = (standingData.happy_friday || []).filter(d => d.startsWith(ymKey));
   if (hfThisMonth.length) {
@@ -852,26 +858,88 @@ function renderStandingOrders() {
   }
   html += '</div>';
 
-  // Monthly
+  // Monthly — editable
   html += '<div id="soTab-monthly" style="display:none">';
   const monthlyItems = standingData.monthly?.[ymKey] || [];
-  if (monthlyItems.length) {
-    monthlyItems.forEach(i => { html += `<div class="so-monthly-item">- ${esc(typeof i === 'string' ? i : i.text || i)}</div>`; });
-  } else {
-    html += '<div style="color:#484f58;font-size:10px">No items for this month</div>';
-  }
+  monthlyItems.forEach((item, i) => {
+    const text = typeof item === 'string' ? item : item.text || item;
+    html += `<div class="so-item">
+      <span contenteditable="true" style="flex:1" onblur="editMonthlyItem(${i},this.textContent)">${esc(text)}</span>
+      <span class="del-btn" onclick="delMonthlyItem(${i})" style="display:inline">&#215;</span>
+    </div>`;
+  });
+  html += `<div class="frame-add"><input placeholder="Add monthly item..." onkeydown="if(event.key==='Enter'){addMonthlyItem(this.value);this.value='';}">
+    <button onclick="addMonthlyItem(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button></div>`;
   html += '</div>';
 
-  // Yearly
+  // Yearly — editable
   html += '<div id="soTab-yearly" style="display:none">';
-  (standingData.yearly || []).forEach(y => {
+  (standingData.yearly || []).forEach((y, i) => {
     const isCurrent = y.month === currentMonthNum;
-    html += `<div class="so-yearly-item ${isCurrent ? 'current-month' : ''}">
-      <span class="month-tag">${y.month}월</span>${esc(y.text)}</div>`;
+    html += `<div class="so-item ${isCurrent ? 'current-month' : ''}">
+      <select style="width:50px;background:#0d1117;border:1px solid #30363d;color:#f0c040;font-size:10px;border-radius:2px" onchange="editYearlyMonth(${i},+this.value)">
+        ${Array.from({length:12},(_,m)=>`<option value="${m+1}" ${y.month===m+1?'selected':''}>${m+1}월</option>`).join('')}
+      </select>
+      <span contenteditable="true" style="flex:1" onblur="editYearlyText(${i},this.textContent)">${esc(y.text)}</span>
+      <span class="del-btn" onclick="delYearly(${i})" style="display:inline">&#215;</span>
+    </div>`;
   });
+  html += `<div class="frame-add" style="gap:4px">
+    <select id="newYearlyMonth" style="width:50px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;border-radius:2px">
+      ${Array.from({length:12},(_,m)=>`<option value="${m+1}">${m+1}월</option>`).join('')}
+    </select>
+    <input placeholder="Add yearly item..." onkeydown="if(event.key==='Enter'){addYearly(this.value);this.value='';}">
+    <button onclick="addYearly(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button></div>`;
   html += '</div>';
 
   document.getElementById('soPanel').innerHTML = html;
+}
+
+// --- Standing Orders CRUD ---
+async function saveStandingData() {
+  await fetch(`${API}/api/standing-orders`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(standingData)
+  });
+}
+
+function toggleSOActive(i) { standingData.standing[i].active = !standingData.standing[i].active; saveStandingData(); }
+function editSOText(i, text) { if(text.trim()) standingData.standing[i].text = text.trim(); saveStandingData(); }
+function delSO(i) { standingData.standing.splice(i, 1); saveStandingData(); renderStandingOrders(); }
+function addSO(text) {
+  if (!text?.trim()) return;
+  standingData.standing.push({ id: `so-${Date.now()}`, text: text.trim(), active: true });
+  saveStandingData(); renderStandingOrders();
+}
+
+function editMonthlyItem(i, text) {
+  const k = ym();
+  if (!standingData.monthly[k]) return;
+  standingData.monthly[k][i] = text.trim();
+  saveStandingData();
+}
+function delMonthlyItem(i) {
+  const k = ym();
+  if (!standingData.monthly[k]) return;
+  standingData.monthly[k].splice(i, 1);
+  saveStandingData(); renderStandingOrders();
+}
+function addMonthlyItem(text) {
+  if (!text?.trim()) return;
+  const k = ym();
+  if (!standingData.monthly[k]) standingData.monthly[k] = [];
+  standingData.monthly[k].push(text.trim());
+  saveStandingData(); renderStandingOrders();
+}
+
+function editYearlyMonth(i, month) { standingData.yearly[i].month = month; saveStandingData(); }
+function editYearlyText(i, text) { if(text.trim()) standingData.yearly[i].text = text.trim(); saveStandingData(); }
+function delYearly(i) { standingData.yearly.splice(i, 1); saveStandingData(); renderStandingOrders(); }
+function addYearly(text) {
+  if (!text?.trim()) return;
+  const month = +(document.getElementById('newYearlyMonth')?.value || 1);
+  standingData.yearly.push({ month, text: text.trim() });
+  saveStandingData(); renderStandingOrders();
 }
 
 function showSOTab(name, el) {
