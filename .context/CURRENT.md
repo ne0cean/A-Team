@@ -60,14 +60,19 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-25) — PMI + Design INDEX + Cortex PARA 재편
+## Last Completions (2026-05-25) — Cortex 워크스페이스 + YT 16개 분석 + Ritual Board
 
 - **PMI 5-Phase 완료** — `@fast-check/vitest` 설치 (property tests 13개 복구), `wiki-types.ts:81` 타입 캐스팅 수정, CLAUDE.md 207→192줄 축소. 583 tests PASS.
 - **Design Taste Evaluator Phase 1 — INDEX.md 구축** — `reference/design-systems/INDEX.md` 생성. 72 brands, 8 categories, tone clusters, incomplete entries 식별. taste-evaluator 에이전트 연결 준비 완료.
 - **Cortex PARA+6기둥 재편** — staging 587파일 OneNote 원본 구조(notebook/section_group/section)로 복원. pillars/+areas/ 중복 구조 통합 → InterStellar/2_6 hexagonal pillars/ 단일화. Dashboard 100개 6기둥 분류(interstellar 44, snowball 25, character 14, life-xlab 12, string 5). 중복 22개 해소. archives/legacy 11개 snowball 편입. 신입연수 22개 삭제.
 - **OneNote 누락 658개 다운로드** — 2_6 hexagonal pillars 2~6번 + Zeroing + Futures options 전체 다운로드 (level/order 메타데이터 포함). 3_Archive는 Microsoft API 장애로 미완료.
 - **OneNote InterStellar Migration 완료** — Zeroing 73개 + Futures options 1개 추가 다운로드 (이전 세션 누락분). cortex/projects/ 164개 중복 파일 제거. 3_Archive 118개 부분 다운로드 (API 정상 작동 구간). 최종 상태: InterStellar 1,306파일 (1_Projects 343 + 2_6 pillars 845 + 3_Archive 118), page index 921개 전량 on-disk. onenote-download-missing.py `import time` 버그 수정. 원격 이미지 293개 (Graph API URL, 텍스트 정상).
-- **Claude 실행 문제 해결** — claude-remote 서버 WebSocket 장애 → bun 프로세스 종료 → alias fallback 정상화.
+- **Cortex 워크스페이스 재설계** — PARA 최상위 + 6기둥 Areas 하위 구조 확정. InterStellar→archive/interstellar-onenote/ 이동. 커맨드 6개 신규(/inbox, /idea, /tidy-inbox, /learn, /recall, /daily-note). CORTEX.md 매뉴얼 + governance/rules/cortex-ops.md 거버넌스. VS Code 스니펫 + Paste Image 설정.
+- **YouTube 16개 영상 풀 분석** — Groq Whisper API 전사 + 5그룹 분석 리포트 (.context/briefs/). 즉시 적용 6건: opusplan, LSP 우선, Plan-Annotate-Execute 패턴, /ppt Q0 템플릿 분기, yt-extract --transcribe, OneNote MSAL 자동갱신.
+- **Ritual Board recurring 구현** — JSON 스키마 + 서버 API 5개 + UI 하단 자동반영 + 멱등성.
+- **OneNote migration 완료** — 1,639파일 on-disk. 3_Archive 451파일. MSAL 토큰 자동갱신 추가.
+- **PKM 벤치마크** — 14개 프로젝트 조사. LLM Wiki + Obsidian Claude PKM + CortexGraph 하이브리드 방향.
+- **SKILL.md 호환성 분석** — A-Team→SKILL.md 변환 70-80% 가능.
 
 **빌드**: ✅ 583 tests PASS (50 files)
 
@@ -86,15 +91,17 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
+- [ ] **OneNote 이미지 로컬화** — 408개 md의 Graph API URL → 로컬 이미지 다운로드 + 경로 교체 스크립트 작성/실행 (별도 세션)
 - [ ] **제품 빌드 시작** — 커넥톰 등 프로젝트 A-Team으로 실전 빌드 (플라이휠 증거)
 - [ ] **Design Taste Evaluator Phase 2** — taste-evaluator.md 에이전트 구현 → designer 연결
 - [ ] **VDI GitLab CE 설치** — 사내 서버 VM 확보 → Docker 설치 → cortex/ 동기화
 
 ### Medium Priority
+- [ ] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진 (YT 그룹C 도출)
+- [ ] **LSP 활성화** — settings.json 히든 플래그 + 언어서버 설치 (YT 그룹D 도출)
 - [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정 (PRD 성공 기준 기반)
 - [ ] **Stryker 첫 full run** — mutation score baseline 측정
-- [ ] **OneNote 3_Archive 완전 다운로드** — 현재 118/~200+ 부분 완료. API 정상 시 재실행 (3_Archive 외 섹션은 전량 완료)
-- [ ] **Ritual Board 이름/구조 확정** — 하단 섹션 별도 탭 vs 통합
+- [ ] **Ritual Board 이름 확정** — 완성 후 추천
 
 ### Low Priority / Future
 - [ ] Phase 1 Causal analysis (**보류**: 데이터 축적 후)
