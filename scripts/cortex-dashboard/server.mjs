@@ -9,6 +9,7 @@ import { createServer } from 'http';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { randomUUID } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = 7843;
@@ -18,6 +19,7 @@ const DATA_DIR = join(__dirname, '../../cortex/areas/life/ritual-routine');
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 
 const TEMPLATES_PATH = join(DATA_DIR, 'templates.json');
+const RECURRING_TEMPLATES_PATH = join(DATA_DIR, 'recurring-templates.json');
 
 function getDataPath(yearMonth) {
   return join(DATA_DIR, `${yearMonth}.json`);
@@ -31,6 +33,94 @@ function loadTemplates() {
 function saveTemplates(data) {
   writeFileSync(TEMPLATES_PATH, JSON.stringify(data, null, 2), 'utf-8');
 }
+
+// --- Recurring Templates ---
+
+function loadRecurringTemplates() {
+  if (existsSync(RECURRING_TEMPLATES_PATH)) {
+    return JSON.parse(readFileSync(RECURRING_TEMPLATES_PATH, 'utf-8'));
+  }
+  return { templates: [], _meta: { injectedMonths: [] } };
+}
+
+function saveRecurringTemplates(data) {
+  writeFileSync(RECURRING_TEMPLATES_PATH, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+/**
+ * Returns true if this template should fire on the given date.
+ * @param {object} tpl  recurring template
+ * @param {Date}   date JS Date object
+ */
+function templateMatchesDate(tpl, date) {
+  if (!tpl.enabled) return false;
+  const { type, days, dates } = tpl.schedule;
+  if (type === 'daily') return true;
+  if (type === 'weekly') {
+    const dow = date.getDay(); // 0=Sun, 6=Sat
+    return Array.isArray(days) && days.includes(dow);
+  }
+  if (type === 'monthly') {
+    const dom = date.getDate();
+    return Array.isArray(dates) && dates.includes(dom);
+  }
+  return false;
+}
+
+/**
+ * Inject enabled recurring templates into monthData for all days of yearMonth.
+ * Skips days that already have the item (idempotent).
+ * Returns count of new items injected.
+ */
+function injectRecurringIntoMonth(yearMonth, monthData, recurringData) {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let injected = 0;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(year, month - 1, d);
+    const dayKey = String(d);
+    if (!monthData.days[dayKey]) monthData.days[dayKey] = {};
+    const dayData = monthData.days[dayKey];
+
+    for (const tpl of recurringData.templates) {
+      if (!templateMatchesDate(tpl, dateObj)) continue;
+      const cat = tpl.category;
+      if (!dayData[cat]) dayData[cat] = [];
+      // idempotent: skip if already injected (match by _tplId)
+      const alreadyExists = dayData[cat].some(i => i._tplId === tpl.id);
+      if (!alreadyExists) {
+        dayData[cat].push({ text: tpl.name, url: '', done: false, _tplId: tpl.id });
+        injected++;
+      }
+    }
+  }
+  return injected;
+}
+
+/**
+ * Auto-inject on server start and when loading a new month.
+ * Marks the month as injected in _meta.injectedMonths so we don't double-run
+ * (but re-run is still idempotent).
+ */
+function autoInjectMonth(yearMonth) {
+  const recurringData = loadRecurringTemplates();
+  const alreadyDone = recurringData._meta.injectedMonths.includes(yearMonth);
+  if (alreadyDone) return 0;
+
+  const monthData = loadMonth(yearMonth);
+  const count = injectRecurringIntoMonth(yearMonth, monthData, recurringData);
+  if (count > 0) saveMonth(yearMonth, monthData);
+
+  recurringData._meta.injectedMonths.push(yearMonth);
+  saveRecurringTemplates(recurringData);
+  return count;
+}
+
+// Run auto-inject for current month on startup
+const startupYm = new Date().toISOString().slice(0, 7);
+autoInjectMonth(startupYm);
+console.log(`Auto-inject on startup: ${startupYm}`);
 
 function getMdPath(yearMonth) {
   return join(DATA_DIR, `${yearMonth}.md`);
@@ -122,7 +212,7 @@ const server = createServer((req, res) => {
 
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
 
@@ -133,6 +223,8 @@ const server = createServer((req, res) => {
 
   if (url.pathname === '/api/month' && req.method === 'GET') {
     const ym = url.searchParams.get('ym') || new Date().toISOString().slice(0, 7);
+    // Auto-inject recurring templates if this month hasn't been processed yet
+    autoInjectMonth(ym);
     const data = loadMonth(ym);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify(data));
@@ -243,6 +335,105 @@ const server = createServer((req, res) => {
       } catch (e) {
         res.writeHead(400);
         res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // ---- Recurring Templates API ----
+
+  // GET /api/recurring-templates
+  if (url.pathname === '/api/recurring-templates' && req.method === 'GET') {
+    const data = loadRecurringTemplates();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(data));
+  }
+
+  // POST /api/recurring-templates — create new template
+  if (url.pathname === '/api/recurring-templates' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const { name, category, schedule, enabled } = JSON.parse(body);
+        if (!name || !category || !schedule) {
+          res.writeHead(400); return res.end(JSON.stringify({ error: 'name, category, schedule required' }));
+        }
+        const data = loadRecurringTemplates();
+        const newTpl = {
+          id: `rt-${randomUUID().slice(0, 8)}`,
+          name: String(name).trim(),
+          category: String(category),
+          schedule,
+          enabled: enabled !== false
+        };
+        data.templates.push(newTpl);
+        saveRecurringTemplates(data);
+        res.writeHead(201, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, template: newTpl }));
+      } catch (e) {
+        res.writeHead(400); res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // PUT /api/recurring-templates/:id — update template
+  const tplUpdateMatch = url.pathname.match(/^\/api\/recurring-templates\/([^/]+)$/);
+  if (tplUpdateMatch && req.method === 'PUT') {
+    const id = tplUpdateMatch[1];
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const updates = JSON.parse(body);
+        const data = loadRecurringTemplates();
+        const idx = data.templates.findIndex(t => t.id === id);
+        if (idx === -1) { res.writeHead(404); return res.end(JSON.stringify({ error: 'not found' })); }
+        data.templates[idx] = { ...data.templates[idx], ...updates, id };
+        saveRecurringTemplates(data);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, template: data.templates[idx] }));
+      } catch (e) {
+        res.writeHead(400); res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // DELETE /api/recurring-templates/:id
+  const tplDeleteMatch = url.pathname.match(/^\/api\/recurring-templates\/([^/]+)$/);
+  if (tplDeleteMatch && req.method === 'DELETE') {
+    const id = tplDeleteMatch[1];
+    const data = loadRecurringTemplates();
+    const before = data.templates.length;
+    data.templates = data.templates.filter(t => t.id !== id);
+    if (data.templates.length === before) { res.writeHead(404); return res.end(JSON.stringify({ error: 'not found' })); }
+    saveRecurringTemplates(data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: true }));
+  }
+
+  // POST /api/recurring-inject — manual inject for a specific month
+  if (url.pathname === '/api/recurring-inject' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const { ym } = JSON.parse(body);
+        if (!ym) { res.writeHead(400); return res.end(JSON.stringify({ error: 'ym required' })); }
+        const recurringData = loadRecurringTemplates();
+        const monthData = loadMonth(ym);
+        const count = injectRecurringIntoMonth(ym, monthData, recurringData);
+        if (count > 0) saveMonth(ym, monthData);
+        // Mark as injected (re-inject overwrites the flag by removing and re-adding)
+        recurringData._meta.injectedMonths = recurringData._meta.injectedMonths.filter(m => m !== ym);
+        recurringData._meta.injectedMonths.push(ym);
+        saveRecurringTemplates(recurringData);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, injected: count, ym }));
+      } catch (e) {
+        res.writeHead(400); res.end(JSON.stringify({ error: e.message }));
       }
     });
     return;

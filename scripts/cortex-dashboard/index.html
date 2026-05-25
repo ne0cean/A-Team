@@ -57,11 +57,45 @@
   .stats .stat-value { color: #56d364; font-weight: 600; }
 
   .templates-section { padding: 12px 16px; background: #161b22; border-top: 1px solid #30363d; }
-  .templates-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: pointer; }
+  .templates-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: pointer; user-select: none; }
   .templates-header h2 { font-size: 12px; color: #f0c040; }
   .templates-header .toggle { color: #484f58; font-size: 10px; }
+  .templates-header-actions { display: flex; gap: 6px; align-items: center; }
   .templates-body { display: none; }
   .templates-body.open { display: block; }
+
+  /* Recurring template list */
+  .rtpl-toolbar { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .rtpl-toolbar select, .rtpl-toolbar input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 3px 5px; border-radius: 3px; }
+  .rtpl-toolbar input.rtpl-name { flex: 1; min-width: 140px; }
+  .rtpl-toolbar button { background: #238636; border: none; color: #fff; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; white-space: nowrap; }
+  .rtpl-toolbar button:hover { background: #2ea043; }
+
+  .rtpl-schedule-extra { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .rtpl-schedule-extra label { font-size: 10px; color: #8b949e; cursor: pointer; display: flex; align-items: center; gap: 2px; }
+  .rtpl-schedule-extra label input { accent-color: #f0c040; }
+
+  .rtpl-groups { display: flex; gap: 24px; flex-wrap: wrap; }
+  .rtpl-group { flex: 1; min-width: 180px; }
+  .rtpl-group-label { font-size: 10px; color: #8b949e; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; border-bottom: 1px solid #21262d; padding-bottom: 2px; }
+  .rtpl-item { display: flex; align-items: center; gap: 5px; padding: 3px 2px; font-size: 11px; border-radius: 3px; }
+  .rtpl-item:hover { background: #21262d; }
+  .rtpl-item .rtpl-toggle { cursor: pointer; font-size: 13px; line-height: 1; flex-shrink: 0; }
+  .rtpl-item .rtpl-toggle.on { color: #56d364; }
+  .rtpl-item .rtpl-toggle.off { color: #484f58; }
+  .rtpl-item .rtpl-cat { color: #f0c040; font-size: 9px; min-width: 34px; flex-shrink: 0; }
+  .rtpl-item .rtpl-name-text { flex: 1; color: #c9d1d9; }
+  .rtpl-item .rtpl-sched { font-size: 9px; color: #484f58; flex-shrink: 0; }
+  .rtpl-item .rtpl-del { color: #484f58; cursor: pointer; font-size: 11px; padding: 0 3px; flex-shrink: 0; }
+  .rtpl-item .rtpl-del:hover { color: #f85149; }
+  .rtpl-empty { color: #484f58; font-size: 10px; padding: 2px; }
+
+  .inject-btn { background: #238636; border: none; color: #fff; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+  .inject-btn:hover { background: #2ea043; }
+  .inject-month-btn { background: #1f4e8c; border: none; color: #fff; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+  .inject-month-btn:hover { background: #2563b0; }
+
+  /* Legacy tpl-group kept for old daily templates display */
   .tpl-group { margin-bottom: 8px; }
   .tpl-group-label { font-size: 10px; color: #8b949e; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
   .tpl-item { display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 11px; }
@@ -72,8 +106,6 @@
   .tpl-add select, .tpl-add input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 2px 4px; border-radius: 2px; }
   .tpl-add input { flex: 1; }
   .tpl-add button { background: #238636; border: none; color: #fff; padding: 2px 8px; border-radius: 2px; cursor: pointer; font-size: 11px; }
-  .inject-btn { background: #238636; border: none; color: #fff; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-left: 8px; }
-  .inject-btn:hover { background: #2ea043; }
 
   /* New item input */
   .new-item { display: none; padding: 2px 0; }
@@ -105,32 +137,48 @@
   <div class="templates-header" onclick="toggleTemplates()">
     <h2>상시 업무 / Recurring Templates</h2>
     <span class="toggle" id="tplToggle">▶ 펼치기</span>
-    <button class="inject-btn" onclick="event.stopPropagation();injectToday()">오늘에 주입</button>
+    <div class="templates-header-actions" onclick="event.stopPropagation()">
+      <button class="inject-btn" onclick="injectToday()">오늘에 주입</button>
+      <button class="inject-month-btn" onclick="injectThisMonth()">이번 달에 반영</button>
+    </div>
   </div>
   <div class="templates-body" id="tplBody">
-    <div class="tpl-group">
-      <div class="tpl-group-label">Daily (매일)</div>
-      <div id="tplDaily"></div>
-      <div class="tpl-add">
-        <select id="tplCat">
-          <option value="ritual">R&R</option>
-          <option value="input">Input</option>
-          <option value="work">Work</option>
-          <option value="outcome">Out</option>
-        </select>
-        <input type="text" id="tplText" placeholder="새 상시 항목..."
-          onkeydown="if(event.key==='Enter')addTemplate()">
-        <button onclick="addTemplate()">추가</button>
+
+    <!-- Add new recurring template -->
+    <div class="rtpl-toolbar">
+      <select id="rtplCat">
+        <option value="ritual">R&R</option>
+        <option value="input">Input</option>
+        <option value="work">Work</option>
+        <option value="outcome">Out</option>
+      </select>
+      <input type="text" id="rtplName" class="rtpl-name" placeholder="새 반복 항목 이름..."
+        onkeydown="if(event.key==='Enter')addRecurringTemplate()">
+      <select id="rtplSchedType" onchange="updateScheduleExtra()">
+        <option value="daily">매일</option>
+        <option value="weekly">특정 요일</option>
+        <option value="monthly">매월 N일</option>
+      </select>
+      <div id="rtplSchedExtra" class="rtpl-schedule-extra"></div>
+      <button onclick="addRecurringTemplate()">추가</button>
+    </div>
+
+    <!-- Template groups by schedule type -->
+    <div class="rtpl-groups">
+      <div class="rtpl-group">
+        <div class="rtpl-group-label">Daily (매일)</div>
+        <div id="rtplListDaily"></div>
+      </div>
+      <div class="rtpl-group">
+        <div class="rtpl-group-label">Weekly (요일)</div>
+        <div id="rtplListWeekly"></div>
+      </div>
+      <div class="rtpl-group">
+        <div class="rtpl-group-label">Monthly (일자)</div>
+        <div id="rtplListMonthly"></div>
       </div>
     </div>
-    <div class="tpl-group">
-      <div class="tpl-group-label">Monthly (월간)</div>
-      <div id="tplMonthly"><span style="color:#484f58;font-size:10px">항목 없음</span></div>
-    </div>
-    <div class="tpl-group">
-      <div class="tpl-group-label">Yearly (연간)</div>
-      <div id="tplYearly"><span style="color:#484f58;font-size:10px">항목 없음</span></div>
-    </div>
+
   </div>
 </div>
 
@@ -399,62 +447,155 @@ function prevMonth() { currentMonth--; if(currentMonth<1){currentMonth=12;curren
 function nextMonth() { currentMonth++; if(currentMonth>12){currentMonth=1;currentYear++;} loadMonth(); }
 function goToday() { const n=new Date(); currentYear=n.getFullYear(); currentMonth=n.getMonth()+1; loadMonth(); }
 
-// --- Templates ---
-let templates = { daily: [], monthly: [], yearly: [] };
+// --- Recurring Templates ---
+const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+let recurringTemplates = { templates: [], _meta: { injectedMonths: [] } };
 
-async function loadTemplates() {
-  const res = await fetch(`${API}/api/templates`);
-  templates = await res.json();
-  renderTemplates();
+async function loadRecurringTemplates() {
+  const res = await fetch(`${API}/api/recurring-templates`);
+  recurringTemplates = await res.json();
+  renderRecurringTemplates();
 }
 
-function renderTemplates() {
-  const el = document.getElementById('tplDaily');
-  if (!templates.daily.length) {
-    el.innerHTML = '<span style="color:#484f58;font-size:10px">항목 없음</span>';
+function scheduleLabel(schedule) {
+  if (!schedule) return '';
+  if (schedule.type === 'daily') return '매일';
+  if (schedule.type === 'weekly') {
+    const ds = (schedule.days || []).map(d => DAY_NAMES[d]).join('/');
+    return ds ? `매주 ${ds}` : '주간';
+  }
+  if (schedule.type === 'monthly') {
+    const dates = (schedule.dates || []).join(',');
+    return dates ? `매월 ${dates}일` : '월간';
+  }
+  return schedule.type;
+}
+
+function renderRecurringTemplates() {
+  const groups = { daily: [], weekly: [], monthly: [] };
+  for (const t of recurringTemplates.templates) {
+    const g = t.schedule?.type || 'daily';
+    if (groups[g]) groups[g].push(t);
+    else groups.daily.push(t);
+  }
+
+  for (const [type, list] of Object.entries(groups)) {
+    const elId = `rtplList${type.charAt(0).toUpperCase() + type.slice(1)}`;
+    const el = document.getElementById(elId);
+    if (!el) continue;
+    if (!list.length) {
+      el.innerHTML = '<div class="rtpl-empty">항목 없음</div>';
+      continue;
+    }
+    el.innerHTML = list.map(t => {
+      const onClass = t.enabled ? 'on' : 'off';
+      const onIcon = t.enabled ? '●' : '○';
+      return `<div class="rtpl-item" data-id="${escHtml(t.id)}">
+        <span class="rtpl-toggle ${onClass}" title="${t.enabled ? '비활성화' : '활성화'}"
+          onclick="toggleRecurringEnabled('${escHtml(t.id)}')">${onIcon}</span>
+        <span class="rtpl-cat">${CAT_NAMES[t.category] || t.category}</span>
+        <span class="rtpl-name-text">${escHtml(t.name)}</span>
+        <span class="rtpl-sched">${escHtml(scheduleLabel(t.schedule))}</span>
+        <span class="rtpl-del" onclick="delRecurringTemplate('${escHtml(t.id)}')">×</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+function updateScheduleExtra() {
+  const type = document.getElementById('rtplSchedType').value;
+  const extra = document.getElementById('rtplSchedExtra');
+  if (type === 'daily') {
+    extra.innerHTML = '';
     return;
   }
-  el.innerHTML = templates.daily.map((t, i) =>
-    `<div class="tpl-item">
-      <span class="tpl-cat">${CAT_NAMES[t.category]||t.category}</span>
-      <span>${escHtml(t.text)}</span>
-      <span class="tpl-del" onclick="delTemplate(${i})">×</span>
-    </div>`
-  ).join('');
+  if (type === 'weekly') {
+    extra.innerHTML = DAY_NAMES.map((n, i) =>
+      `<label><input type="checkbox" name="rtpl-dow" value="${i}"> ${n}</label>`
+    ).join('');
+    return;
+  }
+  if (type === 'monthly') {
+    let opts = '';
+    for (let d = 1; d <= 31; d++) opts += `<option value="${d}">${d}일</option>`;
+    extra.innerHTML = `<select id="rtplMonthDate" style="background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;padding:2px 4px;border-radius:2px">${opts}</select>`;
+    return;
+  }
 }
 
-async function addTemplate() {
-  const cat = document.getElementById('tplCat').value;
-  const text = document.getElementById('tplText').value.trim();
-  if (!text) return;
-  templates.daily.push({ category: cat, text });
-  await fetch(`${API}/api/templates`, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(templates)
-  });
-  document.getElementById('tplText').value = '';
-  renderTemplates();
+function getScheduleFromForm() {
+  const type = document.getElementById('rtplSchedType').value;
+  if (type === 'daily') return { type: 'daily' };
+  if (type === 'weekly') {
+    const checked = [...document.querySelectorAll('input[name="rtpl-dow"]:checked')];
+    return { type: 'weekly', days: checked.map(c => Number(c.value)) };
+  }
+  if (type === 'monthly') {
+    const sel = document.getElementById('rtplMonthDate');
+    return { type: 'monthly', dates: [Number(sel ? sel.value : 1)] };
+  }
+  return { type: 'daily' };
 }
 
-async function delTemplate(idx) {
-  templates.daily.splice(idx, 1);
-  await fetch(`${API}/api/templates`, {
+async function addRecurringTemplate() {
+  const name = document.getElementById('rtplName').value.trim();
+  const category = document.getElementById('rtplCat').value;
+  const schedule = getScheduleFromForm();
+  if (!name) return;
+
+  await fetch(`${API}/api/recurring-templates`, {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(templates)
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, category, schedule, enabled: true })
   });
-  renderTemplates();
+  document.getElementById('rtplName').value = '';
+  await loadRecurringTemplates();
+}
+
+async function delRecurringTemplate(id) {
+  if (!confirm(`"${id}" 템플릿을 삭제할까요?\n이미 주입된 항목은 유지됩니다.`)) return;
+  await fetch(`${API}/api/recurring-templates/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  await loadRecurringTemplates();
+}
+
+async function toggleRecurringEnabled(id) {
+  const tpl = recurringTemplates.templates.find(t => t.id === id);
+  if (!tpl) return;
+  await fetch(`${API}/api/recurring-templates/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled: !tpl.enabled })
+  });
+  await loadRecurringTemplates();
 }
 
 async function injectToday() {
   const today = new Date().getDate();
-  await fetch(`${API}/api/inject`, {
+  const res = await fetch(`${API}/api/inject`, {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ym: ym(), day: String(today) })
   });
-  await loadMonth();
+  const data = await res.json();
+  if (data.ok) {
+    await loadMonth();
+    if (data.injected > 0) alert(`오늘 (${today}일)에 ${data.injected}개 항목이 주입되었습니다.`);
+    else alert('이미 모든 항목이 주입되어 있습니다.');
+  }
+}
+
+async function injectThisMonth() {
+  if (!confirm(`${ym()} 전체 달에 Recurring Templates를 반영할까요?\n이미 있는 항목은 중복 생성되지 않습니다.`)) return;
+  const res = await fetch(`${API}/api/recurring-inject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ym: ym() })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    await loadMonth();
+    alert(`${data.ym}: ${data.injected}개 항목이 반영되었습니다.`);
+  }
 }
 
 function toggleTemplates() {
@@ -464,8 +605,11 @@ function toggleTemplates() {
   toggle.textContent = body.classList.contains('open') ? '▼ 접기' : '▶ 펼치기';
 }
 
+// Initialize schedule extra on load
+updateScheduleExtra();
+
 init();
-loadTemplates();
+loadRecurringTemplates();
 </script>
 </body>
 </html>
