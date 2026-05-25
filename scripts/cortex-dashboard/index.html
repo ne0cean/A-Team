@@ -87,6 +87,17 @@
   .item:hover .del-btn { display: inline; }
   .del-btn:hover { color: #f85149 !important; }
 
+  /* Link popup */
+  .link-popup { position: fixed; z-index: 200; background: #161b22; border: 1px solid #f0c040; border-radius: 6px; padding: 8px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+  .link-popup.open { display: flex; flex-direction: column; gap: 6px; }
+  .link-popup input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 12px; padding: 4px 8px; border-radius: 3px; width: 260px; }
+  .link-popup input:focus { outline: 1px solid #f0c040; }
+  .link-popup .link-popup-btns { display: flex; gap: 4px; justify-content: flex-end; }
+  .link-popup .link-popup-btns button { padding: 3px 10px; border-radius: 3px; border: none; cursor: pointer; font-size: 11px; }
+  .link-popup .btn-save { background: #238636; color: #fff; }
+  .link-popup .btn-remove { background: #da3633; color: #fff; }
+  .link-popup .btn-cancel { background: #21262d; color: #c9d1d9; }
+
   /* Dragging */
   .item.dragging { opacity: 0.4; }
   .item.drag-over { border-top: 2px solid #f0c040; }
@@ -102,21 +113,7 @@
   .new-item input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 2px 4px; border-radius: 2px; width: 100%; }
   .new-item input:focus { outline: 1px solid #f0c040; }
 
-  /* Stats bar */
-  .stats { padding: 6px 16px; background: #161b22; border-top: 1px solid #30363d; display: flex; gap: 16px; font-size: 11px; color: #8b949e; flex-wrap: wrap; align-items: center; }
-  .stat-value { color: #56d364; font-weight: 600; }
-  .stat-bar { display: inline-flex; gap: 1px; align-items: flex-end; height: 16px; }
-  .stat-bar-day { width: 4px; background: #21262d; border-radius: 1px; }
-  .stat-bar-day.has { background: #238636; }
-
-  /* Heatmap */
-  .heatmap { display: flex; gap: 2px; flex-wrap: wrap; align-items: center; }
-  .heat-cell { width: 10px; height: 10px; border-radius: 2px; }
-  .heat-0 { background: #161b22; }
-  .heat-1 { background: #0e4429; }
-  .heat-2 { background: #006d32; }
-  .heat-3 { background: #26a641; }
-  .heat-4 { background: #39d353; }
+  .stats { display: none; }
 
   /* Collapsed past week */
   .collapsed-week { padding: 6px 16px; background: #161b22; border-bottom: 1px solid #21262d; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 11px; color: #8b949e; }
@@ -276,6 +273,16 @@
       <span class="panel-toggle" id="rtPanelToggle">&#9654;</span>
     </div>
     <div class="panel-body" id="rtPanel"></div>
+  </div>
+</div>
+
+<!-- Link Popup -->
+<div class="link-popup" id="linkPopup">
+  <input type="text" id="linkUrl" placeholder="URL (https://...)">
+  <div class="link-popup-btns">
+    <button class="btn-remove" onclick="removeLink()">Remove</button>
+    <button class="btn-cancel" onclick="closeLinkPopup()">Cancel</button>
+    <button class="btn-save" onclick="saveLink()">Save</button>
   </div>
 </div>
 
@@ -583,7 +590,10 @@ function renderDayCellContent(d, isToday, isWeek) {
         <span class="item-text" contenteditable="true"
           onblur="editItem(${d},'${cat}',${idx},this.textContent)"
           onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
-        >${esc(item.text)}</span>
+          oncontextmenu="event.preventDefault();openLinkPopup(event,${d},'${cat}',${idx})"
+          ontouchstart="startLongPress(event,${d},'${cat}',${idx})"
+          ontouchend="cancelLongPress()" ontouchmove="cancelLongPress()"
+        >${item.url ? `<a href="${esc(item.url)}" target="_blank" onclick="event.stopPropagation()">${esc(item.text)}</a>` : esc(item.text)}</span>
         <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
       </div>`;
     });
@@ -685,6 +695,57 @@ function ensureDay(d) {
 async function toggleItem(d, cat, idx) {
   ensureDay(d)[cat][idx].done = !ensureDay(d)[cat][idx].done;
   await save(); render();
+}
+
+// --- Link popup ---
+let linkTarget = null;
+let longPressTimer = null;
+
+function openLinkPopup(event, d, cat, idx) {
+  const item = ensureDay(d)[cat]?.[idx];
+  if (!item) return;
+  linkTarget = { d, cat, idx };
+  const popup = document.getElementById('linkPopup');
+  const input = document.getElementById('linkUrl');
+  input.value = item.url || '';
+  popup.classList.add('open');
+  // Position near click/touch
+  const x = Math.min(event.clientX || event.touches?.[0]?.clientX || 100, window.innerWidth - 300);
+  const y = Math.min(event.clientY || event.touches?.[0]?.clientY || 100, window.innerHeight - 100);
+  popup.style.left = x + 'px';
+  popup.style.top = y + 'px';
+  setTimeout(() => input.focus(), 50);
+}
+
+function closeLinkPopup() {
+  document.getElementById('linkPopup').classList.remove('open');
+  linkTarget = null;
+}
+
+async function saveLink() {
+  if (!linkTarget) return;
+  const { d, cat, idx } = linkTarget;
+  const url = document.getElementById('linkUrl').value.trim();
+  ensureDay(d)[cat][idx].url = url;
+  await save(); render(); closeLinkPopup();
+}
+
+async function removeLink() {
+  if (!linkTarget) return;
+  const { d, cat, idx } = linkTarget;
+  ensureDay(d)[cat][idx].url = '';
+  await save(); render(); closeLinkPopup();
+}
+
+function startLongPress(event, d, cat, idx) {
+  longPressTimer = setTimeout(() => {
+    event.preventDefault();
+    openLinkPopup(event, d, cat, idx);
+  }, 500);
+}
+
+function cancelLongPress() {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
 }
 
 async function editItem(d, cat, idx, newText) {
