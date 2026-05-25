@@ -3,17 +3,92 @@
 
 import json
 import re
+import sys
 import time
 import urllib.request
 from pathlib import Path
 
 CORTEX = Path(__file__).parent.parent / "cortex"
 TOKEN_FILE = CORTEX / ".onenote-token.json"
+MSAL_CACHE = CORTEX / ".onenote-msal-cache.json"
 BASE = "https://graph.microsoft.com/v1.0/me/onenote"
+
+CLIENT_ID = "85a74e27-01ee-4c99-991f-1a86b46bdc09"
+SCOPES = ["Notes.Read"]
+
+
+def refresh_token_via_msal():
+    """MSAL 캐시의 refresh_token으로 access_token 자동 갱신"""
+    try:
+        import msal
+    except ImportError:
+        print("msal 미설치. pip3 install msal")
+        return None
+
+    cache = msal.SerializableTokenCache()
+    if MSAL_CACHE.exists():
+        cache.deserialize(MSAL_CACHE.read_text())
+
+    app = msal.PublicClientApplication(CLIENT_ID, token_cache=cache)
+    accounts = app.get_accounts()
+
+    if accounts:
+        result = app.acquire_token_silent(SCOPES, account=accounts[0])
+        if result and "access_token" in result:
+            # 캐시 저장
+            MSAL_CACHE.write_text(cache.serialize())
+            # token.json도 갱신
+            TOKEN_FILE.write_text(json.dumps({
+                "access_token": result["access_token"],
+                "expires_in": result.get("expires_in", 3599),
+                "obtained_at": int(time.time()),
+            }))
+            print("토큰 자동 갱신 완료 (MSAL refresh)")
+            return result["access_token"]
+
+    # refresh 실패 → 디바이스 코드 플로우
+    print("자동 갱신 실패. 디바이스 코드 인증 시작...")
+    flow = app.initiate_device_flow(scopes=SCOPES)
+    if "user_code" not in flow:
+        print(f"디바이스 코드 생성 실패: {flow}")
+        return None
+
+    print(f"\n{'='*50}")
+    print(f"  브라우저에서: {flow['verification_uri']}")
+    print(f"  코드 입력:   {flow['user_code']}")
+    print(f"{'='*50}\n")
+
+    result = app.acquire_token_by_device_flow(flow)
+    if "access_token" in result:
+        MSAL_CACHE.write_text(cache.serialize())
+        TOKEN_FILE.write_text(json.dumps({
+            "access_token": result["access_token"],
+            "expires_in": result.get("expires_in", 3599),
+            "obtained_at": int(time.time()),
+        }))
+        print("토큰 발급 완료 (디바이스 코드)")
+        return result["access_token"]
+
+    print(f"인증 실패: {result.get('error_description', result)}")
+    return None
 
 
 def get_token():
-    return json.loads(TOKEN_FILE.read_text())["access_token"]
+    """토큰 반환. 만료 시 자동 갱신 시도."""
+    if TOKEN_FILE.exists():
+        data = json.loads(TOKEN_FILE.read_text())
+        obtained = data.get("obtained_at", 0)
+        expires_in = data.get("expires_in", 3599)
+        if time.time() < obtained + expires_in - 60:
+            return data["access_token"]
+        print("토큰 만료. 자동 갱신 시도...")
+
+    token = refresh_token_via_msal()
+    if token:
+        return token
+
+    print("토큰 갱신 실패. --auth 플래그로 재인증 필요.")
+    sys.exit(1)
 
 
 def api(url, token, retries=3):
