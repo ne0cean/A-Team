@@ -64,6 +64,8 @@
   .workout-bar { display: flex; gap: 1px; margin-bottom: 4px; flex-wrap: wrap; }
   .workout-chip { font-size: 8px; padding: 2px 4px; border-radius: 2px; cursor: pointer; user-select: none; background: #21262d; color: #6e7681; transition: all 0.15s; border: 1px solid transparent; }
   .workout-chip.on { background: #1c3050; color: #58a6ff; border-color: #1c3050; }
+  .workout-chip.sub { font-size: 7px; padding: 1px 3px; background: #161b22; color: #484f58; }
+  .workout-chip.sub.on { background: #172238; color: #58a6ff; }
 
   .category { margin-bottom: 6px; border-left: 2px solid transparent; padding-left: 4px; }
   .category.cat-ritual { border-left-color: #f0c040; }
@@ -559,9 +561,11 @@ function renderDayCellContent(d, isToday, isWeek) {
   const badgeHtml = dayData.day_type
     ? ` <span class="day-type-badge ${TYPE_COLORS[dayData.day_type]}" onclick="event.stopPropagation();cycleDayType(${d})">${TYPE_LABELS[dayData.day_type]}</span>`
     : '';
-  const pastArrow = (dow === 6 && _showPastToggleOnWeek)
-    ? `<span onclick="event.stopPropagation();togglePastWeeks()" id="pastToggleIcon" style="cursor:pointer;color:#484f58;font-size:10px" title="Past weeks">&#9650;</span>`
-    : '';
+  let pastArrow = '';
+  if (_showPastToggleOnWeek) {
+    pastArrow = `<span onclick="event.stopPropagation();togglePastWeeks()" id="pastToggleIcon" style="cursor:pointer;color:#484f58;font-size:10px" title="Past weeks">&#9650;</span>`;
+    _showPastToggleOnWeek = false; // only first cell of the week
+  }
   const holiday = getHoliday(d);
   const yearlyEvts = getYearlyEvents(d);
   const monthlyRec = getMonthlyRecurring(d);
@@ -841,13 +845,26 @@ function renderWorkoutBar() {
   const today = new Date().getDate();
   const dd = monthData.days[String(today)] || {};
   const wo = dd.workout || [];
-  const WORKOUT_PARTS = ['하체','어깨','등','가슴','전면','대퇴/측면'];
+  const WORKOUT_GROUPS = [
+    { label: '하체', parts: ['전면','측면','후면'] },
+    { label: '어깨', parts: [] },
+    { label: '등', parts: [] },
+    { label: '가슴', parts: [] },
+  ];
   const el = document.getElementById('workoutBar');
   if (!el) return;
-  el.innerHTML = WORKOUT_PARTS.map(part => {
-    const isOn = wo.includes(part);
-    return `<span class="workout-chip${isOn?' on':''}" onclick="toggleWorkout('${part}')">${part}</span>`;
-  }).join('');
+  let chips = '';
+  WORKOUT_GROUPS.forEach(g => {
+    const isOn = wo.includes(g.label);
+    chips += `<span class="workout-chip${isOn?' on':''}" onclick="toggleWorkout('${g.label}')">${g.label}</span>`;
+    if (isOn && g.parts.length) {
+      g.parts.forEach(p => {
+        const pOn = wo.includes(g.label+'/'+p);
+        chips += `<span class="workout-chip sub${pOn?' on':''}" onclick="toggleWorkout('${g.label}/${p}')">${p}</span>`;
+      });
+    }
+  });
+  el.innerHTML = chips;
 }
 
 async function toggleWorkout(part) {
