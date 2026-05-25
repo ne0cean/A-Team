@@ -40,6 +40,8 @@
   .day-cell.type-flow { border-left: 3px solid #56d364; }
   .day-cell.type-hf { border-left: 3px solid #f0c040; }
   .day-cell.type-vacation { border-left: 3px solid #bc8cff; }
+  .day-cell.is-holiday { background: #1a0d0d; }
+  .holiday-name { font-size: 8px; color: #f85149; margin-bottom: 2px; }
 
   .day-num { font-weight: 700; font-size: 12px; margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: inherit; z-index: 1; padding: 2px 0; }
   .day-num.sun { color: #f85149; }
@@ -503,13 +505,20 @@ function renderWeekView() {
   return html;
 }
 
+function getHoliday(d) {
+  if (!standingData?.holidays) return null;
+  const key = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  return standingData.holidays[key] || null;
+}
+
 function renderDayCell(d, isToday, isWeek) {
   const dayData = monthData.days[String(d)] || {};
   const dow = new Date(currentYear, currentMonth - 1, d).getDay();
   const typeClass = dayData.day_type ? ` type-${dayData.day_type}` : '';
   const todayClass = isToday ? ' today' : '';
+  const holidayClass = getHoliday(d) ? ' is-holiday' : '';
 
-  return `<div class="day-cell${todayClass}${typeClass}">${renderDayCellContent(d, isToday, isWeek)}</div>`;
+  return `<div class="day-cell${todayClass}${typeClass}${holidayClass}">${renderDayCellContent(d, isToday, isWeek)}</div>`;
 }
 
 function renderDayCellContent(d, isToday, isWeek) {
@@ -523,10 +532,12 @@ function renderDayCellContent(d, isToday, isWeek) {
   const pastArrow = (dow === 6 && _showPastToggleOnWeek)
     ? `<span onclick="event.stopPropagation();togglePastWeeks()" style="cursor:pointer;color:#484f58;font-size:12px;margin-left:4px" id="pastToggleIcon" title="Past weeks">&#9650;</span>`
     : '';
+  const holiday = getHoliday(d);
+  const holidayHtml = holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '';
   let html = `<div class="day-num${dowClass}" onclick="cycleDayType(${d})" style="cursor:pointer" title="Set day type">
     <span>${d}${badgeHtml}</span>
     <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
-  </div>`;
+  </div>${holidayHtml}`;
 
   // One Thing
   const ot = dayData.one_thing || '';
