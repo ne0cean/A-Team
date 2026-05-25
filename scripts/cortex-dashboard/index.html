@@ -2,20 +2,31 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d1117">
+<link rel="manifest" href="/manifest.json">
 <title>Cortex — Ritual & Routine</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, 'Pretendard', sans-serif; background: #0d1117; color: #e0e0e0; font-size: 12px; }
+  body { font-family: -apple-system, 'Pretendard', sans-serif; background: #0d1117; color: #e0e0e0; font-size: 12px;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 
-  .header { padding: 8px 16px; background: #161b22; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+  /* Header */
+  .header { padding: 8px 16px; background: #161b22; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
   .header h1 { font-size: 14px; color: #f0c040; }
   .vision { font-size: 10px; color: #8b949e; margin-top: 2px; }
-  .nav { display: flex; gap: 6px; align-items: center; }
-  .nav button { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-  .nav button:hover { background: #30363d; }
+  .nav { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .nav button, .view-toggle button { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+  .nav button:hover, .view-toggle button:hover { background: #30363d; }
   .nav .month-label { font-size: 14px; font-weight: 600; min-width: 100px; text-align: center; }
+  .view-toggle { display: flex; gap: 2px; }
+  .view-toggle button.active { background: #f0c040; color: #0d1117; border-color: #f0c040; }
+  .search-btn { background: none !important; border: none !important; font-size: 16px; cursor: pointer; color: #8b949e; padding: 2px 6px !important; }
+  .search-btn:hover { color: #f0c040; }
 
+  /* Calendar grid */
   .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #21262d; }
   .day-header { background: #161b22; padding: 4px; text-align: center; font-weight: 600; color: #8b949e; font-size: 11px; }
   .day-header.sun { color: #f85149; }
@@ -24,94 +35,156 @@
   .day-cell { background: #0d1117; min-height: 110px; padding: 4px; position: relative; transition: background 0.1s; overflow-y: auto; max-height: 300px; }
   .day-cell:hover { background: #131820; }
   .day-cell.today { box-shadow: inset 0 0 0 2px #f0c040; }
-  .day-cell.other-month { opacity: 0.25; }
+  .day-cell.other-month { opacity: 0.25; pointer-events: none; }
+  .day-cell.type-block { border-left: 3px solid #58a6ff; }
+  .day-cell.type-flow { border-left: 3px solid #56d364; }
+  .day-cell.type-hf { border-left: 3px solid #f0c040; }
+  .day-cell.type-vacation { border-left: 3px solid #bc8cff; }
+
   .day-num { font-weight: 700; font-size: 12px; margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; }
   .day-num.sun { color: #f85149; }
   .day-num.sat { color: #58a6ff; }
   .day-num .add-btn { font-size: 14px; cursor: pointer; color: #484f58; display: none; line-height: 1; }
   .day-cell:hover .add-btn { display: inline; }
-  .add-btn:hover { color: #f0c040; }
+  .add-btn:hover { color: #f0c040 !important; }
+
+  .day-type-badge { font-size: 8px; padding: 1px 4px; border-radius: 3px; cursor: pointer; font-weight: 600; margin-left: 3px; }
+  .badge-block { background: #1c3050; color: #58a6ff; }
+  .badge-flow { background: #1c3a1c; color: #56d364; }
+  .badge-hf { background: #3a3000; color: #f0c040; }
+  .badge-vacation { background: #2d1c50; color: #bc8cff; }
 
   .one-thing { background: #1c3a1c; padding: 2px 4px; border-radius: 2px; font-size: 10px; color: #56d364; margin-bottom: 3px; cursor: text; min-height: 14px; }
-  .one-thing:empty::before { content: '★ One Thing...'; color: #2d5a2d; }
+  .one-thing:empty::before { content: 'ONE THING...'; color: #2d5a2d; }
   .one-thing:focus { outline: 1px solid #56d364; background: #1a3a1a; }
 
   .category { margin-bottom: 2px; }
-  .cat-label { font-size: 8px; color: #f0c040; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; cursor: default; display: flex; justify-content: space-between; }
+  .cat-label { font-size: 8px; color: #f0c040; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: flex; justify-content: space-between; }
   .cat-label .cat-add { cursor: pointer; color: #484f58; font-size: 10px; display: none; }
   .category:hover .cat-add { display: inline; }
-  .cat-add:hover { color: #f0c040; }
+  .cat-add:hover { color: #f0c040 !important; }
 
   .item { display: flex; align-items: flex-start; gap: 3px; padding: 1px 0; font-size: 11px; line-height: 1.3; }
-  .item input[type="checkbox"] { margin-top: 2px; accent-color: #56d364; cursor: pointer; flex-shrink: 0; }
+  .item input[type="checkbox"] { margin-top: 2px; accent-color: #56d364; cursor: pointer; flex-shrink: 0; min-width: 14px; min-height: 14px; }
   .item.done .item-text { text-decoration: line-through; color: #484f58; }
-  .item-text { flex: 1; min-height: 14px; cursor: text; }
+  .item-text { flex: 1; min-height: 14px; cursor: text; word-break: break-word; }
   .item-text:focus { outline: none; background: #161b22; border-radius: 2px; }
-  .item-text a { color: #58a6ff; text-decoration: none; pointer-events: auto; }
-  .item-text a:hover { text-decoration: underline; }
+  .item-text a { color: #58a6ff; text-decoration: none; }
   .item .del-btn { color: #484f58; cursor: pointer; font-size: 10px; display: none; padding: 0 2px; }
   .item:hover .del-btn { display: inline; }
-  .del-btn:hover { color: #f85149; }
+  .del-btn:hover { color: #f85149 !important; }
 
-  .stats { padding: 6px 16px; background: #161b22; border-top: 1px solid #30363d; display: flex; gap: 20px; font-size: 11px; color: #8b949e; }
-  .stats .stat-value { color: #56d364; font-weight: 600; }
+  /* Dragging */
+  .item.dragging { opacity: 0.4; }
+  .item.drag-over { border-top: 2px solid #f0c040; }
 
-  .templates-section { padding: 12px 16px; background: #161b22; border-top: 1px solid #30363d; }
-  .templates-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: pointer; user-select: none; }
-  .templates-header h2 { font-size: 12px; color: #f0c040; }
-  .templates-header .toggle { color: #484f58; font-size: 10px; }
-  .templates-header-actions { display: flex; gap: 6px; align-items: center; }
-  .templates-body { display: none; }
-  .templates-body.open { display: block; }
-
-  /* Recurring template list */
-  .rtpl-toolbar { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-  .rtpl-toolbar select, .rtpl-toolbar input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 3px 5px; border-radius: 3px; }
-  .rtpl-toolbar input.rtpl-name { flex: 1; min-width: 140px; }
-  .rtpl-toolbar button { background: #238636; border: none; color: #fff; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; white-space: nowrap; }
-  .rtpl-toolbar button:hover { background: #2ea043; }
-
-  .rtpl-schedule-extra { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
-  .rtpl-schedule-extra label { font-size: 10px; color: #8b949e; cursor: pointer; display: flex; align-items: center; gap: 2px; }
-  .rtpl-schedule-extra label input { accent-color: #f0c040; }
-
-  .rtpl-groups { display: flex; gap: 24px; flex-wrap: wrap; }
-  .rtpl-group { flex: 1; min-width: 180px; }
-  .rtpl-group-label { font-size: 10px; color: #8b949e; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; border-bottom: 1px solid #21262d; padding-bottom: 2px; }
-  .rtpl-item { display: flex; align-items: center; gap: 5px; padding: 3px 2px; font-size: 11px; border-radius: 3px; }
-  .rtpl-item:hover { background: #21262d; }
-  .rtpl-item .rtpl-toggle { cursor: pointer; font-size: 13px; line-height: 1; flex-shrink: 0; }
-  .rtpl-item .rtpl-toggle.on { color: #56d364; }
-  .rtpl-item .rtpl-toggle.off { color: #484f58; }
-  .rtpl-item .rtpl-cat { color: #f0c040; font-size: 9px; min-width: 34px; flex-shrink: 0; }
-  .rtpl-item .rtpl-name-text { flex: 1; color: #c9d1d9; }
-  .rtpl-item .rtpl-sched { font-size: 9px; color: #484f58; flex-shrink: 0; }
-  .rtpl-item .rtpl-del { color: #484f58; cursor: pointer; font-size: 11px; padding: 0 3px; flex-shrink: 0; }
-  .rtpl-item .rtpl-del:hover { color: #f85149; }
-  .rtpl-empty { color: #484f58; font-size: 10px; padding: 2px; }
-
-  .inject-btn { background: #238636; border: none; color: #fff; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-  .inject-btn:hover { background: #2ea043; }
-  .inject-month-btn { background: #1f4e8c; border: none; color: #fff; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-  .inject-month-btn:hover { background: #2563b0; }
-
-  /* Legacy tpl-group kept for old daily templates display */
-  .tpl-group { margin-bottom: 8px; }
-  .tpl-group-label { font-size: 10px; color: #8b949e; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
-  .tpl-item { display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 11px; }
-  .tpl-item .tpl-cat { color: #f0c040; font-size: 9px; min-width: 36px; }
-  .tpl-item .tpl-del { color: #484f58; cursor: pointer; font-size: 10px; }
-  .tpl-item .tpl-del:hover { color: #f85149; }
-  .tpl-add { display: flex; gap: 4px; margin-top: 4px; }
-  .tpl-add select, .tpl-add input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 2px 4px; border-radius: 2px; }
-  .tpl-add input { flex: 1; }
-  .tpl-add button { background: #238636; border: none; color: #fff; padding: 2px 8px; border-radius: 2px; cursor: pointer; font-size: 11px; }
+  /* Notes */
+  .day-notes { font-size: 10px; color: #8b949e; margin-top: 3px; padding: 2px 4px; background: #161b22; border-radius: 2px; min-height: 14px; display: none; }
+  .day-notes.has-content, .day-notes.editing { display: block; }
+  .day-notes:focus { outline: 1px solid #484f58; color: #c9d1d9; }
+  .notes-toggle { font-size: 9px; cursor: pointer; color: #484f58; display: none; }
+  .day-cell:hover .notes-toggle { display: inline; }
+  .notes-toggle:hover { color: #f0c040 !important; }
 
   /* New item input */
   .new-item { display: none; padding: 2px 0; }
   .new-item.active { display: flex; gap: 3px; align-items: center; }
   .new-item input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 2px 4px; border-radius: 2px; width: 100%; }
   .new-item input:focus { outline: 1px solid #f0c040; }
+
+  /* Stats bar */
+  .stats { padding: 6px 16px; background: #161b22; border-top: 1px solid #30363d; display: flex; gap: 16px; font-size: 11px; color: #8b949e; flex-wrap: wrap; align-items: center; }
+  .stat-value { color: #56d364; font-weight: 600; }
+  .stat-bar { display: inline-flex; gap: 1px; align-items: flex-end; height: 16px; }
+  .stat-bar-day { width: 4px; background: #21262d; border-radius: 1px; }
+  .stat-bar-day.has { background: #238636; }
+
+  /* Heatmap */
+  .heatmap { display: flex; gap: 2px; flex-wrap: wrap; align-items: center; }
+  .heat-cell { width: 10px; height: 10px; border-radius: 2px; }
+  .heat-0 { background: #161b22; }
+  .heat-1 { background: #0e4429; }
+  .heat-2 { background: #006d32; }
+  .heat-3 { background: #26a641; }
+  .heat-4 { background: #39d353; }
+
+  /* Week view */
+  .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #21262d; }
+  .week-cell { background: #0d1117; min-height: 400px; padding: 8px; overflow-y: auto; max-height: 80vh; }
+  .week-cell.today { box-shadow: inset 0 0 0 2px #f0c040; }
+  .week-cell .day-num { font-size: 14px; margin-bottom: 6px; }
+  .week-cell .item { font-size: 12px; padding: 2px 0; }
+  .week-cell .item input[type="checkbox"] { min-width: 16px; min-height: 16px; }
+  .week-cell .cat-label { font-size: 9px; margin-top: 6px; }
+
+  /* Bottom panels */
+  .panels { border-top: 1px solid #30363d; }
+  .panel { background: #161b22; }
+  .panel-header { padding: 8px 16px; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262d; }
+  .panel-header h2 { font-size: 12px; color: #f0c040; }
+  .panel-toggle { color: #484f58; font-size: 10px; }
+  .panel-body { display: none; padding: 8px 16px; }
+  .panel-body.open { display: block; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; margin-bottom: 8px; }
+  .tab { padding: 4px 12px; font-size: 11px; cursor: pointer; background: #21262d; border: 1px solid #30363d; border-radius: 4px; color: #8b949e; }
+  .tab.active { background: #f0c040; color: #0d1117; border-color: #f0c040; }
+
+  .so-item { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 11px; }
+  .so-item input[type="checkbox"] { accent-color: #56d364; }
+  .so-monthly-item { padding: 2px 0; font-size: 11px; color: #c9d1d9; }
+  .so-yearly-item { padding: 2px 0; font-size: 11px; }
+  .so-yearly-item .month-tag { font-size: 9px; color: #f0c040; margin-right: 4px; }
+  .so-yearly-item.current-month { color: #56d364; font-weight: 600; }
+
+  .hf-badge { display: inline-block; background: #3a3000; color: #f0c040; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin: 2px; }
+
+  /* Recurring template controls */
+  .rtpl-toolbar { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .rtpl-toolbar select, .rtpl-toolbar input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 3px 5px; border-radius: 3px; }
+  .rtpl-toolbar input.rtpl-name { flex: 1; min-width: 140px; }
+  .rtpl-toolbar button { background: #238636; border: none; color: #fff; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; }
+
+  .rtpl-item { display: flex; align-items: center; gap: 5px; padding: 3px 2px; font-size: 11px; border-radius: 3px; }
+  .rtpl-item:hover { background: #21262d; }
+  .rtpl-toggle { cursor: pointer; font-size: 13px; flex-shrink: 0; }
+  .rtpl-toggle.on { color: #56d364; }
+  .rtpl-toggle.off { color: #484f58; }
+  .rtpl-cat { color: #f0c040; font-size: 9px; min-width: 34px; flex-shrink: 0; }
+  .rtpl-sched { font-size: 9px; color: #484f58; flex-shrink: 0; }
+  .rtpl-del { color: #484f58; cursor: pointer; font-size: 11px; padding: 0 3px; }
+  .rtpl-del:hover { color: #f85149; }
+
+  /* Search overlay */
+  .search-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; padding: 40px 16px; }
+  .search-overlay.open { display: flex; flex-direction: column; align-items: center; }
+  .search-box { width: 100%; max-width: 500px; }
+  .search-box input { width: 100%; background: #0d1117; border: 2px solid #f0c040; color: #e0e0e0; font-size: 16px; padding: 10px 14px; border-radius: 8px; outline: none; }
+  .search-results { width: 100%; max-width: 500px; margin-top: 12px; max-height: 60vh; overflow-y: auto; }
+  .search-result { padding: 8px 12px; background: #161b22; border-radius: 4px; margin-bottom: 4px; cursor: pointer; }
+  .search-result:hover { background: #21262d; }
+  .search-result .sr-date { color: #f0c040; font-size: 11px; font-weight: 600; }
+  .search-result .sr-match { font-size: 11px; color: #c9d1d9; margin-top: 2px; }
+  .search-result .sr-cat { font-size: 9px; color: #8b949e; }
+  mark { background: #f0c04060; color: #f0c040; border-radius: 2px; }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    .header { padding: 8px; }
+    .header h1 { font-size: 12px; }
+    .vision { display: none; }
+    .grid { grid-template-columns: repeat(7, 1fr); }
+    .day-cell { min-height: 60px; max-height: 200px; padding: 2px; font-size: 10px; }
+    .day-cell .cat-label { font-size: 7px; }
+    .day-cell .item { font-size: 9px; }
+    .day-num { font-size: 10px; }
+    .one-thing { font-size: 8px; }
+    .week-grid { grid-template-columns: 1fr; }
+    .week-cell { min-height: auto; max-height: none; }
+    .stats { padding: 6px 8px; gap: 8px; font-size: 10px; }
+    .item input[type="checkbox"] { min-width: 18px; min-height: 18px; }
+  }
 </style>
 </head>
 <body>
@@ -119,497 +192,679 @@
 <div class="header">
   <div>
     <h1>Cortex — Ritual & Routine</h1>
-    <div class="vision">Vision: "아침에 일어나서 원하는 것을 할 수 있는 것, 즉 자유" | Cha · Fam · Soli · Inter · Life · Ass</div>
+    <div class="vision" id="visionText"></div>
   </div>
   <div class="nav">
-    <button onclick="prevMonth()">◀</button>
+    <div class="view-toggle">
+      <button id="viewMonth" class="active" onclick="setView('month')">Month</button>
+      <button id="viewWeek" onclick="setView('week')">Week</button>
+    </div>
+    <button onclick="prevPeriod()">&#9664;</button>
     <span class="month-label" id="monthLabel"></span>
-    <button onclick="nextMonth()">▶</button>
+    <button onclick="nextPeriod()">&#9654;</button>
     <button onclick="goToday()">Today</button>
+    <span class="search-btn" onclick="openSearch()">&#128269;</span>
   </div>
 </div>
 
-<div class="grid" id="calendarGrid"></div>
+<div id="calendarContainer"></div>
 
 <div class="stats" id="stats"></div>
 
-<div class="templates-section">
-  <div class="templates-header" onclick="toggleTemplates()">
-    <h2>상시 업무 / Recurring Templates</h2>
-    <span class="toggle" id="tplToggle">▶ 펼치기</span>
-    <div class="templates-header-actions" onclick="event.stopPropagation()">
-      <button class="inject-btn" onclick="injectToday()">오늘에 주입</button>
-      <button class="inject-month-btn" onclick="injectThisMonth()">이번 달에 반영</button>
+<div class="panels">
+  <!-- Standing Orders Panel -->
+  <div class="panel">
+    <div class="panel-header" onclick="togglePanel('soPanel')">
+      <h2>Standing Orders / Monthly / Yearly</h2>
+      <span class="panel-toggle" id="soPanelToggle">&#9654;</span>
     </div>
+    <div class="panel-body" id="soPanel"></div>
   </div>
-  <div class="templates-body" id="tplBody">
 
-    <!-- Add new recurring template -->
-    <div class="rtpl-toolbar">
-      <select id="rtplCat">
-        <option value="ritual">R&R</option>
-        <option value="input">Input</option>
-        <option value="work">Work</option>
-        <option value="outcome">Out</option>
-      </select>
-      <input type="text" id="rtplName" class="rtpl-name" placeholder="새 반복 항목 이름..."
-        onkeydown="if(event.key==='Enter')addRecurringTemplate()">
-      <select id="rtplSchedType" onchange="updateScheduleExtra()">
-        <option value="daily">매일</option>
-        <option value="weekly">특정 요일</option>
-        <option value="monthly">매월 N일</option>
-      </select>
-      <div id="rtplSchedExtra" class="rtpl-schedule-extra"></div>
-      <button onclick="addRecurringTemplate()">추가</button>
+  <!-- Recurring Templates Panel -->
+  <div class="panel">
+    <div class="panel-header" onclick="togglePanel('rtPanel')">
+      <h2>Recurring Templates</h2>
+      <span class="panel-toggle" id="rtPanelToggle">&#9654;</span>
     </div>
-
-    <!-- Template groups by schedule type -->
-    <div class="rtpl-groups">
-      <div class="rtpl-group">
-        <div class="rtpl-group-label">Daily (매일)</div>
-        <div id="rtplListDaily"></div>
-      </div>
-      <div class="rtpl-group">
-        <div class="rtpl-group-label">Weekly (요일)</div>
-        <div id="rtplListWeekly"></div>
-      </div>
-      <div class="rtpl-group">
-        <div class="rtpl-group-label">Monthly (일자)</div>
-        <div id="rtplListMonthly"></div>
-      </div>
-    </div>
-
+    <div class="panel-body" id="rtPanel"></div>
   </div>
+</div>
+
+<!-- Search Overlay -->
+<div class="search-overlay" id="searchOverlay" onclick="if(event.target===this)closeSearch()">
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search..." oninput="debounceSearch()" onkeydown="if(event.key==='Escape')closeSearch()">
+  </div>
+  <div class="search-results" id="searchResults"></div>
 </div>
 
 <script>
 const API = '';
-let currentYear, currentMonth, monthData;
 const CATS = ['ritual','input','work','outcome'];
 const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Work', outcome:'Out'};
+const DAY_NAMES = ['일','월','화','수','목','금','토'];
+const TYPE_LABELS = {block:'BLOCK',flow:'FLOW',hf:'HF',vacation:'휴가'};
+const TYPE_COLORS = {block:'badge-block',flow:'badge-flow',hf:'badge-hf',vacation:'badge-vacation'};
+const TYPES = ['block','flow','hf','vacation'];
 
+let currentYear, currentMonth, currentWeekStart, monthData, standingData, recurringData;
+let viewMode = 'month'; // 'month' or 'week'
+
+// --- Init ---
 function init() {
   const now = new Date();
   currentYear = now.getFullYear();
   currentMonth = now.getMonth() + 1;
+  currentWeekStart = getWeekStart(now);
   loadMonth();
+  loadStandingOrders();
+  loadRecurringTemplates();
+  registerSW();
+}
+
+function registerSW() {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
 function ym() { return `${currentYear}-${String(currentMonth).padStart(2,'0')}`; }
 
+function getWeekStart(date) {
+  const d = new Date(date);
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
+
+// --- Data loading ---
 async function loadMonth() {
   const res = await fetch(`${API}/api/month?ym=${ym()}`);
   monthData = await res.json();
-  if (!monthData.days) monthData.days = {};
+  document.getElementById('visionText').textContent = monthData.goals?.goal || '';
+  document.getElementById('monthLabel').textContent = viewMode === 'month'
+    ? `${currentYear}. ${currentMonth}` : formatWeekLabel();
   render();
 }
 
-async function save() {
-  await fetch(`${API}/api/month`, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ ym: ym(), data: monthData })
-  });
+function formatWeekLabel() {
+  const end = new Date(currentWeekStart);
+  end.setDate(end.getDate() + 6);
+  return `${currentWeekStart.getMonth()+1}/${currentWeekStart.getDate()} - ${end.getMonth()+1}/${end.getDate()}`;
 }
 
-function ensureDay(d) {
-  const k = String(d);
-  if (!monthData.days[k]) monthData.days[k] = {};
-  for (const c of CATS) {
-    if (!monthData.days[k][c]) monthData.days[k][c] = [];
-  }
-  return monthData.days[k];
+async function loadStandingOrders() {
+  const res = await fetch(`${API}/api/standing-orders`);
+  standingData = await res.json();
+  renderStandingOrders();
 }
 
+async function loadRecurringTemplates() {
+  const res = await fetch(`${API}/api/recurring-templates`);
+  recurringData = await res.json();
+  renderRecurringTemplates();
+}
+
+// --- View toggle ---
+function setView(mode) {
+  viewMode = mode;
+  document.getElementById('viewMonth').classList.toggle('active', mode === 'month');
+  document.getElementById('viewWeek').classList.toggle('active', mode === 'week');
+  document.getElementById('monthLabel').textContent = mode === 'month'
+    ? `${currentYear}. ${currentMonth}` : formatWeekLabel();
+  render();
+}
+
+function prevPeriod() {
+  if (viewMode === 'month') { currentMonth--; if(currentMonth<1){currentMonth=12;currentYear--;} loadMonth(); }
+  else { currentWeekStart.setDate(currentWeekStart.getDate() - 7); syncMonthFromWeek(); loadMonth(); }
+}
+function nextPeriod() {
+  if (viewMode === 'month') { currentMonth++; if(currentMonth>12){currentMonth=1;currentYear++;} loadMonth(); }
+  else { currentWeekStart.setDate(currentWeekStart.getDate() + 7); syncMonthFromWeek(); loadMonth(); }
+}
+function goToday() {
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth() + 1;
+  currentWeekStart = getWeekStart(now);
+  loadMonth();
+}
+function syncMonthFromWeek() {
+  const mid = new Date(currentWeekStart);
+  mid.setDate(mid.getDate() + 3);
+  currentYear = mid.getFullYear();
+  currentMonth = mid.getMonth() + 1;
+}
+
+// --- Render ---
 function render() {
-  document.getElementById('monthLabel').textContent = `${currentYear}년 ${currentMonth}월`;
-  const grid = document.getElementById('calendarGrid');
-  const days = ['일','월','화','수','목','금','토'];
-  let html = days.map((d,i) =>
-    `<div class="day-header ${i===0?'sun':''} ${i===6?'sat':''}">${d}</div>`
-  ).join('');
+  const container = document.getElementById('calendarContainer');
+  container.innerHTML = viewMode === 'month' ? renderMonthView() : renderWeekView();
+  renderStats();
+}
 
-  const firstDay = new Date(currentYear, currentMonth-1, 1).getDay();
+function renderMonthView() {
   const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+  const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
   const today = new Date();
-  const isCurrentMonth = today.getFullYear()===currentYear && today.getMonth()+1===currentMonth;
+  const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth;
+  const todayDate = today.getDate();
 
+  let html = '<div class="grid">';
+  // Headers
+  DAY_NAMES.forEach((n, i) => {
+    const cls = i === 0 ? ' sun' : i === 6 ? ' sat' : '';
+    html += `<div class="day-header${cls}">${n}</div>`;
+  });
   // Prev month padding
-  const prevDays = new Date(currentYear, currentMonth-1, 0).getDate();
-  for (let i = firstDay-1; i >= 0; i--)
-    html += `<div class="day-cell other-month"><div class="day-num">${prevDays-i}</div></div>`;
-
+  const prevDays = new Date(currentYear, currentMonth - 1, 0).getDate();
+  for (let i = firstDay - 1; i >= 0; i--)
+    html += `<div class="day-cell other-month"><div class="day-num">${prevDays - i}</div></div>`;
   // Days
   for (let d = 1; d <= daysInMonth; d++) {
-    const dow = new Date(currentYear, currentMonth-1, d).getDay();
-    const isToday = isCurrentMonth && today.getDate()===d;
-    const dayData = monthData.days?.[String(d)] || {};
-
-    html += `<div class="day-cell ${isToday?'today':''}">`;
-    html += `<div class="day-num ${dow===0?'sun':''} ${dow===6?'sat':''}">
-      <span>${d}</span>
-      <span class="add-btn" onclick="addItemPrompt(${d})">+</span>
-    </div>`;
-
-    // One Thing - editable
-    const ot = dayData.one_thing || '';
-    html += `<div class="one-thing" contenteditable="true"
-      onblur="saveOneThing(${d}, this.textContent)"
-      onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
-    >${ot}</div>`;
-
-    // Categories
-    for (const cat of CATS) {
-      const items = dayData[cat] || [];
-      if (items.length === 0 && !isToday && !monthData.days[String(d)]?._editing) continue;
-
-      html += `<div class="category">
-        <div class="cat-label">
-          <span>${CAT_NAMES[cat]}</span>
-          <span class="cat-add" onclick="addItemInline(${d},'${cat}',this)">+</span>
-        </div>`;
-
-      items.forEach((item, idx) => {
-        const doneClass = item.done ? 'done' : '';
-        const checked = item.done ? 'checked' : '';
-        const textContent = item.url
-          ? `<a href="${escHtml(item.url)}" target="_blank">${escHtml(item.text)}</a>`
-          : escHtml(item.text);
-
-        html += `<div class="item ${doneClass}" data-d="${d}" data-cat="${cat}" data-idx="${idx}">
-          <input type="checkbox" ${checked} onchange="toggleItem(${d},'${cat}',${idx})">
-          <span class="item-text" contenteditable="true"
-            onclick="this.focus()"
-            onblur="editItem(${d},'${cat}',${idx},this.textContent)"
-            onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
-          >${escHtml(item.text)}</span>
-          <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">×</span>
-        </div>`;
-      });
-
-      // Inline new item input (hidden by default)
-      html += `<div class="new-item" id="new-${d}-${cat}">
-        <input type="text" placeholder="새 항목..."
-          onkeydown="if(event.key==='Enter'){addNewItem(${d},'${cat}',this.value);this.value='';this.parentElement.classList.remove('active');}"
-          onblur="this.parentElement.classList.remove('active');">
-      </div>`;
-
-      html += `</div>`;
-    }
-
-    // Show empty categories for today
-    if (isToday) {
-      for (const cat of CATS) {
-        const items = dayData[cat] || [];
-        if (items.length > 0) continue;
-        html += `<div class="category">
-          <div class="cat-label">
-            <span>${CAT_NAMES[cat]}</span>
-            <span class="cat-add" onclick="addItemInline(${d},'${cat}',this)">+</span>
-          </div>
-          <div class="new-item" id="new-${d}-${cat}">
-            <input type="text" placeholder="새 항목..."
-              onkeydown="if(event.key==='Enter'){addNewItem(${d},'${cat}',this.value);this.value='';}"
-              onblur="this.parentElement.classList.remove('active');">
-          </div>
-        </div>`;
-      }
-    }
-
-    html += `</div>`;
+    const isToday = isCurrentMonth && d === todayDate;
+    html += renderDayCell(d, isToday, false);
   }
-
   // Next month padding
   const totalCells = firstDay + daysInMonth;
   const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
   for (let i = 1; i <= remaining; i++)
     html += `<div class="day-cell other-month"><div class="day-num">${i}</div></div>`;
 
-  grid.innerHTML = html;
-  renderStats();
+  html += '</div>';
+  return html;
 }
 
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function renderWeekView() {
+  const today = new Date();
+  let html = '<div class="week-grid">';
+  // Headers
+  DAY_NAMES.forEach((n, i) => {
+    const cls = i === 0 ? ' sun' : i === 6 ? ' sat' : '';
+    html += `<div class="day-header${cls}">${n}</div>`;
+  });
+  // 7 days
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(currentWeekStart);
+    date.setDate(date.getDate() + i);
+    const d = date.getDate();
+    const isToday = date.toDateString() === today.toDateString();
+    const isSameMonth = date.getMonth() + 1 === currentMonth;
+    html += `<div class="week-cell${isToday ? ' today' : ''}">`;
+    html += renderDayCellContent(d, isToday, true);
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
 }
 
-function renderStats() {
-  let total=0, done=0;
-  for (const d of Object.values(monthData.days||{})) {
+function renderDayCell(d, isToday, isWeek) {
+  const dayData = monthData.days[String(d)] || {};
+  const dow = new Date(currentYear, currentMonth - 1, d).getDay();
+  const typeClass = dayData.day_type ? ` type-${dayData.day_type}` : '';
+  const todayClass = isToday ? ' today' : '';
+
+  return `<div class="day-cell${todayClass}${typeClass}">${renderDayCellContent(d, isToday, isWeek)}</div>`;
+}
+
+function renderDayCellContent(d, isToday, isWeek) {
+  const dayData = monthData.days[String(d)] || {};
+  const dow = new Date(currentYear, currentMonth - 1, d).getDay();
+  const dowClass = dow === 0 ? ' sun' : dow === 6 ? ' sat' : '';
+  const typeClass = dayData.day_type ? ` type-${dayData.day_type}` : '';
+
+  let html = `<div class="day-num${dowClass}">
+    <span>${d}`;
+  if (dayData.day_type) {
+    html += `<span class="day-type-badge ${TYPE_COLORS[dayData.day_type]}" onclick="cycleDayType(${d})">${TYPE_LABELS[dayData.day_type]}</span>`;
+  }
+  html += `</span>
+    <span>
+      <span class="notes-toggle" onclick="toggleNotes(${d})">&#128221;</span>
+      <span class="add-btn" onclick="addItemPrompt(${d})">+</span>
+      ${!dayData.day_type ? `<span class="add-btn" onclick="cycleDayType(${d})" style="font-size:10px">&#9679;</span>` : ''}
+    </span>
+  </div>`;
+
+  // One Thing
+  const ot = dayData.one_thing || '';
+  html += `<div class="one-thing" contenteditable="true"
+    onblur="saveOneThing(${d}, this.textContent)"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+  >${esc(ot)}</div>`;
+
+  // Categories
+  for (const cat of CATS) {
+    const items = dayData[cat] || [];
+    if (items.length === 0 && !isToday) continue;
+
+    html += `<div class="category">
+      <div class="cat-label">
+        <span>${CAT_NAMES[cat]}</span>
+        <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span>
+      </div>`;
+
+    items.forEach((item, idx) => {
+      const doneClass = item.done ? 'done' : '';
+      const checked = item.done ? 'checked' : '';
+      html += `<div class="item ${doneClass}" draggable="true"
+        ondragstart="dragStart(event,${d},'${cat}',${idx})"
+        ondragover="dragOver(event)" ondragleave="dragLeave(event)"
+        ondrop="drop(event,${d},'${cat}',${idx})">
+        <input type="checkbox" ${checked} onchange="toggleItem(${d},'${cat}',${idx})">
+        <span class="item-text" contenteditable="true"
+          onblur="editItem(${d},'${cat}',${idx},this.textContent)"
+          onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
+        >${esc(item.text)}</span>
+        <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
+      </div>`;
+    });
+
+    html += `<div class="new-item" id="new-${d}-${cat}">
+      <input type="text" placeholder="..."
+        onkeydown="if(event.key==='Enter'){addNewItem(${d},'${cat}',this.value);this.value='';this.parentElement.classList.remove('active');}"
+        onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)">
+    </div></div>`;
+  }
+
+  // Empty cats for today
+  if (isToday) {
     for (const cat of CATS) {
-      const items = d[cat]||[];
-      total += items.length;
-      done += items.filter(i=>i.done).length;
+      if ((dayData[cat] || []).length > 0) continue;
+      html += `<div class="category"><div class="cat-label"><span>${CAT_NAMES[cat]}</span>
+        <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span></div>
+        <div class="new-item" id="new-${d}-${cat}">
+          <input type="text" placeholder="..." onkeydown="if(event.key==='Enter'){addNewItem(${d},'${cat}',this.value);this.value='';}"
+            onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)">
+        </div></div>`;
     }
   }
-  const pct = total>0 ? Math.round(done/total*100) : 0;
-  document.getElementById('stats').innerHTML = `
-    <span>이번달: <span class="stat-value">${done}/${total}</span> (${pct}%)</span>
-    <span>오늘: ${new Date().toLocaleDateString('ko-KR',{weekday:'long',month:'long',day:'numeric'})}</span>
-  `;
+
+  // Notes
+  const notes = dayData.notes || '';
+  const notesCls = notes ? 'day-notes has-content' : 'day-notes';
+  html += `<div class="${notesCls}" id="notes-${d}" contenteditable="true"
+    onblur="saveNotes(${d}, this.textContent)"
+    onkeydown="if(event.key==='Escape')this.blur()"
+  >${esc(notes)}</div>`;
+
+  return html;
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// --- Stats ---
+function renderStats() {
+  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+  let total=0, done=0;
+  const catStats = {};
+  CATS.forEach(c => catStats[c] = {total:0, done:0});
+  const dailyDone = [];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dd = monthData.days[String(d)] || {};
+    let dayDone = 0, dayTotal = 0;
+    for (const cat of CATS) {
+      const items = dd[cat] || [];
+      total += items.length; catStats[cat].total += items.length;
+      dayTotal += items.length;
+      const dc = items.filter(i=>i.done).length;
+      done += dc; catStats[cat].done += dc;
+      dayDone += dc;
+    }
+    dailyDone.push(dayTotal > 0 ? dayDone / dayTotal : 0);
+  }
+
+  const pct = total > 0 ? Math.round(done/total*100) : 0;
+
+  let html = `<span>Total: <span class="stat-value">${done}/${total}</span> (${pct}%)</span>`;
+
+  // Per-category
+  for (const cat of CATS) {
+    const s = catStats[cat];
+    const p = s.total > 0 ? Math.round(s.done/s.total*100) : 0;
+    html += `<span>${CAT_NAMES[cat]}: ${p}%</span>`;
+  }
+
+  // Mini heatmap
+  html += '<span class="heatmap">';
+  for (let d = 0; d < dailyDone.length; d++) {
+    const pct = dailyDone[d];
+    const level = pct === 0 ? 0 : pct < 0.25 ? 1 : pct < 0.5 ? 2 : pct < 0.75 ? 3 : 4;
+    html += `<div class="heat-cell heat-${level}" title="Day ${d+1}: ${Math.round(pct*100)}%"></div>`;
+  }
+  html += '</span>';
+
+  document.getElementById('stats').innerHTML = html;
 }
 
 // --- Data operations ---
+async function save() {
+  await fetch(`${API}/api/month`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ ym: ym(), data: monthData })
+  });
+}
+
+function ensureDay(d) {
+  const key = String(d);
+  if (!monthData.days[key]) monthData.days[key] = {};
+  return monthData.days[key];
+}
 
 async function toggleItem(d, cat, idx) {
-  const day = ensureDay(d);
-  day[cat][idx].done = !day[cat][idx].done;
-  await save();
-  render();
+  ensureDay(d)[cat][idx].done = !ensureDay(d)[cat][idx].done;
+  await save(); render();
 }
 
 async function editItem(d, cat, idx, newText) {
-  const day = ensureDay(d);
-  if (newText.trim() === '') return;
-  day[cat][idx].text = newText.trim();
+  if (!newText.trim()) return;
+  ensureDay(d)[cat][idx].text = newText.trim();
   await save();
-  // Don't re-render — preserve undo history and focus
 }
 
-function handleItemKey(event, d, cat, idx) {
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    const text = event.target.textContent.trim();
-    if (text) editItem(d, cat, idx, text);
-    // Create new item below and focus it
+function handleItemKey(e, d, cat, idx) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    editItem(d, cat, idx, e.target.textContent.trim());
     addNewItemAfter(d, cat, idx);
-  } else if (event.key === 'Backspace' && event.target.textContent.trim() === '') {
-    event.preventDefault();
-    delItem(d, cat, idx);
+  } else if (e.key === 'Backspace' && e.target.textContent.trim() === '') {
+    e.preventDefault(); delItem(d, cat, idx);
   }
 }
 
 async function addNewItemAfter(d, cat, afterIdx) {
   const day = ensureDay(d);
+  if (!day[cat]) day[cat] = [];
   day[cat].splice(afterIdx + 1, 0, { text: '', url: '', done: false });
-  await save();
-  render();
-  // Focus the new item
+  await save(); render();
   setTimeout(() => {
-    const items = document.querySelectorAll(`.item[data-d="${d}"][data-cat="${cat}"]`);
-    const target = items[afterIdx + 1];
-    if (target) {
-      const span = target.querySelector('.item-text');
-      span.focus();
+    const items = document.querySelectorAll(`.item[draggable]`);
+    // Find the right item by scanning
+    let count = 0;
+    for (const item of items) {
+      const span = item.querySelector('.item-text');
+      if (span && span.textContent === '') { span.focus(); break; }
     }
-  }, 30);
+  }, 50);
 }
 
 async function delItem(d, cat, idx) {
-  const day = ensureDay(d);
-  day[cat].splice(idx, 1);
-  await save();
-  render();
-}
-
-async function saveOneThing(d, text) {
-  const day = ensureDay(d);
-  day.one_thing = text.trim();
-  await save();
-}
-
-function addItemInline(d, cat, el) {
-  const container = document.getElementById(`new-${d}-${cat}`);
-  if (container) {
-    container.classList.add('active');
-    container.querySelector('input').focus();
-  }
+  ensureDay(d)[cat].splice(idx, 1);
+  await save(); render();
 }
 
 async function addNewItem(d, cat, text) {
   if (!text.trim()) return;
   const day = ensureDay(d);
+  if (!day[cat]) day[cat] = [];
   day[cat].push({ text: text.trim(), url: '', done: false });
-  await save();
-  render();
+  await save(); render();
+}
+
+function addItemInline(d, cat) {
+  const c = document.getElementById(`new-${d}-${cat}`);
+  if (c) { c.classList.add('active'); c.querySelector('input').focus(); }
 }
 
 function addItemPrompt(d) {
-  // Show all categories for this day (mark as editing so render shows them)
   ensureDay(d);
-  monthData.days[String(d)]._editing = true;
   render();
-  // Focus on first available new-item
   setTimeout(() => {
     for (const cat of CATS) {
-      const container = document.getElementById(`new-${d}-${cat}`);
-      if (container) {
-        container.classList.add('active');
-        container.querySelector('input').focus();
-        return;
-      }
+      const c = document.getElementById(`new-${d}-${cat}`);
+      if (c) { c.classList.add('active'); c.querySelector('input').focus(); return; }
     }
   }, 50);
 }
 
-// --- Navigation ---
-function prevMonth() { currentMonth--; if(currentMonth<1){currentMonth=12;currentYear--;} loadMonth(); }
-function nextMonth() { currentMonth++; if(currentMonth>12){currentMonth=1;currentYear++;} loadMonth(); }
-function goToday() { const n=new Date(); currentYear=n.getFullYear(); currentMonth=n.getMonth()+1; loadMonth(); }
-
-// --- Recurring Templates ---
-const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
-let recurringTemplates = { templates: [], _meta: { injectedMonths: [] } };
-
-async function loadRecurringTemplates() {
-  const res = await fetch(`${API}/api/recurring-templates`);
-  recurringTemplates = await res.json();
-  renderRecurringTemplates();
+async function saveOneThing(d, text) {
+  ensureDay(d).one_thing = text.trim();
+  await save();
 }
 
-function scheduleLabel(schedule) {
-  if (!schedule) return '';
-  if (schedule.type === 'daily') return '매일';
-  if (schedule.type === 'weekly') {
-    const ds = (schedule.days || []).map(d => DAY_NAMES[d]).join('/');
-    return ds ? `매주 ${ds}` : '주간';
-  }
-  if (schedule.type === 'monthly') {
-    const dates = (schedule.dates || []).join(',');
-    return dates ? `매월 ${dates}일` : '월간';
-  }
-  return schedule.type;
+async function saveNotes(d, text) {
+  const dd = ensureDay(d);
+  if (text.trim()) dd.notes = text.trim();
+  else delete dd.notes;
+  await save();
 }
 
-function renderRecurringTemplates() {
-  const groups = { daily: [], weekly: [], monthly: [] };
-  for (const t of recurringTemplates.templates) {
-    const g = t.schedule?.type || 'daily';
-    if (groups[g]) groups[g].push(t);
-    else groups.daily.push(t);
-  }
+function toggleNotes(d) {
+  const el = document.getElementById(`notes-${d}`);
+  if (el) { el.classList.toggle('editing'); if (el.classList.contains('editing')) el.focus(); }
+}
 
-  for (const [type, list] of Object.entries(groups)) {
-    const elId = `rtplList${type.charAt(0).toUpperCase() + type.slice(1)}`;
-    const el = document.getElementById(elId);
-    if (!el) continue;
-    if (!list.length) {
-      el.innerHTML = '<div class="rtpl-empty">항목 없음</div>';
-      continue;
-    }
-    el.innerHTML = list.map(t => {
-      const onClass = t.enabled ? 'on' : 'off';
-      const onIcon = t.enabled ? '●' : '○';
-      return `<div class="rtpl-item" data-id="${escHtml(t.id)}">
-        <span class="rtpl-toggle ${onClass}" title="${t.enabled ? '비활성화' : '활성화'}"
-          onclick="toggleRecurringEnabled('${escHtml(t.id)}')">${onIcon}</span>
-        <span class="rtpl-cat">${CAT_NAMES[t.category] || t.category}</span>
-        <span class="rtpl-name-text">${escHtml(t.name)}</span>
-        <span class="rtpl-sched">${escHtml(scheduleLabel(t.schedule))}</span>
-        <span class="rtpl-del" onclick="delRecurringTemplate('${escHtml(t.id)}')">×</span>
-      </div>`;
+// --- Day Type ---
+async function cycleDayType(d) {
+  const dd = ensureDay(d);
+  const current = dd.day_type || null;
+  const idx = current ? TYPES.indexOf(current) : -1;
+  const next = idx >= TYPES.length - 1 ? null : TYPES[idx + 1];
+
+  await fetch(`${API}/api/day-type`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ ym: ym(), day: String(d), type: next })
+  });
+
+  if (next) dd.day_type = next;
+  else delete dd.day_type;
+  render();
+}
+
+// --- Drag and Drop ---
+let dragData = null;
+function dragStart(e, d, cat, idx) {
+  dragData = { d, cat, idx };
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+async function drop(e, d, cat, toIdx) {
+  e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+  if (!dragData || dragData.cat !== cat || dragData.d !== d) return;
+  const fromIdx = dragData.idx;
+  if (fromIdx === toIdx) return;
+  await fetch(`${API}/api/reorder`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ ym: ym(), day: String(d), category: cat, fromIdx, toIdx })
+  });
+  const items = ensureDay(d)[cat];
+  const [moved] = items.splice(fromIdx, 1);
+  items.splice(toIdx, 0, moved);
+  render();
+  dragData = null;
+}
+
+// --- Search ---
+let searchTimer;
+function openSearch() {
+  const overlay = document.getElementById('searchOverlay');
+  overlay.classList.add('open');
+  document.getElementById('searchInput').focus();
+}
+function closeSearch() {
+  document.getElementById('searchOverlay').classList.remove('open');
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchResults').innerHTML = '';
+}
+function debounceSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(doSearch, 300);
+}
+async function doSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (q.length < 2) { document.getElementById('searchResults').innerHTML = ''; return; }
+  const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`);
+  const results = await res.json();
+  const container = document.getElementById('searchResults');
+  if (!results.length) { container.innerHTML = '<div style="color:#484f58;text-align:center;padding:20px">No results</div>'; return; }
+  container.innerHTML = results.slice(0, 50).map(r => {
+    const matchHtml = r.matches.map(m => {
+      const highlighted = esc(m.text).replace(new RegExp(esc(q), 'gi'), '<mark>$&</mark>');
+      return `<div class="sr-match"><span class="sr-cat">${m.field}</span> ${highlighted}</div>`;
     }).join('');
-  }
+    return `<div class="search-result" onclick="goToResult('${r.ym}',${r.day})">
+      <div class="sr-date">${r.ym} / ${r.day}일</div>${matchHtml}</div>`;
+  }).join('');
+}
+function goToResult(resultYm, day) {
+  closeSearch();
+  const [y, m] = resultYm.split('-').map(Number);
+  currentYear = y; currentMonth = m;
+  loadMonth();
 }
 
-function updateScheduleExtra() {
-  const type = document.getElementById('rtplSchedType').value;
-  const extra = document.getElementById('rtplSchedExtra');
-  if (type === 'daily') {
-    extra.innerHTML = '';
-    return;
+// --- Standing Orders Panel ---
+function renderStandingOrders() {
+  if (!standingData) return;
+  const currentMonthNum = currentMonth;
+  const ymKey = ym();
+
+  let html = '<div class="tabs">';
+  html += '<div class="tab active" onclick="showSOTab(\'standing\',this)">Standing</div>';
+  html += '<div class="tab" onclick="showSOTab(\'monthly\',this)">This Month</div>';
+  html += '<div class="tab" onclick="showSOTab(\'yearly\',this)">Yearly</div>';
+  html += '</div>';
+
+  // Standing
+  html += '<div id="soTab-standing">';
+  (standingData.standing || []).forEach(s => {
+    html += `<div class="so-item"><input type="checkbox" ${s.active?'checked':''} disabled> ${esc(s.text)}</div>`;
+  });
+  // HF dates
+  const hfThisMonth = (standingData.happy_friday || []).filter(d => d.startsWith(ymKey));
+  if (hfThisMonth.length) {
+    html += '<div style="margin-top:6px;font-size:10px;color:#8b949e">Happy Friday:</div>';
+    hfThisMonth.forEach(d => { html += `<span class="hf-badge">${d.split('-')[2]}일</span>`; });
   }
-  if (type === 'weekly') {
-    extra.innerHTML = DAY_NAMES.map((n, i) =>
-      `<label><input type="checkbox" name="rtpl-dow" value="${i}"> ${n}</label>`
-    ).join('');
-    return;
+  // Holiday
+  const holidaysThisMonth = Object.entries(standingData.holidays || {}).filter(([k]) => k.startsWith(ymKey));
+  if (holidaysThisMonth.length) {
+    html += '<div style="margin-top:6px;font-size:10px;color:#8b949e">Holidays:</div>';
+    holidaysThisMonth.forEach(([d, name]) => { html += `<div class="so-monthly-item">${d.split('-')[2]}일 — ${esc(name)}</div>`; });
   }
-  if (type === 'monthly') {
-    let opts = '';
-    for (let d = 1; d <= 31; d++) opts += `<option value="${d}">${d}일</option>`;
-    extra.innerHTML = `<select id="rtplMonthDate" style="background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;padding:2px 4px;border-radius:2px">${opts}</select>`;
-    return;
+  html += '</div>';
+
+  // Monthly
+  html += '<div id="soTab-monthly" style="display:none">';
+  const monthlyItems = standingData.monthly?.[ymKey] || [];
+  if (monthlyItems.length) {
+    monthlyItems.forEach(i => { html += `<div class="so-monthly-item">- ${esc(typeof i === 'string' ? i : i.text || i)}</div>`; });
+  } else {
+    html += '<div style="color:#484f58;font-size:10px">No items for this month</div>';
   }
+  html += '</div>';
+
+  // Yearly
+  html += '<div id="soTab-yearly" style="display:none">';
+  (standingData.yearly || []).forEach(y => {
+    const isCurrent = y.month === currentMonthNum;
+    html += `<div class="so-yearly-item ${isCurrent ? 'current-month' : ''}">
+      <span class="month-tag">${y.month}월</span>${esc(y.text)}</div>`;
+  });
+  html += '</div>';
+
+  document.getElementById('soPanel').innerHTML = html;
 }
 
-function getScheduleFromForm() {
-  const type = document.getElementById('rtplSchedType').value;
-  if (type === 'daily') return { type: 'daily' };
-  if (type === 'weekly') {
-    const checked = [...document.querySelectorAll('input[name="rtpl-dow"]:checked')];
-    return { type: 'weekly', days: checked.map(c => Number(c.value)) };
-  }
-  if (type === 'monthly') {
-    const sel = document.getElementById('rtplMonthDate');
-    return { type: 'monthly', dates: [Number(sel ? sel.value : 1)] };
-  }
-  return { type: 'daily' };
+function showSOTab(name, el) {
+  ['standing','monthly','yearly'].forEach(t => {
+    document.getElementById(`soTab-${t}`).style.display = t === name ? '' : 'none';
+  });
+  el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
 }
 
-async function addRecurringTemplate() {
-  const name = document.getElementById('rtplName').value.trim();
-  const category = document.getElementById('rtplCat').value;
-  const schedule = getScheduleFromForm();
+// --- Recurring Templates Panel ---
+function renderRecurringTemplates() {
+  if (!recurringData) return;
+  let html = `<div class="rtpl-toolbar">
+    <select id="rtplCat">${CATS.map(c=>`<option value="${c}">${CAT_NAMES[c]}</option>`).join('')}</select>
+    <input type="text" id="rtplName" class="rtpl-name" placeholder="New recurring..." onkeydown="if(event.key==='Enter')addRT()">
+    <select id="rtplType" onchange="updateRTExtra()">
+      <option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option>
+    </select>
+    <span id="rtplExtra"></span>
+    <button onclick="addRT()">Add</button>
+  </div>`;
+
+  const templates = recurringData.templates || [];
+  if (!templates.length) { html += '<div style="color:#484f58;font-size:10px">No templates</div>'; }
+  else {
+    templates.forEach(t => {
+      const onCls = t.enabled ? 'on' : 'off';
+      const icon = t.enabled ? '&#9679;' : '&#9675;';
+      const sched = schedLabel(t.schedule);
+      html += `<div class="rtpl-item">
+        <span class="rtpl-toggle ${onCls}" onclick="toggleRT('${t.id}')">${icon}</span>
+        <span class="rtpl-cat">${CAT_NAMES[t.category]||t.category}</span>
+        <span style="flex:1;color:#c9d1d9">${esc(t.name)}</span>
+        <span class="rtpl-sched">${esc(sched)}</span>
+        <span class="rtpl-del" onclick="delRT('${t.id}')">&#215;</span>
+      </div>`;
+    });
+  }
+  document.getElementById('rtPanel').innerHTML = html;
+  updateRTExtra();
+}
+
+function schedLabel(s) {
+  if (!s) return '';
+  if (s.type === 'daily') return 'Daily';
+  if (s.type === 'weekly') return (s.days||[]).map(d=>DAY_NAMES[d]).join('/');
+  if (s.type === 'monthly') return (s.dates||[]).join(',') + '일';
+  return s.type;
+}
+
+function updateRTExtra() {
+  const type = document.getElementById('rtplType')?.value;
+  const el = document.getElementById('rtplExtra');
+  if (!el) return;
+  if (type === 'daily') el.innerHTML = '';
+  else if (type === 'weekly') el.innerHTML = DAY_NAMES.map((n,i)=>`<label style="font-size:10px;cursor:pointer"><input type="checkbox" name="rt-dow" value="${i}"> ${n}</label>`).join(' ');
+  else if (type === 'monthly') el.innerHTML = '<input type="number" id="rtMonthDate" min="1" max="31" value="1" style="width:50px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;padding:2px;border-radius:3px">';
+}
+
+async function addRT() {
+  const name = document.getElementById('rtplName')?.value.trim();
+  const category = document.getElementById('rtplCat')?.value;
+  const type = document.getElementById('rtplType')?.value;
   if (!name) return;
-
-  await fetch(`${API}/api/recurring-templates`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, category, schedule, enabled: true })
-  });
+  let schedule = { type };
+  if (type === 'weekly') schedule.days = [...document.querySelectorAll('input[name="rt-dow"]:checked')].map(c=>+c.value);
+  if (type === 'monthly') schedule.dates = [+(document.getElementById('rtMonthDate')?.value || 1)];
+  await fetch(`${API}/api/recurring-templates`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name,category,schedule,enabled:true}) });
   document.getElementById('rtplName').value = '';
-  await loadRecurringTemplates();
+  loadRecurringTemplates();
 }
 
-async function delRecurringTemplate(id) {
-  if (!confirm(`"${id}" 템플릿을 삭제할까요?\n이미 주입된 항목은 유지됩니다.`)) return;
-  await fetch(`${API}/api/recurring-templates/${encodeURIComponent(id)}`, { method: 'DELETE' });
-  await loadRecurringTemplates();
+async function toggleRT(id) {
+  const t = recurringData.templates.find(t=>t.id===id);
+  if (!t) return;
+  await fetch(`${API}/api/recurring-templates/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({enabled:!t.enabled}) });
+  loadRecurringTemplates();
 }
 
-async function toggleRecurringEnabled(id) {
-  const tpl = recurringTemplates.templates.find(t => t.id === id);
-  if (!tpl) return;
-  await fetch(`${API}/api/recurring-templates/${encodeURIComponent(id)}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ enabled: !tpl.enabled })
-  });
-  await loadRecurringTemplates();
+async function delRT(id) {
+  await fetch(`${API}/api/recurring-templates/${id}`, { method:'DELETE' });
+  loadRecurringTemplates();
 }
 
-async function injectToday() {
-  const today = new Date().getDate();
-  const res = await fetch(`${API}/api/inject`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ym: ym(), day: String(today) })
-  });
-  const data = await res.json();
-  if (data.ok) {
-    await loadMonth();
-    if (data.injected > 0) alert(`오늘 (${today}일)에 ${data.injected}개 항목이 주입되었습니다.`);
-    else alert('이미 모든 항목이 주입되어 있습니다.');
-  }
-}
-
-async function injectThisMonth() {
-  if (!confirm(`${ym()} 전체 달에 Recurring Templates를 반영할까요?\n이미 있는 항목은 중복 생성되지 않습니다.`)) return;
-  const res = await fetch(`${API}/api/recurring-inject`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ym: ym() })
-  });
-  const data = await res.json();
-  if (data.ok) {
-    await loadMonth();
-    alert(`${data.ym}: ${data.injected}개 항목이 반영되었습니다.`);
-  }
-}
-
-function toggleTemplates() {
-  const body = document.getElementById('tplBody');
-  const toggle = document.getElementById('tplToggle');
+// --- Panel toggle ---
+function togglePanel(id) {
+  const body = document.getElementById(id);
   body.classList.toggle('open');
-  toggle.textContent = body.classList.contains('open') ? '▼ 접기' : '▶ 펼치기';
+  document.getElementById(id+'Toggle').innerHTML = body.classList.contains('open') ? '&#9660;' : '&#9654;';
 }
 
-// Initialize schedule extra on load
-updateScheduleExtra();
+// --- Navigation ---
+function prevMonth() { prevPeriod(); }
+function nextMonth() { nextPeriod(); }
 
 init();
-loadRecurringTemplates();
 </script>
 </body>
 </html>

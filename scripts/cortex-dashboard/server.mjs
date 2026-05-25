@@ -1,13 +1,32 @@
 #!/usr/bin/env node
 /**
- * Cortex Ritual & Routine Dashboard — localhost server
- * Reads/writes .json data files, serves calendar grid UI
+ * Cortex Ritual & Routine Dashboard v2 — localhost server
  * Port: 7843
+ *
+ * APIs:
+ *   GET  /api/month?ym=YYYY-MM     — load month data
+ *   POST /api/month                 — save full month data
+ *   POST /api/toggle                — toggle item done
+ *   POST /api/add-item              — add item to day
+ *   POST /api/one-thing             — set One Thing
+ *   POST /api/day-type              — set day type
+ *   POST /api/notes                 — save day notes
+ *   POST /api/reorder               — reorder items
+ *   POST /api/edit-item             — edit item text
+ *   POST /api/delete-item           — delete item
+ *   GET  /api/search?q=keyword      — search across months
+ *   GET  /api/standing-orders       — load standing orders
+ *   POST /api/standing-orders       — save standing orders
+ *   GET  /api/recurring-templates   — load recurring templates
+ *   POST /api/recurring-templates   — create recurring template
+ *   PUT  /api/recurring-templates/:id
+ *   DELETE /api/recurring-templates/:id
+ *   POST /api/recurring-inject      — inject recurring into month
  */
 
 import { createServer } from 'http';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, readdirSync } from 'fs';
+import { join, dirname, extname } from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 
@@ -15,81 +34,87 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = 7843;
 const DATA_DIR = join(__dirname, '../../cortex/areas/life/ritual-routine');
 
-// Ensure data dir exists
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 
-const TEMPLATES_PATH = join(DATA_DIR, 'templates.json');
-const RECURRING_TEMPLATES_PATH = join(DATA_DIR, 'recurring-templates.json');
+const STANDING_PATH = join(DATA_DIR, 'standing-orders.json');
+const RECURRING_PATH = join(DATA_DIR, 'recurring-templates.json');
 
-function getDataPath(yearMonth) {
-  return join(DATA_DIR, `${yearMonth}.json`);
+// --- Backup (rolling 3) ---
+function backup(filePath) {
+  if (!existsSync(filePath)) return;
+  for (let i = 2; i >= 0; i--) {
+    const src = i === 0 ? filePath : `${filePath}.bak${i}`;
+    const dst = `${filePath}.bak${i + 1}`;
+    try { if (existsSync(src)) copyFileSync(src, dst); } catch {}
+  }
 }
 
-function loadTemplates() {
-  if (existsSync(TEMPLATES_PATH)) return JSON.parse(readFileSync(TEMPLATES_PATH, 'utf-8'));
-  return { daily: [], monthly: [], yearly: [] };
+// --- Month data ---
+function getDataPath(ym) { return join(DATA_DIR, `${ym}.json`); }
+function getMdPath(ym) { return join(DATA_DIR, `${ym}.md`); }
+
+function loadMonth(ym) {
+  const p = getDataPath(ym);
+  if (existsSync(p)) return JSON.parse(readFileSync(p, 'utf-8'));
+  return { month: ym, goals: {}, days: {} };
 }
 
-function saveTemplates(data) {
-  writeFileSync(TEMPLATES_PATH, JSON.stringify(data, null, 2), 'utf-8');
+function saveMonth(ym, data) {
+  const p = getDataPath(ym);
+  backup(p);
+  writeFileSync(p, JSON.stringify(data, null, 2), 'utf-8');
+  generateMd(ym, data);
+}
+
+function ensureDay(data, day) {
+  if (!data.days[day]) data.days[day] = {};
+  return data.days[day];
+}
+
+// --- Standing Orders ---
+function loadStanding() {
+  if (existsSync(STANDING_PATH)) return JSON.parse(readFileSync(STANDING_PATH, 'utf-8'));
+  return { standing: [], monthly: {}, yearly: [], happy_friday: [], holidays: {}, vision: '', input_backlog: [], instagram: [] };
+}
+
+function saveStanding(data) {
+  backup(STANDING_PATH);
+  writeFileSync(STANDING_PATH, JSON.stringify(data, null, 2), 'utf-8');
 }
 
 // --- Recurring Templates ---
-
-function loadRecurringTemplates() {
-  if (existsSync(RECURRING_TEMPLATES_PATH)) {
-    return JSON.parse(readFileSync(RECURRING_TEMPLATES_PATH, 'utf-8'));
-  }
+function loadRecurring() {
+  if (existsSync(RECURRING_PATH)) return JSON.parse(readFileSync(RECURRING_PATH, 'utf-8'));
   return { templates: [], _meta: { injectedMonths: [] } };
 }
 
-function saveRecurringTemplates(data) {
-  writeFileSync(RECURRING_TEMPLATES_PATH, JSON.stringify(data, null, 2), 'utf-8');
+function saveRecurring(data) {
+  writeFileSync(RECURRING_PATH, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-/**
- * Returns true if this template should fire on the given date.
- * @param {object} tpl  recurring template
- * @param {Date}   date JS Date object
- */
 function templateMatchesDate(tpl, date) {
   if (!tpl.enabled) return false;
   const { type, days, dates } = tpl.schedule;
   if (type === 'daily') return true;
-  if (type === 'weekly') {
-    const dow = date.getDay(); // 0=Sun, 6=Sat
-    return Array.isArray(days) && days.includes(dow);
-  }
-  if (type === 'monthly') {
-    const dom = date.getDate();
-    return Array.isArray(dates) && dates.includes(dom);
-  }
+  if (type === 'weekly') return Array.isArray(days) && days.includes(date.getDay());
+  if (type === 'monthly') return Array.isArray(dates) && dates.includes(date.getDate());
   return false;
 }
 
-/**
- * Inject enabled recurring templates into monthData for all days of yearMonth.
- * Skips days that already have the item (idempotent).
- * Returns count of new items injected.
- */
-function injectRecurringIntoMonth(yearMonth, monthData, recurringData) {
-  const [year, month] = yearMonth.split('-').map(Number);
+function injectRecurringIntoMonth(ym, monthData, recurringData) {
+  const [year, month] = ym.split('-').map(Number);
   const daysInMonth = new Date(year, month, 0).getDate();
   let injected = 0;
-
   for (let d = 1; d <= daysInMonth; d++) {
     const dateObj = new Date(year, month - 1, d);
     const dayKey = String(d);
     if (!monthData.days[dayKey]) monthData.days[dayKey] = {};
     const dayData = monthData.days[dayKey];
-
     for (const tpl of recurringData.templates) {
       if (!templateMatchesDate(tpl, dateObj)) continue;
       const cat = tpl.category;
       if (!dayData[cat]) dayData[cat] = [];
-      // idempotent: skip if already injected (match by _tplId)
-      const alreadyExists = dayData[cat].some(i => i._tplId === tpl.id);
-      if (!alreadyExists) {
+      if (!dayData[cat].some(i => i._tplId === tpl.id)) {
         dayData[cat].push({ text: tpl.name, url: '', done: false, _tplId: tpl.id });
         injected++;
       }
@@ -98,70 +123,42 @@ function injectRecurringIntoMonth(yearMonth, monthData, recurringData) {
   return injected;
 }
 
-/**
- * Auto-inject on server start and when loading a new month.
- * Marks the month as injected in _meta.injectedMonths so we don't double-run
- * (but re-run is still idempotent).
- */
-function autoInjectMonth(yearMonth) {
-  const recurringData = loadRecurringTemplates();
-  const alreadyDone = recurringData._meta.injectedMonths.includes(yearMonth);
-  if (alreadyDone) return 0;
-
-  const monthData = loadMonth(yearMonth);
-  const count = injectRecurringIntoMonth(yearMonth, monthData, recurringData);
-  if (count > 0) saveMonth(yearMonth, monthData);
-
-  recurringData._meta.injectedMonths.push(yearMonth);
-  saveRecurringTemplates(recurringData);
+function autoInjectMonth(ym) {
+  const rec = loadRecurring();
+  if (rec._meta.injectedMonths.includes(ym)) return 0;
+  const data = loadMonth(ym);
+  const count = injectRecurringIntoMonth(ym, data, rec);
+  if (count > 0) saveMonth(ym, data);
+  rec._meta.injectedMonths.push(ym);
+  saveRecurring(rec);
   return count;
 }
 
-// Run auto-inject for current month on startup
-const startupYm = new Date().toISOString().slice(0, 7);
-autoInjectMonth(startupYm);
-console.log(`Auto-inject on startup: ${startupYm}`);
+// Startup inject
+autoInjectMonth(new Date().toISOString().slice(0, 7));
 
-function getMdPath(yearMonth) {
-  return join(DATA_DIR, `${yearMonth}.md`);
-}
-
-function loadMonth(yearMonth) {
-  const p = getDataPath(yearMonth);
-  if (existsSync(p)) return JSON.parse(readFileSync(p, 'utf-8'));
-  return { month: yearMonth, goals: {}, days: {} };
-}
-
-function saveMonth(yearMonth, data) {
-  writeFileSync(getDataPath(yearMonth), JSON.stringify(data, null, 2), 'utf-8');
-  // Also generate .md for Claude Code
-  generateMd(yearMonth, data);
-}
-
-function generateMd(yearMonth, data) {
-  const [year, month] = yearMonth.split('-').map(Number);
+// --- .md generation (enhanced) ---
+function generateMd(ym, data) {
+  const [year, month] = ym.split('-').map(Number);
   const daysInMonth = new Date(year, month, 0).getDate();
   const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+  const typeLabels = { block: 'BLOCK', flow: 'FLOW', hf: 'HF', vacation: '휴가' };
 
-  let md = `# ${yearMonth} Ritual & Routine\n\n`;
-  md += `> Vision: 아침에 일어나서 원하는 것을 할 수 있는 것, 즉 자유\n\n`;
+  let md = `# ${ym} Ritual & Routine\n\n`;
+  if (data.goals?.goal) md += `> ${data.goals.goal}\n\n`;
 
-  // Weekly tables
   let weekStart = 1;
   while (weekStart <= daysInMonth) {
     const dow = new Date(year, month - 1, weekStart).getDay();
-    let weekEnd = weekStart + (6 - dow);
-    if (weekEnd > daysInMonth) weekEnd = daysInMonth;
-
+    let weekEnd = Math.min(weekStart + (6 - dow), daysInMonth);
     md += `## ${month}/${weekStart} - ${month}/${weekEnd}\n\n`;
 
     for (let d = weekStart; d <= weekEnd; d++) {
-      const dayKey = String(d);
-      const dayData = data.days[dayKey] || {};
-      const dateObj = new Date(year, month - 1, d);
-      const kr = dayNames[dateObj.getDay()];
+      const dayData = data.days[String(d)] || {};
+      const kr = dayNames[new Date(year, month - 1, d).getDay()];
+      const typeTag = dayData.day_type ? ` [${typeLabels[dayData.day_type] || dayData.day_type}]` : '';
 
-      md += `### ${d} (${kr})`;
+      md += `### ${d} (${kr})${typeTag}`;
       if (dayData.one_thing) md += ` — ONE THING: ${dayData.one_thing}`;
       md += `\n\n`;
 
@@ -170,36 +167,79 @@ function generateMd(yearMonth, data) {
 
       for (const cat of cats) {
         const items = dayData[cat] || [];
-        if (items.length === 0) continue;
+        if (!items.length) continue;
         md += `**${catNames[cat]}**\n`;
         for (const item of items) {
-          const check = item.done ? 'x' : ' ';
-          if (item.url) {
-            md += `- [${check}] [${item.text}](${item.url})\n`;
-          } else {
-            md += `- [${check}] ${item.text}\n`;
-          }
+          const ck = item.done ? 'x' : ' ';
+          md += item.url ? `- [${ck}] [${item.text}](${item.url})\n` : `- [${ck}] ${item.text}\n`;
         }
         md += `\n`;
       }
 
-      // Free notes
-      if (dayData.notes) {
-        md += `**Notes**\n${dayData.notes}\n\n`;
-      }
+      if (dayData.notes) md += `**Notes**\n${dayData.notes}\n\n`;
     }
-
     md += `---\n\n`;
     weekStart = weekEnd + 1;
   }
 
-  writeFileSync(getMdPath(yearMonth), md, 'utf-8');
+  // Append standing orders summary
+  try {
+    const so = loadStanding();
+    if (so.standing.length) {
+      md += `## 상시 업무\n\n`;
+      so.standing.filter(s => s.active).forEach(s => { md += `- ${s.text}\n`; });
+      md += `\n`;
+    }
+    const monthlyItems = so.monthly[ym] || [];
+    if (monthlyItems.length) {
+      md += `## Monthly\n\n`;
+      monthlyItems.forEach(i => { md += `- ${typeof i === 'string' ? i : i.text || i}\n`; });
+      md += `\n`;
+    }
+  } catch {}
+
+  writeFileSync(getMdPath(ym), md, 'utf-8');
 }
 
-function serveStatic(res, file, type) {
+// --- Search ---
+function searchMonths(query) {
+  const results = [];
+  const q = query.toLowerCase();
+  const files = readdirSync(DATA_DIR).filter(f => /^\d{4}-\d{2}\.json$/.test(f));
+  for (const file of files) {
+    const ym = file.replace('.json', '');
+    const data = JSON.parse(readFileSync(join(DATA_DIR, file), 'utf-8'));
+    for (const [day, dd] of Object.entries(data.days || {})) {
+      const matches = [];
+      if (dd.one_thing?.toLowerCase().includes(q)) matches.push({ field: 'one_thing', text: dd.one_thing });
+      if (dd.notes?.toLowerCase().includes(q)) matches.push({ field: 'notes', text: dd.notes });
+      for (const cat of ['ritual', 'input', 'work', 'outcome']) {
+        for (const item of (dd[cat] || [])) {
+          if (item.text.toLowerCase().includes(q)) matches.push({ field: cat, text: item.text });
+        }
+      }
+      if (matches.length) results.push({ ym, day, matches });
+    }
+  }
+  return results;
+}
+
+// --- Static file serving ---
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.json': 'application/json',
+  '.js': 'application/javascript',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
+};
+
+function serveFile(res, filePath) {
   try {
-    const content = readFileSync(join(__dirname, file), 'utf-8');
-    res.writeHead(200, { 'Content-Type': type });
+    const ext = extname(filePath);
+    const content = readFileSync(filePath);
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
     res.end(content);
   } catch {
     res.writeHead(404);
@@ -207,8 +247,24 @@ function serveStatic(res, file, type) {
   }
 }
 
-const server = createServer((req, res) => {
+// --- Request body helper ---
+function readBody(req) {
+  return new Promise(resolve => {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => resolve(body));
+  });
+}
+
+function jsonRes(res, code, data) {
+  res.writeHead(code, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(data));
+}
+
+// --- Server ---
+const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
+  const path = url.pathname;
 
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -216,254 +272,186 @@ const server = createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
 
-  // Routes
-  if (url.pathname === '/' || url.pathname === '/index.html') {
-    return serveStatic(res, 'index.html', 'text/html; charset=utf-8');
-  }
+  try {
+    // --- Static files ---
+    if (path === '/' || path === '/index.html') return serveFile(res, join(__dirname, 'index.html'));
+    if (path === '/manifest.json' || path === '/manifest.webmanifest') return serveFile(res, join(__dirname, 'manifest.json'));
+    if (path === '/sw.js') return serveFile(res, join(__dirname, 'sw.js'));
+    if (path.startsWith('/icons/')) return serveFile(res, join(__dirname, path));
 
-  if (url.pathname === '/api/month' && req.method === 'GET') {
-    const ym = url.searchParams.get('ym') || new Date().toISOString().slice(0, 7);
-    // Auto-inject recurring templates if this month hasn't been processed yet
-    autoInjectMonth(ym);
-    const data = loadMonth(ym);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify(data));
-  }
+    // --- Month API ---
+    if (path === '/api/month' && req.method === 'GET') {
+      const ym = url.searchParams.get('ym') || new Date().toISOString().slice(0, 7);
+      autoInjectMonth(ym);
+      return jsonRes(res, 200, loadMonth(ym));
+    }
 
-  if (url.pathname === '/api/month' && req.method === 'POST') {
-    let body = '';
-    req.on('data', c => body += c);
-    req.on('end', () => {
-      try {
-        const { ym, data } = JSON.parse(body);
+    if (path === '/api/month' && req.method === 'POST') {
+      const { ym, data } = JSON.parse(await readBody(req));
+      saveMonth(ym, data);
+      return jsonRes(res, 200, { ok: true });
+    }
+
+    if (path === '/api/toggle' && req.method === 'POST') {
+      const { ym, day, category, index } = JSON.parse(await readBody(req));
+      const data = loadMonth(ym);
+      if (data.days[day]?.[category]?.[index] !== undefined) {
+        data.days[day][category][index].done = !data.days[day][category][index].done;
         saveMonth(ym, data);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      } catch (e) {
-        res.writeHead(400);
-        res.end(JSON.stringify({ error: e.message }));
       }
-    });
-    return;
-  }
+      return jsonRes(res, 200, { ok: true });
+    }
 
-  if (url.pathname === '/api/toggle' && req.method === 'POST') {
-    let body = '';
-    req.on('data', c => body += c);
-    req.on('end', () => {
-      try {
-        const { ym, day, category, index } = JSON.parse(body);
-        const data = loadMonth(ym);
-        if (data.days[day]?.[category]?.[index] !== undefined) {
-          data.days[day][category][index].done = !data.days[day][category][index].done;
-          saveMonth(ym, data);
-        }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      } catch (e) {
-        res.writeHead(400);
-        res.end(JSON.stringify({ error: e.message }));
-      }
-    });
-    return;
-  }
+    if (path === '/api/add-item' && req.method === 'POST') {
+      const { ym, day, category, text, url: itemUrl } = JSON.parse(await readBody(req));
+      const data = loadMonth(ym);
+      const dd = ensureDay(data, day);
+      if (!dd[category]) dd[category] = [];
+      dd[category].push({ text, url: itemUrl || '', done: false });
+      saveMonth(ym, data);
+      return jsonRes(res, 200, { ok: true });
+    }
 
-  if (url.pathname === '/api/add-item' && req.method === 'POST') {
-    let body = '';
-    req.on('data', c => body += c);
-    req.on('end', () => {
-      try {
-        const { ym, day, category, text, url: itemUrl } = JSON.parse(body);
-        const data = loadMonth(ym);
-        if (!data.days[day]) data.days[day] = {};
-        if (!data.days[day][category]) data.days[day][category] = [];
-        data.days[day][category].push({ text, url: itemUrl || '', done: false });
+    if (path === '/api/one-thing' && req.method === 'POST') {
+      const { ym, day, text } = JSON.parse(await readBody(req));
+      const data = loadMonth(ym);
+      ensureDay(data, day).one_thing = text;
+      saveMonth(ym, data);
+      return jsonRes(res, 200, { ok: true });
+    }
+
+    if (path === '/api/edit-item' && req.method === 'POST') {
+      const { ym, day, category, index, text } = JSON.parse(await readBody(req));
+      const data = loadMonth(ym);
+      if (data.days[day]?.[category]?.[index]) {
+        data.days[day][category][index].text = text;
         saveMonth(ym, data);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      } catch (e) {
-        res.writeHead(400);
-        res.end(JSON.stringify({ error: e.message }));
       }
-    });
-    return;
-  }
+      return jsonRes(res, 200, { ok: true });
+    }
 
-  // Templates API
-  if (url.pathname === '/api/templates' && req.method === 'GET') {
-    const tpl = loadTemplates();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify(tpl));
-  }
-
-  if (url.pathname === '/api/templates' && req.method === 'POST') {
-    let body = '';
-    req.on('data', c => body += c);
-    req.on('end', () => {
-      try {
-        const data = JSON.parse(body);
-        saveTemplates(data);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      } catch (e) {
-        res.writeHead(400);
-        res.end(JSON.stringify({ error: e.message }));
-      }
-    });
-    return;
-  }
-
-  if (url.pathname === '/api/inject' && req.method === 'POST') {
-    let body = '';
-    req.on('data', c => body += c);
-    req.on('end', () => {
-      try {
-        const { ym, day } = JSON.parse(body);
-        const data = loadMonth(ym);
-        const tpl = loadTemplates();
-        if (!data.days[day]) data.days[day] = {};
-        const dayData = data.days[day];
-        for (const item of tpl.daily) {
-          const cat = item.category;
-          if (!dayData[cat]) dayData[cat] = [];
-          const exists = dayData[cat].some(i => i.text === item.text);
-          if (!exists) dayData[cat].push({ text: item.text, url: '', done: false });
-        }
+    if (path === '/api/delete-item' && req.method === 'POST') {
+      const { ym, day, category, index } = JSON.parse(await readBody(req));
+      const data = loadMonth(ym);
+      if (data.days[day]?.[category]) {
+        data.days[day][category].splice(index, 1);
         saveMonth(ym, data);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, injected: tpl.daily.length }));
-      } catch (e) {
-        res.writeHead(400);
-        res.end(JSON.stringify({ error: e.message }));
       }
-    });
-    return;
-  }
+      return jsonRes(res, 200, { ok: true });
+    }
 
-  // ---- Recurring Templates API ----
+    // --- Day Type ---
+    if (path === '/api/day-type' && req.method === 'POST') {
+      const { ym, day, type } = JSON.parse(await readBody(req));
+      const data = loadMonth(ym);
+      const dd = ensureDay(data, day);
+      if (type) dd.day_type = type;
+      else delete dd.day_type;
+      saveMonth(ym, data);
+      return jsonRes(res, 200, { ok: true });
+    }
 
-  // GET /api/recurring-templates
-  if (url.pathname === '/api/recurring-templates' && req.method === 'GET') {
-    const data = loadRecurringTemplates();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify(data));
-  }
+    // --- Notes ---
+    if (path === '/api/notes' && req.method === 'POST') {
+      const { ym, day, notes } = JSON.parse(await readBody(req));
+      const data = loadMonth(ym);
+      const dd = ensureDay(data, day);
+      if (notes) dd.notes = notes;
+      else delete dd.notes;
+      saveMonth(ym, data);
+      return jsonRes(res, 200, { ok: true });
+    }
 
-  // POST /api/recurring-templates — create new template
-  if (url.pathname === '/api/recurring-templates' && req.method === 'POST') {
-    let body = '';
-    req.on('data', c => body += c);
-    req.on('end', () => {
-      try {
-        const { name, category, schedule, enabled } = JSON.parse(body);
-        if (!name || !category || !schedule) {
-          res.writeHead(400); return res.end(JSON.stringify({ error: 'name, category, schedule required' }));
-        }
-        const data = loadRecurringTemplates();
-        const newTpl = {
-          id: `rt-${randomUUID().slice(0, 8)}`,
-          name: String(name).trim(),
-          category: String(category),
-          schedule,
-          enabled: enabled !== false
-        };
-        data.templates.push(newTpl);
-        saveRecurringTemplates(data);
-        res.writeHead(201, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, template: newTpl }));
-      } catch (e) {
-        res.writeHead(400); res.end(JSON.stringify({ error: e.message }));
-      }
-    });
-    return;
-  }
-
-  // PUT /api/recurring-templates/:id — update template
-  const tplUpdateMatch = url.pathname.match(/^\/api\/recurring-templates\/([^/]+)$/);
-  if (tplUpdateMatch && req.method === 'PUT') {
-    const id = tplUpdateMatch[1];
-    let body = '';
-    req.on('data', c => body += c);
-    req.on('end', () => {
-      try {
-        const updates = JSON.parse(body);
-        const data = loadRecurringTemplates();
-        const idx = data.templates.findIndex(t => t.id === id);
-        if (idx === -1) { res.writeHead(404); return res.end(JSON.stringify({ error: 'not found' })); }
-        data.templates[idx] = { ...data.templates[idx], ...updates, id };
-        saveRecurringTemplates(data);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, template: data.templates[idx] }));
-      } catch (e) {
-        res.writeHead(400); res.end(JSON.stringify({ error: e.message }));
-      }
-    });
-    return;
-  }
-
-  // DELETE /api/recurring-templates/:id
-  const tplDeleteMatch = url.pathname.match(/^\/api\/recurring-templates\/([^/]+)$/);
-  if (tplDeleteMatch && req.method === 'DELETE') {
-    const id = tplDeleteMatch[1];
-    const data = loadRecurringTemplates();
-    const before = data.templates.length;
-    data.templates = data.templates.filter(t => t.id !== id);
-    if (data.templates.length === before) { res.writeHead(404); return res.end(JSON.stringify({ error: 'not found' })); }
-    saveRecurringTemplates(data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ ok: true }));
-  }
-
-  // POST /api/recurring-inject — manual inject for a specific month
-  if (url.pathname === '/api/recurring-inject' && req.method === 'POST') {
-    let body = '';
-    req.on('data', c => body += c);
-    req.on('end', () => {
-      try {
-        const { ym } = JSON.parse(body);
-        if (!ym) { res.writeHead(400); return res.end(JSON.stringify({ error: 'ym required' })); }
-        const recurringData = loadRecurringTemplates();
-        const monthData = loadMonth(ym);
-        const count = injectRecurringIntoMonth(ym, monthData, recurringData);
-        if (count > 0) saveMonth(ym, monthData);
-        // Mark as injected (re-inject overwrites the flag by removing and re-adding)
-        recurringData._meta.injectedMonths = recurringData._meta.injectedMonths.filter(m => m !== ym);
-        recurringData._meta.injectedMonths.push(ym);
-        saveRecurringTemplates(recurringData);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, injected: count, ym }));
-      } catch (e) {
-        res.writeHead(400); res.end(JSON.stringify({ error: e.message }));
-      }
-    });
-    return;
-  }
-
-  if (url.pathname === '/api/one-thing' && req.method === 'POST') {
-    let body = '';
-    req.on('data', c => body += c);
-    req.on('end', () => {
-      try {
-        const { ym, day, text } = JSON.parse(body);
-        const data = loadMonth(ym);
-        if (!data.days[day]) data.days[day] = {};
-        data.days[day].one_thing = text;
+    // --- Reorder ---
+    if (path === '/api/reorder' && req.method === 'POST') {
+      const { ym, day, category, fromIdx, toIdx } = JSON.parse(await readBody(req));
+      const data = loadMonth(ym);
+      const items = data.days[day]?.[category];
+      if (items && fromIdx >= 0 && fromIdx < items.length && toIdx >= 0 && toIdx < items.length) {
+        const [moved] = items.splice(fromIdx, 1);
+        items.splice(toIdx, 0, moved);
         saveMonth(ym, data);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      } catch (e) {
-        res.writeHead(400);
-        res.end(JSON.stringify({ error: e.message }));
       }
-    });
-    return;
-  }
+      return jsonRes(res, 200, { ok: true });
+    }
 
-  res.writeHead(404);
-  res.end('Not found');
+    // --- Search ---
+    if (path === '/api/search' && req.method === 'GET') {
+      const q = url.searchParams.get('q') || '';
+      if (!q) return jsonRes(res, 200, []);
+      return jsonRes(res, 200, searchMonths(q));
+    }
+
+    // --- Standing Orders ---
+    if (path === '/api/standing-orders' && req.method === 'GET') {
+      return jsonRes(res, 200, loadStanding());
+    }
+
+    if (path === '/api/standing-orders' && req.method === 'POST') {
+      const data = JSON.parse(await readBody(req));
+      saveStanding(data);
+      return jsonRes(res, 200, { ok: true });
+    }
+
+    // --- Recurring Templates ---
+    if (path === '/api/recurring-templates' && req.method === 'GET') {
+      return jsonRes(res, 200, loadRecurring());
+    }
+
+    if (path === '/api/recurring-templates' && req.method === 'POST') {
+      const { name, category, schedule, enabled } = JSON.parse(await readBody(req));
+      if (!name || !category || !schedule) return jsonRes(res, 400, { error: 'name, category, schedule required' });
+      const data = loadRecurring();
+      const newTpl = { id: `rt-${randomUUID().slice(0, 8)}`, name: name.trim(), category, schedule, enabled: enabled !== false };
+      data.templates.push(newTpl);
+      saveRecurring(data);
+      return jsonRes(res, 201, { ok: true, template: newTpl });
+    }
+
+    const tplIdMatch = path.match(/^\/api\/recurring-templates\/([^/]+)$/);
+    if (tplIdMatch && req.method === 'PUT') {
+      const id = tplIdMatch[1];
+      const updates = JSON.parse(await readBody(req));
+      const data = loadRecurring();
+      const idx = data.templates.findIndex(t => t.id === id);
+      if (idx === -1) return jsonRes(res, 404, { error: 'not found' });
+      data.templates[idx] = { ...data.templates[idx], ...updates, id };
+      saveRecurring(data);
+      return jsonRes(res, 200, { ok: true, template: data.templates[idx] });
+    }
+
+    if (tplIdMatch && req.method === 'DELETE') {
+      const id = tplIdMatch[1];
+      const data = loadRecurring();
+      const before = data.templates.length;
+      data.templates = data.templates.filter(t => t.id !== id);
+      if (data.templates.length === before) return jsonRes(res, 404, { error: 'not found' });
+      saveRecurring(data);
+      return jsonRes(res, 200, { ok: true });
+    }
+
+    if (path === '/api/recurring-inject' && req.method === 'POST') {
+      const { ym } = JSON.parse(await readBody(req));
+      if (!ym) return jsonRes(res, 400, { error: 'ym required' });
+      const rec = loadRecurring();
+      const monthData = loadMonth(ym);
+      const count = injectRecurringIntoMonth(ym, monthData, rec);
+      if (count > 0) saveMonth(ym, monthData);
+      rec._meta.injectedMonths = rec._meta.injectedMonths.filter(m => m !== ym);
+      rec._meta.injectedMonths.push(ym);
+      saveRecurring(rec);
+      return jsonRes(res, 200, { ok: true, injected: count, ym });
+    }
+
+    res.writeHead(404);
+    res.end('Not found');
+  } catch (e) {
+    console.error(e);
+    jsonRes(res, 500, { error: e.message });
+  }
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Cortex Dashboard: http://localhost:${PORT}`);
+  console.log(`Cortex Dashboard v2: http://localhost:${PORT}`);
   console.log(`Data: ${DATA_DIR}`);
 });

@@ -39,24 +39,36 @@ description: 아침 루틴 — 목표 상기 + One Thing 강제 + 오늘 할 일
 
 ## Step 3: 오늘 할 일 로드
 
+JSON 우선, .md 폴백:
+
 ```bash
-MONTH_FILE="cortex/areas/life/ritual-routine/$(date +%Y-%m).md"
-if [ ! -f "$MONTH_FILE" ]; then
-  echo "MISSING: $MONTH_FILE"
+YM=$(date +%Y-%m)
+JSON_FILE="cortex/areas/life/ritual-routine/${YM}.json"
+MD_FILE="cortex/areas/life/ritual-routine/${YM}.md"
+SO_FILE="cortex/areas/life/ritual-routine/standing-orders.json"
+if [ -f "$JSON_FILE" ]; then
+  echo "SOURCE: $JSON_FILE (JSON)"
+elif [ -f "$MD_FILE" ]; then
+  echo "SOURCE: $MD_FILE (MD fallback)"
 else
-  echo "FILE: $MONTH_FILE"
+  echo "MISSING: both $JSON_FILE and $MD_FILE"
 fi
 ```
 
-오늘 날짜(`date +%-d`)를 파일에서 찾는다.
+**JSON 모드** (우선):
+- `jq` 또는 `node -e`로 오늘 날짜 키의 데이터 추출
+- `day_type` 필드가 있으면 출력에 [BLOCK]/[FLOW]/[HF]/[휴가] 표시
+- `standing-orders.json`에서 오늘 해당하는 상시업무도 포함
 
+**MD 모드** (폴백):
+오늘 날짜(`date +%-d`)를 파일에서 찾는다.
 - **있으면**: 해당 날짜 블록 추출
 - **없으면**: 템플릿에서 오늘 행 생성
 
 ## Step 4: 출력 포맷
 
 ```
-━━━ 2026-05-23 (금) ━━━
+━━━ 2026-05-23 (금) [BLOCK] ━━━
 
 ★ ONE THING: [사용자 답변] → [Pillar]
 
@@ -76,14 +88,26 @@ Work - 1H Blocks:
   □ 임장 매물 검색
   □ 8:30 취침 w/Podcast
 
+상시 업무:
+  □ Swimming/Golf/테니스
+  □ 리더의 서재(금)
+
 이번주 완료율: 23/47 (49%)
 ━━━━━━━━━━━━━━━━━━━━━
 ```
 
 ## Step 5: One Thing 기록
 
-사용자의 One Thing을 오늘 날짜 행에 기록한다 (Edit 도구).
+사용자의 One Thing을 오늘 날짜의 JSON에 기록한다:
 
+```bash
+# Dashboard API로 저장 (서버 실행 중이면)
+curl -s -X POST http://localhost:7843/api/one-thing \
+  -H 'Content-Type: application/json' \
+  -d "{\"ym\":\"$(date +%Y-%m)\",\"day\":\"$(date +%-d)\",\"text\":\"ONE_THING_TEXT\"}"
+```
+
+서버 미실행 시 JSON 파일 직접 Edit.
 월 파일이 없으면 `scripts/ritual-routine-new-month.sh` 실행 제안.
 
 ## 규칙
