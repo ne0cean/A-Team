@@ -60,6 +60,10 @@
   .one-thing:empty::before { content: 'ONE THING...'; color: #1e3a25; }
   .one-thing:focus { outline: 1px solid #56d364; background: #0d2818; }
 
+  .workout-bar { display: flex; gap: 1px; margin-bottom: 4px; flex-wrap: wrap; }
+  .workout-chip { font-size: 8px; padding: 2px 4px; border-radius: 2px; cursor: pointer; user-select: none; background: #21262d; color: #6e7681; transition: all 0.15s; border: 1px solid transparent; }
+  .workout-chip.on { background: #1c3050; color: #58a6ff; border-color: #1c3050; }
+
   .category { margin-bottom: 6px; border-left: 2px solid transparent; padding-left: 4px; }
   .category.cat-ritual { border-left-color: #f0c040; }
   .category.cat-input { border-left-color: #58a6ff; }
@@ -240,7 +244,6 @@
     <button onclick="prevPeriod()">&#9664;</button>
     <span class="month-label" id="monthLabel"></span>
     <button onclick="nextPeriod()">&#9654;</button>
-    <button onclick="goToday()">Today</button>
     <span class="search-btn" onclick="openSearch()">&#128269;</span>
   </div>
 </div>
@@ -561,6 +564,16 @@ function renderDayCellContent(d, isToday, isWeek) {
     onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
   >${esc(ot)}</div>`;
 
+  // Workout chips
+  const WORKOUT_PARTS = ['하체','어깨','등','가슴','전면','대퇴/측면'];
+  const wo = dayData.workout || [];
+  html += '<div class="workout-bar">';
+  WORKOUT_PARTS.forEach(part => {
+    const isOn = wo.includes(part);
+    html += `<span class="workout-chip${isOn?' on':''}" onclick="toggleWorkout(${d},'${part}')">${part}</span>`;
+  });
+  html += '</div>';
+
   // Categories
   for (const cat of CATS) {
     const items = dayData[cat] || [];
@@ -810,6 +823,15 @@ function addItemPrompt(d) {
 async function saveOneThing(d, text) {
   ensureDay(d).one_thing = text.trim();
   await save();
+}
+
+async function toggleWorkout(d, part) {
+  const dd = ensureDay(d);
+  if (!dd.workout) dd.workout = [];
+  const idx = dd.workout.indexOf(part);
+  if (idx >= 0) dd.workout.splice(idx, 1);
+  else dd.workout.push(part);
+  await save(); render();
 }
 
 async function saveNotes(d, text) {
