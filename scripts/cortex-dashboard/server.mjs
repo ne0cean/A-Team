@@ -137,10 +137,13 @@ function injectFrameForDay(ym, dayNum, monthData, frames) {
 
     if (catFrame.type === 'routine') {
       // Inject routine items not already present
-      for (const text of (catFrame.items || [])) {
-        const exists = dayData[cat].some(i => i.text === text && i._frame);
+      for (const rawItem of (catFrame.items || [])) {
+        const isObj = typeof rawItem === 'object';
+        const itemText = isObj ? rawItem.text : rawItem;
+        const itemUrl = isObj ? (rawItem.url || '') : '';
+        const exists = dayData[cat].some(i => i.text === itemText && i._frame);
         if (!exists) {
-          dayData[cat].push({ text, url: '', done: false, _frame: true });
+          dayData[cat].push({ text: itemText, url: itemUrl, done: false, _frame: true });
           modified = true;
         }
       }

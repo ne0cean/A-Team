@@ -751,19 +751,40 @@ function openLinkPopup(event, d, cat, idx) {
 }
 
 function closeLinkPopup() {
-  document.getElementById('linkPopup').classList.remove('open');
+  const popup = document.getElementById('linkPopup');
+  popup.classList.remove('open');
+  popup.dataset.mode = '';
   linkTarget = null;
+  frameLinkTarget = null;
 }
 
 async function saveLink() {
+  const popup = document.getElementById('linkPopup');
+  const url = document.getElementById('linkUrl').value.trim();
+  if (popup.dataset.mode === 'frame' && frameLinkTarget) {
+    const { ftype, cat, idx } = frameLinkTarget;
+    const item = getFrameItem(ftype, cat, idx);
+    item.url = url;
+    setFrameItem(ftype, cat, idx, item);
+    saveFramesData(); renderFrames(); closeLinkPopup();
+    return;
+  }
   if (!linkTarget) return;
   const { d, cat, idx } = linkTarget;
-  const url = document.getElementById('linkUrl').value.trim();
   ensureDay(d)[cat][idx].url = url;
   await save(); render(); closeLinkPopup();
 }
 
 async function removeLink() {
+  const popup = document.getElementById('linkPopup');
+  if (popup.dataset.mode === 'frame' && frameLinkTarget) {
+    const { ftype, cat, idx } = frameLinkTarget;
+    const item = getFrameItem(ftype, cat, idx);
+    item.url = '';
+    setFrameItem(ftype, cat, idx, item);
+    saveFramesData(); renderFrames(); closeLinkPopup();
+    return;
+  }
   if (!linkTarget) return;
   const { d, cat, idx } = linkTarget;
   ensureDay(d)[cat][idx].url = '';
@@ -1244,10 +1265,15 @@ function renderFrames() {
         <span class="frame-cat-type ${catType}" onclick="toggleCatType('${ftype}','${cat}')" style="cursor:pointer" title="Click to toggle">${catType}</span>
       </div>`;
 
-      (catData.items || []).forEach((item, idx) => {
+      (catData.items || []).forEach((rawItem, idx) => {
+        const isObj = typeof rawItem === 'object';
+        const text = isObj ? rawItem.text : rawItem;
+        const url = isObj ? (rawItem.url || '') : '';
+        const hasUrl = url.length > 0;
         html += `<div class="frame-item">
           <span style="color:#484f58;font-size:9px">${idx+1}</span>
-          <input value="${esc(item)}" onchange="editFrameItem('${ftype}','${cat}',${idx},this.value)">
+          <input value="${esc(text)}" onchange="editFrameItem('${ftype}','${cat}',${idx},this.value)">
+          <span class="link-btn${hasUrl?' has-link':''}" onclick="openFrameLink(event,'${ftype}','${cat}',${idx})" style="cursor:pointer;font-size:8px;display:inline">&#128279;</span>
           <span class="frame-del" onclick="delFrameItem('${ftype}','${cat}',${idx})">&#215;</span>
         </div>`;
       });
@@ -1285,6 +1311,15 @@ function toggleCatType(ftype, cat) {
   renderFrames();
 }
 
+function getFrameItem(ftype, cat, idx) {
+  const raw = framesData[ftype].categories[cat].items[idx];
+  return typeof raw === 'object' ? raw : { text: raw, url: '' };
+}
+
+function setFrameItem(ftype, cat, idx, obj) {
+  framesData[ftype].categories[cat].items[idx] = obj.url ? obj : obj.text;
+}
+
 function addFrameItem(ftype, cat, text) {
   if (!text?.trim()) return;
   if (!framesData[ftype].categories[cat]) framesData[ftype].categories[cat] = { type: 'routine', items: [] };
@@ -1294,8 +1329,25 @@ function addFrameItem(ftype, cat, text) {
 }
 
 function editFrameItem(ftype, cat, idx, text) {
-  framesData[ftype].categories[cat].items[idx] = text.trim();
+  const item = getFrameItem(ftype, cat, idx);
+  item.text = text.trim();
+  setFrameItem(ftype, cat, idx, item);
   saveFramesData();
+}
+
+let frameLinkTarget = null;
+function openFrameLink(event, ftype, cat, idx) {
+  const item = getFrameItem(ftype, cat, idx);
+  frameLinkTarget = { ftype, cat, idx };
+  const popup = document.getElementById('linkPopup');
+  const input = document.getElementById('linkUrl');
+  input.value = item.url || '';
+  popup.classList.add('open');
+  popup.style.left = Math.min(event.clientX || 100, window.innerWidth - 300) + 'px';
+  popup.style.top = Math.min(event.clientY || 100, window.innerHeight - 100) + 'px';
+  // Override save/remove to use frame target
+  popup.dataset.mode = 'frame';
+  setTimeout(() => input.focus(), 50);
 }
 
 function delFrameItem(ftype, cat, idx) {
