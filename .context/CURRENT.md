@@ -60,7 +60,16 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-25) — Cortex 워크스페이스 + YT 16개 분석 + Ritual Board
+## Last Completions (2026-05-25) — Idea Auto-Accumulation System + Cortex 워크스페이스
+
+- **Idea Auto-Accumulation System 구현** — 아이디어가 세션마다 분산되는 문제를 구조적으로 해결. 3개 컴포넌트 A-Team 글로벌 반영:
+  - `/end` Step 1.5 Idea Harvest — 아이데이션 세션 판별 게이트 + 레지스트리 자동 수확 (비-아이데이션 세션은 스킵)
+  - `/brainstorm` Step 4.5 Registry Sync — 생존/탈락 아이디어 자동 레지스트리 반영 (복귀 선언 뒤 실행)
+  - `/mece-gap` 신규 커맨드 — 9프레임(F1-F9) 기반 아이디어 사이 미탐색 영역 발굴. F1 형태학적 빈 셀 기본, `--deep` 시 F2-F9 추가. 축 저장으로 시계열 비교 가능.
+  - CLAUDE.md 자동 제안 테이블에 `/idea`, `/mece-gap` 추가
+  - 레드팀 리뷰 4건 반영: 토큰 절약 게이트, 중복 수확 방지, F1/deep 분리, 축 안정성
+
+## Last Completions (2026-05-25, 이전) — Cortex 워크스페이스 + YT 16개 분석 + Ritual Board
 
 - **PMI 5-Phase 완료** — `@fast-check/vitest` 설치 (property tests 13개 복구), `wiki-types.ts:81` 타입 캐스팅 수정, CLAUDE.md 207→192줄 축소. 583 tests PASS.
 - **Design Taste Evaluator Phase 1 — INDEX.md 구축** — `reference/design-systems/INDEX.md` 생성. 72 brands, 8 categories, tone clusters, incomplete entries 식별. taste-evaluator 에이전트 연결 준비 완료.
