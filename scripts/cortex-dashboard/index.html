@@ -534,12 +534,23 @@ function getYearlyEvents(d) {
 
 function getMonthlyRecurring(d) {
   if (!standingData?.monthly_recurring) return [];
-  const [year, month] = [currentYear, currentMonth];
-  const daysInMonth = new Date(year, month, 0).getDate();
+  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
   return standingData.monthly_recurring.filter(m => {
     if (m.day === d) return true;
-    if (m.day === 0 && d === daysInMonth) return true; // 말일
+    if (m.day === 0 && d === daysInMonth) return true;
     return false;
+  });
+}
+
+function getWeeklyRecurring(d) {
+  if (!standingData?.weekly_recurring) return [];
+  const dow = new Date(currentYear, currentMonth - 1, d).getDay();
+  // Week number from start of month (for biweekly calc)
+  const weekNum = Math.floor((d - 1) / 7);
+  return standingData.weekly_recurring.filter(w => {
+    if (w.dow !== dow) return false;
+    if (w.freq === 'biweekly' && weekNum % 2 !== 0) return false;
+    return true;
   });
 }
 
@@ -569,9 +580,11 @@ function renderDayCellContent(d, isToday, isWeek) {
   const holiday = getHoliday(d);
   const yearlyEvts = getYearlyEvents(d);
   const monthlyRec = getMonthlyRecurring(d);
+  const weeklyRec = getWeeklyRecurring(d);
   const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '')
     + yearlyEvts.map(e => `<div style="font-size:8px;color:#f0c040;margin-bottom:1px">${esc(e.text)}</div>`).join('')
-    + monthlyRec.map(e => `<div style="font-size:8px;color:#bc8cff;margin-bottom:1px">${esc(e.text)}</div>`).join('');
+    + monthlyRec.map(e => `<div style="font-size:8px;color:#bc8cff;margin-bottom:1px">${esc(e.text)}</div>`).join('')
+    + weeklyRec.map(e => `<div style="font-size:8px;color:#6e7681;margin-bottom:1px">${esc(e.text)}</div>`).join('');
   let html = `<div class="day-num${dowClass}" onclick="cycleDayType(${d})" style="cursor:pointer" title="Set day type">
     <span>${d}${badgeHtml}</span>
     <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
@@ -979,6 +992,7 @@ function renderStandingOrders() {
 
   let html = '<div class="tabs">';
   html += '<div class="tab active" onclick="showSOTab(\'standing\',this)">Standing</div>';
+  html += '<div class="tab" onclick="showSOTab(\'weekly\',this)">Weekly</div>';
   html += '<div class="tab" onclick="showSOTab(\'monthly\',this)">This Month</div>';
   html += '<div class="tab" onclick="showSOTab(\'yearly\',this)">Yearly</div>';
   html += '</div>';
@@ -1011,6 +1025,41 @@ function renderStandingOrders() {
     html += '<div style="margin-top:6px;font-size:10px;color:#8b949e">Holidays:</div>';
     holidaysThisMonth.forEach(([d, name]) => { html += `<div class="so-monthly-item">${d.split('-')[2]}일 — ${esc(name)}</div>`; });
   }
+  html += '</div>';
+
+  // Weekly — editable
+  const DOW_NAMES_SHORT = ['일','월','화','수','목','금','토'];
+  const FREQ_LABELS = { weekly: '매주', biweekly: '격주' };
+  html += '<div id="soTab-weekly" style="display:none">';
+  const wr = standingData.weekly_recurring || [];
+  const wrLen = wr.length;
+  wr.forEach((w, i) => {
+    html += `<div class="so-item">
+      <div class="so-move">
+        <span onclick="moveSOItem('weekly_recurring',${i},-1)" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
+        <span onclick="moveSOItem('weekly_recurring',${i},1)" ${i===wrLen-1?'style="visibility:hidden"':''}>&#9660;</span>
+      </div>
+      <select style="width:40px;background:#0d1117;border:1px solid #30363d;color:#f0c040;font-size:10px;border-radius:2px" onchange="editWeeklyDow(${i},+this.value)">
+        ${DOW_NAMES_SHORT.map((n,di)=>`<option value="${di}" ${w.dow===di?'selected':''}>${n}</option>`).join('')}
+      </select>
+      <select style="width:44px;background:#0d1117;border:1px solid #30363d;color:#6e7681;font-size:10px;border-radius:2px" onchange="editWeeklyFreq(${i},this.value)">
+        <option value="weekly" ${w.freq==='weekly'?'selected':''}>매주</option>
+        <option value="biweekly" ${w.freq==='biweekly'?'selected':''}>격주</option>
+      </select>
+      <span contenteditable="true" style="flex:1" onblur="editWeeklyText(${i},this.textContent)">${esc(w.text)}</span>
+      <span class="del-btn" onclick="delWeekly(${i})" style="display:inline">&#215;</span>
+    </div>`;
+  });
+  html += `<div class="frame-add" style="gap:4px">
+    <select id="newWkDow" style="width:40px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;border-radius:2px">
+      ${DOW_NAMES_SHORT.map((n,i)=>`<option value="${i}">${n}</option>`).join('')}
+    </select>
+    <select id="newWkFreq" style="width:44px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;border-radius:2px">
+      <option value="weekly">매주</option><option value="biweekly">격주</option>
+    </select>
+    <input placeholder="Add weekly item..." onkeydown="if(event.key==='Enter'){addWeekly(this.value);this.value='';}">
+    <button onclick="addWeekly(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button>
+  </div>`;
   html += '</div>';
 
   // Monthly — editable
@@ -1082,6 +1131,7 @@ function moveSOItem(section, idx, dir) {
   const target = idx + dir;
   let arr;
   if (section === 'standing') arr = standingData.standing;
+  else if (section === 'weekly_recurring') arr = standingData.weekly_recurring;
   else if (section === 'monthly') arr = standingData.monthly[ym()] || [];
   else if (section === 'yearly') arr = standingData.yearly;
   else return;
@@ -1119,6 +1169,19 @@ function addMonthlyItem(text) {
   saveStandingData(); renderStandingOrders();
 }
 
+function editWeeklyDow(i, dow) { standingData.weekly_recurring[i].dow = dow; saveStandingData(); }
+function editWeeklyFreq(i, freq) { standingData.weekly_recurring[i].freq = freq; saveStandingData(); }
+function editWeeklyText(i, text) { if(text.trim()) standingData.weekly_recurring[i].text = text.trim(); saveStandingData(); }
+function delWeekly(i) { standingData.weekly_recurring.splice(i, 1); saveStandingData(); renderStandingOrders(); }
+function addWeekly(text) {
+  if (!text?.trim()) return;
+  const dow = +(document.getElementById('newWkDow')?.value || 1);
+  const freq = document.getElementById('newWkFreq')?.value || 'weekly';
+  if (!standingData.weekly_recurring) standingData.weekly_recurring = [];
+  standingData.weekly_recurring.push({ dow, freq, text: text.trim() });
+  saveStandingData(); renderStandingOrders();
+}
+
 function editYearlyMonth(i, month) { standingData.yearly[i].month = month; saveStandingData(); }
 function editYearlyDay(i, day) { standingData.yearly[i].day = day || 0; saveStandingData(); }
 function editYearlyText(i, text) { if(text.trim()) standingData.yearly[i].text = text.trim(); saveStandingData(); }
@@ -1132,8 +1195,9 @@ function addYearly(text) {
 }
 
 function showSOTab(name, el) {
-  ['standing','monthly','yearly'].forEach(t => {
-    document.getElementById(`soTab-${t}`).style.display = t === name ? '' : 'none';
+  ['standing','weekly','monthly','yearly'].forEach(t => {
+    const el = document.getElementById(`soTab-${t}`);
+    if (el) el.style.display = t === name ? '' : 'none';
   });
   el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
