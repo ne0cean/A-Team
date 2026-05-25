@@ -514,6 +514,11 @@ function getHoliday(d) {
   return standingData.holidays[key] || null;
 }
 
+function getYearlyEvents(d) {
+  if (!standingData?.yearly) return [];
+  return standingData.yearly.filter(y => y.month === currentMonth && y.day === d);
+}
+
 function renderDayCell(d, isToday, isWeek) {
   const dayData = monthData.days[String(d)] || {};
   const dow = new Date(currentYear, currentMonth - 1, d).getDay();
@@ -536,11 +541,13 @@ function renderDayCellContent(d, isToday, isWeek) {
     ? `<span onclick="event.stopPropagation();togglePastWeeks()" style="cursor:pointer;color:#484f58;font-size:12px;margin-left:4px" id="pastToggleIcon" title="Past weeks">&#9650;</span>`
     : '';
   const holiday = getHoliday(d);
-  const holidayHtml = holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '';
+  const yearlyEvts = getYearlyEvents(d);
+  const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '')
+    + yearlyEvts.map(e => `<div style="font-size:8px;color:#f0c040;margin-bottom:1px">${esc(e.text)}</div>`).join('');
   let html = `<div class="day-num${dowClass}" onclick="cycleDayType(${d})" style="cursor:pointer" title="Set day type">
     <span>${d}${badgeHtml}</span>
     <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
-  </div>${holidayHtml}`;
+  </div>${evtHtml}`;
 
   // One Thing
   const ot = dayData.one_thing || '';
@@ -984,12 +991,14 @@ function addMonthlyItem(text) {
 }
 
 function editYearlyMonth(i, month) { standingData.yearly[i].month = month; saveStandingData(); }
+function editYearlyDay(i, day) { standingData.yearly[i].day = day || 0; saveStandingData(); }
 function editYearlyText(i, text) { if(text.trim()) standingData.yearly[i].text = text.trim(); saveStandingData(); }
 function delYearly(i) { standingData.yearly.splice(i, 1); saveStandingData(); renderStandingOrders(); }
 function addYearly(text) {
   if (!text?.trim()) return;
   const month = +(document.getElementById('newYearlyMonth')?.value || 1);
-  standingData.yearly.push({ month, text: text.trim() });
+  const day = +(document.getElementById('newYearlyDay')?.value || 0);
+  standingData.yearly.push({ month, day, text: text.trim() });
   saveStandingData(); renderStandingOrders();
 }
 
