@@ -66,6 +66,7 @@
 - **Design Taste Evaluator Phase 1 — INDEX.md 구축** — `reference/design-systems/INDEX.md` 생성. 72 brands, 8 categories, tone clusters, incomplete entries 식별. taste-evaluator 에이전트 연결 준비 완료.
 - **Cortex PARA+6기둥 재편** — staging 587파일 OneNote 원본 구조(notebook/section_group/section)로 복원. pillars/+areas/ 중복 구조 통합 → InterStellar/2_6 hexagonal pillars/ 단일화. Dashboard 100개 6기둥 분류(interstellar 44, snowball 25, character 14, life-xlab 12, string 5). 중복 22개 해소. archives/legacy 11개 snowball 편입. 신입연수 22개 삭제.
 - **OneNote 누락 658개 다운로드** — 2_6 hexagonal pillars 2~6번 + Zeroing + Futures options 전체 다운로드 (level/order 메타데이터 포함). 3_Archive는 Microsoft API 장애로 미완료.
+- **OneNote InterStellar Migration 완료** — Zeroing 73개 + Futures options 1개 추가 다운로드 (이전 세션 누락분). cortex/projects/ 164개 중복 파일 제거. 3_Archive 118개 부분 다운로드 (API 정상 작동 구간). 최종 상태: InterStellar 1,306파일 (1_Projects 343 + 2_6 pillars 845 + 3_Archive 118), page index 921개 전량 on-disk. onenote-download-missing.py `import time` 버그 수정. 원격 이미지 293개 (Graph API URL, 텍스트 정상).
 - **Claude 실행 문제 해결** — claude-remote 서버 WebSocket 장애 → bun 프로세스 종료 → alias fallback 정상화.
 
 **빌드**: ✅ 583 tests PASS (50 files)
@@ -92,7 +93,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ### Medium Priority
 - [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정 (PRD 성공 기준 기반)
 - [ ] **Stryker 첫 full run** — mutation score baseline 측정
-- [ ] **OneNote 3_Archive 다운로드** — Microsoft API 복구 후 `python3 -u scripts/onenote-download-missing.py` 실행
+- [ ] **OneNote 3_Archive 완전 다운로드** — 현재 118/~200+ 부분 완료. API 정상 시 재실행 (3_Archive 외 섹션은 전량 완료)
 - [ ] **Ritual Board 이름/구조 확정** — 하단 섹션 별도 탭 vs 통합
 
 ### Low Priority / Future
