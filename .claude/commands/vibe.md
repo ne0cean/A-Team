@@ -74,6 +74,25 @@ fi
 - `resume_active` 또는 `git_dirty > 5` 또는 `in_progress` 있음 → **pickup 경량 경로**
 - 그 외 → **vibe 풀 경로** (Step 1~4)
 
+**Step 0.85 — MECE Freshness Check** (memory/idea-registry.md 존재 시):
+```bash
+if [ -f memory/idea-registry.md ]; then
+  LAST_MECE=$(ls memory/mece-ideation-gap-*.md 2>/dev/null | sort | tail -1)
+  if [ -n "$LAST_MECE" ]; then
+    LAST_DATE=$(echo "$LAST_MECE" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
+    DAYS_AGO=$(( ($(date +%s) - $(date -j -f "%Y-%m-%d" "$LAST_DATE" +%s 2>/dev/null || echo 0)) / 86400 ))
+    echo "mece_gap: last=${LAST_DATE} (${DAYS_AGO}d ago)"
+  else
+    echo "mece_gap: never — /mece-gap 실행 권장"
+  fi
+else
+  true  # 레지스트리 없음, 스킵
+fi
+```
+- 7일+ 경과 또는 첫 분석 → 브리핑에 포함: "MECE 갭 체크 N일 경과. `/mece-gap` 실행할까요?"
+- 7일 미만 → 1줄 표시 후 진행
+- 레지스트리 없으면 → 스킵
+
 **Step 0.9 — PRD Gate** (전체 프로젝트):
 ```bash
 PRD_EXISTS=$(find . -maxdepth 3 -name "*prd*" -o -name "*PRD*" 2>/dev/null | grep -iE '\.md$' | head -1)
