@@ -145,7 +145,10 @@
   .tab { padding: 4px 12px; font-size: 11px; cursor: pointer; background: #21262d; border: 1px solid #30363d; border-radius: 4px; color: #8b949e; }
   .tab.active { background: #f0c040; color: #0d1117; border-color: #f0c040; }
 
-  .so-item { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 11px; }
+  .so-item { display: flex; align-items: center; gap: 4px; padding: 3px 0; font-size: 11px; }
+  .so-move { display: flex; flex-direction: column; gap: 0; line-height: 1; }
+  .so-move span { cursor: pointer; color: #484f58; font-size: 9px; padding: 0 2px; user-select: none; }
+  .so-move span:hover { color: #f0c040; }
   .so-item input[type="checkbox"] { accent-color: #56d364; }
   .so-monthly-item { padding: 2px 0; font-size: 11px; color: #c9d1d9; }
   .so-yearly-item { padding: 2px 0; font-size: 11px; }
@@ -846,8 +849,13 @@ function renderStandingOrders() {
 
   // Standing — editable
   html += '<div id="soTab-standing">';
+  const soLen = (standingData.standing || []).length;
   (standingData.standing || []).forEach((s, i) => {
     html += `<div class="so-item">
+      <div class="so-move">
+        <span onclick="moveSOItem('standing',${i},-1)" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
+        <span onclick="moveSOItem('standing',${i},1)" ${i===soLen-1?'style="visibility:hidden"':''}>&#9660;</span>
+      </div>
       <input type="checkbox" ${s.active?'checked':''} onchange="toggleSOActive(${i})">
       <span contenteditable="true" style="flex:1" onblur="editSOText(${i},this.textContent)">${esc(s.text)}</span>
       <span class="del-btn" onclick="delSO(${i})" style="display:inline">&#215;</span>
@@ -872,9 +880,14 @@ function renderStandingOrders() {
   // Monthly — editable
   html += '<div id="soTab-monthly" style="display:none">';
   const monthlyItems = standingData.monthly?.[ymKey] || [];
+  const mLen = monthlyItems.length;
   monthlyItems.forEach((item, i) => {
     const text = typeof item === 'string' ? item : item.text || item;
     html += `<div class="so-item">
+      <div class="so-move">
+        <span onclick="moveSOItem('monthly',${i},-1)" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
+        <span onclick="moveSOItem('monthly',${i},1)" ${i===mLen-1?'style="visibility:hidden"':''}>&#9660;</span>
+      </div>
       <span contenteditable="true" style="flex:1" onblur="editMonthlyItem(${i},this.textContent)">${esc(text)}</span>
       <span class="del-btn" onclick="delMonthlyItem(${i})" style="display:inline">&#215;</span>
     </div>`;
@@ -885,9 +898,14 @@ function renderStandingOrders() {
 
   // Yearly — editable
   html += '<div id="soTab-yearly" style="display:none">';
+  const yLen = (standingData.yearly || []).length;
   (standingData.yearly || []).forEach((y, i) => {
     const isCurrent = y.month === currentMonthNum;
     html += `<div class="so-item ${isCurrent ? 'current-month' : ''}">
+      <div class="so-move">
+        <span onclick="moveSOItem('yearly',${i},-1)" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
+        <span onclick="moveSOItem('yearly',${i},1)" ${i===yLen-1?'style="visibility:hidden"':''}>&#9660;</span>
+      </div>
       <select style="width:50px;background:#0d1117;border:1px solid #30363d;color:#f0c040;font-size:10px;border-radius:2px" onchange="editYearlyMonth(${i},+this.value)">
         ${Array.from({length:12},(_,m)=>`<option value="${m+1}" ${y.month===m+1?'selected':''}>${m+1}월</option>`).join('')}
       </select>
@@ -912,6 +930,18 @@ async function saveStandingData() {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(standingData)
   });
+}
+
+function moveSOItem(section, idx, dir) {
+  const target = idx + dir;
+  let arr;
+  if (section === 'standing') arr = standingData.standing;
+  else if (section === 'monthly') arr = standingData.monthly[ym()] || [];
+  else if (section === 'yearly') arr = standingData.yearly;
+  else return;
+  if (target < 0 || target >= arr.length) return;
+  [arr[idx], arr[target]] = [arr[target], arr[idx]];
+  saveStandingData(); renderStandingOrders();
 }
 
 function toggleSOActive(i) { standingData.standing[i].active = !standingData.standing[i].active; saveStandingData(); }
