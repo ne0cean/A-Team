@@ -23,14 +23,16 @@ function apiCall(method, params = {}) {
   return new Promise((resolve, reject) => {
     const url = new URL(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`);
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-    https.get(url, (res) => {
+    const req = https.get(url, { timeout: 35000 }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try { resolve(JSON.parse(data)); }
         catch { reject(new Error(`Parse error: ${data.slice(0, 100)}`)); }
       });
-    }).on('error', reject);
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); resolve({ ok: true, result: [] }); });
   });
 }
 
