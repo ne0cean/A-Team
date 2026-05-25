@@ -461,6 +461,7 @@ function renderMonthView() {
   weeks.forEach((week, wIdx) => {
     if (wIdx < currentWeekIdx) return;
     _showPastToggleOnWeek = (wIdx === currentWeekIdx && pastWeeks.length > 0);
+    _pastToggleDay = _showPastToggleOnWeek ? week[week.length - 1] : -1;
     html += renderWeekGrid(week, todayDate);
   });
 
@@ -478,6 +479,7 @@ function renderDayHeaders() {
 }
 
 let _showPastToggleOnWeek = false;
+let _pastToggleDay = -1;
 
 function renderWeekGrid(week, todayDate, showPastToggle) {
   _showPastToggleOnWeek = showPastToggle || false;
@@ -577,9 +579,8 @@ function renderDayCellContent(d, isToday, isWeek) {
     ? ` <span class="day-type-badge ${TYPE_COLORS[dayData.day_type]}" onclick="event.stopPropagation();cycleDayType(${d})">${TYPE_LABELS[dayData.day_type]}</span>`
     : '';
   let pastArrow = '';
-  if (_showPastToggleOnWeek) {
+  if (_pastToggleDay === d) {
     pastArrow = `<span onclick="event.stopPropagation();togglePastWeeks()" id="pastToggleIcon" style="cursor:pointer;color:#484f58;font-size:10px" title="Past weeks">&#9650;</span>`;
-    _showPastToggleOnWeek = false; // only first cell of the week
   }
   const holiday = getHoliday(d);
   const yearlyEvts = getYearlyEvents(d);
@@ -654,9 +655,9 @@ function renderDayCellContent(d, isToday, isWeek) {
   const notes = dayData.notes || '';
   const notesCls = notes ? 'day-notes has-content' : 'day-notes';
   html += `<div class="${notesCls}" id="notes-${d}" contenteditable="true"
-    onblur="saveNotes(${d}, this.textContent)"
+    onblur="saveNotes(${d}, this.innerText)"
     onkeydown="if(event.key==='Escape')this.blur()"
-  >${esc(notes)}</div>`;
+  >${esc(notes).replace(/\\n/g,'<br>')}</div>`;
 
   return html;
 }
