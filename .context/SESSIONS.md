@@ -2,6 +2,38 @@
 
 ---
 
+## [2026-05-25] Cortex 워크스페이스 + YT 16개 분석 + PKM 벤치마크 + 거버넌스 V2
+
+**완료**:
+- Cortex PARA 워크스페이스 전면 재설계 (디렉토리 재편, 커맨드 7개, CORTEX.md 매뉴얼, VS Code 설정)
+- 거버넌스 V2 — Cascade Updates, Typed Links(7종), NoteType(5종), Knowledge Consolidation, Worker Output Rule
+- YouTube 16개 영상 Groq Whisper 전사 + 5그룹 분석 리포트 + 즉시 적용 6건 (opusplan, LSP, Plan-Annotate-Execute, /ppt Q0, yt --transcribe, MSAL 갱신)
+- Ritual Board recurring templates (JSON + API 5개 + 자동주입)
+- OneNote migration 완료 (1,639파일, MSAL 자동갱신, 3_Archive 451)
+- PKM 벤치마크 14개 + 5개 GitHub 레포 딥다이브 (소스코드 직접 분석)
+- SKILL.md 호환성 분석 (70-80% 변환 가능)
+- Connectome에 위키 패턴 적용 (/idea /inbox /consolidate /recall)
+- wiki-types.ts 확장 (WikiCategory +5, LinkType 7종, NoteType 5종)
+
+**이슈**: Whisper 로컬 CPU 과부하 → Groq API 전환으로 해결. 백그라운드 작업 실패 미보고 → 피드백 반영(즉시 알림 규칙).
+**빌드**: ✅ 583 tests PASS
+
+---
+
+## [2026-05-25] Idea Auto-Accumulation System
+
+**완료**:
+- `/end` Step 1.5 Idea Harvest 추가 (아이데이션 세션 판별 게이트 + 중복 수확 방지)
+- `/brainstorm` Step 4.5 Registry Sync 추가 (복귀 선언 뒤 실행)
+- `/mece-gap` 신규 커맨드 (F1 형태학적 빈 셀 기본, --deep 시 F2-F9)
+- CLAUDE.md 자동 제안 테이블에 `/idea`, `/mece-gap` 추가
+- 레드팀 리뷰 4건 반영
+
+**이슈**: 없음
+**빌드**: 테스트 없음 (커맨드/거버넌스 파일만 수정)
+
+---
+
 ## [2026-05-24] Cortex 통합 + Ritual Dashboard + Thinking Toolkit
 
 **완료**:
