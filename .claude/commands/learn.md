@@ -37,4 +37,10 @@ links: []
 
 5. 내용 정리 후 저장
 6. 관련 6기둥 태그 자동 추가 (예: 재무 책 → tags에 snowball 추가)
-7. 기존 cortex 노트와 연결 가능하면 [[wikilink]] 제안
+7. 기존 cortex 노트와 연결 가능하면 typed wikilink 제안 (`[[note|supports]]` 등)
+
+## Cascade Updates (저장 후 필수)
+
+저장 완료 후:
+1. 동일 tags/pillar 기존 노트 스캔 (최대 10개)
+2. 관련 노트 목록 제시 → 승인 시 백링크 추가

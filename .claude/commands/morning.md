@@ -110,6 +110,39 @@ curl -s -X POST http://localhost:7843/api/one-thing \
 서버 미실행 시 JSON 파일 직접 Edit.
 월 파일이 없으면 `scripts/ritual-routine-new-month.sh` 실행 제안.
 
+## Step 6: Goal-Action 정렬 (The Cascade)
+
+zeroing/ 비전 파일과 OKR이 있으면 읽고, One Thing과의 정렬도 1줄 표시:
+```
+🎯 정렬: One Thing "[사용자 답변]" → 4-interstellar (커리어) → 2026 목표 "제품 런칭"과 직결
+```
+
+정렬 안 되면:
+```
+⚠️ One Thing이 선언된 목표와 직접 연결 안 됨. 의도적 선택인가요?
+```
+
+## Step 7: Cortex 상태 알림
+
+```bash
+# inbox 방치 체크
+INBOX_COUNT=$(find cortex/inbox -name "*.md" 2>/dev/null | wc -l)
+# 마지막 consolidation 날짜 체크
+LAST_CONSOL=$(find cortex/areas -path "*/consolidated/*" -name "*.md" -exec stat -f%m {} \; 2>/dev/null | sort -rn | head -1)
+```
+
+표시:
+- inbox N건 → 3개+ 이면 "/tidy-inbox 권장"
+- 마지막 consolidation 30일+ → "/consolidate 권장"
+- cortex-graph 고립 노트 비율 높으면 알림
+
+## Step 8: Serendipity
+
+`cortex/archive/interstellar-onenote/`에서 랜덤 노트 1개 제목 표시:
+```
+🎲 오늘의 과거 노트: "{제목}" ({날짜})
+```
+
 ## 규칙
 - Step 2 응답 받기 전까지 할 일 목록 표시하지 않음. One Thing이 먼저.
 - 나레이션 최소화.

@@ -24,7 +24,28 @@ export type WikiCategory =
   | 'debugging'   // 디버깅 인사이트
   | 'testing'     // 테스팅 전략
   | 'governance'  // 거버넌스/규칙
+  | 'design'      // 디자인 패턴/AI smell
+  | 'marketing'   // 마케팅 인사이트
+  | 'tool'        // 도구 사용법 (Groq, yt-dlp 등)
+  | 'decision'    // 의사결정 기록 (ADR)
+  | 'pillar'      // 6기둥 관련 개인 인사이트
   | 'misc';       // 기타
+
+export type LinkType =
+  | 'reference'    // 단순 참조 [[note]]
+  | 'supports'     // 이 노트가 대상을 지지 [[note|supports]]
+  | 'contradicts'  // 이 노트가 대상과 모순 [[note|contradicts]]
+  | 'extends'      // 이 노트가 대상을 확장 [[note|extends]]
+  | 'refines'      // 이 노트가 대상을 정제 [[note|refines]]
+  | 'questions'    // 이 노트가 대상에 의문 [[note|questions]]
+  | 'related';     // 관련 있음 [[note|related]]
+
+export type NoteType =
+  | 'fleeting'     // 빠른 임시 메모 (inbox)
+  | 'literature'   // 읽은 자료 정리 (resources)
+  | 'permanent'    // 확정된 지식 (areas)
+  | 'structure'    // 다른 노트를 조직하는 인덱스
+  | 'hub';         // 진입점 (6기둥 허브 노트)
 
 export interface WikiFrontmatter {
   id: string;
@@ -52,9 +73,17 @@ export interface WikiLintIssue {
   message: string;
 }
 
-// Type guard
+// Type guards
 export function isWikiCategory(s: string): s is WikiCategory {
-  return ['bash','typescript','architecture','workflow','security','debugging','testing','governance','misc'].includes(s);
+  return ['bash','typescript','architecture','workflow','security','debugging','testing','governance','design','marketing','tool','decision','pillar','misc'].includes(s);
+}
+
+export function isLinkType(s: string): s is LinkType {
+  return ['reference','supports','contradicts','extends','refines','questions','related'].includes(s);
+}
+
+export function isNoteType(s: string): s is NoteType {
+  return ['fleeting','literature','permanent','structure','hub'].includes(s);
 }
 
 // Parse frontmatter from .md file content

@@ -43,6 +43,26 @@ links: []
 ---
 ```
 
+## Cascade Updates (저장 후 필수)
+
+저장 완료 후 반드시 실행:
+1. 저장된 노트와 동일한 pillar/tags를 가진 기존 cortex 노트 스캔 (최대 10개)
+2. 영향받는 노트 목록 1줄씩 제시: "관련 노트 3건 발견. 업데이트 필요?"
+3. 사용자 승인 시 해당 노트에 [[새노트|related]] 백링크 추가 + Updated 날짜 갱신
+4. 승인 안 하면 스킵
+
+## Typed Links
+
+wikilink 삽입 시 관계 유형 명시:
+- `[[note|supports]]` — 이 인사이트가 기존 노트를 뒷받침
+- `[[note|contradicts]]` — 기존 노트와 상충
+- `[[note|extends]]` — 기존 노트를 확장
+- `[[note|refines]]` — 기존 노트를 정제
+- `[[note|questions]]` — 기존 노트에 의문 제기
+- `[[note|related]]` — 단순 관련
+
+유형 판단이 어려우면 `[[note|related]]` 기본값.
+
 ## 인자
 `$ARGUMENTS`로 카테고리 힌트 가능: `/idea area`, `/idea resource`, `/idea project`
 힌트 없으면 자동 판정.
