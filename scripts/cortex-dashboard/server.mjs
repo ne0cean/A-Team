@@ -147,18 +147,29 @@ function injectFrameForDay(ym, dayNum, monthData, frames) {
     if (!catFrame) continue;
     if (!dayData[cat]) dayData[cat] = [];
 
+    // Remove old frame items no longer in frame template
+    const frameTexts = (catFrame.items || []).map(r => typeof r === 'object' ? r.text : r);
+    const before = dayData[cat].length;
+    dayData[cat] = dayData[cat].filter(i => !i._frame || frameTexts.includes(i.text));
+    if (dayData[cat].length !== before) modified = true;
+
     if (catFrame.type === 'routine') {
-      // Inject routine items not already present
+      // Inject frame items at top, before manual items
+      const manualItems = dayData[cat].filter(i => !i._frame);
+      const existingFrameItems = dayData[cat].filter(i => i._frame);
+
       for (const rawItem of (catFrame.items || [])) {
         const isObj = typeof rawItem === 'object';
         const itemText = isObj ? rawItem.text : rawItem;
         const itemUrl = isObj ? (rawItem.url || '') : '';
-        const exists = dayData[cat].some(i => i.text === itemText && i._frame);
+        const exists = existingFrameItems.some(i => i.text === itemText);
         if (!exists) {
-          dayData[cat].push({ text: itemText, url: itemUrl, done: false, _frame: true });
+          existingFrameItems.push({ text: itemText, url: itemUrl, done: false, _frame: true });
           modified = true;
         }
       }
+      // Frame items first, then manual items
+      dayData[cat] = [...existingFrameItems, ...manualItems];
     }
     // todo items: carry-over handled separately
   }
@@ -475,6 +486,20 @@ const server = createServer(async (req, res) => {
         return jsonRes(res, 200, { ok: true, restored: undoYm });
       }
       return jsonRes(res, 404, { error: 'no backup found' });
+    }
+
+    // --- Move item across days ---
+    if (path === '/api/move-item' && req.method === 'POST') {
+      const { ym: moveYm, fromDay, fromCat, fromIdx, toDay, toCat } = JSON.parse(await readBody(req));
+      const data = loadMonth(moveYm);
+      const fromItems = data.days[fromDay]?.[fromCat];
+      if (!fromItems || fromIdx >= fromItems.length) return jsonRes(res, 400, { error: 'invalid source' });
+      const [moved] = fromItems.splice(fromIdx, 1);
+      if (!data.days[toDay]) data.days[toDay] = {};
+      if (!data.days[toDay][toCat]) data.days[toDay][toCat] = [];
+      data.days[toDay][toCat].push(moved);
+      saveMonth(moveYm, data);
+      return jsonRes(res, 200, { ok: true });
     }
 
     // --- Day Type ---

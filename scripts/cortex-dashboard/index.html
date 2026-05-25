@@ -568,7 +568,7 @@ function renderDayCell(d, isToday, isWeek) {
   const todayClass = isToday ? ' today' : '';
   const holidayClass = getHoliday(d) ? ' is-holiday' : '';
 
-  return `<div class="day-cell${todayClass}${typeClass}${holidayClass}">${renderDayCellContent(d, isToday, isWeek)}</div>`;
+  return `<div class="day-cell${todayClass}${typeClass}${holidayClass}" ondragover="dayDragOver(event)" ondragleave="dayDragLeave(event)" ondrop="dayDrop(event,${d})">${renderDayCellContent(d, isToday, isWeek)}</div>`;
 }
 
 function renderDayCellContent(d, isToday, isWeek) {
@@ -979,22 +979,50 @@ function dragStart(e, d, cat, idx) {
   dragData = { d, cat, idx };
   e.target.classList.add('dragging');
   e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', ''); // required for firefox
 }
 function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
 function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+
+// Drop on item (reorder within same day+cat)
 async function drop(e, d, cat, toIdx) {
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
-  if (!dragData || dragData.cat !== cat || dragData.d !== d) return;
-  const fromIdx = dragData.idx;
-  if (fromIdx === toIdx) return;
-  await fetch(`${API}/api/reorder`, {
+  if (!dragData) return;
+
+  // Same day, same category → reorder
+  if (dragData.d === d && dragData.cat === cat) {
+    if (dragData.idx === toIdx) return;
+    await fetch(`${API}/api/reorder`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ ym: ym(), day: String(d), category: cat, fromIdx: dragData.idx, toIdx })
+    });
+    const items = ensureDay(d)[cat];
+    const [moved] = items.splice(dragData.idx, 1);
+    items.splice(toIdx, 0, moved);
+    render();
+  }
+  // Different day → move across days
+  else {
+    await fetch(`${API}/api/move-item`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ ym: ym(), fromDay: String(dragData.d), fromCat: dragData.cat, fromIdx: dragData.idx, toDay: String(d), toCat: cat })
+    });
+    await loadMonth();
+  }
+  dragData = null;
+}
+
+// Drop on day cell (move to that day's outcome)
+function dayDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function dayDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+async function dayDrop(e, d) {
+  e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+  if (!dragData || dragData.d === d) return;
+  await fetch(`${API}/api/move-item`, {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ ym: ym(), day: String(d), category: cat, fromIdx, toIdx })
+    body: JSON.stringify({ ym: ym(), fromDay: String(dragData.d), fromCat: dragData.cat, fromIdx: dragData.idx, toDay: String(d), toCat: dragData.cat })
   });
-  const items = ensureDay(d)[cat];
-  const [moved] = items.splice(fromIdx, 1);
-  items.splice(toIdx, 0, moved);
-  render();
+  await loadMonth();
   dragData = null;
 }
 
