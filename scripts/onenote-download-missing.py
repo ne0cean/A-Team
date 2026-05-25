@@ -159,7 +159,7 @@ def main():
     nbs = api(f"{BASE}/notebooks", token)
     if not nbs or "value" not in nbs:
         print("API 응답 없음. 30초 후 재시도...")
-        import time; time.sleep(30)
+        time.sleep(30)
         nbs = api(f"{BASE}/notebooks", token)
         if not nbs or "value" not in nbs:
             print("API 여전히 불가. 토큰 만료 또는 서비스 장애.")
