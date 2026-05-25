@@ -168,6 +168,21 @@
   .hf-badge { display: inline-block; background: #3a3000; color: #f0c040; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin: 2px; }
 
   /* Recurring template controls */
+  /* Vision roadmap */
+  .vision-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .vision-table th { background: #21262d; color: #f0c040; font-size: 10px; padding: 6px 8px; text-align: center; border: 1px solid #30363d; font-weight: 600; min-width: 100px; }
+  .vision-table th:first-child { min-width: 80px; text-align: left; color: #8b949e; }
+  .vision-table td { border: 1px solid #30363d; padding: 4px 6px; vertical-align: top; background: #0d1117; }
+  .vision-table td:first-child { background: #161b22; color: #f0c040; font-weight: 600; font-size: 10px; white-space: pre-line; }
+  .vision-table td[contenteditable]:focus { outline: 1px solid #f0c040; background: #111820; }
+  .vision-table td[contenteditable] { min-height: 30px; white-space: pre-wrap; color: #c9d1d9; font-size: 10px; line-height: 1.5; }
+
+  /* Admin notes */
+  .admin-notes { margin-top: 12px; padding: 8px; background: #0d1117; border: 1px solid #21262d; border-radius: 4px; }
+  .admin-notes-title { font-size: 10px; color: #6e7681; font-weight: 600; margin-bottom: 4px; }
+  .admin-notes-content { font-size: 11px; color: #8b949e; min-height: 20px; white-space: pre-wrap; }
+  .admin-notes-content:focus { outline: 1px solid #30363d; color: #c9d1d9; }
+
   /* Frames admin */
   .frame-section { margin-bottom: 16px; padding: 8px; background: #0d1117; border-radius: 4px; border: 1px solid #21262d; }
   .frame-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
@@ -267,6 +282,15 @@
 <div class="stats" id="stats"></div>
 
 <div class="panels">
+  <!-- Vision & Milestones Panel -->
+  <div class="panel">
+    <div class="panel-header" onclick="togglePanel('visionPanel')">
+      <h2>Vision & Milestones</h2>
+      <span class="panel-toggle" id="visionPanelToggle">&#9654;</span>
+    </div>
+    <div class="panel-body" id="visionPanel"></div>
+  </div>
+
   <!-- Standing Orders Panel -->
   <div class="panel">
     <div class="panel-header" onclick="togglePanel('soPanel')">
@@ -327,6 +351,7 @@ function init() {
   loadStandingOrders();
   loadRecurringTemplates();
   loadFrames();
+  loadVision();
   registerSW();
 }
 
@@ -1360,6 +1385,66 @@ function showSOTab(name, el) {
   });
   el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
+}
+
+// --- Vision & Milestones ---
+let visionData = null;
+
+async function loadVision() {
+  const res = await fetch(`${API}/api/vision`);
+  visionData = await res.json();
+  renderVision();
+}
+
+function renderVision() {
+  if (!visionData) return;
+  const el = document.getElementById('visionPanel');
+  const years = visionData.years || [];
+  const cats = visionData.categories || [];
+
+  let html = '<div style="overflow-x:auto"><table class="vision-table">';
+  // Header
+  html += '<tr><th>구분</th>';
+  years.forEach(y => { html += `<th>${y}</th>`; });
+  html += '</tr>';
+  // Rows
+  cats.forEach((cat, ci) => {
+    html += `<tr><td>${esc(cat.label)}</td>`;
+    years.forEach(y => {
+      const val = cat.cells?.[y] || '';
+      html += `<td contenteditable="true" onblur="editVisionCell(${ci},'${y}',this.innerText)">${esc(val).replace(/\n/g,'<br>')}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</table></div>';
+
+  // Admin notes
+  const notes = visionData.admin_notes || '';
+  html += `<div class="admin-notes">
+    <div class="admin-notes-title">ADMIN NOTES</div>
+    <div class="admin-notes-content" contenteditable="true" onblur="editVisionNotes(this.innerText)">${esc(notes).replace(/\n/g,'<br>')}</div>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+async function saveVisionData() {
+  await fetch(`${API}/api/vision`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(visionData)
+  });
+}
+
+function editVisionCell(catIdx, year, text) {
+  if (!visionData.categories[catIdx]) return;
+  if (!visionData.categories[catIdx].cells) visionData.categories[catIdx].cells = {};
+  visionData.categories[catIdx].cells[year] = text.trim();
+  saveVisionData();
+}
+
+function editVisionNotes(text) {
+  visionData.admin_notes = text.trim();
+  saveVisionData();
 }
 
 // --- Day Frames Admin ---

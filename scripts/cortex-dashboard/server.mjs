@@ -39,6 +39,7 @@ if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 const STANDING_PATH = join(DATA_DIR, 'standing-orders.json');
 const RECURRING_PATH = join(DATA_DIR, 'recurring-templates.json');
 const FRAMES_PATH = join(DATA_DIR, 'day-frames.json');
+const VISION_PATH = join(DATA_DIR, 'vision-roadmap.json');
 
 // --- Backup (rolling 3) ---
 function backup(filePath) {
@@ -552,6 +553,18 @@ const server = createServer(async (req, res) => {
     if (path === '/api/standing-orders' && req.method === 'POST') {
       const data = JSON.parse(await readBody(req));
       saveStanding(data);
+      return jsonRes(res, 200, { ok: true });
+    }
+
+    // --- Vision Roadmap ---
+    if (path === '/api/vision' && req.method === 'GET') {
+      if (existsSync(VISION_PATH)) return jsonRes(res, 200, JSON.parse(readFileSync(VISION_PATH, 'utf-8')));
+      return jsonRes(res, 200, { title: 'Vision & Milestones', years: [], categories: [] });
+    }
+    if (path === '/api/vision' && req.method === 'POST') {
+      const data = JSON.parse(await readBody(req));
+      backup(VISION_PATH);
+      writeFileSync(VISION_PATH, JSON.stringify(data, null, 2), 'utf-8');
       return jsonRes(res, 200, { ok: true });
     }
 
