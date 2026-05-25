@@ -77,6 +77,7 @@
   .item input[type="checkbox"]:checked { background: #56d364; border-color: #56d364; }
   .item input[type="checkbox"]:checked::after { content: ''; position: absolute; left: 2.5px; top: 0.5px; width: 3px; height: 6px; border: solid #0d1117; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
   .item.done .item-text { text-decoration: line-through; color: #484f58; }
+  .item.is-carried .item-text::before { content: '↩ '; color: #f0c040; font-size: 9px; }
   .item-text { flex: 1; min-height: 14px; cursor: text; word-break: break-word; }
   .item-text:focus { outline: none; background: #161b22; border-radius: 2px; }
   .item-text a { color: #58a6ff; text-decoration: none; }
@@ -152,6 +153,31 @@
   .hf-badge { display: inline-block; background: #3a3000; color: #f0c040; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin: 2px; }
 
   /* Recurring template controls */
+  /* Frames admin */
+  .frame-section { margin-bottom: 16px; padding: 8px; background: #0d1117; border-radius: 4px; border: 1px solid #21262d; }
+  .frame-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .frame-section-title { font-size: 13px; font-weight: 600; }
+  .frame-type-weekday .frame-section-title { color: #c9d1d9; }
+  .frame-type-flow .frame-section-title { color: #56d364; }
+  .frame-type-block .frame-section-title { color: #58a6ff; }
+  .frame-cat { margin-bottom: 6px; padding-left: 4px; }
+  .frame-cat-header { display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-weight: 600; margin-bottom: 2px; }
+  .frame-cat-type { font-size: 9px; padding: 1px 5px; border-radius: 3px; }
+  .frame-cat-type.routine { background: #1c3a1c; color: #56d364; }
+  .frame-cat-type.todo { background: #3a3000; color: #f0c040; }
+  .frame-item { display: flex; align-items: center; gap: 4px; padding: 2px 0; font-size: 11px; }
+  .frame-item input { background: #161b22; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 2px 4px; border-radius: 2px; flex: 1; }
+  .frame-item .frame-del { color: #484f58; cursor: pointer; font-size: 11px; }
+  .frame-item .frame-del:hover { color: #f85149; }
+  .frame-add { display: flex; gap: 4px; margin-top: 3px; }
+  .frame-add input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 2px 4px; border-radius: 2px; flex: 1; }
+  .frame-add button { background: #238636; border: none; color: #fff; padding: 2px 8px; border-radius: 2px; cursor: pointer; font-size: 10px; }
+  .frame-actions { display: flex; gap: 6px; margin-top: 12px; }
+  .frame-actions button { padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; border: none; color: #fff; }
+  .frame-btn-inject { background: #238636; }
+  .frame-btn-inject:hover { background: #2ea043; }
+  .frame-btn-toggle { background: #21262d; color: #c9d1d9 !important; border: 1px solid #30363d !important; }
+
   .rtpl-toolbar { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
   .rtpl-toolbar select, .rtpl-toolbar input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 3px 5px; border-radius: 3px; }
   .rtpl-toolbar input.rtpl-name { flex: 1; min-width: 140px; }
@@ -277,6 +303,7 @@ function init() {
   loadMonth();
   loadStandingOrders();
   loadRecurringTemplates();
+  loadFrames();
   registerSW();
 }
 
@@ -524,8 +551,9 @@ function renderDayCellContent(d, isToday, isWeek) {
 
     items.forEach((item, idx) => {
       const doneClass = item.done ? 'done' : '';
+      const carriedClass = item._carried ? 'is-carried' : '';
       const checked = item.done ? 'checked' : '';
-      html += `<div class="item ${doneClass}" draggable="true"
+      html += `<div class="item ${doneClass} ${carriedClass}" draggable="true"
         ondragstart="dragStart(event,${d},'${cat}',${idx})"
         ondragover="dragOver(event)" ondragleave="dragLeave(event)"
         ondrop="drop(event,${d},'${cat}',${idx})">
@@ -855,6 +883,110 @@ function showSOTab(name, el) {
   });
   el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
+}
+
+// --- Day Frames Admin ---
+let framesData = null;
+const FRAME_TYPES = ['weekday', 'flow', 'block'];
+const FRAME_TYPE_LABELS = { weekday: 'Weekday (평일)', flow: 'Flow Day (토/HF)', block: 'Block Day (일)' };
+const CAT_TYPE_LABELS = { routine: 'Routine (매일 리셋)', todo: 'To-do (이월)' };
+
+async function loadFrames() {
+  const res = await fetch(`${API}/api/day-frames`);
+  framesData = await res.json();
+  renderFrames();
+}
+
+function renderFrames() {
+  if (!framesData) return;
+  const el = document.getElementById('framesPanel');
+
+  let html = '<div style="display:flex;gap:12px;flex-wrap:wrap">';
+  for (const ftype of FRAME_TYPES) {
+    const frame = framesData[ftype] || { label: ftype, categories: {} };
+    html += `<div class="frame-section frame-type-${ftype}" style="flex:1;min-width:280px">`;
+    html += `<div class="frame-section-header"><span class="frame-section-title">${esc(frame.label || FRAME_TYPE_LABELS[ftype])}</span></div>`;
+
+    for (const cat of CATS) {
+      const catData = frame.categories?.[cat] || { type: 'routine', items: [] };
+      const catType = catData.type || 'routine';
+      html += `<div class="frame-cat" style="border-left:2px solid ${catColorMap[cat]};padding-left:6px">`;
+      html += `<div class="frame-cat-header">
+        <span class="cl-${cat}">${CAT_NAMES[cat]}</span>
+        <span class="frame-cat-type ${catType}" onclick="toggleCatType('${ftype}','${cat}')" style="cursor:pointer" title="Click to toggle">${catType}</span>
+      </div>`;
+
+      (catData.items || []).forEach((item, idx) => {
+        html += `<div class="frame-item">
+          <span style="color:#484f58;font-size:9px">${idx+1}</span>
+          <input value="${esc(item)}" onchange="editFrameItem('${ftype}','${cat}',${idx},this.value)">
+          <span class="frame-del" onclick="delFrameItem('${ftype}','${cat}',${idx})">&#215;</span>
+        </div>`;
+      });
+
+      html += `<div class="frame-add">
+        <input placeholder="Add item..." onkeydown="if(event.key==='Enter'){addFrameItem('${ftype}','${cat}',this.value);this.value='';}">
+        <button onclick="addFrameItem('${ftype}','${cat}',this.previousElementSibling.value);this.previousElementSibling.value=''">+</button>
+      </div>`;
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+
+  html += `<div class="frame-actions">
+    <button class="frame-btn-inject" onclick="injectFrames()">Apply to remaining days</button>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+const catColorMap = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', outcome: '#bc8cff' };
+
+async function saveFramesData() {
+  await fetch(`${API}/api/day-frames`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(framesData)
+  });
+}
+
+function toggleCatType(ftype, cat) {
+  const catData = framesData[ftype].categories[cat];
+  catData.type = catData.type === 'routine' ? 'todo' : 'routine';
+  saveFramesData();
+  renderFrames();
+}
+
+function addFrameItem(ftype, cat, text) {
+  if (!text?.trim()) return;
+  if (!framesData[ftype].categories[cat]) framesData[ftype].categories[cat] = { type: 'routine', items: [] };
+  framesData[ftype].categories[cat].items.push(text.trim());
+  saveFramesData();
+  renderFrames();
+}
+
+function editFrameItem(ftype, cat, idx, text) {
+  framesData[ftype].categories[cat].items[idx] = text.trim();
+  saveFramesData();
+}
+
+function delFrameItem(ftype, cat, idx) {
+  framesData[ftype].categories[cat].items.splice(idx, 1);
+  saveFramesData();
+  renderFrames();
+}
+
+async function injectFrames() {
+  const today = new Date().getDate();
+  const [y, m] = ym().split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const res = await fetch(`${API}/api/inject-frames`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ ym: ym(), fromDay: today, toDay: daysInMonth })
+  });
+  const data = await res.json();
+  alert(`${data.range}: ${data.injected} changes applied`);
+  loadMonth();
 }
 
 // --- Recurring Templates Panel ---
