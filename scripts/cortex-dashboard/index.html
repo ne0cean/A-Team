@@ -866,8 +866,29 @@ async function editItem(d, cat, idx, newText) {
 function handleItemKey(e, d, cat, idx) {
   if (e.key === 'Enter') {
     e.preventDefault();
-    editItem(d, cat, idx, e.target.textContent.trim());
-    addNewItemAfter(d, cat, idx);
+    const sel = window.getSelection();
+    const fullText = e.target.textContent;
+    const offset = sel.focusOffset;
+    const before = fullText.slice(0, offset).trim();
+    const after = fullText.slice(offset).trim();
+    // Update current item with text before cursor
+    const day = ensureDay(d);
+    if (!day[cat]) day[cat] = [];
+    day[cat][idx].text = before || fullText.trim();
+    // Insert new item with text after cursor
+    day[cat].splice(idx + 1, 0, { text: after, url: '', done: false });
+    save().then(() => {
+      render();
+      // Focus the new item
+      setTimeout(() => {
+        const items = document.querySelectorAll(`.item[draggable]`);
+        let count = 0;
+        for (const item of items) {
+          const span = item.querySelector('.item-text');
+          if (span && span.textContent === after) { span.focus(); break; }
+        }
+      }, 50);
+    });
   } else if (e.key === 'Backspace' && e.target.textContent.trim() === '') {
     e.preventDefault(); delItem(d, cat, idx);
   }
