@@ -1,4 +1,4 @@
-const CACHE = 'cortex-ritual-v2';
+const CACHE = 'cortex-ritual-v3';
 const SHELL = ['/', '/manifest.json'];
 
 self.addEventListener('install', e => {
