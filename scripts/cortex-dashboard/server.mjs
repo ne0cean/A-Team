@@ -38,6 +38,7 @@ if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 
 const STANDING_PATH = join(DATA_DIR, 'standing-orders.json');
 const RECURRING_PATH = join(DATA_DIR, 'recurring-templates.json');
+const FRAMES_PATH = join(DATA_DIR, 'day-frames.json');
 
 // --- Backup (rolling 3) ---
 function backup(filePath) {
@@ -80,6 +81,114 @@ function loadStanding() {
 function saveStanding(data) {
   backup(STANDING_PATH);
   writeFileSync(STANDING_PATH, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+// --- Day Frames ---
+function loadFrames() {
+  if (existsSync(FRAMES_PATH)) return JSON.parse(readFileSync(FRAMES_PATH, 'utf-8'));
+  return { weekday: { label: 'Weekday', categories: {} }, flow: { label: 'Flow Day', categories: {} }, block: { label: 'Block Day', categories: {} } };
+}
+
+function saveFrames(data) {
+  backup(FRAMES_PATH);
+  writeFileSync(FRAMES_PATH, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+/**
+ * Determine day type for a given date.
+ * Priority: explicit day_type in data > auto-detect by day of week
+ * Auto: Sunday=block, Saturday=flow, else=weekday
+ */
+function resolveDayType(dayData, dow) {
+  if (dayData?.day_type) return dayData.day_type;
+  if (dow === 0) return 'block';
+  if (dow === 6) return 'flow';
+  return 'weekday';
+}
+
+/**
+ * Check if a category is "todo" type for given day type.
+ */
+function isTodoCategory(frames, dayType, cat) {
+  return frames[dayType]?.categories?.[cat]?.type === 'todo';
+}
+
+/**
+ * Inject frame into a day: add routine items (idempotent), carry over todos from previous day.
+ * Returns true if data was modified.
+ */
+function injectFrameForDay(ym, dayNum, monthData, frames) {
+  const [year, month] = ym.split('-').map(Number);
+  const dow = new Date(year, month - 1, dayNum).getDay();
+  const dayKey = String(dayNum);
+  if (!monthData.days[dayKey]) monthData.days[dayKey] = {};
+  const dayData = monthData.days[dayKey];
+  const dayType = resolveDayType(dayData, dow);
+  const frame = frames[dayType];
+  if (!frame?.categories) return false;
+
+  let modified = false;
+  const CATS = ['ritual', 'input', 'work', 'outcome'];
+
+  for (const cat of CATS) {
+    const catFrame = frame.categories[cat];
+    if (!catFrame) continue;
+    if (!dayData[cat]) dayData[cat] = [];
+
+    if (catFrame.type === 'routine') {
+      // Inject routine items not already present
+      for (const text of (catFrame.items || [])) {
+        const exists = dayData[cat].some(i => i.text === text && i._frame);
+        if (!exists) {
+          dayData[cat].push({ text, url: '', done: false, _frame: true });
+          modified = true;
+        }
+      }
+    }
+    // todo items: carry-over handled separately
+  }
+
+  return modified;
+}
+
+/**
+ * Carry over unchecked todo items from previous day.
+ * Only for categories marked as "todo" in the day's frame.
+ */
+function carryOverTodos(ym, dayNum, monthData, frames) {
+  if (dayNum <= 1) return false; // no previous day in this month
+
+  const [year, month] = ym.split('-').map(Number);
+  const prevKey = String(dayNum - 1);
+  const dayKey = String(dayNum);
+  const prevData = monthData.days[prevKey];
+  if (!prevData) return false;
+
+  if (!monthData.days[dayKey]) monthData.days[dayKey] = {};
+  const dayData = monthData.days[dayKey];
+
+  const prevDow = new Date(year, month - 1, dayNum - 1).getDay();
+  const prevType = resolveDayType(prevData, prevDow);
+  const CATS = ['ritual', 'input', 'work', 'outcome'];
+
+  let modified = false;
+  for (const cat of CATS) {
+    if (!isTodoCategory(frames, prevType, cat)) continue;
+    const prevItems = prevData[cat] || [];
+    if (!dayData[cat]) dayData[cat] = [];
+
+    for (const item of prevItems) {
+      if (item.done) continue; // completed → don't carry
+      if (item._frame) continue; // routine frame items don't carry
+      // Check not already present
+      const exists = dayData[cat].some(i => i.text === item.text);
+      if (!exists) {
+        dayData[cat].push({ text: item.text, url: item.url || '', done: false, _carried: true });
+        modified = true;
+      }
+    }
+  }
+  return modified;
 }
 
 // --- Recurring Templates ---
@@ -392,6 +501,35 @@ const server = createServer(async (req, res) => {
       const data = JSON.parse(await readBody(req));
       saveStanding(data);
       return jsonRes(res, 200, { ok: true });
+    }
+
+    // --- Day Frames ---
+    if (path === '/api/day-frames' && req.method === 'GET') {
+      return jsonRes(res, 200, loadFrames());
+    }
+
+    if (path === '/api/day-frames' && req.method === 'POST') {
+      const data = JSON.parse(await readBody(req));
+      saveFrames(data);
+      return jsonRes(res, 200, { ok: true });
+    }
+
+    // Inject frames + carry-over for a specific day or range
+    if (path === '/api/inject-frames' && req.method === 'POST') {
+      const { ym, fromDay, toDay } = JSON.parse(await readBody(req));
+      const data = loadMonth(ym);
+      const frames = loadFrames();
+      const [year, month] = ym.split('-').map(Number);
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const start = fromDay || 1;
+      const end = toDay || daysInMonth;
+      let injected = 0;
+      for (let d = start; d <= end; d++) {
+        if (injectFrameForDay(ym, d, data, frames)) injected++;
+        if (carryOverTodos(ym, d, data, frames)) injected++;
+      }
+      if (injected > 0) saveMonth(ym, data);
+      return jsonRes(res, 200, { ok: true, injected, range: `${start}-${end}` });
     }
 
     // --- Recurring Templates ---

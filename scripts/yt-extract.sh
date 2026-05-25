@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # yt-extract.sh — YouTube 영상 풀 추출 (자막 + 메타데이터 + 선택적 키프레임/오디오)
 # 사용법:
-#   bash scripts/yt-extract.sh <URL> [--frames N] [--audio] [--out DIR]
+#   bash scripts/yt-extract.sh <URL> [--frames N] [--audio] [--transcribe] [--out DIR]
 #
 # 출력:
 #   $OUT/transcript.txt       자막 텍스트 (중복 제거, 한 줄)
@@ -16,12 +16,14 @@ set -euo pipefail
 URL=""
 FRAMES=0
 AUDIO=0
+TRANSCRIBE=0
 OUT=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --frames) FRAMES="$2"; shift 2 ;;
     --audio)  AUDIO=1; shift ;;
+    --transcribe) TRANSCRIBE=1; AUDIO=1; shift ;;
     --out)    OUT="$2"; shift 2 ;;
     -h|--help)
       sed -n '2,12p' "$0"; exit 0 ;;
@@ -150,7 +152,35 @@ if [[ "$AUDIO" -eq 1 ]]; then
   echo "→ Extracting audio..."
   "$YT_DLP" -x --audio-format mp3 -o "$OUT/audio.%(ext)s" "$URL" 2>&1 | tail -3
   echo "✓ Audio: $OUT/audio.mp3"
-  echo "  → Run Whisper: whisper $OUT/audio.mp3 --output_dir $OUT --output_format txt"
+  echo "  → Groq Whisper (권장, CPU 0%):"
+  echo "    curl -s -X POST 'https://api.groq.com/openai/v1/audio/transcriptions' \\"
+  echo "      -H 'Authorization: Bearer \$GROQ_API_KEY' \\"
+  echo "      -F 'file=@$OUT/audio.mp3' -F 'model=whisper-large-v3-turbo' \\"
+  echo "      -F 'language=ko' -F 'response_format=text' > $OUT/audio.txt"
+  echo "  → 로컬 Whisper (CPU 부하): whisper $OUT/audio.mp3 --output_dir $OUT --output_format txt"
+fi
+
+# 5. Groq Whisper 자동 전사 (--transcribe 지정 시)
+if [[ "$TRANSCRIBE" -eq 1 ]] && [[ ! -s "$OUT/transcript.txt" ]] && [[ -n "${GROQ_API_KEY:-}" ]]; then
+  FSIZE=$(stat -f%z "$OUT/audio.mp3" 2>/dev/null || echo "0")
+  if [[ "$FSIZE" -le 25000000 ]]; then
+    echo "→ Groq Whisper API transcribing..."
+    RESP=$(curl -s -X POST "https://api.groq.com/openai/v1/audio/transcriptions" \
+      -H "Authorization: Bearer ${GROQ_API_KEY}" \
+      -F "file=@$OUT/audio.mp3" \
+      -F "model=whisper-large-v3-turbo" \
+      -F "language=ko" \
+      -F "response_format=text" \
+      --max-time 120)
+    if [[ -n "$RESP" ]] && [[ ${#RESP} -gt 50 ]] && ! echo "$RESP" | grep -q "error"; then
+      echo "$RESP" > "$OUT/transcript.txt"
+      echo "✓ Groq transcript: $(wc -c < "$OUT/transcript.txt" | tr -d ' ') bytes"
+    else
+      echo "⚠ Groq failed. Use local whisper manually."
+    fi
+  else
+    echo "⚠ Audio > 25MB, Groq limit exceeded. Use local whisper."
+  fi
 fi
 
 echo ""
