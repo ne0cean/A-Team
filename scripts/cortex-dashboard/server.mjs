@@ -62,6 +62,18 @@ function loadMonth(ym) {
 
 function saveMonth(ym, data) {
   const p = getDataPath(ym);
+  // Safety: don't overwrite with empty data if file already has content
+  if (existsSync(p)) {
+    const existing = JSON.parse(readFileSync(p, 'utf-8'));
+    const existingItems = Object.values(existing.days || {}).reduce((n, dd) =>
+      n + ['ritual','input','work','outcome'].reduce((m, c) => m + (dd[c]||[]).length, 0), 0);
+    const newItems = Object.values(data.days || {}).reduce((n, dd) =>
+      n + ['ritual','input','work','outcome'].reduce((m, c) => m + (dd[c]||[]).length, 0), 0);
+    if (existingItems > 10 && newItems === 0) {
+      console.warn(`saveMonth(${ym}) BLOCKED: would erase ${existingItems} items with empty data`);
+      return;
+    }
+  }
   backup(p);
   writeFileSync(p, JSON.stringify(data, null, 2), 'utf-8');
   generateMd(ym, data);
@@ -451,6 +463,18 @@ const server = createServer(async (req, res) => {
         saveMonth(ym, data);
       }
       return jsonRes(res, 200, { ok: true });
+    }
+
+    // --- Undo (restore from backup) ---
+    if (path === '/api/undo' && req.method === 'POST') {
+      const { ym: undoYm } = JSON.parse(await readBody(req));
+      const p = getDataPath(undoYm);
+      const bak = `${p}.bak1`;
+      if (existsSync(bak)) {
+        copyFileSync(bak, p);
+        return jsonRes(res, 200, { ok: true, restored: undoYm });
+      }
+      return jsonRes(res, 404, { error: 'no backup found' });
     }
 
     // --- Day Type ---

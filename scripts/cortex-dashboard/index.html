@@ -251,6 +251,7 @@
     <button onclick="prevPeriod()">&#9664;</button>
     <span class="month-label" id="monthLabel"></span>
     <button onclick="nextPeriod()">&#9654;</button>
+    <span class="search-btn" onclick="undoMonth()" title="Undo (restore backup)" style="font-size:12px">&#8630;</span>
     <span class="search-btn" onclick="openSearch()">&#128269;</span>
   </div>
 </div>
@@ -713,6 +714,16 @@ function renderStats() {
 
 // --- Data operations ---
 async function save() {
+  // Safety: don't save if monthData looks empty (prevent data loss)
+  const dayCount = Object.keys(monthData.days || {}).length;
+  let itemCount = 0;
+  for (const dd of Object.values(monthData.days || {})) {
+    for (const c of CATS) itemCount += (dd[c] || []).length;
+  }
+  if (dayCount === 0 && itemCount === 0) {
+    console.warn('save() blocked: monthData is empty, refusing to overwrite');
+    return;
+  }
   await fetch(`${API}/api/month`, {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ ym: ym(), data: monthData })
@@ -978,6 +989,17 @@ async function drop(e, d, cat, toIdx) {
 
 // --- Search ---
 let searchTimer;
+async function undoMonth() {
+  if (!confirm(`${ym()} 데이터를 직전 백업으로 복원할까요?`)) return;
+  const res = await fetch(`${API}/api/undo`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ ym: ym() })
+  });
+  const data = await res.json();
+  if (data.ok) { alert('복원 완료'); loadMonth(); }
+  else alert('백업 없음');
+}
+
 function openSearch() {
   const overlay = document.getElementById('searchOverlay');
   overlay.classList.add('open');
@@ -1095,8 +1117,42 @@ function renderStandingOrders() {
 
   // Monthly — editable
   html += '<div id="soTab-monthly" style="display:none">';
+
+  // Monthly Recurring (매달 반복)
+  const mr = standingData.monthly_recurring || [];
+  const mrLen = mr.length;
+  if (mrLen > 0) {
+    html += '<div style="font-size:9px;color:#6e7681;margin-bottom:4px;font-weight:600">MONTHLY RECURRING</div>';
+    const dayLabel = (d) => d === 0 ? '말일' : d + '일';
+    const selStyle = 'background:#0d1117;border:1px solid #30363d;color:#f0c040;font-size:10px;border-radius:2px';
+    mr.forEach((item, i) => {
+      html += `<div class="so-item">
+        <div class="so-move">
+          <span onclick="moveSOItem('monthly_recurring',${i},-1)" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
+          <span onclick="moveSOItem('monthly_recurring',${i},1)" ${i===mrLen-1?'style="visibility:hidden"':''}>&#9660;</span>
+        </div>
+        <select style="width:46px;${selStyle}" onchange="editMR(${i},'day',+this.value)">
+          <option value="0" ${item.day===0?'selected':''}>말일</option>
+          ${Array.from({length:31},(_,d)=>`<option value="${d+1}" ${item.day===d+1?'selected':''}>${d+1}일</option>`).join('')}
+        </select>
+        <span contenteditable="true" style="flex:1" onblur="editMR(${i},'text',this.textContent)">${esc(item.text)}</span>
+        <span class="link-btn" onclick="openMRLink(event,${i})" style="cursor:pointer;font-size:8px;display:inline">&#128279;</span>
+        <span class="del-btn" onclick="delMR(${i})" style="display:inline">&#215;</span>
+      </div>`;
+    });
+    html += `<div class="frame-add" style="gap:4px">
+      <select id="newMRDay" style="width:46px;${selStyle}">
+        <option value="0">말일</option>${Array.from({length:31},(_,d)=>`<option value="${d+1}">${d+1}일</option>`).join('')}
+      </select>
+      <input placeholder="Add monthly recurring..." onkeydown="if(event.key==='Enter'){addMR(this.value);this.value='';}">
+      <button onclick="addMR(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button>
+    </div>`;
+  }
+
+  // This Month (이번달 한정)
   const monthlyItems = standingData.monthly?.[ymKey] || [];
   const mLen = monthlyItems.length;
+  html += `<div style="font-size:9px;color:#6e7681;margin:8px 0 4px;font-weight:600">${ymKey} ONLY</div>`;
   monthlyItems.forEach((item, i) => {
     const text = typeof item === 'string' ? item : item.text || item;
     html += `<div class="so-item">
@@ -1108,7 +1164,7 @@ function renderStandingOrders() {
       <span class="del-btn" onclick="delMonthlyItem(${i})" style="display:inline">&#215;</span>
     </div>`;
   });
-  html += `<div class="frame-add"><input placeholder="Add monthly item..." onkeydown="if(event.key==='Enter'){addMonthlyItem(this.value);this.value='';}">
+  html += `<div class="frame-add"><input placeholder="Add this-month item..." onkeydown="if(event.key==='Enter'){addMonthlyItem(this.value);this.value='';}">
     <button onclick="addMonthlyItem(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button></div>`;
   html += '</div>';
 
