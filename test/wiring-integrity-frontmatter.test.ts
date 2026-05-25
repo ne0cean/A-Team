@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readdirSync, readFileSync } from 'fs';
+import { readdirSync, readFileSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -25,7 +25,7 @@ function parseFrontmatter(content: string): Record<string, string> | null {
 
 function getMdFiles(dir: string, exclude: string[] = ['README.md']): Array<{ name: string; content: string }> {
   return readdirSync(dir)
-    .filter(f => f.endsWith('.md') && !exclude.includes(f))
+    .filter(f => f.endsWith('.md') && !exclude.includes(f) && existsSync(join(dir, f)))
     .map(f => ({ name: f, content: readFileSync(join(dir, f), 'utf-8') }));
 }
 

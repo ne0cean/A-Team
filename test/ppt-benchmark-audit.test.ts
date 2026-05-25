@@ -45,9 +45,20 @@ describe('ppt benchmark audit', () => {
   });
 
   it('returns non-zero CLI exit under threshold', () => {
-    const spec = path.join(REPO_ROOT, 'content', 'ppt', '2026-05-16-AI-SaaS-시장-진출-전략', 'spec.json');
+    const tmp = mkdtempSync(path.join(tmpdir(), 'ppt-audit-'));
+    const specPath = path.join(tmp, 'bad-spec.json');
+    writeFileSync(specPath, JSON.stringify({
+      slides: [
+        { layout: 'cover', headline: 'AI SaaS 시장 진출 전략' },
+        { layout: 'section_break', headline: '기회 & 문제' },
+        { layout: 'big_number', headline: 'AI SaaS 시장 진출 전략 — 시장 기회', number: 'TAM 4.2B, SAM 820M, MRR 50K, CAC 120, LTV 2400' },
+        { layout: 'stats_grid', headline: 'AI SaaS 시장 진출 전략 — 핵심 지표', stats: [{ value: '[DATA]' }] },
+        { layout: 'quote', quote: '성공은 데이터 기반 의사결정에서 시작된다.' },
+        { layout: 'closing', headline: '질문 및 토론' }
+      ]
+    }));
     try {
-      execFileSync('node', [SCRIPT, spec, '--json', '--threshold', '70'], {
+      execFileSync('node', [SCRIPT, specPath, '--json', '--threshold', '70'], {
         cwd: REPO_ROOT,
         encoding: 'utf8'
       });
@@ -56,6 +67,8 @@ describe('ppt benchmark audit', () => {
       expect(error.status).toBe(1);
       const report = JSON.parse(error.stdout.toString());
       expect(report.findings.some((finding: any) => finding.rule === 'unresolved_placeholders')).toBe(true);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
     }
   });
 
