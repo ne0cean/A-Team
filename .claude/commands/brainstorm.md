@@ -142,7 +142,13 @@ mkdir -p .brainstorm/rounds
 # .brainstorm/rounds/round-N-YYYY-MM-DD.md 에 결과 저장
 ```
 
-### Step 4.5 — Registry Sync (memory/idea-registry.md 존재 시)
+복귀 선언:
+```
+Round N 완료. 원래 작업으로 돌아가세요.
+계속하려면: /brainstorm [다음 아이디어 또는 피벗 방향]
+```
+
+### Step 4.5 — Registry Sync (복귀 후, memory/idea-registry.md 존재 시)
 
 ```bash
 ls memory/idea-registry.md 2>/dev/null
@@ -155,12 +161,6 @@ ls memory/idea-registry.md 2>/dev/null
    - **미매칭** → 레지스트리 카테고리 헤더(`## X. 카테고리명`) 파싱하여 자동 분류 + 다음 ID 부여 + 신규 행 제안 (status=개념)
 2. **탈락 아이디어** → 레지스트리에 기존 항목 있으면 리뷰메모에 탈락 사유 추가 (상태 변경은 사용자 승인 필요)
 3. 변경 테이블 제시 → 사용자 승인 → `idea-registry.md` 수정. 스킵 가능.
-
-복귀 선언:
-```
-Round N 완료. 원래 작업으로 돌아가세요.
-계속하려면: /brainstorm [다음 아이디어 또는 피벗 방향]
-```
 
 ---
 
