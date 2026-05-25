@@ -51,7 +51,7 @@ function getMdFilesRecursive(dir: string): string[] {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
       results.push(...getMdFilesRecursive(full));
-    } else if (entry.name.endsWith('.md') && entry.name !== 'README.md') {
+    } else if (entry.name.endsWith('.md') && entry.name !== 'README.md' && existsSync(full)) {
       results.push(full);
     }
   }

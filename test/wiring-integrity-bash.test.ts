@@ -90,7 +90,7 @@ describe('Wiring Integrity: Bash 안전', () => {
 
     for (const dir of mdDirs) {
       if (!existsSync(dir)) continue;
-      const files = readdirSync(dir).filter(f => f.endsWith('.md')).map(f => join(dir, f));
+      const files = readdirSync(dir).filter(f => f.endsWith('.md') && existsSync(join(dir, f))).map(f => join(dir, f));
       for (const file of files) {
         const content = readFileSync(file, 'utf-8');
         const blocks = extractBashBlocks(content);

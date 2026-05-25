@@ -40,8 +40,8 @@ describe('Wiring Integrity: 에이전트 등록', () => {
   it('all subagent_type references should resolve to agent files', () => {
     const BUILTIN_TYPES = ['general-purpose', 'statusline-setup', 'explore', 'plan', 'claude-code-guide'];
     const allMds = [
-      ...readdirSync(AGENTS_DIR).filter(f => f.endsWith('.md') && f !== 'README.md').map(f => join(AGENTS_DIR, f)),
-      ...readdirSync(COMMANDS_DIR).filter(f => f.endsWith('.md')).map(f => join(COMMANDS_DIR, f)),
+      ...readdirSync(AGENTS_DIR).filter(f => f.endsWith('.md') && f !== 'README.md' && existsSync(join(AGENTS_DIR, f))).map(f => join(AGENTS_DIR, f)),
+      ...readdirSync(COMMANDS_DIR).filter(f => f.endsWith('.md') && existsSync(join(COMMANDS_DIR, f))).map(f => join(COMMANDS_DIR, f)),
     ];
 
     const missing: string[] = [];
