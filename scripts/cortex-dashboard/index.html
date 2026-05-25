@@ -248,6 +248,10 @@
     <span class="search-btn" onclick="openSearch()">&#128269;</span>
   </div>
 </div>
+<div style="padding:4px 16px;background:#161b22;border-bottom:1px solid #21262d;display:flex;align-items:center;gap:8px">
+  <span style="font-size:9px;color:#6e7681">EX</span>
+  <div class="workout-bar" id="workoutBar"></div>
+</div>
 
 <div id="calendarContainer"></div>
 
@@ -340,6 +344,7 @@ async function loadMonth() {
   document.getElementById('visionText').textContent = monthData.goals?.goal || '';
   updateLabel();
   render();
+  renderWorkoutBar();
 }
 
 function updateLabel() {
@@ -446,15 +451,10 @@ function renderMonthView() {
     html += '</div>';
   }
 
-  // Current + future weeks (always visible)
-  // Past weeks toggle button — right-aligned above current week
-  if (pastWeeks.length > 0) {
-    html += `<div style="display:flex;justify-content:flex-end;padding:2px 4px">
-      <span onclick="togglePastWeeks()" id="pastToggleIcon" style="cursor:pointer;color:#484f58;font-size:11px;padding:2px 8px" title="Past weeks">&#9650; past</span>
-    </div>`;
-  }
+  // Current + future weeks
   weeks.forEach((week, wIdx) => {
     if (wIdx < currentWeekIdx) return;
+    _showPastToggleOnWeek = (wIdx === currentWeekIdx && pastWeeks.length > 0);
     html += renderWeekGrid(week, todayDate);
   });
 
@@ -530,6 +530,17 @@ function getYearlyEvents(d) {
   return standingData.yearly.filter(y => y.month === currentMonth && y.day === d);
 }
 
+function getMonthlyRecurring(d) {
+  if (!standingData?.monthly_recurring) return [];
+  const [year, month] = [currentYear, currentMonth];
+  const daysInMonth = new Date(year, month, 0).getDate();
+  return standingData.monthly_recurring.filter(m => {
+    if (m.day === d) return true;
+    if (m.day === 0 && d === daysInMonth) return true; // 말일
+    return false;
+  });
+}
+
 function renderDayCell(d, isToday, isWeek) {
   const dayData = monthData.days[String(d)] || {};
   const dow = new Date(currentYear, currentMonth - 1, d).getDay();
@@ -548,11 +559,15 @@ function renderDayCellContent(d, isToday, isWeek) {
   const badgeHtml = dayData.day_type
     ? ` <span class="day-type-badge ${TYPE_COLORS[dayData.day_type]}" onclick="event.stopPropagation();cycleDayType(${d})">${TYPE_LABELS[dayData.day_type]}</span>`
     : '';
-  const pastArrow = '';
+  const pastArrow = (dow === 6 && _showPastToggleOnWeek)
+    ? `<span onclick="event.stopPropagation();togglePastWeeks()" id="pastToggleIcon" style="cursor:pointer;color:#484f58;font-size:10px" title="Past weeks">&#9650;</span>`
+    : '';
   const holiday = getHoliday(d);
   const yearlyEvts = getYearlyEvents(d);
+  const monthlyRec = getMonthlyRecurring(d);
   const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '')
-    + yearlyEvts.map(e => `<div style="font-size:8px;color:#f0c040;margin-bottom:1px">${esc(e.text)}</div>`).join('');
+    + yearlyEvts.map(e => `<div style="font-size:8px;color:#f0c040;margin-bottom:1px">${esc(e.text)}</div>`).join('')
+    + monthlyRec.map(e => `<div style="font-size:8px;color:#bc8cff;margin-bottom:1px">${esc(e.text)}</div>`).join('');
   let html = `<div class="day-num${dowClass}" onclick="cycleDayType(${d})" style="cursor:pointer" title="Set day type">
     <span>${d}${badgeHtml}</span>
     <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
@@ -564,16 +579,6 @@ function renderDayCellContent(d, isToday, isWeek) {
     onblur="saveOneThing(${d}, this.textContent)"
     onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
   >${esc(ot)}</div>`;
-
-  // Workout chips
-  const WORKOUT_PARTS = ['하체','어깨','등','가슴','전면','대퇴/측면'];
-  const wo = dayData.workout || [];
-  html += '<div class="workout-bar">';
-  WORKOUT_PARTS.forEach(part => {
-    const isOn = wo.includes(part);
-    html += `<span class="workout-chip${isOn?' on':''}" onclick="toggleWorkout(${d},'${part}')">${part}</span>`;
-  });
-  html += '</div>';
 
   // Categories
   for (const cat of CATS) {
@@ -832,13 +837,28 @@ async function saveOneThing(d, text) {
   await save();
 }
 
-async function toggleWorkout(d, part) {
-  const dd = ensureDay(d);
+function renderWorkoutBar() {
+  const today = new Date().getDate();
+  const dd = monthData.days[String(today)] || {};
+  const wo = dd.workout || [];
+  const WORKOUT_PARTS = ['하체','어깨','등','가슴','전면','대퇴/측면'];
+  const el = document.getElementById('workoutBar');
+  if (!el) return;
+  el.innerHTML = WORKOUT_PARTS.map(part => {
+    const isOn = wo.includes(part);
+    return `<span class="workout-chip${isOn?' on':''}" onclick="toggleWorkout('${part}')">${part}</span>`;
+  }).join('');
+}
+
+async function toggleWorkout(part) {
+  const today = String(new Date().getDate());
+  const dd = ensureDay(today);
   if (!dd.workout) dd.workout = [];
   const idx = dd.workout.indexOf(part);
   if (idx >= 0) dd.workout.splice(idx, 1);
   else dd.workout.push(part);
-  await save(); render();
+  await save();
+  renderWorkoutBar();
 }
 
 async function saveNotes(d, text) {
