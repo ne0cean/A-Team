@@ -429,27 +429,17 @@ function renderMonthView() {
 
   let html = renderDayHeaders();
 
-  // Single collapsed bar for all past weeks
+  // Past weeks: hidden, toggled by arrow button in current week's Saturday cell
   if (pastWeeks.length > 0) {
-    const firstDay = pastWeeks[0][0];
-    const lastDay = pastWeeks[pastWeeks.length - 1][pastWeeks[pastWeeks.length - 1].length - 1];
-    const pct = pastTotal > 0 ? Math.round(pastDone / pastTotal * 100) : 0;
-    html += `<div class="collapsed-week" onclick="togglePastWeeks()">
-      <span>${currentMonth}/${firstDay} - ${currentMonth}/${lastDay} (${pastWeeks.length} weeks)</span>
-      <span style="color:#56d364">${pastDone}/${pastTotal} (${pct}%)</span>
-      <span id="pastToggleIcon" style="color:#484f58">&#9654;</span>
-    </div>`;
     html += `<div id="pastWeeksContainer" style="display:none">`;
-    pastWeeks.forEach(week => {
-      html += renderWeekGrid(week, todayDate);
-    });
+    pastWeeks.forEach(week => html += renderWeekGrid(week, todayDate));
     html += '</div>';
   }
 
   // Current + future weeks (always visible)
   weeks.forEach((week, wIdx) => {
-    if (wIdx < currentWeekIdx) return; // already rendered above
-    html += renderWeekGrid(week, todayDate);
+    if (wIdx < currentWeekIdx) return;
+    html += renderWeekGrid(week, todayDate, wIdx === currentWeekIdx && pastWeeks.length > 0);
   });
 
   return html;
@@ -465,7 +455,10 @@ function renderDayHeaders() {
   return html;
 }
 
-function renderWeekGrid(week, todayDate) {
+let _showPastToggleOnWeek = false;
+
+function renderWeekGrid(week, todayDate, showPastToggle) {
+  _showPastToggleOnWeek = showPastToggle || false;
   const weekStart = week[0];
   const weekEnd = week[week.length - 1];
   let html = '<div class="grid">';
@@ -475,6 +468,7 @@ function renderWeekGrid(week, todayDate) {
   const lastDow = new Date(currentYear, currentMonth - 1, weekEnd).getDay();
   for (let i = lastDow + 1; i < 7; i++) html += `<div class="day-cell other-month"></div>`;
   html += '</div>';
+  _showPastToggleOnWeek = false;
   return html;
 }
 
@@ -526,9 +520,12 @@ function renderDayCellContent(d, isToday, isWeek) {
   const badgeHtml = dayData.day_type
     ? ` <span class="day-type-badge ${TYPE_COLORS[dayData.day_type]}" onclick="event.stopPropagation();cycleDayType(${d})">${TYPE_LABELS[dayData.day_type]}</span>`
     : '';
+  const pastArrow = (dow === 6 && _showPastToggleOnWeek)
+    ? `<span onclick="event.stopPropagation();togglePastWeeks()" style="cursor:pointer;color:#484f58;font-size:12px;margin-left:4px" id="pastToggleIcon" title="Past weeks">&#9650;</span>`
+    : '';
   let html = `<div class="day-num${dowClass}" onclick="cycleDayType(${d})" style="cursor:pointer" title="Set day type">
     <span>${d}${badgeHtml}</span>
-    <span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span>
+    <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
   </div>`;
 
   // One Thing
