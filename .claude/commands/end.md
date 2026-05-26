@@ -77,6 +77,31 @@ tail -3 .context/friction-log.jsonl 2>/dev/null || true
 새로 감지된 friction이 있으면 `.context/friction-log.jsonl`에 append됨.
 감지 로직: `lib/gap-sensor.ts` `autoLogFriction()` 참조.
 
+## Step 3.45 — PRD/Plan 동기화 (구조적 변화 시)
+
+세션 중 다음 중 하나라도 해당하면 PRD/Plan 파일 갱신:
+- 새 모듈/시스템 추가 (파일 10+ 신규)
+- 아키텍처 변경 (데이터 모델, 배포 인프라, SSOT 변경)
+- 핵심 기능 추가/삭제 (사용자 워크플로우 변경)
+- Phase 전환
+
+**감지**:
+```bash
+# 신규 파일 수 체크
+NEW_FILES=$(git diff --cached --name-only --diff-filter=A 2>/dev/null | wc -l)
+# 인프라 변경 체크
+INFRA_CHANGE=$(git diff --cached --name-only 2>/dev/null | grep -E 'wrangler|Dockerfile|deploy|\.env|infra/' | head -1)
+# PRD/Plan 파일 찾기
+PLAN_FILE=$(find . .claude/plans -maxdepth 2 -name "*plan*" -o -name "*prd*" 2>/dev/null | grep -iE '\.md$' | head -1)
+```
+
+**해당 시**:
+1. Plan 파일의 "구현 완료/미구현" 섹션 갱신
+2. 새 아키텍처 결정 반영 (인프라, 데이터 모델 등)
+3. Next Steps 업데이트
+
+**미해당 시**: 스킵 (나레이션 없이).
+
 ## Step 3.5 — 세션 데이터 저장 (자동)
 세션 중 발견된 학습/비용/사용 데이터를 자동 저장:
 - **Learnings**: 세션 중 발견한 pattern/pitfall이 있으면 `lib/learnings.ts` logLearning()으로 기록
