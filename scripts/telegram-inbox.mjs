@@ -7,8 +7,9 @@
  * launchd로 상시 실행 권장
  */
 
-import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
+import { execSync } from 'child_process';
 import https from 'https';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -73,7 +74,6 @@ async function downloadFile(fileId) {
 }
 
 // --- Cortex + Web search ---
-import { execSync } from 'child_process';
 
 function searchCortexLocal(query) {
   const CORTEX = join(process.env.HOME, 'Projects/a-team/cortex');
@@ -243,7 +243,6 @@ async function tryDashboardAdd(text) {
 
 async function transcribeVoice(filePath) {
   try {
-    const { execSync } = await import('child_process');
     // Groq Whisper API — same as /yt uses
     const result = execSync(
       `curl -s -X POST "https://api.groq.com/openai/v1/audio/transcriptions" ` +
