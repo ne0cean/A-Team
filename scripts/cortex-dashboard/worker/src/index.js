@@ -331,14 +331,26 @@ export default {
         return new Response(JSON.stringify({ ok: true, sha: result.content?.sha }), { headers });
       }
 
-      // GET /api/cortex/search?q=keyword — search across cortex files
+      // GET /api/cortex/search?q=keyword — search file/folder names + content
       if (path === '/api/cortex/search' && method === 'GET') {
-        const q = url.searchParams.get('q');
+        const q = url.searchParams.get('q')?.toLowerCase();
         if (!q) return new Response('[]', { headers });
-        const ghUrl = `https://api.github.com/search/code?q=${encodeURIComponent(q)}+repo:${REPO}+path:cortex&per_page=20`;
-        const ghRes = await fetch(ghUrl, { headers: ghHeaders });
-        const data = await ghRes.json();
-        const results = (data.items || []).map(i => ({ name: i.name, path: i.path, url: i.html_url }));
+
+        // Use git tree API to get ALL file paths, then filter by name
+        const treeUrl = `https://api.github.com/repos/${REPO}/git/trees/master?recursive=1`;
+        const treeRes = await fetch(treeUrl, { headers: ghHeaders });
+        if (!treeRes.ok) return new Response('[]', { headers });
+        const treeData = await treeRes.json();
+
+        const results = (treeData.tree || [])
+          .filter(i => i.path.startsWith('cortex/') && i.path.toLowerCase().includes(q))
+          .slice(0, 30)
+          .map(i => ({
+            name: i.path.split('/').pop(),
+            path: i.path,
+            type: i.type === 'tree' ? 'dir' : 'file'
+          }));
+
         return new Response(JSON.stringify(results), { headers });
       }
 
