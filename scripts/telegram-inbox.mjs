@@ -77,39 +77,76 @@ async function downloadFile(fileId) {
 
 function searchCortexLocal(query) {
   const CORTEX = join(process.env.HOME, 'Projects/a-team/cortex');
-  const CATALOG = join(CORTEX, 'catalog.jsonl');
-  if (!existsSync(CATALOG)) return [];
+  const safeQ = query.replace(/[";$`\\!{}()|&<>]/g, '');
 
-  const catalog = readFileSync(CATALOG, 'utf-8').trim().split('\n').map(l => {
-    try { return JSON.parse(l); } catch { return null; }
-  }).filter(Boolean);
-
-  const terms = query.toLowerCase().split(/\s+/);
-  let hits = catalog.filter(e => {
-    const hay = (e.path + ' ' + (e.preview || '')).toLowerCase();
-    return terms.every(t => hay.includes(t));
-  }).slice(0, 5);
-
-  // Fallback: grep
-  if (!hits.length) {
-    try {
-      const grepResult = execSync(
-        `grep -ril "${query.replace(/[";$`\\]/g, '')}" "${CORTEX}/hexagonal pillars_rocks_helm/" "${CORTEX}/projects/" "${CORTEX}/wiki/" 2>/dev/null | head -5`,
-        { encoding: 'utf-8', timeout: 5000 }
-      ).trim();
-      if (grepResult) {
-        hits = grepResult.split('\n').map(f => ({ path: f.replace(CORTEX + '/', ''), preview: '(grep match)', lines: 0 }));
-      }
-    } catch {}
-  }
+  // Always grep file content (not just catalog titles)
+  const hits = [];
+  try {
+    const grepResult = execSync(
+      `grep -rnil --include="*.md" "${safeQ}" "${CORTEX}/hexagonal pillars_rocks_helm/" "${CORTEX}/projects/" "${CORTEX}/wiki/" 2>/dev/null | head -8`,
+      { encoding: 'utf-8', timeout: 8000 }
+    ).trim();
+    if (grepResult) {
+      grepResult.split('\n').forEach(line => {
+        const [filePath, lineNum] = line.split(':');
+        const rel = filePath.replace(CORTEX + '/', '');
+        // Read context around match
+        let context = '';
+        try {
+          const content = readFileSync(filePath, 'utf-8');
+          const lines = content.split('\n');
+          const ln = parseInt(lineNum) - 1;
+          context = lines.slice(Math.max(0, ln - 1), ln + 2).join(' ').trim().slice(0, 100);
+        } catch {}
+        hits.push({ path: rel, context });
+      });
+    }
+  } catch {}
   return hits;
 }
 
-async function searchWeb(query) {
+function searchWebDDG(query) {
+  try {
+    const encoded = encodeURIComponent(query);
+    const html = execSync(
+      `curl -s -m 6 -A "Mozilla/5.0" "https://lite.duckduckgo.com/lite/?q=${encoded}"`,
+      { encoding: 'utf-8', timeout: 8000 }
+    );
+    // Parse result snippets from DDG lite
+    const results = [];
+    const matches = html.matchAll(/<a[^>]+class="result-link"[^>]*>([^<]+)<\/a>[\s\S]*?<td[^>]*class="result-snippet"[^>]*>([\s\S]*?)<\/td>/g);
+    for (const m of matches) {
+      if (results.length >= 3) break;
+      const title = m[1].trim();
+      const snippet = m[2].replace(/<[^>]+>/g, '').trim().slice(0, 120);
+      if (title && snippet) results.push({ title, snippet });
+    }
+    return results;
+  } catch { return []; }
+}
+
+function synthesize(query, cortexHits, webResults) {
   const GROQ_KEY = process.env.GROQ_API_KEY || '';
   if (!GROQ_KEY) return null;
+
+  const cortexSummary = cortexHits.length
+    ? cortexHits.map(h => `- ${h.path}: ${h.context}`).join('\n')
+    : '내부 자료 없음';
+  const webSummary = webResults.length
+    ? webResults.map(w => `- ${w.title}: ${w.snippet}`).join('\n')
+    : '외부 검색 결과 없음';
+
+  const prompt = `사용자가 "${query}"를 검색했다.
+
+내부 자료(cortex):
+${cortexSummary}
+
+외부 검색(웹):
+${webSummary}
+
+위 정보를 종합해서 사용자에게 도움이 되는 핵심 인사이트를 한국어 3줄로 제공해. 내부 자료가 있으면 "이미 알고 있는 것"과 "새로 알 수 있는 것"을 구분해.`;
+
   try {
-    const prompt = `"${query}"에 대해 최신 정보를 간결하게 3줄로 요약해줘. 한국어로.`;
     const body = JSON.stringify({
       model: 'llama-3.3-70b-versatile',
       messages: [{ role: 'user', content: prompt }],
@@ -122,43 +159,41 @@ async function searchWeb(query) {
       `-d '${body.replace(/'/g, "'\\''")}'`,
       { encoding: 'utf-8', timeout: 10000 }
     );
-    const parsed = JSON.parse(result);
-    return parsed.choices?.[0]?.message?.content?.trim() || null;
+    return JSON.parse(result).choices?.[0]?.message?.content?.trim() || null;
   } catch { return null; }
 }
 
 async function searchAll(query) {
-  // 1. Cortex
   const cortexHits = searchCortexLocal(query);
+  const webResults = searchWebDDG(query);
+
   let msg = `🔍 <b>"${query}"</b>\n\n`;
 
+  // 1. Cortex
   msg += `<b>1. Cortex</b> (${cortexHits.length}건)\n`;
   if (cortexHits.length) {
     cortexHits.forEach((h, i) => {
       const name = h.path.split('/').pop();
-      const folder = h.path.split('/').slice(0, -1).join('/');
-      msg += `  ${i + 1}. <b>${name}</b> — ${folder}\n`;
+      msg += `  ${i + 1}. <b>${name}</b>\n     ${h.context}\n`;
     });
   } else {
     msg += `  결과 없음\n`;
   }
 
-  // 2. Web (Groq)
-  msg += `\n<b>2. Web</b>\n`;
-  const webResult = await searchWeb(query);
-  msg += webResult ? `  ${webResult}\n` : `  (조회 불가)\n`;
-
-  // 3. 종합
-  msg += `\n<b>3. 종합</b>\n`;
-  if (cortexHits.length && webResult) {
-    msg += `  내부 ${cortexHits.length}건 + 외부 정보 확보. 상세는 세션에서 /recall "${query}"`;
-  } else if (cortexHits.length) {
-    msg += `  내부 ${cortexHits.length}건 발견. 외부 정보 없음.`;
-  } else if (webResult) {
-    msg += `  내부 없음. 외부 정보만 확보. 새 노트로 저장하려면 inbox에 캡처.`;
+  // 2. Web
+  msg += `\n<b>2. Web</b> (${webResults.length}건)\n`;
+  if (webResults.length) {
+    webResults.forEach((w, i) => {
+      msg += `  ${i + 1}. <b>${w.title}</b>\n     ${w.snippet}\n`;
+    });
   } else {
-    msg += `  내부/외부 모두 결과 없음.`;
+    msg += `  결과 없음\n`;
   }
+
+  // 3. 종합 (Groq synthesis)
+  msg += `\n<b>3. 종합</b>\n`;
+  const insight = synthesize(query, cortexHits, webResults);
+  msg += insight ? `  ${insight}` : `  종합 불가`;
 
   return msg;
 }
