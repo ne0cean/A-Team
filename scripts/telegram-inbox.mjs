@@ -72,6 +72,50 @@ async function downloadFile(fileId) {
   });
 }
 
+// --- Cortex search ---
+function searchCortex(query) {
+  const CORTEX = join(process.env.HOME, 'Projects/a-team/cortex');
+  const CATALOG = join(CORTEX, 'catalog.jsonl');
+
+  if (!existsSync(CATALOG)) return '카탈로그 없음. cortex-catalog.mjs 먼저 실행.';
+
+  const catalog = readFileSync(CATALOG, 'utf-8').trim().split('\n').map(l => {
+    try { return JSON.parse(l); } catch { return null; }
+  }).filter(Boolean);
+
+  const q = query.toLowerCase();
+  const terms = q.split(/\s+/);
+
+  // Match against path + preview
+  const hits = catalog.filter(e => {
+    const hay = (e.path + ' ' + (e.preview || '')).toLowerCase();
+    return terms.every(t => hay.includes(t));
+  }).slice(0, 10);
+
+  if (!hits.length) {
+    // Fallback: grep actual files
+    try {
+      const { execSync } = require('child_process');
+      const grepResult = execSync(
+        `grep -ril "${query.replace(/"/g, '')}" "${CORTEX}/hexagonal pillars_rocks_helm/" "${CORTEX}/projects/" "${CORTEX}/wiki/" 2>/dev/null | head -8`,
+        { encoding: 'utf-8', timeout: 5000 }
+      ).trim();
+      if (grepResult) {
+        const files = grepResult.split('\n').map(f => f.replace(CORTEX + '/', ''));
+        return `🔍 "${query}" grep 결과:\n\n` + files.map((f, i) => `${i + 1}. ${f}`).join('\n');
+      }
+    } catch {}
+    return `🔍 "${query}" — 결과 없음`;
+  }
+
+  let result = `🔍 "${query}" — ${hits.length}건:\n\n`;
+  hits.forEach((h, i) => {
+    const preview = h.preview ? h.preview.slice(0, 60) : '';
+    result += `${i + 1}. <b>${h.path.split('/').pop()}</b>\n   📂 ${h.path.split('/').slice(0, -1).join('/')}\n   ${preview}\n\n`;
+  });
+  return result.trim();
+}
+
 // --- Dashboard integration ---
 const DASHBOARD_API = 'https://cortex.feat-breeze.workers.dev';
 const DASHBOARD_AUTH = 'Bearer cortex-ritual-2026-fb';
@@ -182,8 +226,23 @@ async function processMessage(msg) {
   let body = '';
   let attachments = [];
 
-  // 텍스트 — 대시보드 일정 추가 감지
+  // 텍스트 처리: 검색 → 일정 추가 → inbox 저장
   if (msg.text) {
+    // 검색: ?키워드
+    if (msg.text.startsWith('?')) {
+      const query = msg.text.slice(1).trim();
+      if (query) {
+        const results = searchCortex(query);
+        await apiCall('sendMessage', {
+          chat_id: msg.chat.id,
+          text: results,
+          reply_to_message_id: msg.message_id,
+          parse_mode: 'HTML',
+        });
+        return;
+      }
+    }
+    // 일정 추가: 28 w 팀미팅
     const dashResult = await tryDashboardAdd(msg.text);
     if (dashResult) {
       await apiCall('sendMessage', {
