@@ -72,48 +72,95 @@ async function downloadFile(fileId) {
   });
 }
 
-// --- Cortex search ---
-function searchCortex(query) {
+// --- Cortex + Web search ---
+import { execSync } from 'child_process';
+
+function searchCortexLocal(query) {
   const CORTEX = join(process.env.HOME, 'Projects/a-team/cortex');
   const CATALOG = join(CORTEX, 'catalog.jsonl');
-
-  if (!existsSync(CATALOG)) return '카탈로그 없음. cortex-catalog.mjs 먼저 실행.';
+  if (!existsSync(CATALOG)) return [];
 
   const catalog = readFileSync(CATALOG, 'utf-8').trim().split('\n').map(l => {
     try { return JSON.parse(l); } catch { return null; }
   }).filter(Boolean);
 
-  const q = query.toLowerCase();
-  const terms = q.split(/\s+/);
-
-  // Match against path + preview
-  const hits = catalog.filter(e => {
+  const terms = query.toLowerCase().split(/\s+/);
+  let hits = catalog.filter(e => {
     const hay = (e.path + ' ' + (e.preview || '')).toLowerCase();
     return terms.every(t => hay.includes(t));
-  }).slice(0, 10);
+  }).slice(0, 5);
 
+  // Fallback: grep
   if (!hits.length) {
-    // Fallback: grep actual files
     try {
-      const { execSync } = require('child_process');
       const grepResult = execSync(
-        `grep -ril "${query.replace(/"/g, '')}" "${CORTEX}/hexagonal pillars_rocks_helm/" "${CORTEX}/projects/" "${CORTEX}/wiki/" 2>/dev/null | head -8`,
+        `grep -ril "${query.replace(/[";$`\\]/g, '')}" "${CORTEX}/hexagonal pillars_rocks_helm/" "${CORTEX}/projects/" "${CORTEX}/wiki/" 2>/dev/null | head -5`,
         { encoding: 'utf-8', timeout: 5000 }
       ).trim();
       if (grepResult) {
-        const files = grepResult.split('\n').map(f => f.replace(CORTEX + '/', ''));
-        return `🔍 "${query}" grep 결과:\n\n` + files.map((f, i) => `${i + 1}. ${f}`).join('\n');
+        hits = grepResult.split('\n').map(f => ({ path: f.replace(CORTEX + '/', ''), preview: '(grep match)', lines: 0 }));
       }
     } catch {}
-    return `🔍 "${query}" — 결과 없음`;
+  }
+  return hits;
+}
+
+async function searchWeb(query) {
+  const GROQ_KEY = process.env.GROQ_API_KEY || '';
+  if (!GROQ_KEY) return null;
+  try {
+    const prompt = `"${query}"에 대해 최신 정보를 간결하게 3줄로 요약해줘. 한국어로.`;
+    const body = JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 300,
+    });
+    const result = execSync(
+      `curl -s -m 8 https://api.groq.com/openai/v1/chat/completions ` +
+      `-H "Authorization: Bearer ${GROQ_KEY}" ` +
+      `-H "Content-Type: application/json" ` +
+      `-d '${body.replace(/'/g, "'\\''")}'`,
+      { encoding: 'utf-8', timeout: 10000 }
+    );
+    const parsed = JSON.parse(result);
+    return parsed.choices?.[0]?.message?.content?.trim() || null;
+  } catch { return null; }
+}
+
+async function searchAll(query) {
+  // 1. Cortex
+  const cortexHits = searchCortexLocal(query);
+  let msg = `🔍 <b>"${query}"</b>\n\n`;
+
+  msg += `<b>1. Cortex</b> (${cortexHits.length}건)\n`;
+  if (cortexHits.length) {
+    cortexHits.forEach((h, i) => {
+      const name = h.path.split('/').pop();
+      const folder = h.path.split('/').slice(0, -1).join('/');
+      msg += `  ${i + 1}. <b>${name}</b> — ${folder}\n`;
+    });
+  } else {
+    msg += `  결과 없음\n`;
   }
 
-  let result = `🔍 "${query}" — ${hits.length}건:\n\n`;
-  hits.forEach((h, i) => {
-    const preview = h.preview ? h.preview.slice(0, 60) : '';
-    result += `${i + 1}. <b>${h.path.split('/').pop()}</b>\n   📂 ${h.path.split('/').slice(0, -1).join('/')}\n   ${preview}\n\n`;
-  });
-  return result.trim();
+  // 2. Web (Groq)
+  msg += `\n<b>2. Web</b>\n`;
+  const webResult = await searchWeb(query);
+  msg += webResult ? `  ${webResult}\n` : `  (조회 불가)\n`;
+
+  // 3. 종합
+  msg += `\n<b>3. 종합</b>\n`;
+  if (cortexHits.length && webResult) {
+    msg += `  내부 ${cortexHits.length}건 + 외부 정보 확보. 상세는 세션에서 /recall "${query}"`;
+  } else if (cortexHits.length) {
+    msg += `  내부 ${cortexHits.length}건 발견. 외부 정보 없음.`;
+  } else if (webResult) {
+    msg += `  내부 없음. 외부 정보만 확보. 새 노트로 저장하려면 inbox에 캡처.`;
+  } else {
+    msg += `  내부/외부 모두 결과 없음.`;
+  }
+
+  return msg;
 }
 
 // --- Dashboard integration ---
@@ -232,7 +279,7 @@ async function processMessage(msg) {
     if (msg.text.startsWith('?')) {
       const query = msg.text.slice(1).trim();
       if (query) {
-        const results = searchCortex(query);
+        const results = await searchAll(query);
         await apiCall('sendMessage', {
           chat_id: msg.chat.id,
           text: results,
