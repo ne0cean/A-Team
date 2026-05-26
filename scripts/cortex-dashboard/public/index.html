@@ -1559,9 +1559,19 @@ function showSOTab(name, el) {
 let cortexPath = 'cortex';
 let cortexFile = null; // { path, content, sha, name }
 let cortexEditing = false;
+let cortexHistory = [];
 
-async function loadCortexTree(dirPath) {
+window.addEventListener('popstate', (e) => {
+  if (e.state?.cortexPath) {
+    cortexPath = e.state.cortexPath;
+    cortexFile = null;
+    loadCortexTree(cortexPath);
+  }
+});
+
+async function loadCortexTree(dirPath, skipHistory) {
   cortexPath = dirPath || 'cortex';
+  if (!skipHistory) history.pushState({ cortexPath }, '', '');
   const el = document.getElementById('cortexPanel');
   if (!el) return;
 
@@ -1588,6 +1598,11 @@ async function loadCortexTree(dirPath) {
 
   // Tree
   let tree = `<input class="tree-search" placeholder="Search cortex..." onkeydown="if(event.key==='Enter')searchCortex(this.value)">`;
+  // Back (..) button
+  if (cortexPath !== 'cortex') {
+    const parent = cortexPath.split('/').slice(0, -1).join('/') || 'cortex';
+    tree += `<div class="tree-item" onclick="loadCortexTree('${parent}')"><span class="icon">⬆</span><span class="name">..</span></div>`;
+  }
   tree += items.map(i => {
     const icon = i.type === 'dir' ? '📁' : '📄';
     const onclick = i.type === 'dir'
@@ -1681,9 +1696,13 @@ async function searchCortex(q) {
   const viewer = document.getElementById('cortexViewer');
   if (!viewer) return;
   if (!results.length) { viewer.innerHTML = '<div style="color:#484f58;padding:20px">No results</div>'; return; }
-  viewer.innerHTML = results.map(r =>
-    `<div class="tree-item" onclick="loadCortexFile('${r.path}')"><span class="icon">📄</span><span class="name">${esc(r.name)}</span><span style="font-size:9px;color:#484f58;margin-left:auto">${esc(r.path)}</span></div>`
-  ).join('');
+  viewer.innerHTML = results.map(r => {
+    const icon = r.type === 'dir' ? '📁' : '📄';
+    const onclick = r.type === 'dir'
+      ? `loadCortexTree('${r.path}')`
+      : `loadCortexFile('${r.path}')`;
+    return `<div class="tree-item" onclick="${onclick}"><span class="icon">${icon}</span><span class="name">${esc(r.name)}</span><span style="font-size:9px;color:#484f58;margin-left:auto">${esc(r.path)}</span></div>`;
+  }).join('');
 }
 
 // Auto-load cortex tree when panel opens
