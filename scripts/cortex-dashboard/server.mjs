@@ -655,7 +655,7 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`Cortex Dashboard v2: http://localhost:${PORT}`);
   console.log(`Data: ${DATA_DIR}`);
 });

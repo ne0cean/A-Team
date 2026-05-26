@@ -444,54 +444,83 @@ function render() {
 
 function renderMonthView() {
   const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+  const prevDaysInMonth = new Date(currentYear, currentMonth - 1, 0).getDate();
+  const firstDow = new Date(currentYear, currentMonth - 1, 1).getDay(); // 0=Sun
   const today = new Date();
   const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth;
   const todayDate = isCurrentMonth ? today.getDate() : -1;
 
-  // Group days into weeks
-  const weeks = [];
-  let weekDays = [];
+  // Build full calendar grid (6 weeks max, each week Sun-Sat)
+  const cells = []; // {d, isCurrentMonth, date}
+  // Previous month trailing days
+  for (let i = firstDow - 1; i >= 0; i--) {
+    cells.push({ d: prevDaysInMonth - i, current: false });
+  }
+  // Current month
   for (let d = 1; d <= daysInMonth; d++) {
-    weekDays.push(d);
-    const dow = new Date(currentYear, currentMonth - 1, d).getDay();
-    if (dow === 6 || d === daysInMonth) {
-      weeks.push([...weekDays]);
-      weekDays = [];
-    }
+    cells.push({ d, current: true });
+  }
+  // Next month leading days
+  while (cells.length % 7 !== 0) {
+    cells.push({ d: cells.length - firstDow - daysInMonth + 1, current: false });
   }
 
-  // Determine which week is "current" (contains today, or last week if past month)
+  // Group into weeks
+  const weeks = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(cells.slice(i, i + 7));
+  }
+
+  // Determine current week
   let currentWeekIdx = weeks.length - 1;
   if (isCurrentMonth) {
-    currentWeekIdx = weeks.findIndex(w => w.includes(todayDate));
+    currentWeekIdx = weeks.findIndex(w => w.some(c => c.current && c.d === todayDate));
     if (currentWeekIdx === -1) currentWeekIdx = weeks.length - 1;
   }
 
-  // Collect past weeks stats
+  // Past weeks stats
   const pastWeeks = weeks.filter((_, i) => i < currentWeekIdx);
   let pastTotal = 0, pastDone = 0;
-  pastWeeks.forEach(week => week.forEach(d => {
-    const dd = monthData.days[String(d)] || {};
+  pastWeeks.forEach(week => week.filter(c => c.current).forEach(c => {
+    const dd = monthData.days[String(c.d)] || {};
     CATS.forEach(cat => { const items = dd[cat] || []; pastTotal += items.length; pastDone += items.filter(i => i.done).length; });
   }));
 
   let html = renderDayHeaders();
 
-  // Past weeks: hidden, toggled by arrow button in current week's Saturday cell
+  // Past weeks: hidden
   if (pastWeeks.length > 0) {
     html += `<div id="pastWeeksContainer" style="display:none">`;
-    pastWeeks.forEach(week => html += renderWeekGrid(week, todayDate));
+    pastWeeks.forEach(week => html += renderWeekGridFull(week, todayDate));
     html += '</div>';
   }
 
   // Current + future weeks
   weeks.forEach((week, wIdx) => {
     if (wIdx < currentWeekIdx) return;
-    _showPastToggleOnWeek = (wIdx === currentWeekIdx && pastWeeks.length > 0);
-    _pastToggleDay = _showPastToggleOnWeek ? week[week.length - 1] : -1;
-    html += renderWeekGrid(week, todayDate);
+    const showToggle = (wIdx === currentWeekIdx && pastWeeks.length > 0);
+    html += renderWeekGridFull(week, todayDate, showToggle);
   });
 
+  return html;
+}
+
+function renderWeekGridFull(week, todayDate, showToggle) {
+  let html = '<div class="grid">';
+  week.forEach(cell => {
+    if (!cell.current) {
+      html += `<div class="day-cell other-month"><div class="day-num" style="color:#30363d">${cell.d}</div></div>`;
+    } else {
+      const isToday = cell.d === todayDate;
+      if (showToggle) {
+        _showPastToggleOnWeek = true;
+        _pastToggleDay = week.filter(c => c.current).pop()?.d || -1;
+      }
+      html += renderDayCell(cell.d, isToday, false);
+    }
+  });
+  html += '</div>';
+  _showPastToggleOnWeek = false;
   return html;
 }
 
@@ -632,7 +661,8 @@ function renderDayCellContent(d, isToday, isWeek) {
   // Categories
   for (const cat of CATS) {
     const items = dayData[cat] || [];
-    if (items.length === 0 && !isToday) continue;
+    const isFutureOrToday = isToday || new Date(currentYear, currentMonth - 1, d) >= new Date(new Date().toDateString());
+    if (items.length === 0 && !isFutureOrToday) continue;
 
     html += `<div class="category cat-${cat}">
       <div class="cat-label cl-${cat}">

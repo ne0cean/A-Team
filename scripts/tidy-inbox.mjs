@@ -132,7 +132,7 @@ for (const file of files) {
     continue;
   }
 
-  const target = classify(content, tags);
+  const target = await classify(content, tags);
 
   if (!target) {
     console.log(`  [skip] ${file} (can't classify)`);

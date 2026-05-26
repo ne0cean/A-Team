@@ -28,6 +28,10 @@ export default {
     }
 
     try {
+      // --- Input validation ---
+      const validYm = (s) => /^\d{4}-\d{2}$/.test(s);
+      const clamp = (n, min, max) => Math.max(min, Math.min(max, Number(n) || 0));
+
       // --- Data helpers ---
       const getKey = async (key) => {
         const row = await env.DB.prepare('SELECT data FROM ritual_data WHERE key = ?').bind(key).first();
@@ -44,6 +48,7 @@ export default {
       // --- Month API ---
       if (path === '/api/month' && method === 'GET') {
         const ym = url.searchParams.get('ym') || new Date().toISOString().slice(0, 7);
+        if (!validYm(ym)) return new Response(JSON.stringify({ error: 'invalid ym' }), { status: 400, headers });
         let data = await getKey(ym);
         if (!data) data = { month: ym, goals: {}, days: {} };
         return new Response(JSON.stringify(data), { headers });
@@ -113,8 +118,9 @@ export default {
       if (path === '/api/delete-item' && method === 'POST') {
         const { ym, day, category, index } = await request.json();
         const data = await getKey(ym);
-        if (data?.days[day]?.[category]) {
-          data.days[day][category].splice(index, 1);
+        const arr = data?.days[day]?.[category];
+        if (arr && index >= 0 && index < arr.length) {
+          arr.splice(index, 1);
           await setKey(ym, data);
         }
         return new Response(JSON.stringify({ ok: true }), { headers });
@@ -229,8 +235,8 @@ export default {
         const frames = await getKey('day-frames') || {};
         const [year, month] = ym.split('-').map(Number);
         const daysInMonth = new Date(year, month, 0).getDate();
-        const start = fromDay || 1;
-        const end = toDay || daysInMonth;
+        const start = clamp(fromDay || 1, 1, daysInMonth);
+        const end = clamp(toDay || daysInMonth, 1, daysInMonth);
 
         let injected = 0;
         for (let d = start; d <= end; d++) {
