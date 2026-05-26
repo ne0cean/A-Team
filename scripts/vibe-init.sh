@@ -215,6 +215,15 @@ else
     for a in "${ACT_ARR[@]}"; do [ -n "$a" ] && echo "→ $a"; done
   fi
 
+  # System health (latest report summary)
+  LATEST_HEALTH=$(ls -t "$REPO_ROOT/.context/briefs/system-health-"*.md 2>/dev/null | head -1)
+  if [ -n "$LATEST_HEALTH" ]; then
+    HEALTH_SCORE=$(grep -o 'Score: [0-9]*/100' "$LATEST_HEALTH" | head -1)
+    HEALTH_ISSUES=$(grep -c '⚠️\|🔴\|❌' "$LATEST_HEALTH" 2>/dev/null || echo 0)
+    echo ""
+    echo "🏥 System: $HEALTH_SCORE (이슈 ${HEALTH_ISSUES}건) — $(basename "$LATEST_HEALTH")"
+  fi
+
   # Cortex tidy block
   if [ -f "$REPO_ROOT/scripts/cortex-tidy-pick.mjs" ]; then
     echo ""
