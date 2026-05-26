@@ -76,10 +76,9 @@ async function downloadFile(fileId) {
 const DASHBOARD_API = 'https://cortex.feat-breeze.workers.dev';
 const DASHBOARD_AUTH = 'Bearer cortex-ritual-2026-fb';
 const CAT_ALIASES = {
-  ritual: 'ritual', r: 'ritual', 리추얼: 'ritual', 루틴: 'ritual',
-  input: 'input', i: 'input', 인풋: 'input', 공부: 'input', 학습: 'input',
+  input: 'input', i: 'input', 인풋: 'input', 공부: 'input', 학습: 'input', 읽기: 'input',
   work: 'work', w: 'work', 워크: 'work', 업무: 'work', 일: 'work',
-  outcome: 'outcome', o: 'outcome', 아웃컴: 'outcome', 결과: 'outcome', 산출: 'outcome',
+  outcome: 'outcome', o: 'outcome', 아웃컴: 'outcome', 결과: 'outcome', 산출: 'outcome', 약속: 'outcome', 외출: 'outcome',
 };
 
 function normalizeCat(s) {
