@@ -122,7 +122,8 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **Ritual Dashboard v2 피드백 반영 계속** — OneNote 원본 재파싱(오타 근본 해결), 모바일 실기기 테스트, PWA 프로덕션 활성화
+- [ ] **Cortex 구조 최종 확정** — PKM 벤치마크 결론 기반 PARA-B 상세 설계 (폴더 depth 2 + MOC 규칙 + 네이밍 컨벤션 + /tidy-inbox 로직 갱신)
+- [ ] **Telegram inbox 실사용 테스트** — 모바일에서 텍스트/사진/링크 전송 → inbox 저장 검증 + Obsidian Mobile 동기화 테스트
 - [ ] **제품 빌드 시작** — 커넥톰 등 프로젝트 A-Team으로 실전 빌드 (플라이휠 증거)
 - [ ] **Design Taste Evaluator Phase 2** — taste-evaluator.md 에이전트 구현 → designer 연결
 - [ ] **VDI GitLab CE 설치** — 사내 서버 VM 확보 → Docker 설치 → cortex/ 동기화
@@ -149,7 +150,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 
 ## Blockers
 - VDI GitLab CE — 사내 서버(VM) 확보 필요 (IT팀 협의)
-- OneNote 3_Archive — Microsoft Graph API 일시 장애 (토큰 유효, 서비스 복구 대기)
+- Obsidian Mobile 동기화 — iCloud symlink 또는 Working Copy 중 선택 필요 (실기기 테스트 후 결정)
 
 ## 배포 현황
 - GitHub: https://github.com/ne0cean/A-Team (master)

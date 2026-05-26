@@ -2,6 +2,12 @@
 
 ---
 
+## [2026-05-26] Cortex 구조 확정 + 모바일 캡처 인프라
+
+**완료**: Cortex PARA-B 구조 확정 — areas→"hexagonal pillars_rocks_helm" rename, 6pillars(845md)+3_Archive(451md) 기둥별 매핑 병합, 1_Projects(343md)→projects/ 이동, ritual-routine 중복 해소. Telegram→cortex/inbox 자동 캡처 데몬(launchd 상시). Obsidian vault 설정. PKM 6시스템 세부분류 벤치마크 리서치 완료.
+**이슈**: Obsidian Mobile 동기화 방식 미결정 (iCloud symlink vs Working Copy). Cortex 상세 구조(depth 2 + MOC + naming) 다음 세션에서 확정 필요.
+**빌드**: ✅ 583 tests PASS
+
 ## [2026-05-26] Cortex Ritual Dashboard v2 전면 리빌드
 
 **완료**: OneNote 10년 주간 플래너 → localhost:7843 대시보드 완전 이전. 서버 v2 (20+ API), Day Frames 시스템 (3 day types + routine/todo + 이월), Standing Orders 4탭 CRUD, 공휴일 33개 + HF 11개 캘린더 반영, Vision & Milestones 5개년 테이블, 크로스데이 D&D, 하이퍼링크, Undo, 디자인 개선. 데이터 마이그레이션 (May 209 + June 344 items), 오타 16건 수정.
