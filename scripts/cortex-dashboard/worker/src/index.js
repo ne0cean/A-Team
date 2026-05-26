@@ -59,11 +59,16 @@ export default {
         // Safety: don't save empty data over existing
         const existing = await getKey(ym);
         if (existing) {
-          const existingItems = Object.values(existing.days || {}).reduce((n, dd) =>
-            n + ['ritual','input','work','outcome'].reduce((m, c) => m + (dd[c]||[]).length, 0), 0);
-          const newItems = Object.values(data.days || {}).reduce((n, dd) =>
-            n + ['ritual','input','work','outcome'].reduce((m, c) => m + (dd[c]||[]).length, 0), 0);
-          if (existingItems > 10 && newItems === 0) {
+          const countAll = (days) => Object.values(days || {}).reduce((n, dd) => {
+            for (const k of Object.keys(dd)) {
+              if (Array.isArray(dd[k])) n += dd[k].length;
+            }
+            return n;
+          }, 0);
+          const existingCount = countAll(existing.days);
+          const newCount = countAll(data.days);
+          const newDayCount = Object.keys(data.days || {}).length;
+          if (existingCount > 10 && newCount === 0 && newDayCount === 0) {
             return new Response(JSON.stringify({ error: 'blocked: would erase data' }), { status: 400, headers });
           }
         }
