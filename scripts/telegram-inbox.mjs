@@ -72,6 +72,85 @@ async function downloadFile(fileId) {
   });
 }
 
+// --- Dashboard integration ---
+const DASHBOARD_API = 'https://cortex.feat-breeze.workers.dev';
+const DASHBOARD_AUTH = 'Bearer cortex-ritual-2026-fb';
+const CAT_ALIASES = {
+  ritual: 'ritual', r: 'ritual', 리추얼: 'ritual', 루틴: 'ritual',
+  input: 'input', i: 'input', 인풋: 'input', 공부: 'input', 학습: 'input',
+  work: 'work', w: 'work', 워크: 'work', 업무: 'work', 일: 'work',
+  outcome: 'outcome', o: 'outcome', 아웃컴: 'outcome', 결과: 'outcome', 산출: 'outcome',
+};
+
+function normalizeCat(s) {
+  const lower = s.toLowerCase().trim();
+  return CAT_ALIASES[lower] || null;
+}
+
+async function dashboardApiPost(path, body) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify(body);
+    const url = new URL(DASHBOARD_API + path);
+    const req = https.request(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': DASHBOARD_AUTH },
+    }, (res) => {
+      let d = '';
+      res.on('data', c => d += c);
+      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } });
+    });
+    req.on('error', reject);
+    req.write(data);
+    req.end();
+  });
+}
+
+async function tryDashboardAdd(text) {
+  const t = text.trim();
+
+  // Pattern: [월/]일 카테고리 내용
+  // Examples:
+  //   28 work CPFR 미팅       → 당월 28일 work
+  //   6/28 work CPFR 미팅     → 6월 28일 work
+  //   7/3 input Python 강의   → 7월 3일 input
+  //   28 w 팀미팅              → 당월 28일 work (alias)
+  //   28 업무 팀미팅           → 당월 28일 work (한국어 alias)
+  const match = t.match(/^(?:(\d{1,2})\/)?(\d{1,2})\s+(\S+)\s+(.+)$/);
+  if (!match) return null;
+
+  const [, monthStr, dayStr, catRaw, content] = match;
+  const cat = normalizeCat(catRaw);
+  if (!cat) return null; // not a category keyword → fall through to inbox
+
+  const now = new Date();
+  const month = monthStr ? parseInt(monthStr) : now.getMonth() + 1;
+  const day = parseInt(dayStr);
+
+  // Validate
+  const year = now.getFullYear();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  if (day < 1 || day > daysInMonth) return null;
+
+  const ym = `${year}-${String(month).padStart(2, '0')}`;
+
+  try {
+    const result = await dashboardApiPost('/api/add-item', {
+      ym,
+      day: String(day),
+      category: cat,
+      item: { text: content.trim(), url: '', done: false },
+    });
+    if (result?.ok) {
+      const catNames = { ritual: 'RITUAL', input: 'INPUT', work: 'WORK', outcome: 'OUTCOME' };
+      return `✅ ${month}/${day} ${catNames[cat]}: ${content.trim()}`;
+    }
+    return null;
+  } catch (e) {
+    console.error(`[dashboard] ${e.message}`);
+    return null;
+  }
+}
+
 async function transcribeVoice(filePath) {
   try {
     const { execSync } = await import('child_process');
@@ -104,8 +183,17 @@ async function processMessage(msg) {
   let body = '';
   let attachments = [];
 
-  // 텍스트
+  // 텍스트 — 대시보드 일정 추가 감지
   if (msg.text) {
+    const dashResult = await tryDashboardAdd(msg.text);
+    if (dashResult) {
+      await apiCall('sendMessage', {
+        chat_id: msg.chat.id,
+        text: dashResult,
+        reply_to_message_id: msg.message_id,
+      });
+      return;
+    }
     title = slug(msg.text);
     body = msg.text;
   }
