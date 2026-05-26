@@ -276,6 +276,71 @@ export default {
         return new Response(JSON.stringify({ ok: true, injected, range: `${start}-${end}` }), { headers });
       }
 
+      // --- Cortex File Browser (GitHub API proxy) ---
+      const REPO = 'ne0cean/A-Team';
+      const ghHeaders = {
+        'Authorization': `token ${env.GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'cortex-worker'
+      };
+
+      // GET /api/cortex/tree?path=cortex/ — list directory
+      if (path === '/api/cortex/tree' && method === 'GET') {
+        const dirPath = url.searchParams.get('path') || 'cortex';
+        const ghUrl = `https://api.github.com/repos/${REPO}/contents/${encodeURIComponent(dirPath)}?ref=master`;
+        const ghRes = await fetch(ghUrl, { headers: ghHeaders });
+        if (!ghRes.ok) return new Response(JSON.stringify({ error: 'github error', status: ghRes.status }), { status: ghRes.status, headers });
+        const items = await ghRes.json();
+        // Simplify response
+        const simplified = (Array.isArray(items) ? items : [items]).map(i => ({
+          name: i.name, path: i.path, type: i.type, size: i.size
+        }));
+        return new Response(JSON.stringify(simplified), { headers });
+      }
+
+      // GET /api/cortex/file?path=cortex/CORTEX.md — read file content
+      if (path === '/api/cortex/file' && method === 'GET') {
+        const filePath = url.searchParams.get('path');
+        if (!filePath) return new Response(JSON.stringify({ error: 'path required' }), { status: 400, headers });
+        const ghUrl = `https://api.github.com/repos/${REPO}/contents/${encodeURIComponent(filePath)}?ref=master`;
+        const ghRes = await fetch(ghUrl, { headers: ghHeaders });
+        if (!ghRes.ok) return new Response(JSON.stringify({ error: 'not found' }), { status: 404, headers });
+        const data = await ghRes.json();
+        const content = atob(data.content);
+        return new Response(JSON.stringify({ path: data.path, name: data.name, content, sha: data.sha }), { headers });
+      }
+
+      // POST /api/cortex/file — save file (commit to GitHub)
+      if (path === '/api/cortex/file' && method === 'POST') {
+        const { filePath, content, sha, message } = await request.json();
+        if (!filePath || content === undefined) return new Response(JSON.stringify({ error: 'filePath, content required' }), { status: 400, headers });
+        const ghUrl = `https://api.github.com/repos/${REPO}/contents/${encodeURIComponent(filePath)}`;
+        const body = {
+          message: message || `cortex: update ${filePath.split('/').pop()}`,
+          content: btoa(unescape(encodeURIComponent(content))),
+          branch: 'master'
+        };
+        if (sha) body.sha = sha;
+        const ghRes = await fetch(ghUrl, {
+          method: 'PUT', headers: { ...ghHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const result = await ghRes.json();
+        if (!ghRes.ok) return new Response(JSON.stringify({ error: result.message || 'save failed' }), { status: ghRes.status, headers });
+        return new Response(JSON.stringify({ ok: true, sha: result.content?.sha }), { headers });
+      }
+
+      // GET /api/cortex/search?q=keyword — search across cortex files
+      if (path === '/api/cortex/search' && method === 'GET') {
+        const q = url.searchParams.get('q');
+        if (!q) return new Response('[]', { headers });
+        const ghUrl = `https://api.github.com/search/code?q=${encodeURIComponent(q)}+repo:${REPO}+path:cortex&per_page=20`;
+        const ghRes = await fetch(ghUrl, { headers: ghHeaders });
+        const data = await ghRes.json();
+        const results = (data.items || []).map(i => ({ name: i.name, path: i.path, url: i.html_url }));
+        return new Response(JSON.stringify(results), { headers });
+      }
+
       // 404
       return new Response('Not found', { status: 404 });
 
