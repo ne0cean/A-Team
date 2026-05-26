@@ -77,26 +77,28 @@ async function downloadFile(fileId) {
 
 function searchCortexLocal(query) {
   const CORTEX = join(process.env.HOME, 'Projects/a-team/cortex');
-  const safeQ = query.replace(/[";$`\\!{}()|&<>]/g, '');
-
-  // Always grep file content (not just catalog titles)
+  const safeQ = query.replace(/[";$`\\!{}()|&<>']/g, '');
   const hits = [];
+
+  // grep file content — use -l (files only) then read context
   try {
     const grepResult = execSync(
-      `grep -rnil --include="*.md" "${safeQ}" "${CORTEX}/hexagonal pillars_rocks_helm/" "${CORTEX}/projects/" "${CORTEX}/wiki/" 2>/dev/null | head -8`,
+      `grep -ril --include="*.md" "${safeQ}" "${CORTEX}/hexagonal pillars_rocks_helm/" "${CORTEX}/projects/" "${CORTEX}/wiki/" 2>/dev/null | head -8`,
       { encoding: 'utf-8', timeout: 8000 }
     ).trim();
     if (grepResult) {
-      grepResult.split('\n').forEach(line => {
-        const [filePath, lineNum] = line.split(':');
+      grepResult.split('\n').forEach(filePath => {
         const rel = filePath.replace(CORTEX + '/', '');
-        // Read context around match
         let context = '';
         try {
           const content = readFileSync(filePath, 'utf-8');
           const lines = content.split('\n');
-          const ln = parseInt(lineNum) - 1;
-          context = lines.slice(Math.max(0, ln - 1), ln + 2).join(' ').trim().slice(0, 100);
+          const matchIdx = lines.findIndex(l => l.toLowerCase().includes(safeQ.toLowerCase()));
+          if (matchIdx >= 0) {
+            context = lines.slice(Math.max(0, matchIdx - 1), matchIdx + 2).join(' ').trim().slice(0, 120);
+          } else {
+            context = lines.slice(0, 3).join(' ').trim().slice(0, 120);
+          }
         } catch {}
         hits.push({ path: rel, context });
       });
@@ -108,18 +110,20 @@ function searchCortexLocal(query) {
 function searchWebDDG(query) {
   try {
     const encoded = encodeURIComponent(query);
-    const html = execSync(
-      `curl -s -m 6 -A "Mozilla/5.0" "https://lite.duckduckgo.com/lite/?q=${encoded}"`,
+    const raw = execSync(
+      `curl -s -m 6 "https://api.duckduckgo.com/?q=${encoded}&format=json&no_html=1"`,
       { encoding: 'utf-8', timeout: 8000 }
     );
-    // Parse result snippets from DDG lite
+    const data = JSON.parse(raw);
     const results = [];
-    const matches = html.matchAll(/<a[^>]+class="result-link"[^>]*>([^<]+)<\/a>[\s\S]*?<td[^>]*class="result-snippet"[^>]*>([\s\S]*?)<\/td>/g);
-    for (const m of matches) {
-      if (results.length >= 3) break;
-      const title = m[1].trim();
-      const snippet = m[2].replace(/<[^>]+>/g, '').trim().slice(0, 120);
-      if (title && snippet) results.push({ title, snippet });
+    // Abstract (Wikipedia etc.)
+    if (data.Abstract) {
+      results.push({ title: data.Heading || query, snippet: data.Abstract.slice(0, 150) });
+    }
+    // Related topics
+    for (const t of (data.RelatedTopics || [])) {
+      if (results.length >= 4) break;
+      if (t.Text) results.push({ title: t.FirstURL?.split('/').pop()?.replace(/_/g, ' ') || '', snippet: t.Text.slice(0, 120) });
     }
     return results;
   } catch { return []; }
