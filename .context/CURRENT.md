@@ -132,7 +132,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **Ritual Dashboard 피드백 2차** — Obsidian Mobile 실기기 동기화 검증, 로컬↔D1 동기화 자동화, offset 영속화(중복 방지), OneNote 원본 재파싱
+- [ ] **Dashboard → 통합 앱 설계** — `/blueprint`로 스케줄러+노트+캡처 통합 설계. 사진 업로드, 붙여넣기, cortex 편집 포함. 로컬 server.mjs 삭제, D1 SSOT 확정. 열화판 cortex 브라우저 → 제대로 된 노트 에디터로 재구축
 - [ ] **Telegram inbox 사진/링크/음성 테스트** — 텍스트 검증 완료, 나머지 미디어 타입 + dashboard 연동 테스트
 - [ ] **제품 빌드 시작** — 커넥톰 등 프로젝트 A-Team으로 실전 빌드 (플라이휠 증거)
 - [ ] **Cortex 구조 최종 확정** — PARA-B 상세 설계 (폴더 depth 2 + MOC 규칙 + 네이밍 컨벤션)
