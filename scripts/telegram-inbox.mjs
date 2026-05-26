@@ -110,7 +110,7 @@ function searchWebDDG(query) {
     // Related topics
     for (const t of (data.RelatedTopics || [])) {
       if (results.length >= 4) break;
-      if (t.Text) results.push({ title: t.FirstURL?.split('/').pop()?.replace(/_/g, ' ') || '', snippet: t.Text.slice(0, 120) });
+      if (t.Text) results.push({ title: t.FirstURL?.split('/').pop()?.replace(/_/g, ' ') || '', snippet: t.Text.slice(0, 120), url: t.FirstURL || '' });
     }
     return results;
   } catch { return []; }
@@ -161,11 +161,13 @@ async function searchAll(query) {
   let msg = `🔍 <b>"${query}"</b>\n\n`;
 
   // 1. Cortex
+  const GITHUB_BASE = 'https://github.com/ne0cean/A-Team/blob/master/cortex/';
   msg += `<b>1. Cortex</b> (${cortexHits.length}건)\n`;
   if (cortexHits.length) {
     cortexHits.forEach((h, i) => {
       const name = h.path.split('/').pop();
-      msg += `  ${i + 1}. <b>${name}</b>\n     ${h.context}\n`;
+      const url = GITHUB_BASE + encodeURIComponent(h.path).replace(/%2F/g, '/');
+      msg += `  ${i + 1}. <a href="${url}">${name}</a>\n     ${h.context}\n`;
     });
   } else {
     msg += `  결과 없음\n`;
@@ -175,7 +177,8 @@ async function searchAll(query) {
   msg += `\n<b>2. Web</b> (${webResults.length}건)\n`;
   if (webResults.length) {
     webResults.forEach((w, i) => {
-      msg += `  ${i + 1}. <b>${w.title}</b>\n     ${w.snippet}\n`;
+      const linkUrl = w.url || `https://duckduckgo.com/?q=${encodeURIComponent(w.title)}`;
+      msg += `  ${i + 1}. <a href="${linkUrl}">${w.title}</a>\n     ${w.snippet}\n`;
     });
   } else {
     msg += `  결과 없음\n`;
