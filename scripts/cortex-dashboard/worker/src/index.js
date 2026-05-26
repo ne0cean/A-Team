@@ -306,7 +306,8 @@ export default {
         const ghRes = await fetch(ghUrl, { headers: ghHeaders });
         if (!ghRes.ok) return new Response(JSON.stringify({ error: 'not found' }), { status: 404, headers });
         const data = await ghRes.json();
-        const content = atob(data.content);
+        const raw = atob(data.content);
+        const content = decodeURIComponent(escape(raw));
         return new Response(JSON.stringify({ path: data.path, name: data.name, content, sha: data.sha }), { headers });
       }
 
