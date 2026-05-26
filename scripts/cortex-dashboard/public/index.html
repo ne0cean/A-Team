@@ -644,10 +644,21 @@ function renderDayCellContent(d, isToday, isWeek) {
   const yearlyEvts = getYearlyEvents(d);
   const monthlyRec = getMonthlyRecurring(d);
   const weeklyRec = getWeeklyRecurring(d);
-  const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '')
-    + yearlyEvts.map(e => `<div style="font-size:8px;color:#f0c040;margin-bottom:1px">${esc(e.text)}</div>`).join('')
-    + monthlyRec.map(e => `<div style="font-size:8px;color:#bc8cff;margin-bottom:1px">${esc(e.text)}</div>`).join('')
-    + weeklyRec.map(e => `<div style="font-size:8px;color:#6e7681;margin-bottom:1px">${esc(e.text)}</div>`).join('');
+  // Inject recurring into day data if not already present
+  const recItems = [
+    ...yearlyEvts.map(e => ({ ...e, _src: 'yearly' })),
+    ...monthlyRec.map(e => ({ ...e, _src: 'monthly' })),
+    ...weeklyRec.map(e => ({ ...e, _src: 'weekly' })),
+  ];
+  if (recItems.length) {
+    if (!dayData._recurring) dayData._recurring = [];
+    recItems.forEach(r => {
+      if (!dayData._recurring.some(x => x.text === r.text)) {
+        dayData._recurring.push({ text: r.text, done: false, _src: r._src });
+      }
+    });
+  }
+  const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '');
   let html = `<div class="day-num${dowClass}" onclick="cycleDayType(${d})" style="cursor:pointer" title="Set day type">
     <span>${d}${badgeHtml}</span>
     <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
@@ -659,6 +670,20 @@ function renderDayCellContent(d, isToday, isWeek) {
     onblur="saveOneThing(${d}, this.textContent)"
     onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
   >${esc(ot)}</div>`;
+
+  // Recurring items (weekly/monthly/yearly) — rendered as checkable items
+  const recArr = dayData._recurring || [];
+  if (recArr.length) {
+    const SRC_COLORS = { yearly: '#f0c040', monthly: '#bc8cff', weekly: '#6e7681' };
+    recArr.forEach((item, idx) => {
+      const doneClass = item.done ? 'done' : '';
+      const clr = SRC_COLORS[item._src] || '#6e7681';
+      html += `<div class="item ${doneClass}" style="border-left:2px solid ${clr};padding-left:4px">
+        <input type="checkbox" ${item.done?'checked':''} onchange="toggleRecurring(${d},${idx})">
+        <span class="item-text" style="color:${clr}">${linkify(item.text)}</span>
+      </div>`;
+    });
+  }
 
   // Categories
   for (const cat of CATS) {
@@ -806,6 +831,13 @@ function ensureDay(d) {
 
 async function toggleItem(d, cat, idx) {
   ensureDay(d)[cat][idx].done = !ensureDay(d)[cat][idx].done;
+  await save(); render();
+}
+
+async function toggleRecurring(d, idx) {
+  const dd = ensureDay(d);
+  if (!dd._recurring) return;
+  dd._recurring[idx].done = !dd._recurring[idx].done;
   await save(); render();
 }
 
