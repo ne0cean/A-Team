@@ -214,5 +214,12 @@ else
     IFS='|' read -ra ACT_ARR <<< "$ACTIONS"
     for a in "${ACT_ARR[@]}"; do [ -n "$a" ] && echo "→ $a"; done
   fi
+
+  # Cortex tidy block
+  if [ -f "$REPO_ROOT/scripts/cortex-tidy-pick.mjs" ]; then
+    echo ""
+    node "$REPO_ROOT/scripts/cortex-tidy-pick.mjs" 2>/dev/null || true
+  fi
+
   echo "━━━━━━━━━━━━━━━"
 fi

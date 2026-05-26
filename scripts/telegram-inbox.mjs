@@ -71,6 +71,30 @@ async function downloadFile(fileId) {
   });
 }
 
+async function transcribeVoice(filePath) {
+  try {
+    const { execSync } = await import('child_process');
+    // Groq Whisper API — same as /yt uses
+    const result = execSync(
+      `curl -s -X POST "https://api.groq.com/openai/v1/audio/transcriptions" ` +
+      `-H "Authorization: Bearer ${process.env.GROQ_API_KEY || ''}" ` +
+      `-H "Content-Type: multipart/form-data" ` +
+      `-F "file=@${filePath}" ` +
+      `-F "model=whisper-large-v3-turbo" ` +
+      `-F "language=ko" ` +
+      `-F "response_format=text"`,
+      { timeout: 30000, encoding: 'utf-8' }
+    ).trim();
+    if (result && !result.includes('error')) {
+      console.log(`[transcribe] ${result.slice(0, 60)}...`);
+      return result;
+    }
+  } catch (e) {
+    console.error(`[transcribe error] ${e.message}`);
+  }
+  return null;
+}
+
 async function processMessage(msg) {
   if (String(msg.from?.id) !== ALLOWED_USER) return;
 
@@ -102,12 +126,20 @@ async function processMessage(msg) {
     title = slug(body);
   }
 
-  // 음성
+  // 음성 → Groq Whisper 전사
   if (msg.voice) {
     const fileName = await downloadFile(msg.voice.file_id);
-    if (fileName) attachments.push(fileName);
-    body = '(voice memo)';
-    title = 'voice-memo';
+    if (fileName) {
+      attachments.push(fileName);
+      const transcription = await transcribeVoice(join(INBOX_DIR, fileName));
+      if (transcription) {
+        body = transcription;
+        title = slug(transcription);
+      } else {
+        body = '(voice memo — 전사 실패)';
+        title = 'voice-memo';
+      }
+    }
   }
 
   // 링크 (forwarded)
