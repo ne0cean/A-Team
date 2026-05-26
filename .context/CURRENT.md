@@ -60,7 +60,17 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-26) — Cortex 구조 확정 + 모바일 캡처 인프라
+## Last Completions (2026-05-26) — Dashboard 클라우드 배포 + 보안 수정 + Obsidian Mobile
+
+- **Cloudflare Workers + D1 배포** — `https://cortex.feat-breeze.workers.dev` (APAC/ICN). Worker 코드 변환, 6개 JSON→D1 마이그레이션, 맥 무관 항시 가동. Favicon(뉴럴넷 아이콘) 추가.
+- **레드팀 E2E 감사 + P0/P1 수정 8건** — 봇 토큰 하드코딩 제거(env 전용), Worker API 인증(Bearer), execSync 셸 인젝션→fetch 교체, 0.0.0.0→127.0.0.1, save() 에러 표시, 입력 검증(ym 정규식/index 범위), Worker 에러 응답 generic화, tidy-inbox cron 등록.
+- **tidy-inbox 자동 분류 스크립트** — 규칙 기반 키워드 매칭 + Groq LLM 폴백. launchd 5분 cron. inbox→6기둥/PARA 자동 이동.
+- **외부 모델 교차 감사** — `/adversarial --full`, `/cso`에 Groq Llama 70B 교차 리뷰 구조 추가. 자기 코드 자기 리뷰 사각지대 해소.
+- **Telegram E2E 검증** — 텍스트 수신 확인. 데몬 WorkingDirectory/env 수정. offset 미영속 중복 버그 발견(미수정).
+- **Obsidian Mobile 연동** — cortex/ → iCloud symlink 설정. iPhone에서 3439개 노트 열람/편집 가능. Dashboard는 ritual-routine 전용, Obsidian은 노트 전체.
+- **`/end` PRD 자동 동기화** — Step 3.45 추가. 구조적 변화 시 plan 파일 자동 갱신.
+
+## Last Completions (2026-05-26, 이전) — Cortex 구조 확정 + 모바일 캡처 인프라
 
 - **Cortex PARA-B 구조 확정 + 6기둥 병합** — `cortex/areas/` → `cortex/hexagonal pillars_rocks_helm/` rename. archive/interstellar-onenote의 6pillars(845md) + 3_Archive(451md) 기둥별 매핑 병합 (Cyrano→mo-chuisle, Solidarity→string, Accumulation→snowball, Career/Skill/성장전략/AI전략팀/SD→interstellar). 1_Projects(343md)→cortex/projects/ 이동. ritual-routine 중복 해소 (파일별 정본 선택 + bak 정리). 최종: 1,292md areas + 343md projects.
 - **Telegram → cortex/inbox 자동 캡처 데몬** — `scripts/telegram-inbox.mjs` (long-polling, 텍스트/사진/파일/음성/포워드 지원, 📥 확인 이모지). launchd `com.ateam.telegram-inbox` 상시 실행 등록. 모바일에서 봇에 던지면 즉시 .md 저장.
@@ -122,11 +132,11 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **Cortex 구조 최종 확정** — PKM 벤치마크 결론 기반 PARA-B 상세 설계 (폴더 depth 2 + MOC 규칙 + 네이밍 컨벤션 + /tidy-inbox 로직 갱신)
-- [ ] **Telegram inbox 실사용 테스트** — 모바일에서 텍스트/사진/링크 전송 → inbox 저장 검증 + Obsidian Mobile 동기화 테스트
+- [ ] **Ritual Dashboard 피드백 2차** — Obsidian Mobile 실기기 동기화 검증, 로컬↔D1 동기화 자동화, offset 영속화(중복 방지), OneNote 원본 재파싱
+- [ ] **Telegram inbox 사진/링크/음성 테스트** — 텍스트 검증 완료, 나머지 미디어 타입 + dashboard 연동 테스트
 - [ ] **제품 빌드 시작** — 커넥톰 등 프로젝트 A-Team으로 실전 빌드 (플라이휠 증거)
+- [ ] **Cortex 구조 최종 확정** — PARA-B 상세 설계 (폴더 depth 2 + MOC 규칙 + 네이밍 컨벤션)
 - [ ] **Design Taste Evaluator Phase 2** — taste-evaluator.md 에이전트 구현 → designer 연결
-- [ ] **VDI GitLab CE 설치** — 사내 서버 VM 확보 → Docker 설치 → cortex/ 동기화
 
 ### Medium Priority
 - [ ] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진 (YT 그룹C 도출)

@@ -2,6 +2,12 @@
 
 ---
 
+## [2026-05-26] Dashboard 클라우드 배포 + 보안 감사 + Obsidian Mobile
+
+**완료**: Cloudflare Workers+D1 배포(`cortex.feat-breeze.workers.dev`). 레드팀 E2E 감사→P0/P1 8건 수정(봇 토큰 env, Worker 인증, execSync→fetch, 0.0.0.0→127.0.0.1, save() 에러, 입력 검증). tidy-inbox 자동분류 스크립트+cron. 외부 모델 교차 감사(Groq Llama 70B) 구조 추가. Telegram 텍스트 E2E 검증. Obsidian Mobile iCloud symlink 설정. `/end` PRD 자동 동기화 Step 3.45. Favicon.
+**이슈**: Telegram offset 미영속(재시작 시 중복). 사진/링크/음성 미테스트. 로컬↔D1 동기화 자동화 미구현. Dashboard 프론트 AUTH 토큰 하드코딩(public HTML에 노출).
+**빌드**: ✅ 583 tests PASS
+
 ## [2026-05-26] Cortex 구조 확정 + 모바일 캡처 인프라
 
 **완료**: Cortex PARA-B 구조 확정 — areas→"hexagonal pillars_rocks_helm" rename, 6pillars(845md)+3_Archive(451md) 기둥별 매핑 병합, 1_Projects(343md)→projects/ 이동, ritual-routine 중복 해소. Telegram→cortex/inbox 자동 캡처 데몬(launchd 상시). Obsidian vault 설정. PKM 6시스템 세부분류 벤치마크 리서치 완료.
