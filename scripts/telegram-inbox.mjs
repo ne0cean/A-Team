@@ -77,33 +77,46 @@ async function downloadFile(fileId) {
 
 function searchCortexLocal(query) {
   const CORTEX = join(process.env.HOME, 'Projects/a-team/cortex');
-  const safeQ = query.replace(/[";$`\\!{}()|&<>']/g, '');
-  const hits = [];
+  const safe = s => s.replace(/[";$`\\!{}()|&<>']/g, '');
 
-  // grep file content — use -l (files only) then read context
-  try {
-    const grepResult = execSync(
-      `grep -ril --include="*.md" "${safeQ}" "${CORTEX}/hexagonal pillars_rocks_helm/" "${CORTEX}/projects/" "${CORTEX}/wiki/" 2>/dev/null | head -8`,
-      { encoding: 'utf-8', timeout: 8000 }
-    ).trim();
-    if (grepResult) {
-      grepResult.split('\n').forEach(filePath => {
-        const rel = filePath.replace(CORTEX + '/', '');
-        let context = '';
-        try {
-          const content = readFileSync(filePath, 'utf-8');
-          const lines = content.split('\n');
-          const matchIdx = lines.findIndex(l => l.toLowerCase().includes(safeQ.toLowerCase()));
-          if (matchIdx >= 0) {
-            context = lines.slice(Math.max(0, matchIdx - 1), matchIdx + 2).join(' ').trim().slice(0, 120);
-          } else {
-            context = lines.slice(0, 3).join(' ').trim().slice(0, 120);
-          }
-        } catch {}
-        hits.push({ path: rel, context });
+  // Split query into meaningful tokens (Korean + alphanumeric chunks)
+  const tokens = query.match(/[a-zA-Z0-9]+|[가-힣]+/g) || [query];
+  const searchDirs = `"${CORTEX}/hexagonal pillars_rocks_helm/" "${CORTEX}/projects/" "${CORTEX}/wiki/"`;
+
+  // grep each token, intersect file lists
+  let fileSet = null;
+  for (const token of tokens) {
+    if (token.length < 2) continue;
+    try {
+      const result = execSync(
+        `grep -ril --include="*.md" "${safe(token)}" ${searchDirs} 2>/dev/null`,
+        { encoding: 'utf-8', timeout: 5000 }
+      ).trim();
+      const files = new Set(result ? result.split('\n') : []);
+      fileSet = fileSet ? new Set([...fileSet].filter(f => files.has(f))) : files;
+    } catch { fileSet = fileSet || new Set(); }
+  }
+
+  const hits = [];
+  for (const filePath of [...(fileSet || [])].slice(0, 8)) {
+    const rel = filePath.replace(CORTEX + '/', '');
+    let context = '';
+    try {
+      const content = readFileSync(filePath, 'utf-8');
+      const lines = content.split('\n');
+      // Find first line containing any token
+      const matchIdx = lines.findIndex(l => {
+        const low = l.toLowerCase();
+        return tokens.some(t => low.includes(t.toLowerCase()));
       });
-    }
-  } catch {}
+      if (matchIdx >= 0) {
+        context = lines.slice(Math.max(0, matchIdx), matchIdx + 3).join(' ').trim().slice(0, 120);
+      } else {
+        context = lines.slice(0, 3).join(' ').trim().slice(0, 120);
+      }
+    } catch {}
+    hits.push({ path: rel, context });
+  }
   return hits;
 }
 
