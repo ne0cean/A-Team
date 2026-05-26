@@ -2,6 +2,12 @@
 
 ---
 
+## [2026-05-27] Cortex 뇌 시스템 + MeiliSearch + Dashboard 개선 + 모델 오케스트레이션 감사
+
+**완료**: Cortex Tier 1 구현(catalog/access-log/cortex-health/system-health + /vibe tidy 자동화). MeiliSearch 3499문서 인덱싱(typo tolerance). Telegram 검색(?키워드 → cortex+DDG+Groq 종합) + 일정 추가(28 w 팀미팅) + 음성 전사. Dashboard UI 대규모 개선(viewport 1200px 고정, pull-to-refresh, URL 자동링크, EX 헤더 통합, 캘린더 이전/다음달 표시, recurring 체크 가능, Worker save 안전장치 수정). AI-native PKM 20개 벤치마크. 모델 오케스트레이션 리뷰 — 로컬 모델 사용 0건 적발, 강제 훅 작성(미등록). 냉철한 제언 6건(인프라 중독, Connectome 즉시 시작, String 강화).
+**이슈**: 모델 오케스트레이션 훅 settings.json 미등록(deny됨). MeiliSearch launchd 미등록. Dashboard 캘린더 말일 버그 잔존 가능. GitHub Push Protection 차단(MSAL 토큰 — unblock URL 필요).
+**빌드**: ✅ 583 tests PASS
+
 ## [2026-05-26] Dashboard 클라우드 배포 + 보안 감사 + Obsidian Mobile
 
 **완료**: Cloudflare Workers+D1 배포(`cortex.feat-breeze.workers.dev`). 레드팀 E2E 감사→P0/P1 8건 수정(봇 토큰 env, Worker 인증, execSync→fetch, 0.0.0.0→127.0.0.1, save() 에러, 입력 검증). tidy-inbox 자동분류 스크립트+cron. 외부 모델 교차 감사(Groq Llama 70B) 구조 추가. Telegram 텍스트 E2E 검증. Obsidian Mobile iCloud symlink 설정. `/end` PRD 자동 동기화 Step 3.45. Favicon.

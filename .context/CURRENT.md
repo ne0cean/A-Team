@@ -60,6 +60,16 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-27) — Cortex 뇌 시스템 + MeiliSearch + Dashboard 개선
+
+- **Cortex "제2의 뇌" 설계 + Tier 1 구현** — catalog.jsonl(1638파일 인덱스), access-log.jsonl(접근 기록), cortex-health.mjs(주간 진단 80점), system-health.mjs(전체 시스템 진단 70점). /vibe에 자동 tidy 5개 삽입. ritual JSON→data/ 분리(운영데이터/지식 분리). 주간 크론 2개 등록(cortex-health 월09:00, system-health 월09:30).
+- **MeiliSearch 검색 엔진 도입** — 바이너리 설치 v1.45.0, 3499문서 인덱싱, typo tolerance + 한국어 토큰 분리. cortex-index.mjs 인덱서. Telegram 검색(`?키워드`)이 MeiliSearch API 호출.
+- **Telegram 봇 기능 강화** — 검색(`?키워드`: cortex + 웹 DDG + Groq 종합), 일정 추가(`28 w 팀미팅`), 음성 전사(Groq Whisper), 클릭 가능 링크(GitHub/DDG URL). ritual 카테고리 제거(i/w/o만).
+- **Dashboard UI 개선** — 모바일 viewport 1200px 고정(PC 동일 폭), pull-to-refresh, URL 자동 하이퍼링크(신규+기존), 드래그 여백 확대, EX+비전 헤더 통합, EX 운동부위 변경(전면/측면/후면/등/가슴), 공휴일 전월별 표시, 캘린더 이전/다음달 날짜 표시, recurring 항목 체크 가능, 복구 아이콘 변경, Worker save 안전장치 수정(workout 저장 차단 해소).
+- **모델 오케스트레이션 리뷰** — 로컬 모델(Groq/Ollama) 사용 0건 적발. enforce-model-param.sh(Agent model 미지정 시 deny), model-compliance.sh(SubagentStop 위반 감사) 작성.
+- **AI-native PKM 벤치마크** — 20개 GitHub 프로젝트 조사(mem0/graphiti/Khoj/screenpipe/fabric/claude-obsidian). Karpathy wiki 패턴 + graphiti temporal graph + mem0 메모리 레이어 3패턴 하이브리드 방향.
+- **냉철한 제언 6건** — 인프라 중독 탈피, Connectome 즉시 시작, String 기둥 강화, 루틴 프레임 파괴, AI 의존도 관리, Snowball 숫자 트래킹.
+
 ## Last Completions (2026-05-26) — Dashboard 클라우드 배포 + 보안 수정 + Obsidian Mobile
 
 - **Cloudflare Workers + D1 배포** — `https://cortex.feat-breeze.workers.dev` (APAC/ICN). Worker 코드 변환, 6개 JSON→D1 마이그레이션, 맥 무관 항시 가동. Favicon(뉴럴넷 아이콘) 추가.
@@ -132,11 +142,11 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **Dashboard → 통합 앱 설계** — `/blueprint`로 스케줄러+노트+캡처 통합 설계. 사진 업로드, 붙여넣기, cortex 편집 포함. 로컬 server.mjs 삭제, D1 SSOT 확정. 열화판 cortex 브라우저 → 제대로 된 노트 에디터로 재구축
-- [ ] **Telegram inbox 사진/링크/음성 테스트** — 텍스트 검증 완료, 나머지 미디어 타입 + dashboard 연동 테스트
-- [ ] **제품 빌드 시작** — 커넥톰 등 프로젝트 A-Team으로 실전 빌드 (플라이휠 증거)
-- [ ] **Cortex 구조 최종 확정** — PARA-B 상세 설계 (폴더 depth 2 + MOC 규칙 + 네이밍 컨벤션)
-- [ ] **Design Taste Evaluator Phase 2** — taste-evaluator.md 에이전트 구현 → designer 연결
+- [ ] **OneNote 완전 대체 (1주 목표)** — Dashboard 캘린더 버그 수정 + offset 영속화 + Telegram 미디어 테스트 + 모바일 사용성 검증
+- [ ] **모델 오케스트레이션 강제 훅 등록** — enforce-model-param.sh + model-compliance.sh를 settings.json에 등록 (이번 세션 미완)
+- [ ] **MeiliSearch launchd 등록** — com.ateam.meilisearch.plist load (바이너리 설치 완료, 데몬 미등록)
+- [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
+- [ ] **매일 OUTCOME 1개 외부 산출** — Standing Orders에 추가
 
 ### Medium Priority
 - [ ] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진 (YT 그룹C 도출)
