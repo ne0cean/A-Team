@@ -13,10 +13,19 @@ export default {
     const headers = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Content-Type': 'application/json',
     };
     if (method === 'OPTIONS') return new Response(null, { headers });
+
+    // Auth: require API_SECRET for write operations (POST/PUT/DELETE)
+    // GET (read) is open for browser access; writes need token
+    if (method !== 'GET' && path.startsWith('/api/')) {
+      const auth = request.headers.get('Authorization');
+      if (auth !== `Bearer ${env.API_SECRET}`) {
+        return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers });
+      }
+    }
 
     try {
       // --- Data helpers ---
@@ -265,7 +274,8 @@ export default {
       return new Response('Not found', { status: 404 });
 
     } catch (e) {
-      return new Response(JSON.stringify({ error: e.message }), { status: 500, headers });
+      console.error(e);
+      return new Response(JSON.stringify({ error: 'internal error' }), { status: 500, headers });
     }
   }
 };

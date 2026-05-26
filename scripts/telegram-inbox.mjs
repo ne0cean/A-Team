@@ -11,7 +11,8 @@ import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import https from 'https';
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8627846938:AAGAY1G5NIKtTPr0QCDG0Yo4rvLMHmJsvR8';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+if (!BOT_TOKEN) { console.error('[telegram-inbox] TELEGRAM_BOT_TOKEN env required'); process.exit(1); }
 const ALLOWED_USER = '207169746';
 const INBOX_DIR = join(process.env.HOME, 'Projects/a-team/cortex/inbox');
 const POLL_INTERVAL = 3000; // 3초

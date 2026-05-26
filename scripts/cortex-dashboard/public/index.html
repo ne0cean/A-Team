@@ -742,21 +742,28 @@ function renderStats() {
 }
 
 // --- Data operations ---
+const AUTH = { 'Content-Type':'application/json', 'Authorization':'Bearer cortex-ritual-2026-fb' };
+
 async function save() {
-  // Safety: don't save if monthData looks empty (prevent data loss)
   const dayCount = Object.keys(monthData.days || {}).length;
   let itemCount = 0;
   for (const dd of Object.values(monthData.days || {})) {
     for (const c of CATS) itemCount += (dd[c] || []).length;
   }
   if (dayCount === 0 && itemCount === 0) {
-    console.warn('save() blocked: monthData is empty, refusing to overwrite');
+    console.warn('save() blocked: empty');
     return;
   }
-  await fetch(`${API}/api/month`, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ ym: ym(), data: monthData })
-  });
+  try {
+    const res = await fetch(`${API}/api/month`, {
+      method: 'POST', headers: AUTH,
+      body: JSON.stringify({ ym: ym(), data: monthData })
+    });
+    if (!res.ok) throw new Error(res.status);
+  } catch (e) {
+    document.title = '⚠ Save failed!';
+    setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000);
+  }
 }
 
 function ensureDay(d) {
@@ -1030,7 +1037,7 @@ async function cycleDayType(d) {
   const next = idx >= TYPES.length - 1 ? null : TYPES[idx + 1];
 
   await fetch(`${API}/api/day-type`, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: AUTH,
     body: JSON.stringify({ ym: ym(), day: String(d), type: next })
   });
 
@@ -1039,7 +1046,7 @@ async function cycleDayType(d) {
 
   // Auto-inject frame for this day
   await fetch(`${API}/api/inject-frames`, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: AUTH,
     body: JSON.stringify({ ym: ym(), fromDay: d, toDay: d })
   });
   await loadMonth(); // reload to get injected items
@@ -1066,7 +1073,7 @@ async function drop(e, d, cat, toIdx) {
   if (dragData.d === d && dragData.cat === cat) {
     if (dragData.idx === toIdx) return;
     await fetch(`${API}/api/reorder`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: AUTH,
       body: JSON.stringify({ ym: ym(), day: String(d), category: cat, fromIdx: dragData.idx, toIdx })
     });
     const items = ensureDay(d)[cat];
@@ -1077,7 +1084,7 @@ async function drop(e, d, cat, toIdx) {
   // Different day → move across days
   else {
     await fetch(`${API}/api/move-item`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: AUTH,
       body: JSON.stringify({ ym: ym(), fromDay: String(dragData.d), fromCat: dragData.cat, fromIdx: dragData.idx, toDay: String(d), toCat: cat })
     });
     await loadMonth();
@@ -1092,7 +1099,7 @@ async function dayDrop(e, d) {
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
   if (!dragData || dragData.d === d) return;
   await fetch(`${API}/api/move-item`, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: AUTH,
     body: JSON.stringify({ ym: ym(), fromDay: String(dragData.d), fromCat: dragData.cat, fromIdx: dragData.idx, toDay: String(d), toCat: dragData.cat })
   });
   await loadMonth();
@@ -1104,7 +1111,7 @@ let searchTimer;
 async function undoMonth() {
   if (!confirm(`${ym()} 데이터를 직전 백업으로 복원할까요?`)) return;
   const res = await fetch(`${API}/api/undo`, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: AUTH,
     body: JSON.stringify({ ym: ym() })
   });
   const data = await res.json();
@@ -1184,11 +1191,23 @@ function renderStandingOrders() {
     html += '<div style="margin-top:6px;font-size:10px;color:#8b949e">Happy Friday:</div>';
     hfThisMonth.forEach(d => { html += `<span class="hf-badge">${d.split('-')[2]}일</span>`; });
   }
-  // Holiday
-  const holidaysThisMonth = Object.entries(standingData.holidays || {}).filter(([k]) => k.startsWith(ymKey));
-  if (holidaysThisMonth.length) {
+  // Holiday — 전체 월별
+  const allHolidays = Object.entries(standingData.holidays || {}).sort(([a],[b]) => a.localeCompare(b));
+  if (allHolidays.length) {
+    const byMonth = {};
+    allHolidays.forEach(([d, name]) => {
+      const ym = d.slice(0, 7);
+      if (!byMonth[ym]) byMonth[ym] = [];
+      byMonth[ym].push({ day: d.split('-')[2], name });
+    });
     html += '<div style="margin-top:6px;font-size:10px;color:#8b949e">Holidays:</div>';
-    holidaysThisMonth.forEach(([d, name]) => { html += `<div class="so-monthly-item">${d.split('-')[2]}일 — ${esc(name)}</div>`; });
+    Object.entries(byMonth).forEach(([ym, items]) => {
+      const isCurrent = ym === ymKey;
+      html += `<div style="margin-top:4px;font-size:9px;color:${isCurrent ? '#f0c040' : '#484f58'};font-weight:${isCurrent ? '600' : '400'}">${ym.replace('-','.')}:</div>`;
+      items.forEach(({ day, name }) => {
+        html += `<div class="so-monthly-item" style="${isCurrent ? '' : 'color:#6e7681'}">${day}일 — ${esc(name)}</div>`;
+      });
+    });
   }
   html += '</div>';
 
@@ -1475,7 +1494,7 @@ function renderVision() {
 
 async function saveVisionData() {
   await fetch(`${API}/api/vision`, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: AUTH,
     body: JSON.stringify(visionData)
   });
 }
@@ -1557,7 +1576,7 @@ const catColorMap = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', outc
 
 async function saveFramesData() {
   await fetch(`${API}/api/day-frames`, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: AUTH,
     body: JSON.stringify(framesData)
   });
 }
@@ -1619,7 +1638,7 @@ async function injectFrames() {
   const [y, m] = ym().split('-').map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const res = await fetch(`${API}/api/inject-frames`, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: AUTH,
     body: JSON.stringify({ ym: ym(), fromDay: today, toDay: daysInMonth })
   });
   const data = await res.json();

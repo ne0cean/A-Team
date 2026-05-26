@@ -12,7 +12,6 @@
 
 import { readdirSync, readFileSync, writeFileSync, renameSync, appendFileSync, existsSync, mkdirSync } from 'fs';
 import { join, basename } from 'path';
-import { execSync } from 'child_process';
 
 const CORTEX = join(import.meta.dirname, '../cortex');
 const INBOX = join(CORTEX, 'inbox');
@@ -53,7 +52,7 @@ const RULES = [
   { keywords: ['기사', 'article', '블로그', 'blog', '뉴스', 'news'], target: 'articles' },
 ];
 
-function classify(content, tags) {
+async function classify(content, tags) {
   const lower = (content + ' ' + (tags || []).join(' ')).toLowerCase();
 
   // Check frontmatter tags first
@@ -71,14 +70,24 @@ function classify(content, tags) {
     if (matches.length >= 1) return rule.target;
   }
 
-  // Try LLM (groq free)
+  // Try LLM (groq free via HTTP, no shell)
   try {
-    const prompt = `Classify this note into ONE category. Reply with ONLY the category key.
-Categories: character(health/body), mo-chuisle(family), string(network/social), interstellar(career/work/tech), life-xlab(experience/hobby/travel/food), snowball(finance/invest), zeroing(reflection/goals), books, courses, videos, articles
-Note: ${content.slice(0, 500)}`;
-
-    const result = execSync(`llm "${prompt.replace(/"/g, '\\"')}" 2>/dev/null`, { timeout: 10000 }).toString().trim().toLowerCase();
-    if (TARGETS[result]) return result;
+    const apiKey = process.env.GROQ_API_KEY;
+    if (apiKey) {
+      const body = JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: `Classify this note into ONE category. Reply with ONLY the category key.\nCategories: character(health/body), mo-chuisle(family), string(network/social), interstellar(career/work/tech), life-xlab(experience/hobby/travel/food), snowball(finance/invest), zeroing(reflection/goals), books, courses, videos, articles\nNote: ${content.slice(0, 500)}` }],
+        max_tokens: 20, temperature: 0
+      });
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body, signal: AbortSignal.timeout(10000)
+      });
+      const data = await res.json();
+      const result = data.choices?.[0]?.message?.content?.trim().toLowerCase();
+      if (result && TARGETS[result]) return result;
+    }
   } catch {}
 
   return null; // can't classify
