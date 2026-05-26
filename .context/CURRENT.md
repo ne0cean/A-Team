@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**583 tests PASS** (2026-05-25). PMI + Design Taste INDEX.md + Cortex PARA 재편 + OneNote 누락 658개 다운로드.
+**583 tests PASS** (2026-05-26). Cortex Ritual Dashboard v2 전면 리빌드 + OneNote 데이터 마이그레이션.
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
 
@@ -60,6 +60,21 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-26) — Cortex Ritual Dashboard v2 전면 리빌드
+
+- **Ritual Dashboard v2 전면 리빌드** (2026-05-25~26, 대규모): OneNote 10년 주간 플래너를 localhost:7843 웹 대시보드로 완전 이전.
+  - **데이터 마이그레이션**: OneNote 원본 파싱 → 월별 JSON (May 20일 209items, June 30일 344items) + standing-orders.json + 오타 16건 수정
+  - **서버 v2**: 20+ API endpoints (month CRUD, day-type, notes, search, standing-orders, day-frames, inject-frames, move-item, undo, vision-roadmap)
+  - **Day Frames 시스템**: Weekday/Flow/Block 3타입 프레임 + 어드민 탭 + routine/todo 구분 + 이월 로직 + 프레임 상단/수동 하단 정렬
+  - **Standing Orders 4탭**: Standing + Weekly(매주/격주) + Monthly(recurring+이번달) + Yearly(월+일) — 모두 CRUD + 순서변경 + 하이퍼링크
+  - **캘린더 자동 반영**: 공휴일 33개 + Happy Friday 11개 + 제헌절 복귀 + 월간/주간/연간 반복 항목
+  - **Vision & Milestones 패널**: 5개년(2026-2030) × 7카테고리 테이블 + Admin Notes
+  - **UI**: Full Month 기본뷰 + 지나간 주 접기 + Day Type 상단바 + 카테고리 컬러바 + 운동부위 칩 + 크로스데이 드래그앤드롭 + Enter 텍스트 분기 + 하이퍼링크(🔗) + Undo 버튼
+  - **디자인 개선**: audit 기반 타이포/간격/컬러 개선 (Linear/Notion 톤)
+  - **PWA**: manifest + SW (개발 중 비활성) + safe-area
+  - **빈 데이터 저장 방지 안전장치** (프론트+서버 양쪽)
+- **583 tests PASS** 유지
+
 ## Last Completions (2026-05-25) — Idea Auto-Accumulation System + Cortex 워크스페이스
 
 - **Idea Auto-Accumulation System 구현** — 아이디어가 세션마다 분산되는 문제를 구조적으로 해결. 3개 컴포넌트 A-Team 글로벌 반영:
@@ -100,7 +115,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **OneNote 이미지 로컬화** — 408개 md의 Graph API URL → 로컬 이미지 다운로드 + 경로 교체 스크립트 작성/실행 (별도 세션)
+- [ ] **Ritual Dashboard v2 피드백 반영 계속** — OneNote 원본 재파싱(오타 근본 해결), 모바일 실기기 테스트, PWA 프로덕션 활성화
 - [ ] **제품 빌드 시작** — 커넥톰 등 프로젝트 A-Team으로 실전 빌드 (플라이휠 증거)
 - [ ] **Design Taste Evaluator Phase 2** — taste-evaluator.md 에이전트 구현 → designer 연결
 - [ ] **VDI GitLab CE 설치** — 사내 서버 VM 확보 → Docker 설치 → cortex/ 동기화

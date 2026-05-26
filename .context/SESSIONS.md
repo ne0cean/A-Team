@@ -2,6 +2,14 @@
 
 ---
 
+## [2026-05-26] Cortex Ritual Dashboard v2 전면 리빌드
+
+**완료**: OneNote 10년 주간 플래너 → localhost:7843 대시보드 완전 이전. 서버 v2 (20+ API), Day Frames 시스템 (3 day types + routine/todo + 이월), Standing Orders 4탭 CRUD, 공휴일 33개 + HF 11개 캘린더 반영, Vision & Milestones 5개년 테이블, 크로스데이 D&D, 하이퍼링크, Undo, 디자인 개선. 데이터 마이그레이션 (May 209 + June 344 items), 오타 16건 수정.
+**이슈**: 데이터 유실 3회 발생 (SW 캐시, 마이그레이션 덮어쓰기, inject-frames 빈 데이터). 빈 데이터 저장 방지 안전장치 추가로 해결. OneNote 원본 재파싱 미완 (git .md 기반 오타 잔존).
+**빌드**: ✅ 583 tests PASS
+
+---
+
 ## [2026-05-25] Cortex 워크스페이스 + YT 16개 분석 + PKM 벤치마크 + 거버넌스 V2
 
 **완료**:
