@@ -60,7 +60,14 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-26) — Cortex Ritual Dashboard v2 전면 리빌드
+## Last Completions (2026-05-26) — Cortex 구조 확정 + 모바일 캡처 인프라
+
+- **Cortex PARA-B 구조 확정 + 6기둥 병합** — `cortex/areas/` → `cortex/hexagonal pillars_rocks_helm/` rename. archive/interstellar-onenote의 6pillars(845md) + 3_Archive(451md) 기둥별 매핑 병합 (Cyrano→mo-chuisle, Solidarity→string, Accumulation→snowball, Career/Skill/성장전략/AI전략팀/SD→interstellar). 1_Projects(343md)→cortex/projects/ 이동. ritual-routine 중복 해소 (파일별 정본 선택 + bak 정리). 최종: 1,292md areas + 343md projects.
+- **Telegram → cortex/inbox 자동 캡처 데몬** — `scripts/telegram-inbox.mjs` (long-polling, 텍스트/사진/파일/음성/포워드 지원, 📥 확인 이모지). launchd `com.ateam.telegram-inbox` 상시 실행 등록. 모바일에서 봇에 던지면 즉시 .md 저장.
+- **Obsidian vault 설정** — `cortex/.obsidian/` (app.json + core-plugins + daily-notes). 새 노트 기본 위치 inbox/, 첨부 inbox/attachments/. gitignore로 워크스페이스 캐시 제외.
+- **PKM 세부 분류 벤치마크 리서치** — Zettelkasten/LYT-ACE/PARA/PPV/Thomas Frank 6시스템 비교. 결론: 캡처 단위=파일 1개(atomic), 모바일=Telegram→inbox(Obsidian 직접 열지 않음), 하위구조=폴더 depth 2 + MOC, 처리=매일 5분 quick sort + 주간 30분 리뷰.
+
+## Last Completions (2026-05-26, 이전) — Cortex Ritual Dashboard v2 전면 리빌드
 
 - **Ritual Dashboard v2 전면 리빌드** (2026-05-25~26, 대규모): OneNote 10년 주간 플래너를 localhost:7843 웹 대시보드로 완전 이전.
   - **데이터 마이그레이션**: OneNote 원본 파싱 → 월별 JSON (May 20일 209items, June 30일 344items) + standing-orders.json + 오타 16건 수정
