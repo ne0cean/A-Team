@@ -81,7 +81,7 @@
   .category:hover .cat-add { display: inline; }
   .cat-add:hover { color: #f0c040 !important; }
 
-  .item { display: flex; align-items: flex-start; gap: 4px; padding: 2px 0; font-size: 11px; line-height: 1.5; }
+  .item { display: flex; align-items: flex-start; gap: 4px; padding: 3px 6px; font-size: 11px; line-height: 1.5; cursor: grab; min-height: 22px; }
   .item input[type="checkbox"] { -webkit-appearance: none; appearance: none; margin-top: 2px; cursor: pointer; flex-shrink: 0; width: 11px; height: 11px; border: 1.5px solid #484f58; border-radius: 2px; background: transparent; position: relative; }
   .item input[type="checkbox"]:checked { background: #56d364; border-color: #56d364; }
   .item input[type="checkbox"]:checked::after { content: ''; position: absolute; left: 2.5px; top: 0.5px; width: 3px; height: 6px; border: solid #0d1117; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
@@ -857,10 +857,18 @@ async function editItem(d, cat, idx, newText) {
   if (!newText.trim()) return;
   const item = ensureDay(d)[cat]?.[idx];
   if (!item) return;
-  // Don't overwrite if text hasn't actually changed (avoids link textContent issues)
-  if (item.text === newText.trim()) return;
-  item.text = newText.trim();
-  await save();
+  const t = newText.trim();
+  if (item.text === t) return;
+  // Auto-detect URL pasted into existing item
+  const urlMatch = t.match(/^(https?:\/\/\S+)$/);
+  const embeddedMatch = !urlMatch && t.match(/(https?:\/\/\S+)/);
+  if (urlMatch && !item.url) {
+    item.url = t;
+  } else if (embeddedMatch && !item.url) {
+    item.url = embeddedMatch[1];
+  }
+  item.text = t;
+  await save(); render();
 }
 
 function handleItemKey(e, d, cat, idx) {
@@ -919,7 +927,21 @@ async function addNewItem(d, cat, text) {
   if (!text.trim()) return;
   const day = ensureDay(d);
   if (!day[cat]) day[cat] = [];
-  day[cat].push({ text: text.trim(), url: '', done: false });
+  const t = text.trim();
+  // Auto-detect URL: if entire input is a URL, set as url+text
+  const urlMatch = t.match(/^(https?:\/\/\S+)$/);
+  // Or extract URL from mixed text: "label https://..."
+  const mixedMatch = !urlMatch && t.match(/^(.+?)\s+(https?:\/\/\S+)$/);
+  const embeddedMatch = !urlMatch && !mixedMatch && t.match(/(https?:\/\/\S+)/);
+  if (urlMatch) {
+    day[cat].push({ text: t, url: t, done: false });
+  } else if (mixedMatch) {
+    day[cat].push({ text: mixedMatch[1].trim(), url: mixedMatch[2], done: false });
+  } else if (embeddedMatch) {
+    day[cat].push({ text: t, url: embeddedMatch[1], done: false });
+  } else {
+    day[cat].push({ text: t, url: '', done: false });
+  }
   await save(); render();
 }
 
