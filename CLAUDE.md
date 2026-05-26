@@ -3,6 +3,22 @@
 > 프로젝트 컨텍스트(레포 구조·작업 원칙·완성 선언·커맨드 목록)는 **AGENTS.md** 참조.
 > 이 파일은 Claude Code 전용 자동화·오케스트레이션 규칙만 담는다.
 
+## Cortex Ritual Dashboard (SSOT)
+
+개인 운영 시스템. 매일 참조·수정하는 핵심 데이터.
+
+**데이터 경로** (`cortex/areas/life/ritual-routine/`):
+| 파일 | 용도 | 보호 |
+|------|------|------|
+| `YYYY-MM.json` | 월별 일정 (캘린더 데이터) | ⚠️ 덮어쓰기 금지 |
+| `standing-orders.json` | 상시/주간/월간반복/연간/공휴일/비전 | ⚠️ 덮어쓰기 금지 |
+| `day-frames.json` | Day Type별 프레임 템플릿 (weekday/flow/block) | ⚠️ 덮어쓰기 금지 |
+| `vision-roadmap.json` | 5개년 비전 테이블 | ⚠️ 덮어쓰기 금지 |
+
+**접근 방식**: JSON 파일 직접 Read/Edit (SSOT). 서버(localhost:7843)는 UI용.
+**절대 금지**: 마이그레이션/구조 재편 시 이 디렉토리 파일 삭제 또는 빈 데이터로 덮어쓰기.
+**백업**: 수정 전 `.bak` 생성 필수.
+
 ## 🚀 A-Team Calling Commands (의무)
 세션 시작 시 반드시 다음 명령 중 하나를 호출하여 컨텍스트를 로드합니다.
 
