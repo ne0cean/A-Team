@@ -76,48 +76,22 @@ async function downloadFile(fileId) {
 // --- Cortex + Web search ---
 
 function searchCortexLocal(query) {
-  const CORTEX = join(process.env.HOME, 'Projects/a-team/cortex');
-  const safe = s => s.replace(/[";$`\\!{}()|&<>']/g, '');
-
-  // Split query into meaningful tokens (Korean + alphanumeric chunks)
-  const tokens = query.match(/[a-zA-Z0-9]+|[가-힣]+/g) || [query];
-  const searchDirs = `"${CORTEX}/hexagonal pillars_rocks_helm/" "${CORTEX}/projects/" "${CORTEX}/wiki/"`;
-
-  // grep each token, intersect file lists
-  let fileSet = null;
-  for (const token of tokens) {
-    if (token.length < 2) continue;
-    try {
-      const result = execSync(
-        `grep -ril --include="*.md" "${safe(token)}" ${searchDirs} 2>/dev/null`,
-        { encoding: 'utf-8', timeout: 5000 }
-      ).trim();
-      const files = new Set(result ? result.split('\n') : []);
-      fileSet = fileSet ? new Set([...fileSet].filter(f => files.has(f))) : files;
-    } catch { fileSet = fileSet || new Set(); }
-  }
-
-  const hits = [];
-  for (const filePath of [...(fileSet || [])].slice(0, 8)) {
-    const rel = filePath.replace(CORTEX + '/', '');
-    let context = '';
-    try {
-      const content = readFileSync(filePath, 'utf-8');
-      const lines = content.split('\n');
-      // Find first line containing any token
-      const matchIdx = lines.findIndex(l => {
-        const low = l.toLowerCase();
-        return tokens.some(t => low.includes(t.toLowerCase()));
-      });
-      if (matchIdx >= 0) {
-        context = lines.slice(Math.max(0, matchIdx), matchIdx + 3).join(' ').trim().slice(0, 120);
-      } else {
-        context = lines.slice(0, 3).join(' ').trim().slice(0, 120);
-      }
-    } catch {}
-    hits.push({ path: rel, context });
-  }
-  return hits;
+  try {
+    const body = JSON.stringify({
+      q: query, limit: 6,
+      attributesToRetrieve: ['filename', 'path', 'pillar'],
+      attributesToCrop: ['content'], cropLength: 80,
+    });
+    const result = execSync(
+      `curl -s -m 3 "http://127.0.0.1:7700/indexes/cortex/search" -H "Content-Type: application/json" -d '${body.replace(/'/g, "'\\''")}'`,
+      { encoding: 'utf-8', timeout: 5000 }
+    );
+    const data = JSON.parse(result);
+    return (data.hits || []).map(h => ({
+      path: h.path,
+      context: h._formatted?.content?.replace(/<[^>]+>/g, '').slice(0, 120) || h.filename,
+    }));
+  } catch { return []; }
 }
 
 function searchWebDDG(query) {

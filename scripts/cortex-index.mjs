@@ -6,6 +6,7 @@
 
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join, relative, extname } from 'path';
+import { createHash } from 'crypto';
 
 const CORTEX = join(process.env.HOME, 'Projects/a-team/cortex');
 const MEILI = 'http://127.0.0.1:7700';
@@ -33,7 +34,7 @@ function walk(dir, base = CORTEX) {
         const pillar = pillarMatch ? pillarMatch[1] : (rel.startsWith('projects') ? 'projects' : 'other');
 
         results.push({
-          id: rel.replace(/[^a-zA-Z0-9가-힣]/g, '_'),
+          id: createHash('md5').update(rel).digest('hex').slice(0, 16),
           path: rel,
           filename: e.name.replace('.md', ''),
           title,
