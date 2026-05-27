@@ -60,6 +60,19 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-28) — Dashboard 통합 앱 전환 (OneNote 구조)
+
+- **프론트엔드 모듈 분리** — 2014줄 단일 HTML → index.html(앱 셸 ~100줄) + css/main.css(274줄) + js/app.js(1650줄). Cloudflare Workers assets로 서빙.
+- **원노트 구조 적용** — 좌측 사이드바(cortex 노트 트리, 검색, 새 노트 생성) + 메인(대시보드 캘린더). PC: 사이드바 열기/닫기 토글, 모바일: 슬라이드 오버레이.
+- **노트 뷰어/에디터** — 사이드바에서 파일 클릭 → 메인에 마크다운 렌더링, Edit 버튼으로 편집 → Save로 GitHub 커밋.
+- **이미지 업로드** — Worker `POST /api/cortex/upload` → GitHub cortex/attachments/에 저장. 에디터에서 파일선택 + 클립보드 붙여넣기 지원.
+- **새 노트 생성** — 사이드바 "+" 버튼 → 파일명 입력 → 현재 폴더에 .md 생성 → 즉시 편집.
+- **Capture 바** — 하단 고정 입력바. 텍스트 메모 → cortex/inbox/에 저장, `28 w 미팅` 단축 → 캘린더에 직접 추가, 사진 → GitHub 업로드.
+- **통합 검색** — 🔍에서 스케줄(D1) + 노트(GitHub tree) 동시 검색. 결과를 SCHEDULE/NOTES로 구분 표시.
+- **PWA 오프라인** — Service Worker 재활성화. 셸 캐시 + API stale-while-revalidate.
+- **월 경계 데이터** — 이전/다음 달 데이터 동시 로드, 주 경계에서 양쪽 달 표시.
+- **API 상수 누락 수정** — `const API = ''` 누락으로 캘린더 렌더 실패 → 수정.
+
 ## Last Completions (2026-05-27) — Cortex 뇌 시스템 + MeiliSearch + Dashboard 개선
 
 - **Cortex "제2의 뇌" 설계 + Tier 1 구현** — catalog.jsonl(1638파일 인덱스), access-log.jsonl(접근 기록), cortex-health.mjs(주간 진단 80점), system-health.mjs(전체 시스템 진단 70점). /vibe에 자동 tidy 5개 삽입. ritual JSON→data/ 분리(운영데이터/지식 분리). 주간 크론 2개 등록(cortex-health 월09:00, system-health 월09:30).
@@ -142,7 +155,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **OneNote 완전 대체 (1주 목표)** — Dashboard 캘린더 버그 수정 + offset 영속화 + Telegram 미디어 테스트 + 모바일 사용성 검증
+- [ ] **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증, 동기화 이슈
 - [ ] **모델 오케스트레이션 강제 훅 등록** — enforce-model-param.sh + model-compliance.sh를 settings.json에 등록 (이번 세션 미완)
 - [ ] **MeiliSearch launchd 등록** — com.ateam.meilisearch.plist load (바이너리 설치 완료, 데몬 미등록)
 - [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)

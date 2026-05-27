@@ -2,6 +2,12 @@
 
 ---
 
+## [2026-05-28] Dashboard 통합 앱 전환 (OneNote 구조)
+
+**완료**: 프론트엔드 모듈 분리 (2014줄→셸+CSS+JS), 원노트 구조 (좌측 사이드바+메인 대시보드), 노트 열람/편집/생성, 이미지 업로드(파일+붙여넣기→GitHub), Capture 바, 통합 검색(D1+GitHub), PWA SW, 월 경계 데이터, PC 사이드바 토글.
+**이슈**: `const API=''` 누락→캘린더 미렌더링 (배포 전 검증 미흡). GitHub tree 캐시 지연. SW 캐시 업데이트 지연.
+**빌드**: ✅ 583 tests PASS
+
 ## [2026-05-27] Cortex 뇌 시스템 + MeiliSearch + Dashboard 개선 + 모델 오케스트레이션 감사
 
 **완료**: Cortex Tier 1 구현(catalog/access-log/cortex-health/system-health + /vibe tidy 자동화). MeiliSearch 3499문서 인덱싱(typo tolerance). Telegram 검색(?키워드 → cortex+DDG+Groq 종합) + 일정 추가(28 w 팀미팅) + 음성 전사. Dashboard UI 대규모 개선(viewport 1200px 고정, pull-to-refresh, URL 자동링크, EX 헤더 통합, 캘린더 이전/다음달 표시, recurring 체크 가능, Worker save 안전장치 수정). AI-native PKM 20개 벤치마크. 모델 오케스트레이션 리뷰 — 로컬 모델 사용 0건 적발, 강제 훅 작성(미등록). 냉철한 제언 6건(인프라 중독, Connectome 즉시 시작, String 강화).
