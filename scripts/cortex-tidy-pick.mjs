@@ -46,7 +46,21 @@ const icons = { delete: '🗑', archive: '📦', merge: '🔗', keep: '✅' };
 console.log(`📋 Cortex 정리 (${reviewed}/${total} 완료, 오늘 5개):`);
 picks.forEach((p, i) => {
   const icon = icons[p.recommend] || '❓';
-  const preview = p.preview ? `"${p.preview.slice(0, 50)}${p.preview.length > 50 ? '...' : ''}"` : '';
-  console.log(`  [${i + 1}] ${p.path} (${p.lines}줄) ${preview} → ${icon} ${p.recommend}`);
+  // Read actual file content (skip frontmatter)
+  let bodyPreview = '';
+  try {
+    const full = readFileSync(join(CORTEX, p.path), 'utf-8');
+    const lines = full.split('\n');
+    // Skip frontmatter (--- ... ---)
+    let start = 0;
+    if (lines[0]?.trim() === '---') {
+      start = lines.findIndex((l, i) => i > 0 && l.trim() === '---');
+      start = start >= 0 ? start + 1 : 0;
+    }
+    const body = lines.slice(start).filter(l => l.trim()).join(' ').trim();
+    bodyPreview = body ? body.slice(0, 80) : '(본문 없음)';
+  } catch { bodyPreview = '(읽기 실패)'; }
+  console.log(`  [${i + 1}] ${p.path} (${p.lines}줄) → ${icon}`);
+  console.log(`      ${bodyPreview}`);
 });
 console.log(`  처리: 1d 2a 3y 4y 5d (d삭제 a보관 y유지 s스킵)`);
