@@ -1,3 +1,4 @@
+const API = '';
 const CATS = ['ritual','input','work','outcome'];
 const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Work', outcome:'Out'};
 const DAY_NAMES = ['일','월','화','수','목','금','토'];
