@@ -381,6 +381,45 @@ export default {
         return new Response(JSON.stringify(results), { headers });
       }
 
+      // GET /api/search/unified?q=keyword — search schedule + notes
+      if (path === '/api/search/unified' && method === 'GET') {
+        const q = (url.searchParams.get('q') || '').toLowerCase();
+        if (!q) return new Response(JSON.stringify({schedule:[],notes:[]}), { headers });
+
+        // Schedule search (D1)
+        const schedResults = [];
+        const rows = await env.DB.prepare("SELECT key, data FROM ritual_data WHERE key LIKE '20%'").all();
+        for (const row of rows.results) {
+          const data = JSON.parse(row.data);
+          for (const [day, dd] of Object.entries(data.days || {})) {
+            const matches = [];
+            if (dd.one_thing?.toLowerCase().includes(q)) matches.push({ field:'one_thing', text:dd.one_thing });
+            for (const cat of ['ritual','input','work','outcome']) {
+              for (const item of (dd[cat] || [])) {
+                if (item.text.toLowerCase().includes(q)) matches.push({ field:cat, text:item.text });
+              }
+            }
+            if (matches.length) schedResults.push({ ym:row.key, day, matches });
+          }
+        }
+
+        // Notes search (GitHub tree)
+        let noteResults = [];
+        try {
+          const treeUrl = `https://api.github.com/repos/${REPO}/git/trees/master?recursive=1`;
+          const treeRes = await fetch(treeUrl, { headers: ghHeaders });
+          if (treeRes.ok) {
+            const treeData = await treeRes.json();
+            noteResults = (treeData.tree || [])
+              .filter(i => i.path.startsWith('cortex/') && i.path.toLowerCase().includes(q))
+              .slice(0, 20)
+              .map(i => ({ name: i.path.split('/').pop(), path: i.path, type: i.type === 'tree' ? 'dir' : 'file' }));
+          }
+        } catch {}
+
+        return new Response(JSON.stringify({ schedule: schedResults.slice(0,20), notes: noteResults }), { headers });
+      }
+
       // 404
       return new Response('Not found', { status: 404 });
 

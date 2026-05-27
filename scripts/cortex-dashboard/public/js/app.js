@@ -25,10 +25,8 @@ function init() {
 }
 
 function registerSW() {
-  // Unregister stale SW during dev; re-enable for production
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
-    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
 }
 
@@ -892,18 +890,38 @@ function debounceSearch() {
 async function doSearch() {
   const q = document.getElementById('searchInput').value.trim();
   if (q.length < 2) { document.getElementById('searchResults').innerHTML = ''; return; }
-  const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`);
-  const results = await res.json();
+  const res = await fetch(`${API}/api/search/unified?q=${encodeURIComponent(q)}`);
+  const data = await res.json();
   const container = document.getElementById('searchResults');
-  if (!results.length) { container.innerHTML = '<div style="color:#484f58;text-align:center;padding:20px">No results</div>'; return; }
-  container.innerHTML = results.slice(0, 50).map(r => {
-    const matchHtml = r.matches.map(m => {
-      const highlighted = esc(m.text).replace(new RegExp(esc(q), 'gi'), '<mark>$&</mark>');
-      return `<div class="sr-match"><span class="sr-cat">${m.field}</span> ${highlighted}</div>`;
+  let html = '';
+
+  // Schedule results
+  if (data.schedule?.length) {
+    html += '<div style="font-size:10px;color:#f0c040;padding:4px 12px;font-weight:600">SCHEDULE</div>';
+    html += data.schedule.map(r => {
+      const matchHtml = r.matches.map(m => {
+        const highlighted = esc(m.text).replace(new RegExp(esc(q), 'gi'), '<mark>$&</mark>');
+        return `<div class="sr-match"><span class="sr-cat">${m.field}</span> ${highlighted}</div>`;
+      }).join('');
+      return `<div class="search-result" onclick="goToResult('${r.ym}',${r.day})">
+        <div class="sr-date">${r.ym} / ${r.day}일</div>${matchHtml}</div>`;
     }).join('');
-    return `<div class="search-result" onclick="goToResult('${r.ym}',${r.day})">
-      <div class="sr-date">${r.ym} / ${r.day}일</div>${matchHtml}</div>`;
-  }).join('');
+  }
+
+  // Notes results
+  if (data.notes?.length) {
+    html += '<div style="font-size:10px;color:#58a6ff;padding:4px 12px;font-weight:600;margin-top:8px">NOTES</div>';
+    html += data.notes.map(r => {
+      const icon = r.type === 'dir' ? '&#128193;' : '&#128196;';
+      const onclick = r.type === 'dir' ? `closeSearch();loadSidebarTree('${r.path}')` : `closeSearch();openNote('${r.path}')`;
+      return `<div class="search-result" onclick="${onclick}">
+        <span>${icon}</span> <span>${esc(r.name)}</span>
+        <span style="font-size:9px;color:#484f58;margin-left:8px">${esc(r.path)}</span></div>`;
+    }).join('');
+  }
+
+  if (!html) html = '<div style="color:#484f58;text-align:center;padding:20px">No results</div>';
+  container.innerHTML = html;
 }
 function goToResult(resultYm, day) {
   closeSearch();
@@ -1224,6 +1242,30 @@ function renderMarkdown(md) {
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
     .replace(/^- (.+)$/gm, '&bull; $1')
     .replace(/\n/g, '<br>');
+}
+
+async function createNewNote() {
+  const name = prompt('New note name (without .md):');
+  if (!name?.trim()) return;
+  const fileName = name.trim().replace(/\s+/g, '-') + '.md';
+  const filePath = cortexPath + '/' + fileName;
+  const content = `# ${name.trim()}\n\n`;
+  const res = await fetch(`${API}/api/cortex/file`, {
+    method: 'POST', headers: AUTH,
+    body: JSON.stringify({ filePath, content })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    cortexFile = { path: filePath, name: fileName, content, sha: data.sha };
+    cortexEditing = true;
+    document.getElementById('dashboardView').style.display = 'none';
+    document.getElementById('scheduleNav').style.display = 'none';
+    document.getElementById('noteView').style.display = '';
+    document.getElementById('noteContent').innerHTML = renderNoteViewer();
+    loadSidebarTree(cortexPath);
+  } else {
+    alert('Create failed: ' + (data.error || 'unknown'));
+  }
 }
 
 async function saveCortexFile() {
@@ -1554,6 +1596,52 @@ document.addEventListener('touchend', e => {
   if (dy > 80) location.reload();
   pullActive = false;
 });
+
+// --- Capture ---
+async function submitCapture() {
+  const input = document.getElementById('captureInput');
+  const text = input?.value?.trim();
+  if (!text) return;
+
+  // Try schedule shorthand: [月/]日 카테고리 내용
+  const match = text.match(/^(?:(\d{1,2})\/)?(\d{1,2})\s+(r|i|w|o|ritual|input|work|outcome|리추얼|인풋|워크|아웃컴|업무|결과)\s+(.+)$/i);
+  if (match) {
+    const aliases = {r:'ritual',i:'input',w:'work',o:'outcome',ritual:'ritual',input:'input',work:'work',outcome:'outcome','리추얼':'ritual','인풋':'input','워크':'work','아웃컴':'outcome','업무':'work','결과':'outcome'};
+    const month = match[1] ? parseInt(match[1]) : currentMonth;
+    const day = parseInt(match[2]);
+    const cat = aliases[match[3].toLowerCase()];
+    const content = match[4].trim();
+    if (cat) {
+      const ymStr = `${currentYear}-${String(month).padStart(2,'0')}`;
+      const res = await fetch(`${API}/api/add-item`, { method:'POST', headers:AUTH, body:JSON.stringify({ym:ymStr,day:String(day),category:cat,text:content,url:''}) });
+      if (res.ok) { input.value = ''; loadMonth(); return; }
+    }
+  }
+
+  // Otherwise save as inbox note
+  const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g,'-');
+  const slug = text.slice(0,30).replace(/[^a-zA-Z0-9가-힣]/g,'-').replace(/-+/g,'-');
+  const filePath = `cortex/inbox/${ts.slice(0,10)}-${slug}.md`;
+  const md = `---\ncaptured: ${new Date().toISOString()}\nsource: dashboard\n---\n\n${text}`;
+  const res = await fetch(`${API}/api/cortex/file`, { method:'POST', headers:AUTH, body:JSON.stringify({filePath,content:md}) });
+  if (res.ok) { input.value = ''; alert('Saved to inbox'); }
+  else alert('Save failed');
+}
+
+async function captureImage(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const base64 = reader.result.split(',')[1];
+    const res = await fetch(`${API}/api/cortex/upload`, { method:'POST', headers:AUTH, body:JSON.stringify({fileName:file.name,base64}) });
+    const data = await res.json();
+    if (data.ok) {
+      const input = document.getElementById('captureInput');
+      if (input) input.value = (input.value ? input.value + ' ' : '') + data.markdown;
+    }
+  };
+  reader.readAsDataURL(file);
+}
 
 // --- Sidebar ---
 function toggleSidebar() {
