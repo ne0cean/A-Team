@@ -336,6 +336,28 @@ export default {
         return new Response(JSON.stringify({ ok: true, sha: result.content?.sha }), { headers });
       }
 
+      // POST /api/cortex/upload — upload image/file to cortex/attachments/
+      if (path === '/api/cortex/upload' && method === 'POST') {
+        const { fileName, base64, contentType } = await request.json();
+        if (!fileName || !base64) return new Response(JSON.stringify({ error: 'fileName, base64 required' }), { status: 400, headers });
+        const ts = Date.now();
+        const safeName = `${ts}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        const filePath = `cortex/attachments/${safeName}`;
+        const ghUrl = `https://api.github.com/repos/${REPO}/contents/${filePath}`;
+        const ghRes = await fetch(ghUrl, {
+          method: 'PUT',
+          headers: { ...ghHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `cortex: upload ${safeName}`,
+            content: base64,
+            branch: 'master'
+          })
+        });
+        const result = await ghRes.json();
+        if (!ghRes.ok) return new Response(JSON.stringify({ error: result.message || 'upload failed' }), { status: ghRes.status, headers });
+        return new Response(JSON.stringify({ ok: true, path: filePath, markdown: `![${fileName}](${filePath})` }), { headers });
+      }
+
       // GET /api/cortex/search?q=keyword — search file/folder names + content
       if (path === '/api/cortex/search' && method === 'GET') {
         const q = url.searchParams.get('q')?.toLowerCase();

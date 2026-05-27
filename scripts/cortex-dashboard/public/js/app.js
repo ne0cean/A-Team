@@ -1634,15 +1634,53 @@ function renderNoteViewer() {
     return `<div class="md-toolbar">
       <button onclick="showDashboard()">&#9664; Back</button>
       <span class="md-path">${esc(fp)}</span>
+      <label style="cursor:pointer;font-size:10px;color:#58a6ff;padding:3px 8px">&#128247; <input type="file" accept="image/*" style="display:none" onchange="uploadImage(this.files[0])"></label>
       <button onclick="saveCortexFile()">Save</button>
       <button onclick="cortexEditing=false;document.getElementById('noteContent').innerHTML=renderNoteViewer()">Cancel</button>
-    </div><textarea class="md-edit" id="cortexEditArea">${esc(content)}</textarea>`;
+    </div><textarea class="md-edit" id="cortexEditArea" onpaste="handlePaste(event)">${esc(content)}</textarea>`;
   }
   return `<div class="md-toolbar">
     <button onclick="showDashboard()">&#9664; Back</button>
     <span class="md-path">${esc(fp)}</span>
     <button onclick="cortexEditing=true;document.getElementById('noteContent').innerHTML=renderNoteViewer();document.getElementById('cortexEditArea')?.focus()">Edit</button>
   </div><div class="md-content">${renderMarkdown(content)}</div>`;
+}
+
+async function uploadImage(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const base64 = reader.result.split(',')[1];
+    const res = await fetch(`${API}/api/cortex/upload`, {
+      method: 'POST', headers: AUTH,
+      body: JSON.stringify({ fileName: file.name, base64, contentType: file.type })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const textarea = document.getElementById('cortexEditArea');
+      if (textarea) {
+        const pos = textarea.selectionStart;
+        const before = textarea.value.slice(0, pos);
+        const after = textarea.value.slice(pos);
+        textarea.value = before + `\n${data.markdown}\n` + after;
+      }
+    } else {
+      alert('Upload failed');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function handlePaste(event) {
+  const items = event.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      event.preventDefault();
+      uploadImage(item.getAsFile());
+      return;
+    }
+  }
 }
 
 init();
