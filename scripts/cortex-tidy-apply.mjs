@@ -49,8 +49,22 @@ for (const { index, action } of actions) {
   const fullPath = join(CORTEX, entry.path);
 
   switch (action) {
-    case 'd': // delete
-      if (existsSync(fullPath)) unlinkSync(fullPath);
+    case 'd': // delete — 본문 확인 후 삭제
+      if (existsSync(fullPath)) {
+        const content = readFileSync(fullPath, 'utf-8');
+        const lines = content.split('\n');
+        let bodyStart = 0;
+        if (lines[0]?.trim() === '---') {
+          bodyStart = lines.findIndex((l, i) => i > 0 && l.trim() === '---');
+          bodyStart = bodyStart >= 0 ? bodyStart + 1 : 0;
+        }
+        const body = lines.slice(bodyStart).filter(l => l.trim()).join('').trim();
+        if (body.length > 20) {
+          results.push(`⚠️ 삭제 차단: ${entry.path} — 본문 ${body.length}자 있음. 'a'(보관)로 재시도`);
+          break;
+        }
+        unlinkSync(fullPath);
+      }
       entry.reviewed = now;
       entry.action = 'delete';
       results.push(`🗑 삭제: ${entry.path}`);
