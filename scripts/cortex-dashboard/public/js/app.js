@@ -476,7 +476,9 @@ async function save() {
   const dayCount = Object.keys(monthData.days || {}).length;
   let itemCount = 0;
   for (const dd of Object.values(monthData.days || {})) {
-    for (const c of CATS) itemCount += (dd[c] || []).length;
+    for (const k of Object.keys(dd)) {
+      if (Array.isArray(dd[k])) itemCount += dd[k].length;
+    }
   }
   if (dayCount === 0 && itemCount === 0) {
     console.warn('save() blocked: empty');

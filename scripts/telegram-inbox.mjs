@@ -17,7 +17,9 @@ if (!BOT_TOKEN) { console.error('[telegram-inbox] TELEGRAM_BOT_TOKEN env require
 const ALLOWED_USER = '207169746';
 const INBOX_DIR = join(process.env.HOME, 'Projects/a-team/cortex/inbox');
 const POLL_INTERVAL = 3000; // 3초
+const OFFSET_FILE = join(process.env.HOME, 'Projects/a-team/cortex/.telegram-offset');
 let offset = 0;
+try { offset = parseInt(readFileSync(OFFSET_FILE, 'utf-8').trim()) || 0; } catch {}
 
 if (!existsSync(INBOX_DIR)) mkdirSync(INBOX_DIR, { recursive: true });
 
@@ -409,6 +411,7 @@ async function poll() {
         offset = update.update_id + 1;
         if (update.message) await processMessage(update.message);
       }
+      writeFileSync(OFFSET_FILE, String(offset));
     }
   } catch (e) {
     console.error(`[poll error] ${e.message}`);
