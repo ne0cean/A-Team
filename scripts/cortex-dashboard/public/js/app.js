@@ -1185,108 +1185,12 @@ function showSOTab(name, el) {
   el.classList.add('active');
 }
 
-// --- Cortex Browser ---
+// --- Cortex Notes (sidebar + note viewer) ---
 let cortexPath = 'cortex';
-let cortexFile = null; // { path, content, sha, name }
+let cortexFile = null;
 let cortexEditing = false;
-let cortexHistory = [];
-
-window.addEventListener('popstate', (e) => {
-  if (e.state?.cortexPath) {
-    cortexPath = e.state.cortexPath;
-    cortexFile = null;
-    loadCortexTree(cortexPath);
-  }
-});
-
-async function loadCortexTree(dirPath, skipHistory) {
-  cortexPath = dirPath || 'cortex';
-  if (!skipHistory) history.pushState({ cortexPath }, '', '');
-  const el = document.getElementById('cortexPanel');
-  if (!el) return;
-
-  const res = await fetch(`${API}/api/cortex/tree?path=${encodeURIComponent(cortexPath)}`);
-  if (!res.ok) { el.innerHTML = '<div style="color:#f85149;padding:8px">Failed to load</div>'; return; }
-  const items = await res.json();
-
-  // Sort: dirs first, then files
-  items.sort((a, b) => {
-    if (a.type === 'dir' && b.type !== 'dir') return -1;
-    if (a.type !== 'dir' && b.type === 'dir') return 1;
-    return a.name.localeCompare(b.name);
-  });
-
-  // Breadcrumb
-  const parts = cortexPath.split('/');
-  let breadcrumb = '<div class="cortex-breadcrumb">';
-  parts.forEach((p, i) => {
-    const fullPath = parts.slice(0, i + 1).join('/');
-    breadcrumb += `<span onclick="loadCortexTree('${fullPath}')">${p}</span>`;
-    if (i < parts.length - 1) breadcrumb += ' / ';
-  });
-  breadcrumb += '</div>';
-
-  // Tree
-  let tree = `<input class="tree-search" placeholder="Search cortex..." onkeydown="if(event.key==='Enter')searchCortex(this.value)">`;
-  // Back (..) button
-  if (cortexPath !== 'cortex') {
-    const parent = cortexPath.split('/').slice(0, -1).join('/') || 'cortex';
-    tree += `<div class="tree-item" onclick="loadCortexTree('${parent}')"><span class="icon">⬆</span><span class="name">..</span></div>`;
-  }
-  tree += items.map(i => {
-    const icon = i.type === 'dir' ? '📁' : '📄';
-    const onclick = i.type === 'dir'
-      ? `loadCortexTree('${i.path}')`
-      : `loadCortexFile('${i.path}')`;
-    return `<div class="tree-item" onclick="${onclick}"><span class="icon">${icon}</span><span class="name">${esc(i.name)}</span></div>`;
-  }).join('');
-
-  // Viewer
-  let viewer = '';
-  if (cortexFile) {
-    viewer = renderCortexViewer();
-  } else {
-    viewer = `<div style="color:#484f58;padding:20px;text-align:center">Select a file</div>`;
-  }
-
-  el.innerHTML = `<div class="cortex-browser">${breadcrumb}<div class="cortex-tree">${tree}</div><div class="cortex-viewer" id="cortexViewer">${viewer}</div></div>`;
-}
-
-async function loadCortexFile(filePath) {
-  const res = await fetch(`${API}/api/cortex/file?path=${encodeURIComponent(filePath)}`);
-  if (!res.ok) return;
-  cortexFile = await res.json();
-  cortexEditing = false;
-  const viewer = document.getElementById('cortexViewer');
-  if (viewer) viewer.innerHTML = renderCortexViewer();
-  // Highlight active item
-  document.querySelectorAll('.tree-item').forEach(el => {
-    el.classList.toggle('active', el.textContent.trim() === cortexFile.name);
-  });
-}
-
-function renderCortexViewer() {
-  if (!cortexFile) return '';
-  const { path: fp, content, name } = cortexFile;
-
-  if (cortexEditing) {
-    return `<div class="md-toolbar">
-      <span class="md-path">${esc(fp)}</span>
-      <button onclick="saveCortexFile()">Save</button>
-      <button onclick="cortexEditing=false;document.getElementById('cortexViewer').innerHTML=renderCortexViewer()">Cancel</button>
-    </div>
-    <textarea class="md-edit" id="cortexEditArea">${esc(content)}</textarea>`;
-  }
-
-  return `<div class="md-toolbar">
-    <span class="md-path">${esc(fp)}</span>
-    <button onclick="cortexEditing=true;document.getElementById('cortexViewer').innerHTML=renderCortexViewer();document.getElementById('cortexEditArea')?.focus()">Edit</button>
-  </div>
-  <div class="md-content">${renderMarkdown(content)}</div>`;
-}
 
 function renderMarkdown(md) {
-  // Simple markdown → HTML
   return esc(md)
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
@@ -1296,7 +1200,7 @@ function renderMarkdown(md) {
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/`(.+?)`/g, '<code>$1</code>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-    .replace(/^- (.+)$/gm, '• $1')
+    .replace(/^- (.+)$/gm, '&bull; $1')
     .replace(/\n/g, '<br>');
 }
 
@@ -1313,7 +1217,7 @@ async function saveCortexFile() {
     cortexFile.content = content;
     cortexFile.sha = data.sha;
     cortexEditing = false;
-    document.getElementById('cortexViewer').innerHTML = renderCortexViewer();
+    document.getElementById('noteContent').innerHTML = renderNoteViewer();
   } else {
     alert('Save failed: ' + (data.error || 'unknown'));
   }
@@ -1323,19 +1227,17 @@ async function searchCortex(q) {
   if (!q || q.length < 2) return;
   const res = await fetch(`${API}/api/cortex/search?q=${encodeURIComponent(q)}`);
   const results = await res.json();
-  const viewer = document.getElementById('cortexViewer');
-  if (!viewer) return;
-  if (!results.length) { viewer.innerHTML = '<div style="color:#484f58;padding:20px">No results</div>'; return; }
-  viewer.innerHTML = results.map(r => {
-    const icon = r.type === 'dir' ? '📁' : '📄';
+  const el = document.getElementById('sidebarTree');
+  if (!el) return;
+  if (!results.length) { el.innerHTML = '<div style="color:#484f58;padding:8px">No results</div>'; return; }
+  el.innerHTML = results.map(r => {
+    const icon = r.type === 'dir' ? '&#128193;' : '&#128196;';
     const onclick = r.type === 'dir'
-      ? `loadCortexTree('${r.path}')`
-      : `loadCortexFile('${r.path}')`;
-    return `<div class="tree-item" onclick="${onclick}"><span class="icon">${icon}</span><span class="name">${esc(r.name)}</span><span style="font-size:9px;color:#484f58;margin-left:auto">${esc(r.path)}</span></div>`;
+      ? `loadSidebarTree('${r.path}')`
+      : `openNote('${r.path}')`;
+    return `<div class="tree-item" onclick="${onclick}"><span class="icon">${icon}</span><span class="name">${esc(r.name)}</span></div>`;
   }).join('');
 }
-
-// Auto-load cortex tree when panel opens
 
 // --- Vision & Milestones ---
 let visionData = null;
