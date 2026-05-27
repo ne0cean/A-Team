@@ -41,14 +41,34 @@ function getWeekStart(date) {
 }
 
 // --- Data loading ---
+let prevMonthData = null, nextMonthData = null;
+
 async function loadMonth() {
   const res = await fetch(`${API}/api/month?ym=${ym()}`);
   monthData = await res.json();
+  // Load adjacent months for week overlap
+  const pm = currentMonth === 1 ? 12 : currentMonth - 1;
+  const py = currentMonth === 1 ? currentYear - 1 : currentYear;
+  const nm = currentMonth === 12 ? 1 : currentMonth + 1;
+  const ny = currentMonth === 12 ? currentYear + 1 : currentYear;
+  const [prevRes, nextRes] = await Promise.all([
+    fetch(`${API}/api/month?ym=${py}-${String(pm).padStart(2,'0')}`),
+    fetch(`${API}/api/month?ym=${ny}-${String(nm).padStart(2,'0')}`)
+  ]);
+  prevMonthData = await prevRes.json();
+  nextMonthData = await nextRes.json();
   const vt = document.getElementById('visionText2');
   if (vt) vt.textContent = monthData.goals?.goal || '';
   updateLabel();
   render();
   renderWorkoutBar();
+}
+
+function getDayData(d, isCurrent) {
+  if (isCurrent) return monthData.days[String(d)] || {};
+  // Previous or next month
+  if (d > 15) return prevMonthData?.days[String(d)] || {};
+  return nextMonthData?.days[String(d)] || {};
 }
 
 function updateLabel() {
@@ -187,7 +207,7 @@ function renderWeekGridFull(week, todayDate, showToggle) {
         _showPastToggleOnWeek = true;
         _pastToggleDay = week.filter(c => c.current).pop()?.d || -1;
       }
-      html += renderDayCell(cell.d, isToday, false);
+      html += renderDayCell(cell.d, isToday, false, cell.current);
     }
   });
   html += '</div>';
@@ -287,18 +307,19 @@ function getWeeklyRecurring(d) {
   });
 }
 
-function renderDayCell(d, isToday, isWeek) {
-  const dayData = monthData.days[String(d)] || {};
+function renderDayCell(d, isToday, isWeek, isCurrent) {
+  const dayData = getDayData(d, isCurrent !== false);
   const dow = new Date(currentYear, currentMonth - 1, d).getDay();
   const typeClass = dayData.day_type ? ` type-${dayData.day_type}` : '';
   const todayClass = isToday ? ' today' : '';
   const holidayClass = getHoliday(d) ? ' is-holiday' : '';
+  const otherClass = isCurrent === false ? ' other-month' : '';
 
-  return `<div class="day-cell${todayClass}${typeClass}${holidayClass}" ondragover="dayDragOver(event)" ondragleave="dayDragLeave(event)" ondrop="dayDrop(event,${d})">${renderDayCellContent(d, isToday, isWeek)}</div>`;
+  return `<div class="day-cell${todayClass}${typeClass}${holidayClass}${otherClass}" ondragover="dayDragOver(event)" ondragleave="dayDragLeave(event)" ondrop="dayDrop(event,${d})">${renderDayCellContent(d, isToday, isWeek, isCurrent)}</div>`;
 }
 
-function renderDayCellContent(d, isToday, isWeek) {
-  const dayData = monthData.days[String(d)] || {};
+function renderDayCellContent(d, isToday, isWeek, isCurrent) {
+  const dayData = getDayData(d, isCurrent !== false);
   const dow = new Date(currentYear, currentMonth - 1, d).getDay();
   const dowClass = dow === 0 ? ' sun' : dow === 6 ? ' sat' : '';
 
