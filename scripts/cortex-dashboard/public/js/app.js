@@ -19,11 +19,8 @@ function init() {
   loadRecurringTemplates();
   loadFrames();
   loadVision();
-  loadCortexTree('cortex'); notesLoaded = true;
+  loadSidebarTree('cortex');
   registerSW();
-  // Default to Notes tab — hide schedule nav
-  const schedNav = document.getElementById('scheduleNav');
-  if (schedNav) schedNav.style.display = 'none';
 }
 
 function registerSW() {
@@ -1634,26 +1631,84 @@ document.addEventListener('touchend', e => {
   pullActive = false;
 });
 
-// --- Tab switching ---
-let activeTab = 'Notes';
-let notesLoaded = false;
+// --- Sidebar ---
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('sidebar')?.classList.toggle('open', sidebarOpen);
+  document.getElementById('sidebarOverlay')?.classList.toggle('open', sidebarOpen);
+}
 
-function switchTab(name) {
-  activeTab = name;
-  ['Schedule','Notes','Capture'].forEach(t => {
-    const content = document.getElementById('tab' + t);
-    const bar = document.getElementById('tabBar' + t);
-    if (content) content.classList.toggle('active', t === name);
-    if (bar) bar.classList.toggle('active', t === name);
+async function loadSidebarTree(dirPath) {
+  cortexPath = dirPath || 'cortex';
+  const el = document.getElementById('sidebarTree');
+  if (!el) return;
+  const res = await fetch(`${API}/api/cortex/tree?path=${encodeURIComponent(cortexPath)}`);
+  if (!res.ok) { el.innerHTML = '<div style="color:#f85149;padding:8px">Load failed</div>'; return; }
+  const items = await res.json();
+  items.sort((a, b) => {
+    if (a.type === 'dir' && b.type !== 'dir') return -1;
+    if (a.type !== 'dir' && b.type === 'dir') return 1;
+    return a.name.localeCompare(b.name);
   });
-  // Show/hide schedule-specific nav
-  const schedNav = document.getElementById('scheduleNav');
-  if (schedNav) schedNav.style.display = name === 'Schedule' ? '' : 'none';
-  // Load notes on first visit
-  if (name === 'Notes' && !notesLoaded) {
-    loadCortexTree('cortex');
-    notesLoaded = true;
+  let html = '';
+  if (cortexPath !== 'cortex') {
+    const parent = cortexPath.split('/').slice(0, -1).join('/') || 'cortex';
+    html += `<div class="tree-item" onclick="loadSidebarTree('${parent}')"><span class="icon">&#11014;</span><span class="name">..</span></div>`;
   }
+  const parts = cortexPath.split('/');
+  html += '<div class="cortex-breadcrumb">';
+  parts.forEach((p, i) => {
+    const full = parts.slice(0, i + 1).join('/');
+    html += `<span onclick="loadSidebarTree('${full}')">${p}</span>`;
+    if (i < parts.length - 1) html += ' / ';
+  });
+  html += '</div>';
+  html += items.filter(i => !i.name.startsWith('.')).map(i => {
+    const icon = i.type === 'dir' ? '&#128193;' : '&#128196;';
+    const onclick = i.type === 'dir'
+      ? `loadSidebarTree('${i.path}')`
+      : `openNote('${i.path}')`;
+    return `<div class="tree-item" onclick="${onclick}"><span class="icon">${icon}</span><span class="name">${esc(i.name)}</span></div>`;
+  }).join('');
+  el.innerHTML = html;
+}
+
+async function openNote(filePath) {
+  const res = await fetch(`${API}/api/cortex/file?path=${encodeURIComponent(filePath)}`);
+  if (!res.ok) return;
+  cortexFile = await res.json();
+  cortexEditing = false;
+  document.getElementById('dashboardView').style.display = 'none';
+  document.getElementById('scheduleNav').style.display = 'none';
+  const noteView = document.getElementById('noteView');
+  noteView.style.display = '';
+  noteView.querySelector('#noteContent').innerHTML = renderNoteViewer();
+  if (window.innerWidth < 900) toggleSidebar();
+}
+
+function showDashboard() {
+  document.getElementById('dashboardView').style.display = '';
+  document.getElementById('scheduleNav').style.display = '';
+  document.getElementById('noteView').style.display = 'none';
+  cortexFile = null;
+}
+
+function renderNoteViewer() {
+  if (!cortexFile) return '';
+  const { path: fp, content, name } = cortexFile;
+  if (cortexEditing) {
+    return `<div class="md-toolbar">
+      <button onclick="showDashboard()">&#9664; Back</button>
+      <span class="md-path">${esc(fp)}</span>
+      <button onclick="saveCortexFile()">Save</button>
+      <button onclick="cortexEditing=false;document.getElementById('noteContent').innerHTML=renderNoteViewer()">Cancel</button>
+    </div><textarea class="md-edit" id="cortexEditArea">${esc(content)}</textarea>`;
+  }
+  return `<div class="md-toolbar">
+    <button onclick="showDashboard()">&#9664; Back</button>
+    <span class="md-path">${esc(fp)}</span>
+    <button onclick="cortexEditing=true;document.getElementById('noteContent').innerHTML=renderNoteViewer();document.getElementById('cortexEditArea')?.focus()">Edit</button>
+  </div><div class="md-content">${renderMarkdown(content)}</div>`;
 }
 
 init();
