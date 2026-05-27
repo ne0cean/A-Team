@@ -1536,9 +1536,19 @@ document.addEventListener('touchend', e => {
 
 // --- Sidebar ---
 function toggleSidebar() {
-  sidebarOpen = !sidebarOpen;
-  document.getElementById('sidebar')?.classList.toggle('open', sidebarOpen);
-  document.getElementById('sidebarOverlay')?.classList.toggle('open', sidebarOpen);
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const main = document.getElementById('main');
+  if (window.innerWidth >= 900) {
+    // PC: toggle closed class
+    sidebar?.classList.toggle('closed');
+    main?.classList.toggle('sidebar-hidden');
+  } else {
+    // Mobile: slide overlay
+    sidebarOpen = !sidebarOpen;
+    sidebar?.classList.toggle('open', sidebarOpen);
+    overlay?.classList.toggle('open', sidebarOpen);
+  }
 }
 
 async function loadSidebarTree(dirPath) {
