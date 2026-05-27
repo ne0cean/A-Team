@@ -19,7 +19,11 @@ function init() {
   loadRecurringTemplates();
   loadFrames();
   loadVision();
+  loadCortexTree('cortex'); notesLoaded = true;
   registerSW();
+  // Default to Notes tab — hide schedule nav
+  const schedNav = document.getElementById('scheduleNav');
+  if (schedNav) schedNav.style.display = 'none';
 }
 
 function registerSW() {
@@ -1629,7 +1633,7 @@ document.addEventListener('touchend', e => {
 });
 
 // --- Tab switching ---
-let activeTab = 'Schedule';
+let activeTab = 'Notes';
 let notesLoaded = false;
 
 function switchTab(name) {
