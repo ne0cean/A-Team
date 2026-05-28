@@ -255,7 +255,7 @@ export default {
 
           for (const cat of ['ritual','input','work','outcome']) {
             const catFrame = frame.categories[cat];
-            if (!catFrame || catFrame.type !== 'routine') continue;
+            if (!catFrame || !(catFrame.items?.length)) continue;
             if (!dd[cat]) dd[cat] = [];
 
             const frameTexts = (catFrame.items || []).map(r => typeof r === 'object' ? r.text : r);
