@@ -160,15 +160,14 @@ function renderMonthView() {
     weeks.push(cells.slice(i, i + 7));
   }
 
-  // Determine current week
-  let currentWeekIdx = weeks.length - 1;
+  // Determine current week — only fold past weeks in current month
+  let currentWeekIdx = 0; // default: show all weeks
+  let pastWeeks = [];
   if (isCurrentMonth) {
     currentWeekIdx = weeks.findIndex(w => w.some(c => c.current && c.d === todayDate));
-    if (currentWeekIdx === -1) currentWeekIdx = weeks.length - 1;
+    if (currentWeekIdx === -1) currentWeekIdx = 0;
+    pastWeeks = weeks.filter((_, i) => i < currentWeekIdx);
   }
-
-  // Past weeks stats
-  const pastWeeks = weeks.filter((_, i) => i < currentWeekIdx);
   let pastTotal = 0, pastDone = 0;
   pastWeeks.forEach(week => week.filter(c => c.current).forEach(c => {
     const dd = monthData.days[String(c.d)] || {};
