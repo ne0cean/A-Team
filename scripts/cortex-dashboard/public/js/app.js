@@ -1244,10 +1244,29 @@ function renderMarkdown(md) {
 }
 
 async function createNewNote() {
-  const name = prompt('New note name (without .md):');
+  // Show folder selection + name input
+  const folders = [
+    'cortex/inbox',
+    'cortex/hexagonal pillars_rocks_helm/1-character',
+    'cortex/hexagonal pillars_rocks_helm/2-mo-chuisle',
+    'cortex/hexagonal pillars_rocks_helm/3-string',
+    'cortex/hexagonal pillars_rocks_helm/4-interstellar',
+    'cortex/hexagonal pillars_rocks_helm/5-life-xlab',
+    'cortex/hexagonal pillars_rocks_helm/6-snowball',
+    'cortex/hexagonal pillars_rocks_helm/zeroing',
+    'cortex/projects',
+    'cortex/resources',
+    cortexPath
+  ];
+  const unique = [...new Set(folders)];
+  const folderLabels = unique.map(f => f.replace('cortex/hexagonal pillars_rocks_helm/', '⬡ ').replace('cortex/', ''));
+  const choice = prompt('Save to:\n' + unique.map((f, i) => `${i}: ${folderLabels[i]}`).join('\n') + '\n\nEnter number (default: current folder):');
+  const targetFolder = (choice !== null && choice !== '' && unique[+choice]) ? unique[+choice] : cortexPath;
+
+  const name = prompt('Note name (without .md):');
   if (!name?.trim()) return;
   const fileName = name.trim().replace(/\s+/g, '-') + '.md';
-  const filePath = cortexPath + '/' + fileName;
+  const filePath = targetFolder + '/' + fileName;
   const content = `# ${name.trim()}\n\n`;
   const res = await fetch(`${API}/api/cortex/file`, {
     method: 'POST', headers: AUTH,
