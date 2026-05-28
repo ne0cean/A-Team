@@ -1662,20 +1662,28 @@ async function captureImage(file) {
 }
 
 // --- Sidebar ---
+function isDesktop() {
+  return window.screen.width >= 900;
+}
+
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
   const main = document.getElementById('main');
-  if (window.innerWidth >= 900) {
-    // PC: toggle closed class
-    sidebar?.classList.toggle('closed');
-    main?.classList.toggle('sidebar-hidden');
+  if (isDesktop()) {
+    sidebar?.classList.toggle('desktop-open');
+    main?.classList.toggle('desktop-sidebar');
   } else {
-    // Mobile: slide overlay
     sidebarOpen = !sidebarOpen;
     sidebar?.classList.toggle('open', sidebarOpen);
     overlay?.classList.toggle('open', sidebarOpen);
   }
+}
+
+// Auto-open sidebar on desktop
+if (isDesktop()) {
+  document.getElementById('sidebar')?.classList.add('desktop-open');
+  document.getElementById('main')?.classList.add('desktop-sidebar');
 }
 
 async function loadSidebarTree(dirPath) {
