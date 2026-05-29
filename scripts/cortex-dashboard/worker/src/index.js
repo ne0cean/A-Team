@@ -212,17 +212,20 @@ export default {
         const rows = await env.DB.prepare("SELECT key, data FROM ritual_data WHERE key LIKE '20%'").all();
         const results = [];
         for (const row of rows.results) {
+          let data;
+          try { data = JSON.parse(row.data); } catch { continue; }
           const ym = row.key;
-          const data = JSON.parse(row.data);
           for (const [day, dd] of Object.entries(data.days || {})) {
             const matches = [];
-            if (dd.one_thing?.toLowerCase().includes(q)) matches.push({ field: 'one_thing', text: dd.one_thing });
-            if (dd.notes?.toLowerCase().includes(q)) matches.push({ field: 'notes', text: dd.notes });
-            for (const cat of ['ritual','input','work','outcome']) {
-              for (const item of (dd[cat] || [])) {
-                if (item.text.toLowerCase().includes(q)) matches.push({ field: cat, text: item.text });
+            try {
+              if (dd.one_thing?.toLowerCase().includes(q)) matches.push({ field: 'one_thing', text: dd.one_thing });
+              if (dd.notes?.toLowerCase().includes(q)) matches.push({ field: 'notes', text: dd.notes });
+              for (const cat of ['ritual','input','work','outcome']) {
+                for (const item of (dd[cat] || [])) {
+                  if (item.text?.toLowerCase().includes(q)) matches.push({ field: cat, text: item.text });
+                }
               }
-            }
+            } catch { continue; }
             if (matches.length) results.push({ ym, day, matches });
           }
         }
@@ -414,15 +417,18 @@ export default {
         const schedResults = [];
         const rows = await env.DB.prepare("SELECT key, data FROM ritual_data WHERE key LIKE '20%'").all();
         for (const row of rows.results) {
-          const data = JSON.parse(row.data);
+          let data;
+          try { data = JSON.parse(row.data); } catch { continue; }
           for (const [day, dd] of Object.entries(data.days || {})) {
             const matches = [];
-            if (dd.one_thing?.toLowerCase().includes(q)) matches.push({ field:'one_thing', text:dd.one_thing });
-            for (const cat of ['ritual','input','work','outcome']) {
-              for (const item of (dd[cat] || [])) {
-                if (item.text.toLowerCase().includes(q)) matches.push({ field:cat, text:item.text });
+            try {
+              if (dd.one_thing?.toLowerCase().includes(q)) matches.push({ field:'one_thing', text:dd.one_thing });
+              for (const cat of ['ritual','input','work','outcome']) {
+                for (const item of (dd[cat] || [])) {
+                  if (item.text?.toLowerCase().includes(q)) matches.push({ field:cat, text:item.text });
+                }
               }
-            }
+            } catch { continue; }
             if (matches.length) schedResults.push({ ym:row.key, day, matches });
           }
         }
