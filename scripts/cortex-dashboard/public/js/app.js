@@ -703,6 +703,8 @@ function handleItemKey(e, d, cat, idx) {
     } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
   } else if (e.key === 'Backspace' && e.target.textContent.trim() === '') {
     e.preventDefault(); delItem(d, cat, idx, true);
+  } else if (e.altKey && e.key === '1') {
+    e.preventDefault(); toggleItem(d, cat, idx);
   }
 }
 
