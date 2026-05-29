@@ -205,14 +205,16 @@
 </div>
 
 <style>
-  .day-cell { background: #0d1117; min-height: 110px; padding: 6px; position: relative; overflow-y: auto; max-height: 320px; scrollbar-width: none; }
-  .day-cell::-webkit-scrollbar { display: none; }
-  .day-cell:hover { background: #111820; scrollbar-width: thin; }
-  .day-cell:hover::-webkit-scrollbar { display: block; width: 3px; }
+  .day-cell { background: #0d1117; min-height: 110px; padding: 6px; position: relative; overflow-y: overlay; overflow-y: auto; max-height: 320px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .day-cell::-webkit-scrollbar { width: 0; background: transparent; }
+  .day-cell:hover { background: #111820; scrollbar-width: thin; scrollbar-color: #30363d transparent; }
+  .day-cell:hover::-webkit-scrollbar { width: 3px; }
   .day-cell:hover::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
-  .day-cell.today { box-shadow: inset 0 0 0 2px #f0c040; background: #0e1c10; scrollbar-width: thin; }
-  .day-cell.today::-webkit-scrollbar { display: block; width: 3px; }
+  .day-cell:hover::-webkit-scrollbar-track { background: transparent; }
+  .day-cell.today { box-shadow: inset 0 0 0 2px #f0c040; background: #0e1c10; scrollbar-width: thin; scrollbar-color: #f0c040 transparent; }
+  .day-cell.today::-webkit-scrollbar { width: 3px; }
   .day-cell.today::-webkit-scrollbar-thumb { background: #f0c040; border-radius: 3px; }
+  .day-cell.today::-webkit-scrollbar-track { background: transparent; }
   .day-cell.today .day-num { color: #f0c040; }
   .day-cell.other-month { opacity: 0.4; min-height: 60px; }
   .day-cell.type-block { border-top: 1.5px solid #58a6ff; }

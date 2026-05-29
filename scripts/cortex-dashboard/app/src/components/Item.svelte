@@ -72,7 +72,7 @@
     display: flex;
     align-items: flex-start;
     gap: 4px;
-    padding: 2px 0;
+    padding: 2px 32px 2px 0;
     font-size: 11px;
     line-height: 1.5;
     position: relative;
