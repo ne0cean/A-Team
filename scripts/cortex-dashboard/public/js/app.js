@@ -538,8 +538,16 @@ function ensureDay(d) {
 }
 
 async function toggleItem(d, cat, idx) {
+  // Optimistic update
   ensureDay(d)[cat][idx].done = !ensureDay(d)[cat][idx].done;
-  await save(); render();
+  render();
+  // Atomic server update — safe across devices
+  try {
+    await fetch(`${API}/api/toggle`, {
+      method: 'POST', headers: AUTH,
+      body: JSON.stringify({ ym: ym(), day: String(d), category: cat, index: idx })
+    });
+  } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
 }
 
 async function toggleRecurring(d, idx) {
@@ -647,7 +655,14 @@ async function editItem(d, cat, idx, newText) {
     item.url = embeddedMatch[1];
   }
   item.text = t;
-  await save(); render();
+  render();
+  // Atomic server update
+  try {
+    await fetch(`${API}/api/edit-item`, {
+      method: 'POST', headers: AUTH,
+      body: JSON.stringify({ ym: ym(), day: String(d), category: cat, index: idx, text: t, url: item.url || '' })
+    });
+  } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
 }
 
 function handleItemKey(e, d, cat, idx) {
@@ -674,14 +689,18 @@ function handleItemKey(e, d, cat, idx) {
     day[cat][idx].text = before;
     // Insert new item with text after cursor
     day[cat].splice(idx + 1, 0, { text: after, url: '', done: false });
-    save().then(() => {
-      render();
-      // Focus the new item using data-attributes for precise targeting
-      setTimeout(() => {
-        const newItem = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${idx + 1}"]`);
-        newItem?.querySelector('.item-text')?.focus({ preventScroll: true });
-      }, 50);
-    });
+    render();
+    setTimeout(() => {
+      const newItem = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${idx + 1}"]`);
+      newItem?.querySelector('.item-text')?.focus({ preventScroll: true });
+    }, 50);
+    // Atomic server split
+    try {
+      await fetch(`${API}/api/split-item`, {
+        method: 'POST', headers: AUTH,
+        body: JSON.stringify({ ym: ym(), day: String(d), category: cat, index: idx, before, after })
+      });
+    } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
   } else if (e.key === 'Backspace' && e.target.textContent.trim() === '') {
     e.preventDefault(); delItem(d, cat, idx, true);
   }
@@ -691,16 +710,28 @@ async function addNewItemAfter(d, cat, afterIdx) {
   const day = ensureDay(d);
   if (!day[cat]) day[cat] = [];
   day[cat].splice(afterIdx + 1, 0, { text: '', url: '', done: false });
-  await save(); render();
+  render();
   setTimeout(() => {
     const newItem = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${afterIdx + 1}"]`);
     newItem?.querySelector('.item-text')?.focus({ preventScroll: true });
   }, 50);
+  try {
+    await fetch(`${API}/api/insert-item`, {
+      method: 'POST', headers: AUTH,
+      body: JSON.stringify({ ym: ym(), day: String(d), category: cat, index: afterIdx + 1, text: '', url: '' })
+    });
+  } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
 }
 
 async function delItem(d, cat, idx, refocus) {
   ensureDay(d)[cat].splice(idx, 1);
-  await save(); render();
+  render();
+  try {
+    await fetch(`${API}/api/delete-item`, {
+      method: 'POST', headers: AUTH,
+      body: JSON.stringify({ ym: ym(), day: String(d), category: cat, index: idx })
+    });
+  } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
   if (refocus) {
     setTimeout(() => {
       const day = ensureDay(d);
@@ -733,7 +764,15 @@ async function addNewItem(d, cat, text) {
   } else {
     day[cat].push({ text: t, url: '', done: false });
   }
-  await save(); render();
+  render();
+  // Atomic server update
+  try {
+    const lastItem = day[cat][day[cat].length - 1];
+    await fetch(`${API}/api/add-item`, {
+      method: 'POST', headers: AUTH,
+      body: JSON.stringify({ ym: ym(), day: String(d), category: cat, text: lastItem.text, url: lastItem.url || '' })
+    });
+  } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
 }
 
 function addItemInline(d, cat) {
@@ -759,8 +798,14 @@ async function saveGoalText(text) {
 }
 
 async function saveOneThing(d, text) {
-  ensureDay(d).one_thing = text.trim();
-  await save();
+  const t = text.trim();
+  ensureDay(d).one_thing = t;
+  try {
+    await fetch(`${API}/api/one-thing`, {
+      method: 'POST', headers: AUTH,
+      body: JSON.stringify({ ym: ym(), day: String(d), text: t })
+    });
+  } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
 }
 
 function renderWorkoutBar() {
@@ -818,9 +863,14 @@ async function toggleWorkout(part) {
 
 async function saveNotes(d, text) {
   const dd = ensureDay(d);
-  if (text.trim()) dd.notes = text.trim();
-  else delete dd.notes;
-  await save();
+  const t = text.trim();
+  if (t) dd.notes = t; else delete dd.notes;
+  try {
+    await fetch(`${API}/api/notes`, {
+      method: 'POST', headers: AUTH,
+      body: JSON.stringify({ ym: ym(), day: String(d), text: t })
+    });
+  } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
 }
 
 function toggleNotes(d) {
