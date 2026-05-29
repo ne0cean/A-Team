@@ -972,53 +972,68 @@ async function undoMonth() {
 
 function openSearch() {
   const overlay = document.getElementById('searchOverlay');
+  if (!overlay) return;
   overlay.classList.add('open');
-  document.getElementById('searchInput').focus();
+  document.getElementById('searchInput')?.focus();
 }
 function closeSearch() {
-  document.getElementById('searchOverlay').classList.remove('open');
-  document.getElementById('searchInput').value = '';
-  document.getElementById('searchResults').innerHTML = '';
+  document.getElementById('searchOverlay')?.classList.remove('open');
+  const input = document.getElementById('searchInput');
+  if (input) input.value = '';
+  const results = document.getElementById('searchResults');
+  if (results) results.innerHTML = '';
 }
 function debounceSearch() {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(doSearch, 300);
 }
+function escRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 async function doSearch() {
-  const q = document.getElementById('searchInput').value.trim();
-  if (q.length < 2) { document.getElementById('searchResults').innerHTML = ''; return; }
-  const res = await fetch(`${API}/api/search/unified?q=${encodeURIComponent(q)}`);
-  const data = await res.json();
+  const q = document.getElementById('searchInput')?.value?.trim();
+  if (!q || q.length < 2) { const r = document.getElementById('searchResults'); if (r) r.innerHTML = ''; return; }
   const container = document.getElementById('searchResults');
-  let html = '';
+  if (!container) return;
 
-  // Schedule results
-  if (data.schedule?.length) {
-    html += '<div style="font-size:10px;color:#f0c040;padding:4px 12px;font-weight:600">SCHEDULE</div>';
-    html += data.schedule.map(r => {
-      const matchHtml = r.matches.map(m => {
-        const highlighted = esc(m.text).replace(new RegExp(esc(q), 'gi'), '<mark>$&</mark>');
-        return `<div class="sr-match"><span class="sr-cat">${m.field}</span> ${highlighted}</div>`;
+  try {
+    container.innerHTML = '<div style="color:#484f58;text-align:center;padding:20px">Searching...</div>';
+    const res = await fetch(`${API}/api/search/unified?q=${encodeURIComponent(q)}`);
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    let html = '';
+    const qRegex = new RegExp(escRegex(q), 'gi');
+
+    // Schedule results
+    if (data.schedule?.length) {
+      html += '<div style="font-size:10px;color:#f0c040;padding:4px 12px;font-weight:600">SCHEDULE</div>';
+      html += data.schedule.map(r => {
+        const matchHtml = r.matches.map(m => {
+          const highlighted = esc(m.text).replace(qRegex, '<mark>$&</mark>');
+          return `<div class="sr-match"><span class="sr-cat">${m.field}</span> ${highlighted}</div>`;
+        }).join('');
+        return `<div class="search-result" onclick="goToResult('${r.ym}',${r.day})">
+          <div class="sr-date">${r.ym} / ${r.day}일</div>${matchHtml}</div>`;
       }).join('');
-      return `<div class="search-result" onclick="goToResult('${r.ym}',${r.day})">
-        <div class="sr-date">${r.ym} / ${r.day}일</div>${matchHtml}</div>`;
-    }).join('');
-  }
+    }
 
-  // Notes results
-  if (data.notes?.length) {
-    html += '<div style="font-size:10px;color:#58a6ff;padding:4px 12px;font-weight:600;margin-top:8px">NOTES</div>';
-    html += data.notes.map(r => {
-      const icon = r.type === 'dir' ? '&#128193;' : '&#128196;';
-      const onclick = r.type === 'dir' ? `closeSearch();loadSidebarTree('${r.path}')` : `closeSearch();openNote('${r.path}')`;
-      return `<div class="search-result" onclick="${onclick}">
-        <span>${icon}</span> <span>${esc(r.name)}</span>
-        <span style="font-size:9px;color:#484f58;margin-left:8px">${esc(r.path)}</span></div>`;
-    }).join('');
-  }
+    // Notes results
+    if (data.notes?.length) {
+      html += '<div style="font-size:10px;color:#58a6ff;padding:4px 12px;font-weight:600;margin-top:8px">NOTES</div>';
+      html += data.notes.map(r => {
+        const icon = r.type === 'dir' ? '&#128193;' : '&#128196;';
+        const onclick = r.type === 'dir' ? `closeSearch();loadSidebarTree('${r.path}')` : `closeSearch();openNote('${r.path}')`;
+        return `<div class="search-result" onclick="${onclick}">
+          <span>${icon}</span> <span>${esc(r.name)}</span>
+          <span style="font-size:9px;color:#484f58;margin-left:8px">${esc(r.path)}</span></div>`;
+      }).join('');
+    }
 
-  if (!html) html = '<div style="color:#484f58;text-align:center;padding:20px">No results</div>';
-  container.innerHTML = html;
+    if (!html) html = '<div style="color:#484f58;text-align:center;padding:20px">No results</div>';
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = '<div style="color:#f85149;text-align:center;padding:20px">Search failed</div>';
+  }
 }
 function goToResult(resultYm, day) {
   closeSearch();
