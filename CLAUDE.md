@@ -18,6 +18,10 @@
 **접근 방식**: JSON 파일 직접 Read/Edit (SSOT). 서버(localhost:7843)는 UI용.
 **절대 금지**: 마이그레이션/구조 재편 시 이 디렉토리 파일 삭제 또는 빈 데이터로 덮어쓰기.
 **백업**: 수정 전 `.bak` 생성 필수.
+**UI 배포**: `governance/rules/ui-deploy-gate.md` 체크리스트 필수 통과. 미검증 배포 금지.
+**SW 캐시**: 개발 중 Service Worker 비활성 유지. 배포 시 캐시 버전 올리기만으론 부족 — 사용자에게 캐시 삭제를 요구하지 않는 구조여야 함.
+**UX 명세**: `scripts/cortex-dashboard/UX-SPEC.md`가 구현의 SSOT. 여기 없는 건 만들지 않고, 여기 있는 건 빠뜨리지 않는다.
+**alert() 금지**: toast UI 사용. overflow:hidden 금지. hover 레이아웃 밀림 금지.
 
 ## 🚀 A-Team Calling Commands (의무)
 세션 시작 시 반드시 다음 명령 중 하나를 호출하여 컨텍스트를 로드합니다.
