@@ -1,4 +1,4 @@
-const CACHE = 'cortex-v8';
+const CACHE = 'cortex-v9';
 const SHELL = ['/', '/css/main.css', '/js/app.js', '/favicon.svg', '/manifest.json'];
 
 self.addEventListener('install', e => {

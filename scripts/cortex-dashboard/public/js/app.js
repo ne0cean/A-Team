@@ -990,24 +990,72 @@ function debounceSearch() {
 function escRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+// Page search: find matches in current view (calendar monthData or open note)
+function searchPage(q) {
+  const results = [];
+  const ql = q.toLowerCase();
+
+  if (cortexFile) {
+    // Searching in open note
+    const lines = cortexFile.content.split('\n');
+    lines.forEach((line, i) => {
+      if (line.toLowerCase().includes(ql)) {
+        results.push({ type: 'note-line', line: i + 1, text: line.trim().slice(0, 80) });
+      }
+    });
+  } else if (monthData?.days) {
+    // Searching in current month calendar
+    for (const [day, dd] of Object.entries(monthData.days)) {
+      if (dd.one_thing?.toLowerCase().includes(ql)) results.push({ day, field: 'ONE THING', text: dd.one_thing });
+      if (dd.notes?.toLowerCase().includes(ql)) results.push({ day, field: 'notes', text: dd.notes });
+      for (const cat of CATS) {
+        for (const item of (dd[cat] || [])) {
+          if (item.text?.toLowerCase().includes(ql)) results.push({ day, field: CAT_NAMES[cat], text: item.text });
+        }
+      }
+    }
+  }
+  return results;
+}
+
 async function doSearch() {
   const q = document.getElementById('searchInput')?.value?.trim();
   if (!q || q.length < 2) { const r = document.getElementById('searchResults'); if (r) r.innerHTML = ''; return; }
   const container = document.getElementById('searchResults');
   if (!container) return;
+  const qRegex = new RegExp(escRegex(q), 'gi');
+
+  // 1. Page results (instant)
+  const pageResults = searchPage(q);
+  let html = '';
+
+  if (pageResults.length) {
+    const label = cortexFile ? 'THIS NOTE' : `THIS MONTH (${ym()})`;
+    html += `<div style="font-size:10px;color:#56d364;padding:4px 12px;font-weight:600">${label} (${pageResults.length})</div>`;
+    html += pageResults.slice(0, 15).map(r => {
+      const highlighted = esc(r.text).replace(qRegex, '<mark>$&</mark>');
+      if (r.type === 'note-line') {
+        return `<div class="search-result"><span class="sr-cat">L${r.line}</span> ${highlighted}</div>`;
+      }
+      return `<div class="search-result" onclick="closeSearch();goToDay(${r.day})">
+        <div class="sr-date">${r.day}일 <span class="sr-cat">${r.field}</span></div>${highlighted}</div>`;
+    }).join('');
+  }
+
+  // 2. Global results (async)
+  html += '<div id="globalSearchResults" style="margin-top:4px"><div style="color:#484f58;text-align:center;padding:8px;font-size:10px">Searching all...</div></div>';
+  container.innerHTML = html;
 
   try {
-    container.innerHTML = '<div style="color:#484f58;text-align:center;padding:20px">Searching...</div>';
     const res = await fetch(`${API}/api/search/unified?q=${encodeURIComponent(q)}`);
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
-    let html = '';
-    const qRegex = new RegExp(escRegex(q), 'gi');
+    let globalHtml = '';
 
-    // Schedule results
     if (data.schedule?.length) {
-      html += '<div style="font-size:10px;color:#f0c040;padding:4px 12px;font-weight:600">SCHEDULE</div>';
-      html += data.schedule.map(r => {
+      globalHtml += '<div style="font-size:10px;color:#f0c040;padding:4px 12px;font-weight:600">ALL SCHEDULE (' + data.schedule.length + ')</div>';
+      globalHtml += data.schedule.slice(0, 20).map(r => {
         const matchHtml = r.matches.map(m => {
           const highlighted = esc(m.text).replace(qRegex, '<mark>$&</mark>');
           return `<div class="sr-match"><span class="sr-cat">${m.field}</span> ${highlighted}</div>`;
@@ -1017,10 +1065,9 @@ async function doSearch() {
       }).join('');
     }
 
-    // Notes results
     if (data.notes?.length) {
-      html += '<div style="font-size:10px;color:#58a6ff;padding:4px 12px;font-weight:600;margin-top:8px">NOTES</div>';
-      html += data.notes.map(r => {
+      globalHtml += '<div style="font-size:10px;color:#58a6ff;padding:4px 12px;font-weight:600;margin-top:4px">NOTES (' + data.notes.length + ')</div>';
+      globalHtml += data.notes.slice(0, 20).map(r => {
         const icon = r.type === 'dir' ? '&#128193;' : '&#128196;';
         const onclick = r.type === 'dir' ? `closeSearch();loadSidebarTree('${r.path}')` : `closeSearch();openNote('${r.path}')`;
         return `<div class="search-result" onclick="${onclick}">
@@ -1029,10 +1076,26 @@ async function doSearch() {
       }).join('');
     }
 
-    if (!html) html = '<div style="color:#484f58;text-align:center;padding:20px">No results</div>';
-    container.innerHTML = html;
+    if (!globalHtml && !pageResults.length) globalHtml = '<div style="color:#484f58;text-align:center;padding:12px">No results</div>';
+    const globalEl = document.getElementById('globalSearchResults');
+    if (globalEl) globalEl.innerHTML = globalHtml;
   } catch (e) {
-    container.innerHTML = '<div style="color:#f85149;text-align:center;padding:20px">Search failed</div>';
+    const globalEl = document.getElementById('globalSearchResults');
+    if (globalEl) globalEl.innerHTML = '<div style="color:#f85149;text-align:center;padding:8px">Global search failed</div>';
+  }
+}
+
+function goToDay(day) {
+  // Scroll to day cell if visible
+  const cells = document.querySelectorAll('.day-cell');
+  for (const cell of cells) {
+    const num = cell.querySelector('.day-num span');
+    if (num && parseInt(num.textContent) === day) {
+      cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      cell.style.outline = '2px solid #f0c040';
+      setTimeout(() => cell.style.outline = '', 2000);
+      return;
+    }
   }
 }
 function goToResult(resultYm, day) {
