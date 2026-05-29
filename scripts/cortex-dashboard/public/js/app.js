@@ -654,13 +654,21 @@ function handleItemKey(e, d, cat, idx) {
     e.preventDefault();
     const sel = window.getSelection();
     const fullText = e.target.textContent;
-    const offset = sel.focusOffset;
-    const before = fullText.slice(0, offset).trim();
-    const after = fullText.slice(offset).trim();
+    // Use Range for accurate cursor offset — sel.focusOffset is node-relative, breaks with <a> tags
+    let beforeText = fullText;
+    if (sel && sel.rangeCount) {
+      const range = sel.getRangeAt(0);
+      const preRange = range.cloneRange();
+      preRange.selectNodeContents(e.target);
+      preRange.setEnd(range.startContainer, range.startOffset);
+      beforeText = preRange.toString();
+    }
+    const before = beforeText.trim();
+    const after = fullText.slice(beforeText.length).trim();
     // Update current item with text before cursor
     const day = ensureDay(d);
     if (!day[cat]) day[cat] = [];
-    day[cat][idx].text = before || fullText.trim();
+    day[cat][idx].text = before;
     // Insert new item with text after cursor
     day[cat].splice(idx + 1, 0, { text: after, url: '', done: false });
     save().then(() => {
