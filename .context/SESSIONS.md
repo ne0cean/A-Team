@@ -2,6 +2,12 @@
 
 ---
 
+## [2026-05-29] Dashboard 사후 분석 + Svelte 리빌드 착수
+
+**완료**: UX-SPEC.md (12섹션), 근본 원인 5 Whys, ui-deploy-gate.md, Svelte 초기화 + 6개 컴포넌트. vanilla 검색 500/스크롤바/버튼 레이아웃 수정.
+**이슈**: 5일간 미검증 배포 반복. Svelte 리빌드 미완 (6개 컴포넌트 + App.svelte 남음).
+**빌드**: ✅ 583 tests PASS
+
 ## [2026-05-28] Dashboard 통합 앱 전환 (OneNote 구조)
 
 **완료**: 프론트엔드 모듈 분리 (2014줄→셸+CSS+JS), 원노트 구조 (좌측 사이드바+메인 대시보드), 노트 열람/편집/생성, 이미지 업로드(파일+붙여넣기→GitHub), Capture 바, 통합 검색(D1+GitHub), PWA SW, 월 경계 데이터, PC 사이드바 토글.

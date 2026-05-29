@@ -60,6 +60,15 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-29) — Dashboard 사후 분석 + Svelte 리빌드 착수
+
+- **UX 명세서 작성** (`UX-SPEC.md`) — 5일간 모든 사용자 피드백 12개 섹션으로 정리. 구현의 SSOT.
+- **근본 원인 분석** — PRD 있었으나 DoD(동작 확인) 없음, 미검증 배포 반복, 기능 속도 > 검증 속도. 5 Whys 완료.
+- **거버넌스 신설** (`governance/rules/ui-deploy-gate.md`) — UI 배포 전 의무 체크리스트: PC+모바일 확인, 회귀 테스트 3개, console 에러 확인, SW 캐시 우회, 세션당 UI 기능 3개 상한.
+- **Svelte 리빌드 착수** — Vite+Svelte 프로젝트 초기화. api.js(전체 API), stores.js(상태), Toast/Item/CaptureBar/Sidebar 컴포넌트 완성. Calendar/DayCell/NoteViewer/Search/Panels + App.svelte 미완.
+- **vanilla 버전 피드백 반영** — 검색 500 수정(item.text null), 스크롤바 숨김(scrollbar-width:none), 하이퍼링크/삭제 버튼 absolute positioning, alert→toast, 월 라벨 클릭→오늘, capture 16px(iOS줌방지).
+- **교훈 저장** — lesson_ui_deploy_without_verification.md, feedback_cortex_no_delete_without_approval.md
+
 ## Last Completions (2026-05-28) — Dashboard 통합 앱 전환 (OneNote 구조)
 
 - **프론트엔드 모듈 분리** — 2014줄 단일 HTML → index.html(앱 셸 ~100줄) + css/main.css(274줄) + js/app.js(1650줄). Cloudflare Workers assets로 서빙.
@@ -155,7 +164,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증, 동기화 이슈
+- [ ] **Dashboard Svelte 리빌드 완성** — Calendar/DayCell/NoteViewer/Search/Panels + App.svelte 작성 → 빌드 → ui-deploy-gate 통과 → 배포. UX-SPEC.md가 SSOT.
 - [ ] **모델 오케스트레이션 강제 훅 등록** — enforce-model-param.sh + model-compliance.sh를 settings.json에 등록 (이번 세션 미완)
 - [ ] **MeiliSearch launchd 등록** — com.ateam.meilisearch.plist load (바이너리 설치 완료, 데몬 미등록)
 - [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
