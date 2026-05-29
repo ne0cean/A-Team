@@ -792,13 +792,28 @@ function renderWorkoutBar() {
 
 async function toggleWorkout(part) {
   const today = String(new Date().getDate());
+  // Optimistic UI update
   const dd = ensureDay(today);
   if (!dd.workout) dd.workout = [];
   const idx = dd.workout.indexOf(part);
   if (idx >= 0) dd.workout.splice(idx, 1);
   else dd.workout.push(part);
-  await save();
   renderWorkoutBar();
+  // Atomic server update — reads D1 fresh then writes, safe across devices
+  try {
+    const res = await fetch(`${API}/api/workout`, {
+      method: 'POST', headers: AUTH,
+      body: JSON.stringify({ ym: ym(), day: today, part })
+    });
+    if (res.ok) {
+      const { workout } = await res.json();
+      monthData.days[today].workout = workout; // sync confirmed state from server
+      renderWorkoutBar();
+    }
+  } catch (e) {
+    document.title = '⚠ Save failed!';
+    setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000);
+  }
 }
 
 async function saveNotes(d, text) {
@@ -1829,3 +1844,20 @@ function handlePaste(event) {
 }
 
 init();
+
+// Refresh workout bar when tab becomes visible (picks up mobile changes)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    fetch(`${API}/api/month?ym=${ym()}`)
+      .then(r => r.json())
+      .then(data => {
+        // Only update workout fields to avoid overwriting in-progress edits
+        for (const [day, dd] of Object.entries(data.days || {})) {
+          if (!monthData.days[day]) monthData.days[day] = {};
+          if (dd.workout !== undefined) monthData.days[day].workout = dd.workout;
+        }
+        renderWorkoutBar();
+      })
+      .catch(() => {});
+  }
+});
