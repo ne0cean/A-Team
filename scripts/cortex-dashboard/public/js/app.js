@@ -126,18 +126,26 @@ function syncMonthFromWeek() {
 
 // --- Render ---
 function render() {
-  // Preserve scroll position before re-render
+  // Flush focused editable fields to prevent data loss during DOM rebuild
+  const focused = document.activeElement;
+  if (focused && focused.classList.contains('item-text')) focused.blur();
+  if (focused && focused.classList.contains('one-thing')) focused.blur();
+
+  // Preserve scroll positions before re-render
   const mainEl = document.getElementById('main');
   const scrollY = window.scrollY || window.pageYOffset;
   const mainScrollTop = mainEl ? mainEl.scrollTop : 0;
+  const cellScrolls = {};
+  document.querySelectorAll('.day-cell').forEach((c, i) => { cellScrolls[i] = c.scrollTop; });
 
   const container = document.getElementById('calendarContainer');
   container.innerHTML = viewMode === 'month' ? renderMonthView() : renderWeekView();
   renderStats();
 
-  // Restore scroll position after re-render
+  // Restore scroll positions after re-render
   window.scrollTo(0, scrollY);
   if (mainEl) mainEl.scrollTop = mainScrollTop;
+  document.querySelectorAll('.day-cell').forEach((c, i) => { if (cellScrolls[i]) c.scrollTop = cellScrolls[i]; });
 }
 
 function renderMonthView() {
@@ -398,6 +406,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       const carriedClass = item._carried ? 'is-carried' : '';
       const checked = item.done ? 'checked' : '';
       html += `<div class="item ${doneClass} ${carriedClass}" draggable="true"
+        data-d="${d}" data-cat="${cat}" data-idx="${idx}"
         ondragstart="dragStart(event,${d},'${cat}',${idx})"
         ondragover="dragOver(event)" ondragleave="dragLeave(event)"
         ondrop="drop(event,${d},'${cat}',${idx})">
@@ -656,18 +665,14 @@ function handleItemKey(e, d, cat, idx) {
     day[cat].splice(idx + 1, 0, { text: after, url: '', done: false });
     save().then(() => {
       render();
-      // Focus the new item
+      // Focus the new item using data-attributes for precise targeting
       setTimeout(() => {
-        const items = document.querySelectorAll(`.item[draggable]`);
-        let count = 0;
-        for (const item of items) {
-          const span = item.querySelector('.item-text');
-          if (span && span.textContent === after) { span.focus({ preventScroll: true }); break; }
-        }
+        const newItem = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${idx + 1}"]`);
+        newItem?.querySelector('.item-text')?.focus({ preventScroll: true });
       }, 50);
     });
   } else if (e.key === 'Backspace' && e.target.textContent.trim() === '') {
-    e.preventDefault(); delItem(d, cat, idx);
+    e.preventDefault(); delItem(d, cat, idx, true);
   }
 }
 
@@ -677,19 +682,25 @@ async function addNewItemAfter(d, cat, afterIdx) {
   day[cat].splice(afterIdx + 1, 0, { text: '', url: '', done: false });
   await save(); render();
   setTimeout(() => {
-    const items = document.querySelectorAll(`.item[draggable]`);
-    // Find the right item by scanning
-    let count = 0;
-    for (const item of items) {
-      const span = item.querySelector('.item-text');
-      if (span && span.textContent === '') { span.focus({ preventScroll: true }); break; }
-    }
+    const newItem = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${afterIdx + 1}"]`);
+    newItem?.querySelector('.item-text')?.focus({ preventScroll: true });
   }, 50);
 }
 
-async function delItem(d, cat, idx) {
+async function delItem(d, cat, idx, refocus) {
   ensureDay(d)[cat].splice(idx, 1);
   await save(); render();
+  if (refocus) {
+    setTimeout(() => {
+      const day = ensureDay(d);
+      const len = (day[cat] || []).length;
+      const targetIdx = len === 0 ? null : idx > 0 ? idx - 1 : 0;
+      if (targetIdx !== null) {
+        const el = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${targetIdx}"]`);
+        el?.querySelector('.item-text')?.focus({ preventScroll: true });
+      }
+    }, 50);
+  }
 }
 
 async function addNewItem(d, cat, text) {
