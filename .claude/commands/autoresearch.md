@@ -2,6 +2,8 @@
 description: /autoresearch — Karpathy식 프롬프트 자동 최적화 루프. target 커맨드를 반복 실행·채점·변형·keep/discard 하여 품질을 올린다. 산출물: 개선된 커맨드 + results.json + changelog.md + research-log.json + live HTML dashboard
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=autoresearch` — 실행 시작 시 반드시 호출
+
 # Autoresearch for A-Team Commands
 
 커맨드의 30% 쓰레기 출력을 자율 루프로 제거. 루프: 출력 생성 → evals로 채점 → 커맨드 변형 → 개선만 유지 → 반복.

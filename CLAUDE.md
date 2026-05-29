@@ -3,6 +3,22 @@
 > 프로젝트 컨텍스트(레포 구조·작업 원칙·완성 선언·커맨드 목록)는 **AGENTS.md** 참조.
 > 이 파일은 Claude Code 전용 자동화·오케스트레이션 규칙만 담는다.
 
+## Cortex Ritual Dashboard (SSOT)
+
+개인 운영 시스템. 매일 참조·수정하는 핵심 데이터.
+
+**데이터 경로** (`cortex/areas/life/ritual-routine/`):
+| 파일 | 용도 | 보호 |
+|------|------|------|
+| `YYYY-MM.json` | 월별 일정 (캘린더 데이터) | ⚠️ 덮어쓰기 금지 |
+| `standing-orders.json` | 상시/주간/월간반복/연간/공휴일/비전 | ⚠️ 덮어쓰기 금지 |
+| `day-frames.json` | Day Type별 프레임 템플릿 (weekday/flow/block) | ⚠️ 덮어쓰기 금지 |
+| `vision-roadmap.json` | 5개년 비전 테이블 | ⚠️ 덮어쓰기 금지 |
+
+**접근 방식**: JSON 파일 직접 Read/Edit (SSOT). 서버(localhost:7843)는 UI용.
+**절대 금지**: 마이그레이션/구조 재편 시 이 디렉토리 파일 삭제 또는 빈 데이터로 덮어쓰기.
+**백업**: 수정 전 `.bak` 생성 필수.
+
 ## 🚀 A-Team Calling Commands (의무)
 세션 시작 시 반드시 다음 명령 중 하나를 호출하여 컨텍스트를 로드합니다.
 
@@ -95,6 +111,8 @@
 | 아키텍처/스택/설계 선택 | → `/plan-eng` |
 | 기능 우선순위 고민 | → `/prioritize` |
 | 경쟁사/시장/트렌드 언급 | → `/intel` |
+| 아이디어 논의 후 레지스트리 미갱신 | → `/idea` |
+| "MECE", "빠진 거 없나", "갭 분석" | → `/mece-gap` |
 
 ### 구현/품질
 | 감지 패턴 | 제안 |
@@ -108,6 +126,11 @@
 | PPT 생성 완료 직후 | → `/design-score` |
 | UI 빌드 후 "이거 괜찮아?", "디자인 평가" | → `/design-score` |
 | 성능 의문, "느려" | → `/benchmark` |
+
+### 방법론 시그널 (자동 전환, 명시 호출 불필요)
+
+시그널 단어 포함 시 해당 방법론 즉시 적용. "확실히" → TDD+Mutation, "엣지 케이스" → Property-Based, "큰 리팩토링" → Strangler Fig, "보안 중요" → Security-First 등 11개.
+상세 테이블: `governance/rules/quality-pipeline.md` "개발 방법론 시그널 사전"
 
 ### 마케팅/콘텐츠
 | 감지 패턴 | 제안 |
@@ -134,6 +157,12 @@
 | "성장", "발전", "수용", "최신" | → `/daily-brief` |
 
 **학습**: `/end` Step 6.8에서 놓친 커맨드를 기록. 같은 패턴이 3회 반복되면 제안 강도를 높임 (1줄 → AskUserQuestion).
+
+## 빌드 완료 시 자동 품질 게이트 (Quality Pipeline Layer 2)
+
+구현 완료 → `/end` 이전에 자동 실행. 변경 3+ 파일 시 Haiku adversarial, 보안 패턴 감지 시 CSO mini-scan, 새 export 시 테스트 존재 확인. `/end`는 리뷰 끝난 상태에서 종료+교훈 저장만.
+
+상세: `governance/rules/quality-pipeline.md`
 
 ## 자율 모드 진입 시 (의무)
 사용자가 "랄프 모드", "자동으로", "자는 동안", "풀자동", "알아서 해" 등 트리거 사용 시:
@@ -178,19 +207,4 @@
 
 ## Autoresearch Shadow Mode (의무 자동 트리거)
 
-`.context/AUTORESEARCH-PLAN.md`의 `Mode`가 `SHADOW-TRACKING`일 때, Claude는 다음을 **자동 수행**한다.
-
-### Trigger 1: Tracked command 사용 후 로깅
-`governance/skills/autoresearch/shadow-evals.yaml`에 정의된 tracked 커맨드(`/office-hours`, `/blueprint`, `/plan-eng`)가 완료되면 **조용히**:
-1. `.autoresearch/_shadow/<name>/log.jsonl`에 1줄 append
-2. binary_evals self-score 포함
-3. 사용자에게 노출하지 않음 (나레이션 금지)
-
-### Trigger 2: 세션 시작 시 집계 + 판정 확인
-- ≥ 7일 경과 OR 신규 엔트리 ≥ 10 → 주간 집계
-- 3주 경과 AND 누적 runs ≥ 15 → DECISION-REPORT.md + 알림
-
-### Override
-`AUTORESEARCH-PLAN.md`의 `Mode`를 `PAUSED`/`DECIDED`/`DISMISSED`로 변경.
-
-파일 위치: `.context/AUTORESEARCH-PLAN.md`, `governance/skills/autoresearch/shadow-evals.yaml`
+`AUTORESEARCH-PLAN.md` Mode=`SHADOW-TRACKING` 시, tracked 커맨드(`/office-hours`, `/blueprint`, `/plan-eng`) 완료 후 `.autoresearch/_shadow/<name>/log.jsonl`에 조용히 로깅. 7일/10엔트리 → 주간 집계, 3주+15runs → DECISION-REPORT.md. Override: Mode를 `PAUSED`/`DECIDED`/`DISMISSED`로 변경.

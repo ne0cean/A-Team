@@ -1,5 +1,7 @@
 # /plan-ceo — CEO 시각 계획 검토
 
+> Analytics: `node scripts/log-event.mjs command_start name=plan-ceo` — 실행 시작 시 반드시 호출
+
 제품/기능 계획을 CEO 시각으로 검토한다. 전략적 전제를 도전하고, 범위 drift를 잡고, 실패 모드를 식별한다.
 `/office-hours` 다음, `/plan-eng` 이전에 사용.
 

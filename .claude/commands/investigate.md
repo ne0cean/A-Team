@@ -1,5 +1,7 @@
 # /investigate — 체계적 근본 원인 분석
 
+> Analytics: `node scripts/log-event.mjs command_start name=investigate` — 실행 시작 시 반드시 호출
+
 **핵심 원칙**: 근본 원인 없이 수정 금지. 증상 처치는 임시방편이다.
 
 ## 언제 사용하나

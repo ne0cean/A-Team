@@ -2,6 +2,8 @@
 description: /prioritize — RICE 스코어링 기반 기능 우선순위 자동 매기기
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=prioritize` — 실행 시작 시 반드시 호출
+
 CURRENT.md의 Next Tasks 또는 사용자가 제시한 기능 목록을 RICE 프레임워크로 우선순위를 매긴다.
 
 ## RICE 공식

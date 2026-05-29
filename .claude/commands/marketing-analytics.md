@@ -1,5 +1,7 @@
 # /marketing-analytics — 성과 분석
 
+> Analytics: `node scripts/log-event.mjs command_start name=marketing-analytics` — 실행 시작 시 반드시 호출
+
 **용도**: 발행된 콘텐츠의 성과 수집 + 인사이트 생성 + 프롬프트 개선 제안.
 
 ## 실행 흐름

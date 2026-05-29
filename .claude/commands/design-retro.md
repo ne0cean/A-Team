@@ -1,5 +1,7 @@
 # /design-retro — Design Subsystem 사용 후 회고 & 정리
 
+> Analytics: `node scripts/log-event.mjs command_start name=design-retro` — 실행 시작 시 반드시 호출
+
 > **목적**: Design Subsystem 배포 후 실 사용 데이터를 기반으로 **삭제·최적화 후보**를 식별. 이론상 설계를 실측으로 검증.
 > **사용 시점**: 배포 후 1-2주 지난 시점, 또는 자동 크론 트리거. 혹은 AI smell score가 예상과 어긋날 때.
 > **결과물**: `.context/design-retro-{date}.md` — 삭제/튜닝/추가 제안 리포트.

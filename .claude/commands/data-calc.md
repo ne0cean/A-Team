@@ -7,6 +7,8 @@ allowed-tools:
   - Write
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=data-calc` — 실행 시작 시 반드시 호출
+
 # Data Calc — 집계 엔진
 
 Excel/CSV 파일에서 JSON 스펙 기반으로 집계 연산을 수행한다.

@@ -3,6 +3,8 @@ description: "[Deprecated → /daily-brief] 어제와 오늘의 변경사항 분
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent, WebSearch, WebFetch
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=daily-review` — 실행 시작 시 반드시 호출
+
 > **이 커맨드는 `/daily-brief`에 통합되었습니다.**
 > `/daily-brief`는 기존 daily-review의 git 회고 + 외부 트렌드 스캔 + 성장 제안을 통합합니다.
 

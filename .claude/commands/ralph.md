@@ -2,6 +2,8 @@
 description: Ralph Loop — Autonomous AI development with intelligent exit detection
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=ralph` — 실행 시작 시 반드시 호출
+
 # Ralph Loop for Claude Code
 
 A-Team integrates **frankbria/ralph-claude-code** (v0.11.5) - the production-ready autonomous development loop with 566 passing tests and comprehensive safeguards.

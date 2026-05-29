@@ -1,5 +1,7 @@
 # /land — 배포 신뢰도 검증 파이프라인
 
+> Analytics: `node scripts/log-event.mjs command_start name=land` — 실행 시작 시 반드시 호출
+
 PR 머지 후 **배포가 실제로 성공했는지** 검증한다.
 머지 자체가 아니라 "프로덕션에서 작동하는가"가 핵심.
 

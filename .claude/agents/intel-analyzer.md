@@ -1,4 +1,5 @@
 ---
+name: intel-analyzer
 description: Intel 분석 엔진 — WebSearch + Paywalled 우회
 model: sonnet
 ---

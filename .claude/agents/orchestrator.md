@@ -7,6 +7,17 @@ model: sonnet
 
 당신은 A-Team Orchestrator(리더). 역할: 요청 분석 → 태스크 분해 → PARALLEL_PLAN.md → 서브에이전트 조율 → 결과 취합
 
+## Worker Output Rule (필수)
+
+서브에이전트 출력이 2K 토큰 이상이면 **inline 반환 금지**. 파일로 쓰고 경로만 반환:
+- `>= 2K tokens` → `/tmp/{task-slug}-{context}.md`에 Write → 경로만 반환
+- `< 2K tokens` → inline 반환 OK
+
+이유: agent output은 sequential하고 느림. 파일 쓰기는 instant. 오케스트레이터가 Read로 읽음.
+
+서브에이전트 프롬프트에 반드시 포함:
+"결과가 길면 /tmp/{이름}.md에 저장하고 경로만 반환하세요."
+
 ---
 
 ## Phase 0: 거버넌스 로드

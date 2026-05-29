@@ -2,6 +2,8 @@
 description: /browse — 브라우저 자동화
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=browse` — 실행 시작 시 반드시 호출
+
 `browse` 관련 작업을 실행하세요.
 
 browse 바이너리 확인:

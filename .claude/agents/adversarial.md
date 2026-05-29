@@ -107,4 +107,35 @@ critical 발견 시 -> recommend_cso: true
 - Critic이 방어자 역할 -- Worker와 분리하여 확증 편향 제거
 - 이론적 취약점이 아닌 실제 익스플로잇 가능한 것만 (CONFIRMED)
 - "아마 안전함" 금지 -- 코드로 증명하거나 취약하다고 판정
+
+## 외부 모델 교차 감사 (Cross-Model Audit)
+
+자기 코드를 자기가 리뷰하면 사각지대 동일. 아래 절차로 독립성 확보:
+
+### Step 1: 대상 코드 추출
+```bash
+# 변경 파일 또는 지정 경로의 코드를 추출
+TARGET_FILES=$(git diff --name-only HEAD~5 HEAD | grep -E '\.(js|ts|mjs|py|sh)$' | head -20)
+CODE=$(for f in $TARGET_FILES; do echo "=== $f ==="; cat "$f" 2>/dev/null | head -200; done)
+```
+
+### Step 2: 외부 모델 리뷰 요청
+```bash
+# Groq Llama 70B (무료, 다른 뇌) — curl 직접 호출
+curl -s "https://api.groq.com/openai/v1/chat/completions" \
+  -H "Authorization: Bearer $GROQ_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"model\":\"llama-3.3-70b-versatile\",\"messages\":[{\"role\":\"user\",\"content\":\"You are a senior security engineer. Adversarial code review. Find: 1) Auth bypass 2) Injection 3) Data loss 4) Race conditions 5) Secrets exposure. For each: severity(P0/P1/P2), file:line, exploit scenario, fix. Be brutal. No praise.\n\nCode:\n$CODE\"}],\"max_tokens\":2000}"
+```
+**성능**: 보안 취약점 탐지에서 GPT-4급. 하드코딩/인젝션/CORS 등 패턴 정확 식별 검증됨.
+
+### Step 3: 결과 병합
+- Claude(자체) 발견 + Llama(외부) 발견 → 중복 제거 → 합산
+- **외부만 발견한 항목** = 자체 사각지대 → 별도 마킹 `[BLIND_SPOT]`
+- 사각지대 3회 누적 시 해당 카테고리 자동 체크리스트 추가
+
+### 자동 트리거
+- `/adversarial --full` 실행 시 외부 감사 자동 포함
+- `/cso` 실행 시 Step 2 자동 실행
+- 결과를 `.context/red-team-history.jsonl`에 `{ model: "llama-70b", ... }` 태그로 기록
 - 멀티라운드: 같은 취약점 반복 발견 = 미수정 경고

@@ -2,6 +2,8 @@
 description: /improve — 개별 프로젝트에서 A-Team 글로벌 툴킷 개선사항 등록/조회/반영
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=improve` — 실행 시작 시 반드시 호출
+
 어떤 프로젝트에서든 A-Team 글로벌 툴킷에 반영할 개선사항을 등록합니다.
 
 ## 모드 판별

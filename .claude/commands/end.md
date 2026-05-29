@@ -14,6 +14,36 @@ description: 세션 종료 — 상태 갱신, 빌드 검증, 커밋, push (+ 선
   - 200줄 초과 시 Last Completions 2주 이전 항목 → SESSIONS.md 이관
   - 완료된 Phase 체크리스트 → 1줄 요약으로 축약
 
+## Step 1.5 — Idea Harvest (조건부, memory/idea-registry.md 존재 시만)
+
+```bash
+ls memory/idea-registry.md 2>/dev/null
+```
+
+**파일 없으면 → 즉시 스킵.**
+
+**파일 있으면 → 아이데이션 세션 판별:**
+- 이 세션에서 `/brainstorm`, `/office-hours`, `/idea`, `/prd` 등 아이데이션 커맨드를 사용했거나
+- 대화에 새 기능/메커닉 제안, 전략 전환, 프레이밍 발견 등 아이디어 패턴이 있는 경우만 진행
+- **코딩/버그 수정/리팩토링만 한 세션 → 스킵** (레지스트리 읽지 않음)
+
+**진행 시:**
+
+1. `memory/idea-registry.md`를 읽고, 세션 대화에서 감지된 아이디어 각각을 ID/이름 매칭:
+   - **매칭 있음** → 상태/리뷰메모 업데이트 제안
+   - **매칭 없음** → 레지스트리 카테고리 헤더(`## X. 카테고리명`) 파싱하여 자동 분류 + 해당 카테고리 마지막 ID+1 부여 + status=개념, Ph=-
+   - **이미 이 세션에서 `/brainstorm` Step 4.5 또는 `/idea`로 반영된 건 제외**
+
+2. 변경 사항을 테이블로 제시:
+   ```
+   | 액션 | ID | 이름 | 변경 내용 |
+   |------|----|------|----------|
+   | 신규 | B18 | ... | status=개념, Ph=1 |
+   | 업데이트 | E06 | ... | status: 개념→설계됨 |
+   ```
+
+3. 사용자 승인 → idea-registry.md 수정. 스킵 → 그대로 진행 (강제 아님).
+
 ## Step 2 — SESSIONS.md 로그 추가
 `.context/SESSIONS.md`에 오늘 세션 항목 추가 (없으면 스킵):
 ```
@@ -46,6 +76,31 @@ tail -3 .context/friction-log.jsonl 2>/dev/null || true
 ```
 새로 감지된 friction이 있으면 `.context/friction-log.jsonl`에 append됨.
 감지 로직: `lib/gap-sensor.ts` `autoLogFriction()` 참조.
+
+## Step 3.45 — PRD/Plan 동기화 (구조적 변화 시)
+
+세션 중 다음 중 하나라도 해당하면 PRD/Plan 파일 갱신:
+- 새 모듈/시스템 추가 (파일 10+ 신규)
+- 아키텍처 변경 (데이터 모델, 배포 인프라, SSOT 변경)
+- 핵심 기능 추가/삭제 (사용자 워크플로우 변경)
+- Phase 전환
+
+**감지**:
+```bash
+# 신규 파일 수 체크
+NEW_FILES=$(git diff --cached --name-only --diff-filter=A 2>/dev/null | wc -l)
+# 인프라 변경 체크
+INFRA_CHANGE=$(git diff --cached --name-only 2>/dev/null | grep -E 'wrangler|Dockerfile|deploy|\.env|infra/' | head -1)
+# PRD/Plan 파일 찾기
+PLAN_FILE=$(find . .claude/plans -maxdepth 2 -name "*plan*" -o -name "*prd*" 2>/dev/null | grep -iE '\.md$' | head -1)
+```
+
+**해당 시**:
+1. Plan 파일의 "구현 완료/미구현" 섹션 갱신
+2. 새 아키텍처 결정 반영 (인프라, 데이터 모델 등)
+3. Next Steps 업데이트
+
+**미해당 시**: 스킵 (나레이션 없이).
 
 ## Step 3.5 — 세션 데이터 저장 (자동)
 세션 중 발견된 학습/비용/사용 데이터를 자동 저장:

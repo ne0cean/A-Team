@@ -1,5 +1,7 @@
 # /yt — YouTube 영상 풀 추출 + 분석
 
+> Analytics: `node scripts/log-event.mjs command_start name=yt` — 실행 시작 시 반드시 호출
+
 영상 컨텐츠를 텍스트(자막) + 이미지(키프레임) + 오디오로 풀리 추출해 분석한다.
 
 ## 언제 사용하나

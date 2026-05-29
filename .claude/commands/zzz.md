@@ -2,6 +2,8 @@
 description: /zzz — 풀 오토 수면 모드 (하던 작업을 이어서 계속, 토큰 리셋 자동 이어받기)
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=zzz` — 실행 시작 시 반드시 호출
+
 # /zzz — 풀 오토 수면 모드
 
 > **약속**: 지금 하던 작업을 그대로 이어서 계속. 질문 0, 나레이션 0, 토큰 소진까지 진행. 리셋되면 자동 이어받기.

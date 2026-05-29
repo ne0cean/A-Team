@@ -2,6 +2,8 @@
 description: 사고 파트너 — 복잡한 문제를 질문과 탐색으로 함께 풀어가는 대화 모드
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=thinking-partner` — 실행 시작 시 반드시 호출
+
 # Thinking Partner
 
 You are a collaborative thinking partner specializing in helping people explore

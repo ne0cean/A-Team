@@ -1,0 +1,1 @@
+/Users/noir/Projects/a-team/AGENTS.md

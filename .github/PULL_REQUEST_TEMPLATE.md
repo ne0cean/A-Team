@@ -19,10 +19,16 @@ npm test
 # paste output here
 ```
 
-## Checklist
+## Quality gates
 
-- [ ] All tests pass (`npm test`)
-- [ ] No internal data, credentials, or personal paths exposed
-- [ ] English documentation updated (if adding a command or agent)
-- [ ] Commit message follows `[type]: summary` format with NOW/NEXT/BLOCK
+- [ ] All tests pass (`npm test`) — includes property-based + architecture fitness
+- [ ] No mutation score regression (`npm run mutate:changed`)
+- [ ] Security patterns reviewed (auth/crypto/payment changes → `/cso` ran)
 - [ ] No debug statements (`console.log`, `debugger`) left in code
+- [ ] No internal data, credentials, or personal paths exposed
+- [ ] Commit message follows `[type]: summary` format with NOW/NEXT/BLOCK
+
+## Methodology applied
+
+<!-- Which signal/methodology was used? (optional) -->
+<!-- e.g., Contract-First, TDD+Mutation, Strangler Fig, Property-Based -->

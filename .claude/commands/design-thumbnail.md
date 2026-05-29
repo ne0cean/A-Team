@@ -1,5 +1,7 @@
 # /design-thumbnail — 썸네일 원스탑 생성
 
+> Analytics: `node scripts/log-event.mjs command_start name=design-thumbnail` — 실행 시작 시 반드시 호출
+
 **용도**: 블로그/YouTube 썸네일 즉시 생성. `/design-generate --type thumbnail` 단축버전.
 콘텐츠 제목만 있으면 Art Direction → 프롬프트 → 체크리스트까지 5분 완료.
 

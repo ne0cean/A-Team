@@ -2,6 +2,8 @@
 description: /resume — 리셋 후 작업 재개 (시점 무관, 주간/단기 중단 대비)
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=resume` — 실행 시작 시 반드시 호출
+
 # /resume — 리셋 시점 자동 재개
 
 > **목적**: 작업 도중 토큰 소진으로 중단될 경우, 리셋 시점에 자동으로 깨어나 이어받기.

@@ -1,5 +1,7 @@
 # /marketing-social — Native Social-First 콘텐츠 생성
 
+> Analytics: `node scripts/log-event.mjs command_start name=marketing-social` — 실행 시작 시 반드시 호출
+
 **용도**: 블로그 없이 X/Instagram/LinkedIn/TikTok용 콘텐츠 직접 생성.
 `/marketing-generate`가 블로그 중심인 반면, 이 커맨드는 소셜이 1차 매체.
 

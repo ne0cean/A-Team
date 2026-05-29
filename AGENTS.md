@@ -9,7 +9,7 @@
 
 ## 주요 디렉토리
 
-- `.claude/commands/` — 슬래시 커맨드 원본 (74개)
+- `.claude/commands/` — 슬래시 커맨드 원본 (87개)
 - `.context/` — CURRENT.md (작업 상태), SESSIONS.md (이력), DECISIONS.md
 - `governance/` — 규칙/워크플로우/스킬
 - `scripts/` — 자동화 스크립트
@@ -132,8 +132,21 @@
 - `re` — Research Mode 관리 — 자율 리서치 에이전트 시작/정지/상태 확인
 
 ### 기타
+- `brainstorm`
+- `consolidate`
+- `daily-note`
+- `data-race`
+- `design-clone`
+- `idea`
+- `inbox`
+- `learn`
+- `mece-gap`
+- `morning`
+- `recall`
 - `repos`
+- `tidy-inbox`
 - `todo`
+- `watchdog`
 ## 현재 Phase
 
 - 0 인프라 완료 → **Phase 1 진입 가능** (분석/BI)
