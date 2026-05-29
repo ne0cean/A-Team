@@ -126,9 +126,10 @@ function syncMonthFromWeek() {
 
 // --- Render ---
 function render() {
-  // Flush focused editable fields to prevent data loss during DOM rebuild
+  // Flush one-thing field before DOM rebuild to prevent data loss
+  // NOTE: do NOT blur item-text here — it fires editItem with stale DOM content,
+  // which overwrites data changes made by Enter-split and other key handlers
   const focused = document.activeElement;
-  if (focused && focused.classList.contains('item-text')) focused.blur();
   if (focused && focused.classList.contains('one-thing')) focused.blur();
 
   // Preserve scroll positions before re-render
@@ -665,6 +666,8 @@ function handleItemKey(e, d, cat, idx) {
     }
     const before = beforeText.trim();
     const after = fullText.slice(beforeText.length).trim();
+    // Suppress onblur so editItem doesn't overwrite our split when DOM rebuilds
+    e.target.onblur = null;
     // Update current item with text before cursor
     const day = ensureDay(d);
     if (!day[cat]) day[cat] = [];
