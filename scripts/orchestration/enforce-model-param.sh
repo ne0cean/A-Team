@@ -21,9 +21,10 @@ case "$SUBTYPE" in
 esac
 
 # If model is explicitly set and valid, log + pass through
+PROMPT_LEN=$(echo "$INPUT" | jq -r '.tool_input.prompt // ""' 2>/dev/null | wc -c | tr -d ' ')
 case "$MODEL" in
   sonnet|haiku|opus)
-    echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"agent\":\"${SUBTYPE}\",\"model\":\"${MODEL}\"}" >> /tmp/model-usage.jsonl
+    echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"agent\":\"${SUBTYPE}\",\"model\":\"${MODEL}\",\"prompt_chars\":${PROMPT_LEN}}" >> /tmp/model-usage.jsonl
     echo '{}'; exit 0
     ;;
 esac

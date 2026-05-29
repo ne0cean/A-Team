@@ -105,12 +105,14 @@ CONTEXT=$(echo -e "$CONTEXT" | head -c 3000)
 
 # --- Groq call ---
 
-GROQ_RESULT=$(curl -s -m 4 https://api.groq.com/openai/v1/chat/completions \
+GROQ_RAW=$(curl -s -m 4 https://api.groq.com/openai/v1/chat/completions \
   -H "Authorization: Bearer $GROQ_API_KEY" \
   -H "Content-Type: application/json" \
   -d "$(jq -n --arg p "Codebase context:\n$CONTEXT\n\nAnswer concisely and accurately: $PROMPT" \
-    '{model:"llama-3.3-70b-versatile",messages:[{role:"user",content:$p}],max_tokens:500}')" \
-  | jq -r '.choices[0].message.content // ""' 2>/dev/null)
+    '{model:"llama-3.3-70b-versatile",messages:[{role:"user",content:$p}],max_tokens:500}')")
+GROQ_RESULT=$(echo "$GROQ_RAW" | jq -r '.choices[0].message.content // ""' 2>/dev/null)
+GROQ_TOKENS=$(echo "$GROQ_RAW" | jq -r '.usage.total_tokens // 0' 2>/dev/null)
+GROQ_MODEL=$(echo "$GROQ_RAW" | jq -r '.model // "unknown"' 2>/dev/null)
 
 # Groq failed → pass through
 [ -z "$GROQ_RESULT" ] && { echo '{}'; exit 0; }
@@ -124,7 +126,8 @@ fi
 
 # --- Success: block Agent, provide answer ---
 
-echo "$(date +%H:%M:%S) DENY subtype=$SUBTYPE term=$SEARCH_TERM" >> "$LOG"
+echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"agent\":\"$SUBTYPE\",\"model\":\"$GROQ_MODEL\",\"tokens\":$GROQ_TOKENS,\"action\":\"deny\"}" >> /tmp/model-usage.jsonl
+echo "$(date +%H:%M:%S) DENY subtype=$SUBTYPE model=$GROQ_MODEL tokens=$GROQ_TOKENS" >> "$LOG"
 
 jq -n --arg reason "Pre-computed (Groq 70B, free): $GROQ_RESULT" \
       --arg ctx "Answer pre-computed by Groq 70B with local codebase context (zero cost). Use directly if sufficient: $GROQ_RESULT" \

@@ -1,89 +1,199 @@
 <script>
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from './assets/vite.svg'
-  import heroImg from './assets/hero.png'
-  import Counter from './lib/Counter.svelte'
+  import { onMount } from 'svelte';
+  import { currentYear, currentMonth, monthData, prevMonthData, nextMonthData,
+    standingData, dayFrames, visionData, activeNote, noteEditing, sidebarOpen, ym } from './lib/stores.js';
+  import * as api from './lib/api.js';
+
+  import Toast from './components/Toast.svelte';
+  import Header from './components/Header.svelte';
+  import Calendar from './components/Calendar.svelte';
+  import Sidebar from './components/Sidebar.svelte';
+  import CaptureBar from './components/CaptureBar.svelte';
+  import Search from './components/Search.svelte';
+  import NoteViewer from './components/NoteViewer.svelte';
+  import LinkPopup from './components/LinkPopup.svelte';
+  import StandingOrders from './components/Panels/StandingOrders.svelte';
+  import Vision from './components/Panels/Vision.svelte';
+  import Frames from './components/Panels/Frames.svelte';
+
+  let linkPopup = { open: false, url: '', x: 0, y: 0, target: null };
+  let panels = { standing: false, vision: false, frames: false };
+
+  onMount(async () => {
+    await loadAllData();
+    if (window.screen.width >= 900) $sidebarOpen = true;
+    // Refresh on tab focus
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) refreshWorkout();
+    });
+    // Register SW
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+    // Pull-to-refresh
+    let pullY = 0, pullActive = false;
+    document.addEventListener('touchstart', e => {
+      pullY = e.touches[0].screenY;
+      pullActive = (document.documentElement.scrollTop || document.body.scrollTop) < 5;
+    }, { passive: true });
+    document.addEventListener('touchend', e => {
+      if (!pullActive) return;
+      if (e.changedTouches[0].screenY - pullY > 80) location.reload();
+      pullActive = false;
+    });
+  });
+
+  async function loadAllData() {
+    const ymStr = $ym;
+    const data = await api.loadMonth(ymStr);
+    if (data) $monthData = data;
+
+    // Adjacent months
+    const [y, m] = ymStr.split('-').map(Number);
+    const pm = m === 1 ? 12 : m - 1, py = m === 1 ? y - 1 : y;
+    const nm = m === 12 ? 1 : m + 1, ny = m === 12 ? y + 1 : y;
+    const [prev, next, so, frames, vision] = await Promise.all([
+      api.loadMonth(`${py}-${String(pm).padStart(2, '0')}`),
+      api.loadMonth(`${ny}-${String(nm).padStart(2, '0')}`),
+      api.loadStandingOrders(),
+      api.loadDayFrames(),
+      api.loadVision(),
+    ]);
+    if (prev) $prevMonthData = prev;
+    if (next) $nextMonthData = next;
+    if (so) $standingData = so;
+    if (frames) $dayFrames = frames;
+    if (vision) $visionData = vision;
+  }
+
+  async function refreshWorkout() {
+    const data = await api.loadMonth($ym);
+    if (!data?.days) return;
+    for (const [day, dd] of Object.entries(data.days)) {
+      if (!$monthData.days[day]) $monthData.days[day] = {};
+      if (dd.workout !== undefined) $monthData.days[day].workout = dd.workout;
+    }
+    $monthData = $monthData;
+  }
+
+  function onReload() { loadAllData(); }
+
+  function onOpenLink(detail) {
+    const { d, cat, index } = detail;
+    const item = $monthData.days?.[String(d)]?.[cat]?.[index];
+    if (!item) return;
+    linkPopup = { open: true, url: item.url || '', x: 200, y: 200, target: { d, cat, index } };
+  }
+
+  async function onLinkSave(e) {
+    const { url } = e.detail;
+    const { d, cat, index } = linkPopup.target;
+    const dayData = $monthData.days[String(d)];
+    if (dayData?.[cat]?.[index]) {
+      dayData[cat][index].url = url;
+      await api.editItem($ym, String(d), cat, index, dayData[cat][index].text, url);
+      $monthData = $monthData;
+    }
+    linkPopup.open = false;
+  }
+
+  async function onLinkRemove() {
+    const { d, cat, index } = linkPopup.target;
+    const dayData = $monthData.days[String(d)];
+    if (dayData?.[cat]?.[index]) {
+      dayData[cat][index].url = '';
+      await api.editItem($ym, String(d), cat, index, dayData[cat][index].text, '');
+      $monthData = $monthData;
+    }
+    linkPopup.open = false;
+  }
+
+  function showDashboard() {
+    $activeNote = null;
+    $noteEditing = false;
+  }
+
+  async function openNote(path) {
+    const data = await api.loadFile(path);
+    if (data) { $activeNote = data; $noteEditing = false; }
+  }
+
+  function goToDay(day) {
+    // Scroll to day cell — handled by Calendar
+    showDashboard();
+  }
+
+  function goToResult(resultYm, day) {
+    const [y, m] = resultYm.split('-').map(Number);
+    $currentYear = y; $currentMonth = m;
+    showDashboard();
+    loadAllData();
+  }
+
+  function togglePanel(name) { panels[name] = !panels[name]; panels = panels; }
 </script>
 
-<section id="center">
-  <div class="hero">
-    <img src={heroImg} class="base" width="170" height="179" alt="" />
-    <img src={svelteLogo} class="framework" alt="Svelte logo" />
-    <img src={viteLogo} class="vite" alt="Vite logo" />
-  </div>
-  <div>
-    <h1>Get started</h1>
-    <p>Edit <code>src/App.svelte</code> and save to test <code>HMR</code></p>
-  </div>
-  <Counter />
-</section>
+<Toast />
+<Sidebar />
+<Search onGoToDay={goToDay} onGoToResult={goToResult} onOpenNote={openNote} />
+<LinkPopup bind:open={linkPopup.open} bind:url={linkPopup.url}
+  x={linkPopup.x} y={linkPopup.y}
+  on:save={onLinkSave} on:remove={onLinkRemove} on:close={() => linkPopup.open = false} />
 
-<div class="ticks"></div>
+<div class="main" class:desktop-sidebar={$sidebarOpen && window?.screen?.width >= 900}>
+  <Header onReload={onReload} />
 
-<section id="next-steps">
-  <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true">
-      <use href="/icons.svg#documentation-icon"></use>
-    </svg>
-    <h2>Documentation</h2>
-    <p>Your questions, answered</p>
-    <ul>
-      <li>
-        <a href="https://vite.dev/" target="_blank" rel="noreferrer">
-          <img class="logo" src={viteLogo} alt="" />
-          Explore Vite
-        </a>
-      </li>
-      <li>
-        <a href="https://svelte.dev/" target="_blank" rel="noreferrer">
-          <img class="button-icon" src={svelteLogo} alt="" />
-          Learn more
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true">
-      <use href="/icons.svg#social-icon"></use>
-    </svg>
-    <h2>Connect with us</h2>
-    <p>Join the Vite community</p>
-    <ul>
-      <li>
-        <a href="https://github.com/vitejs/vite" target="_blank" rel="noreferrer">
-          <svg class="button-icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#github-icon"></use>
-          </svg>
-          GitHub
-        </a>
-      </li>
-      <li>
-        <a href="https://chat.vite.dev/" target="_blank" rel="noreferrer">
-          <svg class="button-icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#discord-icon"></use>
-          </svg>
-          Discord
-        </a>
-      </li>
-      <li>
-        <a href="https://x.com/vite_js" target="_blank" rel="noreferrer">
-          <svg class="button-icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#x-icon"></use>
-          </svg>
-          X.com
-        </a>
-      </li>
-      <li>
-        <a href="https://bsky.app/profile/vite.dev" target="_blank" rel="noreferrer">
-          <svg class="button-icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#bluesky-icon"></use>
-          </svg>
-          Bluesky
-        </a>
-      </li>
-    </ul>
-  </div>
-</section>
+  {#if $activeNote}
+    <NoteViewer onBack={showDashboard} />
+  {:else}
+    <Calendar onReload={onReload} onOpenLink={onOpenLink} />
 
-<div class="ticks"></div>
-<section id="spacer"></section>
+    <!-- Bottom Panels -->
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-header" on:click={() => togglePanel('standing')}>
+          <h2>STANDING ORDERS</h2>
+          <span class="panel-toggle">{panels.standing ? '▼' : '▶'}</span>
+        </div>
+        {#if panels.standing}
+          <div class="panel-body open"><StandingOrders /></div>
+        {/if}
+      </div>
+
+      <div class="panel">
+        <div class="panel-header" on:click={() => togglePanel('vision')}>
+          <h2>VISION & MILESTONES</h2>
+          <span class="panel-toggle">{panels.vision ? '▼' : '▶'}</span>
+        </div>
+        {#if panels.vision}
+          <div class="panel-body open"><Vision /></div>
+        {/if}
+      </div>
+
+      <div class="panel">
+        <div class="panel-header" on:click={() => togglePanel('frames')}>
+          <h2>DAY FRAMES (Admin)</h2>
+          <span class="panel-toggle">{panels.frames ? '▼' : '▶'}</span>
+        </div>
+        {#if panels.frames}
+          <div class="panel-body open"><Frames onReload={onReload} /></div>
+        {/if}
+      </div>
+    </div>
+  {/if}
+</div>
+
+<CaptureBar />
+
+<style>
+  .main { transition: margin-left 0.2s ease; }
+  .desktop-sidebar { margin-left: 280px; }
+  .panels { border-top: 1px solid #30363d; }
+  .panel { background: #161b22; }
+  .panel-header { padding: 10px 16px; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262d; }
+  .panel-header:hover { background: #1c2028; }
+  .panel-header h2 { font-size: 12px; color: #8b949e; font-weight: 600; letter-spacing: 0.3px; }
+  .panel-toggle { color: #484f58; font-size: 10px; }
+  .panel-body { padding: 8px 16px; }
+  .panel-body.open { display: block; }
+</style>
