@@ -1,4 +1,13 @@
 const API = '';
+function toast(msg, isError) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'toast' + (isError ? ' error' : '');
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2200);
+}
 const CATS = ['ritual','input','work','outcome'];
 const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Work', outcome:'Out'};
 const DAY_NAMES = ['일','월','화','수','목','금','토'];
@@ -966,8 +975,8 @@ async function undoMonth() {
     body: JSON.stringify({ ym: ym() })
   });
   const data = await res.json();
-  if (data.ok) { alert('복원 완료'); loadMonth(); }
-  else alert('백업 없음');
+  if (data.ok) { toast('복원 완료'); loadMonth(); }
+  else toast('백업 없음', true);
 }
 
 function openSearch() {
@@ -1458,7 +1467,7 @@ async function createNewNote() {
     document.getElementById('noteContent').innerHTML = renderNoteViewer();
     loadSidebarTree(cortexPath);
   } else {
-    alert('Create failed: ' + (data.error || 'unknown'));
+    toast('Create failed', true);
   }
 }
 
@@ -1477,7 +1486,7 @@ async function saveCortexFile() {
     cortexEditing = false;
     document.getElementById('noteContent').innerHTML = renderNoteViewer();
   } else {
-    alert('Save failed: ' + (data.error || 'unknown'));
+    toast('Save failed', true);
   }
 }
 
@@ -1769,7 +1778,7 @@ async function injectFrames() {
     body: JSON.stringify({ ym: ym(), fromDay: today, toDay: daysInMonth })
   });
   const data = await res.json();
-  alert(`${data.range}: ${data.injected} changes applied`);
+  toast(`${data.injected} items applied`);
   loadMonth();
 }
 
@@ -1899,8 +1908,8 @@ async function submitCapture() {
   const filePath = `cortex/inbox/${ts.slice(0,10)}-${slug}.md`;
   const md = `---\ncaptured: ${new Date().toISOString()}\nsource: dashboard\n---\n\n${text}`;
   const res = await fetch(`${API}/api/cortex/file`, { method:'POST', headers:AUTH, body:JSON.stringify({filePath,content:md}) });
-  if (res.ok) { input.value = ''; alert('Saved to inbox'); }
-  else alert('Save failed');
+  if (res.ok) { input.value = ''; toast('Saved to inbox'); }
+  else toast('Save failed', true);
 }
 
 async function captureImage(file) {
@@ -2036,7 +2045,7 @@ async function uploadImage(file) {
         textarea.value = before + `\n${data.markdown}\n` + after;
       }
     } else {
-      alert('Upload failed');
+      toast('Upload failed', true);
     }
   };
   reader.readAsDataURL(file);
