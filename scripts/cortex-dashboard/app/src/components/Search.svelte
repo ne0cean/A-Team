@@ -137,21 +137,4 @@
   </div>
 {/if}
 
-<style>
-  .search-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; padding: 40px 16px; display: flex; flex-direction: column; align-items: center; }
-  .search-box { width: 100%; max-width: 500px; }
-  .search-box input { width: 100%; background: #0d1117; border: 2px solid #f0c040; color: #e0e0e0; font-size: 16px; padding: 10px 14px; border-radius: 8px; outline: none; }
-  .search-results { width: 100%; max-width: 500px; margin-top: 12px; max-height: 60vh; overflow-y: auto; }
-  .section-label { font-size: 10px; padding: 4px 12px; font-weight: 600; }
-  .section-label.green { color: #56d364; }
-  .section-label.gold { color: #f0c040; }
-  .section-label.blue { color: #58a6ff; }
-  .search-result { padding: 8px 12px; background: #161b22; border-radius: 4px; margin-bottom: 4px; cursor: pointer; font-size: 11px; color: #c9d1d9; }
-  .search-result:hover { background: #21262d; }
-  .sr-date { color: #f0c040; font-size: 11px; font-weight: 600; }
-  .sr-match { font-size: 11px; color: #c9d1d9; margin-top: 2px; }
-  .sr-cat { font-size: 9px; color: #8b949e; }
-  .sr-path { font-size: 9px; color: #484f58; margin-left: 8px; }
-  .loading, .error-msg { color: #484f58; text-align: center; padding: 12px; font-size: 10px; }
-  .error-msg { color: #f85149; }
-</style>
+<!-- styles in global app.css -->

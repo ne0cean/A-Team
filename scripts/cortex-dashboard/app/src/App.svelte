@@ -185,15 +185,4 @@
 
 <CaptureBar />
 
-<style>
-  .main { transition: margin-left 0.2s ease; }
-  .desktop-sidebar { margin-left: 280px; }
-  .panels { border-top: 1px solid #30363d; }
-  .panel { background: #161b22; }
-  .panel-header { padding: 10px 16px; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262d; }
-  .panel-header:hover { background: #1c2028; }
-  .panel-header h2 { font-size: 12px; color: #8b949e; font-weight: 600; letter-spacing: 0.3px; }
-  .panel-toggle { color: #484f58; font-size: 10px; }
-  .panel-body { padding: 8px 16px; }
-  .panel-body.open { display: block; }
-</style>
+<!-- styles in global app.css -->

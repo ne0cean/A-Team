@@ -85,23 +85,4 @@
   </nav>
 </header>
 
-<style>
-  .header { padding: max(10px, env(safe-area-inset-top)) 16px 10px; background: #161b22; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-  .header-left { display: flex; align-items: center; gap: 8px; }
-  h1 { font-size: 16px; color: #f0c040; font-weight: 700; letter-spacing: -0.3px; }
-  .motto { font-size: 9px; color: #484f58; font-style: italic; }
-  .sidebar-toggle { cursor: pointer; font-size: 18px; color: #8b949e; padding: 4px 8px; border-radius: 4px; }
-  .sidebar-toggle:hover { color: #f0c040; }
-  .header-center { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .vision { font-size: 10px; color: #6e7681; cursor: text; min-height: 14px; padding: 1px 2px; border-radius: 2px; }
-  .vision:focus { outline: 1px solid #30363d; background: #0d1117; color: #c9d1d9; }
-  .workout-bar { display: flex; gap: 1px; flex-wrap: wrap; }
-  .workout-chip { font-size: 8px; padding: 2px 4px; border-radius: 2px; cursor: pointer; user-select: none; background: #21262d; color: #6e7681; border: 1px solid transparent; }
-  .workout-chip.on { background: #1c3050; color: #58a6ff; border-color: #1c3050; }
-  .nav { display: flex; gap: 6px; align-items: center; }
-  .nav button { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; }
-  .nav button:hover { background: #30363d; }
-  .month-label { font-size: 15px; font-weight: 700; min-width: 100px; text-align: center; cursor: pointer; }
-  .search-btn { background: none !important; border: none !important; font-size: 14px; cursor: pointer; color: #6e7681; padding: 4px 8px; }
-  .search-btn:hover { color: #c9d1d9; }
-</style>
+<!-- styles in global app.css -->

@@ -82,29 +82,4 @@
 </div>
 {/if}
 
-<style>
-  .frames-grid { display: flex; gap: 12px; flex-wrap: wrap; }
-  .frame-section { flex: 1; min-width: 280px; padding: 8px; background: #0d1117; border-radius: 4px; border: 1px solid #21262d; }
-  .frame-section-header { margin-bottom: 6px; }
-  .frame-section-title { font-size: 13px; font-weight: 600; }
-  .frame-type-weekday .frame-section-title { color: #c9d1d9; }
-  .frame-type-flow .frame-section-title { color: #56d364; }
-  .frame-type-block .frame-section-title { color: #58a6ff; }
-  .frame-cat { margin-bottom: 6px; }
-  .frame-cat-header { display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-weight: 600; margin-bottom: 2px; }
-  .cl-ritual { color: #f0c040; } .cl-input { color: #58a6ff; } .cl-work { color: #56d364; } .cl-outcome { color: #bc8cff; }
-  .frame-cat-type { font-size: 9px; padding: 1px 5px; border-radius: 3px; }
-  .frame-cat-type.routine { background: #1c3a1c; color: #56d364; }
-  .frame-cat-type.todo { background: #3a3000; color: #f0c040; }
-  .frame-item { display: flex; align-items: center; gap: 4px; padding: 2px 0; font-size: 11px; }
-  .idx { color: #484f58; font-size: 9px; }
-  .frame-item input { background: #161b22; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 2px 4px; border-radius: 2px; flex: 1; }
-  .frame-del { color: #484f58; cursor: pointer; font-size: 11px; }
-  .frame-del:hover { color: #f85149; }
-  .frame-add { display: flex; gap: 4px; margin-top: 3px; }
-  .frame-add input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 2px 4px; border-radius: 2px; flex: 1; }
-  .frame-add button { background: #238636; border: none; color: #fff; padding: 2px 8px; border-radius: 2px; cursor: pointer; font-size: 10px; }
-  .frame-actions { margin-top: 12px; }
-  .frame-btn-inject { background: #238636; border: none; color: #fff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-  .frame-btn-inject:hover { background: #2ea043; }
-</style>
+<!-- styles in global app.css -->

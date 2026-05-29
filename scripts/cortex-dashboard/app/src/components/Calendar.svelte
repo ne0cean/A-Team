@@ -74,11 +74,4 @@
   {/each}
 </div>
 
-<style>
-  .calendar { background: #21262d; }
-  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #21262d; }
-  .header-grid { position: sticky; top: 0; z-index: 10; }
-  .day-header { background: #161b22; padding: 6px 4px; text-align: center; font-weight: 600; color: #6e7681; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .day-header.sun { color: #f85149; }
-  .day-header.sat { color: #58a6ff; }
-</style>
+<!-- styles in global app.css -->

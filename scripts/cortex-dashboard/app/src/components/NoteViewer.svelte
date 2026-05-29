@@ -99,21 +99,4 @@
   </div>
 {/if}
 
-<style>
-  .note-viewer { padding: 12px; }
-  .md-toolbar { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
-  .md-toolbar button { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 10px; }
-  .md-toolbar button:hover { background: #30363d; }
-  .md-path { font-size: 10px; color: #6e7681; flex: 1; }
-  .upload-btn { cursor: pointer; font-size: 10px; color: #58a6ff; padding: 3px 8px; }
-  .md-edit { width: 100%; min-height: 300px; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; font-size: 12px; padding: 8px; border-radius: 4px; font-family: monospace; line-height: 1.6; resize: vertical; }
-  .md-edit:focus { outline: 1px solid #f0c040; }
-  .md-content { font-size: 12px; line-height: 1.7; color: #c9d1d9; white-space: pre-wrap; word-break: break-word; }
-  :global(.md-content h1), :global(.md-content h2), :global(.md-content h3) { color: #f0c040; margin: 12px 0 6px; }
-  :global(.md-content h1) { font-size: 16px; }
-  :global(.md-content h2) { font-size: 14px; }
-  :global(.md-content h3) { font-size: 12px; }
-  :global(.md-content a) { color: #58a6ff; }
-  :global(.md-content code) { background: #161b22; padding: 1px 4px; border-radius: 2px; font-size: 11px; }
-  :global(.md-content hr) { border: none; border-top: 1px solid #21262d; margin: 8px 0; }
-</style>
+<!-- styles in global app.css -->

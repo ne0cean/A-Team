@@ -113,20 +113,4 @@
 </div>
 {/if}
 
-<style>
-  .vision-board { overflow-x: auto; }
-  .vision-header-row, .vision-year-row { display: flex; gap: 1px; }
-  .year-col { width: 52px; min-width: 52px; }
-  .vision-header-cell { flex: 1; background: #21262d; color: #f0c040; font-size: 10px; padding: 6px 8px; text-align: center; font-weight: 600; min-width: 100px; }
-  .vision-year-label { width: 52px; min-width: 52px; background: #161b22; color: #f0c040; font-weight: 600; font-size: 10px; display: flex; align-items: center; justify-content: center; }
-  .vision-card { flex: 1; min-width: 100px; background: #0d1117; border: 1px solid #21262d; padding: 4px; position: relative; }
-  .vision-card-img { width: 100%; border-radius: 2px; margin-bottom: 2px; }
-  .vision-card-text { font-size: 10px; color: #c9d1d9; line-height: 1.5; min-height: 20px; white-space: pre-wrap; }
-  .vision-card-text:focus { outline: 1px solid #f0c040; background: #111820; }
-  .vision-card-actions { display: flex; gap: 2px; margin-top: 2px; }
-  .vision-card-actions button { background: #21262d; border: none; color: #8b949e; padding: 1px 4px; border-radius: 2px; cursor: pointer; font-size: 9px; }
-  .admin-notes { margin-top: 12px; padding: 8px; background: #0d1117; border: 1px solid #21262d; border-radius: 4px; }
-  .admin-notes-title { font-size: 10px; color: #6e7681; font-weight: 600; margin-bottom: 4px; }
-  .admin-notes-content { font-size: 11px; color: #8b949e; min-height: 20px; white-space: pre-wrap; }
-  .admin-notes-content:focus { outline: 1px solid #30363d; color: #c9d1d9; }
-</style>
+<!-- styles in global app.css -->

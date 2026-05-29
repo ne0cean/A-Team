@@ -186,22 +186,4 @@
 </div>
 {/if}
 
-<style>
-  .tabs { display: flex; gap: 2px; margin-bottom: 8px; }
-  .tab { padding: 5px 14px; font-size: 11px; cursor: pointer; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; }
-  .tab:hover { background: #2d333b; }
-  .tab.active { background: #30363d; color: #e0e0e0; border-color: #484f58; font-weight: 600; }
-  .so-item { display: flex; align-items: center; gap: 4px; padding: 3px 0; font-size: 11px; color: #c9d1d9; }
-  .so-item.current-month { color: #56d364; font-weight: 600; }
-  .so-move { display: flex; flex-direction: column; gap: 0; line-height: 1; }
-  .so-move span { cursor: pointer; color: #484f58; font-size: 9px; padding: 0 2px; user-select: none; }
-  .so-move span:hover { color: #f0c040; }
-  .hidden { visibility: hidden; }
-  .del { color: #484f58; cursor: pointer; font-size: 11px; padding: 0 3px; }
-  .del:hover { color: #f85149; }
-  .section-title { font-size: 9px; color: #6e7681; margin: 8px 0 4px; font-weight: 600; }
-  .add-row { display: flex; gap: 4px; margin-top: 4px; }
-  .add-row input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 2px 4px; border-radius: 2px; flex: 1; }
-  select { background: #0d1117; border: 1px solid #30363d; color: #f0c040; font-size: 10px; border-radius: 2px; padding: 1px 2px; }
-  input[type="checkbox"] { accent-color: #56d364; }
-</style>
+<!-- styles in global app.css -->

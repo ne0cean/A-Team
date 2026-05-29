@@ -67,40 +67,4 @@
   </button>
 </div>
 
-<style>
-  .capture-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: calc(44px + env(safe-area-inset-bottom));
-    background: #161b22;
-    border-top: 1px solid #30363d;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 12px env(safe-area-inset-bottom);
-    z-index: 50;
-  }
-  .capture-bar input {
-    flex: 1;
-    background: #0d1117;
-    border: 1px solid #30363d;
-    color: #e0e0e0;
-    font-size: 16px;
-    padding: 8px 12px;
-    border-radius: 6px;
-  }
-  .capture-bar input:focus { outline: 1px solid #f0c040; }
-  .photo-btn { cursor: pointer; color: #58a6ff; font-size: 16px; padding: 0 6px; }
-  button {
-    background: #238636;
-    border: none;
-    color: #fff;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-  }
-  button.loading { opacity: 0.5; pointer-events: none; }
-</style>
+<!-- styles in global app.css -->
