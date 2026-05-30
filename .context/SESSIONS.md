@@ -2,6 +2,14 @@
 
 ---
 
+## [2026-05-30] Dashboard Svelte 배포 + D1 안전장치 + 벤치마킹 + OneNote 이미지
+
+**완료**: Svelte 14컴포넌트 프로덕션 배포(`cortex.feat-breeze.workers.dev`). D1 3중 백업(setKey 자동백업+축소차단+undo API). Worker 인증 강화(multi-token, CORS origin, 입력검증). OneNote 이미지 80개 로컬 다운로드. 노트 트리밍 3433파일. 벤치마킹 3/7 적용(opacity완료, 보더강조, 텍스트softening). 체크박스/Enter/Backspace optimistic update. Week view. 숫자 내림차순 정렬. Standing Orders 복원. 인스타 카드뉴스 리서치(Playwright+HTML 1순위). vibe-init CURRENT.md 자동생성.
+**이슈**: 프로덕션 토큰 인증 프롬프트 잔존(ALLOW_PUBLIC_READS 설정 후에도). Vim 네비 contentEditable 충돌로 제거. Standing Orders 3회 유실 → 구조적 방지.
+**빌드**: ✅ 586 tests PASS (51 files)
+
+---
+
 ## [2026-05-30] 모델 오케스트레이션 강제 + MeiliSearch + Ollama 라우팅
 
 **완료**: 오케스트레이션 훅 settings.json 등록(enforce-model-param + model-compliance). 모델 사용량 추적(/tmp/model-usage.jsonl 통합). MeiliSearch launchd 등록. Ollama 로컬 폴백 추가. llm CLI 로깅. tidy 안전장치(본문 확인 필수). cortex 삭제 실수 복구.

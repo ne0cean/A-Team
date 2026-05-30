@@ -58,9 +58,13 @@
 **Override**: AUTORESEARCH-PLAN.md의 `Mode`를 `PAUSED`/`DECIDED`/`DISMISSED`로 변경.
 
 ## In Progress Files
-- `scripts/cortex-dashboard/app/` — Svelte 리빌드 (QA 진행 중)
+- (없음)
 
 ## Session Log (2026-05-30)
+
+### 14:00~ 전체 프로젝트 리뷰
+- **에이전트 잔여 작업 조사** — RESUME.md 2건 완료, stale 브랜치 2개 정리 가능, 미완료 0건
+- **`/review` 프로젝트 전체** — review-pr + design-auditor 병렬. Code: CRITICAL 1(XSS)+HIGH 2 → 이미 수정 확인. Design: 65/100 (a11y 12건). AUTO-FIX 허위 보고 발견
 
 ### 12:00~ Dashboard Svelte 리빌드 QA + 벤치마킹
 - **Svelte 14개 컴포넌트 빌드 완료** — App/Header/Calendar/DayCell/Item/Search/NoteViewer/LinkPopup/Sidebar/Toast/CaptureBar + Panels(StandingOrders/Vision/Frames)
@@ -69,7 +73,7 @@
 - **D1 데이터 유실 방지 3중 안전장치** — (1) setKey 자동 백업 (키당 5개 보존), (2) KV POST 30% 축소 차단, (3) `/api/undo` 백업 복원 API. Standing Orders 3회 이상 유실 재발 방지
 - **Standing Orders 복원** — "서울 재발견", "감각적 기획" 추가
 - **OneNote 이미지 일괄 다운로드** — Graph API → 로컬(`cortex/attachments/onenote/`), 59+21개 완료. Twilight Mood board 28장 포함
-- **벤치마킹 7개 중 4개 적용**: (1) 완료=opacity 0.4 ✅, (3) 미완료 보더 강조 ✅, (5) 텍스트 softening ✅, (7) Vim J/K/H/L 네비 ✅. (4) 4레벨 surface ❌폐기
+- **벤치마킹 적용**: (1) 완료=opacity 0.4 ✅, (3) 미완료 보더 강조 ✅, (5) 텍스트 softening ✅. (4) 4레벨 surface ❌폐기, (7) Vim 네비 ❌제거
 - **체크박스 optimistic update** — 서버 응답 대기 없이 즉시 반영
 - **Enter/Backspace 커서 이동** — split 후 아래로, delete 후 위로, suppressBlur로 중복 edit 차단
 - **숫자/시간 아이템 내림차순 정렬** — 카테고리 내 상단 배치
@@ -178,7 +182,7 @@
 - **PKM 벤치마크** — 14개 프로젝트 조사. LLM Wiki + Obsidian Claude PKM + CortexGraph 하이브리드 방향.
 - **SKILL.md 호환성 분석** — A-Team→SKILL.md 변환 70-80% 가능.
 
-**빌드**: ✅ 583 tests PASS (50 files)
+**빌드**: ✅ 586 tests PASS (51 files)
 
 ## Last Completions (2026-05-24 이전)
 → [.context/SESSIONS.md](SESSIONS.md) 참조
@@ -195,8 +199,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [x] **Dashboard Svelte 리빌드** — 14개 컴포넌트 완성, QA 진행 중. 벤치마킹 4/7 적용. 배포 대기.
-- [ ] **Dashboard 프로덕션 배포** — ui-deploy-gate 통과 → `wrangler deploy` → SW 캐시 관리
+- [ ] **Dashboard Svelte QA 잔여** — 하이퍼링크 클릭 동작 확인, 토큰 인증 플로우 안정화, 모바일 테스트
 - [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
 - [ ] **매일 OUTCOME 1개 외부 산출** — Standing Orders에 추가
 
