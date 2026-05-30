@@ -2,6 +2,14 @@
 
 ---
 
+## [2026-05-31] Dashboard Decoupling + 병합 로직 재설계 + 링크 시스템
+
+**완료**: contenteditable use:action 전체 통일 (텍스트 복제 버그 구조적 해결), 인라인 마크다운 링크 `[text](url)` 3곳 적용 (외부 URL + cortex 내부), 병합 로직 재설계 (frame/carry/manual 통합 + URL backfill + done 보존), 레드팀 리뷰 (HIGH 3 MEDIUM 4), events 시스템 (감각적 기획/서울 재발견), RECURRING BOARD 개명, 드래그+키보드 정렬 (SO+Frames), Frames 링크 버튼, 배포 구조 수정 (wrangler.jsonc 충돌 제거 + deploy.sh), Week view 기본 + 월경계 데이터, yearly 텍스트 교정 9건, D1 데이터 정화 + setKey sanitize, Twilight Mood board 편집 가능 HTML, Decoupling 방법론 리서치 + 메모리 저장
+**이슈**: wrangler.jsonc 충돌로 10+ 배포가 잘못된 Worker에 감 (deploy.sh로 재발 방지), D1 제어 문자로 URL 오염 (sanitize 추가), SW 캐시로 코드 변경 미반영 (noop SW)
+**빌드**: ✅
+
+---
+
 ## [2026-05-30] 프로젝트 전체 리뷰 + 에이전트 잔여 작업 조사
 
 **완료**: 에이전트 잔여 작업 조사(RESUME 2건 완료, stale 브랜치 2개, 미완료 0건). `/review` 프로젝트 전체 — review-pr(CRITICAL 1 XSS + HIGH 2 CORS/undo) + design-auditor(65/100, a11y 12건). 보안 6건 모두 이전 세션에서 이미 수정됨 확인. review-pr AUTO-FIX 허위 보고 발견(워킹 디렉토리 변경 0건).

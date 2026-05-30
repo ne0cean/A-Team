@@ -60,6 +60,25 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-31) — Dashboard Decoupling + 병합 로직 재설계
+
+- **contenteditable 전체 use:action 통일** — Item/DayCell/Header/StandingOrders/Frames 모든 contenteditable에서 Svelte 반응형 `{text}` 제거. 텍스트 복제/분리/깨짐 버그 구조적 해결
+- **인라인 마크다운 링크** — `[텍스트](url)` 형식 지원. 외부 URL + cortex 내부 경로 모두 렌더링. Item/StandingOrders/Frames 3곳 적용
+- **병합 로직 재설계** — inject-frames: frame sync + carry forward + manual 보존 통합. URL backfill, done 보존, 월경계 캐리, 중복 방지, 제어 문자 자동 제거
+- **레드팀 리뷰 실행** — adversarial 에이전트: HIGH 3 / MEDIUM 4 발견. Frame 삭제 done 보존, 저장 조건 수정, Frame+Manual 중복 방지 반영
+- **events 시스템** — 감각적 기획(6회) + 서울 재발견(6회) 등록. one_thing 아래 금색 배지. Standing Orders에도 추가
+- **Standing Orders → RECURRING BOARD** 제목 변경
+- **드래그+키보드 정렬** — StandingOrders 전 탭 + Frames Admin. ⠿ 핸들 드래그 + Alt+↑/↓
+- **Frames Admin 링크 버튼** — 🔗 버튼 추가 (URL+표시텍스트 입력 → 마크다운 링크 삽입)
+- **배포 구조 수정** — wrangler.jsonc 충돌 제거, deploy.sh 생성, SW noop 교체, GITHUB_TOKEN 복구
+- **Week view 기본 뷰** + PC 사이드바 기본 숨김
+- **Week view 월경계** — adjacentMonth prop으로 이전/다음 달 데이터 표시
+- **yearly 텍스트 교정** — 9개 항목 원본 OneNote 대조 수정
+- **cortex 파일 경로 인코딩 수정** — `encodeURIComponent` 세그먼트별 적용
+- **D1 데이터 정화** — 제어 문자 + 엉뚱한 URL 제거. setKey에 자동 sanitize 추가
+- **Twilight Mood board HTML** — 편집 가능 버전 (contenteditable + 드래그 + 이미지 추가 + localStorage 자동저장)
+- **Decoupling 방법론 리서치** — 커스텀 스토어 캡슐화 → FSD 3-레이어 → Vitest 스냅샷. 메모리 저장 완료
+
 ## Session Log (2026-05-30)
 
 ### 16:00~ Dashboard 근본 문제 3건 수정 + 배포
@@ -182,17 +201,17 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **HFK 26 SPRING Notion 작업** — https://lavender-soul-e27.notion.site/HFK-26-SPRING-33fd0f53623d8027bdb6dd7b89a16563 (Notion JS 렌더링이라 WebFetch 불가, 브라우저에서 직접 확인 필요)
-- [ ] **Dashboard a11y 수정** — design audit score 65→70+ (버튼 역할, label 누락, dialog role, 색상 대비, 극소 폰트)
-- [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
-- [ ] **매일 OUTCOME 1개 외부 산출** — Standing Orders에 추가
+- [ ] **Loose Coupling 단계적 적용** — 커스텀 스토어 캡슐화 (stores.js writable 직접 노출 금지) → FSD 3-레이어 → Vitest 스냅샷. TDD/ship 반복, 완성 기준 수립+측정
+- [ ] **글로벌 개발 방법론 반영** — Decoupling 패턴을 CLAUDE.md/governance에 구조적 규칙으로 등록
+- [ ] **HFK 26 SPRING Notion 작업** — https://lavender-soul-e27.notion.site/HFK-26-SPRING-33fd0f53623d8027bdb6dd7b89a16563
+- [ ] **Dashboard a11y 수정** — design audit score 65→70+
+- [ ] **제품 빌드 시작** — Connectome MVP (인프라 중독 탈피)
 
 ### Medium Priority
-- [ ] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진 (YT 그룹C 도출)
-- [ ] **LSP 활성화** — settings.json 히든 플래그 + 언어서버 설치 (YT 그룹D 도출)
-- [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정 (PRD 성공 기준 기반)
+- [ ] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진
+- [ ] **LSP 활성화** — settings.json 히든 플래그 + 언어서버 설치
+- [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정
 - [ ] **Stryker 첫 full run** — mutation score baseline 측정
-- [ ] **Ritual Board 이름 확정** — 완성 후 추천
 
 ### Low Priority / Future
 - [ ] Phase 1 Causal analysis (**보류**: 데이터 축적 후)
