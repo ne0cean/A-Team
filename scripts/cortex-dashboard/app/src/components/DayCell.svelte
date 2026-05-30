@@ -257,8 +257,9 @@
     {#each CATS as cat}
       {@const items = dayData[cat] || []}
       {@const sorted = sortItems(items)}
+      {@const hasPending = items.some(i => !i.done)}
       {#if items.length > 0 || isToday}
-        <div class="category cat-{cat}">
+        <div class="category cat-{cat}" class:has-pending={hasPending}>
           <div class="cat-label cl-{cat}">
             <span>{CAT_NAMES[cat]}</span>
             <span class="cat-add" on:click={() => showNewInput(cat)}>+</span>
