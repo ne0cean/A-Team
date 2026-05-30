@@ -50,7 +50,7 @@ Agenda - Message - Messenger - Channel - Audience
 
      └                        Feedback loop                      ┘
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2de8290d6f54442dbd914b4e2eb8a518!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/3f93f24e64.png)
 
 호감의 법칙 4가지 - 근접성. 외모, 유사성, 상호성
 

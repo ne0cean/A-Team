@@ -18,7 +18,7 @@ modified: "2020-06-07T03:18:01.73Z"
 
 &#160;
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-53d3a18603e74e279d9f08b3c605f401!1-733661839CC53BA5!7917/$value)
+![image](../../attachments/onenote/d215dbcdf6.png)
 
 윤준탁 에이블랩스 대표
 
@@ -40,7 +40,7 @@ modified: "2020-06-07T03:18:01.73Z"
 
 &#160;
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3d224e1256074084a5f69341086e073c!1-733661839CC53BA5!7917/$value)
+![image](../../attachments/onenote/208f3408dc.png)
 
 아마존의 워킹 백워드 프로세스. 사진 = 윤준탁
 
