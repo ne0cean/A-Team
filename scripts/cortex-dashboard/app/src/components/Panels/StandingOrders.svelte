@@ -6,7 +6,12 @@
 
   function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
-  async function save() { await api.saveStandingOrders($standingData); }
+  async function save() {
+    // Safety: never save empty standing orders
+    const size = JSON.stringify($standingData).length;
+    if (size < 50) { console.warn('save blocked: standingData too small', size); return; }
+    await api.saveStandingOrders($standingData);
+  }
 
   // Standing
   function toggleActive(i) { $standingData.standing[i].active = !$standingData.standing[i].active; save(); $standingData = $standingData; }

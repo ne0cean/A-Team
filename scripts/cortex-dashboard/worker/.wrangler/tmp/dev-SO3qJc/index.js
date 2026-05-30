@@ -29,6 +29,19 @@ var src_default = {
       }, "getKey");
       const setKey = /* @__PURE__ */ __name(async (key, data) => {
         const json = JSON.stringify(data);
+        const prev = await env.DB.prepare("SELECT data FROM ritual_data WHERE key = ?").bind(key).first();
+        if (prev) {
+          const backupKey = `_backup:${key}:${Date.now()}`;
+          await env.DB.prepare(
+            "INSERT OR REPLACE INTO ritual_data (key, data, updated_at) VALUES (?, ?, datetime('now'))"
+          ).bind(backupKey, prev.data).run();
+          const oldBackups = await env.DB.prepare(
+            "SELECT key FROM ritual_data WHERE key LIKE ? ORDER BY updated_at DESC LIMIT -1 OFFSET 5"
+          ).bind(`_backup:${key}:%`).all();
+          for (const row of oldBackups.results || []) {
+            await env.DB.prepare("DELETE FROM ritual_data WHERE key = ?").bind(row.key).run();
+          }
+        }
         await env.DB.prepare(
           "INSERT OR REPLACE INTO ritual_data (key, data, updated_at) VALUES (?, ?, datetime('now'))"
         ).bind(key, json).run();
@@ -212,12 +225,41 @@ var src_default = {
         }
         if (method === "POST") {
           const data = await request.json();
+          const existing = await getKey(key);
+          if (existing) {
+            const existingSize = JSON.stringify(existing).length;
+            const newSize = JSON.stringify(data).length;
+            if (existingSize > 200 && newSize < existingSize * 0.3) {
+              return new Response(JSON.stringify({
+                error: `blocked: data shrunk from ${existingSize} to ${newSize} bytes (${Math.round(newSize / existingSize * 100)}%). Use /api/force-save to override.`,
+                existingSize,
+                newSize
+              }), { status: 400, headers });
+            }
+          }
           await setKey(key, data);
           return new Response(JSON.stringify({ ok: true }), { headers });
         }
       }
       if (path === "/api/undo" && method === "POST") {
-        return new Response(JSON.stringify({ error: "undo not available in cloud mode" }), { status: 400, headers });
+        const { key } = await request.json();
+        const targetKey = key || "standing-orders";
+        const backups = await env.DB.prepare(
+          "SELECT key, updated_at FROM ritual_data WHERE key LIKE ? ORDER BY updated_at DESC LIMIT 5"
+        ).bind(`_backup:${targetKey}:%`).all();
+        if (!backups.results?.length) {
+          return new Response(JSON.stringify({ error: "no backups found" }), { status: 404, headers });
+        }
+        const latest = backups.results[0];
+        const backupData = await env.DB.prepare("SELECT data FROM ritual_data WHERE key = ?").bind(latest.key).first();
+        if (backupData) {
+          const restored = JSON.parse(backupData.data);
+          await env.DB.prepare(
+            "INSERT OR REPLACE INTO ritual_data (key, data, updated_at) VALUES (?, ?, datetime('now'))"
+          ).bind(targetKey, backupData.data).run();
+          return new Response(JSON.stringify({ ok: true, restored_from: latest.updated_at, backups_available: backups.results.length }), { headers });
+        }
+        return new Response(JSON.stringify({ error: "backup data corrupted" }), { status: 500, headers });
       }
       if (path === "/api/workout" && method === "POST") {
         const { ym, day, part } = await request.json();
