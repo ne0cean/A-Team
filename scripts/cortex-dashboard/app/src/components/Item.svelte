@@ -17,17 +17,30 @@
     try { const s = new URL(u).protocol; return (s === 'https:' || s === 'http:') ? u : ''; } catch { return ''; }
   }
 
-  // Parse [text](url) markdown links within plain text
+  // Parse [text](url) markdown links — supports https:// and cortex/ internal paths
   function renderRichText(node, text) {
-    const re = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+    const re = /\[([^\]]+)\]\(([^)]+)\)/g;
     let last = 0, match;
     while ((match = re.exec(text)) !== null) {
       if (match.index > last) node.appendChild(document.createTextNode(text.slice(last, match.index)));
       const a = document.createElement('a');
-      a.href = match[2];
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
+      const target = match[2];
+      if (target.startsWith('http://') || target.startsWith('https://')) {
+        a.href = target;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+      } else {
+        // Cortex internal link — open via API
+        a.href = '#';
+        a.dataset.cortexPath = target;
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          window.dispatchEvent(new CustomEvent('open-cortex-file', { detail: target }));
+        });
+      }
       a.textContent = match[1];
+      a.style.color = '#58a6ff';
       a.addEventListener('click', (e) => e.stopPropagation());
       node.appendChild(a);
       last = re.lastIndex;
@@ -50,7 +63,7 @@
         a.textContent = itm.text;
         a.addEventListener('click', (e) => e.stopPropagation());
         node.appendChild(a);
-      } else if (/\[.+?\]\(https?:\/\//.test(itm.text)) {
+      } else if (/\[.+?\]\([^)]+\)/.test(itm.text)) {
         // Inline markdown links
         renderRichText(node, itm.text);
       } else {

@@ -28,14 +28,24 @@
       if (document.activeElement === node) return;
       node.textContent = '';
       if (!text) return;
-      const re = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+      const re = /\[([^\]]+)\]\(([^)]+)\)/g;
       let last = 0, match;
       while ((match = re.exec(text)) !== null) {
         if (match.index > last) node.appendChild(document.createTextNode(text.slice(last, match.index)));
         const a = document.createElement('a');
-        a.href = match[2];
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
+        const target = match[2];
+        if (target.startsWith('http://') || target.startsWith('https://')) {
+          a.href = target;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+        } else {
+          a.href = '#';
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.dispatchEvent(new CustomEvent('open-cortex-file', { detail: target }));
+          });
+        }
         a.textContent = match[1];
         a.style.color = '#58a6ff';
         a.addEventListener('click', (e) => e.stopPropagation());

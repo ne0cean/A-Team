@@ -26,6 +26,8 @@
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) refreshWorkout();
     });
+    // Cortex internal link handler
+    window.addEventListener('open-cortex-file', (e) => openNote(e.detail));
     // Register SW
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
