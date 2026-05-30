@@ -64,6 +64,15 @@
     if (so) $standingData = so;
     if (frames) $dayFrames = frames;
     if (vision) $visionData = vision;
+
+    // Auto-inject frames for today (carries forward uncompleted todos)
+    const now = new Date();
+    if (now.getFullYear() === y && now.getMonth() + 1 === m) {
+      const today = now.getDate();
+      await api.injectFrames(ymStr, today, today);
+      const refreshed = await api.loadMonth(ymStr);
+      if (refreshed) $monthData = refreshed;
+    }
   }
 
   async function refreshWorkout() {
