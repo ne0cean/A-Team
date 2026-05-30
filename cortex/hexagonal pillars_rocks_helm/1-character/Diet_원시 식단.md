@@ -195,7 +195,7 @@ alli
 
 [http://tokyoslim.kr/product/detail.html?product_no=761&amp;cate_no=7&amp;display_group=1&amp;cafe_mkt=naver_ks&amp;mkt_in=Y&amp;ghost_mall_id=naver&amp;ref=naver_open&amp;Ncisy=v%3D1%7Ct%3De%7Ce%3D1431936778%7Cba%3D0.5%7Caa%3D0.5%7Ch%3D565b83c30d5bbffc4935001e49befd15f8b01160&amp;NaPm=ct%3Di9s6quj4%7Cci%3D690126f3bfee7219b6e9c82a8bdba66dc2507efb%7Ctr%3Dslsl%7Csn%3D212487%7Cet%3Di9tm6p74%7Cba%3D0.5%7Caa%3D0.5%7Chk%3D3d7bb58854e92c0aca8420224b7a38fa0c929f4e](http://tokyoslim.kr/product/detail.html?product_no=761&amp;cate_no=7&amp;display_group=1&amp;cafe_mkt=naver_ks&amp;mkt_in=Y&amp;ghost_mall_id=naver&amp;ref=naver_open&amp;Ncisy=v%3D1%7Ct%3De%7Ce%3D1431936778%7Cba%3D0.5%7Caa%3D0.5%7Ch%3D565b83c30d5bbffc4935001e49befd15f8b01160&amp;NaPm=ct%3Di9s6quj4%7Cci%3D690126f3bfee7219b6e9c82a8bdba66dc2507efb%7Ctr%3Dslsl%7Csn%3D212487%7Cet%3Di9tm6p74%7Cba%3D0.5%7Caa%3D0.5%7Chk%3D3d7bb58854e92c0aca8420224b7a38fa0c929f4e)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-768d143baa5f43fbb07b903c00eaf224!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/850359b578.png)
 
 출처: &lt;[http://m.news.naver.com/read.nhn?mode=LSD&amp;mid=sec&amp;sid1=101&amp;oid=024&amp;aid=0000044202](http://m.news.naver.com/read.nhn?mode=LSD&amp;mid=sec&amp;sid1=101&amp;oid=024&amp;aid=0000044202)&gt;
 
@@ -227,4 +227,4 @@ Alli 알리
 
 [https://www.ohappytime.com/FrontStore/iCartPayment.phtml?iSaleId=OD5e7f4bfc647ed](https://www.ohappytime.com/FrontStore/iCartPayment.phtml?iSaleId=OD5e7f4bfc647ed)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0c6d187fae8b0f0b0dd72cdcb965395f!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/84bbe7ad42.png)

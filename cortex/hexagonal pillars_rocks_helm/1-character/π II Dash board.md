@@ -94,7 +94,7 @@ even as
 
 음악을 암송해라
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-01b2f006042315e38101618d744e94b6!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/45847e564e.png)
 
 평일 영어 루틴 확립
 
@@ -146,7 +146,7 @@ Writing - 대본 딕테이션
 
 영어 신문에서의 단어의 뉘앙스
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-8b29f4c02c9d1dae8fdb0016656252af!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/ed080079dd.png)
 
 딕테이션 / 쉐도잉
 
@@ -184,7 +184,7 @@ Writing - 대본 딕테이션
 
   - Speaking  만화책 소리내어 읽기, 음악듣기, 하루 1분 반성, 동영상 Shadowing, TOFLE 문제 연습, 10분 Presentation 연습
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e3c45fcb5bc46bbbae2ac4193f9921c1!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/42a7fccb82.png)
 
 ㅇ 일하면서공부
 
@@ -342,9 +342,9 @@ Voice of America ([www.voanews.com](http://www.voanews.com)) - 쉬운 영어로 
 
 Jennifer esl (youtube.com/user/jenniferESL) 영어문법
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b758352ed99b13fa83da515ea647bf15!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/0ad9ed4164.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a94d6781a9ce12baaed003ac0d2b84a3!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/d34f2f34a3.png)
 
 ㅇ 영어 공부법
 
@@ -552,7 +552,7 @@ New York City 발음: New York City을 영어로 발음하기 - [https://ko.forv
 
 출처: &lt;[http://m.koreaherald.com/view.php?ud=20140318001068](http://m.koreaherald.com/view.php?ud=20140318001068)&gt;
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-16bf1503adeb1b5389e3a444ecad142d!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/f4245b41f8.png)
 
 영문 타자연습
 

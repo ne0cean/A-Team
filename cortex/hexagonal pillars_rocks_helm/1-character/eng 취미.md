@@ -108,27 +108,27 @@ LingQ or
 나의 관심사를 영어로. 포스팅도 하고
 
 - [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-06498d893dde1dddabb69695b34b98a6!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/5a6a88b78c.png)
 ](http://www.englishow.co.kr/kindle/27215607#popup_menu_area)
 
 [JayJS](http://www.englishow.co.kr/kindle/27215607#popup_menu_area) 2015.09.25 18:41￼lingoes 사전을 이용하시면 됩니다.&#160;[http://www.lingoes.net](http://www.lingoes.net/)/￼컴퓨터에 어떤곳에서든 마우스로 단어 드래그 해서 블럭만 할수 있으면 바로 킨들처럼 팝업창이 뜹니다.￼인터넷하다가 책이나 문서 읽다가 심지어 파일명이나 폴더명도 드래그해서 블럭하면 팝업창이 뜹니다.￼&#160;[댓글](http://www.englishow.co.kr/index.php?mid=kindle&amp;document_srl=27215607&amp;act=dispBoardReplyComment&amp;comment_srl=27218996)
 
 - ?
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-7ffee8eddc85146a8b36323c696a7f2d!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/7ccc3e8431.png)
 ](http://www.englishow.co.kr/kindle/27215607#popup_menu_area)
 [푸다닥](http://www.englishow.co.kr/kindle/27215607#popup_menu_area) 2015.09.25 18:51￼크롬 확장자 맞나요?￼다운 누르니 How to simpl 어쩌고 이거 인스톨 하래요... ㅡㅡ￼&#160;[댓글](http://www.englishow.co.kr/index.php?mid=kindle&amp;document_srl=27215607&amp;act=dispBoardReplyComment&amp;comment_srl=27219173)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3896a9cc964b14acae703226f335dc46!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/c705a099da.png)
 
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-06498d893dde1dddabb69695b34b98a6!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/5a6a88b78c.png)
 ](http://www.englishow.co.kr/kindle/27215607#popup_menu_area)
 [JayJS](http://www.englishow.co.kr/kindle/27215607#popup_menu_area) 2015.09.25 19:03￼lingoes_2.91.exe 이렇게 실행파일로 다운되야해요.￼32비트용&#160;[http://www.lingoes.net/en/translator/trans_downsoft.php?id=30](http://www.lingoes.net/en/translator/trans_downsoft.php?id=30)￼64비트용&#160;[http://www.lingoes.net/en/translator/trans_downsoft.php?id=33](http://www.lingoes.net/en/translator/trans_downsoft.php?id=33)￼공식홈 사전 다운&#160;[http://www.lingoes.net/en/dictionary/index.html](http://www.lingoes.net/en/dictionary/index.html)￼롱맨,콜린스등 사전 다운&#160;[http://rainingfog.tistory.com/82](http://rainingfog.tistory.com/82)￼&#160;[댓글](http://www.englishow.co.kr/index.php?mid=kindle&amp;document_srl=27215607&amp;act=dispBoardReplyComment&amp;comment_srl=27219345)
 
 - ?
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-7ffee8eddc85146a8b36323c696a7f2d!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/7ccc3e8431.png)
 ](http://www.englishow.co.kr/kindle/27215607#popup_menu_area)
 [푸다닥](http://www.englishow.co.kr/kindle/27215607#popup_menu_area) 2015.09.25 19:45￼정말 고맙습니다.￼킨들 pc용 깔고 갈망님 사전 깔다가 안되서 포기 하고 골덴딕 사전 깔았는데 웹사이트 등록해도 검색이 안되서 포기하고,, ㅜㅜ 정말 4시간 동안 뭐 했는지 모르겠어요.￼￼링크 달아주신거 지금 다운 받고 있어요. 분명 아까는 다운이 안됐는데 지금은 잘되네요 ㅎㅎ ;;
 
@@ -163,15 +163,15 @@ LingQ or
 [준영,] [오전 3:24] 영어공부시작 - 영어공부 꾸준히 계속 즐겁게 잘 하려면? 영어공부시작하려는 분께 도움말을 드리고자 합니다. 저 자신이 워낙 많은 시행착오를 겪었기 때문에, 다시 영어공부시작하는 분들의 마음을 잘 알고 있습니다. 저는 순전히 우연으로 영어를 꾸준히 능숙하게 잘 익히는 방법을 독학으로 터득했습니다. 미드를 너무 많이 봤었고 지금도 보고 있습니다. 그냥 보는 게 아니라 영어를 완벽하게 습득하면서 보고 있어요. 그..
 
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-06498d893dde1dddabb69695b34b98a6!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/5a6a88b78c.png)
 ](http://www.englishow.co.kr/kindle/27215607#popup_menu_area)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-7ffee8eddc85146a8b36323c696a7f2d!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/7ccc3e8431.png)
 ](http://www.englishow.co.kr/kindle/27215607#popup_menu_area)
 
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-06498d893dde1dddabb69695b34b98a6!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/5a6a88b78c.png)
 ](http://www.englishow.co.kr/kindle/27215607#popup_menu_area)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-7ffee8eddc85146a8b36323c696a7f2d!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/7ccc3e8431.png)
 ](http://www.englishow.co.kr/kindle/27215607#popup_menu_area)
 
 출처: &lt;[http://www.englishow.co.kr/kindle/27215607](http://www.englishow.co.kr/kindle/27215607)&gt;
