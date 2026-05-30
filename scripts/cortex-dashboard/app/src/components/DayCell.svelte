@@ -1,17 +1,24 @@
 <script>
   import { createEventDispatcher, tick } from 'svelte';
   import Item from './Item.svelte';
-  import { CATS, CAT_NAMES, CAT_COLORS, TYPES, TYPE_LABELS, TYPE_COLORS, ym, monthData, standingData, dragSource } from '../lib/stores.js';
+  import { CATS, CAT_NAMES, CAT_COLORS, TYPES, TYPE_LABELS, TYPE_COLORS, ym, monthData, prevMonthData, nextMonthData, standingData, dragSource } from '../lib/stores.js';
   import * as api from '../lib/api.js';
 
   export let d;
   export let isToday = false;
   export let isCurrent = true;
   export let showPastToggle = false;
+  export let adjacentMonth = null; // 'prev' or 'next' — for week view cross-month days
 
   const dispatch = createEventDispatcher();
 
-  $: dayData = isCurrent ? ($monthData.days?.[String(d)] || {}) : {};
+  $: dayData = isCurrent
+    ? ($monthData.days?.[String(d)] || {})
+    : adjacentMonth === 'prev'
+      ? ($prevMonthData?.days?.[String(d)] || {})
+      : adjacentMonth === 'next'
+        ? ($nextMonthData?.days?.[String(d)] || {})
+        : {};
   $: dow = new Date($ym.split('-')[0], $ym.split('-')[1] - 1, d).getDay();
   $: holiday = getHoliday(d);
   $: recurringItems = getRecurring(d);
@@ -260,7 +267,7 @@
     <div class="holiday-name">{holiday}</div>
   {/if}
 
-  {#if isCurrent}
+  {#if isCurrent || adjacentMonth}
     <div class="one-thing" contenteditable="true" on:blur={saveOneThing}
       on:keydown={(e) => e.key === 'Enter' && !e.isComposing && (e.preventDefault(), e.target.blur())}
       use:setOneThing={dayData.one_thing}

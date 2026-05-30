@@ -65,8 +65,10 @@
       {#each weekDays as wd}
         {@const isSameMonth = wd.month === $currentMonth}
         {@const isToday = wd.date.toDateString() === today.toDateString()}
+        {@const adjMonth = isSameMonth ? null : (wd.month < $currentMonth || (wd.month === 12 && $currentMonth === 1)) ? 'prev' : 'next'}
         <div class="week-cell" class:today={isToday}>
           <DayCell d={wd.d} {isToday} isCurrent={isSameMonth}
+            adjacentMonth={adjMonth}
             on:reload={onReload} on:openlink={(e) => onOpenLink(e.detail)} />
         </div>
       {/each}
