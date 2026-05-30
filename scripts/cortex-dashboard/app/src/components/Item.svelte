@@ -9,13 +9,13 @@
   const dispatch = createEventDispatcher();
 
   let textEl;
+  let suppressBlur = false;
 
   function handleKey(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
       const sel = window.getSelection();
       const fullText = textEl.textContent;
-      // Range-based cursor offset — sel.focusOffset is node-relative, breaks with <a> tags
       let beforeText = fullText;
       if (sel && sel.rangeCount) {
         const range = sel.getRangeAt(0);
@@ -26,10 +26,10 @@
       }
       const before = beforeText.trim();
       const after = fullText.slice(beforeText.length).trim();
-      // Suppress onblur so editItem doesn't overwrite our split
-      textEl.onblur = null;
+      suppressBlur = true;
       dispatch('split', { index, before, after });
     } else if (e.key === 'Backspace' && textEl.textContent.trim() === '') {
+      suppressBlur = true;
       e.preventDefault();
       dispatch('delete', { index });
     } else if (e.key === 'ArrowDown') {
@@ -45,6 +45,7 @@
   }
 
   function handleBlur() {
+    if (suppressBlur) { suppressBlur = false; return; }
     const newText = textEl.textContent.trim();
     if (newText !== item.text) {
       // Auto-detect URL
