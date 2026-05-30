@@ -169,6 +169,28 @@ GIT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 GIT_DIRTY=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ' || echo 0)
 GIT_LAST=$(git log --oneline -1 2>/dev/null | cut -c1-50 || echo "")
 
+# === Auto-create CURRENT.md if missing ===
+if [ ! -f ".context/CURRENT.md" ]; then
+  mkdir -p .context
+  PROJ_NAME=$(basename "$(pwd)")
+  cat > .context/CURRENT.md << INITEOF
+# CURRENT — $PROJ_NAME
+
+## Status
+(초기화 필요)
+
+## Session Log
+
+## Next Tasks
+- [ ] 프로젝트 상태 정의
+
+## Decisions
+
+## Blockers
+INITEOF
+  echo "current_md: 자동 생성됨"
+fi
+
 # === In Progress ===
 if [ -f ".context/CURRENT.md" ]; then
   IN_PROGRESS=$(awk '/^## In Progress Files/,/^## /' ".context/CURRENT.md" 2>/dev/null | grep -vE "^##|없음|\(없음\)|^-.*없음" | grep -v "^$" | head -1 | sed 's/^- //' || true)

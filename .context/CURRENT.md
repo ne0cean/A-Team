@@ -58,17 +58,38 @@
 **Override**: AUTORESEARCH-PLAN.md의 `Mode`를 `PAUSED`/`DECIDED`/`DISMISSED`로 변경.
 
 ## In Progress Files
-- (없음)
+- `scripts/cortex-dashboard/app/` — Svelte 리빌드 (QA 진행 중)
 
-## Last Completions (2026-05-30) — 모델 오케스트레이션 강제 + MeiliSearch + Ollama 라우팅
+## Session Log (2026-05-30)
 
-- **모델 오케스트레이션 훅 등록 완료** — enforce-model-param.sh(Agent model 미지정 시 deny) + model-compliance.sh(SubagentStop 위반 감사) settings.json 등록. 테스트 확인: model 없이 호출→차단, model=haiku→통과.
-- **모델 사용량 추적** — `/tmp/model-usage.jsonl`에 모든 Agent 호출(모델명+prompt_chars) + Groq 선제처리(모델명+토큰수) + llm CLI 호출 통합 기록. `/end`에서 비용 리포트 출력.
-- **MeiliSearch launchd 등록** — `com.ateam.meilisearch` 상시 가동. DB경로 `a-team/.meili_data`, port 7700. 3499문서 인덱싱 유지.
-- **Ollama 로컬 폴백** — preempt-agent.sh에 Groq 실패 시 Ollama qwen2:7b 폴백 추가. 토큰 추적 포함.
-- **llm CLI 사용량 추적** — 래퍼에 model-usage.jsonl 로깅 추가.
-- **tidy 안전장치** — 본문 20자 이상 파일 삭제 차단. tidy-pick에 본문 미리보기(frontmatter 제외) 표시.
-- **cortex-tidy 5개 삭제→복구** — untitled이라도 본문 확인 없이 삭제한 실수. git checkout으로 복구. 프로세스 수정.
+### 12:00~ Dashboard Svelte 리빌드 QA + 벤치마킹
+- **Svelte 14개 컴포넌트 빌드 완료** — App/Header/Calendar/DayCell/Item/Search/NoteViewer/LinkPopup/Sidebar/Toast/CaptureBar + Panels(StandingOrders/Vision/Frames)
+- **scoped CSS → global CSS 전환** — Svelte scoping이 `::-webkit-scrollbar` pseudo-element 깨뜨림. vanilla main.css 그대로 app.css로 복사
+- **Worker `/api/workout` 엔드포인트 추가** — vanilla에서 사용하던 API가 Worker에 미포팅, EX 데이터 유실 원인
+- **D1 데이터 유실 방지 3중 안전장치** — (1) setKey 자동 백업 (키당 5개 보존), (2) KV POST 30% 축소 차단, (3) `/api/undo` 백업 복원 API. Standing Orders 3회 이상 유실 재발 방지
+- **Standing Orders 복원** — "서울 재발견", "감각적 기획" 추가
+- **OneNote 이미지 일괄 다운로드** — Graph API → 로컬(`cortex/attachments/onenote/`), 59+21개 완료. Twilight Mood board 28장 포함
+- **벤치마킹 7개 중 4개 적용**: (1) 완료=opacity 0.4 ✅, (3) 미완료 보더 강조 ✅, (5) 텍스트 softening ✅, (7) Vim J/K/H/L 네비 ✅. (4) 4레벨 surface ❌폐기
+- **체크박스 optimistic update** — 서버 응답 대기 없이 즉시 반영
+- **Enter/Backspace 커서 이동** — split 후 아래로, delete 후 위로, suppressBlur로 중복 edit 차단
+- **숫자/시간 아이템 내림차순 정렬** — 카테고리 내 상단 배치
+- **Week view 구현** — This Week 버튼 동작, min-height 400px
+- **인스타 카드뉴스 리서치 완료** — Playwright+HTML 템플릿 1순위, Satori 2순위
+
+### 10:00~ 모델 오케스트레이션 + MeiliSearch + Ollama
+- 오케스트레이션 훅 등록 (이미 settings.json에 존재 확인)
+- MeiliSearch launchd 등록 (`com.ateam.meilisearch`, 127.0.0.1:7700 health OK)
+- Ollama 로컬 폴백, 사용량 추적, tidy 안전장치
+
+### Decisions
+| 결정 | 이유 |
+|------|------|
+| scoped CSS 포기 → global CSS | Svelte scoping이 pseudo-element/cross-component selector 깨뜨림 |
+| Svelte 가치 = 컴포넌트 구조 + 반응성 | CSS가 아닌 로직 분리가 핵심 |
+| D1 setKey에 자동 백업 | Standing Orders 3회 유실 — 구조적 방지 필수 |
+| 벤치마킹 #4 폐기 | hover overlay가 사용자에게 무의미 |
+| 카드뉴스 스택: Playwright + HTML | 무료, 한국어 완벽, Claude Code 직접 호출 가능 |
+| Worker에 축소 차단 | 30% 이상 데이터 축소 시 400 반환 — 실수로 덮어쓰기 불가 |
 
 ## Last Completions (2026-05-29) — Dashboard 사후 분석 + Svelte 리빌드 착수
 
@@ -174,7 +195,8 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **Dashboard Svelte 리빌드 완성** — Calendar/DayCell/NoteViewer/Search/Panels + App.svelte 작성 → 빌드 → ui-deploy-gate 통과 → 배포. UX-SPEC.md가 SSOT.
+- [x] **Dashboard Svelte 리빌드** — 14개 컴포넌트 완성, QA 진행 중. 벤치마킹 4/7 적용. 배포 대기.
+- [ ] **Dashboard 프로덕션 배포** — ui-deploy-gate 통과 → `wrangler deploy` → SW 캐시 관리
 - [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
 - [ ] **매일 OUTCOME 1개 외부 산출** — Standing Orders에 추가
 
