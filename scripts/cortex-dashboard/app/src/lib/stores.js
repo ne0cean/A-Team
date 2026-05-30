@@ -6,7 +6,7 @@ export const currentMonth = writable(new Date().getMonth() + 1);
 export const monthData = writable({ month: '', goals: {}, days: {} });
 export const prevMonthData = writable(null);
 export const nextMonthData = writable(null);
-export const viewMode = writable('month');
+export const viewMode = writable('week');
 
 // Computed ym
 export const ym = derived([currentYear, currentMonth], ([$y, $m]) =>
