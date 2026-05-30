@@ -10,11 +10,6 @@ created: "2011-06-14T06:48:39.766Z"
 modified: "2011-06-14T06:48:39.766Z"
 ---
 
-ICT Trend 
-		
-		
-	
-	
-		
-			
+ICT Trend
+
 [http://blog.naver.com/rlac10/80204326033](http://blog.naver.com/rlac10/80204326033)

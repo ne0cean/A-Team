@@ -15,8 +15,6 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 Grammar, VOCA
 
-  
-
 VOCA: NY Times & SAT
 
 Reading: NY Times, Books
@@ -28,8 +26,6 @@ Intonation/Pronunciation: shadowing
 Writing: NY Times Summary, Analysis
 
 Speaking:
-
-  
 
 Reading - 킨들, 영어 매체 기사@크롬
 
@@ -43,13 +39,9 @@ VOCA - 구글 이미지 검색으로 암기
 
 Grammar -
 
-  
-
 책 필사, NY Times 독해/필사 및 단어 암기 매일 2개 기사
 
 Speaking: 영화
-
-  
 
 6개월만에
 
@@ -61,11 +53,7 @@ Speaking: 영화
 
 4/ 입으로 소리내어 말하기
 
-  
-
 듀오링고
-
-  
 
 음성(Listening)이 있는 지문을 Reading하면서 필사(Writing)하고 입으로 내뱉어 읽기
 
@@ -85,9 +73,6 @@ S/ 지문을 소리내어 읽기
 
 + 문법책 1챕터씩 복습.
 
-  
-  
-
 쉴 때,
 
 + 500DoS 켜두기
@@ -98,35 +83,19 @@ S/ 지문을 소리내어 읽기
 
 + 쉬운 영문도서 읽기
 
-  
-  
-
 VOCA 구글 이미지 검색으로 단어 암기
 
 머리속 생각나는 문장을 영어로 바꿔서 암기 : 번역기 방법
 
-  
-
 모든 읽는것들을 영어로,
-
-  
 
 재미 없으면 지속할 수 없다.
 
-  
-  
-
 나중에는 전화영어-엔구(필리핀 선생)
-
-  
 
 <https://www.fluentu.com/blog/english-kor/%EB%B9%84%EC%A6%88%EB%8B%88%EC%8A%A4-%EC%98%81%EC%96%B4/>
 
-  
-
 한국산업인력공단 k-move <https://www.worldjob.or.kr/advnc/cnttListSub.do?dobType=2&menuId=1000000094>
-
-  
 
 영어 유튜브
 
@@ -165,11 +134,11 @@ VOCA 구글 이미지 검색으로 단어 암기
 
 <https://brunch.co.kr/@minimapworld/42>
 
-![Relevance "ENA... 
-Meaning 
-"2101" 
-" Attentio 
-Memor 
-2101. 
-gæg. 
+![Relevance "ENA...
+Meaning
+"2101"
+" Attentio
+Memor
+2101.
+gæg.
 attention. meaning. relevance and memory. ](attachments/2b4b24bc4205.png)

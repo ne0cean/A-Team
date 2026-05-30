@@ -12,20 +12,13 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 PR12 - 논문들 해석본
 
-  
-
 AI: [국내 유망 AI 100대 기업](http://www.ailandscape.net/index.asp)
 
 <https://outstanding.kr/aibusinessai20211216>
 
-  
-  
-
 AI 저널 <https://www.ailandscape.co.kr/06_gue/gue02.asp>
 
 리서치 <https://app.cbinsights.com/research/artificial-intelligence-research-2020/>
-
-  
 
 스탠포드 인간 중심 인공지능 연구소(HAI)가 발행하는 AI 지수 보고서
 
@@ -41,15 +34,11 @@ Tech
 
 응용/확장 가능 분야
 
-  
-
 Market
 
 Addressable market
 
 인접 시장
-
-  
 
 People
 

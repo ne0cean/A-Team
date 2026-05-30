@@ -11,18 +11,9 @@ modified: "2012-03-26T15:07:37.83Z"
 ---
 
 NEXT BIZ 3
-		
-		
-	
-	
-		
-			
+
 사업 아이템 [http://cn.pinkage.co.kr/](http://cn.pinkage.co.kr/)
-			
 
-			
 엠피쓰리 디자인 권총 소라 호루라기
-			
 
-			
 어깨에 얹은 새 형태같은 말하는 스마트 디바이스 또는 로봇

@@ -10,15 +10,9 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 <https://www.instagram.com/p/DTIKuGJD0lv/?img_index=4&igsh=MWdnc3NhbGl1dXg0Zg==>
 
-  
-
 알면 불법처럼 느껴지는 7가지 프롬프트 공개
 
-  
-
 💰 1. [억만장자처럼 사고하기](https://chatgpt.com/c/69631ce2-d650-8322-9125-b8bc91eb068b)
-
-  
 
 📌 프롬프트
 
@@ -28,11 +22,7 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 평균적인 사고자에서 억만장자 사고자로 전환하기 위한 매일의 멘탈 모델을 제시하라.”
 
-  
-
 🧬 2. [초인적인 학습 능력 해금](https://chatgpt.com/c/69631f0e-a4a0-8321-a3a4-69b94db587e4)
-
-  
 
 📌 프롬프트
 
@@ -46,11 +36,7 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 90일 안에 상위 1% 수준에 도달하는 것이 목표다.”
 
-  
-
 📥 3. [전문가급 지식 다운로드](https://chatgpt.com/c/69631fb1-33a0-8322-8f78-f5b14364704c)
-
-  
 
 📌 프롬프트
 
@@ -66,11 +52,7 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 시뮬레이션 또는 실전 과제를 포함하라.”
 
-  
-
 🧠 4. [멘탈 소프트웨어 업그레이드](https://chatgpt.com/c/69632e48-7b00-8321-8763-9c0834109285)
-
-  
 
 📌 프롬프트
 
@@ -86,8 +68,6 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 극대화하는 새로운 운영체제로 재작성하라.”
 
-  
-
 당신을 위한 새 인지 OS: DeanOS v2.0
 
 3-1. 운영 원칙(커널 7조항)
@@ -100,10 +80,7 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 6. 에너지 우선: 컨디션이 떨어진 날은 ‘창의/관계/투자’ 결정 금지, 운영만
 7. 기억은 뇌가 아니라 시스템: 기록하지 않으면 존재하지 않는 것으로 취급
 
-
 👑 5. [신급(God-Tier) 인생 설계](https://chatgpt.com/c/69633162-5fdc-8322-8838-6a56d104bea2)
-
-  
 
 📌 프롬프트
 
@@ -123,11 +100,7 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 .”
 
-  
-
 ⏳ 6. [수십 년을 며칠로 압축](https://chatgpt.com/c/6963320e-6b90-8324-b0fe-41e7d2b6cde3)
-
-  
 
 📌 프롬프트
 
@@ -145,11 +118,7 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 모두를 단숨에 추월하게 하라.”
 
-  
-
 🔥 7. [꿈의 나로 재탄생](https://chatgpt.com/c/696332dc-fe44-8322-b1c5-a7b576ab6a37)
-
-  
 
 📌 프롬프트
 

@@ -11,16 +11,9 @@ modified: "2024-08-01T23:57:57.586Z"
 ---
 
 ETF
-		
-		
-	
-	
-		
-			
-슈드/ QQQ/ 대신증권/ 메리츠증권 배당 세금
-			
-[https://blog.toss.im/article/economic-terms-10-schd](https://blog.toss.im/article/economic-terms-10-schd)
-			
 
-			
+슈드/ QQQ/ 대신증권/ 메리츠증권 배당 세금
+
+[https://blog.toss.im/article/economic-terms-10-schd](https://blog.toss.im/article/economic-terms-10-schd)
+
 [배당주](https://blog.naver.com/ginahihi/223438992060?trackingCode=rss)

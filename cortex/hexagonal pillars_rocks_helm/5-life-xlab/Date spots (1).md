@@ -14,11 +14,7 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 서울 국제정원박람회
 
-  
-
 [어쩌면](https://m.ticketlink.co.kr/product/58765) 헤피엔딩
-
-  
 
 플랜티 피넛버터
 
@@ -32,16 +28,11 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 마스크팩: DEWYCEL 드위셀 마스크팩
 
-  
-
 토마스 총무
 
 만차
 
 군산 샤기컷 언니
-
-  
-  
 
 시티투어버스, [서울시티투어버스](https://m.place.naver.com/place/37717192/ticket?entry=pll&fbclid=PAdGRleAN2eMBleHRuA2FlbQIxMQABpxeZD_-VYbt4IawEsCaw_Eq18kQ6Iegs5cd7M98Kv4Z5ZwW699Zzj3j0kZ4u_aem_Q5AT06YQhiCITVmw0r_0CA)
 
@@ -51,11 +42,7 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 화담숲
 
-  
-
 선물 \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
-
-  
 
 안티스트레스 티
 
@@ -65,13 +52,9 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 LEGODT 텀블러 <https://www.musinsa.com/products/4873740>
 
-  
 ![](attachments/220fd1c68ddf.png)
 
 서울 서초구 신원동에 자리한 오디오 박물관 ‘오디움’. 길이와 굵기가 제각각인 알루미늄 파이프들이 빛을 받아 자연처럼 다양한 풍경을 보여준다. ⓒNamsun Lee
-
-  
-  
 
 우리는 뭘 원하고 뭘 감내 할 수 있을까?
 
@@ -80,8 +63,6 @@ LEGODT 텀블러 <https://www.musinsa.com/products/4873740>
 이안 용산프리미어 706호
 
 본가
-
-  
 
 |  |  |
 | --- | --- |
@@ -99,7 +80,5 @@ LEGODT 텀블러 <https://www.musinsa.com/products/4873740>
 | --- | --- |
 | 밀크티 |  |
 | 타르트 | 블루베리 타르트 |
-
-  
 
 [Best 자세 5가지](https://www.youtube.com/watch?v=3JZu480yOI0)

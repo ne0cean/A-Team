@@ -11,10 +11,5 @@ modified: "2020-02-09T13:45:03.936Z"
 ---
 
 Naming
-		
-		
-	
-	
-		
-			
+
 [http://www.itworld.co.kr/print/85212](http://www.itworld.co.kr/print/85212)

@@ -18,8 +18,6 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 4. 수 - 저녁 6시 오픈
 
-  
-
 [Contents]
 
 각각 파트에 대한 전문은 미디엄에 게시한 글을 링크하고,
@@ -46,32 +44,19 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 6. 에필로그
 
-  
-
 샘플
 
 1. 컨텐츠 구성 참고: <https://alleciel.com/2016/07/01/for-new-start>
 
 2. 카드뉴스 구성참고: <http://www.huffingtonpost.kr/2016/06/21/story_n_10583876.html?ncid=fcbklnkkrhpmg00000001>
 
-  
-
 ========================================================
-
-  
-  
 
 THE NEXT BIGTHING IS HERE
 
-  
-
 <https://www.tyle.io/update/gt3AC4zfCKEmqv2pS>
 
-  
-
 [대국민 소개팅 공모 Promotion]
-
-  
 
 연애 못하는 놈이,
 
@@ -81,19 +66,13 @@ THE NEXT BIGTHING IS HERE
 
 무슨 일이 일어나는지, 지금 부터 보여드리겠습니다.
 
-  
-
 [상품 상세소개 - Bio] - [goo.gl/QNg044](https://goo.gl/QNg044)
 
 [상품 상세소개 - Vision] - [goo.gl/paBwZH](https://goo.gl/paBwZH)
 
-  
-
 #로시난테 #인생을낭비하자 #발칙한장난 #위대한농담 #평범한도라이 #비범한소시민
 
 후배의 지질한 연애 분투기에 응원을 보탤 선배님들께서는 예산지원 부탁드립니다.
-
-  
 
 당신도 연민이란 감정을 가진 닝겐이라면
 
@@ -101,16 +80,9 @@ THE NEXT BIGTHING IS HERE
 
 이 사회에 아직 정의가 살아있음을 증명하십쇼.
 
-  
-
 인구절벽이 코앞입니다. 기혼자 1명이 인구증가와 국민총생산과 주류 소비량에 기여하는 바를 생각해보십시오!
 
-  
-  
-
 ---------------------------------------------------------------
-
-  
 
 1.
 
@@ -118,22 +90,15 @@ THE NEXT BIGTHING IS HERE
 
 이제 내가 인생을 어떻게 낭비하는지 보여줄 시간입니다.
 
-  
-
 2.
 
 SK텔레콤 정책팀 막내가,
 
 이제부터 정책을 냅니다.
 
-  
-
 3.
 
 정책 페이지
-
-  
-  
 
 #.
 
@@ -143,13 +108,9 @@ SK텔레콤 정책팀 막내가,
 
 이 사회에 아직 정의가 살아있음을 증명하십쇼.
 
-  
-
 인구절벽이 코앞입니다. 기혼자 1명이 인구증가와 국민총생산과
 
 주류 소비량에 기여하는 바를 생각해보십시오!
-
-  
 
 #.
 
@@ -161,8 +122,6 @@ IT'S ME. [내 사진]
 
 그리 어려운 일은 아닙니다.
 
-  
-
 #연락처
 
 카카오톡
@@ -171,11 +130,7 @@ IT'S ME. [내 사진]
 
 폰번호
 
-  
-
 이것은 [구인 광고] 입니다.
-
-  
 
 벚꽂엔딩을 들으며 벚꽃강제종료의 충동을 느낀 감수성의 소유자 두팔벌려 환영
 
@@ -183,15 +138,11 @@ IT'S ME. [내 사진]
 
 친구/지인들에게 달달한 한방을 먹여봅시다.
 
-  
-
 나를 사랑해줄 사람을 구하는 것이 아닙니다.
 
 내가 아끼고 사랑할 누군가를 찾는 거죠.
 
 저는 그렇게 수동적인 사람이 아닙니다.
-
-  
 
 제 페친에는 두 종류의 사람이 있습니다.
 
@@ -199,31 +150,18 @@ IT'S ME. [내 사진]
 
 후자는 데스노트(혹은 살생부)에 이름을 올리게 됩니다.
 
-  
-  
-  
-  
-  
-
 =======================
 
-  
-  
 ![](attachments/d523ac8e90f3.png)
-  
-  
+
 ![](attachments/a139b90bfe65.png)
 
 이런 나를 사랑해줄 사람이 필요한게 아녜요, 이런 내가 사랑할 당신을 내게 보여달라는 겁니다.
-
-  
 
 사실, 여자분들이 저를 그렇게 싫어하진 않아요.
 
 다만, 좋아하지도 않아서 문제죠.
 
-  
-  
 ![](attachments/770800bb532d.png)
 ![](attachments/6866114c2533.png)
 ![](attachments/3b4e1e1ed892.png)
@@ -233,15 +171,12 @@ IT'S ME. [내 사진]
 
 <https://search.naver.com/search.naver?where=nexearch&query=%EC%B9%B4%EB%93%9C%EB%89%B4%EC%8A%A4+%EB%A7%8C%EB%93%A4%EA%B8%B0&ie=utf8&sm=tab_she&qdt=0>
 
-  
-
 <https://www.facebook.com/tyle.io/>
 
 <http://ppss.kr/archives/77281>
 
 ![](attachments/fcaa113afe81.png)
 ![](attachments/7d62d9204079.png)
-  
 
 성격
 
@@ -273,8 +208,6 @@ IT'S ME. [내 사진]
 
 출신지역
 
-  
-
 2014버전
 
 ㅇ 가정환경
@@ -292,8 +225,6 @@ IT'S ME. [내 사진]
 ㅇ 이성관 -> 가치관
 
 ㅇ 직업관&가치관
-
-  
 
 Life 6각형 영역 대쉬보드, 듀얼 모니터 한켠에 절대 꺼지지 않는 하나의 창.
 

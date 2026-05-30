@@ -11,10 +11,5 @@ modified: "2022-04-04T00:33:32.301Z"
 ---
 
 VC
-		
-		
-	
-	
-		
-			
+
 [https://nugu.money/](https://nugu.money/)

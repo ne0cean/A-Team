@@ -11,11 +11,5 @@ modified: "2018-08-11T09:31:58.674Z"
 ---
 
 Finance
-		
-		
-	
-	
-		
-			
-				
+
 - 시가 총액 조회 : [http://marketdata.krx.co.kr/mdi#document=13020101](http://marketdata.krx.co.kr/mdi#document=13020101)

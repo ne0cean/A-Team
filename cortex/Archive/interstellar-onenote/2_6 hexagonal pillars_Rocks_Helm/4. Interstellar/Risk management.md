@@ -11,10 +11,5 @@ modified: "2014-10-21T04:02:18.582Z"
 ---
 
 Risk management
-		
-		
-	
-	
-		
-			
+
 [http://www.venturesquare.net/550598](http://www.venturesquare.net/550598)

@@ -7,378 +7,254 @@ onenote_id: "0-09631adff3690d5407608bf93582151c!1-733661839CC53BA5!7919"
 ---
 
 BOOTSTRAP CLUB
-		
-		
-	
-	
-		
-			
-				
-										
-						
-						
-							
-								[1M BOOTSTRAP CLUB 보러가기](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9kaXNxdWlldC5pby9jbHViL2Jvb3RzdHJhcA)
-							
-						
-						
+
+[1M BOOTSTRAP CLUB 보러가기](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9kaXNxdWlldC5pby9jbHViL2Jvb3RzdHJhcA)
+
 AI가 있는데 왜 사이드 비즈니스 시작하지 않으세요?
-						
+
 AI는 우리가 제품을 만드는 방식을 바꿔놓고 있습니다. 비즈니스도 마찬가지입니다.
-						
+
 사이드 비즈니스를 시작하려면 처음부터 우리는 준비해야 할 것들이 많았어요.
-						
+
 마케팅, 랜딩 페이지 제작, 판매 페이지 제작, 콘텐츠 제작..
-						
+
 이제는 상황이 변했습니다. 본인이 가지고 있는 능력을 어떻게 사용할 수 있는지 제대로 고민하고 찾아본다면, 언섹시하더라도 먹히는 시장에서 좁은 포지션을 노린다면, 전보다 10배는 빠르게 사이드 비즈니스를 구축하고 자신의 아이디어와 능력을 시장에서 검증해 볼 수 있게 되었어요.
-						
+
 &#39;부트스트랩&#39; 이란 외부의 자금 조달을 최소화하고, 비즈니스를 통해 발생하는 현금 흐름으로 계속해서 레버리지 성장을 만드는 비즈니스의 형태를 말해요.
-						
-							
+
 - 16살에 학교 친구들과 함께 연 매출 5억짜리 BORING 비즈니스를 창업했고, 이 이력을 통해 대학교 입학
-							
+
 - 19살에 연 매출 38억원 짜리 비즈니스를 만들었지만, 동업자 사기로 다 날려버린 썰. Feat. 빚 갚느라 20대 전체를 보냄
-							
+
 - 코로나가 터진 직 후, 북미에 공업용 필터 마스크를 팔기 시작한지 한달만에 매출 2억원 달성 했지만, PayPal에서 계정을 동결시켜 반쯤 망해본 경험이 있음
-							
+
 - 월 $300 수익을 내던 SaaS 비즈니스를 $1,500에 구매 후, 3개월 만에 $5,000에 판매
-							
+
 - 2023년 2월에 AI Prompt 비즈니스로 2개월 만에 2천만원의 수익 창출
-							
+
 - 얼굴 없는 유튜브로 30시간 투자해 월 800달러를 벌었고, 4,000달러에 판매
-							
+
 - 500명의 High School Student들을 동원해서 디스코드 서버 바이럴 프로모션 진행
-						
-						
+
 그 외에도 꾸준히 매출을 발생시키는 비즈니스들을 만들고, 운영하고, 매각해온 경험을 통해, 이번 1M BOOTSTRAP CAMP를 통해서 부트스트랩 메이커들과 함께 할 수 있는 커뮤니티를 만들어보게 되었습니다. 디스콰이엇과 함께요.
-						
-						
+
 1M BOOTSTRAP CAMP 신청 전 온라인 밋업과 BOOTSTRAP 비즈니스에 관한 Q&amp;A를 진행합니다.
-						
 
-						
 온라인 밋업에서 다루게 될 주제들 :&#160;Idiate → Build&#160;→ Distribute → Sell
-						
+
 &#160;&#160;[1M BOOTSTRAP CLUB X DISQUIET* 온라인 밋업 신청하러 가기!](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly90YWxseS5zby9yL3d6N2wwMA)
-						
+
 1M BOOTSTRAP CAMP에서는 이런 분들과 함께해요 :
-						
-						
+
 - 사이드 비즈니스 경험이 전혀 없으신 분
-						
+
 - 항상 사이드 비즈니스를 시작하고 싶었지만, 준비가 막연해 시작점을 찾지 못하셨던 분
-						
+
 - 사이드 비즈니스를 시작으로 풀타임 비즈니스로 성장시키고 싶으신 분
-						
+
 - 본업은 있으나 사이드 비즈니스에 도전하고 싶으신 분
-						
+
 - 졸업 전에 자신만의 비즈니스를 시작하고 싶으신 분
-						
+
 - 사이드 비즈니스에 관심은 있으나 기술적 한계로 망설이셨던 분
-						
+
 - 비즈니스를 시작하기 위한 충분한 자금이 없으신 분
-						
-							
-								[1M BOOTSTRAP CAMP 보러가기](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9ib290c3RyYXBjbHViLmZyYW1lci53ZWJzaXRlLw)
-							
-						
-						
+
+[1M BOOTSTRAP CAMP 보러가기](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9ib290c3RyYXBjbHViLmZyYW1lci53ZWJzaXRlLw)
+
 짧지만, 농축된 시간.
-						
+
 1M Bootstrap Club에서는 처음으로 진행하는 오프라인 클럽입니다.
-						
+
 처음으로 진행되는 만큼, 알렉스님의 노하우를 쥐어짜&#160;120%를 드린다고 합니다.
-						
+
 오프라인 클럽에서는 제 글에서 항상 다루는 개념인&#160;Ideate → Build → Distribute → Sell&#160;에 대하여, 같이 배우고, 사이드 비즈니스에 도입할 수 있는&#160;코호트를&#160;구축하려고 합니다.
-						
+
 코호트를 통하여, 다음과 같은 것들을 알아가고, 달성할 수 있도록 도와드립니다.
-						
+
 &#160;
-						
-							
+
 - 아이디에이션부터 실제 수익을 낼 수 있는 비즈니스화까지의 프로세스 구축하기
-							
+
 - 사이드 비즈니스를 시작하는 과정, 프레임워크
-							
+
 - 한정된 자원으로 레버리지 잘하는 방법, 이를 위한 툴들
-							
+
 - 부트스트래핑의 기본 및 사이드 비즈니스를 이끌어 갈 수 있는 여러가지 기법들
-							
+
 - 판매하고자 하는 제품, 서비스 그리고 타겟 니치 마켓 개발하기
-							
+
 - 케이스 스터디, 템플릿, 스크립트, 그리고 프레임워크를 통한 실전학습
-							
+
 - 실제로 100만원 이상 매출을 낼 수 있는 사이드 비즈니스 만들기
-							
+
 - 함께 걸어갈 부트스트래핑 동료들이 있는 커뮤니티, 느슨하지만 서로 도움을 줄 수 있는 연대할 커뮤니티에 소속
-						
-						
+
 6주라는 짧으면 짧지만, 길다면 긴 시간입니다.
-						
+
 6주라는 시간동안, 지금까지 사이드 비즈니스 하시면서 겪으신 수많은 시도와 실패, 그리고 성공을 겪어보실 분들만 신청해주셨으면 합니다.
-						
 
-						
 이것을 같이 겪으실 분들과 함께, 이 클럽, 이 커뮤니티를 이끌어 가고 싶습니다.
-						
+
 프로그램은 어떻게 진행 되나요?&#160;&#160;
-						
+
 온/오프라인 밋업
-						
+
 시작일:&#160;2024년 1월 13일(토), 2024년 1월 17일(수)
-						
+
 기간:&#160;6주간 진행되는 클럽입니다.
-						
 
-						
 주 1회 오프라인 클럽 2시간&#160;[최소 3회 참석]
-						
+
 주 1회 온라인 클럽 1-2시간&#160;[오프라인 클럽을 참석하지 못한 분들을 위한 온라인 클럽이지만, 참석하신 분들도 참가할 수 있습니다]
-						
 
-						
 참가자:&#160;한&#160;오프라인 클럽 세션마다 12-16분과 함께 할 예정입니다. 4분당 한팀으로 코호트를 만들어 운영될 예정입니다.
-						
 
-						
 위치: 디스콰이엇과 함께 진행하는 정식 클럽이므로, 마루 180 혹은 360에서 이루어집니다.
-						
 
-						
 주소:
-						
+
 MARU180. 서울시 강남구 역삼로 180 (역삼동 790-6), MARU180.
-						
+
 MARU360. 서울시 강남구 역삼로 172 (역삼동 790-4), MARU360.
-						
 
-						
 일시 :
-						
+
 토요일 오전 클럽과 오후 클럽
-						
+
 (오전 10시-12시 또는 오후 2시-4시) [1월 13일부터 2월 17일]
-						
 
-						
 수요일 오후 클럽
-						
+
 (오후 7시-9시) [1월 17일부터 2월 21일]
-						
 
-						
-
-						
 온라인 밋업과&#160;1M Bootstrap CAMP를 통해 공유할 알렉스님의 인사이트 일부를 미리 확인해보세요 :
-						
+
 적절한 장소, 적절한 시간, 적절한 스킬: 니치 마켓 찾기
-						
+
 &quot;사이드 비즈니스에서 성공의 핵심은 여러분의 스킬에 맞는 적합한 대상을 찾는 것입니다.
-						
+
 스킬에 반응하는 니치 마켓을 식별하는 것이 핵심입니다. 어떤 집단에서는 여러분의 스킬이 10점 만점에 3점일 수도 있지만, 다른 집단에서는 7점이 될 수 있습니다. 이것이 바로 니치 마켓을 발견하는 본질입니다.
-						
+
 &#160;
-						
+
 그렇다면 어떻게 이러한 니치 마켓을 찾을까요?&#160;
-						
+
 제 생각의 과정과 근거에 대해 설명해보겠습니다.
-						
+
 &#160;
-						
+
 저는 새로운 사이드 비즈니스를 시작하는 것을 매우 좋아합니다. 무언가를 만들고 팔아 성공했을 때 제 가설이 맞았다는 것을 느끼기 때문일까요?&#160;
-						
+
 저는 새로운 사이드 비즈니스를 시작할 때 다음과 같은 몇 가지 간단한 질문을 스스로에게 합니다.&#160;
-						
 
-						
 이것이 팔릴까? 내가 팔 수 있을까?
-						
+
 얼마나 많은 노력이 필요할까?
-						
+
 누가 이것을 살까?&#160;
-						
+
 얼마에 팔 수 있을까?
-						
+
 제가 가진 지식과 능력을 활용해서 현재 판매하는 사람들보다 더 싸게 팔 수 있을까?
-						
+
 세일즈는 어떻게 해야 할까? 아웃바운드가 나을까, 인바운드가 나을까?&#160;
-						
+
 내가 잘 아는 시장에서 판매할 수 있을까?
-						
+
 내 네트워크 중에 이미 판매하고 있는 사람이 있나? 없다면, 어디서 판매하는 사람을 찾을 수 있을까?
-						
+
 스킬을 향상시켜야 할까? 그렇다면 수업을 들어볼까, 아니면 직접 경험을 통해 배울까?
-						
+
 가볍게 무료로, 혹은 저렴한 돈만 받고 업계에서 일해보며 시작해볼까?
-						
 
-						
 이러한 질문들을 통해&#160;기본적인&#160;체크마크들을 거친 후, 제&#160;프레임워크를 따릅니다.
-						
 
-						
 판매할 서비스/아이템 선정 &gt; 마켓 선정 &gt; 리서치 &gt; 기본 mvp 제작 &gt; 타겟 커스터머 100-300명 라인업 &gt; 개별 콘텐츠 제작 &gt; cold이메일 어프로치 / 콜드콜 어프로치 &gt; 판매 &gt; 레퍼럴 받아 추가 클라이언트 확보
-						
 
-						
 제가 사이드 비즈니스를 시작할 때, 저는 위와 같은 기본적인 프레임워크를 따릅니다.&#160;
-						
+
 이 프레임워크는 여러 가지 변형이 있습니다. 때로는 먼저 제품을 선정하고 연구를 하기도 하고, 또 때로는 시장을 먼저 선정한 다음에 판매할 제품을 찾기도 합니다.&#160;
-						
 
-						
 또한 아웃바운드 마케팅을 할지, 인바운드 마케팅을 할지에 대해서도 고민합니다. 선택 방법은 판매할 아이템이나 서비스에 대한 제 스킬과 니치 마켓에 대한 이해도에 따라 달라집니다.&quot;
-						
+
 [디자인 비전공자인 내가 AI와 노코드로 매출 천만원 만든 이야기 1편](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9kaXNxdWlldC5pby9AbGV4L21ha2VybG9nLyVFQiU5NCU5NCVFQyU5RSU5MCVFQyU5RCVCOC0lRUIlQjklODQlRUMlQTAlODQlRUElQjMlQjUlRUMlOUUlOTAlRUMlOUQlQjgtJUVCJTgyJUI0JUVBJUIwJTgwLWFpJUVDJTk5JTgwLSVFQiU4NSVCOCVFQyVCRCU5NCVFQiU5MyU5QyVFQiVBMSU5Qy0lRUIlQTclQTQlRUMlQjYlOUMtJUVDJUIyJTlDJUVCJUE3JThDJUVDJTlCJTkwLSVFQiVBNyU4QyVFQiU5MyVBMC0lRUMlOUQlQjQlRUMlOTUlQkMlRUElQjglQjAtMSVFRCU4RSVCOD91dG1fc291cmNlPWRpc3F1aWV0JnV0bV9tZWRpdW09bmV3c2xldHRlcg)
-						
 
-						
-						
 &quot;요즘은 과거라면 상상할 수 없을 정도로 매우매우 적은 비용으로 자신이 부족한 능력을 살 수 있는 세상입니다.
-						
+
 이제는 더 이상 기술력이 부족해서, 디자인 기술이 부족해서, 프로그래밍을 못해서, 사이드 비즈니스를 시작하지 못한다는 말을 하기 힘들어졌을 정도로, 레버리지를 삼을 수 있는 도구들이 널려있는 것 같습니다.
-						
 
-						
-							
 - 사이트 제작은 노코드 웹사이트 빌더인&#160;[Webflow](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly93ZWJmbG93LmNvbS8)&#160;혹은&#160;[Framer](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly93d3cuZnJhbWVyLmNvbS8)으로
-							
+
 - 앱 제작은 노코드 앱 빌더인&#160;[Bubble](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9idWJibGUuaW8v)과&#160;[Zeroqode](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly96ZXJvcW9kZS5jb20v)&#160;로&#160;
-							
+
 - 번역 및 비즈니스 글 작성은&#160;[Chat Gpt](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9jaGF0Lm9wZW5haS5jb20v)&#160;혹은&#160;[DeepL](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly93d3cuZGVlcGwuY29tL3RyYW5zbGF0b3I)으로
-							
-- 
+
+-
 클라이언트 포탈, 페이먼트 리퀘스트 관리등은 B2B SaaS 앱들로
-							
-								
+
 - [Zendo](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/Z2V0emVuZG8uaW8):&#160;견적, 청구서 및 지불 요청을 관리, Stripe을 이용한 결제 구독 서비스를 통합 가능. 또한, 자체 브랜드 클라이언트 포털을 사용하며, 클라이언트와의 채팅과 업무 관리, 고객 기록 유지가 가능
-								
+
 - [Queue](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly93d3cudXNlcXVldWUuY29tLw):하나의 플랫폼 내 에서 결제, 피드백, 고객 관리가 가능
-								
+
 - [Service Provider Pro](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9zcHAuY28v): 디지털 마케팅, SEO 및 콘텐츠 에이전시를 위한 고객 포털을 제공
-							
-							
-							
+
 - 마케팅은&#160;[Twitter](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly90d2l0dGVyLmNvbS9ob21l),&#160;[Instagram](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly93d3cuaW5zdGFncmFtLmNvbS8),&#160;[Linkedin](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly93d3cubGlua2VkaW4uY29tLw),&#160;[Tiktok](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly90aWt0b2suY29tLw)에 올리는 오가닉 머테리얼로
-							
+
 - 세일즈는 오가닉 마케팅을 통해 수집되는 인바운드나, 콜드 이메일 아웃리치 솔루션인&#160;[Lemlist](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly93d3cubGVtbGlzdC5jb20v), 그리고 Virtual Assistant한테 아웃소싱으로
-							
+
 - 콘텐츠 제작은&#160;[Chat Gpt](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9jaGF0Lm9wZW5haS5jb20v),&#160;[Dalle-3](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9jaGF0Lm9wZW5haS5jb20v),&#160;[Midjourney](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9taWRqb3VybmV5LmNvbS8),&#160;[Runway](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9hcHAucnVud2F5bWwuY29tLw)&#160;등의 도움으로
-							
+
 - 디자인은&#160;[Upwork](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly93d3cudXB3b3JrLmNvbS8)나&#160;[Fiverr](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9maXZlcnIuY29tLw),&#160;[Creative Market](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9jcmVhdGl2ZW1hcmtldC5jb20v)이나&#160;[크티](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9jdGVlLmtyLw), 그리고&#160;[라우드 소싱](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly93d3cubG91ZC5rci8)이나&#160;[크몽](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9rbW9uZy5jb20v)으로
-							
+
 - 커뮤니티 구축은&#160;[Memberstack](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly93d3cubWVtYmVyc3RhY2suY29tLw)을 사용하한&#160;[웹플로우 사이트](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly93ZWJmbG93LmNvbS8)나&#160;[슬랙](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9zbGFjay5jb20v), 카카오톡, 혹은&#160;[디스코드](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9kaXNjb3JkLmNvbS8)&#160;서버로
-						
-						
 
-						
 이런식으로 필요한 분야에는 항상 레버리지 삼을 수 있는 엄청나게 많은 SaaS 업체들이 있습니다.&quot;
-						
 
-						
-
-						
 투입시간 대비 벌어야할 월별 미니멈 세일즈 가격 계산
-						
+
 &quot;44시간:&#160;매월 클라이언트 한명을 위해, 사용해야할 시간입니다.
-						
 
-						
 이런 생각을 해볼 수 있습니다.
-						
 
-						
 “이 시간에 그냥 다른 알바를 하면 얼마를 벌 수 있을까? 아니면 그냥 회사에서 저 만큼 더 일하면 얼마나 벌 수 있을까?”
-						
 
-						
 물론 사람들 케이스 마다 다른 금액이 나올 것이고, 제대로 계산하자면 복잡할 수 있습니다.
-						
+
 가볍게 유추하기 위하여, 디테일한 것들은 다 제하고, 그냥 간결하게 계산 해보겠습니다.
-						
+
 우선 2023년 직장인들 월급 중위값을 알아보도록하겠습니다.
-						
 
-						
 “2021년 우리나라 직장인들의 세전 기준 월평균 임금은 333만원인 것으로 집계됐다&quot;
-						
+
 “월 중위 소득 250만원 (세전)”
-						
+
 &quot;직장인 평균 월급 333만원…대기업 563만원, 중소 266만원&quot; -동아일보-
-						
 
-						
 연평균 평균 증감률 4퍼센트로 잡고 계산하면, 2023년도 예상 월급은 다음과 같습니다.
-						
 
-						
 “평균 소득 360만원 (세전)”
-						
+
 “중위 소득 270만원 (세전)&quot;
-						
 
-						
 월 급여가 세전 270만원일 경우, 대략 연봉은 3,300만원입니다. 저 연봉 대 실수령액은 연봉의 약 90%이니, 월 실수령액은 247만원 입니다.
-						
 
-						
 9-5 직장은 주 40시간 근무, 그리고 한달간 174시간 가량 근무하게 됩니다.
-						
+
 즉,&#160;한시간의 값어치는 1.42만원입니다. 이를 기준값으로 두겠습니다.
-						
 
-						
 44시간은 풀타임 직장인이 일하는 174시간 중 25.29% 의 시간입니다.
-						
+
 이를 가격으로 환산하면&#160;62.46만원입니다.
-						
 
-						
 이렇게 기준점이 정해졌습니다.
-						
 
-						
 저희가 사이드 비즈니스를 하는 이유는 업무하는 것보다 업사이드가 높고, 더 벌고 싶기 때문임으로, 월 62.46만원, 혹은 470달러 (1,330원일 때)이상 벌어야 합니다.&#160;&quot;
-						
+
 [핫 한 이 &#39;제품&#39;과 &#39;방법’으로 사이드 비즈니스 실패 최소화 하기 1편](https://event.stibee.com/v2/click/OTA5NDEvMTkyNzQyNC84ODEzLw/aHR0cHM6Ly9kaXNxdWlldC5pby9AbGV4L21ha2VybG9nLyVFRCU5NSVBQi0lRUQlOTUlOUMtJUVDJTlEJUI0LSVFQyVBMCU5QyVFRCU5MiU4OC0lRUElQjMlQkMtJUVCJUIwJUE5JUVCJUIyJTk1LSVFQyU5QyVCQyVFQiVBMSU5Qy0lRUMlODIlQUMlRUMlOUQlQjQlRUIlOTMlOUMtJUVCJUI5JTg0JUVDJUE2JTg4JUVCJThCJTg4JUVDJThBJUE0LSVFQyU4QiVBNCVFRCU4QyVBOC0lRUMlQjUlOUMlRUMlODYlOEMlRUQlOTklOTQtJUVEJTk1JTk4JUVBJUI4JUIwLTElRUQlOEUlQjgtMTcwMTY0NzI5MTA4NT91dG1fc291cmNlPWRpc3F1aWV0JnV0bV9tZWRpdW09bmV3c2xldHRlcg)
-					
-					
+
 1M BOOTSTRAP CLUB을 운영하고 계신&#160;알렉스님은 16살 때부터 부트스트랩 메이커로 활동을 해왔습니다.
-					
 
-					
 달성하실 것들
-					
 
-					
-
-					
-
-					
-
-					
-
-					
-
-					
-
-					
-
-					
-
-					
-
-					
-
-					
-
-					
-
-					
-
-					
-
-					
-
-					
 예를 들자면 다음과 같은 AI와 노코드 SaaS들을 레버리지 삼아, 어떤 비즈니스든 시작할 수 있습니다.

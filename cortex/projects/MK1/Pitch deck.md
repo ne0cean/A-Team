@@ -11,10 +11,5 @@ modified: "2022-03-28T04:28:44.969Z"
 ---
 
 Pitch deck
-		
-		
-	
-	
-		
-			
+
 [https://brunch.co.kr/@eugenekimpsah/14](https://brunch.co.kr/@eugenekimpsah/14)

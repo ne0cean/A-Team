@@ -12,8 +12,6 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 | --- | --- |
 | 에뮤시네마 별빛영화제  아트나인 테라스 시네마 12시 예매  은하수 보러가기  미야코지마 프리다이빙 | 브레겐츠 페스티벌  오로라 투어 |
 
-  
-
 용산 에다마메
 
 [DDP](https://ddp.or.kr/index.html?menuno=240&siteno=2&bbsno=573&boardno=15&bbstopno=573&act=view&subno=1)
@@ -33,8 +31,6 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 어쩌면 해피엔딩 뮤지컬
 
 [예매](https://m.doosanartcenter.com/ko/performance) 확인 [티켓링크](https://m.ticketlink.co.kr/home)
-
-  
 
 |  |
 | --- |
@@ -57,31 +53,21 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 🎻 매달, 매주 달라지는 공연 라인업
 
-  
 <https://joomaltory.com/experience/cmaxofd880001xb08bx3v8wm3?utm_source=newsletter&utm_medium=snack&utm_campaign=1st>
-  
-  
-  
 
 [전북 고창] [파머스빌리지](https://event.stibee.com/v2/click/NzgxODMvMjg0NjkxOC8yOTE1NDUv/aHR0cHM6Ly9uYXZlci5tZS81MDJNODNDZw)
 
 매일유업에서 조성한 상하농원의 큰 헛간을 개조해 만든 숙소야. 어떤 방에 묵더라도 창밖으로 목가적인 풍경이 펼쳐진다랭. 파머스빌리지가 있는 상하농원 안에는 여러 테마파크가 있어서, 이곳에서 하루 묵는 동안에도 할 게 정말 많아. 숲속 사우나와 수영장, 제철 농작물 수확 체험, 우유·치즈 공장 견학까지!🍶 자녀가 있는 랭랭이라면 더욱 추천하고 싶은 곳. 예약은 [이곳](https://event.stibee.com/v2/click/NzgxODMvMjg0NjkxOC8yOTE1NDUv/aHR0cHM6Ly93d3cuc2FuZ2hhZmFybS5jby5rci9ob3RlbC9yb29tL3Jlc2VydmF0aW9uL2RhdGUuanNw)에서 하면 돼.
 
-  
-출처: <<https://mail.naver.com/v2/read/0/126630>> 
-  
+출처: <<https://mail.naver.com/v2/read/0/126630>>
 
 [전북 완주] [동상계곡](https://event.stibee.com/v2/click/NzgxODMvMjg4NTM5My8yOTE1NDUv/aHR0cHM6Ly9rb3JlYW4udmlzaXRrb3JlYS5vci5rci9kZXRhaWwvbXNfZGV0YWlsLmRvP2NvdGlkPTdhNWIwMDIzLTU3NGMtNGE0YS1iZDJjLTMxYzkxNmJjOGRhNg)
 
 완주군 최동단에 자리한 동상계곡은 깊은 오지 계곡이야. '동양의 나이아가라 폭포', ‘한국의 블루라군’이라고 불릴 정도니, 사진도 잘 나오지😎 근처에 평상을 대여할 수 있는 가게가 많으니 예약해서 방문하길 추천해. 포장된 호반길이 굽이굽이 이어져서 드라이브 코스로도 아주 좋다랭!
 
-  
-
 [경기 포천] [지장산계곡](https://event.stibee.com/v2/click/NzgxODMvMjg4NTM5My8yOTE1NDUv/aHR0cHM6Ly9uYXZlci5tZS9HRzdMSWxVWQ)
 
 수도권에서 가볍게 떠나기 좋은 계곡! 지장산에서 흘러내리는 물이 얼음같이 차가워서 한여름에도 온몸이 시원해져. 서울에서 비교적 가까워 당일치기로도 충분히 다녀올 수 있다랭😉 반려동물 동반이 가능하고, 근처에 [망향비빔국수](https://event.stibee.com/v2/click/NzgxODMvMjg4NTM5My8yOTE1NDUv/aHR0cHM6Ly9uYXZlci5tZS9HbWJNWDgweg)가 맛있기로 유명하니 물놀이 끝나면 든든히 배 채워주기!
-
-  
 
 [경북 울진] [광품계곡](https://event.stibee.com/v2/click/NzgxODMvMjg4NTM5My8yOTE1NDUv/aHR0cHM6Ly9uYXZlci5tZS94czNJWjhSNA)
 

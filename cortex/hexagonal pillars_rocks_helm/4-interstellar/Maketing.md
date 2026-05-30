@@ -11,14 +11,7 @@ modified: "2020-04-10T16:58:31.315Z"
 ---
 
 Maketing
-		
-		
-	
-	
-		
-			
-[https://julian.digital/2020/03/28/signaling-as-a-service/](https://julian.digital/2020/03/28/signaling-as-a-service/)
-			
 
-			
+[https://julian.digital/2020/03/28/signaling-as-a-service/](https://julian.digital/2020/03/28/signaling-as-a-service/)
+
 [https://brunch.co.kr/@nyeric/47](https://brunch.co.kr/@nyeric/47)

@@ -11,16 +11,9 @@ modified: "2020-04-18T14:22:12.663Z"
 ---
 
 Initial biz
-		
-		
-	
-	
-		
-			
-[https://www.youtube.com/watch?v=X25jWda78RA](https://www.youtube.com/watch?v=X25jWda78RA)
-			
 
-			
+[https://www.youtube.com/watch?v=X25jWda78RA](https://www.youtube.com/watch?v=X25jWda78RA)
+
 쿠팡플렉스처럼 표준화 가능한 일부터 중계
-			
+
 프로젝트아이데이션

@@ -11,15 +11,7 @@ modified: "2018-05-08T23:42:59.335Z"
 ---
 
 Mandalart
-		
-		
-	
-	
-		
-			
+
 ![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d34c1316aa5b4bd5b1be1698d3bf412b!1-733661839CC53BA5!7917/$value)
 
-		
-		
-			
 [http://tong.joins.com/archives/15633](http://tong.joins.com/archives/15633)

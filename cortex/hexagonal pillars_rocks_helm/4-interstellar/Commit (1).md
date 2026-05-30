@@ -14,7 +14,6 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 - 매일 개발 시작/종료 시
 - “브랜치 파야 하나?” 고민될 때
-  
 
 🌳 Solo Trunk Rule (절대 규칙 5개)
 
@@ -23,11 +22,8 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 - 커밋은 기능 하나 or 수정 하나
 - 테스트 없는 커밋 금지
 - 깨질 것 같으면 → 로컬에서만 실험
-  
 
 🧾 커밋 전 프롬프트 (필수)
-
-  
 
 다음 변경사항이 trunk에 바로 들어가도 되는지 평가해라.￼
 
@@ -35,11 +31,7 @@ onenote_url: "https://onedrive.live.com/redir.aspx?cid=733661839CC53BA5&page=edi
 
 → YES 4개면 바로 커밋￼→ 아니면 더 쪼개라￼
 
-  
-
 🏁 커밋 메시지 템플릿
-
-  
 
 <type>: <무엇을 왜 했는지>￼
 

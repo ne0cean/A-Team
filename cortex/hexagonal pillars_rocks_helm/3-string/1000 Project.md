@@ -11,16 +11,11 @@ modified: "2015-11-15T02:16:13.425Z"
 ---
 
 1000 Project
-		
-		
-	
-	
-		
-			
+
 ㅇ 소셜멘토링 잇다 : [http://itdaa.net/users/7558](http://itdaa.net/users/7558) / [http://itdaa.net/](http://itdaa.net/)
-			
+
 ㅇ 프래그머티스트
-			
+
 ㅇ 마케팅공화국
-			
+
 ㅇ 오픈컬리지

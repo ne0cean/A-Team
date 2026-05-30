@@ -22,8 +22,6 @@ Channel
 | 트레바리 |  |
 | 소수 책방 | 김민정(유연) |
 
-  
-
 Direct - 가람, 수림,
 
 블라인드 모임
@@ -44,8 +42,6 @@ Direct - 가람, 수림,
 
 [더파티](https://www.thepartywell.com/parties?utm_source=meta&utm_medium=paid_social&utm_campaign=jan2025&utm_content=cr010_thereal_detail&utm_id=120240200016210722&utm_term=120240200016370722&fbclid=PAdGRleAQk7VNleHRuA2FlbQEwAGFkaWQBqy8x1-k_snNydGMGYXBwX2lkDzEyNDAyNDU3NDI4NzQxNAABp5k_kmB0LUy1PiB6euOCs4tdb9FgqJzlsjBzAaxWRxd74L4AZyCWZ8-uuTeD_aem_icYyKU6UxwIdzCDriDwnjw)
 
-  
-
 더메이? 4/4 토요일 30:30 파티 11만원(개인정보 삭제 요청함)
 
 [러브매칭](https://www.lovematching.kr/?utm_medium=paid&utm_source=ig&utm_id=120239272165570710&utm_content=120239272166290710&utm_term=120239272165770710&utm_campaign=120239272165570710&fbclid=PAdGRleAQP9BNleHRuA2FlbQEwAGFkaWQBqyz7IZ1NpnNydGMGYXBwX2lkDzEyNDAyNDU3NDI4NzQxNAABp5whOE83xPHNw4N_9nMe8Fm4zLTns2vhgSV0dewUO7qinuGWCpjTZro2kbpf_aem_OZuBaJ4IgLJEPw4QndMGwA) 91년 까지만 가능
@@ -54,23 +50,17 @@ Direct - 가람, 수림,
 
 [모먼트서울](https://litt.ly/moment.seoul?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAdGRleAQRTkJleHRuA2FlbQExAHNydGMGYXBwX2lkDzEyNDAyNDU3NDI4NzQxNAABp87WPq4m6jdcv8Pup5FRXaE6Xm6Y5Lrug9kG3wDPQ1HZLsnPxU3rLJ8cetrW_aem_-WAznjHaOdjLl_qL4ZaTmg) 3/26일 참석 - 커피챗/주차(금토X, 일O) 물이 별로
 
-  
-
 좋아하지마. 좋아하게 만들어.
 
 "고백은 확인이지 통보가 아니다."
 
 [여자](https://www.youtube.com/watch?v=7epLoxc32dY) 이상형 끝판왕, 여유로운 남자 되는 법 총정리(꼭 보세요)
 
-  
-
 모든 것 을 이뤘을 때에도,
 
 모든 것 을 잃었을 때에도,
 
 가장 먼저 찾아가 안길 사람
-
-  
 
 [장윤주가 말 하는 결혼할 사람인지 알아보는 중요 요인](https://youtube.com/shorts/g0Qy8_nVKxA?si=8BcmvmyK3cUFIlJ4)
 
@@ -80,15 +70,11 @@ Direct - 가람, 수림,
 
 그 사람이 무일푼이 되어도 함께 할 것인가?
 
-  
-
 정말 아쉬운게 없어도
 
 그 사람이 좋은가.
 
 그 사람이
-
-  
 
 네 결핍/컴플렉스를 동행인을 통해 해소하려고 하지마.
 
@@ -97,9 +83,6 @@ Direct - 가람, 수림,
 사랑스러운 사람을 사랑해. 나머진 네가 하면 되잖아.
 
 대학생처럼 연애해. 결혼? 이미 늦었어 더 늦어도 괜찮아.
-
-  
-  
 
 Long list of lover for action
 
@@ -116,8 +99,6 @@ Long list of lover for action
 
 시지프벙 서두르기
 
-  
-
 - 시간 두고 보자. 내가 서두를 필요는 없지, 시간을 포섭하라.
 
 |  |  |  |
@@ -131,8 +112,6 @@ Long list of lover for action
 | 이수림\_오뚜기 | 광고속영감  SQBT 클럽 참여 |  |
 | 이승민 |  |  |
 
-  
-
 |  |  |  |
 | --- | --- | --- |
 | 조연우  (배민 프로덕트전략 팀장) | 34세  Take: AI 제휴 컨택포인트 요청. 상하이 여행 계획 요청￼Give:  저녁식사, 등산 오퍼,  저녁 먹자고 하기  다음 시즌 쉬고 학동에서 토요일에 공간 디자인 수업  경험디자인  이번에 가서 언제, 어떻게 대화 많이?  스몰브랜드 어드벤처  다음시즌 VC클럽 신청  여름 시즌 멤버 번개? | 나 놀리기 시작  등산, 테니스  AI조직 물어봄  내 눈피함  연우님 와줘서 고마위요?  폰케이스 추천해줌   미사 거주  아모레미술관  성수 디뮤지엄  내일은 국립현대미술관  올해 2주 리프레시  아껴둔 여행지 이탈리아,  조직변경, 매일출근 + 재택 전환  전시회 좋아함  반신욕 - 입욕제?  고수 등 향 강한 것 못먹음  긍정적인 사람, 안된다고 하기보다 할 방법을 찾는 사람  허리 운동 꾸준히 하는 중 |
@@ -145,15 +124,11 @@ Long list of lover for action
 | --- | --- | --- |
 | 금가라 | 이쁘다￼인상이 좋다￼경제적으로 안정  운동 좋아한다. | 슬기님 부탁  내가 직접 연락￼Dm 보내기￼그녀가 주최하는 행사 참석￼ |
 
-  
-
 <https://blog.naver.com/PostList.naver?blogId=wldnjs123go&from=postList&categoryNo=14>
 
 |  |  |  |
 | --- | --- | --- |
 | 최다은 | SKHY 29세, 부산 출신, 년차  미주법인 오퍼 받음  엄마 별명 예삐  집들이 초대  번개부장 밥사기 점심 먹자고 하기  영화 번개 | 나이 상관 없고  출신 상관 없다.  재미있고 센스있는 사람이 이상형   결혼식 입장 : how long with i love you |
-
-  
 
 ㅇ 설악산 - 절정 10/20(19~20, 25~26)
 
@@ -162,8 +137,6 @@ Long list of lover for action
 내장산 1박 2일
 
 설악산 - 속초 바다, But 교통 문제
-
-  
 
 영수: 10/25-26, 11/1-2 가능
 
@@ -177,12 +150,7 @@ Long list of lover for action
 
 \_
 
-  
-  
-
 잠정적인 장소는 내장산이구요.
-
-  
 
 벌써 티켓팅 행렬이 이어지고 있어,
 
@@ -207,8 +175,6 @@ Long list of lover for action
 ![](attachments/9efc1947496a.png)
 
 <https://www.instagram.com/reel/DALwszQSIZ2/?igsh=MWU5YmZ2NHJtaGsyeA==>
-
-  
 
 [Best 자세 5가지](https://www.youtube.com/watch?v=3JZu480yOI0)
 

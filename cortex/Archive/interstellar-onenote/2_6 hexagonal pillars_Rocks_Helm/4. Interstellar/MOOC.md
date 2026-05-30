@@ -11,26 +11,13 @@ modified: "2019-07-06T15:02:49.316Z"
 ---
 
 MOOC
-		
-		
-	
-	
-		
-			
+
 [https://www.udemy.com/](https://www.udemy.com/)
-			
 
-			
 [https://www.udacity.com/](https://www.udacity.com/)
-			
 
-			
 [https://www.edx.org/](https://www.edx.org/)
-			
 
-			
 코세라
-			
 
-			
 [https://ko.khanacademy.org/](https://ko.khanacademy.org/)

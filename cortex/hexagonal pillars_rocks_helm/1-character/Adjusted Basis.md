@@ -11,25 +11,18 @@ modified: "2023-09-23T09:28:51.944Z"
 ---
 
 Adjusted Basis
-					Fair Market Value
-					 Percentage of Ace Stock Acquired
-				
-				
-					Lind Building
-					
+Fair Market Value
+ Percentage of Ace Stock Acquired
+
+Lind Building
+
 $40,000
-					
 
-					
-					$82,000
-					
+$82,000
+
 60%
-					
 
-					
-				
-				
-					Post Land
-					$5,000
-					$48,000
-					40%
+Post Land
+$5,000
+$48,000
+40%

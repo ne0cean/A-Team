@@ -11,14 +11,7 @@ modified: "2023-06-08T01:32:44.329Z"
 ---
 
 이벤트/ 프로모션 ref.
-		
-		
-	
-	
-		
-			
-[https://www.facebook.com/Evengers1/](https://www.facebook.com/Evengers1/)
-			
 
-			
+[https://www.facebook.com/Evengers1/](https://www.facebook.com/Evengers1/)
+
 [https://www.instagram.com/eventhere_food/](https://www.instagram.com/eventhere_food/)

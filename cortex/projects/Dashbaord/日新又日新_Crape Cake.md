@@ -11,490 +11,255 @@ modified: "2019-05-22T01:23:52Z"
 ---
 
 日新又日新_Crape Cake
-		
-		
-	
-	
-		
-			
-				
+
 SHA(Shareholders Agreement) 주주간 계약서/ ssa
-				
+
 ![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ae5ad3a590e44fa09bd5ef7891b83ca4!1-733661839CC53BA5!7913/$value)
 
-				
 구주매출  : 기존 주주가 이미 보유하고 있는 주식 지분 중 일부를 일반인들에게 공개적으로 파는 것
-				
+
 [https://m.blog.naver.com/creon_blog/221296548190](https://m.blog.naver.com/creon_blog/221296548190)
-				
 
-				
 리픽싱 [https://m.blog.naver.com/PostView.nhn?blogId=hiwonjae&amp;logNo=221251348658&amp;proxyReferer=https%3A%2F%2Fwww.google.com%2F](https://m.blog.naver.com/PostView.nhn?blogId=hiwonjae&amp;logNo=221251348658&amp;proxyReferer=https%3A%2F%2Fwww.google.com%2F)
-				
 
-				
 채권 수익률 [https://m.blog.naver.com/PostView.nhn?blogId=dream_asset&amp;logNo=50114073168&amp;proxyReferer=https%3A%2F%2Fwww.google.com%2F](https://m.blog.naver.com/PostView.nhn?blogId=dream_asset&amp;logNo=50114073168&amp;proxyReferer=https%3A%2F%2Fwww.google.com%2F)
-				
+
 [https://www.mk.co.kr/opinion/columnists/view/2010/10/588384/](https://www.mk.co.kr/opinion/columnists/view/2010/10/588384/)
-				
 
-				
 국국구ㄱㄱㄱㅇㅇㅇㅇㅇㅇㄱㅇㄹㅇ[https://m.blog.naver.com/creon_blog/221296548190](https://m.blog.naver.com/creon_blog/221296548190)
-				
+
 구주매출 ㅇㅇ
-				
 
-				
 [https://content.surfit.io/video/KYVg3/KpXL2/17353440405d5c43a88fa63.webm](https://content.surfit.io/video/KYVg3/KpXL2/17353440405d5c43a88fa63.webm)
-				
+
 이런거 어떻게 만들지?
-				
 
-				
 Blacklined version 법률용어
-				
 
-				
 [https://m.blog.naver.com/PostView.nhn?blogId=kasanlaw&amp;logNo=220985938721&amp;categoryNo=24&amp;proxyReferer=&amp;proxyReferer=https%3A%2F%2Fwww.google.com%2F](https://m.blog.naver.com/PostView.nhn?blogId=kasanlaw&amp;logNo=220985938721&amp;categoryNo=24&amp;proxyReferer=&amp;proxyReferer=https%3A%2F%2Fwww.google.com%2F)
-				
 
-				
 ![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-7123ea5fe91f8bd79ce3f2db5550055f!1-733661839CC53BA5!7913/$value)
 
-				
 왜상
-				
 
-				
 RFI, RFP (Request for Information, Request for Proposal)&#39;
-				
 
-				
 [https://parkwoojong.tistory.com/22](https://parkwoojong.tistory.com/22) CDD(Commercial DD)
-				
 
-				
 표면이율
-				
+
 채권의 권면에 기재된 이율로 1년간 지급될 이자를 액면으로 나눈 것을 의미합니다.
-				
+
 할인채와 이표채의 경우 이 표면이율이 과세(세금계산)의 기준이 됩니다.
-				
+
 액면 만원 당 1년에 500원의 이자를 지급하는 경우 이자율은 5% 입니다.
-				
+
 복리채의 경우, 표면이율의 복리에 의해 만기금액이 정해지고, 과세의 기준이 되므로 단리 및 할인채에 비해 과표가 복리로 증가하는 효과가 있습니다.
-				
 
-				
 PPM(Pay Per Month)/ PPV(Pay Per View)
-				
 
-				
 WPM (Weekly Progress Memo)
-				
 
-				
 [https://www.youtube.com/watch?v=j-nL0fPAaME&amp;feature=youtu.be](https://www.youtube.com/watch?v=j-nL0fPAaME&amp;feature=youtu.be)
-				
+
 누끼
-				
+
 [https://youtu.be/j-nL0fPAaME](https://youtu.be/j-nL0fPAaME)
-				
+
 [https://youtu.be/nlI5t5uPXTQ](https://youtu.be/nlI5t5uPXTQ)
-				
+
 [https://youtu.be/cVztVX1gA-A](https://youtu.be/cVztVX1gA-A)
-				
 
-				
-
-				
 ![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a27310e78aa145dbbb7f5110bf9c92a7!1-733661839CC53BA5!7913/$value)
 
-				
 ![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-048b2f9831794ed48a0f9dc95c33197d!1-733661839CC53BA5!7913/$value)
 
-				
-
-				
-
-				
 거래액(GMV, Gross Merchandise Volume)은 특정 기간 해당 플랫폼 내에서 상품이 거래된 총금액
-				
 
-				
 DA(Display AD)/ SA(Search AD)
-				
 
-				
 EBITDA에 관해서는 감가상각비가 비현금성 비용이므로, 실제로는 비용이 아니라고 보는 방식인데 이것에 대해 강한 어조로 비난한다.
-				
+
 “터무니 없는 생각입니다. 사실 감가상각비는 매우 나쁜 비용입니다. 자산을 구입하면서 돈을 먼저 지출했지만, 그 자산에서 이득을 아직 얻지 못했기 때문입니다.”
-				
+
 [https://brunch.co.kr/@aidenswmo/2](https://brunch.co.kr/@aidenswmo/2)
-				
 
-				
 ※ 손익계산서 요약
-				
+
 -. 매출액 = 판매금액
-				
+
 -. 매출총이익 = 매출액 - 매출원가
-				
+
 -. 영업이익 = 매출총이익 - 판관비
-				
+
 -. 세전이익 = 매출총이익 + 영업외수익 - 영업외비용
-				
+
 -. 당기순이익 = 세전이익 - 법인세&#160;
-				
 
-				
 실사의 범위에 제한은 없으며, 통상적으로 영업 실사(Commercial DD, CDD), 법률 실사(Legal DD, LDD), 재무 실사(Financial DD, FDD), 세무 실사(Tax DD, TDD) 등 인수자가 필요하다고 판단하는 모든 것이 대상이라고 보면 됩니다.
-				
 
-				
-슬랙이 direct listing 방법으로 기업공개예정 [https://www.cnbc.com/2019/02/04/slack-confidentially-files-to-go-public.html](https://lm.facebook.com/l.php?u=https%3A%2F%2Fwww.cnbc.com%2F2019%2F02%2F04%2Fslack-confidentially-files-to-go-public.html&amp;h=AT3bGMrevk0ENNVrkhX9sQKNDldMb1X94RvJMvG6Q5C2MUpxR-kLPSkG7HaNuKe1cHDNy7jCirff589Y2Cx5vqDPgzdexmBDYZjwx19IDVWo8EvLGVTs-J3OBuo-0ipLGzPWkzOpQtvxlRFrxDuGDK_OsJMPJBNlIi_RuBU) 
-				
-디렉트리스팅은 스포티파이가 지난해 택했던 방법으로 정식 IPO가 아님. 신주발행을 하지 않고 기존 주주들의 주식을 공개시장을 통해 매매할 수 있도록 공개하는 것. 
-				
+슬랙이 direct listing 방법으로 기업공개예정 [https://www.cnbc.com/2019/02/04/slack-confidentially-files-to-go-public.html](https://lm.facebook.com/l.php?u=https%3A%2F%2Fwww.cnbc.com%2F2019%2F02%2F04%2Fslack-confidentially-files-to-go-public.html&amp;h=AT3bGMrevk0ENNVrkhX9sQKNDldMb1X94RvJMvG6Q5C2MUpxR-kLPSkG7HaNuKe1cHDNy7jCirff589Y2Cx5vqDPgzdexmBDYZjwx19IDVWo8EvLGVTs-J3OBuo-0ipLGzPWkzOpQtvxlRFrxDuGDK_OsJMPJBNlIi_RuBU)
+
+디렉트리스팅은 스포티파이가 지난해 택했던 방법으로 정식 IPO가 아님. 신주발행을 하지 않고 기존 주주들의 주식을 공개시장을 통해 매매할 수 있도록 공개하는 것.
+
 현금이 충분해 IPO로 현금조달을 할 필요가 없는데 대신 기존 투자자들의 엑싯을 시켜줘야 할 때 쓸 수 있는 방법. 큰 비용을 들여서 로드쇼까지 하며 IPO를 할 필요가 없다고. 주주들의 락업도 없음.
-				
 
-				
 달러와 원화 빨리 변환하기 - [https://brunch.co.kr/@designforhuman/19](https://brunch.co.kr/@designforhuman/19)
-				
 
-				
 Hurdle rate 기준수익률 [https://www.investopedia.com/terms/h/hurdlerate.asp](https://www.investopedia.com/terms/h/hurdlerate.asp)
-				
+
 펀드 등의 출자자가 펀드운영기관에 요구하는 수익률을 의미한다. 벤처투자조합 등에 있어서는 일반조합원(Limited partner; LP)이 벤처캐피탈인 업무집행조합원(General partner; GP)에게 요구하는 수익률을 의미한다.
-				
 
-				
-영업 실사(Commercial DD, CDD), 법률 실사(Legal DD, LDD), 재무 실사(Financial DD, FDD), 세무 실사(Tax DD, TDD) 
-				
+영업 실사(Commercial DD, CDD), 법률 실사(Legal DD, LDD), 재무 실사(Financial DD, FDD), 세무 실사(Tax DD, TDD)
+
 [http://hsalbert.blogspot.com/2017/10/due-diligence.html](http://hsalbert.blogspot.com/2017/10/due-diligence.html)
-				
 
-				
 Limited Partnership Agreement(이하&#39;LPA&#39;)
-				
 
-				
 캐피탈 콜(Capital call)이란 투자를 할 때 목표한 투자자금을 한 번에 투자하는 것이 아니라 일부 자본을 조성해 투자를 집행하고, 추가적인 자본 수요가 발생할 때마다 집행하는&#160;방식
-				
 
-				
 GP LP
-				
 
-				
 [https://youtu.be/TJFs4Z429hk](https://youtu.be/TJFs4Z429hk) 쉐도잉 하지말고 번역기를 활용하라
-				
 
-				
-Premier Pro : ㅇㅇ여영영ㅇㅇㅇㅇ여영영사상상펴편펹편집집ㅇㅇMovie editing 
-				
+Premier Pro : ㅇㅇ여영영ㅇㅇㅇㅇ여영영사상상펴편펹편집집ㅇㅇMovie editing
+
 [https://www.youtube.com/watch?v=XACXMF_91KE](https://www.youtube.com/watch?v=XACXMF_91KE)
-				
+
 [https://www.youtube.com/watch?v=YE-ol9ekxhk](https://www.youtube.com/watch?v=YE-ol9ekxhk)
-				
 
-				
 LOI(Letter of Intent) 투자의향서
-				
+
 LOC(Letter of Commitment) 투자확약서
-				
+
 [http://snacker.hankyung.com/article/3050](http://snacker.hankyung.com/article/3050)
-				
 
-				
 Call option(매수권) Put Option(매도권)
-				
 
-				
-과세이연 = 기업의 원활한 현금흐름을 위해 납부 시점을 연기, A를 판 후 B를 구입한 경우 B를 최종 매각한 시점에 
-				
+과세이연 = 기업의 원활한 현금흐름을 위해 납부 시점을 연기, A를 판 후 B를 구입한 경우 B를 최종 매각한 시점에
+
 차익과세 유예분과 부동산 B의 양도 차익
-				
+
 의제배당 = 재무회계상의 기준과 달리 법인세법상 과세된 잉여금이 주주에게 이전되는 모든 것을 배당으로 간주하는데, 이러한 배당을 의제배당이라 한다.
-				
+
 기업회계에서 배당은 주주총회의 결의에 따라 미처분이익잉여금의 일부를 주주에게 현금으로 지급하는 현금배당만을 의미한다. 따라서 장부상 회계처리하는 경우에는 이러한 현금배당을 배당수익으로 인식하고 그 밖의 주식배당이라든 무상증자의 경우에는 배당으로 인식하지 아니한다.
-				
+
 반면에 상법상의 배당이라 함은 과세된 잉여금이 주주에게 이전되는 것을 의미한다. 주주에게 이전만 된다면 그 형식은 불문한다. 따라서, 현금배당 이외에도 주식배당, 자본전입, 주식매입으로 인한 과세된 잉여금의 주주에게 이전되는 것은 모두 배당으로 보게 된다.
-				
+
 법인세법도 이러한 상법의 내용을 준용하게 되었다. 따라서 법인세신고하는 경우에 재무회계에 있어서 배당과 법인세법에서의 배당이 일치하지 않게 된 것이다.
-				
+
 이러한 재무회계상의 배당이 아닌 것이 법인세법상의 배당이 되는 것을 배당으로 간주하여 법인세 등이 과세되는데 이를 의제배당이라 한다.
-				
 
-				
 적격분할/ 비적격분할
-				
+
 [http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&amp;code=07-04-01-02&amp;table=t0201000_k001_new](http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&amp;code=07-04-01-02&amp;table=t0201000_k001_new)
-				
 
-				
 ● 분할요건에 따른 구분&#160;
-				
 
-				
 2009.12.31 법인세법상 분할세무에 대하여 개정을 한 이후에는 다음 각각의 요건을 갖춘 분할(적격분할)과 그러하지 아니한 분할(비적격분할)로 나누어 그 과세방법을 달리하고 있다.([法法](http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&amp;code=07-04-01-02&amp;table=t0201000_k001_new#) 46②)&#160;
-				
 
-				
 1. 분할등기일 현재 5년 이상 사업을 계속하던 내국법인이 다음 각각의 요건을 갖추어 분할하는 경우일 것(분할합병의 경우에는 소멸한 분할합병의 상대방법인 및 분할합병의 상대방법인이 분할등기일 현재 1년 이상 사업을 계속하던 내국법인일 것)&#160;
-				
+
 (1) 분리하여 사업이 가능한 독립된 사업부문을 분할하는 것일 것&#160;
-				
+
 (2)분할하는 사업부문의 자산 및 부채가 포괄적으로 승계될 것. 다만, 공동으로 사용하던 자산, 채무자의 변경이 불가능한 부채 등 분할하기 어려운 자산과 부채 등으로서&#160;[38-7.](http://javascript:content_link(&#39;t0201000&#39;,&#39;2014&#39;,%20&#39;38-7&#39;);)에서 정하는 것은 제외한다.&#160;
-				
+
 (3) 분할법인 등만의 출자에 의하여 분할하는 것일 것&#160;
-				
 
-				
 2.분할법인 등의 주주가 분할신설법인 등으로부터 받은 분할대가의 전액(분할합병의 경우에는 100분의 80 이상)이 주식으로서 그 주식이 분할법인 등의 주주가 소유하던 주식의 비율에 따라 배정(분할합병의 경우에는&#160;[38-10.](http://javascript:content_link(&#39;t0201000&#39;,&#39;2014&#39;,%20&#39;38-10&#39;);)에서 정하는 바에 따라 배정한 것을 말한다)되고&#160;[38-10.](http://javascript:content_link(&#39;t0201000&#39;,&#39;2014&#39;,%20&#39;38-10&#39;);)에서 정하는 분할법인 등의 주주가 분할등기일이 속하는 사업연도의 종료일까지 그 주식을 보유할 것&#160;
-				
 
-				
 3.분할신설법인 등이 분할등기일이 속하는 사업연도의 종료일까지 분할법인 등으로부터 승계받은 사업을 계속할 것&#160;
-				
 
-				
 2.의 지분의 연속성 요건은 ⅰ) 분할대가 중 분할신주 교부비율 ⅱ) 분할신주의 주주별 배정 ⅲ) 분할법인 지배주주 등의 주식 계속보유 요건 등이 모두 충족되어야 한다.&#160;
-				
 
-				
 주) 1. 및 3.의 요건은 2009.12.31 개정 전의 특례대상 분할 및 특례배제대상 분할의 구분요건과 같으며, 2.의 요건은 종전에 분할대가를 교부할 경우 그 95% 이상을 주식으로 교부할 것만을 정하고 있었으며 분할신주의 배정방법이나 지배주주 등의 주식계속보유요건 등은 정하고 있지 않았음.&#160;
-				
 
-				출처: &lt;[http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&amp;code=07-04-01-02&amp;table=t0201000_k001_new](http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&amp;code=07-04-01-02&amp;table=t0201000_k001_new)&gt; 
-				
+출처: &lt;[http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&amp;code=07-04-01-02&amp;table=t0201000_k001_new](http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&amp;code=07-04-01-02&amp;table=t0201000_k001_new)&gt;
 
-				
-
-				
 물적분할/ 인적분할
-				
+
 [https://silvernecklace.tistory.com/488](https://silvernecklace.tistory.com/488)
-				
+
 인적분할(人的分割, spin-off) - 세포분열 처럼 복제하듯 쪼개지는 것
-				
+
 기존 주주는 양쪽의 지분을 기존과 동일하게 가져간다. Hard-fork
-				
 
-				
 물적분할(物的分割, split-off) - 존속기업 산하에 100% 자회사를 설립
-				
 
-				
 총액매출인식/ 순액(수수료)매출인식
-				
+
 [http://m.blog.daum.net/hibis119/244?categoryId=6](http://m.blog.daum.net/hibis119/244?categoryId=6)
-				
 
-				
 유상증자 = 자본금 충당을 위해 신주발행
-				
+
 넓게 나누어서 3가지 방식이 있는데,
-				
+
 - 주주배정방식: 기존 주주한테 신주인수권을 주어&#160;[돈](https://namu.wiki/w/%ED%99%94%ED%8F%90)을 납입시켜 증자를 하는 방법. 사실 가장 좋은 방법이다.&#160;그 회사 전망이 좋다면.
-				
+
 - 일반공모방식: 그 회사의 주주가 아니라 일반 대중한테&#160;[기업공개](https://namu.wiki/w/%EA%B8%B0%EC%97%85%EA%B3%B5%EA%B0%9C)&#160;하듯&#160;[주식](https://namu.wiki/w/%EC%A3%BC%EC%8B%9D)을 공모하는 방법. 기존 주주들은&#160;엄청나게 싫어한다. 자기가 가지고 있던&#160;[주식](https://namu.wiki/w/%EC%A3%BC%EC%8B%9D)의 가치가 희석되기 때문이다. 기존 주주들이 회사의 신주를 사주지 않을 것 같을 때(즉 회사가 신뢰를 잃었을 때) 회사가 선택하는 방식이다. 단,&#160;[기업공개](https://namu.wiki/w/%EA%B8%B0%EC%97%85%EA%B3%B5%EA%B0%9C)를 위해 실시하는 일반공모는 예외로 쳐주는 게 보통이다.
-				
+
 - 제3자배정방식: 경영진이 이해관계가 있거나 어떤 특수한 제3자를 정해 이를 대상으로 유상증자하는 것. 믿을 수 있는 사람이면 좋은데,&#160;[상장폐지](https://namu.wiki/w/%EC%83%81%EC%9E%A5%ED%8F%90%EC%A7%80)를 모면하려는 케이스로 실시되는 케이스가 많다. 중소기업이 대기업에게 3자배정 유상증자를 하면 호재로 작용하는 경우가 많다.
-				
+
 유상증자를 할 때,&#160;[주식](https://namu.wiki/w/%EC%A3%BC%EC%8B%9D)을 액면발행과 시가발행할 수 있는데, 액면발행은 말 그대로 주식의&#160;[액면가](https://namu.wiki/w/%EC%95%A1%EB%A9%B4%EA%B0%80)를 기준으로 신주를 발행하는 것이고, 시가발행은 현재 시장가격에 일정부분&#160;할인(유상증자를 하면 주식 물량부담이 늘어 주가가 떨어진다.&#160;[권리락](https://namu.wiki/w/%EA%B6%8C%EB%A6%AC%EB%9D%BD)도 감안해야 하고)이 되는데, 그 할인방식도 크게 세 가지다.
-				
+
 무상증자 = 주식을 무상으로 기존주주들에게 나눠주어 자본금을 늘리는 방식
-				
 
-				
-IRR(Internal Rate of Return) = 
-				
+IRR(Internal Rate of Return) =
+
 투자로 지출되는 현금의 현재가치와 그 투자로 유입되는 미래 현금유입액의 현재가치가 동일하게 되는 수익률’을 의미합니다. 이 말인 즉슨, (현재 현금투자액) &gt; (미래 현금유입액의 현재가치)도 아니고 (현재 현금투자액) &lt; (미래 현금유입액의 현재가치)도 아닌 “[현재 현금투자액] = [미래 현금유입액의 현재가치]” 를 만드는 ‘수익률’
-				
+
 IRR은 사실은 현재가치의 할인율을 구하는 것
-				
+
 [http://snacker.hankyung.com/article/3015](http://snacker.hankyung.com/article/3015)
-				
+
 영업양수도
-				
+
 자산양수도
-				
+
 [https://m.blog.naver.com/PostView.nhn?blogId=kalavine&amp;logNo=220531378968&amp;proxyReferer=https%3A%2F%2Fwww.google.com%2F](https://m.blog.naver.com/PostView.nhn?blogId=kalavine&amp;logNo=220531378968&amp;proxyReferer=https%3A%2F%2Fwww.google.com%2F)
-				
+
 전환사채(Convertible Bond) - 보통주 전환 권리를 가진 회사채
-				
+
 신주인수권부사채(Bond With Warrant) - 정해진 가격에 정해진 수량의 신주를 살 수 있는 권리(신주 인수권)가 포함된 회사채
-				
+
 Refixing(전환가 하향조정) : CB의 전환가액을 하향조정하는 옵션 - 신주를 싸게 인수 할 수 있게 하는 조항.
-				
+
 CB 발행 기업은 최초 전환가보다 최대 30% 낮은 가격까지 전환가를 하향 조정할 수 있다. 다만 CB 발행 후 감자(자본금 감액)나 신주 할인 발행(유상증자 paid-in capital increase)이 이뤄진 경우 CB 액면가까지 낮출 수 있다.&#160;
-				
-RCPS(전환상환우선주) = 
-				
+
+RCPS(전환상환우선주) =
+
 보통주에 상환권과 전환권, 우선권을 부여
-				
+
 우선주에&#160;(1) 안전장치(상환권)와 (2) 수익률 개선장치(전환권)라는 두가지 옵션이 추가되어 상황에 따라 투자 원금을 보호하거나, 수익을 더 높일 수 있습니다. 자동차에 비유하자면 상환권은 에어백, 전환권은 터보엔진과 같은 역할을 합니다. 회사의 성장이 더디어 기대하는 수익 달성이 어려운 경우에는 상환권을 통해 채권과 같이 원금+이자를 돌려받고(에어백을 통한 안전마진 확보), 회사의 성장이 빠른 경우에는 배당+주식가격 상승(터보엔진의 출력개선)을 누릴 수 있습니다. 이러한 장점 때문에 전문투자자인 벤처캐피탈 또한 초기기업 투자 시 보통주보다 RCPS를 선호합니다.
-				
 
-				
 대표적인 투자자 보호 조항들로,
-				
+
 Tag along(공동매도참여권) 대주주 지분이 Exit 할 때 투자자도 동일 조건으로 매각이 가능하도록 하는 조건
-				
+
 Drag along(공동매도요구권) 투자자가 다른 주주 지분 끌어들여서 경영권 프리미엄이 붙는 지분을 비싸게 매각 할 수 있는 조건
-				
 
-			
-			
+출처: &lt;[http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&amp;code=07-04-01-02&amp;table=t0201000_k001_new](http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&amp;code=07-04-01-02&amp;table=t0201000_k001_new)&gt;
 
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			출처: &lt;[http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&amp;code=07-04-01-02&amp;table=t0201000_k001_new](http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&amp;code=07-04-01-02&amp;table=t0201000_k001_new)&gt; 
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-		
-		
-			
 [https://smartstore.naver.com/dufamily/products/4334617193?NaPm=ct%3Djw6dcft4%7Cci%3D74693447e71189acb946b1470b2d8964052bfbdd%7Ctr%3Dslsl%7Csn%3D846379%7Cic%3D%7Chk%3Daa83e7eedfef6300a5e4a8681ce49c5bca457acf](https://smartstore.naver.com/dufamily/products/4334617193?NaPm=ct%3Djw6dcft4%7Cci%3D74693447e71189acb946b1470b2d8964052bfbdd%7Ctr%3Dslsl%7Csn%3D846379%7Cic%3D%7Chk%3Daa83e7eedfef6300a5e4a8681ce49c5bca457acf)
-			
 
-			
 [https://smartstore.naver.com/dddkong/products/3964578125?NaPm=ct%3Djw6dcv8o%7Cci%3D71a4d52fa8546ebbb74b335692b842ddfbfd62f4%7Ctr%3Dslsl%7Csn%3D781097%7Cic%3D%7Chk%3D592b2959f587d33267450aa4d988a861221fa7a2](https://smartstore.naver.com/dddkong/products/3964578125?NaPm=ct%3Djw6dcv8o%7Cci%3D71a4d52fa8546ebbb74b335692b842ddfbfd62f4%7Ctr%3Dslsl%7Csn%3D781097%7Cic%3D%7Chk%3D592b2959f587d33267450aa4d988a861221fa7a2)
-			
 
-			
 [https://smartstore.naver.com/blueapplechina/products/3556494497?NaPm=ct%3Djw6dbo14%7Cci%3Db6e782def0ab143de60c3dd5c06756456fd25bd4%7Ctr%3Dslsl%7Csn%3D556324%7Cic%3D%7Chk%3Dd89e0818393c291a0654ba795f0ab2797b87fb2f](https://smartstore.naver.com/blueapplechina/products/3556494497?NaPm=ct%3Djw6dbo14%7Cci%3Db6e782def0ab143de60c3dd5c06756456fd25bd4%7Ctr%3Dslsl%7Csn%3D556324%7Cic%3D%7Chk%3Dd89e0818393c291a0654ba795f0ab2797b87fb2f)
-			
 
-			
 [https://jikgoopark.com/mall/view/goodsNo/1222835?NaPm=ct%3Djw6d7m74%7Cci%3D02a97a671b0d78816c2c368f404c0177ba693e04%7Ctr%3Dslsl%7Csn%3D805036%7Chk%3D248516a113da356afbf85770705f362322145841](https://jikgoopark.com/mall/view/goodsNo/1222835?NaPm=ct%3Djw6d7m74%7Cci%3D02a97a671b0d78816c2c368f404c0177ba693e04%7Ctr%3Dslsl%7Csn%3D805036%7Chk%3D248516a113da356afbf85770705f362322145841)
-			
 
-			
 [http://general-philip.com/shop/item.php?it_id=n1527177788788&amp;NaPm=ct%3Djw6dfpv4%7Cci%3Dfb5e35ea3bf0da0989fa8faeca45154ea119ceb1%7Ctr%3Dslsl%7Csn%3D693495%7Chk%3Df61cb788cd12d0b60e6c4105485e96ae9f2ffc58](http://general-philip.com/shop/item.php?it_id=n1527177788788&amp;NaPm=ct%3Djw6dfpv4%7Cci%3Dfb5e35ea3bf0da0989fa8faeca45154ea119ceb1%7Ctr%3Dslsl%7Csn%3D693495%7Chk%3Df61cb788cd12d0b60e6c4105485e96ae9f2ffc58)
-		
-		
-			
+
 [https://www.youtube.com/watch?v=1zEgmusx1aE](https://www.youtube.com/watch?v=1zEgmusx1aE)
-			
 
-			
 [https://www.youtube.com/watch?v=-DoBvjvBAFY](https://www.youtube.com/watch?v=-DoBvjvBAFY)
-			
 
-			
 [https://www.youtube.com/watch?v=JVM58Uar-o8](https://www.youtube.com/watch?v=JVM58Uar-o8)
-			
 
-			
 [https://www.youtube.com/watch?v=SQ9d2Dlzgz4](https://www.youtube.com/watch?v=SQ9d2Dlzgz4)
-			
 
-			
 [https://www.youtube.com/results?search_query=%EB%B0%B8%EB%A5%98%EC%97%90%EC%9D%B4%EC%85%98+%EB%A9%80%ED%8B%B0%ED%94%8C](https://www.youtube.com/results?search_query=%EB%B0%B8%EB%A5%98%EC%97%90%EC%9D%B4%EC%85%98+%EB%A9%80%ED%8B%B0%ED%94%8C)
-			
 
-			
-
-		
-		
-			
 [startup-wiki.kr](http://startup-wiki.kr/) 참여형 스타트업 용어사전(beta)
-			
+
 경제지표 해설 [http://www.bok.or.kr/portal/bbs/P0000605/view.do?nttId=10049120&amp;menuNo=200462&amp;pageIndex=1](http://www.bok.or.kr/portal/bbs/P0000605/view.do?nttId=10049120&amp;menuNo=200462&amp;pageIndex=1)

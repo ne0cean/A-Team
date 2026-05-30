@@ -11,12 +11,7 @@ modified: "2016-04-03T05:33:29.928Z"
 ---
 
 MOCK
-		
-		
-	
-	
-		
-			
+
 스스로를 계속 가르쳐라
-			
+
 [https://www.coursera.org/learn/r-programming](https://www.coursera.org/learn/r-programming)

@@ -11,9 +11,5 @@ modified: "2013-12-10T02:47:02Z"
 ---
 
 Bio : 이력서
-		
-		
-	
-	
-		
+
 ![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f8e83a7654c3729f85e1064f233de777!1-733661839CC53BA5!7921/$value)
