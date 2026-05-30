@@ -413,6 +413,31 @@ export default {
         const start = clamp(fromDay || 1, 1, daysInMonth);
         const end = clamp(toDay || daysInMonth, 1, daysInMonth);
 
+        // Carry forward undone items from previous day
+        let carried = 0;
+        for (let d = start; d <= end; d++) {
+          const prevDayKey = String(d - 1);
+          const prevDay = d > 1 ? data.days[prevDayKey] : null;
+          if (prevDay) {
+            const dayKey = String(d);
+            if (!data.days[dayKey]) data.days[dayKey] = {};
+            const dd = data.days[dayKey];
+            for (const cat of ['ritual','input','work','outcome']) {
+              const prevItems = prevDay[cat] || [];
+              const undone = prevItems.filter(i => !i.done && !i._carried);
+              if (!undone.length) continue;
+              if (!dd[cat]) dd[cat] = [];
+              const existingTexts = new Set(dd[cat].map(i => i.text));
+              for (const item of undone) {
+                if (!existingTexts.has(item.text)) {
+                  dd[cat].push({ text: item.text, url: item.url || '', done: false, _carried: true });
+                  carried++;
+                }
+              }
+            }
+          }
+        }
+
         let injected = 0;
         for (let d = start; d <= end; d++) {
           const dayKey = String(d);
@@ -447,8 +472,8 @@ export default {
           }
         }
 
-        if (injected > 0) await setKey(ym, data);
-        return new Response(JSON.stringify({ ok: true, injected, range: `${start}-${end}` }), { headers });
+        if (injected > 0 || carried > 0) await setKey(ym, data);
+        return new Response(JSON.stringify({ ok: true, injected, carried, range: `${start}-${end}` }), { headers });
       }
 
       // --- Cortex File Browser (GitHub API proxy) ---
