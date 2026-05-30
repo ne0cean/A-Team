@@ -19,7 +19,8 @@ function requestToken() {
 
 async function request(path, opts = {}) {
   try {
-    const token = getToken();
+    const isWrite = !!opts.method;
+    const token = isWrite ? getToken() : '';
     const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
     if (token) headers.Authorization = `Bearer ${token}`;
     const res = await fetch(`${API}${path}`, {
