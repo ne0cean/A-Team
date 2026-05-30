@@ -81,6 +81,15 @@
 
   const DOW_NAMES = ['일','월','화','수','목','금','토'];
 
+  function setText(node, text) {
+    function render(text) {
+      if (document.activeElement === node) return;
+      node.textContent = text || '';
+    }
+    render(text);
+    return { update: render };
+  }
+
   // Drag reorder
   let dragIdx = null;
   let dragSection = null;
@@ -156,7 +165,7 @@
         on:keydown={(e) => onItemKey('standing', i, e)}>
         <div class="so-move drag-handle">⠿</div>
         <input type="checkbox" checked={s.active} on:change={() => toggleActive(i)}>
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editText(i, e.target.textContent)}>{s.text}</span>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editText(i, e.target.textContent)} use:setText={s.text}></span>
         <span class="del" on:click={() => delSO(i)}>×</span>
       </div>
     {/each}
@@ -179,7 +188,7 @@
         <select value={w.freq} on:change={(e) => editWeeklyFreq(i, e.target.value)}>
           <option value="weekly">매주</option><option value="biweekly">격주</option>
         </select>
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editWeeklyText(i, e.target.textContent)}>{w.text}</span>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editWeeklyText(i, e.target.textContent)} use:setText={w.text}></span>
         <span class="del" on:click={() => delWeekly(i)}>×</span>
       </div>
     {/each}
@@ -204,7 +213,7 @@
             <option value={0}>말일</option>
             {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}일</option>{/each}
           </select>
-          <span contenteditable="true" style="flex:1" on:blur={(e) => editMR(i, 'text', e.target.textContent)}>{m.text}</span>
+          <span contenteditable="true" style="flex:1" on:blur={(e) => editMR(i, 'text', e.target.textContent)} use:setText={m.text}></span>
           <span class="del" on:click={() => delMR(i)}>×</span>
         </div>
       {/each}
@@ -219,7 +228,7 @@
     <div class="section-title">{$ym} ONLY</div>
     {#each $standingData.monthly?.[$ym] || [] as item, i}
       <div class="so-item">
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editMonthlyItem(i, e.target.textContent)}>{typeof item === 'string' ? item : item.text}</span>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editMonthlyItem(i, e.target.textContent)} use:setText={typeof item === 'string' ? item : item.text}></span>
         <span class="del" on:click={() => delMonthlyItem(i)}>×</span>
       </div>
     {/each}
@@ -243,7 +252,7 @@
           <option value={0}>-</option>
           {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}</option>{/each}
         </select>
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(i, e.target.textContent)}>{y.text}</span>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(i, e.target.textContent)} use:setText={y.text}></span>
         <span class="del" on:click={() => delYearly(i)}>×</span>
       </div>
     {/each}
