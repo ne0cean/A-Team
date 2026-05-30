@@ -1,6 +1,6 @@
 <script>
   import DayCell from './DayCell.svelte';
-  import { currentYear, currentMonth, monthData, prevMonthData, nextMonthData, DAY_NAMES } from '../lib/stores.js';
+  import { currentYear, currentMonth, monthData, prevMonthData, nextMonthData, viewMode, DAY_NAMES } from '../lib/stores.js';
 
   export let onReload;
   export let onOpenLink;
@@ -21,6 +21,20 @@
     : -1;
   $: pastWeeks = currentWeekIdx > 0 ? weeks.slice(0, currentWeekIdx) : [];
   $: visibleWeeks = currentWeekIdx > 0 ? weeks.slice(currentWeekIdx) : weeks;
+
+  // Week view
+  $: weekStart = getWeekStart(today);
+  $: weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    return { d: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear(), date: d };
+  });
+
+  function getWeekStart(date) {
+    const d = new Date(date);
+    d.setDate(d.getDate() - d.getDay());
+    return d;
+  }
 
   function buildCells(firstDow, dim, prevDim) {
     const c = [];
@@ -45,33 +59,46 @@
     {/each}
   </div>
 
-  <!-- Past weeks (collapsed) -->
-  {#if pastWeeks.length > 0}
-    {#if showPastWeeks}
-      {#each pastWeeks as week}
-        <div class="grid">
-          {#each week as cell}
-            <DayCell d={cell.d} isToday={cell.current && cell.d === todayDate}
-              isCurrent={cell.current} on:reload={onReload} on:openlink={(e) => onOpenLink(e.detail)} />
-          {/each}
+  {#if $viewMode === 'week'}
+    <!-- Week view -->
+    <div class="week-grid">
+      {#each weekDays as wd}
+        {@const isSameMonth = wd.month === $currentMonth}
+        {@const isToday = wd.date.toDateString() === today.toDateString()}
+        <div class="week-cell" class:today={isToday}>
+          <DayCell d={wd.d} {isToday} isCurrent={isSameMonth}
+            on:reload={onReload} on:openlink={(e) => onOpenLink(e.detail)} />
         </div>
       {/each}
-    {/if}
-  {/if}
-
-  <!-- Current + future weeks -->
-  {#each visibleWeeks as week, wIdx}
-    <div class="grid">
-      {#each week as cell}
-        <DayCell d={cell.d} isToday={cell.current && cell.d === todayDate}
-          isCurrent={cell.current}
-          showPastToggle={wIdx === 0 && pastWeeks.length > 0 && cell === week.filter(c => c.current).pop()}
-          on:reload={onReload}
-          on:openlink={(e) => onOpenLink(e.detail)}
-          on:togglepast={() => showPastWeeks = !showPastWeeks} />
-      {/each}
     </div>
-  {/each}
+  {:else}
+    <!-- Month view -->
+    {#if pastWeeks.length > 0}
+      {#if showPastWeeks}
+        {#each pastWeeks as week}
+          <div class="grid">
+            {#each week as cell}
+              <DayCell d={cell.d} isToday={cell.current && cell.d === todayDate}
+                isCurrent={cell.current} on:reload={onReload} on:openlink={(e) => onOpenLink(e.detail)} />
+            {/each}
+          </div>
+        {/each}
+      {/if}
+    {/if}
+
+    {#each visibleWeeks as week, wIdx}
+      <div class="grid">
+        {#each week as cell}
+          <DayCell d={cell.d} isToday={cell.current && cell.d === todayDate}
+            isCurrent={cell.current}
+            showPastToggle={wIdx === 0 && pastWeeks.length > 0 && cell === week.filter(c => c.current).pop()}
+            on:reload={onReload}
+            on:openlink={(e) => onOpenLink(e.detail)}
+            on:togglepast={() => showPastWeeks = !showPastWeeks} />
+        {/each}
+      </div>
+    {/each}
+  {/if}
 </div>
 
 <!-- styles in global app.css -->
