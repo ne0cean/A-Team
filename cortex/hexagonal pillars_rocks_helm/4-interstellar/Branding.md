@@ -22,9 +22,9 @@ Branding
 
 앵커가 되는 행성을 찾고 그것과 차별화 하라.
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-fb9288f0cfb448ef95eb1b3c0b6f5858!1-733661839CC53BA5!7917/$value)
+![image](../../attachments/onenote/792a6dafe8.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-89ec411a369842eab0cbe8e45ddd05da!1-733661839CC53BA5!7917/$value)
+![image](../../attachments/onenote/4523844b2b.png)
 
 - 소비자들이 정말 호감을 갖는(desirable) 포인트인가?
 

@@ -12,15 +12,15 @@ modified: "2018-08-06T09:12:16Z"
 
 중국 OTT
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-62fa3570e08478a790c6a23ca39383b8!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/b3b3d0727b.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3dc2dd86872271078c45afe702ad1116!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/77b85fd60a.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a2676bf150de7cd08bd6e38ba7011a48!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/f39ecf26c3.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-c1f928ce4a497bf0951b21c66ecb1a8c!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/d4926acb1a.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1567a1a37fb879f8b72722d1fe7a5bbd!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/a915baee78.png)
 
  https://pitchbook.com
 pc
@@ -38,7 +38,7 @@ No.
 
 1
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e04f96dde419732a8647b2f02903bbc4!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/04b1c0b1db.png)
 
 &#160;
 
@@ -56,7 +56,7 @@ No.
 
 2
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-6c380a7c68b47ef78e5d3a3e4aa859ff!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/4ea17c9f4c.png)
 
 &#160;
 
@@ -74,7 +74,7 @@ No.
 
 3
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-c2094ca0760179acb7b5ff01213c5c85!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/f6d805d5d9.png)
 
 &#160;
 
@@ -90,7 +90,7 @@ No.
 
 4
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2fdcb71b376f7eed96f31840fa066218!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/60b7280022.png)
 
 &#160;
 
@@ -746,17 +746,17 @@ $1.80BE
 Completed
 Profitable
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-437911b11f467dd7a66c09767662f383!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/9f1444ae75.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b097db45872778d4bb70fbd6577bc916!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/9b1036fc44.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a4f307a2ab517f42b6c0e3771f442d58!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/b291cb1baa.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b20c3123f3f479dcaf92a71620759319!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/9997b6c99f.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-055c513c97107ff5b4dd3b0355e6f75e!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/5ef96de122.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-63a78bd6b2cb721fb42c0f0a6297349d!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/36ebc957b0.png)
 
 텔코&#160;3개, non텔코&#160;3개
 
@@ -786,6 +786,6 @@ Profitable
 
 `닥터펑` 그룹은 5일 서울 서초구 IKP에서 `다마이 박스(Damai Box)`&#160;
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f00d398021d57ddfaa2b7fb481974ca1!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/5a0109257f.png)
 
 [http://www.digitalintheround.com/mobile-video-china-internet/](http://www.digitalintheround.com/mobile-video-china-internet/)

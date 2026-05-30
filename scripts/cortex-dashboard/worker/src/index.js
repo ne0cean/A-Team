@@ -49,6 +49,10 @@ export default {
       };
       const validIndex = (n, arr) => Number.isInteger(Number(n)) && Number(n) >= 0 && Number(n) < arr.length;
       const validCategory = (c) => categories.has(c);
+      const validUrl = (u) => {
+        if (!u || u === '') return true; // empty is fine
+        try { const s = new URL(u).protocol; return s === 'https:' || s === 'http:'; } catch { return false; }
+      };
       const validCortexPath = (p) => typeof p === 'string' && p.startsWith('cortex/') && !p.includes('..') && !p.startsWith('cortex/.');
 
       // --- Data helpers ---
@@ -131,7 +135,7 @@ export default {
       // --- Add Item (append) ---
       if (path === '/api/add-item' && method === 'POST') {
         const { ym, day, category, text, url: itemUrl } = await request.json();
-        if (!validYm(ym) || !validDay(day) || !validCategory(category) || typeof text !== 'string') {
+        if (!validYm(ym) || !validDay(day) || !validCategory(category) || typeof text !== 'string' || !validUrl(itemUrl)) {
           return new Response(JSON.stringify({ error: 'invalid item payload' }), { status: 400, headers });
         }
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
@@ -190,8 +194,8 @@ export default {
 
       // --- Edit Item ---
       if (path === '/api/edit-item' && method === 'POST') {
-        const { ym, day, category, index, text } = await request.json();
-        if (!validYm(ym) || !validDay(day) || !validCategory(category) || typeof text !== 'string') {
+        const { ym, day, category, index, text, url } = await request.json();
+        if (!validYm(ym) || !validDay(day) || !validCategory(category) || typeof text !== 'string' || !validUrl(url)) {
           return new Response(JSON.stringify({ error: 'invalid item payload' }), { status: 400, headers });
         }
         const data = await getKey(ym);
