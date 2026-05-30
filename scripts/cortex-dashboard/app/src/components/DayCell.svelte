@@ -260,17 +260,17 @@
     <div class="holiday-name">{holiday}</div>
   {/if}
 
-  {#if dayData.events?.length}
-    {#each dayData.events as evt}
-      <div class="day-event">{evt}</div>
-    {/each}
-  {/if}
-
   {#if isCurrent}
     <div class="one-thing" contenteditable="true" on:blur={saveOneThing}
       on:keydown={(e) => e.key === 'Enter' && !e.isComposing && (e.preventDefault(), e.target.blur())}
       use:setOneThing={dayData.one_thing}
     ></div>
+
+    {#if dayData.events?.length}
+      {#each dayData.events as evt}
+        <div class="day-event">{evt}</div>
+      {/each}
+    {/if}
 
     {#each recurringItems as rec, ridx}
       <div class="item rec-item" style="border-left:2px solid {rec._color};padding-left:4px">
