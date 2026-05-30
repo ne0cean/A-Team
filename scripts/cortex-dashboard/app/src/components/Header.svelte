@@ -61,6 +61,15 @@
     const res = await api.undoMonth($ym);
     if (res?.ok) onReload();
   }
+
+  function setVision(node, text) {
+    function render(text) {
+      if (document.activeElement === node) return;
+      node.textContent = text || '';
+    }
+    render(text);
+    return { update: render };
+  }
 </script>
 
 <header class="header">
@@ -71,9 +80,9 @@
   </div>
 
   <div class="header-center">
-    <div class="vision" contenteditable="true" on:blur={saveGoal}>
-      {$monthData.goals?.goal || ''}
-    </div>
+    <div class="vision" contenteditable="true" on:blur={saveGoal}
+      use:setVision={$monthData.goals?.goal || ''}
+    ></div>
     {#if isCurrentMonth}
       <div class="workout-bar">
         {#each WORKOUT_LEGS as g}
