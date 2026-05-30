@@ -32,8 +32,10 @@ export default {
       return accepted.some(token => auth === `Bearer ${token}`);
     };
 
-    // All API routes are private by default. Static assets remain public.
-    if (path.startsWith('/api/') && !authorized()) {
+    // Auth: same-origin requests (from the app itself) skip auth.
+    // Cross-origin or external requests require Bearer token.
+    const isSameOrigin = !origin || origin === url.origin;
+    if (path.startsWith('/api/') && !authorized() && !isSameOrigin) {
       if (!(method === 'GET' && env.ALLOW_PUBLIC_READS === '1')) {
         return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers });
       }
