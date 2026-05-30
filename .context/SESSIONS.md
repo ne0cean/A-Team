@@ -2,6 +2,12 @@
 
 ---
 
+## [2026-05-30] 모델 오케스트레이션 강제 + MeiliSearch + Ollama 라우팅
+
+**완료**: 오케스트레이션 훅 settings.json 등록(enforce-model-param + model-compliance). 모델 사용량 추적(/tmp/model-usage.jsonl 통합). MeiliSearch launchd 등록. Ollama 로컬 폴백 추가. llm CLI 로깅. tidy 안전장치(본문 확인 필수). cortex 삭제 실수 복구.
+**이슈**: Claude Code가 SubagentStop에 실제 모델명/토큰을 안 넘김 — PreToolUse에서 명시된 model만 추적 가능. 메인 세션(Opus) 토큰은 추적 불가(플랫폼 제약).
+**빌드**: ✅ 583 tests PASS
+
 ## [2026-05-29] Dashboard 사후 분석 + Svelte 리빌드 착수
 
 **완료**: UX-SPEC.md (12섹션), 근본 원인 5 Whys, ui-deploy-gate.md, Svelte 초기화 + 6개 컴포넌트. vanilla 검색 500/스크롤바/버튼 레이아웃 수정.

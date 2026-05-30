@@ -60,6 +60,16 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-05-30) — 모델 오케스트레이션 강제 + MeiliSearch + Ollama 라우팅
+
+- **모델 오케스트레이션 훅 등록 완료** — enforce-model-param.sh(Agent model 미지정 시 deny) + model-compliance.sh(SubagentStop 위반 감사) settings.json 등록. 테스트 확인: model 없이 호출→차단, model=haiku→통과.
+- **모델 사용량 추적** — `/tmp/model-usage.jsonl`에 모든 Agent 호출(모델명+prompt_chars) + Groq 선제처리(모델명+토큰수) + llm CLI 호출 통합 기록. `/end`에서 비용 리포트 출력.
+- **MeiliSearch launchd 등록** — `com.ateam.meilisearch` 상시 가동. DB경로 `a-team/.meili_data`, port 7700. 3499문서 인덱싱 유지.
+- **Ollama 로컬 폴백** — preempt-agent.sh에 Groq 실패 시 Ollama qwen2:7b 폴백 추가. 토큰 추적 포함.
+- **llm CLI 사용량 추적** — 래퍼에 model-usage.jsonl 로깅 추가.
+- **tidy 안전장치** — 본문 20자 이상 파일 삭제 차단. tidy-pick에 본문 미리보기(frontmatter 제외) 표시.
+- **cortex-tidy 5개 삭제→복구** — untitled이라도 본문 확인 없이 삭제한 실수. git checkout으로 복구. 프로세스 수정.
+
 ## Last Completions (2026-05-29) — Dashboard 사후 분석 + Svelte 리빌드 착수
 
 - **UX 명세서 작성** (`UX-SPEC.md`) — 5일간 모든 사용자 피드백 12개 섹션으로 정리. 구현의 SSOT.
@@ -165,8 +175,6 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 
 ### High Priority
 - [ ] **Dashboard Svelte 리빌드 완성** — Calendar/DayCell/NoteViewer/Search/Panels + App.svelte 작성 → 빌드 → ui-deploy-gate 통과 → 배포. UX-SPEC.md가 SSOT.
-- [ ] **모델 오케스트레이션 강제 훅 등록** — enforce-model-param.sh + model-compliance.sh를 settings.json에 등록 (이번 세션 미완)
-- [ ] **MeiliSearch launchd 등록** — com.ateam.meilisearch.plist load (바이너리 설치 완료, 데몬 미등록)
 - [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
 - [ ] **매일 OUTCOME 1개 외부 산출** — Standing Orders에 추가
 
