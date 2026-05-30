@@ -17,6 +17,24 @@
     try { const s = new URL(u).protocol; return (s === 'https:' || s === 'http:') ? u : ''; } catch { return ''; }
   }
 
+  // Parse [text](url) markdown links within plain text
+  function renderRichText(node, text) {
+    const re = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+    let last = 0, match;
+    while ((match = re.exec(text)) !== null) {
+      if (match.index > last) node.appendChild(document.createTextNode(text.slice(last, match.index)));
+      const a = document.createElement('a');
+      a.href = match[2];
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = match[1];
+      a.addEventListener('click', (e) => e.stopPropagation());
+      node.appendChild(a);
+      last = re.lastIndex;
+    }
+    if (last < text.length) node.appendChild(document.createTextNode(text.slice(last)));
+  }
+
   // Imperatively render content into contenteditable to avoid Svelte reactivity conflicts
   function renderContent(node, itm) {
     function render(itm) {
@@ -24,6 +42,7 @@
       node.textContent = '';
       const url = safeUrl(itm.url);
       if (url) {
+        // Whole-item link (legacy: item.url field)
         const a = document.createElement('a');
         a.href = url;
         a.target = '_blank';
@@ -31,6 +50,9 @@
         a.textContent = itm.text;
         a.addEventListener('click', (e) => e.stopPropagation());
         node.appendChild(a);
+      } else if (/\[.+?\]\(https?:\/\//.test(itm.text)) {
+        // Inline markdown links
+        renderRichText(node, itm.text);
       } else {
         node.textContent = itm.text;
       }
