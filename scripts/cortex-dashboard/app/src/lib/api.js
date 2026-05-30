@@ -26,7 +26,9 @@ async function request(path, opts = {}) {
       ...opts,
       headers
     });
-    if (res.status === 401 && requestToken()) return request(path, opts);
+    if (res.status === 401 && opts.method) {
+      if (requestToken()) return request(path, opts);
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.status }));
       if (toastFn) toastFn(err.error || `Error ${res.status}`, true);
