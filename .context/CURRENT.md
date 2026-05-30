@@ -162,24 +162,6 @@
 ## Last Completions (2026-05-25 이전)
 → [.context/SESSIONS.md](SESSIONS.md) 참조
 
-## Last Completions (2026-05-25, 이전) — Cortex 워크스페이스 + YT 16개 분석 + Ritual Board
-
-- **PMI 5-Phase 완료** — `@fast-check/vitest` 설치 (property tests 13개 복구), `wiki-types.ts:81` 타입 캐스팅 수정, CLAUDE.md 207→192줄 축소. 583 tests PASS.
-- **Design Taste Evaluator Phase 1 — INDEX.md 구축** — `reference/design-systems/INDEX.md` 생성. 72 brands, 8 categories, tone clusters, incomplete entries 식별. taste-evaluator 에이전트 연결 준비 완료.
-- **Cortex PARA+6기둥 재편** — staging 587파일 OneNote 원본 구조(notebook/section_group/section)로 복원. pillars/+areas/ 중복 구조 통합 → InterStellar/2_6 hexagonal pillars/ 단일화. Dashboard 100개 6기둥 분류(interstellar 44, snowball 25, character 14, life-xlab 12, string 5). 중복 22개 해소. archives/legacy 11개 snowball 편입. 신입연수 22개 삭제.
-- **OneNote 누락 658개 다운로드** — 2_6 hexagonal pillars 2~6번 + Zeroing + Futures options 전체 다운로드 (level/order 메타데이터 포함). 3_Archive는 Microsoft API 장애로 미완료.
-- **OneNote InterStellar Migration 완료** — Zeroing 73개 + Futures options 1개 추가 다운로드 (이전 세션 누락분). cortex/projects/ 164개 중복 파일 제거. 3_Archive 118개 부분 다운로드 (API 정상 작동 구간). 최종 상태: InterStellar 1,306파일 (1_Projects 343 + 2_6 pillars 845 + 3_Archive 118), page index 921개 전량 on-disk. onenote-download-missing.py `import time` 버그 수정. 원격 이미지 293개 (Graph API URL, 텍스트 정상).
-- **Cortex 워크스페이스 재설계** — PARA 최상위 + 6기둥 Areas 하위 구조 확정. InterStellar→archive/interstellar-onenote/ 이동. 커맨드 6개 신규(/inbox, /idea, /tidy-inbox, /learn, /recall, /daily-note). CORTEX.md 매뉴얼 + governance/rules/cortex-ops.md 거버넌스. VS Code 스니펫 + Paste Image 설정.
-- **YouTube 16개 영상 풀 분석** — Groq Whisper API 전사 + 5그룹 분석 리포트 (.context/briefs/). 즉시 적용 6건: opusplan, LSP 우선, Plan-Annotate-Execute 패턴, /ppt Q0 템플릿 분기, yt-extract --transcribe, OneNote MSAL 자동갱신.
-- **Ritual Board recurring 구현** — JSON 스키마 + 서버 API 5개 + UI 하단 자동반영 + 멱등성.
-- **OneNote migration 완료** — 1,639파일 on-disk. 3_Archive 451파일. MSAL 토큰 자동갱신 추가.
-- **PKM 벤치마크** — 14개 프로젝트 조사. LLM Wiki + Obsidian Claude PKM + CortexGraph 하이브리드 방향.
-- **SKILL.md 호환성 분석** — A-Team→SKILL.md 변환 70-80% 가능.
-
-**빌드**: ✅ 586 tests PASS (51 files)
-
-## Last Completions (2026-05-24 이전)
-→ [.context/SESSIONS.md](SESSIONS.md) 참조
 
 ## Multi-Model Router ✅
 Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi-model-router.md)
@@ -193,7 +175,8 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **Dashboard Svelte QA 잔여** — 하이퍼링크 클릭 동작 확인, 토큰 인증 플로우 안정화, 모바일 테스트
+- [ ] **Dashboard a11y 수정** — design audit score 65→70+ (버튼 역할, label 누락, dialog role, 색상 대비, 극소 폰트)
+- [ ] **Dashboard 프로덕션 배포** — a11y 수정 후 ui-deploy-gate 통과 → `wrangler deploy`
 - [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
 - [ ] **매일 OUTCOME 1개 외부 산출** — Standing Orders에 추가
 

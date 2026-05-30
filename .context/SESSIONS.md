@@ -2,6 +2,14 @@
 
 ---
 
+## [2026-05-30] 프로젝트 전체 리뷰 + 에이전트 잔여 작업 조사
+
+**완료**: 에이전트 잔여 작업 조사(RESUME 2건 완료, stale 브랜치 2개, 미완료 0건). `/review` 프로젝트 전체 — review-pr(CRITICAL 1 XSS + HIGH 2 CORS/undo) + design-auditor(65/100, a11y 12건). 보안 6건 모두 이전 세션에서 이미 수정됨 확인. review-pr AUTO-FIX 허위 보고 발견(워킹 디렉토리 변경 0건).
+**이슈**: Design audit score 65 < threshold 70. a11y 위반(버튼 역할, label 누락, dialog role, 색상 대비), 극소 폰트 7-9px 6개소 잔존.
+**빌드**: 미실행 (코드 변경 없음)
+
+---
+
 ## [2026-05-30] Dashboard Svelte 배포 + D1 안전장치 + 벤치마킹 + OneNote 이미지
 
 **완료**: Svelte 14컴포넌트 프로덕션 배포(`cortex.feat-breeze.workers.dev`). D1 3중 백업(setKey 자동백업+축소차단+undo API). Worker 인증 강화(multi-token, CORS origin, 입력검증). OneNote 이미지 80개 로컬 다운로드. 노트 트리밍 3433파일. 벤치마킹 3/7 적용(opacity완료, 보더강조, 텍스트softening). 체크박스/Enter/Backspace optimistic update. Week view. 숫자 내림차순 정렬. Standing Orders 복원. 인스타 카드뉴스 리서치(Playwright+HTML 1순위). vibe-init CURRENT.md 자동생성.
