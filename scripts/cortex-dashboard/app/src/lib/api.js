@@ -1,15 +1,32 @@
 const API = '';
-const AUTH = { 'Content-Type': 'application/json', 'Authorization': 'Bearer cortex-ritual-2026-fb' };
+const TOKEN_KEY = 'cortex.dashboard.token';
 
 let toastFn = null;
 export function setToast(fn) { toastFn = fn; }
 
+function getToken() {
+  return window.CORTEX_AUTH_TOKEN
+    || window.localStorage?.getItem(TOKEN_KEY)
+    || window.sessionStorage?.getItem(TOKEN_KEY)
+    || '';
+}
+
+function requestToken() {
+  const token = window.prompt?.('Cortex access token');
+  if (token) window.localStorage?.setItem(TOKEN_KEY, token.trim());
+  return token?.trim() || '';
+}
+
 async function request(path, opts = {}) {
   try {
+    const token = getToken();
+    const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const res = await fetch(`${API}${path}`, {
       ...opts,
-      headers: opts.body ? AUTH : { 'Content-Type': 'application/json' }
+      headers
     });
+    if (res.status === 401 && requestToken()) return request(path, opts);
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.status }));
       if (toastFn) toastFn(err.error || `Error ${res.status}`, true);
