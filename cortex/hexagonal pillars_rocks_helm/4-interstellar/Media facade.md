@@ -12,57 +12,57 @@ modified: "2023-02-17T00:31:33.649Z"
 
 Media facade
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-485e4e49b6d94d3690da866ff9ec9da3!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/9f738ee1a5.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a8fef9969b0c4f16ba49249a3196937b!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/93a999ac3f.png)
 
 지스마트글로벌
 
 금산,&#160;목포,&#160;창선상가,&#160;오키나와 는 필름입니다.
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-50ead5cbc6b74ed2b13e1c00e095ceaa!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/8cf897b2fe.png)
 ](https://drive.google.com/file/d/15XHbAlCVeWoGfjfQVdveqIT5_dIR4_LA/view?usp=drive_web)
 &#160;[금산인삼랜드설치영상](https://drive.google.com/file/d/15XHbAlCVeWoGfjfQVdveqIT5_dIR4_LA/view?usp=drive_web).mp4
 
 &#160;
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-50ead5cbc6b74ed2b13e1c00e095ceaa!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/8cf897b2fe.png)
 ](https://drive.google.com/file/d/125o_I2aSfdWPpPJbSQD057Zfz70bsTof/view?usp=drive_web)
 &#160;[목포여객터미널](https://drive.google.com/file/d/125o_I2aSfdWPpPJbSQD057Zfz70bsTof/view?usp=drive_web).mp4
 
 &#160;
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-50ead5cbc6b74ed2b13e1c00e095ceaa!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/8cf897b2fe.png)
 ](https://drive.google.com/file/d/1SGnk8p0lXa17CfS0BdNGhbjEtvzR_xJW/view?usp=drive_web)
 &#160;[창선상가](https://drive.google.com/file/d/1SGnk8p0lXa17CfS0BdNGhbjEtvzR_xJW/view?usp=drive_web).mp4
 
 &#160;
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-50ead5cbc6b74ed2b13e1c00e095ceaa!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/8cf897b2fe.png)
 ](https://drive.google.com/file/d/1Fb-Tz8B4fSr7sdOOR7_RQbzL_IbE_qLM/view?usp=drive_web)
 &#160;[오키나와](https://drive.google.com/file/d/1Fb-Tz8B4fSr7sdOOR7_RQbzL_IbE_qLM/view?usp=drive_web)&#160;아레나.mp4
 
 &#160;
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-50ead5cbc6b74ed2b13e1c00e095ceaa!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/8cf897b2fe.png)
 ](https://drive.google.com/file/d/1eyTCoJoQ6QF06ImIGofJtLUZn9hGskWa/view?usp=drive_web)
 &#160;[세종시](https://drive.google.com/file/d/1eyTCoJoQ6QF06ImIGofJtLUZn9hGskWa/view?usp=drive_web)&#160;미디어큐브2.mp4
 
 &#160;
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-50ead5cbc6b74ed2b13e1c00e095ceaa!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/8cf897b2fe.png)
 ](https://drive.google.com/file/d/16VCVxGC27GzoSxo85Jw-zgXg1WgXN7CF/view?usp=drive_web)
 &#160;[진안군](https://drive.google.com/file/d/16VCVxGC27GzoSxo85Jw-zgXg1WgXN7CF/view?usp=drive_web)_산약초전시장_150㎡.MOV
 
 &#160;
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-50ead5cbc6b74ed2b13e1c00e095ceaa!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/8cf897b2fe.png)
 ](https://drive.google.com/file/d/1PqgP44ERYVdqFHpjEXUTKatu1WDri1jN/view?usp=drive_web)
 &#160;[부산](https://drive.google.com/file/d/1PqgP44ERYVdqFHpjEXUTKatu1WDri1jN/view?usp=drive_web)KT&amp;G_G-Glass영상&#160;(1).mp4
 
 &#160;
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-50ead5cbc6b74ed2b13e1c00e095ceaa!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/8cf897b2fe.png)
 ](https://drive.google.com/file/d/1Rdo7hQDmKG_SSRhZNeQ7_0PLHANIuad1/view?usp=drive_web)
 &#160;[중국](https://drive.google.com/file/d/1Rdo7hQDmKG_SSRhZNeQ7_0PLHANIuad1/view?usp=drive_web)&#160;조이시티&#160;쇼핑몰.mp4
 

@@ -20,4 +20,4 @@ Chart
 
 하락장에서는 vix 지수30-50 넘어갈때 매수
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-8713c2596a3b66032a08adc7f0a31323!1-733661839CC53BA5!7920/$value)
+![image](../../attachments/onenote/e10aad40f7.png)

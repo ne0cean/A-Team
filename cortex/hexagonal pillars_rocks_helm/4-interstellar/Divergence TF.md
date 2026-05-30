@@ -40,4 +40,4 @@ TF자료 Update
 
 전략/ Main/ GIP/ Sub agent
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ec21fb12e5ce471888e1a552efbfd84e!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/e0747283e3.png)

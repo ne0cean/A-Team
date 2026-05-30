@@ -42,7 +42,7 @@ Home Sweet Home
 
 HUG 보증보험
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-946878b90c3243efb1261e4e0a9de2a4!1-733661839CC53BA5!7920/$value)
+![image](../../attachments/onenote/c34f7f35ea.png)
 
 청약가점 높을 경우 분양시장 노리거나, 자금 여력 충분하다면 6월 전 급매물 노려볼 만
 
@@ -152,8 +152,8 @@ HUG 보증보험
 
 [https://www.google.com/search?rlz=1C1GCEU_koKR868KR868&amp;tbm=lcl&amp;sxsrf=ALeKk02TUEzzyrqn270MxcX7Q5Z1ieko1w%3A1587819092483&amp;ei=VDKkXtmNHdPVmAX73Z7QDw&amp;q=sk+t%ED%83%80%EC%9B%8C&amp;oq=sk+t%ED%83%80%EC%9B%8C&amp;gs_l=psy-ab.3..0j38.773.6665.0.6848.24.15.7.0.0.0.194.1437.0j11.12.0....0...1c.1j4.64.psy-ab..7.17.1505.10..35i362i39k1j35i39k1j0i131i20i263k1j0i131k1j0i67k1j0i10k1j0i20i263k1.391.LURGU5YP-bo#rlfi=hd:;si:;mv:[[37.61860683888716,127.17769428940319],[37.50266889112041,126.8103389427235],null,[37.56066041625974,126.99401661606335],13]](https://www.google.com/search?rlz=1C1GCEU_koKR868KR868&amp;tbm=lcl&amp;sxsrf=ALeKk02TUEzzyrqn270MxcX7Q5Z1ieko1w%3A1587819092483&amp;ei=VDKkXtmNHdPVmAX73Z7QDw&amp;q=sk+t%ED%83%80%EC%9B%8C&amp;oq=sk+t%ED%83%80%EC%9B%8C&amp;gs_l=psy-ab.3..0j38.773.6665.0.6848.24.15.7.0.0.0.194.1437.0j11.12.0....0...1c.1j4.64.psy-ab..7.17.1505.10..35i362i39k1j35i39k1j0i131i20i263k1j0i131k1j0i67k1j0i10k1j0i20i263k1.391.LURGU5YP-bo#rlfi=hd:;si:;mv:[[37.61860683888716,127.17769428940319],[37.50266889112041,126.8103389427235],null,[37.56066041625974,126.99401661606335],13])
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3bcc227a27974bfb8b6b58bbe421c602!1-733661839CC53BA5!7920/$value)
+![image](../../attachments/onenote/cc9fca65a1.png)
 
 주택댐비대출 주담대
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e378c252712a6fd2b6254f105284d689!1-733661839CC53BA5!7920/$value)
+![image](../../attachments/onenote/d9070e2af4.png)

@@ -72,4 +72,4 @@ e편한세상 부가세 환수
 
 [https://claude.ai/chat/4b215380-3de1-4b82-ae5f-236aecf3839b](https://claude.ai/chat/4b215380-3de1-4b82-ae5f-236aecf3839b)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-cd4da4b3bf15b70c038fa2cc70e58b97!1-733661839CC53BA5!7920/$value)
+![image](../../attachments/onenote/463e9741f7.png)

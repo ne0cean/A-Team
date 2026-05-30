@@ -14,7 +14,7 @@ BGM
 
 동영상제작할때 제일 중요한 배경음악 무료 동영상BGM사이트 오픈비트 추천
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f33b9b4b42814c13820a2b36eaf702d5!1-733661839CC53BA5!7920/$value)
+![image](../../attachments/onenote/e804771f3d.png)
 
 &#160;
 
@@ -38,7 +38,7 @@ BGM
 
 음악이 흘러 나온다는 사실~!!
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-5054037684904e0d88b751282f2a81fd!1-733661839CC53BA5!7920/$value)
+![image](../../attachments/onenote/625fc97d15.png)
 
 음악, 그중에서도 자연스레 모든 일상에 스며있는
 
@@ -54,7 +54,7 @@ BGM
 
 &#160;
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-cf2bf14640a942a28b9de35a1167dc70!1-733661839CC53BA5!7920/$value)
+![image](../../attachments/onenote/d4b1821dae.png)
 
 컨셉에 따라 다양한 BGM들을 손쉽게 검색, 다운 받을수 있고
 
@@ -92,7 +92,7 @@ BGM
 
 깜짝 놀라실꺼에용!!ㅎㅎㅎ
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b9f4ffa308514161af4be8f330e58d7b!1-733661839CC53BA5!7920/$value)
+![image](../../attachments/onenote/ac6b43a4ae.png)
 
 [출처]&#160;[동영상제작할때 제일 중요한 배경음악 무료 동영상BGM사이트 오픈비트 추천 ([조정소] 조은정보있으면소개시켜줘♥)](http://cafe.naver.com/fiaclan/7236)&#160;|작성자&#160;[홈런왕통키](http://cafe.naver.com/fiaclan.cafe?iframe_url=/CafeMemberNetworkView.nhn%3Fm=view%26memberid=ty33ar49)
 

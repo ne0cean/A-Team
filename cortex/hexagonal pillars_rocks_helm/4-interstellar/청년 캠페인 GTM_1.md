@@ -173,7 +173,7 @@ T월드, T멤버십,
 
 유튜브 프리미엄?
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1a75491e9d244890a4e01a22040737cc!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/1bdc5123d3.png)
 
 프로모코드는 기간셋팅도 가능, 양도도 가능
 
