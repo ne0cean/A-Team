@@ -465,7 +465,7 @@ export default {
         if (!validCortexPath(dirPath) && dirPath !== 'cortex') {
           return new Response(JSON.stringify({ error: 'invalid path' }), { status: 400, headers });
         }
-        const ghUrl = `https://api.github.com/repos/${REPO}/contents/${encodeURIComponent(dirPath)}?ref=master`;
+        const ghUrl = `https://api.github.com/repos/${REPO}/contents/${dirPath.split('/').map(s => encodeURIComponent(s)).join('/')}?ref=master`;
         const ghRes = await fetch(ghUrl, { headers: ghHeaders });
         if (!ghRes.ok) return new Response(JSON.stringify({ error: 'github error', status: ghRes.status }), { status: ghRes.status, headers });
         const items = await ghRes.json();
@@ -481,7 +481,8 @@ export default {
         const filePath = url.searchParams.get('path');
         if (!filePath) return new Response(JSON.stringify({ error: 'path required' }), { status: 400, headers });
         if (!validCortexPath(filePath)) return new Response(JSON.stringify({ error: 'invalid path' }), { status: 400, headers });
-        const ghUrl = `https://api.github.com/repos/${REPO}/contents/${encodeURIComponent(filePath)}?ref=master`;
+        const encodedPath = filePath.split('/').map(s => encodeURIComponent(s)).join('/');
+        const ghUrl = `https://api.github.com/repos/${REPO}/contents/${encodedPath}?ref=master`;
         const ghRes = await fetch(ghUrl, { headers: ghHeaders });
         if (!ghRes.ok) return new Response(JSON.stringify({ error: 'not found' }), { status: 404, headers });
         const data = await ghRes.json();
@@ -495,7 +496,7 @@ export default {
         const { filePath, content, sha, message } = await request.json();
         if (!filePath || content === undefined) return new Response(JSON.stringify({ error: 'filePath, content required' }), { status: 400, headers });
         if (!validCortexPath(filePath)) return new Response(JSON.stringify({ error: 'invalid path' }), { status: 400, headers });
-        const ghUrl = `https://api.github.com/repos/${REPO}/contents/${encodeURIComponent(filePath)}`;
+        const ghUrl = `https://api.github.com/repos/${REPO}/contents/${filePath.split('/').map(s => encodeURIComponent(s)).join('/')}`;
         const body = {
           message: message || `cortex: update ${filePath.split('/').pop()}`,
           content: btoa(unescape(encodeURIComponent(content))),
