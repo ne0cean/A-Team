@@ -44,7 +44,7 @@ MZ 고객 대상 SKT 긍정 인식 회복을 위한 ‘comm. 방안’ 구체화
 
 [컨슈머인사이트](https://www.consumerinsight.co.kr/voc_view.aspx?no=3321&amp;id=ins02_list&amp;PageNo=1&amp;schFlag=0), 2010~2022 통신사 선호도&#183;선택이유 추이
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-8f55e40f4b3b47ba873df5f3f089e91b!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/9ae6a63250.png)
 
 - 변한 것 = 고객들이 브랜드를 인식하고 경험하는 방식
 
@@ -298,9 +298,9 @@ THE hype cycle for telecommunication Industry
 
 2/ 산업의 사이클이 있다. 대세는 우리를 지나 플랫폼, 이제 탈 중앙화까지 바라보고 있다.
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1c75b3651d5d4d0b971abd1b08696d20!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/37fca7fd1f.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-33e1aa32b15b4296a9e66185b93dc3b6!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/4076847ab4.png)
 
 과거 vs 현재
 

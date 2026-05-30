@@ -66,13 +66,13 @@ Un-met needs
 
 [http://magazine.hankyung.com/business/apps/news?popup=0&amp;nid=01&amp;c1=1003&amp;nkey=2015122201047000231&amp;mode=sub_view](http://magazine.hankyung.com/business/apps/news?popup=0&amp;nid=01&amp;c1=1003&amp;nkey=2015122201047000231&amp;mode=sub_view)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2698b7165a7a769b9f9112109cd702c7!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/5638dbc646.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-275805e611aa73c7b7d943f0247a7022!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/5ec611d406.png)
 
 [http://fallscroquis.tistory.com/entry/%EC%B0%BD%EC%9E%91%EC%9E%90-%EC%9E%85%EC%9E%A5%EC%97%90%EC%84%9C-%EB%B3%B8-%EC%95%A0%ED%94%8C-%EB%AE%A4%EC%A7%81%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%9D%8C%EC%9B%90-%EC%88%98%EC%9D%B5-%EA%B5%AC%EC%A1%B0%EC%9D%98-%EB%B3%80%ED%99%94](http://fallscroquis.tistory.com/entry/%EC%B0%BD%EC%9E%91%EC%9E%90-%EC%9E%85%EC%9E%A5%EC%97%90%EC%84%9C-%EB%B3%B8-%EC%95%A0%ED%94%8C-%EB%AE%A4%EC%A7%81%EC%9D%84-%ED%86%B5%ED%95%9C-%EC%9D%8C%EC%9B%90-%EC%88%98%EC%9D%B5-%EA%B5%AC%EC%A1%B0%EC%9D%98-%EB%B3%80%ED%99%94)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a3e6eee3650e704e864eb9d0c70f77ec!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/537cb77cec.png)
 
 소속사이자 음원 유통권을 쥐고 있는 로엔이 애플뮤직에 음원 공급을 거절하면서 아이유는 저작권료를 받을 수 있지만 받을 수 없는 아이러니한 상황에 놓여 있다.
 
@@ -188,7 +188,7 @@ GD USB 각 수록곡에 맞춰 디자인된 이미지와 함께 음원을 다운
 
 가온차트를 후원하는 한국음악콘텐츠산업협회(음콘협)가 USB로 제작된 지드래곤의 새 앨범을 음반으로 간주하기 힘들다는 입장을 밝히면서 이 음반은 화두에 올랐다. 이는 &#39;음반은 음이 유형물에 고정된 것&#39;으로 정의하는 현행 저작권법에 따른 결정이다. 향후 가온차트 측은 활발한 논의를 거쳐 기준을 재설정하겠단 방침이다. ▶ 물리적 음반이 유의미했던 과거의 프레임이다.
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-4643197c2fb271bbaf86d55ec5052674!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/fb98217152.png)
 
 (비욘드 스트리밍)
 

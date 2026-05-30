@@ -41,6 +41,24 @@
       if (e.changedTouches[0].screenY - pullY > 80) location.reload();
       pullActive = false;
     });
+    // Vim J/K/H/L cell navigation
+    document.addEventListener('keydown', e => {
+      if (e.target.isContentEditable || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const cells = [...document.querySelectorAll('.day-cell:not(.other-month)')];
+      if (!cells.length) return;
+      const focused = document.querySelector('.day-cell.vim-focus');
+      let idx = focused ? cells.indexOf(focused) : -1;
+      let next = -1;
+      if (e.key === 'j' || e.key === 'J') next = Math.min(idx + 7, cells.length - 1);
+      else if (e.key === 'k' || e.key === 'K') next = Math.max(idx - 7, 0);
+      else if (e.key === 'l' || e.key === 'L') next = Math.min(idx + 1, cells.length - 1);
+      else if (e.key === 'h' || e.key === 'H') next = Math.max(idx - 1, 0);
+      else return;
+      e.preventDefault();
+      if (focused) focused.classList.remove('vim-focus');
+      cells[next]?.classList.add('vim-focus');
+      cells[next]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   });
 
   async function loadAllData() {
