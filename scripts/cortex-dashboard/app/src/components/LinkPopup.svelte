@@ -14,9 +14,10 @@
 </script>
 
 {#if open}
+  <div class="link-backdrop" on:click={close}></div>
   <div class="link-popup" style="left:{x}px;top:{y}px">
     <input type="text" bind:value={url} placeholder="https://..."
-      on:keydown={(e) => e.key === 'Enter' && save()}>
+      on:keydown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') close(); }}>
     <div class="link-popup-btns">
       <button class="btn-save" on:click={save}>Save</button>
       <button class="btn-remove" on:click={remove}>Remove</button>

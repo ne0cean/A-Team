@@ -100,10 +100,12 @@
     const dayData = $monthData.days[String(d)];
     if (dayData?.[cat]?.[index]) {
       dayData[cat][index].url = url;
-      await api.editItem($ym, String(d), cat, index, dayData[cat][index].text, url);
       $monthData = $monthData;
+      linkPopup.open = false;
+      api.editItem($ym, String(d), cat, index, dayData[cat][index].text, url);
+    } else {
+      linkPopup.open = false;
     }
-    linkPopup.open = false;
   }
 
   async function onLinkRemove() {
@@ -111,10 +113,12 @@
     const dayData = $monthData.days[String(d)];
     if (dayData?.[cat]?.[index]) {
       dayData[cat][index].url = '';
-      await api.editItem($ym, String(d), cat, index, dayData[cat][index].text, '');
       $monthData = $monthData;
+      linkPopup.open = false;
+      api.editItem($ym, String(d), cat, index, dayData[cat][index].text, '');
+    } else {
+      linkPopup.open = false;
     }
-    linkPopup.open = false;
   }
 
   function showDashboard() {
