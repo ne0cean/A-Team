@@ -14,9 +14,21 @@
     if (e.key === 'Enter') {
       e.preventDefault();
       const sel = window.getSelection();
-      const text = textEl.textContent;
-      const offset = sel.focusOffset;
-      dispatch('split', { index, before: text.slice(0, offset).trim(), after: text.slice(offset).trim() });
+      const fullText = textEl.textContent;
+      // Range-based cursor offset — sel.focusOffset is node-relative, breaks with <a> tags
+      let beforeText = fullText;
+      if (sel && sel.rangeCount) {
+        const range = sel.getRangeAt(0);
+        const preRange = range.cloneRange();
+        preRange.selectNodeContents(textEl);
+        preRange.setEnd(range.startContainer, range.startOffset);
+        beforeText = preRange.toString();
+      }
+      const before = beforeText.trim();
+      const after = fullText.slice(beforeText.length).trim();
+      // Suppress onblur so editItem doesn't overwrite our split
+      textEl.onblur = null;
+      dispatch('split', { index, before, after });
     } else if (e.key === 'Backspace' && textEl.textContent.trim() === '') {
       e.preventDefault();
       dispatch('delete', { index });
@@ -26,13 +38,22 @@
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       dispatch('navigate', { direction: -1, index });
+    } else if (e.altKey && e.key === '1') {
+      e.preventDefault();
+      dispatch('toggle', { index });
     }
   }
 
   function handleBlur() {
     const newText = textEl.textContent.trim();
     if (newText !== item.text) {
-      dispatch('edit', { index, text: newText });
+      // Auto-detect URL
+      const urlMatch = newText.match(/^(https?:\/\/\S+)$/);
+      const embeddedMatch = !urlMatch && newText.match(/(https?:\/\/\S+)/);
+      let url = item.url || '';
+      if (urlMatch && !url) url = newText;
+      else if (embeddedMatch && !url) url = embeddedMatch[1];
+      dispatch('edit', { index, text: newText, url });
     }
   }
 
@@ -49,6 +70,9 @@
   class="item"
   class:done={item.done}
   class:carried={item._carried}
+  data-d={day}
+  data-cat={category}
+  data-idx={index}
   draggable="true"
   on:dragstart={(e) => dispatch('dragstart', { e, index })}
   on:dragover|preventDefault={(e) => e.currentTarget.classList.add('drag-over')}
