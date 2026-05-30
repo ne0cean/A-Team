@@ -76,8 +76,18 @@
   }
 
   async function onDelete(e, cat) {
-    await api.deleteItem($ym, String(d), cat, e.detail.index);
+    const idx = e.detail.index;
+    await api.deleteItem($ym, String(d), cat, idx);
     dispatch('reload');
+    // Focus previous item after DOM update
+    setTimeout(() => {
+      const items = document.querySelectorAll(`.day-cell.today .cat-${cat} .item-text, .day-cell .cat-${cat} .item-text`);
+      const targetIdx = idx > 0 ? idx - 1 : 0;
+      const allInDay = document.querySelectorAll(`[data-day="${d}"] .cat-${cat} .item-text`);
+      if (allInDay.length === 0) return;
+      const target = allInDay[Math.min(targetIdx, allInDay.length - 1)];
+      target?.focus({ preventScroll: true });
+    }, 80);
   }
 
   async function onItemToggle(e, cat) {
