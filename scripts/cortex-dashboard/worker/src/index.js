@@ -413,66 +413,107 @@ export default {
         const start = clamp(fromDay || 1, 1, daysInMonth);
         const end = clamp(toDay || daysInMonth, 1, daysInMonth);
 
-        // Carry forward undone items from previous day
-        let carried = 0;
-        for (let d = start; d <= end; d++) {
-          const prevDayKey = String(d - 1);
-          const prevDay = d > 1 ? data.days[prevDayKey] : null;
-          if (prevDay) {
-            const dayKey = String(d);
-            if (!data.days[dayKey]) data.days[dayKey] = {};
-            const dd = data.days[dayKey];
-            for (const cat of ['ritual','input','work','outcome']) {
-              const prevItems = prevDay[cat] || [];
-              const undone = prevItems.filter(i => !i.done && !i._carried);
-              if (!undone.length) continue;
-              if (!dd[cat]) dd[cat] = [];
-              const existingTexts = new Set(dd[cat].map(i => i.text));
-              for (const item of undone) {
-                if (!existingTexts.has(item.text)) {
-                  dd[cat].push({ text: item.text, url: item.url || '', done: false, _carried: true });
-                  carried++;
-                }
-              }
-            }
-          }
+        // Load previous month for cross-month carry (day 1)
+        let prevMonthData = null;
+        if (start === 1) {
+          const pm = month === 1 ? 12 : month - 1;
+          const py = month === 1 ? year - 1 : year;
+          const prevYm = `${py}-${String(pm).padStart(2, '0')}`;
+          prevMonthData = await getKey(prevYm);
         }
 
-        let injected = 0;
+        let carried = 0, injected = 0, changed = false;
+        const CATS = ['ritual','input','work','outcome'];
+
         for (let d = start; d <= end; d++) {
           const dayKey = String(d);
           if (!data.days[dayKey]) data.days[dayKey] = {};
           const dd = data.days[dayKey];
+
+          // --- Step 1: Resolve previous day's undone items ---
+          let prevDay = null;
+          if (d > 1) {
+            prevDay = data.days[String(d - 1)] || null;
+          } else if (prevMonthData) {
+            const prevDim = new Date(year, month - 1, 0).getDate();
+            prevDay = prevMonthData.days?.[String(prevDim)] || null;
+          }
+
+          // --- Step 2: Resolve frame template for this day ---
           const dow = new Date(year, month - 1, d).getDay();
           const dayType = dd.day_type || (dow === 0 ? 'block' : dow === 6 ? 'flow' : 'weekday');
           const frame = frames[dayType];
-          if (!frame?.categories) continue;
 
-          for (const cat of ['ritual','input','work','outcome']) {
-            const catFrame = frame.categories[cat];
-            if (!catFrame || !(catFrame.items?.length)) continue;
+          // --- Step 3: Merge per category ---
+          for (const cat of CATS) {
             if (!dd[cat]) dd[cat] = [];
+            const existing = dd[cat];
+            const before = JSON.stringify(existing);
 
-            const frameTexts = (catFrame.items || []).map(r => typeof r === 'object' ? r.text : r);
-            dd[cat] = dd[cat].filter(i => !i._frame || frameTexts.includes(i.text));
+            // Classify existing items by source
+            const manual = existing.filter(i => !i._frame && !i._carried);
+            const oldFrame = existing.filter(i => i._frame);
+            const oldCarry = existing.filter(i => i._carried);
 
-            const manualItems = dd[cat].filter(i => !i._frame);
-            const existingFrame = dd[cat].filter(i => i._frame);
+            // Index for URL merge: text → url (preserve richest data)
+            const urlMap = new Map();
+            for (const i of existing) { if (i.url) urlMap.set(i.text, i.url); }
 
-            for (const rawItem of (catFrame.items || [])) {
-              const isObj = typeof rawItem === 'object';
-              const text = isObj ? rawItem.text : rawItem;
-              const itemUrl = isObj ? (rawItem.url || '') : '';
-              if (!existingFrame.some(i => i.text === text)) {
-                existingFrame.push({ text, url: itemUrl, done: false, _frame: true });
-                injected++;
+            // 3a. Frame sync
+            const newFrame = [];
+            const catFrame = frame?.categories?.[cat];
+            if (catFrame?.items?.length) {
+              for (const rawItem of catFrame.items) {
+                const text = typeof rawItem === 'object' ? rawItem.text : rawItem;
+                const itemUrl = typeof rawItem === 'object' ? (rawItem.url || '') : '';
+                const existingItem = oldFrame.find(i => i.text === text);
+                if (existingItem) {
+                  newFrame.push(existingItem);
+                } else {
+                  // Skip if manual already has same text (don't create duplicate)
+                  if (!manual.some(i => i.text === text)) {
+                    newFrame.push({ text, url: itemUrl, done: false, _frame: true });
+                    injected++;
+                  }
+                }
               }
             }
-            dd[cat] = [...existingFrame, ...manualItems];
+            // Preserve done frame items removed from template (demote to manual)
+            for (const item of oldFrame) {
+              if (item.done && !newFrame.some(f => f.text === item.text)) {
+                delete item._frame;
+                manual.push(item);
+              }
+            }
+
+            // 3b. Carry: undone items from previous day
+            const assembled = [...newFrame, ...oldCarry, ...manual];
+            const assembledTexts = new Set(assembled.map(i => i.text));
+
+            if (prevDay) {
+              const prevItems = prevDay[cat] || [];
+              const undone = prevItems.filter(i => !i.done);
+              for (const item of undone) {
+                if (!assembledTexts.has(item.text)) {
+                  assembled.push({ text: item.text, url: item.url || '', done: false, _carried: true });
+                  assembledTexts.add(item.text);
+                  carried++;
+                } else {
+                  // URL merge: if existing item lacks URL but source has it, backfill
+                  if (item.url) {
+                    const target = assembled.find(a => a.text === item.text && !a.url);
+                    if (target) target.url = item.url;
+                  }
+                }
+              }
+            }
+
+            dd[cat] = assembled;
+            if (JSON.stringify(dd[cat]) !== before) changed = true;
           }
         }
 
-        if (injected > 0 || carried > 0) await setKey(ym, data);
+        if (changed) await setKey(ym, data);
         return new Response(JSON.stringify({ ok: true, injected, carried, range: `${start}-${end}` }), { headers });
       }
 

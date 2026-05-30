@@ -22,6 +22,33 @@
     save();
   }
 
+  // Render [text](url) markdown links in contenteditable
+  function setFrameText(node, text) {
+    function render(text) {
+      if (document.activeElement === node) return;
+      node.textContent = '';
+      if (!text) return;
+      const re = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+      let last = 0, match;
+      while ((match = re.exec(text)) !== null) {
+        if (match.index > last) node.appendChild(document.createTextNode(text.slice(last, match.index)));
+        const a = document.createElement('a');
+        a.href = match[2];
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = match[1];
+        a.style.color = '#58a6ff';
+        a.addEventListener('click', (e) => e.stopPropagation());
+        node.appendChild(a);
+        last = re.lastIndex;
+      }
+      if (last === 0) node.textContent = text;
+      else if (last < text.length) node.appendChild(document.createTextNode(text.slice(last)));
+    }
+    render(text);
+    return { update: render };
+  }
+
   function addItem(ftype, cat, text) {
     if (!text?.trim()) return;
     if (!$dayFrames[ftype].categories[cat]) $dayFrames[ftype].categories[cat] = { type: 'routine', items: [] };
@@ -111,7 +138,9 @@
               on:drop={(e) => onDrop(ftype, cat, idx, e)}
               on:keydown={(e) => onFrameKey(ftype, cat, idx, e)}>
               <span class="drag-handle" style="cursor:grab;color:#484f58;font-size:12px;padding:0 2px">⠿</span>
-              <input value={getItemText(rawItem)} on:change={(e) => editItem(ftype, cat, idx, e.target.value)}>
+              <span contenteditable="true" class="frame-text" style="flex:1"
+                on:blur={(e) => editItem(ftype, cat, idx, e.target.textContent)}
+                use:setFrameText={getItemText(rawItem)}></span>
               <span class="frame-del" on:click={() => delItem(ftype, cat, idx)}>×</span>
             </div>
           {/each}
