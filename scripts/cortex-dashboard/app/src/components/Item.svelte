@@ -88,7 +88,7 @@
     on:blur={handleBlur}
     on:keydown={handleKey}
   >{#if item.url}<a href={item.url} target="_blank" on:click|stopPropagation>{item.text}</a>{:else}{item.text}{/if}</span>
-  <span class="link-btn" class:has-link={item.url} on:click={() => dispatch('link', { index })}>&#128279;</span>
+  <span class="link-btn" class:has-link={item.url} on:click={(e) => { if (item.url) { e.stopPropagation(); window.open(item.url, '_blank'); } else { dispatch('link', { index }); } }}>&#128279;</span>
   <span class="del-btn" on:click={() => dispatch('delete', { index })}>&#215;</span>
 </div>
 
