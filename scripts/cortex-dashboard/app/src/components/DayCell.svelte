@@ -107,7 +107,17 @@
     const allInDay = document.querySelectorAll(`.item[data-d="${d}"][data-cat="${cat}"]`);
     const targetIdx = index + direction;
     if (targetIdx >= 0 && targetIdx < allInDay.length) {
-      allInDay[targetIdx]?.querySelector('.item-text')?.focus({ preventScroll: true });
+      const el = allInDay[targetIdx]?.querySelector('.item-text');
+      if (el) {
+        el.focus({ preventScroll: true });
+        // Place cursor at end of text
+        const sel = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
     }
   }
 
