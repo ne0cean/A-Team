@@ -12,7 +12,10 @@ from pathlib import Path
 
 CORTEX_DIR = Path(__file__).parent.parent / "cortex"
 ATTACHMENTS_DIR = CORTEX_DIR / "attachments" / "onenote"
-TOKEN_FILE = CORTEX_DIR / ".onenote-token.json"
+TOKEN_FILE = Path(os.environ.get(
+    "ONENOTE_TOKEN_FILE",
+    Path.home() / ".config" / "a-team" / "onenote-token.json",
+))
 
 GRAPH_IMG_RE = re.compile(
     r'!\[image\]\((https://graph\.microsoft\.com.+?/resources/(0-[a-f0-9]+).+?)\)'
@@ -26,8 +29,11 @@ SCAN_DIRS = [
 
 
 def get_token():
+    env_token = os.environ.get("ONENOTE_ACCESS_TOKEN")
+    if env_token:
+        return env_token
     if not TOKEN_FILE.exists():
-        print("토큰 없음. onenote-auth.py 먼저 실행.")
+        print("토큰 없음. ONENOTE_ACCESS_TOKEN 설정 또는 onenote-auth.py 실행 필요.")
         return None
     data = json.loads(TOKEN_FILE.read_text())
     return data.get("access_token")

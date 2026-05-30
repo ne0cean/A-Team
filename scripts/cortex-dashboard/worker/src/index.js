@@ -8,21 +8,32 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
+    const origin = request.headers.get('Origin') || '';
+    const allowedOrigins = (env.ALLOWED_ORIGINS || url.origin)
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    const allowOrigin = !origin || allowedOrigins.includes(origin) ? (origin || url.origin) : allowedOrigins[0];
 
     // CORS
     const headers = {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': allowOrigin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Vary': 'Origin',
       'Content-Type': 'application/json',
     };
     if (method === 'OPTIONS') return new Response(null, { headers });
 
-    // Auth: require API_SECRET for write operations (POST/PUT/DELETE)
-    // GET (read) is open for browser access; writes need token
-    if (method !== 'GET' && path.startsWith('/api/')) {
+    const authorized = () => {
       const auth = request.headers.get('Authorization');
-      if (auth !== `Bearer ${env.API_SECRET}`) {
+      const accepted = [env.API_SECRET, env.SERVICE_TOKEN].filter(Boolean);
+      return accepted.some(token => auth === `Bearer ${token}`);
+    };
+
+    // All API routes are private by default. Static assets remain public.
+    if (path.startsWith('/api/') && !authorized()) {
+      if (!(method === 'GET' && env.ALLOW_PUBLIC_READS === '1')) {
         return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers });
       }
     }
@@ -31,6 +42,14 @@ export default {
       // --- Input validation ---
       const validYm = (s) => /^\d{4}-\d{2}$/.test(s);
       const clamp = (n, min, max) => Math.max(min, Math.min(max, Number(n) || 0));
+      const categories = new Set(['ritual', 'input', 'work', 'outcome']);
+      const validDay = (s) => {
+        const n = Number(s);
+        return Number.isInteger(n) && n >= 1 && n <= 31;
+      };
+      const validIndex = (n, arr) => Number.isInteger(Number(n)) && Number(n) >= 0 && Number(n) < arr.length;
+      const validCategory = (c) => categories.has(c);
+      const validCortexPath = (p) => typeof p === 'string' && p.startsWith('cortex/') && !p.includes('..') && !p.startsWith('cortex/.');
 
       // --- Data helpers ---
       const getKey = async (key) => {
@@ -71,6 +90,9 @@ export default {
 
       if (path === '/api/month' && method === 'POST') {
         const { ym, data } = await request.json();
+        if (!validYm(ym) || !data || typeof data !== 'object') {
+          return new Response(JSON.stringify({ error: 'invalid month payload' }), { status: 400, headers });
+        }
         // Safety: don't save empty data over existing
         const existing = await getKey(ym);
         if (existing) {
@@ -94,8 +116,12 @@ export default {
       // --- Toggle ---
       if (path === '/api/toggle' && method === 'POST') {
         const { ym, day, category, index } = await request.json();
+        if (!validYm(ym) || !validDay(day) || !validCategory(category)) {
+          return new Response(JSON.stringify({ error: 'invalid item target' }), { status: 400, headers });
+        }
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
-        if (data.days[day]?.[category]?.[index] !== undefined) {
+        const arr = data.days[day]?.[category];
+        if (Array.isArray(arr) && validIndex(index, arr)) {
           data.days[day][category][index].done = !data.days[day][category][index].done;
           await setKey(ym, data);
         }
@@ -105,6 +131,9 @@ export default {
       // --- Add Item (append) ---
       if (path === '/api/add-item' && method === 'POST') {
         const { ym, day, category, text, url: itemUrl } = await request.json();
+        if (!validYm(ym) || !validDay(day) || !validCategory(category) || typeof text !== 'string') {
+          return new Response(JSON.stringify({ error: 'invalid item payload' }), { status: 400, headers });
+        }
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
         if (!data.days[day]) data.days[day] = {};
         if (!data.days[day][category]) data.days[day][category] = [];
@@ -116,10 +145,15 @@ export default {
       // --- Insert Item at index ---
       if (path === '/api/insert-item' && method === 'POST') {
         const { ym, day, category, index, text, url: itemUrl } = await request.json();
+        if (!validYm(ym) || !validDay(day) || !validCategory(category) || typeof text !== 'string') {
+          return new Response(JSON.stringify({ error: 'invalid item payload' }), { status: 400, headers });
+        }
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
         if (!data.days[day]) data.days[day] = {};
         if (!data.days[day][category]) data.days[day][category] = [];
-        data.days[day][category].splice(index, 0, { text, url: itemUrl || '', done: false });
+        const arr = data.days[day][category];
+        const safeIndex = clamp(index, 0, arr.length);
+        arr.splice(safeIndex, 0, { text, url: itemUrl || '', done: false });
         await setKey(ym, data);
         return new Response(JSON.stringify({ ok: true }), { headers });
       }
@@ -127,8 +161,12 @@ export default {
       // --- Split Item (Enter in middle of text) ---
       if (path === '/api/split-item' && method === 'POST') {
         const { ym, day, category, index, before, after } = await request.json();
+        if (!validYm(ym) || !validDay(day) || !validCategory(category)) {
+          return new Response(JSON.stringify({ error: 'invalid item target' }), { status: 400, headers });
+        }
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
-        if (!data.days[day]?.[category]?.[index]) {
+        const arr = data.days[day]?.[category];
+        if (!Array.isArray(arr) || !validIndex(index, arr)) {
           return new Response(JSON.stringify({ ok: false, error: 'not found' }), { headers });
         }
         data.days[day][category][index].text = before;
@@ -140,6 +178,9 @@ export default {
       // --- One Thing ---
       if (path === '/api/one-thing' && method === 'POST') {
         const { ym, day, text } = await request.json();
+        if (!validYm(ym) || !validDay(day) || typeof text !== 'string') {
+          return new Response(JSON.stringify({ error: 'invalid day payload' }), { status: 400, headers });
+        }
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
         if (!data.days[day]) data.days[day] = {};
         data.days[day].one_thing = text;
@@ -150,8 +191,12 @@ export default {
       // --- Edit Item ---
       if (path === '/api/edit-item' && method === 'POST') {
         const { ym, day, category, index, text } = await request.json();
+        if (!validYm(ym) || !validDay(day) || !validCategory(category) || typeof text !== 'string') {
+          return new Response(JSON.stringify({ error: 'invalid item payload' }), { status: 400, headers });
+        }
         const data = await getKey(ym);
-        if (data?.days[day]?.[category]?.[index]) {
+        const arr = data?.days[day]?.[category];
+        if (Array.isArray(arr) && validIndex(index, arr)) {
           data.days[day][category][index].text = text;
           await setKey(ym, data);
         }
@@ -161,9 +206,12 @@ export default {
       // --- Delete Item ---
       if (path === '/api/delete-item' && method === 'POST') {
         const { ym, day, category, index } = await request.json();
+        if (!validYm(ym) || !validDay(day) || !validCategory(category)) {
+          return new Response(JSON.stringify({ error: 'invalid item target' }), { status: 400, headers });
+        }
         const data = await getKey(ym);
         const arr = data?.days[day]?.[category];
-        if (arr && index >= 0 && index < arr.length) {
+        if (Array.isArray(arr) && validIndex(index, arr)) {
           arr.splice(index, 1);
           await setKey(ym, data);
         }
@@ -173,6 +221,9 @@ export default {
       // --- Day Type ---
       if (path === '/api/day-type' && method === 'POST') {
         const { ym, day, type } = await request.json();
+        if (!validYm(ym) || !validDay(day)) {
+          return new Response(JSON.stringify({ error: 'invalid day payload' }), { status: 400, headers });
+        }
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
         if (!data.days[day]) data.days[day] = {};
         if (type) data.days[day].day_type = type;
@@ -184,6 +235,9 @@ export default {
       // --- Notes ---
       if (path === '/api/notes' && method === 'POST') {
         const { ym, day, notes } = await request.json();
+        if (!validYm(ym) || !validDay(day)) {
+          return new Response(JSON.stringify({ error: 'invalid day payload' }), { status: 400, headers });
+        }
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
         if (!data.days[day]) data.days[day] = {};
         if (notes) data.days[day].notes = notes;
@@ -195,9 +249,12 @@ export default {
       // --- Reorder ---
       if (path === '/api/reorder' && method === 'POST') {
         const { ym, day, category, fromIdx, toIdx } = await request.json();
+        if (!validYm(ym) || !validDay(day) || !validCategory(category)) {
+          return new Response(JSON.stringify({ error: 'invalid item target' }), { status: 400, headers });
+        }
         const data = await getKey(ym);
         const items = data?.days[day]?.[category];
-        if (items && fromIdx >= 0 && fromIdx < items.length && toIdx >= 0 && toIdx < items.length) {
+        if (Array.isArray(items) && validIndex(fromIdx, items) && validIndex(toIdx, items)) {
           const [moved] = items.splice(fromIdx, 1);
           items.splice(toIdx, 0, moved);
           await setKey(ym, data);
@@ -208,9 +265,12 @@ export default {
       // --- Move Item ---
       if (path === '/api/move-item' && method === 'POST') {
         const { ym, fromDay, fromCat, fromIdx, toDay, toCat } = await request.json();
+        if (!validYm(ym) || !validDay(fromDay) || !validDay(toDay) || !validCategory(fromCat) || !validCategory(toCat)) {
+          return new Response(JSON.stringify({ error: 'invalid move target' }), { status: 400, headers });
+        }
         const data = await getKey(ym);
         const fromItems = data?.days[fromDay]?.[fromCat];
-        if (fromItems && fromIdx < fromItems.length) {
+        if (Array.isArray(fromItems) && validIndex(fromIdx, fromItems)) {
           const [moved] = fromItems.splice(fromIdx, 1);
           if (!data.days[toDay]) data.days[toDay] = {};
           if (!data.days[toDay][toCat]) data.days[toDay][toCat] = [];
@@ -307,6 +367,9 @@ export default {
       // --- Workout ---
       if (path === '/api/workout' && method === 'POST') {
         const { ym, day, part } = await request.json();
+        if (!validYm(ym) || !validDay(day) || typeof part !== 'string') {
+          return new Response(JSON.stringify({ error: 'invalid workout payload' }), { status: 400, headers });
+        }
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
         if (!data.days[day]) data.days[day] = {};
         const dd = data.days[day];
@@ -321,6 +384,9 @@ export default {
       // --- Inject Frames ---
       if (path === '/api/inject-frames' && method === 'POST') {
         const { ym, fromDay, toDay } = await request.json();
+        if (!validYm(ym)) {
+          return new Response(JSON.stringify({ error: 'invalid ym' }), { status: 400, headers });
+        }
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
         const frames = await getKey('day-frames') || {};
         const [year, month] = ym.split('-').map(Number);
@@ -377,6 +443,9 @@ export default {
       // GET /api/cortex/tree?path=cortex/ — list directory
       if (path === '/api/cortex/tree' && method === 'GET') {
         const dirPath = url.searchParams.get('path') || 'cortex';
+        if (!validCortexPath(dirPath) && dirPath !== 'cortex') {
+          return new Response(JSON.stringify({ error: 'invalid path' }), { status: 400, headers });
+        }
         const ghUrl = `https://api.github.com/repos/${REPO}/contents/${encodeURIComponent(dirPath)}?ref=master`;
         const ghRes = await fetch(ghUrl, { headers: ghHeaders });
         if (!ghRes.ok) return new Response(JSON.stringify({ error: 'github error', status: ghRes.status }), { status: ghRes.status, headers });
@@ -392,6 +461,7 @@ export default {
       if (path === '/api/cortex/file' && method === 'GET') {
         const filePath = url.searchParams.get('path');
         if (!filePath) return new Response(JSON.stringify({ error: 'path required' }), { status: 400, headers });
+        if (!validCortexPath(filePath)) return new Response(JSON.stringify({ error: 'invalid path' }), { status: 400, headers });
         const ghUrl = `https://api.github.com/repos/${REPO}/contents/${encodeURIComponent(filePath)}?ref=master`;
         const ghRes = await fetch(ghUrl, { headers: ghHeaders });
         if (!ghRes.ok) return new Response(JSON.stringify({ error: 'not found' }), { status: 404, headers });
@@ -405,6 +475,7 @@ export default {
       if (path === '/api/cortex/file' && method === 'POST') {
         const { filePath, content, sha, message } = await request.json();
         if (!filePath || content === undefined) return new Response(JSON.stringify({ error: 'filePath, content required' }), { status: 400, headers });
+        if (!validCortexPath(filePath)) return new Response(JSON.stringify({ error: 'invalid path' }), { status: 400, headers });
         const ghUrl = `https://api.github.com/repos/${REPO}/contents/${encodeURIComponent(filePath)}`;
         const body = {
           message: message || `cortex: update ${filePath.split('/').pop()}`,
