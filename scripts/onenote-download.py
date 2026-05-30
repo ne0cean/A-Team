@@ -2,6 +2,7 @@
 """OneNote 페이지 다운로드 - 미완료 페이지 가져오기"""
 
 import json
+import os
 import re
 import sys
 import time
@@ -10,15 +11,21 @@ from pathlib import Path
 
 CORTEX_DIR = Path(__file__).parent.parent / "cortex"
 STAGING_DIR = CORTEX_DIR / "staging"
-TOKEN_FILE = CORTEX_DIR / ".onenote-token.json"
+TOKEN_FILE = Path(os.environ.get(
+    "ONENOTE_TOKEN_FILE",
+    Path.home() / ".config" / "a-team" / "onenote-token.json",
+))
 DOWNLOAD_LOG = CORTEX_DIR / ".onenote-download-log.json"
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0/me/onenote"
 
 
 def get_token():
+    env_token = os.environ.get("ONENOTE_ACCESS_TOKEN")
+    if env_token:
+        return env_token
     if not TOKEN_FILE.exists():
-        print("토큰 없음. onenote-auth.py 먼저 실행.")
+        print("토큰 없음. ONENOTE_ACCESS_TOKEN 설정 또는 onenote-auth.py 실행 필요.")
         return None
     return json.loads(TOKEN_FILE.read_text())["access_token"]
 

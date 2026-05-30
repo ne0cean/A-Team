@@ -6,6 +6,10 @@ if [[ "$(uname)" != "Darwin" ]]; then echo "⚠️  macOS 전용 (launchd). Wind
 #   bash install-sleep-cron.sh install [HH:MM]   # 기본 03:02 KST
 #   bash install-sleep-cron.sh uninstall
 #   bash install-sleep-cron.sh status
+#   옵션: --permission-mode plan|acceptEdits|auto|bypassPermissions
+#         --allow-bypass       # bypassPermissions 사용 시 필수
+#         --auto-commit        # autonomous commit 허용
+#         --auto-push          # autonomous push 허용 (--auto-commit 필요)
 #
 # 설치 후 매일 지정 시각에 sleep-resume.sh 자동 실행.
 # RESUME.md 부재 또는 status=completed면 no-op.
@@ -19,12 +23,32 @@ RESUME_SCRIPT="$ATEAM_ROOT/scripts/sleep-resume.sh"
 
 # 인자 파싱
 PROJECT_ROOT=""
+PERMISSION_MODE="${SLEEP_RESUME_PERMISSION_MODE:-plan}"
+ALLOW_BYPASS="${SLEEP_RESUME_ALLOW_BYPASS:-0}"
+AUTO_COMMIT="${SLEEP_RESUME_AUTOCOMMIT:-0}"
+AUTO_PUSH="${SLEEP_RESUME_AUTOPUSH:-0}"
 ARGS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --project)
       PROJECT_ROOT="$2"
       shift 2
+      ;;
+    --permission-mode)
+      PERMISSION_MODE="$2"
+      shift 2
+      ;;
+    --allow-bypass)
+      ALLOW_BYPASS="1"
+      shift
+      ;;
+    --auto-commit)
+      AUTO_COMMIT="1"
+      shift
+      ;;
+    --auto-push)
+      AUTO_PUSH="1"
+      shift
       ;;
     *)
       ARGS+=("$1")
@@ -48,6 +72,24 @@ PLIST_PATH="$HOME/Library/LaunchAgents/${SERVICE_LABEL}.plist"
 
 ACTION="${1:-status}"
 TIME="${2:-every 2h}"
+
+case "$ALLOW_BYPASS:$PERMISSION_MODE" in
+  1:bypassPermissions) ;;
+  *:bypassPermissions)
+    echo "ERROR: --permission-mode bypassPermissions requires --allow-bypass or SLEEP_RESUME_ALLOW_BYPASS=1" >&2
+    exit 1
+    ;;
+  *:plan|*:acceptEdits|*:auto) ;;
+  *)
+    echo "ERROR: invalid permission mode: $PERMISSION_MODE" >&2
+    exit 1
+    ;;
+esac
+
+if [ "$AUTO_PUSH" = "1" ] && [ "$AUTO_COMMIT" != "1" ]; then
+  echo "ERROR: --auto-push requires --auto-commit" >&2
+  exit 1
+fi
 
 case "$ACTION" in
   install)
@@ -88,6 +130,8 @@ case "$ACTION" in
       echo "Schedule: every 2h (StartInterval=${INTERVAL_SEC}s) — 토큰 리셋 사이클 커버"
     fi
     echo "Script: $RESUME_SCRIPT"
+    echo "Permission mode: $PERMISSION_MODE"
+    echo "Autonomous git: commit=$AUTO_COMMIT push=$AUTO_PUSH"
 
     # 스크립트 실행 권한
     chmod +x "$RESUME_SCRIPT"
@@ -127,6 +171,14 @@ ${SCHEDULE_BLOCK}
         <string>$HOME</string>
         <key>SLEEP_RESUME_PROJECT</key>
         <string>${PROJECT_ROOT}</string>
+        <key>SLEEP_RESUME_PERMISSION_MODE</key>
+        <string>${PERMISSION_MODE}</string>
+        <key>SLEEP_RESUME_ALLOW_BYPASS</key>
+        <string>${ALLOW_BYPASS}</string>
+        <key>SLEEP_RESUME_AUTOCOMMIT</key>
+        <string>${AUTO_COMMIT}</string>
+        <key>SLEEP_RESUME_AUTOPUSH</key>
+        <string>${AUTO_PUSH}</string>
     </dict>
     <key>WorkingDirectory</key>
     <string>${PROJECT_ROOT}</string>
@@ -157,6 +209,7 @@ PLIST
     echo "   확인: launchctl list | grep $SERVICE_LABEL"
     echo "   수동 실행 테스트: launchctl start $SERVICE_LABEL"
     echo "   로그: tail -f ~/Library/Logs/ateam-sleep-resume.log"
+    echo "   위험 모드: bypass/commit/push는 위 env 또는 install 옵션으로 명시 opt-in 필요"
     ;;
 
   uninstall)
@@ -192,7 +245,7 @@ PLIST
     ;;
 
   *)
-    echo "Usage: $0 [--project PATH] {install [HH:MM | every Nh] | uninstall | status}"
+    echo "Usage: $0 [--project PATH] [--permission-mode MODE] [--allow-bypass] [--auto-commit] [--auto-push] {install [HH:MM | every Nh] | uninstall | status}"
     echo ""
     echo "Project (default: A-Team 자신):"
     echo "  --project /Users/noir/Projects/Trading"
@@ -201,6 +254,8 @@ PLIST
     echo "  $0 install                                 # A-Team, 매 2h"
     echo "  $0 install 03:02                           # A-Team, 매일 03:02 KST"
     echo "  $0 --project /Users/noir/Projects/Trading install   # Trading 자동 재개, 매 2h"
+    echo "  $0 --permission-mode acceptEdits --auto-commit install"
+    echo "  $0 --permission-mode bypassPermissions --allow-bypass --auto-commit --auto-push install"
     echo "  $0 --project /Users/noir/Projects/Trading uninstall"
     echo "  $0 --project /Users/noir/Projects/Trading status"
     exit 1

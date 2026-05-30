@@ -514,7 +514,32 @@ function renderStats() {
 }
 
 // --- Data operations ---
-const AUTH = { 'Content-Type':'application/json', 'Authorization':'Bearer cortex-ritual-2026-fb' };
+const TOKEN_KEY = 'cortex.dashboard.token';
+function authHeaders() {
+  const token = window.CORTEX_AUTH_TOKEN || localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || '';
+  const headers = { 'Content-Type':'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+async function retryAuth(res) {
+  if (res.status !== 401) return false;
+  const token = prompt('Cortex access token');
+  if (!token) return false;
+  localStorage.setItem(TOKEN_KEY, token.trim());
+  return true;
+}
+const rawFetch = window.fetch.bind(window);
+window.fetch = async (input, init = {}) => {
+  const url = typeof input === 'string' ? input : input?.url || '';
+  const next = { ...init };
+  if (url.includes('/api/')) next.headers = { ...(next.headers || {}), ...authHeaders() };
+  const res = await rawFetch(input, next);
+  if (res.status === 401 && await retryAuth(res)) {
+    if (url.includes('/api/')) next.headers = { ...(next.headers || {}), ...authHeaders() };
+    return rawFetch(input, next);
+  }
+  return res;
+};
 
 async function save() {
   const dayCount = Object.keys(monthData.days || {}).length;
@@ -530,7 +555,7 @@ async function save() {
   }
   try {
     const res = await fetch(`${API}/api/month`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ ym: ym(), data: monthData })
     });
     if (!res.ok) throw new Error(res.status);
@@ -553,7 +578,7 @@ async function toggleItem(d, cat, idx) {
   // Atomic server update — safe across devices
   try {
     await fetch(`${API}/api/toggle`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ ym: ym(), day: String(d), category: cat, index: idx })
     });
   } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
@@ -668,7 +693,7 @@ async function editItem(d, cat, idx, newText) {
   // Atomic server update
   try {
     await fetch(`${API}/api/edit-item`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ ym: ym(), day: String(d), category: cat, index: idx, text: t, url: item.url || '' })
     });
   } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
@@ -706,7 +731,7 @@ function handleItemKey(e, d, cat, idx) {
     // Atomic server split
     try {
       await fetch(`${API}/api/split-item`, {
-        method: 'POST', headers: AUTH,
+        method: 'POST', headers: authHeaders(),
         body: JSON.stringify({ ym: ym(), day: String(d), category: cat, index: idx, before, after })
       });
     } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
@@ -728,7 +753,7 @@ async function addNewItemAfter(d, cat, afterIdx) {
   }, 50);
   try {
     await fetch(`${API}/api/insert-item`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ ym: ym(), day: String(d), category: cat, index: afterIdx + 1, text: '', url: '' })
     });
   } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
@@ -739,7 +764,7 @@ async function delItem(d, cat, idx, refocus) {
   render();
   try {
     await fetch(`${API}/api/delete-item`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ ym: ym(), day: String(d), category: cat, index: idx })
     });
   } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
@@ -780,7 +805,7 @@ async function addNewItem(d, cat, text) {
   try {
     const lastItem = day[cat][day[cat].length - 1];
     await fetch(`${API}/api/add-item`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ ym: ym(), day: String(d), category: cat, text: lastItem.text, url: lastItem.url || '' })
     });
   } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
@@ -813,7 +838,7 @@ async function saveOneThing(d, text) {
   ensureDay(d).one_thing = t;
   try {
     await fetch(`${API}/api/one-thing`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ ym: ym(), day: String(d), text: t })
     });
   } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
@@ -858,7 +883,7 @@ async function toggleWorkout(part) {
   // Atomic server update — reads D1 fresh then writes, safe across devices
   try {
     const res = await fetch(`${API}/api/workout`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ ym: ym(), day: today, part })
     });
     if (res.ok) {
@@ -878,7 +903,7 @@ async function saveNotes(d, text) {
   if (t) dd.notes = t; else delete dd.notes;
   try {
     await fetch(`${API}/api/notes`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ ym: ym(), day: String(d), text: t })
     });
   } catch (e) { document.title = '⚠ Save failed!'; setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000); }
@@ -897,7 +922,7 @@ async function cycleDayType(d) {
   const next = idx >= TYPES.length - 1 ? null : TYPES[idx + 1];
 
   await fetch(`${API}/api/day-type`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: authHeaders(),
     body: JSON.stringify({ ym: ym(), day: String(d), type: next })
   });
 
@@ -906,7 +931,7 @@ async function cycleDayType(d) {
 
   // Auto-inject frame for this day
   await fetch(`${API}/api/inject-frames`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: authHeaders(),
     body: JSON.stringify({ ym: ym(), fromDay: d, toDay: d })
   });
   await loadMonth(); // reload to get injected items
@@ -933,7 +958,7 @@ async function drop(e, d, cat, toIdx) {
   if (dragData.d === d && dragData.cat === cat) {
     if (dragData.idx === toIdx) return;
     await fetch(`${API}/api/reorder`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ ym: ym(), day: String(d), category: cat, fromIdx: dragData.idx, toIdx })
     });
     const items = ensureDay(d)[cat];
@@ -944,7 +969,7 @@ async function drop(e, d, cat, toIdx) {
   // Different day → move across days
   else {
     await fetch(`${API}/api/move-item`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ ym: ym(), fromDay: String(dragData.d), fromCat: dragData.cat, fromIdx: dragData.idx, toDay: String(d), toCat: cat })
     });
     await loadMonth();
@@ -959,7 +984,7 @@ async function dayDrop(e, d) {
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
   if (!dragData || dragData.d === d) return;
   await fetch(`${API}/api/move-item`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: authHeaders(),
     body: JSON.stringify({ ym: ym(), fromDay: String(dragData.d), fromCat: dragData.cat, fromIdx: dragData.idx, toDay: String(d), toCat: dragData.cat })
   });
   await loadMonth();
@@ -971,7 +996,7 @@ let searchTimer;
 async function undoMonth() {
   if (!confirm(`${ym()} 데이터를 직전 백업으로 복원할까요?`)) return;
   const res = await fetch(`${API}/api/undo`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: authHeaders(),
     body: JSON.stringify({ ym: ym() })
   });
   const data = await res.json();
@@ -1454,7 +1479,7 @@ async function createNewNote() {
   const filePath = targetFolder + '/' + fileName;
   const content = `# ${name.trim()}\n\n`;
   const res = await fetch(`${API}/api/cortex/file`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: authHeaders(),
     body: JSON.stringify({ filePath, content })
   });
   const data = await res.json();
@@ -1476,7 +1501,7 @@ async function saveCortexFile() {
   if (!textarea || !cortexFile) return;
   const content = textarea.value;
   const res = await fetch(`${API}/api/cortex/file`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: authHeaders(),
     body: JSON.stringify({ filePath: cortexFile.path, content, sha: cortexFile.sha })
   });
   const data = await res.json();
@@ -1577,7 +1602,7 @@ function renderVision() {
 
 async function saveVisionData() {
   await fetch(`${API}/api/vision`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: authHeaders(),
     body: JSON.stringify(visionData)
   });
 }
@@ -1712,7 +1737,7 @@ const catColorMap = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', outc
 
 async function saveFramesData() {
   await fetch(`${API}/api/day-frames`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: authHeaders(),
     body: JSON.stringify(framesData)
   });
 }
@@ -1774,7 +1799,7 @@ async function injectFrames() {
   const [y, m] = ym().split('-').map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const res = await fetch(`${API}/api/inject-frames`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: authHeaders(),
     body: JSON.stringify({ ym: ym(), fromDay: today, toDay: daysInMonth })
   });
   const data = await res.json();
@@ -1897,7 +1922,7 @@ async function submitCapture() {
     const content = match[4].trim();
     if (cat) {
       const ymStr = `${currentYear}-${String(month).padStart(2,'0')}`;
-      const res = await fetch(`${API}/api/add-item`, { method:'POST', headers:AUTH, body:JSON.stringify({ym:ymStr,day:String(day),category:cat,text:content,url:''}) });
+      const res = await fetch(`${API}/api/add-item`, { method:'POST', headers:authHeaders(), body:JSON.stringify({ym:ymStr,day:String(day),category:cat,text:content,url:''}) });
       if (res.ok) { input.value = ''; loadMonth(); return; }
     }
   }
@@ -1907,7 +1932,7 @@ async function submitCapture() {
   const slug = text.slice(0,30).replace(/[^a-zA-Z0-9가-힣]/g,'-').replace(/-+/g,'-');
   const filePath = `cortex/inbox/${ts.slice(0,10)}-${slug}.md`;
   const md = `---\ncaptured: ${new Date().toISOString()}\nsource: dashboard\n---\n\n${text}`;
-  const res = await fetch(`${API}/api/cortex/file`, { method:'POST', headers:AUTH, body:JSON.stringify({filePath,content:md}) });
+  const res = await fetch(`${API}/api/cortex/file`, { method:'POST', headers:authHeaders(), body:JSON.stringify({filePath,content:md}) });
   if (res.ok) { input.value = ''; toast('Saved to inbox'); }
   else toast('Save failed', true);
 }
@@ -1917,7 +1942,7 @@ async function captureImage(file) {
   const reader = new FileReader();
   reader.onload = async () => {
     const base64 = reader.result.split(',')[1];
-    const res = await fetch(`${API}/api/cortex/upload`, { method:'POST', headers:AUTH, body:JSON.stringify({fileName:file.name,base64}) });
+    const res = await fetch(`${API}/api/cortex/upload`, { method:'POST', headers:authHeaders(), body:JSON.stringify({fileName:file.name,base64}) });
     const data = await res.json();
     if (data.ok) {
       const input = document.getElementById('captureInput');
@@ -2032,7 +2057,7 @@ async function uploadImage(file) {
   reader.onload = async () => {
     const base64 = reader.result.split(',')[1];
     const res = await fetch(`${API}/api/cortex/upload`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ fileName: file.name, base64, contentType: file.type })
     });
     const data = await res.json();

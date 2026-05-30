@@ -2,6 +2,7 @@
 """OneNote API - Device Code Flow (커스텀 앱)"""
 
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -11,8 +12,20 @@ CLIENT_ID = "85a74e27-01ee-4c99-991f-1a86b46bdc09"
 AUTHORITY = "https://login.microsoftonline.com/consumers"
 SCOPES = ["Notes.Read"]
 
-TOKEN_FILE = Path(__file__).parent.parent / "cortex" / ".onenote-token.json"
-CACHE_FILE = Path(__file__).parent.parent / "cortex" / ".onenote-msal-cache.json"
+TOKEN_FILE = Path(os.environ.get(
+    "ONENOTE_TOKEN_FILE",
+    Path.home() / ".config" / "a-team" / "onenote-token.json",
+))
+CACHE_FILE = Path(os.environ.get(
+    "ONENOTE_MSAL_CACHE_FILE",
+    Path.home() / ".config" / "a-team" / "onenote-msal-cache.json",
+))
+
+
+def write_private(path, text):
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    path.write_text(text)
+    path.chmod(0o600)
 
 
 def get_app():
@@ -25,7 +38,7 @@ def get_app():
 
 def save_cache(cache):
     if cache.has_state_changed:
-        CACHE_FILE.write_text(cache.serialize())
+        write_private(CACHE_FILE, cache.serialize())
 
 
 def save_token(result):
@@ -34,10 +47,14 @@ def save_token(result):
         "expires_in": result.get("expires_in", 3600),
         "obtained_at": int(time.time()),
     }
-    TOKEN_FILE.write_text(json.dumps(data, indent=2))
+    write_private(TOKEN_FILE, json.dumps(data, indent=2))
 
 
 def get_access_token():
+    env_token = os.environ.get("ONENOTE_ACCESS_TOKEN")
+    if env_token:
+        return env_token
+
     app, cache = get_app()
 
     # 캐시 확인

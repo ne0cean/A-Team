@@ -2,6 +2,7 @@
 """InterStellar 누락 섹션 다운로드 — level/order 포함"""
 
 import json
+import os
 import re
 import sys
 import time
@@ -9,12 +10,24 @@ import urllib.request
 from pathlib import Path
 
 CORTEX = Path(__file__).parent.parent / "cortex"
-TOKEN_FILE = CORTEX / ".onenote-token.json"
-MSAL_CACHE = CORTEX / ".onenote-msal-cache.json"
+TOKEN_FILE = Path(os.environ.get(
+    "ONENOTE_TOKEN_FILE",
+    Path.home() / ".config" / "a-team" / "onenote-token.json",
+))
+MSAL_CACHE = Path(os.environ.get(
+    "ONENOTE_MSAL_CACHE_FILE",
+    Path.home() / ".config" / "a-team" / "onenote-msal-cache.json",
+))
 BASE = "https://graph.microsoft.com/v1.0/me/onenote"
 
 CLIENT_ID = "85a74e27-01ee-4c99-991f-1a86b46bdc09"
 SCOPES = ["Notes.Read"]
+
+
+def write_private(path, text):
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    path.write_text(text)
+    path.chmod(0o600)
 
 
 def refresh_token_via_msal():
@@ -36,9 +49,9 @@ def refresh_token_via_msal():
         result = app.acquire_token_silent(SCOPES, account=accounts[0])
         if result and "access_token" in result:
             # 캐시 저장
-            MSAL_CACHE.write_text(cache.serialize())
+            write_private(MSAL_CACHE, cache.serialize())
             # token.json도 갱신
-            TOKEN_FILE.write_text(json.dumps({
+            write_private(TOKEN_FILE, json.dumps({
                 "access_token": result["access_token"],
                 "expires_in": result.get("expires_in", 3599),
                 "obtained_at": int(time.time()),
@@ -60,8 +73,8 @@ def refresh_token_via_msal():
 
     result = app.acquire_token_by_device_flow(flow)
     if "access_token" in result:
-        MSAL_CACHE.write_text(cache.serialize())
-        TOKEN_FILE.write_text(json.dumps({
+        write_private(MSAL_CACHE, cache.serialize())
+        write_private(TOKEN_FILE, json.dumps({
             "access_token": result["access_token"],
             "expires_in": result.get("expires_in", 3599),
             "obtained_at": int(time.time()),
@@ -75,6 +88,10 @@ def refresh_token_via_msal():
 
 def get_token():
     """토큰 반환. 만료 시 자동 갱신 시도."""
+    env_token = os.environ.get("ONENOTE_ACCESS_TOKEN")
+    if env_token:
+        return env_token
+
     if TOKEN_FILE.exists():
         data = json.loads(TOKEN_FILE.read_text())
         obtained = data.get("obtained_at", 0)
