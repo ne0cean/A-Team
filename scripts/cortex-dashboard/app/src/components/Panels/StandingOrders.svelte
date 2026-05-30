@@ -80,6 +80,59 @@
   }
 
   const DOW_NAMES = ['일','월','화','수','목','금','토'];
+
+  // Drag reorder
+  let dragIdx = null;
+  let dragSection = null;
+
+  function onDragStart(section, idx, e) {
+    dragIdx = idx;
+    dragSection = section;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+    e.currentTarget.classList.add('dragging');
+  }
+  function onDragEnd(e) {
+    e.currentTarget.classList.remove('dragging');
+    dragIdx = null;
+    dragSection = null;
+  }
+  function onDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+  }
+  function onDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+  function onDrop(section, toIdx, e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    if (dragSection !== section || dragIdx === null || dragIdx === toIdx) return;
+    let arr;
+    if (section === 'standing') arr = $standingData.standing;
+    else if (section === 'weekly_recurring') arr = $standingData.weekly_recurring;
+    else if (section === 'monthly_recurring') arr = $standingData.monthly_recurring;
+    else if (section === 'yearly') arr = $standingData.yearly;
+    else return;
+    const [item] = arr.splice(dragIdx, 1);
+    arr.splice(toIdx, 0, item);
+    save(); $standingData = $standingData;
+    dragIdx = null;
+  }
+
+  // Alt+Arrow key reorder
+  function onItemKey(section, idx, e) {
+    if (!e.altKey) return;
+    if (e.key === 'ArrowUp') { e.preventDefault(); moveItem(section, idx, -1); focusItem(e.currentTarget.parentElement, idx - 1); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); moveItem(section, idx, 1); focusItem(e.currentTarget.parentElement, idx + 1); }
+  }
+  function focusItem(container, idx) {
+    if (!container) return;
+    requestAnimationFrame(() => {
+      const items = container.querySelectorAll('.so-item');
+      items[idx]?.focus();
+    });
+  }
 </script>
 
 {#if $standingData}
@@ -94,11 +147,14 @@
 
   {#if activeTab === 'standing'}
     {#each $standingData.standing || [] as s, i}
-      <div class="so-item">
-        <div class="so-move">
-          <span on:click={() => moveItem('standing', i, -1)} class:hidden={i === 0}>▲</span>
-          <span on:click={() => moveItem('standing', i, 1)} class:hidden={i === ($standingData.standing || []).length - 1}>▼</span>
-        </div>
+      <div class="so-item" tabindex="0" draggable="true"
+        on:dragstart={(e) => onDragStart('standing', i, e)}
+        on:dragend={onDragEnd}
+        on:dragover={onDragOver}
+        on:dragleave={onDragLeave}
+        on:drop={(e) => onDrop('standing', i, e)}
+        on:keydown={(e) => onItemKey('standing', i, e)}>
+        <div class="so-move drag-handle">⠿</div>
         <input type="checkbox" checked={s.active} on:change={() => toggleActive(i)}>
         <span contenteditable="true" style="flex:1" on:blur={(e) => editText(i, e.target.textContent)}>{s.text}</span>
         <span class="del" on:click={() => delSO(i)}>×</span>
@@ -109,11 +165,14 @@
     </div>
   {:else if activeTab === 'weekly'}
     {#each $standingData.weekly_recurring || [] as w, i}
-      <div class="so-item">
-        <div class="so-move">
-          <span on:click={() => moveItem('weekly_recurring', i, -1)} class:hidden={i === 0}>▲</span>
-          <span on:click={() => moveItem('weekly_recurring', i, 1)} class:hidden={i === ($standingData.weekly_recurring || []).length - 1}>▼</span>
-        </div>
+      <div class="so-item" tabindex="0" draggable="true"
+        on:dragstart={(e) => onDragStart('weekly_recurring', i, e)}
+        on:dragend={onDragEnd}
+        on:dragover={onDragOver}
+        on:dragleave={onDragLeave}
+        on:drop={(e) => onDrop('weekly_recurring', i, e)}
+        on:keydown={(e) => onItemKey('weekly_recurring', i, e)}>
+        <div class="so-move drag-handle">⠿</div>
         <select value={w.dow} on:change={(e) => editWeeklyDow(i, e.target.value)}>
           {#each DOW_NAMES as n, di}<option value={di}>{n}</option>{/each}
         </select>
@@ -133,11 +192,14 @@
     {#if ($standingData.monthly_recurring || []).length > 0}
       <div class="section-title">MONTHLY RECURRING</div>
       {#each $standingData.monthly_recurring as m, i}
-        <div class="so-item">
-          <div class="so-move">
-            <span on:click={() => moveItem('monthly_recurring', i, -1)} class:hidden={i === 0}>▲</span>
-            <span on:click={() => moveItem('monthly_recurring', i, 1)} class:hidden={i === $standingData.monthly_recurring.length - 1}>▼</span>
-          </div>
+        <div class="so-item" tabindex="0" draggable="true"
+          on:dragstart={(e) => onDragStart('monthly_recurring', i, e)}
+          on:dragend={onDragEnd}
+          on:dragover={onDragOver}
+          on:dragleave={onDragLeave}
+          on:drop={(e) => onDrop('monthly_recurring', i, e)}
+          on:keydown={(e) => onItemKey('monthly_recurring', i, e)}>
+          <div class="so-move drag-handle">⠿</div>
           <select value={m.day} on:change={(e) => editMR(i, 'day', e.target.value)}>
             <option value={0}>말일</option>
             {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}일</option>{/each}
@@ -166,11 +228,14 @@
     </div>
   {:else if activeTab === 'yearly'}
     {#each $standingData.yearly || [] as y, i}
-      <div class="so-item" class:current-month={y.month === $currentMonth}>
-        <div class="so-move">
-          <span on:click={() => moveItem('yearly', i, -1)} class:hidden={i === 0}>▲</span>
-          <span on:click={() => moveItem('yearly', i, 1)} class:hidden={i === ($standingData.yearly || []).length - 1}>▼</span>
-        </div>
+      <div class="so-item" class:current-month={y.month === $currentMonth} tabindex="0" draggable="true"
+        on:dragstart={(e) => onDragStart('yearly', i, e)}
+        on:dragend={onDragEnd}
+        on:dragover={onDragOver}
+        on:dragleave={onDragLeave}
+        on:drop={(e) => onDrop('yearly', i, e)}
+        on:keydown={(e) => onItemKey('yearly', i, e)}>
+        <div class="so-move drag-handle">⠿</div>
         <select value={y.month} on:change={(e) => editYearlyMonth(i, e.target.value)}>
           {#each Array.from({length:12}, (_,m) => m+1) as mm}<option value={mm}>{mm}월</option>{/each}
         </select>
