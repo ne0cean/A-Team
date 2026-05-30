@@ -12,8 +12,8 @@ modified: "2019-01-20T03:54:31Z"
 
 Sample
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-c3abe5b12de24d1aa95c6052ba70ff83!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../attachments/onenote/c4c55e096d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-4dedc027df1b4278a5231c962d73d1e1!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../attachments/onenote/f6d3e2c4d0.png)
 
 [https://estimastory.com/2019/08/15/sonsvf2/](https://estimastory.com/2019/08/15/sonsvf2/)

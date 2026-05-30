@@ -94,8 +94,13 @@
   }
 
   async function onItemToggle(e, cat) {
-    await api.toggleItem($ym, String(d), cat, e.detail.index);
-    dispatch('reload');
+    const idx = e.detail.index;
+    const dd = $monthData.days[String(d)];
+    if (dd?.[cat]?.[idx]) {
+      dd[cat][idx].done = !dd[cat][idx].done;
+      $monthData = $monthData;
+    }
+    api.toggleItem($ym, String(d), cat, idx);
   }
 
   function onLink(e, cat) {

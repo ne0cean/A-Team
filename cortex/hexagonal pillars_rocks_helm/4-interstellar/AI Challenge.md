@@ -40,7 +40,7 @@ sllm 내 전용 비서
 
 [선택] 데모페이지 URL, Github
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-933af4121cd96e75bb0c95cc495f8b4b!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/78184eadb4.png)
 
 [https://fastcampus.co.kr/data_red_golbin?utm_source=facebook&amp;utm_medium=social&amp;utm_campaign=prd%5E230718%5E218125&amp;utm_content=1_5_1%5E218125&amp;fbclid=PAAabBrdkL_I77ExQ3XhuzF_dPJyIzreO_t1zpDKCjg2XrC-eRWKOJ5YXs8JY_aem_Af_YjinGXub6yYyXQz30fJZ25z7fJsxRbsleNAuRmQUseOXv8VZbllnoYhV8_3_znx0QFcNkhP7B_rpg46GPCe1s](https://fastcampus.co.kr/data_red_golbin?utm_source=facebook&amp;utm_medium=social&amp;utm_campaign=prd%5E230718%5E218125&amp;utm_content=1_5_1%5E218125&amp;fbclid=PAAabBrdkL_I77ExQ3XhuzF_dPJyIzreO_t1zpDKCjg2XrC-eRWKOJ5YXs8JY_aem_Af_YjinGXub6yYyXQz30fJZ25z7fJsxRbsleNAuRmQUseOXv8VZbllnoYhV8_3_znx0QFcNkhP7B_rpg46GPCe1s)
 
