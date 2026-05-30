@@ -172,4 +172,4 @@ rmc는 난립하는데 절대강자가 없다
 
 저 스토리를 위해 어제만든 자료에서 아프리카tv의 성장얘기를 빼거나 옅게해야 하지않나 싶기도해요. ugc로 성장하는 케이스라서
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d0c980e634337a9090b6e2847195b968!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/5c12909c6d.png)

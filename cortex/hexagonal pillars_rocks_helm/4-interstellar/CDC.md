@@ -1124,13 +1124,13 @@ AI 프로젝트에서 장기적인 확장성을 어떻게 보장하시나요?
 
 - 20. How do you ensure long-term scalability in your AI initiatives?￼&quot;I focus on building strategies that balance immediate needs with future growth potential. For instance, in the Metaverse-related acquisitions, I assessed both current market opportunities and long-term trends to ensure sustainable success.&quot;
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-54492a6772ca51803423a36c65d379b7!1-733661839CC53BA5!s26415d0402a44661a173c5ba7faf5964/$value)
+![image](../../attachments/onenote/108078198c.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-dc385ca9fcf4501630e27b29f04d3d05!1-733661839CC53BA5!s26415d0402a44661a173c5ba7faf5964/$value)
+![image](../../attachments/onenote/657b64f0a8.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-4bd8b321f5a55e291aa324714b7bd2c6!1-733661839CC53BA5!s26415d0402a44661a173c5ba7faf5964/$value)
+![image](../../attachments/onenote/cf5d96946f.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-678ee81d26ef5bf300aac669acac22c8!1-733661839CC53BA5!s26415d0402a44661a173c5ba7faf5964/$value)
+![image](../../attachments/onenote/b0cecd20a3.png)
 
 출처: &lt;[https://mail.naver.com/v2/read/0/123141](https://mail.naver.com/v2/read/0/123141)&gt;
 

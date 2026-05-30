@@ -150,7 +150,7 @@ ____________________________________________
 
 군Seg.
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d497aaf4c34648bf807ce909d6acc289!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/5277c17f5c.png)
 
 병사
 
