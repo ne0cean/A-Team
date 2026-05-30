@@ -1,11 +1,13 @@
 #!/bin/bash
-# Cortex Dashboard deploy — always targets 'cortex' worker
+# Cortex Dashboard deploy — always from worker/ dir with correct wrangler.toml
 set -e
-cd "$(dirname "$0")"
+DIR="$(cd "$(dirname "$0")" && pwd)"
 echo "Building..."
-cd app && npm run build && cd ..
-echo "Deploying to 'cortex' worker..."
-cd worker && npx wrangler deploy --name cortex
+cd "$DIR/app" && npm run build
+echo "Deploying 'cortex' worker..."
+cd "$DIR/worker" && npx wrangler deploy
 echo "Verifying..."
-curl -sf "https://cortex.feat-breeze.workers.dev/sw.js" > /dev/null && echo "OK: sw.js served" || echo "FAIL: sw.js not found"
-curl -sf "https://cortex.feat-breeze.workers.dev/api/month?ym=2026-06" > /dev/null && echo "OK: API working" || echo "FAIL: API broken"
+sleep 2
+curl -sf "https://cortex.feat-breeze.workers.dev/api/month?ym=2026-06" > /dev/null && echo "OK: API" || echo "FAIL: API"
+HTML=$(curl -s "https://cortex.feat-breeze.workers.dev/" | head -1)
+echo "$HTML" | grep -q "doctype" && echo "OK: HTML" || echo "FAIL: HTML"
