@@ -114,8 +114,16 @@ GROQ_RESULT=$(echo "$GROQ_RAW" | jq -r '.choices[0].message.content // ""' 2>/de
 GROQ_TOKENS=$(echo "$GROQ_RAW" | jq -r '.usage.total_tokens // 0' 2>/dev/null)
 GROQ_MODEL=$(echo "$GROQ_RAW" | jq -r '.model // "unknown"' 2>/dev/null)
 
-# Groq failed → pass through
-[ -z "$GROQ_RESULT" ] && { echo '{}'; exit 0; }
+# Groq failed → try Ollama local fallback
+if [ -z "$GROQ_RESULT" ]; then
+  OLLAMA_RAW=$(curl -s -m 5 http://localhost:11434/api/chat \
+    -d "$(jq -n --arg p "Codebase context:\n$CONTEXT\n\nAnswer concisely and accurately: $PROMPT" \
+      '{model:"qwen2:7b",messages:[{role:"user",content:$p}],stream:false}')" 2>/dev/null)
+  GROQ_RESULT=$(echo "$OLLAMA_RAW" | jq -r '.message.content // ""' 2>/dev/null)
+  GROQ_TOKENS=$(echo "$OLLAMA_RAW" | jq -r '(.eval_count // 0) + (.prompt_eval_count // 0)' 2>/dev/null)
+  GROQ_MODEL="ollama/qwen2:7b"
+  [ -z "$GROQ_RESULT" ] && { echo '{}'; exit 0; }
+fi
 
 # --- Confidence check ---
 
