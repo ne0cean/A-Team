@@ -22,18 +22,18 @@ Dribbble
 
 [https://color.adobe.com/ko/create/color-wheel/](https://color.adobe.com/ko/create/color-wheel/)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f4609187005f488fa2959f370453054e!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../attachments/onenote/33d9e57f93.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f8a39ce9af104c51ab67e88ab607b851!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../attachments/onenote/9c6d100176.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-73e087047b5b464aa4bbc726894fbdb8!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../attachments/onenote/5ee0df921c.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ecee841c51aa4089a04963ad2cb371fc!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../attachments/onenote/7b27b4345b.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-7e726accbfec449ba6de013688fd0385!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../attachments/onenote/58de47cd3e.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-c0c60d328c174090802010e7d3a72251!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../attachments/onenote/7fafdfb2e4.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-c595d26f920e4252ace924f9e8e2d817!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../attachments/onenote/fd57b714a3.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b5447b2b9b11419da6102187b96e6cd5!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../attachments/onenote/248f49656b.png)

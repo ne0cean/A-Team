@@ -24,7 +24,7 @@ Agenda - Message - Messenger - Channel - Audience
 
      └                        Feedback loop                      ┘
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2de8290d6f54442dbd914b4e2eb8a518!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/3f93f24e64.png)
 
 Agenda - 무슨 주제로 고객과 이야기를 나눌 것인가?
 
@@ -160,7 +160,7 @@ SNS화: Id + 전화번호
 
 중고폰 활성화 + 다이렉트 요금제
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-607c4a636d244bdeb0845e7fcdd053d4!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/76690ea4f8.png)
 
 로밍 시, 해외 멤버십 혜택 안내하고 있나?
 
@@ -262,7 +262,7 @@ T브랜드 커뮤니케이션, SKT 기업브랜드 너무 올드함. -&gt; 브�
 
 셀럽 파티 / 풀파티 / DJ스쿨 / 서핑 스쿨
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-6bfde1c67ab244b59f2b9542d6f8f81f!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/87fc436fc3.png)
 
 장애인, 소수자가 곧 시장의 소중한 파트너라는 것을 보여주는 사와다 도모히로의 책 &#39;마이너리티 디자인&#39;의 한 장면. 그는 의족을 한 여성이 모델로 등장하는 패션쇼를 기획했다.
 
@@ -344,77 +344,77 @@ BPI - 다른 산업 대표기업과 비교해서 조사
 
 &#160;[https://www.youtube.com/watch?v=yuQqeVT-O4Q](https://www.youtube.com/watch?v=yuQqeVT-O4Q)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-6226ac859d264c7f9170b519237226f1!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/f393787746.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-638e048312604730afba2a7dd0c57b41!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/e950cc57a1.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-791ec88a522c4af69855dc21744823d8!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/a165333695.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-7185dad262ea43ac9e609404afe03a0f!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/5d24e9a4e4.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0cc465e9935c41e6b68964a98e98db25!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/3dfe2fa2c4.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a1541c3e7f424258b7844d8fe51b1839!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/c7c137c1c5.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-fa73201d5d7548858999762d1bd786ba!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/a3cf887079.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-036a395a41b744aeae53f05f17211914!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/cb38028148.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3169b40037c84a14a6cf5286c57e43b3!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/c3265174b9.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ea19c098972846ec9c4a5e8de44443bc!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/ac39f59faa.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e8d3ac77645241ef9ff18e5426f83eb8!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/908b64bc51.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-55e106f0dc534e9e8af7d5e2d63e3c3d!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/96d8af103d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-721f3dc8c2af49ed96f2782cf0085341!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/1b79799eee.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-bb77ec9c7b35477db17918b4ae3b2026!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/cf12ff972e.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-4bc3a378399b4d2b8827aa3d4235c40f!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/feeca16538.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-48c2a2569e1b4343aaa2dd8a75c8cc2d!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/62e201eafa.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-563b0a947ef14fc691c92b4ee268ec79!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/c8a47be9a5.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-77a1e8bf16ef447dafffdb294eff1b5d!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/2968677711.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-91a6cf70c907437da232fa0ee94f6b53!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/de99319c6c.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-bdcb1b1f5ad443acaf9a86f6c5dd03d2!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/c0d44e2b88.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b3b0cf199b1e41388fb25c6465a1c13b!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/4ff27f9f4c.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d66149075adf4a30afc3cd7a00d22760!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/e994bee466.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-42b878c60d854b7cac37b44a348c51c8!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/85b93fcf7a.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2154d70766b148f382ccd7124ec8a34f!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/08ad672ba2.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-fe6beee8098d45749440554bced0e1a7!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/bbc921b609.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b4b126251dad49aa9d28fe7b30cfdb55!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/fd536fa66e.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-471a2b1d7fc64703a2cfde193c52d5fb!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/3ad58bc7a8.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a3f5c006f031468f8adca79f08e1e8ce!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/dca0c36d30.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-af11b9de51dc4e888c7395ff8f7c59d0!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/f0e173e732.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-74d99bd2f5304ae691433e68c5d25144!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/7c400c77ef.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-74ca16bde8d64a22b702e2fa587e37c9!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/5538aaeb22.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f5ba6d40f34f4d12877db111bd01ccc2!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/f34bc2283d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3196c4ee1e0345dab1f70a3509e5b6ac!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/8d6106dd9e.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-5caba295e41b4a20bb32477de0af30ab!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/a4857de81d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b71e028658f347a38e3d963df9e906f7!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/54450797f2.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1d6e19f4d42b4213a90edaec8c556e17!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/31f2dc9067.png)
 
  로밍 품질
 31.7
@@ -441,78 +441,78 @@ T로빕지PI용이유
 편己해서
 (T 로람 재이용 이뺘 !07) " width="1117" height="623" src="https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3db7722b81c640b39b4ff185386ac228!1-733661839CC53BA5!7931/$value" data-src-type="image/png" data-fullres-src="https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3db7722b81c640b39b4ff185386ac228!1-733661839CC53BA5!7931/$value" data-fullres-src-type="image/png" />
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b3ea9d2803b64e8a8784c4e2eb30435c!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/f3d1ca83a7.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1d4dc87ffe234435a85d5116917f0893!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/d70d306bc5.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-9d6c3731091f467c9fcbbead21c41adc!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/34b7d40226.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-dffc43354caa425eaa9f1d8f81e55039!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/5c00249354.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-6d47a3d79f934c928d603f4352d6eea8!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/a7668c7763.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-66f89746787747b581af91e8ff87a67d!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/cdd1856703.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-9cb7d113e9da42eea25dc9631b0c4bd6!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/755ccb6ad2.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-6b0e9e8ff8ad4c7da8b86933bb4b8a99!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/acbdd697e0.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-7e902feb63594607a8ddb528eeb1e243!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/d54ae1d990.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-881ec706b62746ad99d279bb6c696b6d!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/b74307524d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-17a4abbb37384b0fab2ac7ca9bcf0e37!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/b7ecad5ee5.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-aa49ef2fb90f449aa98942a602e8c5e0!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/cd8e44db0a.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-cfd112458a944f989e8accbeca8f5eb9!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/b1dcebc19e.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-58068df08c4742ae92a71d36e82d7e1a!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/2f1b992a87.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a9da9989156648e58185a1c6849c03c4!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/ed43ef5f0b.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f166a936bc4847dda71cd6d9e451de46!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/44f345813d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3aa3b563b43c409f816ac333a8f1bae9!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/129faa40ea.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a2a1255438874bdfb8438738a9d2f254!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/21b6eca09c.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a98694319e5a4e4f9b3ffd72752d6a3b!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/321bf841c2.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3c955cbf183e4aeea8323d38efd16b39!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/81cbfa046b.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a51512b1446f44948a59eb7d339c776c!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/4bfb02459a.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0d05e36cfbfb42699d8ac2f06f55998c!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/e816d34046.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-823b8ecf50584a61bf5b1fd4c51705b3!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/8b147e2c62.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-47a808e0f99c48b69d9cef9c70f180b4!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/d73c70d86d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-637ffea9a8b142dabe229a1ac9fb5045!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/baa108fa00.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b4b126251dad49aa9d28fe7b30cfdb55!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/fd536fa66e.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a3f5c006f031468f8adca79f08e1e8ce!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/dca0c36d30.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-74ca16bde8d64a22b702e2fa587e37c9!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/5538aaeb22.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-5caba295e41b4a20bb32477de0af30ab!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/a4857de81d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-6d47a3d79f934c928d603f4352d6eea8!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/a7668c7763.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-66f89746787747b581af91e8ff87a67d!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/cdd1856703.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-7e902feb63594607a8ddb528eeb1e243!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/d54ae1d990.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-881ec706b62746ad99d279bb6c696b6d!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/b74307524d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-cfd112458a944f989e8accbeca8f5eb9!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/b1dcebc19e.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-58068df08c4742ae92a71d36e82d7e1a!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/2f1b992a87.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a9da9989156648e58185a1c6849c03c4!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/ed43ef5f0b.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f166a936bc4847dda71cd6d9e451de46!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/44f345813d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a98694319e5a4e4f9b3ffd72752d6a3b!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/321bf841c2.png)
