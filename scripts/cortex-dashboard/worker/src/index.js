@@ -8,6 +8,14 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
+
+    // Noop service worker to clear old caches
+    if (path === '/sw.js') {
+      return new Response(
+        `self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.map(n=>caches.delete(n)))).then(()=>self.clients.claim()));});`,
+        { headers: { 'Content-Type': 'application/javascript', 'Cache-Control': 'no-cache' } }
+      );
+    }
     const origin = request.headers.get('Origin') || '';
     const allowedOrigins = (env.ALLOWED_ORIGINS || url.origin)
       .split(',')
@@ -590,8 +598,8 @@ export default {
         return new Response(JSON.stringify({ schedule: schedResults.slice(0,20), notes: noteResults }), { headers });
       }
 
-      // 404
-      return new Response('Not found', { status: 404 });
+      // Pass through to assets (static files served by Cloudflare)
+      return env.ASSETS.fetch(request);
 
     } catch (e) {
       console.error(e);
