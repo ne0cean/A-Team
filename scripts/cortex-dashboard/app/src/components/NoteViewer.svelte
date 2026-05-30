@@ -19,7 +19,10 @@
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       .replace(/`(.+?)`/g, '<code>$1</code>')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => {
+        const safe = /^https?:/.test(href) ? href : '#';
+        return `<a href="${safe}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+      })
       .replace(/^- (.+)$/gm, '&bull; $1')
       .replace(/\n/g, '<br>');
   }

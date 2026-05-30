@@ -13,11 +13,12 @@ export default {
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
-    const allowOrigin = !origin || allowedOrigins.includes(origin) ? (origin || url.origin) : allowedOrigins[0];
+    const originAllowed = !origin || allowedOrigins.includes(origin);
+    const allowOrigin = originAllowed ? (origin || url.origin) : null;
 
     // CORS
     const headers = {
-      'Access-Control-Allow-Origin': allowOrigin,
+      ...(allowOrigin ? { 'Access-Control-Allow-Origin': allowOrigin } : {}),
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Vary': 'Origin',
@@ -349,7 +350,11 @@ export default {
       // --- Undo (restore from auto-backup) ---
       if (path === '/api/undo' && method === 'POST') {
         const { key } = await request.json();
+        const undoableKeys = new Set([...Object.values(kvMap), ...(await env.DB.prepare("SELECT key FROM ritual_data WHERE key LIKE '20%'").all()).results.map(r => r.key)]);
         const targetKey = key || 'standing-orders';
+        if (!undoableKeys.has(targetKey) && !/^\d{4}-\d{2}$/.test(targetKey)) {
+          return new Response(JSON.stringify({ error: 'invalid undo key' }), { status: 400, headers });
+        }
         const backups = await env.DB.prepare(
           "SELECT key, updated_at FROM ritual_data WHERE key LIKE ? ORDER BY updated_at DESC LIMIT 5"
         ).bind(`_backup:${targetKey}:%`).all();

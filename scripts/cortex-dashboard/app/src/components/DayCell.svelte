@@ -272,8 +272,8 @@
               on:delete={(e) => onDelete(e, cat)}
               on:link={(e) => onLink(e, cat)}
               on:navigate={(e) => onNavigate(e, cat)}
-              on:dragstart={(e) => onDragStart(e.detail.e, cat, idx)}
-              on:drop={(e) => onItemDrop(e.detail.e, cat, idx)}
+              on:dragstart={(e) => onDragStart(e.detail.e, cat, sitem._origIdx)}
+              on:drop={(e) => onItemDrop(e.detail.e, cat, sitem._origIdx)}
             />
           {/each}
           {#if newInputs[cat]}

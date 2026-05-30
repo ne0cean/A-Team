@@ -12,7 +12,7 @@ modified: "2023-02-08T10:46:49.637Z"
 
 ▶ Ref. Image
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1d1c167a341543949527da7811ecc363!1-733661839CC53BA5!7931/$value)
+![image](../../attachments/onenote/7ed33084b0.png)
 
 ■&#160;야외 드론쇼 영상
 
