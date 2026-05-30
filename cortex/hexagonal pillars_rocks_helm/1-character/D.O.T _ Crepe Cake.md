@@ -202,7 +202,7 @@ A
 
 음악/ 예술/ 뮤지컬/ 술 등 하나 집중 공부
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-5626076952e341ff88963b9b86c10e23!1-733661839CC53BA5!8013/$value)
+![image](../../attachments/onenote/9ded949055.png)
 
 serendipity layer
 

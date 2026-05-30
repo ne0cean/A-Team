@@ -405,7 +405,7 @@ e 울쎼라피프라임 300샷 + 이중턱 스킨보톡스 1.5cc 13,97,000원
 
 리버스의원 홍대
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-6f0d949c78ea4d478edda2609894b362!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/7fbb25d8ec.png)
 
 엘스타의원
 얼굴전체 홍조 4회 패키지 부가세 포함가330만원입니다.
