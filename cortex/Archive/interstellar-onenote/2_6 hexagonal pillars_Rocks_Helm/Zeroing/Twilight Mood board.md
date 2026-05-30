@@ -18,18 +18,18 @@ Twilight Mood board
 
 [부의](https://www.instagram.com/reel/C3j55KJPA4H/?igsh=MXF1aThibWd1NWUyZw==) 갓길 차선
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-52f94bd9765844c3ad531f0b53132f9a!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/31ccac0100.png)
 
 고통은 두개골 속에 갇혀 있는 뇌가 자기 맘대로 외쳐대는 반응일 뿐이다.
 
 세상의 것이 아니다.￼3인칭으로 스스로를 바라보고, 2인칭으로 도전/추동하라
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2a79d0bee23ab0a2b52574e175a86a42!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/9856b73cc5.png)
 ](https://www.instagram.com/reel/C8Y71lZRuvF/?igsh=MTJwZHFjOWttcW81dA%3D%3D)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-df66443f0d5e09a1a20e49c3893c7c14!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/ecaac0c867.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-4302fa72199beaacbd88e6c9db957800!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/29abc454a6.png)
 
 마이크가 꾸준함을 유지해온 방법은 이랬어요.
 
@@ -59,13 +59,13 @@ Twilight Mood board
 
 출처: &lt;[https://eopla.net/magazines/20543#](https://eopla.net/magazines/20543#)&gt;
 
- (1998)" width="480" height="426.5" src="https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-75022df200fe496eab339af237944371!1-733661839CC53BA5!7921/$value" data-src-type="image/png" data-fullres-src="https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-75022df200fe496eab339af237944371!1-733661839CC53BA5!7921/$value" data-fullres-src-type="image/png" />
+ (1998)" width="480" height="426.5" src="../../../../attachments/onenote/a05a7082c4.png" data-src-type="image/png" data-fullres-src="../../../../attachments/onenote/a05a7082c4.png" data-fullres-src-type="image/png" />
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d794f99dc18746f2aa942d9d1404de5e!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/32f86b5f12.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b8a77e380fa5400fb7014e2d958c1c30!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/8f937c299c.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e30ed98bdb43402b8b416c90f0354ab4!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/59c8db2247.png)
 
 - 만약 다음 5년 동안 아무것도 변하지 않는다면, 당신의 평범한 화요일은 어떤 모습일까? 어디서 깨어나는가? 몸 상태는 어떠한가? 아침에 눈을 뜨자마자 드는 생각은 무엇인가? 주변엔 누가 있는가? 오전 9시부터 오후 6시까지 당신은 무엇을 하는가? 밤 10시의 기분은 어떠한가?
 
@@ -85,51 +85,51 @@ Twilight Mood board
 
 - [https://m.blog.naver.com/bizucafe/224152448230?fbclid=PAdGRleAPdnmVleHRuA2FlbQExAHNydGMGYXBwX2lkDzEyNDAyNDU3NDI4NzQxNAABpyeXvvEecY4RnwkRP6vPvM-VjdmAMg_9y3-0rpvAdAOjjUxoAOfsMIEYivSj_aem_o46mw8y-JDIrAJ4Ihch-Sw](https://m.blog.naver.com/bizucafe/224152448230?fbclid=PAdGRleAPdnmVleHRuA2FlbQExAHNydGMGYXBwX2lkDzEyNDAyNDU3NDI4NzQxNAABpyeXvvEecY4RnwkRP6vPvM-VjdmAMg_9y3-0rpvAdAOjjUxoAOfsMIEYivSj_aem_o46mw8y-JDIrAJ4Ihch-Sw)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-16b47d8ea8d3a00607028758b7e4f207!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/14c5c1fe0f.png)
 
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2a79d0bee23ab0a2b52574e175a86a42!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/9856b73cc5.png)
 ](https://www.instagram.com/reel/C8Y71lZRuvF/?igsh=MTJwZHFjOWttcW81dA%3D%3D)
 
 출처: &lt;[https://eopla.net/magazines/20543#](https://eopla.net/magazines/20543#)&gt;
 
 출처: &lt;[https://eopla.net/magazines/20543#](https://eopla.net/magazines/20543#)&gt;
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1a76de782a4e4db1935556fc11da60cc!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/1d63007967.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-78e3fce5cb9a9a060f610c63ff0dc8bc!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/e912ef143a.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ea7edeb9d6c74bcda80746b3fa28ea96!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/956d836bd8.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1717bc3d3b41e1ad9325ffa598f5c866!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/7cba8813bd.png)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-38d7bbad592b76a89ab31ff412a3a707!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/ceb1e41a8e.png)
 ](https://www.instagram.com/reel/C-FMoYkR2yn/?igsh=MTBxNnJkeWU1Ymg0Mw%3D%3D)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-810452b36c5162acb1c6ad17a6285790!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/7c61a23d5c.png)
 ](https://www.instagram.com/reel/C-FMoYkR2yn/?igsh=MTBxNnJkeWU1Ymg0Mw%3D%3D)
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-48526492d4a5430ca8dfaf1fd3803f8d!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/f0a05cbaf9.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e7174cac7e414c30be61243207d069a0!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/a81c7e6f0a.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-9056ece76716489faba1b0aa33224f4e!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/5250262a75.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-369555dc77194efeb908a3926c18defa!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/a8aaa7575d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b2624e94630f900a08d1078dccb521e1!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/1bcd49b38d.png)
 
 Necessity is the mother of invention
 
 [https://www.instagram.com/reel/DGZljqeTIg8/?igsh=MWJrbDlwdXlsNXZ4Mg==](https://www.instagram.com/reel/DGZljqeTIg8/?igsh=MWJrbDlwdXlsNXZ4Mg==)￼
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-8c274550e2dc4f5384626fe2ba301261!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/5fea11746f.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-23d5c6e5397b4e218b7a4627734dba9a!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/b8f5a8c53d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ede2c2dc9b9c449db9efe537d409721c!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/e8ed930fba.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-cc60b80d5b5e482f975406603d26c79a!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/0938fb48bc.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d71114cae9fd49c2bd20fb5e69a37dcc!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/ddacd7a4b5.png)
 
 아무 것도 하지 않은 대가 역시 치르게 될 것이다.
 
@@ -157,6 +157,6 @@ Necessity is the mother of invention
 
 - 깊이 있는 제너럴리스트가 되어라.
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1afe603abf744631bf4da7f379e9d361!1-733661839CC53BA5!7921/$value)
+![image](../../../../attachments/onenote/42e9c95c55.png)
 
 기다리지 마세요. 무엇을 할지 결정하기 위해 대학 졸업 때까지 기다리지 마세요. 대학 시절의 인턴십조차 기다리지 마세요. X라는 일을 하기 위해 반드시 X라는 직업을 가질 필요는 없습니다. 종종 스스로 어떤 형태로든 그 일을 바로 시작할 수 있습니다. 무엇을 할지 알아내는 것은 해결하는 데 몇 년이 걸릴 수도 있는 문제이기에, 빨리 시작할수록 좋습니다.”
