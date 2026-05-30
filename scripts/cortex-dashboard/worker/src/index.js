@@ -73,7 +73,8 @@ export default {
       };
 
       const setKey = async (key, data) => {
-        const json = JSON.stringify(data);
+        // Sanitize: remove control characters that break JSON parsing
+        const json = JSON.stringify(data).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
         // Auto-backup: save previous version before overwrite
         const prev = await env.DB.prepare('SELECT data FROM ritual_data WHERE key = ?').bind(key).first();
         if (prev) {
