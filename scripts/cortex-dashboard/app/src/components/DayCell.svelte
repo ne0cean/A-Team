@@ -119,6 +119,18 @@
     await api.saveMonth($ym, $monthData);
   }
 
+  function sortItems(items) {
+    const indexed = items.map((item, i) => ({ ...item, _origIdx: i }));
+    const numbered = indexed.filter(i => /^\d/.test(i.text));
+    const others = indexed.filter(i => !/^\d/.test(i.text));
+    numbered.sort((a, b) => {
+      const na = parseFloat(a.text) || 0;
+      const nb = parseFloat(b.text) || 0;
+      return nb - na;
+    });
+    return [...numbered, ...others];
+  }
+
   let newInputs = {};
   function showNewInput(cat) { newInputs[cat] = true; newInputs = newInputs; }
 
@@ -217,14 +229,15 @@
 
     {#each CATS as cat}
       {@const items = dayData[cat] || []}
+      {@const sorted = sortItems(items)}
       {#if items.length > 0 || isToday}
         <div class="category cat-{cat}">
           <div class="cat-label cl-{cat}">
             <span>{CAT_NAMES[cat]}</span>
             <span class="cat-add" on:click={() => showNewInput(cat)}>+</span>
           </div>
-          {#each items as item, idx (idx)}
-            <Item {item} index={idx} day={d} category={cat}
+          {#each sorted as sitem (sitem._origIdx)}
+            <Item item={sitem} index={sitem._origIdx} day={d} category={cat}
               on:toggle={(e) => onItemToggle(e, cat)}
               on:split={(e) => onSplit(e, cat)}
               on:edit={(e) => onEdit(e, cat)}
