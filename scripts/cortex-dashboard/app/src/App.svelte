@@ -165,7 +165,7 @@
     <div class="panels">
       <div class="panel">
         <div class="panel-header" on:click={() => togglePanel('standing')}>
-          <h2>STANDING ORDERS</h2>
+          <h2>RECURRING BOARD</h2>
           <span class="panel-toggle">{panels.standing ? '▼' : '▶'}</span>
         </div>
         {#if panels.standing}
