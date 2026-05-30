@@ -4,8 +4,10 @@
 
   export let onReload;
 
-  const WORKOUT_GROUPS = [
-    { label: '전면' }, { label: '측면' }, { label: '후면' },
+  const WORKOUT_LEGS = [
+    { label: '전면' }, { label: '측면' }, { label: '후면' }
+  ];
+  const WORKOUT_UPPER = [
     { label: '등' }, { label: '가슴' }
   ];
 
@@ -32,10 +34,19 @@
 
   async function toggleWo(part) {
     const day = String(new Date().getDate());
+    // Optimistic update
+    if (!$monthData.days[day]) $monthData.days[day] = {};
+    const dd = $monthData.days[day];
+    if (!dd.workout) dd.workout = [];
+    const idx = dd.workout.indexOf(part);
+    if (idx >= 0) dd.workout.splice(idx, 1);
+    else dd.workout.push(part);
+    $monthData = $monthData;
+    // Server sync
     const res = await api.toggleWorkout($ym, day, part);
     if (res?.workout) {
-      $monthData.days[day] = { ...($monthData.days[day] || {}), workout: res.workout };
-      $monthData = $monthData; // trigger reactivity
+      $monthData.days[day].workout = res.workout;
+      $monthData = $monthData;
     }
   }
 
@@ -65,8 +76,13 @@
     </div>
     {#if isCurrentMonth}
       <div class="workout-bar">
-        {#each WORKOUT_GROUPS as g}
-          <span class="workout-chip" class:on={workout.includes(g.label)}
+        {#each WORKOUT_LEGS as g}
+          <span class="workout-chip leg" class:on={workout.includes(g.label)}
+            on:click={() => toggleWo(g.label)}>{g.label}</span>
+        {/each}
+        <span class="workout-sep"></span>
+        {#each WORKOUT_UPPER as g}
+          <span class="workout-chip upper" class:on={workout.includes(g.label)}
             on:click={() => toggleWo(g.label)}>{g.label}</span>
         {/each}
       </div>

@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, tick } from 'svelte';
   import Item from './Item.svelte';
   import { CATS, CAT_NAMES, CAT_COLORS, TYPES, TYPE_LABELS, TYPE_COLORS, ym, monthData, standingData, dragSource } from '../lib/stores.js';
   import * as api from '../lib/api.js';
@@ -26,16 +26,13 @@
     if (!$standingData) return [];
     const items = [];
     const SRC_COLORS = { yearly: '#f0c040', monthly: '#bc8cff', weekly: '#6e7681' };
-    // Yearly
     ($standingData.yearly || []).forEach(y => {
       if (y.month === +$ym.split('-')[1] && y.day === day) items.push({ ...y, _src: 'yearly', _color: SRC_COLORS.yearly });
     });
-    // Monthly recurring
     const dim = new Date($ym.split('-')[0], $ym.split('-')[1], 0).getDate();
     ($standingData.monthly_recurring || []).forEach(m => {
       if (m.day === day || (m.day === 0 && day === dim)) items.push({ ...m, _src: 'monthly', _color: SRC_COLORS.monthly });
     });
-    // Weekly
     ($standingData.weekly_recurring || []).forEach(w => {
       if (w.dow !== dow) return;
       if (w.freq === 'biweekly' && Math.floor((day - 1) / 7) % 2 !== 0) return;
@@ -54,39 +51,33 @@
     dispatch('reload');
   }
 
-  async function onToggle(e) {
-    const { index } = e.detail;
-    await api.toggleItem($ym, String(d), e.detail.category || currentCat, index);
-    dispatch('reload');
-  }
-
-  let currentCat = '';
-  let itemRefs = {};
-
   async function onSplit(e, cat) {
     const { index, before, after } = e.detail;
     await api.splitItem($ym, String(d), cat, index, before, after);
     dispatch('reload');
+    // Focus the new item after DOM update
+    setTimeout(() => {
+      const el = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${index + 1}"]`);
+      el?.querySelector('.item-text')?.focus({ preventScroll: true });
+    }, 80);
   }
 
   async function onEdit(e, cat) {
-    const { index, text } = e.detail;
-    const item = dayData[cat]?.[index];
-    await api.editItem($ym, String(d), cat, index, text, item?.url || '');
+    const { index, text, url } = e.detail;
+    await api.editItem($ym, String(d), cat, index, text, url || '');
   }
 
   async function onDelete(e, cat) {
     const idx = e.detail.index;
     await api.deleteItem($ym, String(d), cat, idx);
     dispatch('reload');
-    // Focus previous item after DOM update
+    // Focus previous item
     setTimeout(() => {
-      const items = document.querySelectorAll(`.day-cell.today .cat-${cat} .item-text, .day-cell .cat-${cat} .item-text`);
-      const targetIdx = idx > 0 ? idx - 1 : 0;
-      const allInDay = document.querySelectorAll(`[data-day="${d}"] .cat-${cat} .item-text`);
+      const allInDay = document.querySelectorAll(`.item[data-d="${d}"][data-cat="${cat}"]`);
       if (allInDay.length === 0) return;
+      const targetIdx = idx > 0 ? idx - 1 : 0;
       const target = allInDay[Math.min(targetIdx, allInDay.length - 1)];
-      target?.focus({ preventScroll: true });
+      target?.querySelector('.item-text')?.focus({ preventScroll: true });
     }, 80);
   }
 
@@ -100,7 +91,12 @@
   }
 
   function onNavigate(e, cat) {
-    // Arrow key navigation between items
+    const { direction, index } = e.detail;
+    const allInDay = document.querySelectorAll(`.item[data-d="${d}"][data-cat="${cat}"]`);
+    const targetIdx = index + direction;
+    if (targetIdx >= 0 && targetIdx < allInDay.length) {
+      allInDay[targetIdx]?.querySelector('.item-text')?.focus({ preventScroll: true });
+    }
   }
 
   async function saveOneThing(e) {
@@ -108,12 +104,36 @@
     await api.saveOneThing($ym, String(d), text);
   }
 
+  async function saveNotes(e) {
+    const text = e.target.innerText.trim();
+    const dd = $monthData.days[String(d)] || {};
+    if (text) dd.notes = text; else delete dd.notes;
+    await api.saveNotes($ym, String(d), text);
+  }
+
+  async function toggleRecurringItem(idx) {
+    const dd = $monthData.days[String(d)] || {};
+    if (!dd._recurring) return;
+    dd._recurring[idx].done = !dd._recurring[idx].done;
+    $monthData = $monthData;
+    await api.saveMonth($ym, $monthData);
+  }
+
   let newInputs = {};
   function showNewInput(cat) { newInputs[cat] = true; newInputs = newInputs; }
 
   async function addNewItem(cat, value) {
     if (!value.trim()) return;
-    await api.addItem($ym, String(d), cat, value.trim());
+    const t = value.trim();
+    // Auto-detect URL
+    const urlMatch = t.match(/^(https?:\/\/\S+)$/);
+    const mixedMatch = !urlMatch && t.match(/^(.+?)\s+(https?:\/\/\S+)$/);
+    const embeddedMatch = !urlMatch && !mixedMatch && t.match(/(https?:\/\/\S+)/);
+    let text = t, url = '';
+    if (urlMatch) { url = t; }
+    else if (mixedMatch) { text = mixedMatch[1].trim(); url = mixedMatch[2]; }
+    else if (embeddedMatch) { url = embeddedMatch[1]; }
+    await api.addItem($ym, String(d), cat, text, url);
     newInputs[cat] = false;
     newInputs = newInputs;
     dispatch('reload');
@@ -131,6 +151,19 @@
     e.currentTarget.classList.remove('drag-over');
     if (!$dragSource || $dragSource.d === d) return;
     await api.moveItem($ym, String($dragSource.d), $dragSource.cat, $dragSource.idx, String(d), $dragSource.cat);
+    $dragSource = null;
+    dispatch('reload');
+  }
+
+  async function onItemDrop(e, cat, toIdx) {
+    e.preventDefault();
+    if (!$dragSource) return;
+    if ($dragSource.d === d && $dragSource.cat === cat) {
+      if ($dragSource.idx === toIdx) return;
+      await api.reorderItem($ym, String(d), cat, $dragSource.idx, toIdx);
+    } else {
+      await api.moveItem($ym, String($dragSource.d), $dragSource.cat, $dragSource.idx, String(d), cat);
+    }
     $dragSource = null;
     dispatch('reload');
   }
@@ -175,8 +208,9 @@
       on:keydown={(e) => e.key === 'Enter' && (e.preventDefault(), e.target.blur())}
     >{dayData.one_thing || ''}</div>
 
-    {#each recurringItems as rec}
+    {#each recurringItems as rec, ridx}
       <div class="item rec-item" style="border-left:2px solid {rec._color};padding-left:4px">
+        <input type="checkbox" checked={rec.done || false} on:change={() => toggleRecurringItem(ridx)}>
         <span class="item-text" style="color:{rec._color}">{rec.text}</span>
       </div>
     {/each}
@@ -198,6 +232,7 @@
               on:link={(e) => onLink(e, cat)}
               on:navigate={(e) => onNavigate(e, cat)}
               on:dragstart={(e) => onDragStart(e.detail.e, cat, idx)}
+              on:drop={(e) => onItemDrop(e.detail.e, cat, idx)}
             />
           {/each}
           {#if newInputs[cat]}
@@ -211,6 +246,13 @@
         </div>
       {/if}
     {/each}
+
+    {#if dayData.notes || isToday}
+      <div class="day-notes" class:has-content={!!dayData.notes}
+        contenteditable="true" on:blur={saveNotes}
+        on:keydown={(e) => e.key === 'Escape' && e.target.blur()}
+      >{dayData.notes || ''}</div>
+    {/if}
   {/if}
 </div>
 
