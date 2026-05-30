@@ -10,13 +10,37 @@
 
   let textEl;
   let suppressBlur = false;
+  let focused = false;
 
   function safeUrl(u) {
     if (!u) return '';
     try { const s = new URL(u).protocol; return (s === 'https:' || s === 'http:') ? u : ''; } catch { return ''; }
   }
 
+  // Imperatively render content into contenteditable to avoid Svelte reactivity conflicts
+  function renderContent(node, itm) {
+    function render(itm) {
+      if (focused) return;
+      node.textContent = '';
+      const url = safeUrl(itm.url);
+      if (url) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = itm.text;
+        a.addEventListener('click', (e) => e.stopPropagation());
+        node.appendChild(a);
+      } else {
+        node.textContent = itm.text;
+      }
+    }
+    render(itm);
+    return { update: render };
+  }
+
   function handleKey(e) {
+    if (e.isComposing) return;
     if (e.key === 'Enter') {
       e.preventDefault();
       const sel = window.getSelection();
@@ -32,9 +56,11 @@
       const before = beforeText.trim();
       const after = fullText.slice(beforeText.length).trim();
       suppressBlur = true;
+      focused = false;
       dispatch('split', { index, before, after });
     } else if (e.key === 'Backspace' && textEl.textContent.trim() === '') {
       suppressBlur = true;
+      focused = false;
       e.preventDefault();
       dispatch('delete', { index });
     } else if (e.key === 'ArrowDown') {
@@ -49,7 +75,12 @@
     }
   }
 
+  function handleFocus() {
+    focused = true;
+  }
+
   function handleBlur() {
+    focused = false;
     if (suppressBlur) { suppressBlur = false; return; }
     const newText = textEl.textContent.trim();
     if (newText !== item.text) {
@@ -90,9 +121,11 @@
     class="item-text"
     contenteditable="true"
     bind:this={textEl}
+    on:focus={handleFocus}
     on:blur={handleBlur}
     on:keydown={handleKey}
-  >{#if safeUrl(item.url)}<a href={safeUrl(item.url)} target="_blank" rel="noopener noreferrer" on:click|stopPropagation>{item.text}</a>{:else}{item.text}{/if}</span>
+    use:renderContent={item}
+  ></span>
   <span class="link-btn" class:has-link={item.url} on:click={(e) => { if (safeUrl(item.url)) { e.stopPropagation(); window.open(safeUrl(item.url), '_blank'); } else { dispatch('link', { index }); } }}>&#128279;</span>
   <span class="del-btn" on:click={() => dispatch('delete', { index })}>&#215;</span>
 </div>

@@ -158,6 +158,24 @@
     return [...numbered, ...others];
   }
 
+  function setOneThing(node, text) {
+    function render(text) {
+      if (document.activeElement === node) return;
+      node.textContent = text || '';
+    }
+    render(text);
+    return { update: render };
+  }
+
+  function setNotes(node, text) {
+    function render(text) {
+      if (document.activeElement === node) return;
+      node.innerText = text || '';
+    }
+    render(text);
+    return { update: render };
+  }
+
   let newInputs = {};
   function showNewInput(cat) { newInputs[cat] = true; newInputs = newInputs; }
 
@@ -244,8 +262,9 @@
 
   {#if isCurrent}
     <div class="one-thing" contenteditable="true" on:blur={saveOneThing}
-      on:keydown={(e) => e.key === 'Enter' && (e.preventDefault(), e.target.blur())}
-    >{dayData.one_thing || ''}</div>
+      on:keydown={(e) => e.key === 'Enter' && !e.isComposing && (e.preventDefault(), e.target.blur())}
+      use:setOneThing={dayData.one_thing}
+    ></div>
 
     {#each recurringItems as rec, ridx}
       <div class="item rec-item" style="border-left:2px solid {rec._color};padding-left:4px">
@@ -279,7 +298,7 @@
           {#if newInputs[cat]}
             <div class="new-item active">
               <input type="text" placeholder="..."
-                on:keydown={(e) => e.key === 'Enter' && (addNewItem(cat, e.target.value), e.target.value = '')}
+                on:keydown={(e) => e.key === 'Enter' && !e.isComposing && (addNewItem(cat, e.target.value), e.target.value = '')}
                 on:blur={(e) => setTimeout(() => { newInputs[cat] = false; newInputs = newInputs; }, 100)}
               >
             </div>
@@ -292,7 +311,8 @@
       <div class="day-notes" class:has-content={!!dayData.notes}
         contenteditable="true" on:blur={saveNotes}
         on:keydown={(e) => e.key === 'Escape' && e.target.blur()}
-      >{dayData.notes || ''}</div>
+        use:setNotes={dayData.notes}
+      ></div>
     {/if}
   {/if}
 </div>
