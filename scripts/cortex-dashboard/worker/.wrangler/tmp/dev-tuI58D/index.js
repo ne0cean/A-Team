@@ -219,6 +219,18 @@ var src_default = {
       if (path === "/api/undo" && method === "POST") {
         return new Response(JSON.stringify({ error: "undo not available in cloud mode" }), { status: 400, headers });
       }
+      if (path === "/api/workout" && method === "POST") {
+        const { ym, day, part } = await request.json();
+        const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
+        if (!data.days[day]) data.days[day] = {};
+        const dd = data.days[day];
+        if (!dd.workout) dd.workout = [];
+        const idx = dd.workout.indexOf(part);
+        if (idx >= 0) dd.workout.splice(idx, 1);
+        else dd.workout.push(part);
+        await setKey(ym, data);
+        return new Response(JSON.stringify({ ok: true, workout: dd.workout }), { headers });
+      }
       if (path === "/api/inject-frames" && method === "POST") {
         const { ym, fromDay, toDay } = await request.json();
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };

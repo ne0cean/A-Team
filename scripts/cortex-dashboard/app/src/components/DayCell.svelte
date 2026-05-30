@@ -53,13 +53,19 @@
 
   async function onSplit(e, cat) {
     const { index, before, after } = e.detail;
-    await api.splitItem($ym, String(d), cat, index, before, after);
-    dispatch('reload');
-    // Focus the new item after DOM update
-    setTimeout(() => {
-      const el = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${index + 1}"]`);
-      el?.querySelector('.item-text')?.focus({ preventScroll: true });
-    }, 80);
+    // Optimistic local update
+    const dd = $monthData.days[String(d)];
+    if (dd?.[cat]) {
+      dd[cat][index].text = before;
+      dd[cat].splice(index + 1, 0, { text: after, url: '', done: false });
+      $monthData = $monthData;
+    }
+    // Focus new item after Svelte re-renders
+    await tick();
+    const el = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${index + 1}"]`);
+    el?.querySelector('.item-text')?.focus({ preventScroll: true });
+    // Server sync (don't reload — already updated locally)
+    api.splitItem($ym, String(d), cat, index, before, after);
   }
 
   async function onEdit(e, cat) {
@@ -69,16 +75,22 @@
 
   async function onDelete(e, cat) {
     const idx = e.detail.index;
-    await api.deleteItem($ym, String(d), cat, idx);
-    dispatch('reload');
-    // Focus previous item
-    setTimeout(() => {
-      const allInDay = document.querySelectorAll(`.item[data-d="${d}"][data-cat="${cat}"]`);
-      if (allInDay.length === 0) return;
+    // Optimistic local update
+    const dd = $monthData.days[String(d)];
+    if (dd?.[cat]) {
+      dd[cat].splice(idx, 1);
+      $monthData = $monthData;
+    }
+    // Focus previous item after Svelte re-renders
+    await tick();
+    const allInDay = document.querySelectorAll(`.item[data-d="${d}"][data-cat="${cat}"]`);
+    if (allInDay.length > 0) {
       const targetIdx = idx > 0 ? idx - 1 : 0;
       const target = allInDay[Math.min(targetIdx, allInDay.length - 1)];
       target?.querySelector('.item-text')?.focus({ preventScroll: true });
-    }, 80);
+    }
+    // Server sync
+    api.deleteItem($ym, String(d), cat, idx);
   }
 
   async function onItemToggle(e, cat) {
