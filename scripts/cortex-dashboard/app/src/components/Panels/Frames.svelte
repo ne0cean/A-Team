@@ -112,6 +112,18 @@
     });
   }
 
+  function insertLink(ftype, cat, idx) {
+    const url = prompt('URL (https:// 또는 cortex/ 경로)');
+    if (!url) return;
+    const label = prompt('표시 텍스트', url.split('/').pop() || 'link');
+    if (!label) return;
+    const raw = $dayFrames[ftype].categories[cat].items[idx];
+    const text = typeof raw === 'object' ? raw.text : raw;
+    const newText = text + ` [${label}](${url})`;
+    editItem(ftype, cat, idx, newText);
+    $dayFrames = $dayFrames;
+  }
+
   export let onReload;
 
   async function inject() {
@@ -151,6 +163,7 @@
               <span contenteditable="true" class="frame-text" style="flex:1"
                 on:blur={(e) => editItem(ftype, cat, idx, e.target.textContent)}
                 use:setFrameText={getItemText(rawItem)}></span>
+              <span class="link-btn" on:click={() => insertLink(ftype, cat, idx)} title="링크 추가">&#128279;</span>
               <span class="frame-del" on:click={() => delItem(ftype, cat, idx)}>×</span>
             </div>
           {/each}
