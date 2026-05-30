@@ -16,6 +16,7 @@
 | `vision-roadmap.json` | 5개년 비전 테이블 | ⚠️ 덮어쓰기 금지 |
 
 **접근 방식**: JSON 파일 직접 Read/Edit (SSOT). 서버(localhost:7843)는 UI용.
+**Store 규칙**: writable 직접 export 금지. DataStore(load/mutate), ValueStore(set), ToggleStore(toggle) 팩토리 사용. 상세: [governance/rules/store-encapsulation.md](governance/rules/store-encapsulation.md)
 **절대 금지**: 마이그레이션/구조 재편 시 이 디렉토리 파일 삭제 또는 빈 데이터로 덮어쓰기.
 **백업**: 수정 전 `.bak` 생성 필수.
 **UI 배포**: `governance/rules/ui-deploy-gate.md` 체크리스트 필수 통과. 미검증 배포 금지.
