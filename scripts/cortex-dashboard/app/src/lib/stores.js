@@ -1,39 +1,63 @@
 import { writable, derived } from 'svelte/store';
 
-// Calendar state
-export const currentYear = writable(new Date().getFullYear());
-export const currentMonth = writable(new Date().getMonth() + 1);
-export const monthData = writable({ month: '', goals: {}, days: {} });
-export const prevMonthData = writable(null);
-export const nextMonthData = writable(null);
-export const viewMode = writable('week');
+// --- Store factories ---
 
-// Computed ym
+function createValueStore(initial) {
+  const { subscribe, set } = writable(initial);
+  return { subscribe, set };
+}
+
+function createToggleStore(initial = false) {
+  const { subscribe, set, update } = writable(initial);
+  return {
+    subscribe,
+    set,
+    toggle() { update(v => !v); },
+  };
+}
+
+function createDataStore(initial) {
+  const { subscribe, update, set } = writable(initial);
+  return {
+    subscribe,
+    load(data) { set(data); },
+    mutate(fn) { update(s => { fn(s); return s; }); },
+  };
+}
+
+// --- Calendar ---
+export const currentYear = createValueStore(new Date().getFullYear());
+export const currentMonth = createValueStore(new Date().getMonth() + 1);
+export const monthData = createDataStore({ month: '', goals: {}, days: {} });
+export const prevMonthData = createDataStore(null);
+export const nextMonthData = createDataStore(null);
+export const viewMode = createValueStore('week');
+
 export const ym = derived([currentYear, currentMonth], ([$y, $m]) =>
   `${$y}-${String($m).padStart(2, '0')}`
 );
 
-// Sidebar
-export const sidebarOpen = writable(false);
-export const cortexPath = writable('cortex');
+// --- Sidebar ---
+export const sidebarOpen = createToggleStore(false);
+export const cortexPath = createValueStore('cortex');
 
-// Note viewer
-export const activeNote = writable(null);
-export const noteEditing = writable(false);
+// --- Note viewer ---
+export const activeNote = createValueStore(null);
+export const noteEditing = createToggleStore(false);
 
-// Standing data (loaded once)
-export const standingData = writable(null);
-export const dayFrames = writable(null);
-export const visionData = writable(null);
-export const recurringData = writable(null);
+// --- Standing data (loaded once, mutated via panels) ---
+export const standingData = createDataStore(null);
+export const dayFrames = createDataStore(null);
+export const visionData = createDataStore(null);
+export const recurringData = createDataStore(null);
 
-// Search
-export const searchOpen = writable(false);
+// --- Search ---
+export const searchOpen = createToggleStore(false);
 
-// Drag state
-export const dragSource = writable(null);
+// --- Drag ---
+export const dragSource = createValueStore(null);
 
-// Constants
+// --- Constants ---
 export const CATS = ['ritual', 'input', 'work', 'outcome'];
 export const CAT_NAMES = { ritual: 'R&R', input: 'Input', work: 'Work', outcome: 'Out' };
 export const CAT_COLORS = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', outcome: '#bc8cff' };

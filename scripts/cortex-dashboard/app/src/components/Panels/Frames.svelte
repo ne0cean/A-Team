@@ -8,17 +8,21 @@
   async function save() { await api.saveDayFrames($dayFrames); }
 
   function toggleCatType(ftype, cat) {
-    const catData = $dayFrames[ftype].categories[cat];
-    catData.type = catData.type === 'routine' ? 'todo' : 'routine';
-    save(); $dayFrames = $dayFrames;
+    dayFrames.mutate(s => {
+      const catData = s[ftype].categories[cat];
+      catData.type = catData.type === 'routine' ? 'todo' : 'routine';
+    });
+    save();
   }
 
   function getItemText(rawItem) { return typeof rawItem === 'object' ? rawItem.text : rawItem; }
 
   function editItem(ftype, cat, idx, text) {
-    const raw = $dayFrames[ftype].categories[cat].items[idx];
-    if (typeof raw === 'object') { raw.text = text.trim(); }
-    else { $dayFrames[ftype].categories[cat].items[idx] = text.trim(); }
+    dayFrames.mutate(s => {
+      const raw = s[ftype].categories[cat].items[idx];
+      if (typeof raw === 'object') { raw.text = text.trim(); }
+      else { s[ftype].categories[cat].items[idx] = text.trim(); }
+    });
     save();
   }
 
@@ -61,22 +65,26 @@
 
   function addItem(ftype, cat, text) {
     if (!text?.trim()) return;
-    if (!$dayFrames[ftype].categories[cat]) $dayFrames[ftype].categories[cat] = { type: 'routine', items: [] };
-    $dayFrames[ftype].categories[cat].items.push(text.trim());
-    save(); $dayFrames = $dayFrames;
+    dayFrames.mutate(s => {
+      if (!s[ftype].categories[cat]) s[ftype].categories[cat] = { type: 'routine', items: [] };
+      s[ftype].categories[cat].items.push(text.trim());
+    });
+    save();
   }
 
   function delItem(ftype, cat, idx) {
-    $dayFrames[ftype].categories[cat].items.splice(idx, 1);
-    save(); $dayFrames = $dayFrames;
+    dayFrames.mutate(s => { s[ftype].categories[cat].items.splice(idx, 1); });
+    save();
   }
 
   function moveItem(ftype, cat, idx, dir) {
-    const items = $dayFrames[ftype].categories[cat].items;
-    const target = idx + dir;
-    if (target < 0 || target >= items.length) return;
-    [items[idx], items[target]] = [items[target], items[idx]];
-    save(); $dayFrames = $dayFrames;
+    dayFrames.mutate(s => {
+      const items = s[ftype].categories[cat].items;
+      const target = idx + dir;
+      if (target < 0 || target >= items.length) return;
+      [items[idx], items[target]] = [items[target], items[idx]];
+    });
+    save();
   }
 
   let dragState = { ftype: null, cat: null, idx: null };
@@ -94,10 +102,12 @@
     e.preventDefault();
     e.currentTarget.classList.remove('drag-over');
     if (dragState.ftype !== ftype || dragState.cat !== cat || dragState.idx === null || dragState.idx === toIdx) return;
-    const items = $dayFrames[ftype].categories[cat].items;
-    const [item] = items.splice(dragState.idx, 1);
-    items.splice(toIdx, 0, item);
-    save(); $dayFrames = $dayFrames;
+    dayFrames.mutate(s => {
+      const items = s[ftype].categories[cat].items;
+      const [item] = items.splice(dragState.idx, 1);
+      items.splice(toIdx, 0, item);
+    });
+    save();
   }
 
   function onFrameKey(ftype, cat, idx, e) {
@@ -121,7 +131,6 @@
     const text = typeof raw === 'object' ? raw.text : raw;
     const newText = text + ` [${label}](${url})`;
     editItem(ftype, cat, idx, newText);
-    $dayFrames = $dayFrames;
   }
 
   export let onReload;

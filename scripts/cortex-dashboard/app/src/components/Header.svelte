@@ -35,25 +35,26 @@
   async function toggleWo(part) {
     const day = String(new Date().getDate());
     // Optimistic update
-    if (!$monthData.days[day]) $monthData.days[day] = {};
-    const dd = $monthData.days[day];
-    if (!dd.workout) dd.workout = [];
-    const idx = dd.workout.indexOf(part);
-    if (idx >= 0) dd.workout.splice(idx, 1);
-    else dd.workout.push(part);
-    $monthData = $monthData;
+    monthData.mutate(s => {
+      if (!s.days[day]) s.days[day] = {};
+      if (!s.days[day].workout) s.days[day].workout = [];
+      const idx = s.days[day].workout.indexOf(part);
+      if (idx >= 0) s.days[day].workout.splice(idx, 1);
+      else s.days[day].workout.push(part);
+    });
     // Server sync
     const res = await api.toggleWorkout($ym, day, part);
     if (res?.workout) {
-      $monthData.days[day].workout = res.workout;
-      $monthData = $monthData;
+      monthData.mutate(s => { s.days[day].workout = res.workout; });
     }
   }
 
   function saveGoal(e) {
     const text = e.target.textContent.trim();
-    if (!$monthData.goals) $monthData.goals = {};
-    $monthData.goals.goal = text;
+    monthData.mutate(s => {
+      if (!s.goals) s.goals = {};
+      s.goals.goal = text;
+    });
     api.saveMonth($ym, $monthData);
   }
 

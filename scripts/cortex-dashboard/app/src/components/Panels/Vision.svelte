@@ -7,15 +7,17 @@
   async function save() { await api.saveVision($visionData); }
 
   function editCell(catIdx, year, el) {
-    if (!$visionData.categories[catIdx].cells) $visionData.categories[catIdx].cells = {};
-    const raw = $visionData.categories[catIdx].cells[year] || '';
-    const existing = (typeof raw === 'object' && raw !== null) ? { ...raw } : { text: '', image: null };
-    existing.text = el.innerText.trim();
-    $visionData.categories[catIdx].cells[year] = existing;
+    visionData.mutate(s => {
+      if (!s.categories[catIdx].cells) s.categories[catIdx].cells = {};
+      const raw = s.categories[catIdx].cells[year] || '';
+      const existing = (typeof raw === 'object' && raw !== null) ? { ...raw } : { text: '', image: null };
+      existing.text = el.innerText.trim();
+      s.categories[catIdx].cells[year] = existing;
+    });
     save();
   }
 
-  function editNotes(text) { $visionData.admin_notes = text.trim(); save(); }
+  function editNotes(text) { visionData.mutate(s => { s.admin_notes = text.trim(); }); save(); }
 
   function getCellText(cat, year) {
     const raw = cat.cells?.[year] || '';
@@ -55,24 +57,26 @@
       const file = e.target.files[0];
       if (!file) return;
       const dataUrl = await resizeImage(file);
-      if (!$visionData.categories[catIdx].cells) $visionData.categories[catIdx].cells = {};
-      const raw = $visionData.categories[catIdx].cells[year] || '';
-      const existing = (typeof raw === 'object' && raw !== null) ? { ...raw } : { text: raw, image: null };
-      existing.image = dataUrl;
-      $visionData.categories[catIdx].cells[year] = existing;
+      visionData.mutate(s => {
+        if (!s.categories[catIdx].cells) s.categories[catIdx].cells = {};
+        const raw = s.categories[catIdx].cells[year] || '';
+        const existing = (typeof raw === 'object' && raw !== null) ? { ...raw } : { text: raw, image: null };
+        existing.image = dataUrl;
+        s.categories[catIdx].cells[year] = existing;
+      });
       await save();
-      $visionData = $visionData;
     };
     input.click();
   }
 
   async function removeImage(catIdx, year) {
-    const raw = $visionData.categories[catIdx].cells[year] || '';
-    const existing = (typeof raw === 'object' && raw !== null) ? { ...raw } : { text: raw, image: null };
-    existing.image = null;
-    $visionData.categories[catIdx].cells[year] = existing;
+    visionData.mutate(s => {
+      const raw = s.categories[catIdx].cells[year] || '';
+      const existing = (typeof raw === 'object' && raw !== null) ? { ...raw } : { text: raw, image: null };
+      existing.image = null;
+      s.categories[catIdx].cells[year] = existing;
+    });
     await save();
-    $visionData = $visionData;
   }
 </script>
 

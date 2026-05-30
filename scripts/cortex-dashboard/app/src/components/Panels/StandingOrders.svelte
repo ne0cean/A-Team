@@ -14,69 +14,77 @@
   }
 
   // Standing
-  function toggleActive(i) { $standingData.standing[i].active = !$standingData.standing[i].active; save(); $standingData = $standingData; }
-  function editText(i, text) { if (text.trim()) { $standingData.standing[i].text = text.trim(); save(); } }
-  function delSO(i) { $standingData.standing.splice(i, 1); save(); $standingData = $standingData; }
-  function addSO(text) { if (!text?.trim()) return; $standingData.standing.push({ id: `so-${Date.now()}`, text: text.trim(), active: true }); save(); $standingData = $standingData; }
+  function toggleActive(i) { standingData.mutate(s => { s.standing[i].active = !s.standing[i].active; }); save(); }
+  function editText(i, text) { if (text.trim()) { standingData.mutate(s => { s.standing[i].text = text.trim(); }); save(); } }
+  function delSO(i) { standingData.mutate(s => { s.standing.splice(i, 1); }); save(); }
+  function addSO(text) { if (!text?.trim()) return; standingData.mutate(s => { s.standing.push({ id: `so-${Date.now()}`, text: text.trim(), active: true }); }); save(); }
 
   // Weekly
-  function editWeeklyDow(i, dow) { $standingData.weekly_recurring[i].dow = +dow; save(); }
-  function editWeeklyFreq(i, freq) { $standingData.weekly_recurring[i].freq = freq; save(); }
-  function editWeeklyText(i, text) { if (text.trim()) { $standingData.weekly_recurring[i].text = text.trim(); save(); } }
-  function delWeekly(i) { $standingData.weekly_recurring.splice(i, 1); save(); $standingData = $standingData; }
+  function editWeeklyDow(i, dow) { standingData.mutate(s => { s.weekly_recurring[i].dow = +dow; }); save(); }
+  function editWeeklyFreq(i, freq) { standingData.mutate(s => { s.weekly_recurring[i].freq = freq; }); save(); }
+  function editWeeklyText(i, text) { if (text.trim()) { standingData.mutate(s => { s.weekly_recurring[i].text = text.trim(); }); save(); } }
+  function delWeekly(i) { standingData.mutate(s => { s.weekly_recurring.splice(i, 1); }); save(); }
   let newWkDow = 1, newWkFreq = 'weekly';
   function addWeekly(text) {
     if (!text?.trim()) return;
-    if (!$standingData.weekly_recurring) $standingData.weekly_recurring = [];
-    $standingData.weekly_recurring.push({ dow: newWkDow, freq: newWkFreq, text: text.trim() });
-    save(); $standingData = $standingData;
+    standingData.mutate(s => {
+      if (!s.weekly_recurring) s.weekly_recurring = [];
+      s.weekly_recurring.push({ dow: newWkDow, freq: newWkFreq, text: text.trim() });
+    });
+    save();
   }
 
   // Monthly recurring
-  function editMR(i, field, val) { $standingData.monthly_recurring[i][field] = field === 'text' ? val.trim() : +val; save(); }
-  function delMR(i) { $standingData.monthly_recurring.splice(i, 1); save(); $standingData = $standingData; }
+  function editMR(i, field, val) { standingData.mutate(s => { s.monthly_recurring[i][field] = field === 'text' ? val.trim() : +val; }); save(); }
+  function delMR(i) { standingData.mutate(s => { s.monthly_recurring.splice(i, 1); }); save(); }
   let newMRDay = 0;
   function addMR(text) {
     if (!text?.trim()) return;
-    if (!$standingData.monthly_recurring) $standingData.monthly_recurring = [];
-    $standingData.monthly_recurring.push({ day: newMRDay, text: text.trim() });
-    save(); $standingData = $standingData;
+    standingData.mutate(s => {
+      if (!s.monthly_recurring) s.monthly_recurring = [];
+      s.monthly_recurring.push({ day: newMRDay, text: text.trim() });
+    });
+    save();
   }
 
   // This-month items
-  function editMonthlyItem(i, text) { $standingData.monthly[$ym][i] = text.trim(); save(); }
-  function delMonthlyItem(i) { $standingData.monthly[$ym].splice(i, 1); save(); $standingData = $standingData; }
+  function editMonthlyItem(i, text) { standingData.mutate(s => { s.monthly[$ym][i] = text.trim(); }); save(); }
+  function delMonthlyItem(i) { standingData.mutate(s => { s.monthly[$ym].splice(i, 1); }); save(); }
   function addMonthlyItem(text) {
     if (!text?.trim()) return;
-    if (!$standingData.monthly[$ym]) $standingData.monthly[$ym] = [];
-    $standingData.monthly[$ym].push(text.trim());
-    save(); $standingData = $standingData;
+    standingData.mutate(s => {
+      if (!s.monthly[$ym]) s.monthly[$ym] = [];
+      s.monthly[$ym].push(text.trim());
+    });
+    save();
   }
 
   // Yearly
-  function editYearlyMonth(i, m) { $standingData.yearly[i].month = +m; save(); }
-  function editYearlyDay(i, d) { $standingData.yearly[i].day = +d; save(); }
-  function editYearlyText(i, text) { if (text.trim()) { $standingData.yearly[i].text = text.trim(); save(); } }
-  function delYearly(i) { $standingData.yearly.splice(i, 1); save(); $standingData = $standingData; }
+  function editYearlyMonth(i, m) { standingData.mutate(s => { s.yearly[i].month = +m; }); save(); }
+  function editYearlyDay(i, d) { standingData.mutate(s => { s.yearly[i].day = +d; }); save(); }
+  function editYearlyText(i, text) { if (text.trim()) { standingData.mutate(s => { s.yearly[i].text = text.trim(); }); save(); } }
+  function delYearly(i) { standingData.mutate(s => { s.yearly.splice(i, 1); }); save(); }
   let newYearlyMonth = 1, newYearlyDay = 0;
   function addYearly(text) {
     if (!text?.trim()) return;
-    $standingData.yearly.push({ month: newYearlyMonth, day: newYearlyDay, text: text.trim() });
-    save(); $standingData = $standingData;
+    standingData.mutate(s => { s.yearly.push({ month: newYearlyMonth, day: newYearlyDay, text: text.trim() }); });
+    save();
   }
 
   function moveItem(section, idx, dir) {
-    let arr;
-    if (section === 'standing') arr = $standingData.standing;
-    else if (section === 'weekly_recurring') arr = $standingData.weekly_recurring;
-    else if (section === 'monthly_recurring') arr = $standingData.monthly_recurring;
-    else if (section === 'monthly') arr = $standingData.monthly[$ym] || [];
-    else if (section === 'yearly') arr = $standingData.yearly;
-    else return;
-    const target = idx + dir;
-    if (target < 0 || target >= arr.length) return;
-    [arr[idx], arr[target]] = [arr[target], arr[idx]];
-    save(); $standingData = $standingData;
+    standingData.mutate(s => {
+      let arr;
+      if (section === 'standing') arr = s.standing;
+      else if (section === 'weekly_recurring') arr = s.weekly_recurring;
+      else if (section === 'monthly_recurring') arr = s.monthly_recurring;
+      else if (section === 'monthly') arr = s.monthly[$ym] || [];
+      else if (section === 'yearly') arr = s.yearly;
+      else return;
+      const target = idx + dir;
+      if (target < 0 || target >= arr.length) return;
+      [arr[idx], arr[target]] = [arr[target], arr[idx]];
+    });
+    save();
   }
 
   const DOW_NAMES = ['일','월','화','수','목','금','토'];
@@ -144,15 +152,17 @@
     e.preventDefault();
     e.currentTarget.classList.remove('drag-over');
     if (dragSection !== section || dragIdx === null || dragIdx === toIdx) return;
-    let arr;
-    if (section === 'standing') arr = $standingData.standing;
-    else if (section === 'weekly_recurring') arr = $standingData.weekly_recurring;
-    else if (section === 'monthly_recurring') arr = $standingData.monthly_recurring;
-    else if (section === 'yearly') arr = $standingData.yearly;
-    else return;
-    const [item] = arr.splice(dragIdx, 1);
-    arr.splice(toIdx, 0, item);
-    save(); $standingData = $standingData;
+    standingData.mutate(s => {
+      let arr;
+      if (section === 'standing') arr = s.standing;
+      else if (section === 'weekly_recurring') arr = s.weekly_recurring;
+      else if (section === 'monthly_recurring') arr = s.monthly_recurring;
+      else if (section === 'yearly') arr = s.yearly;
+      else return;
+      const [item] = arr.splice(dragIdx, 1);
+      arr.splice(toIdx, 0, item);
+    });
+    save();
     dragIdx = null;
   }
 

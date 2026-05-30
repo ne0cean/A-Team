@@ -61,12 +61,13 @@
   async function onSplit(e, cat) {
     const { index, before, after } = e.detail;
     // Optimistic local update
-    const dd = $monthData.days[String(d)];
-    if (dd?.[cat]) {
-      dd[cat][index].text = before;
-      dd[cat].splice(index + 1, 0, { text: after, url: '', done: false });
-      $monthData = $monthData;
-    }
+    monthData.mutate(s => {
+      const dd = s.days?.[String(d)];
+      if (dd?.[cat]) {
+        dd[cat][index].text = before;
+        dd[cat].splice(index + 1, 0, { text: after, url: '', done: false });
+      }
+    });
     // Focus new item after Svelte re-renders
     await tick();
     const el = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${index + 1}"]`);
@@ -83,11 +84,10 @@
   async function onDelete(e, cat) {
     const idx = e.detail.index;
     // Optimistic local update
-    const dd = $monthData.days[String(d)];
-    if (dd?.[cat]) {
-      dd[cat].splice(idx, 1);
-      $monthData = $monthData;
-    }
+    monthData.mutate(s => {
+      const dd = s.days?.[String(d)];
+      if (dd?.[cat]) dd[cat].splice(idx, 1);
+    });
     // Focus previous item after Svelte re-renders
     await tick();
     const allInDay = document.querySelectorAll(`.item[data-d="${d}"][data-cat="${cat}"]`);
@@ -102,11 +102,10 @@
 
   async function onItemToggle(e, cat) {
     const idx = e.detail.index;
-    const dd = $monthData.days[String(d)];
-    if (dd?.[cat]?.[idx]) {
-      dd[cat][idx].done = !dd[cat][idx].done;
-      $monthData = $monthData;
-    }
+    monthData.mutate(s => {
+      const item = s.days?.[String(d)]?.[cat]?.[idx];
+      if (item) item.done = !item.done;
+    });
     api.toggleItem($ym, String(d), cat, idx);
   }
 
@@ -146,10 +145,12 @@
   }
 
   async function toggleRecurringItem(idx) {
-    const dd = $monthData.days[String(d)] || {};
+    const dd = $monthData.days?.[String(d)] || {};
     if (!dd._recurring) return;
-    dd._recurring[idx].done = !dd._recurring[idx].done;
-    $monthData = $monthData;
+    monthData.mutate(s => {
+      const r = s.days?.[String(d)]?._recurring;
+      if (r?.[idx]) r[idx].done = !r[idx].done;
+    });
     await api.saveMonth($ym, $monthData);
   }
 

@@ -48,7 +48,7 @@
   async function loadAllData() {
     const ymStr = $ym;
     const data = await api.loadMonth(ymStr);
-    if (data) $monthData = data;
+    if (data) monthData.load(data);
 
     // Adjacent months
     const [y, m] = ymStr.split('-').map(Number);
@@ -61,11 +61,11 @@
       api.loadDayFrames(),
       api.loadVision(),
     ]);
-    if (prev) $prevMonthData = prev;
-    if (next) $nextMonthData = next;
-    if (so) $standingData = so;
-    if (frames) $dayFrames = frames;
-    if (vision) $visionData = vision;
+    if (prev) prevMonthData.load(prev);
+    if (next) nextMonthData.load(next);
+    if (so) standingData.load(so);
+    if (frames) dayFrames.load(frames);
+    if (vision) visionData.load(vision);
 
     // Auto-inject frames for today (carries forward uncompleted todos)
     const now = new Date();
@@ -73,18 +73,19 @@
       const today = now.getDate();
       await api.injectFrames(ymStr, today, today);
       const refreshed = await api.loadMonth(ymStr);
-      if (refreshed) $monthData = refreshed;
+      if (refreshed) monthData.load(refreshed);
     }
   }
 
   async function refreshWorkout() {
     const data = await api.loadMonth($ym);
     if (!data?.days) return;
-    for (const [day, dd] of Object.entries(data.days)) {
-      if (!$monthData.days[day]) $monthData.days[day] = {};
-      if (dd.workout !== undefined) $monthData.days[day].workout = dd.workout;
-    }
-    $monthData = $monthData;
+    monthData.mutate(s => {
+      for (const [day, dd] of Object.entries(data.days)) {
+        if (!s.days[day]) s.days[day] = {};
+        if (dd.workout !== undefined) s.days[day].workout = dd.workout;
+      }
+    });
   }
 
   function onReload() { loadAllData(); }
@@ -99,10 +100,9 @@
   async function onLinkSave(e) {
     const { url } = e.detail;
     const { d, cat, index } = linkPopup.target;
-    const dayData = $monthData.days[String(d)];
+    const dayData = $monthData.days?.[String(d)];
     if (dayData?.[cat]?.[index]) {
-      dayData[cat][index].url = url;
-      $monthData = $monthData;
+      monthData.mutate(s => { s.days[String(d)][cat][index].url = url; });
       linkPopup.open = false;
       api.editItem($ym, String(d), cat, index, dayData[cat][index].text, url);
     } else {
@@ -112,10 +112,9 @@
 
   async function onLinkRemove() {
     const { d, cat, index } = linkPopup.target;
-    const dayData = $monthData.days[String(d)];
+    const dayData = $monthData.days?.[String(d)];
     if (dayData?.[cat]?.[index]) {
-      dayData[cat][index].url = '';
-      $monthData = $monthData;
+      monthData.mutate(s => { s.days[String(d)][cat][index].url = ''; });
       linkPopup.open = false;
       api.editItem($ym, String(d), cat, index, dayData[cat][index].text, '');
     } else {
@@ -124,13 +123,13 @@
   }
 
   function showDashboard() {
-    $activeNote = null;
-    $noteEditing = false;
+    activeNote.set(null);
+    noteEditing.set(false);
   }
 
   async function openNote(path) {
     const data = await api.loadFile(path);
-    if (data) { $activeNote = data; $noteEditing = false; }
+    if (data) { activeNote.set(data); noteEditing.set(false); }
   }
 
   function goToDay(day) {
