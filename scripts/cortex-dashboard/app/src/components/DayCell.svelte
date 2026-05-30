@@ -260,6 +260,12 @@
     <div class="holiday-name">{holiday}</div>
   {/if}
 
+  {#if dayData.events?.length}
+    {#each dayData.events as evt}
+      <div class="day-event">{evt}</div>
+    {/each}
+  {/if}
+
   {#if isCurrent}
     <div class="one-thing" contenteditable="true" on:blur={saveOneThing}
       on:keydown={(e) => e.key === 'Enter' && !e.isComposing && (e.preventDefault(), e.target.blur())}
