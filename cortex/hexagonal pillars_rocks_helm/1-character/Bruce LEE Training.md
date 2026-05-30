@@ -96,11 +96,11 @@ Barbell Cuts 2 / 8
 
 척 노리스 Chuck Norris 가 한번은 이소룡의 집에 놀러 갔을때&#160;이소룡은 누워서 덤벨을 양팔로 좌우로&#160;들어올리며 가슴근육 운동을 하면서 배 위에서는 그의 아들 브랜든이 뛰어놀고, 동시에 다리를 들어올리며&#160;복근 운동을 하고 TV 를 보고있었다고 한다.
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-5083b4557c4e416fb81202b6ef6304cc!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/cf85175d9b.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-04380fb66ba149fe8ef44e9b3cbc4f36!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/5fe57013f3.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-29f116c057884b72b414c451224af971!1-733661839CC53BA5!7914/$value)
+![image](../../attachments/onenote/ddc530a2a4.png)
 
 이소룡의 트레이닝 노트에는 &#39;허리 트위스트 - 90회 4세트, 싯업 sit-up 트위스트 - 20회 4세트, 다리 들어올리기 - 20회 4세트, 리닝&#160;트위스트 - 50회 4세트, 개구리점프킥 - 50개 4세트&#39;&#160;식의 복근 단련 운동 과정이 적혀 있었고,특히 벤치에 누워 어깨 힘과 배, 등의 힘만으로 몸을 거의 &#39;공중에&#160;수평으로 유지하는 동작&#39; 인&#160;&#39;드래건 프래그 dragon flag&#39;&#160;은 이소룡이 개발한&#160;복근 단련법으로 그의 복근 단련에 빠지지 않고 들어갔다.
 

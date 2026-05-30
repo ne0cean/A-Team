@@ -64,7 +64,7 @@ SK C&amp;C : 39000원 X 31주 (&#39;14.10.31) 매수
 
 [http://www.moneta.co.kr/](http://www.moneta.co.kr/)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-716c71e5fc6146fc90812f3a1336106c!1-733661839CC53BA5!7920/$value)
+![image](../../attachments/onenote/648409ed03.png)
 
 ㅇ 용돈 쓰고 남는돈은 재테크 통장 - 대우증권에 넣기
 

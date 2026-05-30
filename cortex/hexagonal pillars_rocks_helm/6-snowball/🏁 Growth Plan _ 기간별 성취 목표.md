@@ -1179,7 +1179,7 @@ SK Pay 소진/ Ocb소진/ 폰수리/ 자계비 소진/ IDP정산/ 팀 정산 마
  자유게시판" width="470.5" height="624" src="https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2725e14597132f599b897056f550eb8d!1-733661839CC53BA5!8018/$value" data-src-type="image/jpeg" data-fullres-src="https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2725e14597132f599b897056f550eb8d!1-733661839CC53BA5!8018/$value" data-fullres-src-type="image/jpeg" />
  테크" width="480" height="297.5" src="https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-04fd087e02752cada4dd413f73700739!1-733661839CC53BA5!8018/$value" data-src-type="image/jpeg" data-fullres-src="https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-04fd087e02752cada4dd413f73700739!1-733661839CC53BA5!8018/$value" data-fullres-src-type="image/jpeg" />
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-9e51a6b46deb2ecf9468a7ae7642f75e!1-733661839CC53BA5!8018/$value)
+![image](../../attachments/onenote/56991f20f7.png)
 
 이상적 스펙과 이력
 
@@ -1209,9 +1209,9 @@ PPG에서 일을 잘 한다는 것?
 
 투자/펀딩 Term sheet를 이해하고, 작성할 수 있다.
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f1cefbdc806e2216bbf263e7b1002156!1-733661839CC53BA5!8018/$value)
+![image](../../attachments/onenote/8d84e0b558.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-8632d5442a312e8e8c9d1c95fa42170a!1-733661839CC53BA5!8018/$value)
+![image](../../attachments/onenote/e8e426c301.png)
 
 브레겐츠 페스티벌
 
