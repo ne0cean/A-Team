@@ -21,7 +21,7 @@
 
   onMount(async () => {
     await loadAllData();
-    if (window.screen.width >= 900) $sidebarOpen = true;
+    // Sidebar hidden by default on all devices
     // Refresh on tab focus
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) refreshWorkout();
