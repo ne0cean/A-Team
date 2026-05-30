@@ -126,7 +126,7 @@
     on:keydown={handleKey}
     use:renderContent={item}
   ></span>
-  <span class="link-btn" class:has-link={item.url} on:click={(e) => { if (safeUrl(item.url)) { e.stopPropagation(); window.open(safeUrl(item.url), '_blank'); } else { dispatch('link', { index }); } }}>&#128279;</span>
+  <span class="link-btn" class:has-link={item.url} on:click={() => dispatch('link', { index })}>&#128279;</span>
   <span class="del-btn" on:click={() => dispatch('delete', { index })}>&#215;</span>
 </div>
 
