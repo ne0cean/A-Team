@@ -62,6 +62,13 @@
 
 ## Session Log (2026-05-30)
 
+### 16:00~ Dashboard 근본 문제 3건 수정 + 배포
+- **코드 요구 제거** — Worker: same-origin 요청 인증 스킵. api.js: `window.prompt` 토큰 입력 로직 완전 제거. 외부 API만 Bearer 필요
+- **모바일 반응형** — 캘린더 그리드 `repeat(7, 1fr)` → `repeat(7, minmax(120px, 1fr))` + `overflow-x: auto`
+- **하이퍼링크 optimistic update** — URL 저장/삭제 시 UI 즉시 반영, API fire-and-forget
+- **LinkPopup 배경 클릭 닫기** — backdrop 추가 + Escape 키 지원
+- **Cloudflare Workers 배포 2회** — 586 tests PASS
+
 ### 14:00~ 전체 프로젝트 리뷰
 - **에이전트 잔여 작업 조사** — RESUME.md 2건 완료, stale 브랜치 2개 정리 가능, 미완료 0건
 - **`/review` 프로젝트 전체** — review-pr + design-auditor 병렬. Code: CRITICAL 1(XSS)+HIGH 2 → 이미 수정 확인. Design: 65/100 (a11y 12건). AUTO-FIX 허위 보고 발견
@@ -175,8 +182,8 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
+- [ ] **HFK 26 SPRING Notion 작업** — https://lavender-soul-e27.notion.site/HFK-26-SPRING-33fd0f53623d8027bdb6dd7b89a16563 (Notion JS 렌더링이라 WebFetch 불가, 브라우저에서 직접 확인 필요)
 - [ ] **Dashboard a11y 수정** — design audit score 65→70+ (버튼 역할, label 누락, dialog role, 색상 대비, 극소 폰트)
-- [ ] **Dashboard 프로덕션 배포** — a11y 수정 후 ui-deploy-gate 통과 → `wrangler deploy`
 - [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
 - [ ] **매일 OUTCOME 1개 외부 산출** — Standing Orders에 추가
 
