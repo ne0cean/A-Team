@@ -7,6 +7,11 @@ async function request(path, opts = {}) {
   try {
     const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
     const res = await fetch(`${API}${path}`, { ...opts, headers });
+    if (res.status === 409) {
+      if (toastFn) toastFn('데이터 충돌 — 최신 데이터로 새로고침합니다', true);
+      setTimeout(() => location.reload(), 1500);
+      return null;
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.status }));
       if (toastFn) toastFn(err.error || `Error ${res.status}`, true);

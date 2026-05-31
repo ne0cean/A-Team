@@ -346,16 +346,33 @@ export default {
         const key = kvMap[path];
         if (method === 'GET') {
           const data = await getKey(key);
+          // Stamp version on read so client can send it back
+          if (data && typeof data === 'object') {
+            const row = await env.DB.prepare('SELECT updated_at FROM ritual_data WHERE key = ?').bind(key).first();
+            if (row) data._version = row.updated_at;
+          }
           return new Response(JSON.stringify(data || {}), { headers });
         }
         if (method === 'POST') {
           const data = await request.json();
-          // Safety: block saving empty/shrunken data over existing
+          // Optimistic locking: reject stale writes
           const existing = await getKey(key);
+          if (existing && data._version) {
+            const row = await env.DB.prepare('SELECT updated_at FROM ritual_data WHERE key = ?').bind(key).first();
+            if (row && row.updated_at !== data._version) {
+              return new Response(JSON.stringify({
+                error: 'conflict: data was modified externally. Reload and retry.',
+                serverVersion: row.updated_at,
+                clientVersion: data._version
+              }), { status: 409, headers });
+            }
+          }
+          // Remove _version before saving
+          delete data._version;
+          // Safety: block saving empty/shrunken data over existing
           if (existing) {
             const existingSize = JSON.stringify(existing).length;
             const newSize = JSON.stringify(data).length;
-            // Block if new data is less than 30% of existing (catastrophic shrink)
             if (existingSize > 200 && newSize < existingSize * 0.3) {
               return new Response(JSON.stringify({
                 error: `blocked: data shrunk from ${existingSize} to ${newSize} bytes (${Math.round(newSize/existingSize*100)}%). Use /api/force-save to override.`,
