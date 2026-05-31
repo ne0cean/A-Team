@@ -357,14 +357,23 @@ export default {
           const data = await request.json();
           // Optimistic locking: reject stale writes
           const existing = await getKey(key);
-          if (existing && data._version) {
+          if (existing) {
             const row = await env.DB.prepare('SELECT updated_at FROM ritual_data WHERE key = ?').bind(key).first();
-            if (row && row.updated_at !== data._version) {
-              return new Response(JSON.stringify({
-                error: 'conflict: data was modified externally. Reload and retry.',
-                serverVersion: row.updated_at,
-                clientVersion: data._version
-              }), { status: 409, headers });
+            if (row) {
+              if (!data._version) {
+                // Client without _version = stale client, reject
+                return new Response(JSON.stringify({
+                  error: 'conflict: client has no version. Reload required.',
+                  serverVersion: row.updated_at
+                }), { status: 409, headers });
+              }
+              if (row.updated_at !== data._version) {
+                return new Response(JSON.stringify({
+                  error: 'conflict: data was modified externally. Reload and retry.',
+                  serverVersion: row.updated_at,
+                  clientVersion: data._version
+                }), { status: 409, headers });
+              }
             }
           }
           // Remove _version before saving
