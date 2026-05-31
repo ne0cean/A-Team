@@ -383,11 +383,18 @@
       </div>
     {/if}
 
+    {#each recurringItems as rec, ridx}
+      <div class="item rec-item" style="border-left:2px solid {rec._color};padding-left:4px">
+        <input type="checkbox" checked={rec.done || false} on:change={() => toggleRecurringItem(ridx)}>
+        <span class="item-text" style="color:{rec._color}">{rec.text}</span>
+      </div>
+    {/each}
+
     {#each catOrder as cat}
       {@const items = dayData[cat] || []}
       {@const sorted = sortItems(items)}
       {@const hasPending = items.some(i => !i.done)}
-      {#if items.length > 0 || isToday || (cat === 'outcome' && recurringItems.length > 0)}
+      {#if items.length > 0 || isToday}
         <div class="category cat-{cat}" class:has-pending={hasPending}
           on:dragover|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.classList.add('drag-over'); }}
           on:dragleave={(e) => e.currentTarget.classList.remove('drag-over')}
@@ -405,14 +412,6 @@
               <span class="cat-add" on:click={() => showNewInput(cat)}>+</span>
             </span>
           </div>
-          {#if cat === 'outcome'}
-            {#each recurringItems as rec, ridx}
-              <div class="item rec-item" style="border-left:2px solid {rec._color};padding-left:4px">
-                <input type="checkbox" checked={rec.done || false} on:change={() => toggleRecurringItem(ridx)}>
-                <span class="item-text" style="color:{rec._color}">{rec.text}</span>
-              </div>
-            {/each}
-          {/if}
           {#each sorted as sitem (sitem._origIdx)}
             {#if sitem.type === 'separator'}
               <div class="item-sep" draggable="true"

@@ -102,10 +102,10 @@
       focused = false;
       e.preventDefault();
       dispatch('delete', { index });
-    } else if (e.key === 'ArrowDown') {
+    } else if (e.key === 'ArrowDown' && e.altKey) {
       e.preventDefault();
       dispatch('navigate', { direction: 1, index });
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === 'ArrowUp' && e.altKey) {
       e.preventDefault();
       dispatch('navigate', { direction: -1, index });
     } else if (e.altKey && e.key === '1') {

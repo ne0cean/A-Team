@@ -86,6 +86,8 @@
 
   function insertSOLink(i) {
     const s = $standingData.standing[i];
+    // Blur first to prevent stale DOM overwrite
+    if (document.activeElement?.blur) document.activeElement.blur();
     const url = prompt('URL', '');
     if (!url) return;
     const label = prompt('표시 텍스트', s.text || 'link');
@@ -158,7 +160,12 @@
       const dayStr = String(it.day);
       const existing = $monthData.days?.[dayStr]?.[it.cat] || [];
       if (existing.some(e => e.text === it.text)) continue;
-      await api.addItem($ym, dayStr, it.cat, it.text, '');
+      // outcome 상단 삽입 (index 0), 나머지는 append
+      if (it.cat === 'outcome') {
+        await api.insertItem($ym, dayStr, it.cat, 0, it.text, '');
+      } else {
+        await api.addItem($ym, dayStr, it.cat, it.text, '');
+      }
       added++;
     }
     if (added > 0) {
@@ -281,6 +288,7 @@
 
   function insertWeeklyLink(i) {
     const w = $standingData.weekly_recurring[i];
+    if (document.activeElement?.blur) document.activeElement.blur();
     const url = prompt('URL', '');
     if (!url) return;
     const label = prompt('표시 텍스트', w.text || 'link');
@@ -292,6 +300,7 @@
 
   function insertYearlyLink(i) {
     const y = $standingData.yearly[i];
+    if (document.activeElement?.blur) document.activeElement.blur();
     const url = prompt('URL', '');
     if (!url) return;
     const label = prompt('표시 텍스트', y.text || 'link');
@@ -305,6 +314,7 @@
     const items = $standingData.monthly?.[$ym] || [];
     const item = items[i];
     const text = typeof item === 'string' ? item : item.text;
+    if (document.activeElement?.blur) document.activeElement.blur();
     const url = prompt('URL', '');
     if (!url) return;
     const label = prompt('표시 텍스트', text || 'link');
@@ -316,6 +326,7 @@
 
   function insertMRLink(i) {
     const m = $standingData.monthly_recurring[i];
+    if (document.activeElement?.blur) document.activeElement.blur();
     const url = prompt('URL', '');
     if (!url) return;
     const label = prompt('표시 텍스트', m.text || 'link');
