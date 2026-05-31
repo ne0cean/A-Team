@@ -48,17 +48,12 @@
             const selectedText = sel.toString().trim();
             const url = prompt('URL', '');
             if (url) {
-              const range = sel.getRangeAt(0);
-              range.deleteContents();
-              const a = document.createElement('a');
-              a.href = url; a.target = '_blank'; a.textContent = selectedText;
-              range.insertNode(a);
-              // Save as markdown link in text
-              const textEl = calItem.querySelector('.item-text');
-              if (textEl) {
-                const newText = textEl.textContent;
-                const item = $monthData.days?.[String(d)]?.[cat]?.[idx];
-                if (item) api.editItem($ym, String(d), cat, idx, newText, item.url || '');
+              const item = $monthData.days?.[String(d)]?.[cat]?.[idx];
+              if (item) {
+                // Replace entire text with markdown link
+                const newText = item.text.replace(selectedText, `[${selectedText}](${url})`);
+                monthData.mutate(s => { s.days[String(d)][cat][idx].text = newText; });
+                api.editItem($ym, String(d), cat, idx, newText, item.url || '');
               }
             }
           } else {
