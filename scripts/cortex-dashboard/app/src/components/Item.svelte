@@ -5,6 +5,7 @@
   export let index;
   export let day;
   export let category;
+  export let isSelected = false;
 
   const dispatch = createEventDispatcher();
 
@@ -145,8 +146,13 @@
     }
   }
 
-  function handleToggle() {
-    dispatch('toggle', { index });
+  function handleToggle(e) {
+    if (e.shiftKey) {
+      e.preventDefault();
+      dispatch('select', { index });
+    } else {
+      dispatch('toggle', { index });
+    }
   }
 
   export function focus() {
@@ -158,6 +164,7 @@
   class="item"
   class:done={item.done}
   class:carried={item._carried}
+  class:selected={isSelected}
   data-d={day}
   data-cat={category}
   data-idx={index}
@@ -168,7 +175,7 @@
   on:drop|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.classList.remove('drag-over'); dispatch('drop', { e, index }); }}
 >
   <span class="drag-handle" style="cursor:grab;color:#484f58;font-size:10px;padding:0 2px;display:none">⠿</span>
-  <input type="checkbox" checked={item.done} on:change={handleToggle}>
+  <input type="checkbox" checked={item.done} on:click={handleToggle}>
   <span
     class="item-text"
     contenteditable="true"

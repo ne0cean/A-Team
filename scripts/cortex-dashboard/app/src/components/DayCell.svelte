@@ -204,6 +204,29 @@
   let newInputs = {};
   function showNewInput(cat) { newInputs[cat] = true; newInputs = newInputs; }
 
+  // Multi-select for bulk move
+  let selected = new Set();
+  function toggleSelect(cat, idx, e) {
+    const key = `${cat}:${idx}`;
+    if (e.shiftKey) {
+      e.preventDefault();
+      if (selected.has(key)) selected.delete(key); else selected.add(key);
+      selected = new Set(selected);
+    }
+  }
+  async function bulkMove(targetCat) {
+    if (!selected.size) return;
+    const ops = [...selected].map(k => { const [cat, idx] = k.split(':'); return { cat, idx: +idx }; });
+    // Sort descending so splice indices stay valid
+    ops.sort((a, b) => b.idx - a.idx);
+    for (const op of ops) {
+      if (op.cat === targetCat) continue;
+      await api.moveItem($ym, String(d), op.cat, op.idx, String(d), targetCat);
+    }
+    selected = new Set();
+    dispatch('reload');
+  }
+
   async function addSeparator(cat) {
     await api.addItem($ym, String(d), cat, '', '', 'separator');
     dispatch('reload');
@@ -295,8 +318,6 @@
     if (!$dragSource) return;
     if ($dragSource.d === d && $dragSource.cat === cat) {
       if ($dragSource.idx === toIdx) return;
-      const items = dayData[cat] || [];
-      if (toIdx >= items.length) return; // dropped on category bg, not on item → ignore
       await api.reorderItem($ym, String(d), cat, $dragSource.idx, toIdx);
     } else {
       await api.moveItem($ym, String($dragSource.d), $dragSource.cat, $dragSource.idx, String(d), cat);
@@ -352,18 +373,21 @@
       {/each}
     {/if}
 
-    {#each recurringItems as rec, ridx}
-      <div class="item rec-item" style="border-left:2px solid {rec._color};padding-left:4px">
-        <input type="checkbox" checked={rec.done || false} on:change={() => toggleRecurringItem(ridx)}>
-        <span class="item-text" style="color:{rec._color}">{rec.text}</span>
+    {#if selected.size > 0}
+      <div style="display:flex;gap:2px;margin:4px 0;align-items:center;font-size:9px;color:#58a6ff">
+        <span>{selected.size}개 선택</span>
+        {#each CATS as c}
+          <button style="background:#21262d;border:1px solid #30363d;color:#8b949e;padding:1px 6px;border-radius:3px;cursor:pointer;font-size:8px" on:click={() => bulkMove(c)}>→{CAT_NAMES[c]}</button>
+        {/each}
+        <button style="background:#21262d;border:1px solid #30363d;color:#484f58;padding:1px 6px;border-radius:3px;cursor:pointer;font-size:8px" on:click={() => { selected = new Set(); }}>취소</button>
       </div>
-    {/each}
+    {/if}
 
     {#each catOrder as cat}
       {@const items = dayData[cat] || []}
       {@const sorted = sortItems(items)}
       {@const hasPending = items.some(i => !i.done)}
-      {#if items.length > 0 || isToday}
+      {#if items.length > 0 || isToday || (cat === 'outcome' && recurringItems.length > 0)}
         <div class="category cat-{cat}" class:has-pending={hasPending}
           on:dragover|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.classList.add('drag-over'); }}
           on:dragleave={(e) => e.currentTarget.classList.remove('drag-over')}
@@ -381,6 +405,14 @@
               <span class="cat-add" on:click={() => showNewInput(cat)}>+</span>
             </span>
           </div>
+          {#if cat === 'outcome'}
+            {#each recurringItems as rec, ridx}
+              <div class="item rec-item" style="border-left:2px solid {rec._color};padding-left:4px">
+                <input type="checkbox" checked={rec.done || false} on:change={() => toggleRecurringItem(ridx)}>
+                <span class="item-text" style="color:{rec._color}">{rec.text}</span>
+              </div>
+            {/each}
+          {/if}
           {#each sorted as sitem (sitem._origIdx)}
             {#if sitem.type === 'separator'}
               <div class="item-sep" draggable="true"
@@ -398,7 +430,9 @@
               </div>
             {:else}
               <Item item={sitem} index={sitem._origIdx} day={d} category={cat}
+                isSelected={selected.has(`${cat}:${sitem._origIdx}`)}
                 on:toggle={(e) => onItemToggle(e, cat)}
+                on:select={(e) => { const k = `${cat}:${e.detail.index}`; if (selected.has(k)) selected.delete(k); else selected.add(k); selected = new Set(selected); }}
                 on:split={(e) => onSplit(e, cat)}
                 on:edit={(e) => onEdit(e, cat)}
                 on:delete={(e) => onDelete(e, cat)}
