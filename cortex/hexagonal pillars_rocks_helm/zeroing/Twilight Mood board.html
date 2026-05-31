@@ -329,18 +329,53 @@ function renderCards() {
   });
 }
 
+const GRID = 20;
+const GAP = 14;
+
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// Find nearest non-overlapping position, pushing others if shift held
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+
+  // Sort other cards by distance from moved card
+  const others = cards.map((c, i) => ({ c, i, el: document.querySelector(`.card[data-idx="${i}"]`) }))
+    .filter(o => o.i !== movedIdx && o.el);
+
+  for (const o of others) {
+    const oh = o.el.offsetHeight;
+    // Check overlap
+    const overlapX = moved.x < (o.c.x + (o.c.w || 200)) && (moved.x + (moved.w || 200)) > o.c.x;
+    const overlapY = moved.y < (o.c.y + oh) && (moved.y + mh) > o.c.y;
+    if (overlapX && overlapY) {
+      // Push down
+      o.c.y = moved.y + mh + GAP;
+      o.el.style.top = o.c.y + 'px';
+    }
+  }
+}
+
 document.addEventListener('mousemove', e => {
   if (moving) {
     const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
     if (!el) return;
-    const nx = moving.origX + e.clientX - moving.startX;
-    const ny = moving.origY + e.clientY - moving.startY;
+    let nx = moving.origX + e.clientX - moving.startX;
+    let ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
     el.style.left = nx + 'px';
     el.style.top = ny + 'px';
+    // Live preview of snap guides
+    if (e.shiftKey) el.style.outline = '1px dashed rgba(240,192,64,0.3)';
+    else el.style.outline = '';
   }
   if (resizing) {
     const card = cards[resizing.idx];
-    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    let nw = resizing.startW + e.clientX - resizing.startX;
+    if (e.shiftKey) nw = snap(nw);
+    card.w = Math.max(100, nw);
     const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
     if (el) el.style.width = card.w + 'px';
   }
@@ -349,14 +384,22 @@ document.addEventListener('mousemove', e => {
 document.addEventListener('mouseup', e => {
   if (moving) {
     const card = cards[moving.idx];
-    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
-    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    let nx = moving.origX + e.clientX - moving.startX;
+    let ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    card.x = Math.max(0, nx);
+    card.y = Math.max(0, ny);
     const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
-    if (el) el.classList.remove('moving');
+    if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
     moving = null;
     saveBoard();
   }
-  if (resizing) { resizing = null; saveBoard(); }
+  if (resizing) {
+    if (e.shiftKey) pushCards(resizing.idx);
+    resizing = null;
+    saveBoard();
+  }
 });
 
 function addTextCard() {
