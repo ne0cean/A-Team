@@ -63,16 +63,30 @@
         if (d && cat && idx >= 0) {
           // Check if text is selected → inline markdown link
           const sel = window.getSelection();
-          if (sel && sel.toString().trim()) {
+          if (sel && sel.toString().trim() && sel.rangeCount) {
             const selectedText = sel.toString().trim();
             const url = prompt('URL', '');
             if (url) {
-              const item = $monthData.days?.[String(d)]?.[cat]?.[idx];
-              if (item) {
-                // Replace entire text with markdown link
-                const newText = item.text.replace(selectedText, `[${selectedText}](${url})`);
-                monthData.mutate(s => { s.days[String(d)][cat][idx].text = newText; });
-                api.editItem($ym, String(d), cat, idx, newText, item.url || '');
+              // Replace selection in DOM with link node
+              const range = sel.getRangeAt(0);
+              range.deleteContents();
+              const a = document.createElement('a');
+              a.href = url; a.target = '_blank'; a.textContent = selectedText;
+              a.style.color = '#58a6ff';
+              range.insertNode(a);
+              // Read back full text with markdown links preserved
+              const textEl = calItem.querySelector('.item-text');
+              if (textEl) {
+                let md = '';
+                for (const n of textEl.childNodes) {
+                  if (n.nodeType === 3) md += n.textContent;
+                  else if (n.tagName === 'A') md += `[${n.textContent}](${n.href})`;
+                  else md += n.textContent;
+                }
+                md = md.trim();
+                const item = $monthData.days?.[String(d)]?.[cat]?.[idx];
+                monthData.mutate(s => { s.days[String(d)][cat][idx].text = md; });
+                api.editItem($ym, String(d), cat, idx, md, item?.url || '');
               }
             }
           } else {
