@@ -105,13 +105,13 @@ Job Description
 
 정종욱
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-cf3a5115e8884ac4840c7612f14985a1!1-733661839CC53BA5!sc23f55a7843c41f286b8119b4b784d27/$value)
+![image](../../../../attachments/onenote/f75d5adf19.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-474b27db66b64b5280cdae5764d7c113!1-733661839CC53BA5!sc23f55a7843c41f286b8119b4b784d27/$value)
+![image](../../../../attachments/onenote/d46cc9773e.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d0abc8536fe7456daa8cf10fdfe12ed0!1-733661839CC53BA5!sc23f55a7843c41f286b8119b4b784d27/$value)
+![image](../../../../attachments/onenote/07353a6d55.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-fcfd936fbcad40b7b08513173836dede!1-733661839CC53BA5!sc23f55a7843c41f286b8119b4b784d27/$value)
+![image](../../../../attachments/onenote/b02ef161fe.png)
 
 &#160;
 
@@ -793,4 +793,4 @@ AI 프로젝트에서 장기적인 확장성을 어떻게 보장하시나요?
 
 저는 SKT와 그룹의 글로벌 AI 전략을 추진하며, 새로운 비즈니스 기회를 창출하고 지속 가능한 성과를 만들어내기 위해 최선을 다할 준비가 되어 있습니다.
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0a356729024744d2904fba642e6c4369!1-733661839CC53BA5!sc23f55a7843c41f286b8119b4b784d27/$value)
+![image](../../../../attachments/onenote/b0714670a1.png)

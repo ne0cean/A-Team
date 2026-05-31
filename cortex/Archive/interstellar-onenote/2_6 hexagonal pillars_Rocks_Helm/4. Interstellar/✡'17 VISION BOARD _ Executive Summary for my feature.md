@@ -12,38 +12,38 @@ modified: "2012-12-23T09:22:48Z"
 
 ✡&#39;17 VISION BOARD : Executive Summary for my feature
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a77dec9892284780825f6d158efb738c!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/a259948054.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-72f105558c2b4d0e8f4e038e035fe9ba!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/ece0d8ece9.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-8030c81be2014fe5b9156a6f0f86b5d0!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/6d85afa744.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-c0e505768f7a4a5896478a7b9b341297!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/fdd95fa2ac.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-98135aea2ed7416cb748fddd10527e7c!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/79b204a0a3.png)
 
  [비전보드 만드는법](http://cafe.naver.com/switchman/5124)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-af703600de1b4ba8afc1aa46cd4b3510!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/6fc0b8bc5f.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-6557490ddb04480d9c3be9b300a08cd7!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/08cb66fc29.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-00e4a0bf6b7a4265bafe8f71cee6ab87!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/6b54fb5a11.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b577796738a8478984292deff9ed4e64!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/0afc30450e.png)
 
 [Matt bomer](https://www.google.co.kr/search?q=matt+bomer&amp;newwindow=1&amp;biw=1366&amp;bih=621&amp;source=lnms&amp;tbm=isch&amp;sa=X&amp;ei=5gt2VK-QDOLAmwX9i4CYCQ&amp;ved=0CAYQ_AUoAQ#imgdii=_)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2e479a31af9a436393ae10e9d644365f!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/65d3af1c7f.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-41f08f5a64294ba9a0b4dbce34688b58!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/adfa44ccc6.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-bd8f8d3e161643378d1b7fa0f9c9f632!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/689a94a32c.png)
 
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-dff429a3853e48b8a0e7cafaef5776e7!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/e9d396960c.png)
 ](http://www.google.co.kr/url?sa=i&amp;rct=j&amp;q=&amp;esrc=s&amp;source=images&amp;cd=&amp;cad=rja&amp;uact=8&amp;ved=0CAcQjRw&amp;url=http%3A%2F%2Fwww.microsoftstore.com%2Fstore%2Fmsusa%2Fen_US%2Fpdp%2FOneNote-2013%2FproductID.259322100&amp;ei=36q7VPa0D6LSmAWU9YKQCg&amp;bvm=bv.83829542,d.dGY&amp;psig=AFQjCNE2vCkXMWo6BIjC-UmxnYSH6c4FtQ&amp;ust=1421671509970457)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d7ca71b6eb1844878521c6e036fb918c!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/9d6fa88629.png)
 ](http://www.google.co.kr/url?sa=i&amp;rct=j&amp;q=&amp;esrc=s&amp;source=images&amp;cd=&amp;cad=rja&amp;uact=8&amp;ved=0CAcQjRw&amp;url=http%3A%2F%2Fwww.wikitree.co.kr%2Fmain%2Fnews_view.php%3Fid%3D182602&amp;ei=k6u7VPCLG-XvmAXv2YL4Dg&amp;bvm=bv.83829542,d.dGY&amp;psig=AFQjCNHFOHOQg61sC24HXC7gfg-AHA_dRw&amp;ust=1421671669478837)
 
 내 주변인의 삶의 평균이
@@ -54,11 +54,11 @@ modified: "2012-12-23T09:22:48Z"
 
 Smart Home EXPERT
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d78ff30f86794c4abb46169ee4e79e4c!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/f533549ef3.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-457e37c8766f42e3a3c3367fcc7121b5!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/8269575aa0.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-7ce7f114ef484a7597afce50c9f0ecf3!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/d9a196a9c1.png)
 
 30대 - 안전판 → 굴기
 
@@ -131,7 +131,7 @@ Map of my life
 33세
 
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b00d092cb1094344bb623fac82cd1524!1-733661839CC53BA5!7917/$value)
+![image](../../../../attachments/onenote/a57670dbfa.png)
 ](http://cfile276.uf.daum.net/image/233BFF3C54AA1722097BD2)
 
 출처: &lt;[http://m.cafe.daum.net/wfwijs/ETUc/8](http://m.cafe.daum.net/wfwijs/ETUc/8)&gt;

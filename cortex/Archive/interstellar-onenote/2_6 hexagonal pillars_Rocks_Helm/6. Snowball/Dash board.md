@@ -183,9 +183,9 @@ Bynance
 
 지적 자본
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1efe9dd20e594569a87ec29486ac4dc5!1-733661839CC53BA5!7920/$value)
+![image](../../../../attachments/onenote/f4b625b2ff.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-679cd828fa12405dad5221740fdab4f1!1-733661839CC53BA5!7920/$value)
+![image](../../../../attachments/onenote/93dbe81aa6.png)
 
 Macro - 경기 사이클 [https://finviz.com/](https://finviz.com/)
 

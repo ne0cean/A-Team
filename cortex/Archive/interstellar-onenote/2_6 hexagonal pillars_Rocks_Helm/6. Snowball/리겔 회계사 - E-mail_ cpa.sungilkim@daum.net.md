@@ -92,7 +92,7 @@ modified: "2020-12-29T05:16:56Z"
 
 ==========================
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b4e867dbb0e24879a5e4b5c9ac96a34a!1-733661839CC53BA5!7920/$value)
+![image](../../../../attachments/onenote/1ed4c457b1.png)
 
 취득일(실거래가)
 
@@ -112,6 +112,6 @@ modified: "2020-12-29T05:16:56Z"
 
 등록당시 공시지가 등등
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-9edb030b26434864bd93ebbe127e1fab!1-733661839CC53BA5!7920/$value)
+![image](../../../../attachments/onenote/d2524482c0.png)
 
 [http://www.realtyprice.kr/notice/town/searchPastYear.htm](http://www.realtyprice.kr/notice/town/searchPastYear.htm)
