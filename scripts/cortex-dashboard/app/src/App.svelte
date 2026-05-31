@@ -71,20 +71,33 @@
             const item = $monthData.days?.[String(d)]?.[cat]?.[idx];
             if (!item) return;
             const textEl = calItem.querySelector('.item-text');
-            // Get cursor offset in plain text using Range
+            // Find position: use item.text directly (indexOf with occurrence matching)
+            const fullText = item.text;
+            // Count which occurrence of selectedText is at cursor
             const range = sel.getRangeAt(0);
             const preRange = document.createRange();
             preRange.selectNodeContents(textEl);
             preRange.setEnd(range.startContainer, range.startOffset);
-            const offset = preRange.toString().length;
-            // Blur BEFORE prompt to prevent stale overwrite
-            if (textEl) textEl.blur();
+            const beforeSel = preRange.toString();
+            // Count occurrences of selectedText before cursor
+            let occurrences = 0;
+            let searchFrom = 0;
+            const beforeCount = (beforeSel.match(new RegExp(selectedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+            // Find the nth occurrence in item.text
+            let pos = -1;
+            for (let n = 0; n <= beforeCount; n++) {
+              pos = fullText.indexOf(selectedText, searchFrom);
+              if (pos === -1) break;
+              searchFrom = pos + 1;
+            }
+            if (pos === -1) pos = fullText.indexOf(selectedText);
             const url = prompt('URL', '');
-            if (url) {
-              const fullText = item.text;
-              const before = fullText.slice(0, offset);
-              const after = fullText.slice(offset + selectedText.length);
+            if (url && pos >= 0) {
+              const before = fullText.slice(0, pos);
+              const after = fullText.slice(pos + selectedText.length);
               const md = `${before}[${selectedText}](${url})${after}`;
+              // Set flag to skip next blur
+              textEl.dataset.skipBlur = '1';
               monthData.mutate(s => { s.days[String(d)][cat][idx].text = md; });
               api.editItem($ym, String(d), cat, idx, md, item.url || '');
             }

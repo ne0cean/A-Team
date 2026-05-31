@@ -135,6 +135,7 @@
   function handleBlur() {
     focused = false;
     if (suppressBlur) { suppressBlur = false; return; }
+    if (textEl?.dataset?.skipBlur) { delete textEl.dataset.skipBlur; return; }
     const newText = htmlToMd(textEl);
     if (newText !== item.text) {
       // Auto-detect URL
