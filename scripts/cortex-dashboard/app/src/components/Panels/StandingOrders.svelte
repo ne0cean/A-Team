@@ -187,58 +187,61 @@
     if (api.setToast) api.setToast(`${added}건 스케줄러 반영 완료`);
   }
 
-  // Weekly
-  function editWeeklyDow(i, dow) { standingData.mutate(s => { s.weekly_recurring[i].dow = +dow; }); save(); }
-  function editWeeklyFreq(i, freq) { standingData.mutate(s => { s.weekly_recurring[i].freq = freq; }); save(); }
-  function editWeeklyText(i, text) { if (text.trim()) { standingData.mutate(s => { s.weekly_recurring[i].text = text.trim(); }); save(); } }
-  function delWeekly(i) { standingData.mutate(s => { s.weekly_recurring.splice(i, 1); }); save(); }
+  // Weekly — PATCH only (save() 전체교체 금지)
+  function editWeeklyDow(i, dow) { standingData.mutate(s => { s.weekly_recurring[i].dow = +dow; }); api.patchStandingOrders('weekly_recurring', 'edit', { dow: +dow }, i); }
+  function editWeeklyFreq(i, freq) { standingData.mutate(s => { s.weekly_recurring[i].freq = freq; }); api.patchStandingOrders('weekly_recurring', 'edit', { freq }, i); }
+  function editWeeklyText(i, text) { if (text.trim()) { standingData.mutate(s => { s.weekly_recurring[i].text = text.trim(); }); api.patchStandingOrders('weekly_recurring', 'edit', { text: text.trim() }, i); } }
+  function delWeekly(i) { standingData.mutate(s => { s.weekly_recurring.splice(i, 1); }); api.patchStandingOrders('weekly_recurring', 'delete', null, i); }
   let newWkDow = 1, newWkFreq = 'weekly';
   function addWeekly(text) {
     if (!text?.trim()) return;
-    standingData.mutate(s => {
-      if (!s.weekly_recurring) s.weekly_recurring = [];
-      s.weekly_recurring.push({ dow: newWkDow, freq: newWkFreq, text: text.trim() });
-    });
-    save();
+    const item = { dow: newWkDow, freq: newWkFreq, text: text.trim() };
+    standingData.mutate(s => { if (!s.weekly_recurring) s.weekly_recurring = []; s.weekly_recurring.push(item); });
+    api.patchStandingOrders('weekly_recurring', 'add', item);
   }
 
-  // Monthly recurring
-  function editMR(i, field, val) { standingData.mutate(s => { s.monthly_recurring[i][field] = field === 'text' ? val.trim() : +val; }); save(); }
-  function delMR(i) { standingData.mutate(s => { s.monthly_recurring.splice(i, 1); }); save(); }
+  // Monthly recurring — PATCH only
+  function editMR(i, field, val) {
+    const v = field === 'text' ? val.trim() : +val;
+    standingData.mutate(s => { s.monthly_recurring[i][field] = v; });
+    api.patchStandingOrders('monthly_recurring', 'edit', { [field]: v }, i);
+  }
+  function delMR(i) { standingData.mutate(s => { s.monthly_recurring.splice(i, 1); }); api.patchStandingOrders('monthly_recurring', 'delete', null, i); }
   let newMRDay = 0;
   function addMR(text) {
     if (!text?.trim()) return;
-    standingData.mutate(s => {
-      if (!s.monthly_recurring) s.monthly_recurring = [];
-      s.monthly_recurring.push({ day: newMRDay, text: text.trim() });
-    });
-    save();
+    const item = { day: newMRDay, text: text.trim() };
+    standingData.mutate(s => { if (!s.monthly_recurring) s.monthly_recurring = []; s.monthly_recurring.push(item); });
+    api.patchStandingOrders('monthly_recurring', 'add', item);
   }
 
-  // This-month items
-  function editMonthlyItem(i, text) { standingData.mutate(s => { s.monthly[$ym][i] = text.trim(); }); save(); }
-  function delMonthlyItem(i) { standingData.mutate(s => { s.monthly[$ym].splice(i, 1); }); save(); }
+  // This-month items — monthly는 object이므로 section replace
+  function editMonthlyItem(i, text) {
+    standingData.mutate(s => { s.monthly[$ym][i] = text.trim(); });
+    api.patchStandingOrders('monthly', 'replace', $standingData.monthly);
+  }
+  function delMonthlyItem(i) {
+    standingData.mutate(s => { s.monthly[$ym].splice(i, 1); });
+    api.patchStandingOrders('monthly', 'replace', $standingData.monthly);
+  }
   function addMonthlyItem(text) {
     if (!text?.trim()) return;
-    standingData.mutate(s => {
-      if (!s.monthly[$ym]) s.monthly[$ym] = [];
-      s.monthly[$ym].push(text.trim());
-    });
-    save();
+    standingData.mutate(s => { if (!s.monthly[$ym]) s.monthly[$ym] = []; s.monthly[$ym].push(text.trim()); });
+    api.patchStandingOrders('monthly', 'replace', $standingData.monthly);
   }
 
-  // Yearly
-  function editYearlyMonth(i, m) { standingData.mutate(s => { s.yearly[i].month = +m; }); save(); }
-  function editYearlyDay(i, d) { standingData.mutate(s => { s.yearly[i].day = +d; }); save(); }
-  function editYearlyText(i, text) { if (text.trim()) { standingData.mutate(s => { s.yearly[i].text = text.trim(); }); save(); } }
-  function delYearly(i) { standingData.mutate(s => { s.yearly.splice(i, 1); }); save(); }
+  // Yearly — PATCH only
+  function editYearlyMonth(i, m) { standingData.mutate(s => { s.yearly[i].month = +m; }); api.patchStandingOrders('yearly', 'edit', { month: +m }, i); }
+  function editYearlyDay(i, d) { standingData.mutate(s => { s.yearly[i].day = +d; }); api.patchStandingOrders('yearly', 'edit', { day: +d }, i); }
+  function editYearlyText(i, text) { if (text.trim()) { standingData.mutate(s => { s.yearly[i].text = text.trim(); }); api.patchStandingOrders('yearly', 'edit', { text: text.trim() }, i); } }
+  function delYearly(i) { standingData.mutate(s => { s.yearly.splice(i, 1); }); api.patchStandingOrders('yearly', 'delete', null, i); }
   let newYearlyMonth = 1, newYearlyDay = 0;
   function addYearly(text, isTemp = false) {
     if (!text?.trim()) return;
     const item = { month: newYearlyMonth, day: newYearlyDay, text: text.trim() };
     if (isTemp) item.temp = true;
     standingData.mutate(s => { s.yearly.push(item); });
-    save();
+    api.patchStandingOrders('yearly', 'add', item);
   }
 
   $: yearlyTemps = ($standingData?.yearly || []).map((y, i) => ({...y, _idx: i})).filter(y => y.temp);
@@ -257,7 +260,9 @@
       if (target < 0 || target >= arr.length) return;
       [arr[idx], arr[target]] = [arr[target], arr[idx]];
     });
-    save();
+    // 순서 변경은 해당 섹션만 replace
+    if (section === 'monthly') api.patchStandingOrders('monthly', 'replace', $standingData.monthly);
+    else api.patchStandingOrders(section, 'replace', $standingData[section]);
   }
 
   const DOW_NAMES = ['일','월','화','수','목','금','토'];
