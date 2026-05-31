@@ -3,6 +3,7 @@
   import * as api from '../../lib/api.js';
 
   const FRAME_TYPES = ['weekday', 'flow', 'block'];
+  let frameCatOrder = { weekday: [...CATS], flow: [...CATS], block: [...CATS] };
   const FRAME_TYPE_LABELS = { weekday: 'Weekday (평일)', flow: 'Flow Day (토/HF)', block: 'Block Day (일)' };
 
   async function save() {
@@ -148,20 +149,15 @@
     e.currentTarget.classList.remove('drag-over');
     if (!dragState.ftype) return;
 
-    // Category header drag (idx === -1) → reorder categories, NOT merge
+    // Category header drag (idx === -1) → reorder display only
     if (dragState.idx === -1) {
       if (dragState.cat === cat) return;
-      const fromIdx = CATS.indexOf(dragState.cat);
-      const toI = CATS.indexOf(cat);
+      const fromIdx = frameCatOrder[ftype].indexOf(dragState.cat);
+      const toI = frameCatOrder[ftype].indexOf(cat);
       if (fromIdx < 0 || toI < 0) return;
-      // Swap category order in this frame type's data
-      dayFrames.mutate(s => {
-        const cats = s[ftype].categories;
-        const tmp = cats[dragState.cat];
-        cats[dragState.cat] = cats[cat];
-        cats[cat] = tmp;
-      });
-      save();
+      frameCatOrder[ftype].splice(fromIdx, 1);
+      frameCatOrder[ftype].splice(toI, 0, dragState.cat);
+      frameCatOrder = {...frameCatOrder};
       return;
     }
 
@@ -259,7 +255,7 @@
       <div class="frame-section-header">
         <span class="frame-section-title">{frame.label || FRAME_TYPE_LABELS[ftype]}</span>
       </div>
-      {#each CATS as cat}
+      {#each frameCatOrder[ftype] as cat}
         {@const catData = frame.categories?.[cat] || { type: 'routine', items: [] }}
         <div class="frame-cat" style="border-left:2px solid {CAT_COLORS[cat]};padding-left:6px"
           on:dragover|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
