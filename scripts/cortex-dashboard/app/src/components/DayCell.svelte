@@ -48,21 +48,18 @@
     return items;
   }
 
-  async function setDayTypeDirect(type) {
+  // Cycle order: weekday(null) → flow → block → hf → vacation → null
+  const CYCLE_TYPES = [null, 'flow', 'block', 'hf', 'vacation'];
+
+  async function cycleDayType() {
     if (!isCurrent) return;
-    const newType = dayData.day_type === type ? null : type;
-    await api.setDayType($ym, String(d), newType);
+    const cur = dayData.day_type || null;
+    const idx = CYCLE_TYPES.indexOf(cur);
+    const next = CYCLE_TYPES[(idx + 1) % CYCLE_TYPES.length];
+    await api.setDayType($ym, String(d), next);
     await api.injectFrames($ym, d, d);
     dispatch('reload');
   }
-
-  const DAY_TYPE_BTNS = [
-    { type: null,       label: '평' },
-    { type: 'flow',     label: 'FL' },
-    { type: 'block',    label: 'BK' },
-    { type: 'hf',       label: 'HF' },
-    { type: 'vacation', label: '휴' },
-  ];
 
   async function onSplit(e, cat) {
     const { index, before, after } = e.detail;
@@ -409,19 +406,14 @@
   on:drop={onDayDrop}
 >
   <div class="day-num" class:sun={dow === 0} class:sat={dow === 6}>
-    <span class="day-num-date">{d}</span>
-    {#if isCurrent}
-      <span class="day-type-btns">
-        {#each DAY_TYPE_BTNS as btn}
-          <span class="dt-btn dt-{btn.type || 'weekday'}"
-            class:active={dayData.day_type === btn.type}
-            on:click|stopPropagation={() => setDayTypeDirect(btn.type)}
-          >{btn.label}</span>
-        {/each}
-      </span>
-    {:else if dayData.day_type}
-      <span class="day-type-badge badge-{dayData.day_type}">{TYPE_LABELS[dayData.day_type]}</span>
-    {/if}
+    <span on:click={cycleDayType} style="cursor:pointer">
+      {d}
+      {#if dayData.day_type}
+        <span class="day-type-badge badge-{dayData.day_type}">{TYPE_LABELS[dayData.day_type]}</span>
+      {:else if isCurrent}
+        <span class="day-type-badge badge-weekday">평일</span>
+      {/if}
+    </span>
     <span>
       {#if showPastToggle}
         <span class="past-toggle" on:click={() => dispatch('togglepast')}>▲</span>
