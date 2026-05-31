@@ -529,7 +529,7 @@ export default {
 
           // --- Step 2: Resolve frame template for this day ---
           const dow = new Date(year, month - 1, d).getDay();
-          const dayType = dd.day_type || (dow === 0 ? 'block' : dow === 6 ? 'flow' : 'weekday');
+          const dayType = dd.day_type || (dow === 0 ? 'block' : (dow === 5 || dow === 6) ? 'flow' : 'weekday');
           const frame = frames[dayType];
 
           // --- Step 3: Merge per category ---

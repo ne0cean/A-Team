@@ -252,7 +252,7 @@
     for (let d = 1; d <= dim; d++) {
       const dd = md.days?.[String(d)] || {};
       const dow = new Date(y, m - 1, d).getDay();
-      const dayType = dd.day_type || (dow === 0 ? 'block' : dow === 6 ? 'flow' : 'weekday');
+      const dayType = dd.day_type || (dow === 0 ? 'block' : (dow === 5 || dow === 6) ? 'flow' : 'weekday');
       if (dayType !== ftype) continue;
       await api.injectFrames($ym, d, d);
       count++;
