@@ -163,8 +163,10 @@
 
     if (dragState.idx === null) return;
     if (dragState.ftype === ftype && dragState.cat === cat) {
-      // Same category → reorder
+      // Same category → reorder only if dropped on a specific item (not category bg)
       if (dragState.idx === toIdx) return;
+      const items = $dayFrames[ftype].categories[cat]?.items || [];
+      if (toIdx >= items.length) return; // dropped on category area, not on item → ignore
       dayFrames.mutate(s => {
         const items = s[ftype].categories[cat].items;
         const [item] = items.splice(dragState.idx, 1);

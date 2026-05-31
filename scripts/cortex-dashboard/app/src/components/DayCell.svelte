@@ -295,6 +295,8 @@
     if (!$dragSource) return;
     if ($dragSource.d === d && $dragSource.cat === cat) {
       if ($dragSource.idx === toIdx) return;
+      const items = dayData[cat] || [];
+      if (toIdx >= items.length) return; // dropped on category bg, not on item → ignore
       await api.reorderItem($ym, String(d), cat, $dragSource.idx, toIdx);
     } else {
       await api.moveItem($ym, String($dragSource.d), $dragSource.cat, $dragSource.idx, String(d), cat);
