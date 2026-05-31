@@ -1,8 +1,13 @@
 <script>
+  import { onMount, onDestroy } from 'svelte';
   import { activeNote, noteEditing } from '../lib/stores.js';
   import * as api from '../lib/api.js';
 
   export let onBack;
+
+  function handleMouseBack(e) { if (e.button === 3 || e.button === 4) { e.preventDefault(); onBack(); } }
+  onMount(() => window.addEventListener('mouseup', handleMouseBack));
+  onDestroy(() => window.removeEventListener('mouseup', handleMouseBack));
 
   let editContent = '';
 
