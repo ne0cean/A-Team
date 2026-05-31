@@ -50,6 +50,13 @@
     $noteEditing = false;
   }
 
+  let copyDone = false;
+  function copyPath() {
+    navigator.clipboard.writeText($activeNote.path);
+    copyDone = true;
+    setTimeout(() => { copyDone = false; }, 1500);
+  }
+
   async function uploadImage(file) {
     if (!file) return;
     const reader = new FileReader();
@@ -86,6 +93,7 @@
       <div class="md-toolbar">
         <button on:click={onBack}>◀ Back</button>
         <span class="md-path">{$activeNote.path}</span>
+        <button class="copy-path-btn" on:click={copyPath}>{copyDone ? '✓' : '⎘'}</button>
         <label class="upload-btn">📷
           <input type="file" accept="image/*" style="display:none"
             on:change={(e) => uploadImage(e.target.files?.[0])}>
@@ -100,6 +108,7 @@
       <div class="md-toolbar">
         <button on:click={onBack}>◀ Back</button>
         <span class="md-path">{$activeNote.path}</span>
+        <button class="copy-path-btn" on:click={copyPath}>{copyDone ? '✓' : '⎘'}</button>
         <button on:click={startEdit}>Edit</button>
       </div>
       <div class="md-content">{@html renderMarkdown($activeNote.content)}</div>
