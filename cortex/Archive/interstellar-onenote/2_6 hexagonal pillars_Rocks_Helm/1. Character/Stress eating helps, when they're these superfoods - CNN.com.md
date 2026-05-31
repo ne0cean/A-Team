@@ -74,7 +74,7 @@ Hide Caption
 
 12 of 12
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ddde174a61fe4feeb0916214ece6c014!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/c198879bfa.png)
 
 &lt;img alt=&quot;Blueberries contain antioxidants that improve your reaction to stress, so if you&amp;amp;#39;re feeling the pressure, grab some of these. Click through our gallery to see other foods that help reduce stress.&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/150410160246-01-stress-relieving-superfoods-0410-super-169.jpg&quot;&gt;
 
@@ -196,7 +196,7 @@ Hide Caption
 
 12 of 12
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ddde174a61fe4feeb0916214ece6c014!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/c198879bfa.png)
 
 &amp;lt;img alt=&quot;Blueberries contain antioxidants that improve your reaction to stress, so if you&amp;amp;amp;#39;re feeling the pressure, grab some of these. Click through our gallery to see other foods that help reduce stress.&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/150410160246-01-stress-relieving-superfoods-0410-super-169.jpg&quot;&amp;gt;
 
@@ -258,29 +258,29 @@ Hide Caption
 
 6 of 12
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-34eca636c6714ec1ada9df31dc34e430!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/1da32b6e62.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-af3ab5647c7346a8aaf423ed59a2019b!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/bb1e778524.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a7d74d08b0e04b48b5ef9fd7f6b30b18!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/eb71f19389.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1d7b451039774b67975a37f3b3de000b!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/8564086e97.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ff856c7165a64f0c9adb32bffc44d74a!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/715bf5a8ae.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b449224905434414b21c80438f990635!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/d7ecdad1d0.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-420067acae4a4189b31556f3f4e1462f!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/68b16f3470.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-df0555d9634140a8b96061fd444e10bf!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/9744c2db37.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-bea41a0c83584ce281132ae780969d47!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/dfb2388e7b.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a2930b3e3f354868974be394a1eeed3b!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/f531dbee99.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b1372716d93a44cbbcfa3c4ee96b40cb!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/18c4f5cb6d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-4c9c5e6f665b4f8b9d38721f53665440!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/8adec7767d.png)
 
 Story highlights
 
@@ -348,7 +348,7 @@ One ounce of the buttery nut packs 11% of the daily recommended value of zinc, a
 
 This article originally appeared on [Health.com](http://www.health.com/health/gallery/0,,20909426,00.html).
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-30078f6f476e44dd8399dd7ac634ac19!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/9cb9db28ba.png)
 
 JUST WATCHED
 
@@ -396,25 +396,25 @@ Fitness craze: Undergoing temps of -220F
 
 L.A.: Where the rich don&#39;t vaccinate
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-63eafda5e20642c4b89fc96cfcd8d836!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/a88abc1507.png)
 
 &lt;img alt=&quot;dnt in hiv outbreak governor_00004307.jpg&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/150327034304-dnt-in-hiv-outbreak-governor-00004307-large-169.jpg&quot;&gt;
 
 Ind. governor: HIV outbreak a &#39;very serious situation&#39;
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0f845462db0146d6b7edda8df1ac3e0f!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/136999455c.png)
 
 &lt;img alt=&quot;NEW YORK, NY - FEBRUARY 15: Dr. Oz attends the 2012 &amp;amp;quot;Woman&amp;amp;#39;s Day&amp;amp;quot; Red Dress Awards at Jazz at Lincoln Center on February 15, 2012 in New York City. (Photo by Brad Barket/Getty Images)&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/130320191718-dr-mehmet-oz-story-top.jpg&quot;&gt;
 
 Medical peers want Dr. Oz fired, call him &#39;a quack&#39;
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e1cae43993954935b73b21a25871bf96!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/dcaa029e0f.png)
 
 &lt;img alt=&quot;erin dnt cohen dr oz weight loss hearing_00005730.jpg&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/140617201524-erin-dnt-cohen-dr-oz-weight-loss-hearing-00005730-story-top.jpg&quot;&gt;
 
 Dr. Oz criticized for &#39;quack treatments&#39;
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-191d25144b4b44aa9c583d04589f499b!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/2388263e08.png)
 
 &lt;img alt=&quot;&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/150404114350-feds-say-pesticide-suspected-in-family-illness-terminix-large-169.png&quot;&gt;
 
@@ -476,25 +476,25 @@ Fitness craze: Undergoing temps of -220F
 
 L.A.: Where the rich don&#39;t vaccinate
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-63eafda5e20642c4b89fc96cfcd8d836!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/a88abc1507.png)
 
 &amp;lt;img alt=&quot;dnt in hiv outbreak governor_00004307.jpg&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/150327034304-dnt-in-hiv-outbreak-governor-00004307-large-169.jpg&quot;&amp;gt;
 
 Ind. governor: HIV outbreak a &#39;very serious situation&#39;
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0f845462db0146d6b7edda8df1ac3e0f!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/136999455c.png)
 
 &amp;lt;img alt=&quot;NEW YORK, NY - FEBRUARY 15: Dr. Oz attends the 2012 &amp;amp;amp;quot;Woman&amp;amp;amp;#39;s Day&amp;amp;amp;quot; Red Dress Awards at Jazz at Lincoln Center on February 15, 2012 in New York City. (Photo by Brad Barket/Getty Images)&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/130320191718-dr-mehmet-oz-story-top.jpg&quot;&amp;gt;
 
 Medical peers want Dr. Oz fired, call him &#39;a quack&#39;
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e1cae43993954935b73b21a25871bf96!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/dcaa029e0f.png)
 
 &amp;lt;img alt=&quot;erin dnt cohen dr oz weight loss hearing_00005730.jpg&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/140617201524-erin-dnt-cohen-dr-oz-weight-loss-hearing-00005730-story-top.jpg&quot;&amp;gt;
 
 Dr. Oz criticized for &#39;quack treatments&#39;
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-191d25144b4b44aa9c583d04589f499b!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/2388263e08.png)
 
 &amp;lt;img alt=&quot;&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/150404114350-feds-say-pesticide-suspected-in-family-illness-terminix-large-169.png&quot;&amp;gt;
 
@@ -522,145 +522,145 @@ Could smell test detect Alzheimer&#39;s?
 
 - &#160; ￼Promoted Stories
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1a73c98768e145bfa93e2bfdc283cc7d!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/058f4270c2.png)
 ](http://www.lolwot.com/10-amazing-foods-that-can-speed-up-weight-loss/?utm_source=ob.a3&amp;utm_medium=referral)
 [10 Amazing Foods That Can Speed Up Weight Loss ](http://www.lolwot.com/10-amazing-foods-that-can-speed-up-weight-loss/?utm_source=ob.a3&amp;utm_medium=referral)(LOLWOT)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-5d0bc08adbae4eb09743ba4caad1e538!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/360fd56e4b.png)
 ](http://www.ozy.com/acumen/whats-wrong-with-all-those-little-newborns/40384?utm_source=Outbrain&amp;utm_medium=CPC&amp;utm_campaign=INTL%20Recent%20Content)
 [What&#39;s Wrong With All Those Little Newborns? ](http://www.ozy.com/acumen/whats-wrong-with-all-those-little-newborns/40384?utm_source=Outbrain&amp;utm_medium=CPC&amp;utm_campaign=INTL%20Recent%20Content)(OZY)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1de7b207796145a48e43d823173bbaf4!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/93ff44c94d.png)
 ](http://techlays.com/6-fun-dream-jobs-that-really-pay-well/)
 [6 Fun Dream Jobs That Really Pay Well ](http://techlays.com/6-fun-dream-jobs-that-really-pay-well/)(Techlays.com)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a49bf4f1a6ad4c0f88a4036e932156c7!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/76b7a8ad5b.png)
 ](http://asia.nikkei.com/Business/Companies/Automaker-hopes-to-regain-lost-ground)
 [Honda tries for comeback- Automaker hopes to regain lost… ](http://asia.nikkei.com/Business/Companies/Automaker-hopes-to-regain-lost-ground)(Nikkei Asian Review) ￼More From CNN
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-cc8787eab1bb44ca809245dd7a7ee335!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/c7207462ca.png)
 ](http://edition.cnn.com/2015/03/27/health/stop-drinking-soda/index.html)
 [Stop drinking soda, for (your own) good ](http://edition.cnn.com/2015/03/27/health/stop-drinking-soda/index.html)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0785ad89c84b43f6acb2bbdb654c08db!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/aca5f5cb67.png)
 ](http://edition.cnn.com/2015/03/30/health/one-minute-health-solutions/index.html)
 [One-minute solutions to improving your health ](http://edition.cnn.com/2015/03/30/health/one-minute-health-solutions/index.html)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-63a33835194847a6a5dfe0f86d841e55!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/288195bc3b.png)
 ](http://edition.cnn.com/2015/03/26/health/sleep-better-yoga/index.html)
 [Sleep better with six minutes of bedtime yoga ](http://edition.cnn.com/2015/03/26/health/sleep-better-yoga/index.html)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b241ea1f98d7474a8dcac38471ca2384!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/2e39a14354.png)
 ](http://edition.cnn.com/2015/04/09/health/3d-map-human-skin-bacteria-chemicals/index.html)
 [Maps reveal the bacteria and chemicals lurking on skin ](http://edition.cnn.com/2015/04/09/health/3d-map-human-skin-bacteria-chemicals/index.html)￼[Recommended by ](http://edition.cnn.com/2015/04/13/health/superfoods-stress-relief/index.html?sr=fb041415stresseatingsuperfoods10pStoryGallLink#)
 
 Focus on Health
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-4c9c5e6f665b4f8b9d38721f53665440!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/8adec7767d.png)
 ](http://edition.cnn.com/2015/04/13/health/superfoods-stress-relief/index.html)
 [&lt;img alt=&quot;Dark chocolate shavings&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/150410162525-11-stress-relieving-superfoods-0410-large-169.jpg&quot;&gt;](http://edition.cnn.com/2015/04/13/health/superfoods-stress-relief/index.html)￼[You can stress-eat these superfoods](http://edition.cnn.com/2015/04/13/health/superfoods-stress-relief/index.html)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-248138609e1e43bc9d462c33a81dd578!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/cd120a3ef7.png)
 ](http://edition.cnn.com/2015/04/09/health/your-brain-multitasking/index.html)
 [&lt;img alt=&quot;your brain on multitasking Gupta orig_00001823.jpg&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/150408171435-your-brain-on-multitasking-gupta-orig-00001823-large-169.jpg&quot;&gt;](http://edition.cnn.com/2015/04/09/health/your-brain-multitasking/index.html)￼[Your brain on multitasking](http://edition.cnn.com/2015/04/09/health/your-brain-multitasking/index.html)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-04615d55765944beb7e9088efbc95f24!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/d6d50a21c6.png)
 ](http://edition.cnn.com/2015/04/06/health/commute-bad-for-you/index.html)
 [&lt;img alt=&quot;Commuters stuck in traffic on the Kennedy Expressway in Chicago on November, 27, 2013. Recent studies show how you commute to work can affect your health. The length of your car commute is tied to elevated blood pressure. &quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/150403155420-01-commute-health-large-169.jpg&quot;&gt;](http://edition.cnn.com/2015/04/06/health/commute-bad-for-you/index.html)￼[Why your commute is bad for you](http://edition.cnn.com/2015/04/06/health/commute-bad-for-you/index.html)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2d0f8690b7674020b742e78c562ce227!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/b0e4fb2a42.png)
 ](http://edition.cnn.com/2015/04/07/health/cystic-fibrosis-couple-update/index.html)
 [&lt;img alt=&quot;Katie and Dalton Prager in 2010&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/150401131451-prager-couple-healthy-large-169.jpg&quot;&gt;](http://edition.cnn.com/2015/04/07/health/cystic-fibrosis-couple-update/index.html)￼[Real &#39;Fault in Our Stars&#39; couple reunited by hope](http://edition.cnn.com/2015/04/07/health/cystic-fibrosis-couple-update/index.html)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-135dba4bbd8f4466b50027d1e2ce79ba!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/beac332e1f.png)
 ](http://edition.cnn.com/2015/04/07/health/athlete-soreness-yoga/index.html)
 [&lt;img alt=&quot;Calves&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/150406123820-calves-large-169.jpg&quot;&gt;](http://edition.cnn.com/2015/04/07/health/athlete-soreness-yoga/index.html)￼[Stave off soreness like a pro athlete](http://edition.cnn.com/2015/04/07/health/athlete-soreness-yoga/index.html)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-288a14a0b0094b889e021897d4c312ec!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/ff5eea375e.png)
 ](http://edition.cnn.com/2015/04/09/health/creativity-socializing-delay-dementia/index.html)
 [&lt;img alt=&quot;&quot; class=&quot;media__image&quot; src=&quot;http://i2.cdn.turner.com/cnnnext/dam/assets/130114171227-fingerpainting-story-top.jpg&quot;&gt;](http://edition.cnn.com/2015/04/09/health/creativity-socializing-delay-dementia/index.html)￼[Could this prevent dementia?](http://edition.cnn.com/2015/04/09/health/creativity-socializing-delay-dementia/index.html)
 
 - More from CNN
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3629a29028ec4e21a4156699a968979c!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/4b3f1226a7.png)
 ](http://edition.cnn.com/videos/tv/2015/04/17/idesk-double-trouble.cnn)
 [These &#39;twins&#39; are complete strangers](http://edition.cnn.com/videos/tv/2015/04/17/idesk-double-trouble.cnn)￼[CNN International ](http://edition.cnn.com/videos/tv/2015/04/17/idesk-double-trouble.cnn)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-aa9572f6b71a4b4fba6c0022bd47c52e!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/f5caf036e5.png)
 ](http://edition.cnn.com/videos/us/2015/04/18/newday-ceo-says-women-should-not-be-president.cnn)
 [CEO: A woman shouldn&#39;t be president](http://edition.cnn.com/videos/us/2015/04/18/newday-ceo-says-women-should-not-be-president.cnn)￼[CNN International ](http://edition.cnn.com/videos/us/2015/04/18/newday-ceo-says-women-should-not-be-president.cnn)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3a9dae163c80455095f75d5c00dda8e7!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/59a538b174.png)
 ](http://edition.cnn.com/2015/04/17/asia/indonesia-saudi-arabia-executions/index.html)
 [Saudi Arabia executes second Indonesian maid](http://edition.cnn.com/2015/04/17/asia/indonesia-saudi-arabia-executions/index.html)￼[CNN International ](http://edition.cnn.com/2015/04/17/asia/indonesia-saudi-arabia-executions/index.html)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-16c8a71cc80f4da6abc36c9cbddc1417!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/adf999f49a.png)
 ](http://edition.cnn.com/videos/us/2015/04/16/orig-pkg-us-navy-swarm-drones.cnn)
 [U.S. Navy testing swarm &#39;locust&#39; drones](http://edition.cnn.com/videos/us/2015/04/16/orig-pkg-us-navy-swarm-drones.cnn)￼[CNN International ](http://edition.cnn.com/videos/us/2015/04/16/orig-pkg-us-navy-swarm-drones.cnn)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-323e10a5be0248c3a47016e9043410e4!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/d3e318700d.png)
 ](http://edition.cnn.com/2015/04/17/world/gallery/week-in-photos-0416/index.html)
 [The week in 40 photos](http://edition.cnn.com/2015/04/17/world/gallery/week-in-photos-0416/index.html)￼[CNN.com - World ](http://edition.cnn.com/2015/04/17/world/gallery/week-in-photos-0416/index.html)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-6d593cdb8a6446fdb82682b08100be84!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/6b8a7402ed.png)
 ](http://edition.cnn.com/2015/04/15/us/florida-gang-rape-panama-city-arrest/index.html)
 [Third suspect arrested in alleged Panama City gang rape](http://edition.cnn.com/2015/04/15/us/florida-gang-rape-panama-city-arrest/index.html)￼[CNN International - US ](http://edition.cnn.com/2015/04/15/us/florida-gang-rape-panama-city-arrest/index.html)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3629a29028ec4e21a4156699a968979c!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/4b3f1226a7.png)
 
 These &#39;twins&#39; are complete strangers￼CNN International
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-aa9572f6b71a4b4fba6c0022bd47c52e!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/f5caf036e5.png)
 
 CEO: A woman shouldn&#39;t be president￼CNN International
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3a9dae163c80455095f75d5c00dda8e7!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/59a538b174.png)
 
 Saudi Arabia executes second Indonesian maid￼CNN International
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-16c8a71cc80f4da6abc36c9cbddc1417!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/adf999f49a.png)
 
 U.S. Navy testing swarm &#39;locust&#39; drones￼CNN International
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-323e10a5be0248c3a47016e9043410e4!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/d3e318700d.png)
 
 The week in 40 photos￼CNN.com - World
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-6d593cdb8a6446fdb82682b08100be84!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/6b8a7402ed.png)
 
 Third suspect arrested in alleged Panama City gang rape￼CNN International - US
 
 - Promoted Stories
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-414c6dd06d0a4b90a5004c8df29b9061!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/0be2684a6d.png)
 ](http://www.gatesnotes.com/Books/Should-We-Eat-Meat?WT.mc_id=04_21_2015_VaclavMeat_OB&amp;WT.tsrc=Outbrain)
 [My New Book Review: &#39;Should We Eat Meat?&#39;](http://www.gatesnotes.com/Books/Should-We-Eat-Meat?WT.mc_id=04_21_2015_VaclavMeat_OB&amp;WT.tsrc=Outbrain)￼[Bill Gates ](http://www.gatesnotes.com/Books/Should-We-Eat-Meat?WT.mc_id=04_21_2015_VaclavMeat_OB&amp;WT.tsrc=Outbrain)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e98f5bbc79674a848b84e37fcc9eaac8!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/0faf6f3a4d.png)
 ](http://techlays.com/top-10-oldest-universities-in-the-world/)
 [Top 10 Oldest Universities in the World](http://techlays.com/top-10-oldest-universities-in-the-world/)￼[Techlays.com ](http://techlays.com/top-10-oldest-universities-in-the-world/)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e86fa1f7a77d41a184921660cbc0ed19!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/71a01cdeef.png)
 ](http://infoatedu.com/students-improve-memory-instantly/)
 [Students: Improve Memory, Instantly!](http://infoatedu.com/students-improve-memory-instantly/)￼[Best Educational Info ](http://infoatedu.com/students-improve-memory-instantly/)&#187; Just another WordPress site
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-fbb950f4b4a746ff903e7053194f81c7!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/485d5bd90c.png)
 ](http://www.lolwot.com/this-bullied-teen-will-wow-you-with-her-impressive-ways-to-happiness/?utm_source=ob.a2&amp;utm_medium=referral)
 [This Bullied Teen Will Wow You With Her…](http://www.lolwot.com/this-bullied-teen-will-wow-you-with-her-impressive-ways-to-happiness/?utm_source=ob.a2&amp;utm_medium=referral)￼[LOLWOT ](http://www.lolwot.com/this-bullied-teen-will-wow-you-with-her-impressive-ways-to-happiness/?utm_source=ob.a2&amp;utm_medium=referral)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-414c6dd06d0a4b90a5004c8df29b9061!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/0be2684a6d.png)
 
 My New Book Review: &#39;Should We Eat Meat?&#39;￼Bill Gates
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e98f5bbc79674a848b84e37fcc9eaac8!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/0faf6f3a4d.png)
 
 Top 10 Oldest Universities in the World￼Techlays.com
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e86fa1f7a77d41a184921660cbc0ed19!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/71a01cdeef.png)
 
 Students: Improve Memory, Instantly!￼Best Educational Info &#187; Just another WordPress site
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-fbb950f4b4a746ff903e7053194f81c7!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/485d5bd90c.png)
 
 This Bullied Teen Will Wow You With Her…￼LOLWOT ￼[Recommended by ](http://edition.cnn.com/2015/04/13/health/superfoods-stress-relief/index.html?sr=fb041415stresseatingsuperfoods10pStoryGallLink#)
 
@@ -672,7 +672,7 @@ More from Health
 
 [London, United Kingdom](http://edition.cnn.com/weather)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-dd3e75cd045243f0b485a0db11a16fc5!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/4cc3bbda2b.png)
 ](http://edition.cnn.com/weather)
 [17](http://edition.cnn.com/weather)&#176;
 
@@ -728,70 +728,70 @@ International Edition
 
 - [CNN Newsource](http://cnnnewsource.com)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f12b01cfb5244404b374d63100fda036!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/e7fe4c8cf3.png)
 ](http://edition.cnn.com/2015/04/14/health/annual-physical-ritual-costly/index.html)
 [Your annual physical is a costly ritual](http://edition.cnn.com/2015/04/14/health/annual-physical-ritual-costly/index.html)
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e898d99dc9354730a6cc6cf9d084c28e!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/ab94962696.png)
 ](http://edition.cnn.com/2015/04/10/health/fatu-kekula-nursing-emory/index.html)
 [&#39;Fearless&#39; Ebola nurse trains at Emory University](http://edition.cnn.com/2015/04/10/health/fatu-kekula-nursing-emory/index.html)
 
 &lt;[http://edition.cnn.com/2015/04/13/health/superfoods-stress-relief/index.html?sr=fb041415stresseatingsuperfoods10pStoryGallLink](http://edition.cnn.com/2015/04/13/health/superfoods-stress-relief/index.html?sr=fb041415stresseatingsuperfoods10pStoryGallLink)&gt;에서 삽입
 
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1a73c98768e145bfa93e2bfdc283cc7d!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/058f4270c2.png)
 ](http://www.lolwot.com/10-amazing-foods-that-can-speed-up-weight-loss/?utm_source=ob.a3&amp;utm_medium=referral)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-5d0bc08adbae4eb09743ba4caad1e538!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/360fd56e4b.png)
 ](http://www.ozy.com/acumen/whats-wrong-with-all-those-little-newborns/40384?utm_source=Outbrain&amp;utm_medium=CPC&amp;utm_campaign=INTL%20Recent%20Content)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1de7b207796145a48e43d823173bbaf4!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/93ff44c94d.png)
 ](http://techlays.com/6-fun-dream-jobs-that-really-pay-well/)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a49bf4f1a6ad4c0f88a4036e932156c7!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/76b7a8ad5b.png)
 ](http://asia.nikkei.com/Business/Companies/Automaker-hopes-to-regain-lost-ground)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-cc8787eab1bb44ca809245dd7a7ee335!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/c7207462ca.png)
 ](http://edition.cnn.com/2015/03/27/health/stop-drinking-soda/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0785ad89c84b43f6acb2bbdb654c08db!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/aca5f5cb67.png)
 ](http://edition.cnn.com/2015/03/30/health/one-minute-health-solutions/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-63a33835194847a6a5dfe0f86d841e55!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/288195bc3b.png)
 ](http://edition.cnn.com/2015/03/26/health/sleep-better-yoga/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b241ea1f98d7474a8dcac38471ca2384!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/2e39a14354.png)
 ](http://edition.cnn.com/2015/04/09/health/3d-map-human-skin-bacteria-chemicals/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-4c9c5e6f665b4f8b9d38721f53665440!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/8adec7767d.png)
 ](http://edition.cnn.com/2015/04/13/health/superfoods-stress-relief/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-248138609e1e43bc9d462c33a81dd578!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/cd120a3ef7.png)
 ](http://edition.cnn.com/2015/04/09/health/your-brain-multitasking/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-04615d55765944beb7e9088efbc95f24!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/d6d50a21c6.png)
 ](http://edition.cnn.com/2015/04/06/health/commute-bad-for-you/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2d0f8690b7674020b742e78c562ce227!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/b0e4fb2a42.png)
 ](http://edition.cnn.com/2015/04/07/health/cystic-fibrosis-couple-update/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-135dba4bbd8f4466b50027d1e2ce79ba!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/beac332e1f.png)
 ](http://edition.cnn.com/2015/04/07/health/athlete-soreness-yoga/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-288a14a0b0094b889e021897d4c312ec!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/ff5eea375e.png)
 ](http://edition.cnn.com/2015/04/09/health/creativity-socializing-delay-dementia/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3629a29028ec4e21a4156699a968979c!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/4b3f1226a7.png)
 ](http://edition.cnn.com/videos/tv/2015/04/17/idesk-double-trouble.cnn)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-aa9572f6b71a4b4fba6c0022bd47c52e!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/f5caf036e5.png)
 ](http://edition.cnn.com/videos/us/2015/04/18/newday-ceo-says-women-should-not-be-president.cnn)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3a9dae163c80455095f75d5c00dda8e7!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/59a538b174.png)
 ](http://edition.cnn.com/2015/04/17/asia/indonesia-saudi-arabia-executions/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-16c8a71cc80f4da6abc36c9cbddc1417!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/adf999f49a.png)
 ](http://edition.cnn.com/videos/us/2015/04/16/orig-pkg-us-navy-swarm-drones.cnn)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-323e10a5be0248c3a47016e9043410e4!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/d3e318700d.png)
 ](http://edition.cnn.com/2015/04/17/world/gallery/week-in-photos-0416/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-6d593cdb8a6446fdb82682b08100be84!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/6b8a7402ed.png)
 ](http://edition.cnn.com/2015/04/15/us/florida-gang-rape-panama-city-arrest/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-414c6dd06d0a4b90a5004c8df29b9061!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/0be2684a6d.png)
 ](http://www.gatesnotes.com/Books/Should-We-Eat-Meat?WT.mc_id=04_21_2015_VaclavMeat_OB&amp;WT.tsrc=Outbrain)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e98f5bbc79674a848b84e37fcc9eaac8!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/0faf6f3a4d.png)
 ](http://techlays.com/top-10-oldest-universities-in-the-world/)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e86fa1f7a77d41a184921660cbc0ed19!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/71a01cdeef.png)
 ](http://infoatedu.com/students-improve-memory-instantly/)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-fbb950f4b4a746ff903e7053194f81c7!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/485d5bd90c.png)
 ](http://www.lolwot.com/this-bullied-teen-will-wow-you-with-her-impressive-ways-to-happiness/?utm_source=ob.a2&amp;utm_medium=referral)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-dd3e75cd045243f0b485a0db11a16fc5!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/4cc3bbda2b.png)
 ](http://edition.cnn.com/weather)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f12b01cfb5244404b374d63100fda036!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/e7fe4c8cf3.png)
 ](http://edition.cnn.com/2015/04/14/health/annual-physical-ritual-costly/index.html)[
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-e898d99dc9354730a6cc6cf9d084c28e!1-733661839CC53BA5!7914/$value)
+![image](../../../../attachments/onenote/ab94962696.png)
 ](http://edition.cnn.com/2015/04/10/health/fatu-kekula-nursing-emory/index.html)
 
 &lt;[http://edition.cnn.com/2015/04/13/health/superfoods-stress-relief/index.html?sr=fb041415stresseatingsuperfoods10pStoryGallLink](http://edition.cnn.com/2015/04/13/health/superfoods-stress-relief/index.html?sr=fb041415stresseatingsuperfoods10pStoryGallLink)&gt;에서 삽입
