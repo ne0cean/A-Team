@@ -75,3 +75,43 @@
 
 
 - ⏳ **IMP-20260508-CARD** /card-news 스킬 — 인스타 카드뉴스 8장 자동 생성 (HTML→PNG). 출처: 짐코딩. P2. .research/notes/2026-05-08-card-news-automation.md
+
+### IMP-20260531-01 — DIFF command consolidate.md (from connectome)
+- **날짜**: 2026-05-31
+- **출처**: /absorb 스캔 (connectome)
+- **타입**: DIFF (116 diff lines)
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/connectome/.claude/commands/consolidate.md
+- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/consolidate.md
+- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260531-02 — DIFF command idea.md (from connectome)
+- **날짜**: 2026-05-31
+- **출처**: /absorb 스캔 (connectome)
+- **타입**: DIFF (126 diff lines)
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/connectome/.claude/commands/idea.md
+- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/idea.md
+- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260531-03 — DIFF command inbox.md (from connectome)
+- **날짜**: 2026-05-31
+- **출처**: /absorb 스캔 (connectome)
+- **타입**: DIFF (37 diff lines)
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/connectome/.claude/commands/inbox.md
+- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/inbox.md
+- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260531-04 — DIFF command recall.md (from connectome)
+- **날짜**: 2026-05-31
+- **출처**: /absorb 스캔 (connectome)
+- **타입**: DIFF (68 diff lines)
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/connectome/.claude/commands/recall.md
+- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/recall.md
+- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
+- **상태**: ⏳ pending
