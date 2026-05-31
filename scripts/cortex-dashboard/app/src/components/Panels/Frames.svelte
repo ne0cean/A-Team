@@ -146,7 +146,26 @@
   function onDrop(ftype, cat, toIdx, e) {
     e.preventDefault();
     e.currentTarget.classList.remove('drag-over');
-    if (!dragState.ftype || dragState.idx === null) return;
+    if (!dragState.ftype) return;
+
+    // Category header drag (idx === -1) → reorder categories, NOT merge
+    if (dragState.idx === -1) {
+      if (dragState.cat === cat) return;
+      const fromIdx = CATS.indexOf(dragState.cat);
+      const toI = CATS.indexOf(cat);
+      if (fromIdx < 0 || toI < 0) return;
+      // Swap category order in this frame type's data
+      dayFrames.mutate(s => {
+        const cats = s[ftype].categories;
+        const tmp = cats[dragState.cat];
+        cats[dragState.cat] = cats[cat];
+        cats[cat] = tmp;
+      });
+      save();
+      return;
+    }
+
+    if (dragState.idx === null) return;
     if (dragState.ftype === ftype && dragState.cat === cat) {
       // Same category → reorder
       if (dragState.idx === toIdx) return;
@@ -156,7 +175,7 @@
         items.splice(toIdx, 0, item);
       });
     } else if (dragState.ftype === ftype) {
-      // Same frame type, different category → move
+      // Same frame type, different category → move item
       dayFrames.mutate(s => {
         const fromItems = s[ftype].categories[dragState.cat].items;
         const [item] = fromItems.splice(dragState.idx, 1);
