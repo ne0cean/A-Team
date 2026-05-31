@@ -60,13 +60,15 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-31) — Loose Coupling 구현 + Store 캡슐화
+## Last Completions (2026-05-31) — Loose Coupling + Fire-and-forget 버그 수정
 
-- **커스텀 스토어 캡슐화** — writable 직접 export 제거. 3 팩토리(DataStore/ValueStore/ToggleStore) 도입. DataStore는 set 미노출 → `$store = value` 런타임 차단. App/DayCell/Header/StandingOrders/Frames/Vision 6개 컴포넌트 리팩토링
-- **도메인별 store 파일 분리** — 단일 stores.js → stores/ 디렉토리 5파일(factories/calendar/standing/ui/constants) + barrel re-export. 기존 import 경로 100% 호환
-- **Vitest 스토어 테스트 17건** — 팩토리 단위테스트 + barrel export 검증 + 캡슐화 강제(DataStore에 set 없음) 검증. 603 tests PASS
-- **governance 규칙 등록** — `governance/rules/store-encapsulation.md` 신설 + CLAUDE.md에 Store 규칙 연동
-- **Svelte 모듈 격리 리서치** — set 숨기기/도메인 분리/runes 보류/FSD incremental/Zustand 불필요. 8개 부작용 위험 기록 (memory에 저장)
+- **커스텀 스토어 캡슐화** — writable 직접 export 제거. 3 팩토리(DataStore/ValueStore/ToggleStore) 도입. DataStore는 set 미노출. 6개 컴포넌트 리팩토링
+- **도메인별 store 파일 분리** — stores/ 디렉토리 5파일 + barrel re-export
+- **Vitest 스토어 테스트 17건** — 603 tests PASS
+- **governance 규칙 등록** — `store-encapsulation.md` + API fire-and-forget 금지 규칙
+- **toggle/split/delete await 보장** — fire-and-forget → await + 실패 시 optimistic revert. HMR 리로드 시 데이터 소실 방지
+- **injectFrames 세션당 1회 제한** — sessionStorage로 중복 inject 방지
+- **Svelte 모듈 격리 리서치** — 8 sources, 부작용 위험 8건 기록
 
 ## Last Completions (2026-05-31, 이전) — Dashboard Decoupling + 병합 로직 재설계
 

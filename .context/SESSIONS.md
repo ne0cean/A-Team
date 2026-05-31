@@ -13,7 +13,7 @@
 - Svelte 모듈 격리 리서치 (researcher 에이전트, 8 sources)
 - 부작용/장애요인 8건 기록 (memory/risk_dashboard_loose_coupling.md)
 
-**이슈**: 없음
+**이슈**: toggle fire-and-forget → HMR 리로드 시 체크박스 done 소실. await + revert 패턴으로 수정
 **빌드**: 603 tests PASS, dashboard build OK (106.72 KB)
 
 ---
