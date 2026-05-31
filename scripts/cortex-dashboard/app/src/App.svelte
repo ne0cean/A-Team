@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { currentYear, currentMonth, monthData, prevMonthData, nextMonthData,
-    standingData, dayFrames, visionData, activeNote, noteEditing, sidebarOpen, ym } from './lib/stores.js';
+    standingData, dayFrames, visionData, activeNote, noteEditing, sidebarOpen, ym, workoutLog } from './lib/stores.js';
   import * as api from './lib/api.js';
 
   import { setLastKeyTracker, showToast } from './lib/api.js';
@@ -205,6 +205,10 @@
     if (frames) dayFrames.load(frames);
     if (vision) visionData.load(vision);
 
+    // Load independent workout log
+    const wlog = await api.loadWorkoutLog();
+    if (wlog) workoutLog.set(wlog);
+
     // Auto-inject frames for today (carries forward uncompleted todos)
     // Only once per calendar day to prevent HMR/reload from overwriting in-flight toggles
     const now = new Date();
@@ -221,14 +225,8 @@
   }
 
   async function refreshWorkout() {
-    const data = await api.loadMonth($ym);
-    if (!data?.days) return;
-    monthData.mutate(s => {
-      for (const [day, dd] of Object.entries(data.days)) {
-        if (!s.days[day]) s.days[day] = {};
-        if (dd.workout !== undefined) s.days[day].workout = dd.workout;
-      }
-    });
+    const wlog = await api.loadWorkoutLog();
+    if (wlog) workoutLog.set(wlog);
   }
 
   function onReload() { loadAllData(); }

@@ -1,5 +1,5 @@
 <script>
-  import { currentYear, currentMonth, monthData, viewMode, ym, searchOpen, sidebarOpen } from '../lib/stores.js';
+  import { currentYear, currentMonth, monthData, viewMode, ym, searchOpen, sidebarOpen, workoutLog } from '../lib/stores.js';
   import * as api from '../lib/api.js';
 
   export let onReload;
@@ -11,8 +11,11 @@
     { label: '등' }, { label: '가슴' }
   ];
 
-  $: todayData = $monthData.days?.[String(new Date().getDate())] || {};
-  $: workout = todayData.workout || [];
+  function todayDateKey() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  }
+  $: workout = $workoutLog[todayDateKey()] || [];
   $: isCurrentMonth = new Date().getFullYear() === $currentYear && new Date().getMonth() + 1 === $currentMonth;
 
   function prevPeriod() {
@@ -35,19 +38,20 @@
   }
 
   async function toggleWo(part) {
-    const day = String(new Date().getDate());
+    const now = new Date();
+    const day = String(now.getDate());
+    const dateKey = todayDateKey();
     // Optimistic update
-    monthData.mutate(s => {
-      if (!s.days[day]) s.days[day] = {};
-      if (!s.days[day].workout) s.days[day].workout = [];
-      const idx = s.days[day].workout.indexOf(part);
-      if (idx >= 0) s.days[day].workout.splice(idx, 1);
-      else s.days[day].workout.push(part);
+    workoutLog.update(log => {
+      const cur = [...(log[dateKey] || [])];
+      const idx = cur.indexOf(part);
+      if (idx >= 0) cur.splice(idx, 1); else cur.push(part);
+      return { ...log, [dateKey]: cur };
     });
     // Server sync
     const res = await api.toggleWorkout($ym, day, part);
     if (res?.workout) {
-      monthData.mutate(s => { s.days[day].workout = res.workout; });
+      workoutLog.update(log => ({ ...log, [dateKey]: res.workout }));
     }
   }
 

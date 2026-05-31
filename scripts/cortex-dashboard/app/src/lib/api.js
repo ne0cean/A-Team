@@ -84,6 +84,7 @@ export async function saveOneThing(ym, day, text) {
 export async function injectFrames(ym, fromDay, toDay) {
   return request('/api/inject-frames', { method: 'POST', body: JSON.stringify({ ym, fromDay, toDay }) });
 }
+export async function loadWorkoutLog() { return request('/api/workout-log'); }
 export async function toggleWorkout(ym, day, part) {
   return request('/api/workout', { method: 'POST', body: JSON.stringify({ ym, day, part }) });
 }

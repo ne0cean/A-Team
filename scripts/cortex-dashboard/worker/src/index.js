@@ -466,21 +466,26 @@ export default {
         return new Response(JSON.stringify({ error: 'backup data corrupted' }), { status: 500, headers });
       }
 
-      // --- Workout ---
+      // --- Workout Log (independent of monthly data) ---
+      if (path === '/api/workout-log' && method === 'GET') {
+        const log = await getKey('workout-log') || {};
+        return new Response(JSON.stringify(log), { headers });
+      }
       if (path === '/api/workout' && method === 'POST') {
         const { ym, day, part } = await request.json();
         if (!validYm(ym) || !validDay(day) || typeof part !== 'string') {
           return new Response(JSON.stringify({ error: 'invalid workout payload' }), { status: 400, headers });
         }
-        const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
-        if (!data.days[day]) data.days[day] = {};
-        const dd = data.days[day];
-        if (!dd.workout) dd.workout = [];
-        const idx = dd.workout.indexOf(part);
-        if (idx >= 0) dd.workout.splice(idx, 1);
-        else dd.workout.push(part);
-        await setKey(ym, data);
-        return new Response(JSON.stringify({ ok: true, workout: dd.workout }), { headers });
+        // Store in independent workout-log key: { "YYYY-MM-DD": ["part1", ...] }
+        const [y, m] = ym.split('-');
+        const dateKey = `${y}-${m}-${String(day).padStart(2, '0')}`;
+        const log = await getKey('workout-log') || {};
+        if (!log[dateKey]) log[dateKey] = [];
+        const idx = log[dateKey].indexOf(part);
+        if (idx >= 0) log[dateKey].splice(idx, 1);
+        else log[dateKey].push(part);
+        await setKey('workout-log', log);
+        return new Response(JSON.stringify({ ok: true, date: dateKey, workout: log[dateKey] }), { headers });
       }
 
       // --- Inject Frames ---
