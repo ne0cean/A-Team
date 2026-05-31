@@ -22,6 +22,39 @@
   function delSO(i) { standingData.mutate(s => { s.standing.splice(i, 1); }); save(); }
   function addSO(text) { if (!text?.trim()) return; standingData.mutate(s => { s.standing.push({ id: `so-${Date.now()}`, text: text.trim(), active: true }); }); save(); }
 
+  // Parse date from various formats: "6.1", "6/2", "6월 2", "6-2", "6 2"
+  function parseDate(input) {
+    if (!input || !input.trim()) return null;
+    const s = input.trim();
+    const m = s.match(/^(\d{1,2})\s*[\.\/\-월\s]\s*(\d{1,2})일?$/);
+    if (m) return { month: +m[1], day: +m[2] };
+    // Single number = day of current month
+    if (/^\d{1,2}$/.test(s)) {
+      const now = new Date();
+      return { month: now.getMonth() + 1, day: +s };
+    }
+    return null;
+  }
+
+  function formatDate(s) {
+    if (!s?.date_month) return '';
+    return `${s.date_month}/${s.date_day || ''}`;
+  }
+
+  function editSODate(i, input) {
+    const parsed = parseDate(input);
+    standingData.mutate(s => {
+      if (parsed) {
+        s.standing[i].date_month = parsed.month;
+        s.standing[i].date_day = parsed.day;
+      } else {
+        delete s.standing[i].date_month;
+        delete s.standing[i].date_day;
+      }
+    });
+    save();
+  }
+
   // Weekly
   function editWeeklyDow(i, dow) { standingData.mutate(s => { s.weekly_recurring[i].dow = +dow; }); save(); }
   function editWeeklyFreq(i, freq) { standingData.mutate(s => { s.weekly_recurring[i].freq = freq; }); save(); }
@@ -211,6 +244,10 @@
         <div class="so-move drag-handle">⠿</div>
         <input type="checkbox" checked={s.active} on:change={() => toggleActive(i)}>
         <span contenteditable="true" style="flex:1" on:blur={(e) => editText(i, e.target.textContent)} use:setText={s.text}></span>
+        <input class="so-date" type="text" placeholder="날짜"
+          value={formatDate(s)}
+          on:blur={(e) => editSODate(i, e.target.value)}
+          on:keydown={(e) => e.key === 'Enter' && e.target.blur()}>
         <span class="del" on:click={() => delSO(i)}>×</span>
       </div>
     {/each}
