@@ -253,6 +253,37 @@
     dispatch('reload');
   }
 
+  // Category reorder by dragging header
+  let catOrder = [...CATS];
+  let catDragSource = null;
+  function onCatDragStart(cat, e) {
+    catDragSource = cat;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', cat);
+  }
+  function onCatDrop(targetCat, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!catDragSource || catDragSource === targetCat) return;
+    const fromIdx = catOrder.indexOf(catDragSource);
+    const toIdx = catOrder.indexOf(targetCat);
+    if (fromIdx < 0 || toIdx < 0) return;
+    catOrder.splice(fromIdx, 1);
+    catOrder.splice(toIdx, 0, catDragSource);
+    catOrder = [...catOrder];
+    catDragSource = null;
+  }
+
+  async function onMoveCat(e, cat) {
+    const { index, direction } = e.detail;
+    const catIdx = catOrder.indexOf(cat);
+    const targetIdx = catIdx + direction;
+    if (targetIdx < 0 || targetIdx >= catOrder.length) return;
+    const targetCat = catOrder[targetIdx];
+    await api.moveItem($ym, String(d), cat, index, String(d), targetCat);
+    dispatch('reload');
+  }
+
   async function onItemDrop(e, cat, toIdx) {
     e.preventDefault();
     if (!$dragSource) return;
@@ -320,16 +351,20 @@
       </div>
     {/each}
 
-    {#each CATS as cat}
+    {#each catOrder as cat}
       {@const items = dayData[cat] || []}
       {@const sorted = sortItems(items)}
       {@const hasPending = items.some(i => !i.done)}
       {#if items.length > 0 || isToday}
         <div class="category cat-{cat}" class:has-pending={hasPending}
-          on:dragover|preventDefault|stopPropagation={(e) => e.currentTarget.classList.add('drag-over')}
+          on:dragover|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.classList.add('drag-over'); }}
           on:dragleave={(e) => e.currentTarget.classList.remove('drag-over')}
-          on:drop|preventDefault|stopPropagation={(e) => { e.currentTarget.classList.remove('drag-over'); onItemDrop(e, cat, items.length); }}>
-          <div class="cat-label cl-{cat}">
+          on:drop|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.classList.remove('drag-over'); onItemDrop(e, cat, items.length); }}>
+          <div class="cat-label cl-{cat}" draggable="true"
+            on:dragstart={(e) => onCatDragStart(cat, e)}
+            on:dragover|preventDefault={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            on:dragleave={(e) => e.currentTarget.style.background = ''}
+            on:drop={(e) => { e.currentTarget.style.background = ''; onCatDrop(cat, e); }}>
             <span>{CAT_NAMES[cat]}</span>
             <span class="cat-actions">
               <span class="cat-sep-add" on:click={() => addSeparator(cat)}>―</span>
@@ -359,6 +394,7 @@
                 on:delete={(e) => onDelete(e, cat)}
                 on:link={(e) => onLink(e, cat)}
                 on:navigate={(e) => onNavigate(e, cat)}
+                on:movecat={(e) => onMoveCat(e, cat)}
                 on:dragstart={(e) => onDragStart(e.detail.e, cat, sitem._origIdx)}
                 on:drop={(e) => onItemDrop(e.detail.e, cat, sitem._origIdx)}
               />

@@ -107,6 +107,9 @@
     } else if (e.altKey && e.key === '1') {
       e.preventDefault();
       dispatch('toggle', { index });
+    } else if (e.altKey && e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      dispatch('movecat', { index, direction: e.key === 'ArrowUp' ? -1 : 1 });
     }
   }
 
@@ -147,9 +150,9 @@
   data-idx={index}
   draggable="true"
   on:dragstart={(e) => dispatch('dragstart', { e, index })}
-  on:dragover|preventDefault|stopPropagation={(e) => e.currentTarget.classList.add('drag-over')}
+  on:dragover|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.classList.add('drag-over'); }}
   on:dragleave={(e) => e.currentTarget.classList.remove('drag-over')}
-  on:drop|preventDefault|stopPropagation={(e) => { e.currentTarget.classList.remove('drag-over'); dispatch('drop', { e, index }); }}
+  on:drop|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.classList.remove('drag-over'); dispatch('drop', { e, index }); }}
 >
   <input type="checkbox" checked={item.done} on:change={handleToggle}>
   <span
