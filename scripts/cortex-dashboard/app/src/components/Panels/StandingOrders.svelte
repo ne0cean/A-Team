@@ -10,7 +10,10 @@
     // Safety: never save empty standing orders
     const size = JSON.stringify($standingData).length;
     if (size < 50) { console.warn('save blocked: standingData too small', size); return; }
-    await api.saveStandingOrders($standingData);
+    const res = await api.saveStandingOrders($standingData);
+    if (res?._version) {
+      standingData.mutate(s => { s._version = res._version; });
+    }
   }
 
   // Standing

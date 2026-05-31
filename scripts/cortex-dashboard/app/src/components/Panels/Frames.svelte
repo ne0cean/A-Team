@@ -5,7 +5,10 @@
   const FRAME_TYPES = ['weekday', 'flow', 'block'];
   const FRAME_TYPE_LABELS = { weekday: 'Weekday (평일)', flow: 'Flow Day (토/HF)', block: 'Block Day (일)' };
 
-  async function save() { await api.saveDayFrames($dayFrames); }
+  async function save() {
+    const res = await api.saveDayFrames($dayFrames);
+    if (res?._version) { dayFrames.mutate(s => { s._version = res._version; }); }
+  }
 
   function toggleCatType(ftype, cat) {
     dayFrames.mutate(s => {

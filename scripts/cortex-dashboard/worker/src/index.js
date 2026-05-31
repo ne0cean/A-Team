@@ -390,7 +390,9 @@ export default {
             }
           }
           await setKey(key, data);
-          return new Response(JSON.stringify({ ok: true }), { headers });
+          // Return new version so client can update its _version
+          const newRow = await env.DB.prepare('SELECT updated_at FROM ritual_data WHERE key = ?').bind(key).first();
+          return new Response(JSON.stringify({ ok: true, _version: newRow?.updated_at }), { headers });
         }
       }
 
