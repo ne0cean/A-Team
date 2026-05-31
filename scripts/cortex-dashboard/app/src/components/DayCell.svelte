@@ -245,8 +245,10 @@
   async function onDayDrop(e) {
     e.preventDefault();
     e.currentTarget.classList.remove('drag-over');
-    if (!$dragSource || $dragSource.d === d) return;
-    await api.moveItem($ym, String($dragSource.d), $dragSource.cat, $dragSource.idx, String(d), $dragSource.cat);
+    if (!$dragSource) return;
+    if ($dragSource.d === d && $dragSource.cat === CATS[0]) return; // same day, same default cat → skip
+    const targetCat = $dragSource.d === d ? CATS[0] : $dragSource.cat;
+    await api.moveItem($ym, String($dragSource.d), $dragSource.cat, $dragSource.idx, String(d), targetCat);
     $dragSource = null;
     dispatch('reload');
   }
@@ -324,9 +326,9 @@
       {@const hasPending = items.some(i => !i.done)}
       {#if items.length > 0 || isToday}
         <div class="category cat-{cat}" class:has-pending={hasPending}
-          on:dragover|preventDefault={(e) => e.currentTarget.classList.add('drag-over')}
+          on:dragover|preventDefault|stopPropagation={(e) => e.currentTarget.classList.add('drag-over')}
           on:dragleave={(e) => e.currentTarget.classList.remove('drag-over')}
-          on:drop|preventDefault={(e) => { e.currentTarget.classList.remove('drag-over'); onItemDrop(e, cat, items.length); }}>
+          on:drop|preventDefault|stopPropagation={(e) => { e.currentTarget.classList.remove('drag-over'); onItemDrop(e, cat, items.length); }}>
           <div class="cat-label cl-{cat}">
             <span>{CAT_NAMES[cat]}</span>
             <span class="cat-actions">

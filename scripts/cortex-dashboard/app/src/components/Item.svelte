@@ -147,9 +147,9 @@
   data-idx={index}
   draggable="true"
   on:dragstart={(e) => dispatch('dragstart', { e, index })}
-  on:dragover|preventDefault={(e) => e.currentTarget.classList.add('drag-over')}
+  on:dragover|preventDefault|stopPropagation={(e) => e.currentTarget.classList.add('drag-over')}
   on:dragleave={(e) => e.currentTarget.classList.remove('drag-over')}
-  on:drop|preventDefault={(e) => { e.currentTarget.classList.remove('drag-over'); dispatch('drop', { e, index }); }}
+  on:drop|preventDefault|stopPropagation={(e) => { e.currentTarget.classList.remove('drag-over'); dispatch('drop', { e, index }); }}
 >
   <input type="checkbox" checked={item.done} on:change={handleToggle}>
   <span
