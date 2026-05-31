@@ -394,6 +394,35 @@ export default {
         }
       }
 
+      // --- PATCH: partial update for standing-orders ---
+      if (path === '/api/standing-orders/patch' && method === 'POST') {
+        const { section, action, item, index } = await request.json();
+        if (!section || !action) {
+          return new Response(JSON.stringify({ error: 'section and action required' }), { status: 400, headers });
+        }
+        const data = await getKey('standing-orders');
+        if (!data) {
+          return new Response(JSON.stringify({ error: 'no standing-orders data' }), { status: 404, headers });
+        }
+        const arr = data[section];
+        if (!Array.isArray(arr) && action !== 'set') {
+          return new Response(JSON.stringify({ error: `section "${section}" is not an array` }), { status: 400, headers });
+        }
+        if (action === 'add') {
+          arr.push(item);
+        } else if (action === 'edit' && typeof index === 'number' && index >= 0 && index < arr.length) {
+          Object.assign(arr[index], item);
+        } else if (action === 'delete' && typeof index === 'number' && index >= 0 && index < arr.length) {
+          arr.splice(index, 1);
+        } else if (action === 'replace') {
+          data[section] = item;
+        } else {
+          return new Response(JSON.stringify({ error: `invalid action: ${action}` }), { status: 400, headers });
+        }
+        await setKey('standing-orders', data);
+        return new Response(JSON.stringify({ ok: true, count: Array.isArray(data[section]) ? data[section].length : null }), { headers });
+      }
+
       // --- Undo (restore from auto-backup) ---
       if (path === '/api/undo' && method === 'POST') {
         const { key } = await request.json();
@@ -715,7 +744,7 @@ export default {
 
     } catch (e) {
       console.error(e);
-      return new Response(JSON.stringify({ error: 'internal error' }), { status: 500, headers });
+      return new Response(JSON.stringify({ error: 'internal error', detail: e.message }), { status: 500, headers });
     }
   }
 };

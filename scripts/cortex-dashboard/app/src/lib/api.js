@@ -86,6 +86,9 @@ export async function undoMonth(ym) {
 // Standing orders + day frames + vision
 export async function loadStandingOrders() { return request('/api/standing-orders'); }
 export async function saveStandingOrders(data) { return request('/api/standing-orders', { method: 'POST', body: JSON.stringify(data) }); }
+export async function patchStandingOrders(section, action, item, index) {
+  return request('/api/standing-orders/patch', { method: 'POST', body: JSON.stringify({ section, action, item, index }) });
+}
 export async function loadDayFrames() { return request('/api/day-frames'); }
 export async function saveDayFrames(data) { return request('/api/day-frames', { method: 'POST', body: JSON.stringify(data) }); }
 export async function loadVision() { return request('/api/vision'); }
