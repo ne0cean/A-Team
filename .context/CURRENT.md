@@ -2,8 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**531 tests PASS, tsc 0 errors, npm audit 0 vulnerabilities** (2026-05-16).
-**PIOP 최적화 완료** — Phase 2 intel 모듈 100% 연결 (3 wiring, +0.6% token cost).
+**583 tests PASS** (2026-05-26). Cortex Ritual Dashboard v2 전면 리빌드 + OneNote 데이터 마이그레이션.
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
 
@@ -61,100 +60,88 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-16) — 디자인 거버넌스 + PPT 파이프라인 수정
-- **디자인 토큰 템플릿** — `templates/design-tokens/` 5프리셋(dark-app/dark-editorial/light-dashboard/light-warm/corporate-blue) + variables.css 템플릿 + tailwind-tokens.js + reset.css
-- **디자인 드리프트 감지기** — `scripts/design-drift-detect.mjs` CSS/JSX 매직넘버·색상·간격 위반 스캔, 밀도 기반 스코어링(A~F), longform A(90) / flair B(73) 검증
-- **designer 에이전트 확장** — Phase A(토큰 생성) + Phase B(드리프트 감지) + Phase C(성장 적응) 3단계 토큰 라이프사이클 추가
-- **vibe Step 0.8** — 세션 시작 시 UI 프로젝트 토큰 유무 자동 감지 → 없으면 designer 호출 제안
-- **PPT 파이프라인 수정 2건** — ppt-strategist consulting 모드 섹션 추가 + generate_via_intake.py consulting 테마 라우팅 (E2E 검증: mckinsey 8장 + dark_editorial 10장)
-- **Growth Engine 일간 실행** — GREEN 3건 자동 적용 (claude-updates-2026-05.md, superpowers 분석, watch_topics 확장)
-- **531 tests PASS** (기존 flaky 6건 동일, PPT/디자인 관련 0 실패)
+## Last Completions (2026-05-28) — Dashboard 통합 앱 전환 (OneNote 구조)
 
-## Last Completions (2026-05-15) — Growth Engine (자율 성장 엔진)
-- **`/daily-brief` = 자율 성장 엔진** — 보고만 하는 게 아니라 **크롤링 → 분석 → 자동 적용 → 보고**. scan+apply 기본, --report로 보고 전용
-- **`growth-engine` 에이전트** — 외부 트렌드를 크롤링하고 GREEN/YELLOW/RED 안전 등급 판정 후 GREEN은 자동 적용+커밋, YELLOW는 브랜치 생성, RED는 기록만
-- **`governance/rules/growth-engine.md`** — 크롤링 소스 3 Tier (일간/주2회/주1회) + 안전 등급 5개 기준 + 적용 프로토콜 + 안전 장치 5개
-- **`daily-brief-collect.mjs`** — 내부 데이터 수집. git(24h), capability gaps(8개), anomalies, stale modules, trends, ecosystem watch topics
-- **`daily-brief` 에이전트** — 내부 진단 + 외부 스캔 + 성장 제안 마크다운 보고서
-- **`/vibe` Step 0.7 + `/pickup` Step 2.7** — 세션 시작 시 오늘 브리핑 없으면 자동 제안
-- **`/zzz` 통합** — 명시 태스크 소진 후 자동 `/daily-brief` (scan+apply) 실행. 의장 수면 중에도 A-Team 성장
-- **`/daily-review` deprecated** → `/daily-brief`에 흡수
-- **거버넌스 주기 완성**: 일간(`/daily-brief` 자율 적용) + 주간(`/insights` 분석) + 월간(`/board` 전략 감사)
-- **532 tests PASS** (기존 유지, 회귀 없음)
+- **프론트엔드 모듈 분리** — 2014줄 단일 HTML → index.html(앱 셸 ~100줄) + css/main.css(274줄) + js/app.js(1650줄). Cloudflare Workers assets로 서빙.
+- **원노트 구조 적용** — 좌측 사이드바(cortex 노트 트리, 검색, 새 노트 생성) + 메인(대시보드 캘린더). PC: 사이드바 열기/닫기 토글, 모바일: 슬라이드 오버레이.
+- **노트 뷰어/에디터** — 사이드바에서 파일 클릭 → 메인에 마크다운 렌더링, Edit 버튼으로 편집 → Save로 GitHub 커밋.
+- **이미지 업로드** — Worker `POST /api/cortex/upload` → GitHub cortex/attachments/에 저장. 에디터에서 파일선택 + 클립보드 붙여넣기 지원.
+- **새 노트 생성** — 사이드바 "+" 버튼 → 파일명 입력 → 현재 폴더에 .md 생성 → 즉시 편집.
+- **Capture 바** — 하단 고정 입력바. 텍스트 메모 → cortex/inbox/에 저장, `28 w 미팅` 단축 → 캘린더에 직접 추가, 사진 → GitHub 업로드.
+- **통합 검색** — 🔍에서 스케줄(D1) + 노트(GitHub tree) 동시 검색. 결과를 SCHEDULE/NOTES로 구분 표시.
+- **PWA 오프라인** — Service Worker 재활성화. 셸 캐시 + API stale-while-revalidate.
+- **월 경계 데이터** — 이전/다음 달 데이터 동시 로드, 주 경계에서 양쪽 달 표시.
+- **API 상수 누락 수정** — `const API = ''` 누락으로 캘린더 렌더 실패 → 수정.
 
-## Last Completions (2026-05-15) — PPT 엔진 컨설팅급 업그레이드
-- **generate_v2.py 전면 재작성** — 18종 레이아웃(+5 신규: big_number, icon_grid, image_text, bento_grid, comparison), 8종 테마(+5 신규), 그라데이션 배경, 카드 그림자(outerShdw XML), CJK 폰트 정확 적용(<a:ea> XML), 풋터/슬라이드번호 자동, 스피커 노트 삽입, 레이아웃 교차 강제
-- **mckinsey_pptx 통합** — GitHub seulee26/mckinsey-pptx 라이브러리를 `scripts/ppt/mckinsey_pptx/`에 통합. 40종 McKinsey 슬라이드 타입 (executive_summary, assessment_table, bubble_chart, column_chart, org_charts, timeline, comparison, Harvey ball, BCG matrix, issue_tree, gantt 등). McKinsey/BCG/Bain 3사 테마 (공식 컬러 #051C2C/#2251FF, #147B58, #CB2026)
-- **generate_consulting.py** — A-Team 스펙 → mckinsey_pptx 변환 어댑터. `--style mckinsey/bcg/bain` 지원
-- **server.py** — 4유형별 신규 레이아웃 사용 + 8테마 UI
-- **ppt.md / ppt-strategist.md** — Consulting/Creative 듀얼 모드 + 18종 레이아웃 가이드
-- **slide-spec-template.json** — big_number, icon_grid, comparison, bento_grid 예시 추가
-- **광역 리서치 7건** — Gamma/GenSpark/Skywork 분석, 프로 디자인 원칙, python-pptx 고급 기법, 오픈소스 PPT 도구, "사람이 만든 느낌" 핵심, 컨설팅 덱 정밀 스펙, 고품질 템플릿 사냥
-- **레드팀 결과**: Critical 1 + High 7 + Medium 4. 엔진은 작동하지만 파이프라인 끊김 (server.py/ppt-strategist가 consulting 엔진 미연결, CJK 폰트 우회 미적용, convert_spec 데이터 손실 3건). RESUME.md에 수정 계획 기록
-- **530 tests PASS**, tsc 0 errors
+## Last Completions (2026-05-27) — Cortex 뇌 시스템 + MeiliSearch + Dashboard 개선
 
-## Last Completions (2026-05-15) — PPT 인테이크 AskUserQuestion 적용 + Critical 3갭 해소
-- **Phase 0.5 자기개선 루프 구현** — gap-sensor.ts (friction 감지 + 사용 갭 분석) + gap-priority.mjs (--summary) + /vibe Step 0.69 + /end Step 3.4. 루프 닫힘.
-- **Trajectory Evaluation** — shadow-evals.yaml path_evals 3개 + trajectory-eval.mjs (도구 효율/백트래킹/컨텍스트 보존)
-- **FSM Verification Gate** — governance/rules/verification-gate.md + verification-gate-check.sh (커밋 전 테스트 강제)
-- **레드팀 최상급** — /adversarial Worker-Critic 5관점 + 멀티라운드 이력 + /cso Axis 5 Garak + /review Semgrep + red-team-protocol.md
-- **기획 최상급** — Amazon PR/FAQ 모드 + _TBD_ 마커 + 설계결정 DB + Outcome tracking + PRD 압축
-- **Agent Teams 통합** — orchestrator Phase 2.07 + settings.json 활성화
-- **ralph→zzz 통합** — CB/dual-exit/backup 흡수
-- **커맨드 자동 트리거 35개** — 7→35 패턴 확대
-- **커맨드 코칭** — /end Step 6.8 + analytics
-- **자동 보호** — Stop auto-save+push + health 감시 훅 + 신규 프로젝트 스캐폴딩
-- **경쟁사 분석** — SuperClaude/BMAD/spec-kit 대비 유일한 인프라 레이어 확인
-- **532 tests PASS** (+43)
+- **Cortex "제2의 뇌" 설계 + Tier 1 구현** — catalog.jsonl(1638파일 인덱스), access-log.jsonl(접근 기록), cortex-health.mjs(주간 진단 80점), system-health.mjs(전체 시스템 진단 70점). /vibe에 자동 tidy 5개 삽입. ritual JSON→data/ 분리(운영데이터/지식 분리). 주간 크론 2개 등록(cortex-health 월09:00, system-health 월09:30).
+- **MeiliSearch 검색 엔진 도입** — 바이너리 설치 v1.45.0, 3499문서 인덱싱, typo tolerance + 한국어 토큰 분리. cortex-index.mjs 인덱서. Telegram 검색(`?키워드`)이 MeiliSearch API 호출.
+- **Telegram 봇 기능 강화** — 검색(`?키워드`: cortex + 웹 DDG + Groq 종합), 일정 추가(`28 w 팀미팅`), 음성 전사(Groq Whisper), 클릭 가능 링크(GitHub/DDG URL). ritual 카테고리 제거(i/w/o만).
+- **Dashboard UI 개선** — 모바일 viewport 1200px 고정(PC 동일 폭), pull-to-refresh, URL 자동 하이퍼링크(신규+기존), 드래그 여백 확대, EX+비전 헤더 통합, EX 운동부위 변경(전면/측면/후면/등/가슴), 공휴일 전월별 표시, 캘린더 이전/다음달 날짜 표시, recurring 항목 체크 가능, 복구 아이콘 변경, Worker save 안전장치 수정(workout 저장 차단 해소).
+- **모델 오케스트레이션 리뷰** — 로컬 모델(Groq/Ollama) 사용 0건 적발. enforce-model-param.sh(Agent model 미지정 시 deny), model-compliance.sh(SubagentStop 위반 감사) 작성.
+- **AI-native PKM 벤치마크** — 20개 GitHub 프로젝트 조사(mem0/graphiti/Khoj/screenpipe/fabric/claude-obsidian). Karpathy wiki 패턴 + graphiti temporal graph + mem0 메모리 레이어 3패턴 하이브리드 방향.
+- **냉철한 제언 6건** — 인프라 중독 탈피, Connectome 즉시 시작, String 기둥 강화, 루틴 프레임 파괴, AI 의존도 관리, Snowball 숫자 트래킹.
 
-## Last Completions (2026-05-14) — PPT 엔진 v3 + 클릭형 인테이크
-- **generate_v2.py v3** — 12pt 최소 폰트(`fs()` 헬퍼), 텍스트 겹침 해소(Y축 순차 계산), ROUNDED_RECTANGLE+RIGHT_ARROW 도식, oval_dot() 프리미티브, italic 버그 수정
-- **intake.py** — `questionary` 기반 터미널 클릭형 인테이크 (화살표키·체크박스)
-- **server.py** — 로컬 웹 UI 서버 (localhost:7842), 클릭 폼 → PPTX 다운로드
-- **semiconductor-consulting.pptx** — consulting_clean 테마 12장, 전체 내용 반영
+## Last Completions (2026-05-26) — Dashboard 클라우드 배포 + 보안 수정 + Obsidian Mobile
 
-## Last Completions (2026-05-13) — P4 Governance & Trust + 이사회 + OKR
-- **`/board` AI 이사회 제1회 실행** — 4인 페르소나 전략 감사. 경영 성적표 MRR $0 🔴 / 발행 0건 🔴 / 507 tests 🟢. "인프라 모라토리엄" 결의.
-- **OKR 2026-Q2 설정** — O1 첫 제품+매출, O2 외부 존재감, O3 도구 실사용. 90일 Rocks 3개.
-- **Legal 기반** — templates/legal/ (Privacy Policy + ToS + GDPR Cookie Consent)
-- **BCP/DR** — templates/bcp-dr.md 1인 기업 48시간 생존 플랜
-- **Revenue KPI** — weekly-report.mjs Business KPIs 섹션 (MRR/ARR/Churn)
-- **레드팀 3건 수정** — ts fallback 버그, self-pollution 방지 (ANOMALY_NO_EMIT), a11y false positive
-- **벤치마크 기록** — 7 프레임워크 + 3 사례 + 7 GitHub 전체 기록
-- **507 tests PASS** (+5 TDD).
+- **Cloudflare Workers + D1 배포** — `https://cortex.feat-breeze.workers.dev` (APAC/ICN). Worker 코드 변환, 6개 JSON→D1 마이그레이션, 맥 무관 항시 가동. Favicon(뉴럴넷 아이콘) 추가.
+- **레드팀 E2E 감사 + P0/P1 수정 8건** — 봇 토큰 하드코딩 제거(env 전용), Worker API 인증(Bearer), execSync 셸 인젝션→fetch 교체, 0.0.0.0→127.0.0.1, save() 에러 표시, 입력 검증(ym 정규식/index 범위), Worker 에러 응답 generic화, tidy-inbox cron 등록.
+- **tidy-inbox 자동 분류 스크립트** — 규칙 기반 키워드 매칭 + Groq LLM 폴백. launchd 5분 cron. inbox→6기둥/PARA 자동 이동.
+- **외부 모델 교차 감사** — `/adversarial --full`, `/cso`에 Groq Llama 70B 교차 리뷰 구조 추가. 자기 코드 자기 리뷰 사각지대 해소.
+- **Telegram E2E 검증** — 텍스트 수신 확인. 데몬 WorkingDirectory/env 수정. offset 미영속 중복 버그 발견(미수정).
+- **Obsidian Mobile 연동** — cortex/ → iCloud symlink 설정. iPhone에서 3439개 노트 열람/편집 가능. Dashboard는 ritual-routine 전용, Obsidian은 노트 전체.
+- **`/end` PRD 자동 동기화** — Step 3.45 추가. 구조적 변화 시 plan 파일 자동 갱신.
 
-## Last Completions (2026-05-13) — Analytics 이상감지 + 주간리포트
-- **Capability Map APQC 반영** — operations (incident 50%, okr 50%, health 60%, community 30%, infrastructure 30%, financial 40%), engineering (security 80%, prioritization 65%), sales-cs (customer-support 30%). updated_at 2026-05-13.
-- **Anomaly Detection 엔진** — `scripts/anomaly-detect.mjs` 6가지 감지 (모듈사용 급변, 디자인품질 하락, A11y 위반 급증, 테스트실패 급등, 세션불일치, 이벤트공백). z-score 기반. `--json`/`--alert-only`/`--days N` 지원. exit 1 on critical.
-- **자동 주간 리포트** — `scripts/weekly-report.mjs` analytics + anomaly + capability 통합 리포트. `--save`로 `.context/insights/` 자동 저장. WoW 비교, 이벤트 분류, 커버리지 현황, 추천사항 포함.
-- **가중 커버리지 38%→42%** (analytics anomaly 0→60%, reporting 30→65%).
-- **502 tests PASS** (+13).
+## Last Completions (2026-05-26, 이전) — Cortex 구조 확정 + 모바일 캡처 인프라
 
-## Last Completions (2026-05-13)
-- **APQC Gap Analysis P0-P3 전체 완료** — 커버리지 52%→68%. 11개 리서치 (240KB+), P0 4건 (License Compliance 자동화 + Legal 템플릿 + Revenue Tracking + Customer Support 설계), P1 3건 (/prioritize RICE + Feedback Loop + Growth Framework), P2 3건 (/incident + /okr + health-check.mjs 10항목 모니터링), P3 3건 (Community + Budgeting + Infrastructure 템플릿). 커맨드 66→70개, 템플릿 4→8개. npm install 자동 보안 감사 훅. **489 tests PASS + 10/10 health check.**
+- **Cortex PARA-B 구조 확정 + 6기둥 병합** — `cortex/areas/` → `cortex/hexagonal pillars_rocks_helm/` rename. archive/interstellar-onenote의 6pillars(845md) + 3_Archive(451md) 기둥별 매핑 병합 (Cyrano→mo-chuisle, Solidarity→string, Accumulation→snowball, Career/Skill/성장전략/AI전략팀/SD→interstellar). 1_Projects(343md)→cortex/projects/ 이동. ritual-routine 중복 해소 (파일별 정본 선택 + bak 정리). 최종: 1,292md areas + 343md projects.
+- **Telegram → cortex/inbox 자동 캡처 데몬** — `scripts/telegram-inbox.mjs` (long-polling, 텍스트/사진/파일/음성/포워드 지원, 📥 확인 이모지). launchd `com.ateam.telegram-inbox` 상시 실행 등록. 모바일에서 봇에 던지면 즉시 .md 저장.
+- **Obsidian vault 설정** — `cortex/.obsidian/` (app.json + core-plugins + daily-notes). 새 노트 기본 위치 inbox/, 첨부 inbox/attachments/. gitignore로 워크스페이스 캐시 제외.
+- **PKM 세부 분류 벤치마크 리서치** — Zettelkasten/LYT-ACE/PARA/PPV/Thomas Frank 6시스템 비교. 결론: 캡처 단위=파일 1개(atomic), 모바일=Telegram→inbox(Obsidian 직접 열지 않음), 하위구조=폴더 depth 2 + MOC, 처리=매일 5분 quick sort + 주간 30분 리뷰.
 
-## Last Completions (2026-05-11)
-- **Orchestration v2 — 실험 기반 설계 확정** (6라운드 레드팀 검증):
-  - **검증된 메커니즘 3개**: (1) PreToolUse Agent `permissionDecision:deny` → Agent 차단 + Groq 답 주입 ✅ (2) PostToolUse Read `additionalContext` → 파일 요약 자동 주입 ✅ (3) UserPromptSubmit 미검증 (발동 안 됨, 다음 세션 재테스트)
-  - **실측 벤치마크**: Groq 272-889ms (실제, "80ms"는 과장), 병렬 5건 767ms, rate limit 15건 연속 OK
-  - **품질 검증**: 영어 요약/포맷/검색 = 우수. **한국어 생성 = 실패** (일본어/중국어 혼입)
-  - **핵심 발견**: `systemMessage`=UI전용(실패), `additionalContext`=hookSpecificOutput 내에서만 작동, `permissionDecision:deny`=Agent 차단 성공
-  - **Explore 에이전트 grep 차단 성공**: bash grep → Groq 해석 → 정확한 답 (이전 22k tok 3.6s → 0 tok 1s)
-  - **거짓말 적발 5건**: 80ms TTFT(실제 272-889ms), 10-25x 빠름(실제 3-7x), marketing 5-6x(한국어 불가), 0-9% 범위(실제 35%), systemMessage 작동(UI전용)
-  - 설계문서: `.context/designs/orchestration-v2.md`
+## Last Completions (2026-05-26, 이전) — Cortex Ritual Dashboard v2 전면 리빌드
 
-## Last Completions (2026-05-09)
-- **Multi-Model Router Phase 3-5 완료** — Groq Direct Mode + MCP SDK 설치 + monitor.mjs 재작성. @modelcontextprotocol/sdk 설치 + mcp-local-model.mjs API 수정 (ListToolsRequestSchema/CallToolRequestSchema). 4 모델 정상: Groq free 212ms, Groq fast 201ms, Ollama 1B 1.6s, Ollama 32B (cold start 60s). monitor.mjs: 헬스체크 + 엔드포인트 테스트 + analytics 사용량 + Groq rate limit 예산 추적. SubagentStart/Stop 훅 + orchestration-report.mjs. CLAUDE.md Step 5 로컬 모델 라우팅 규칙. 설계문서 Phase 3-5 체크리스트 갱신. **489 tests PASS**.
-- **D2Coding 폰트 + VS Code 설정** — 터미널 한글 깨짐 수정. D2Coding 폰트 설치 (`~/Library/Fonts/`) + VS Code `terminal.integrated.fontFamily` 설정.
-- **Claude.ai 웹 지침 토큰 효율화** — 6줄 축약 버전 제공 (한국어, 인사말 생략, 핵심만).
+- **Ritual Dashboard v2 전면 리빌드** (2026-05-25~26, 대규모): OneNote 10년 주간 플래너를 localhost:7843 웹 대시보드로 완전 이전.
+  - **데이터 마이그레이션**: OneNote 원본 파싱 → 월별 JSON (May 20일 209items, June 30일 344items) + standing-orders.json + 오타 16건 수정
+  - **서버 v2**: 20+ API endpoints (month CRUD, day-type, notes, search, standing-orders, day-frames, inject-frames, move-item, undo, vision-roadmap)
+  - **Day Frames 시스템**: Weekday/Flow/Block 3타입 프레임 + 어드민 탭 + routine/todo 구분 + 이월 로직 + 프레임 상단/수동 하단 정렬
+  - **Standing Orders 4탭**: Standing + Weekly(매주/격주) + Monthly(recurring+이번달) + Yearly(월+일) — 모두 CRUD + 순서변경 + 하이퍼링크
+  - **캘린더 자동 반영**: 공휴일 33개 + Happy Friday 11개 + 제헌절 복귀 + 월간/주간/연간 반복 항목
+  - **Vision & Milestones 패널**: 5개년(2026-2030) × 7카테고리 테이블 + Admin Notes
+  - **UI**: Full Month 기본뷰 + 지나간 주 접기 + Day Type 상단바 + 카테고리 컬러바 + 운동부위 칩 + 크로스데이 드래그앤드롭 + Enter 텍스트 분기 + 하이퍼링크(🔗) + Undo 버튼
+  - **디자인 개선**: audit 기반 타이포/간격/컬러 개선 (Linear/Notion 톤)
+  - **PWA**: manifest + SW (개발 중 비활성) + safe-area
+  - **빈 데이터 저장 방지 안전장치** (프론트+서버 양쪽)
+- **583 tests PASS** 유지
 
-## Last Completions (2026-05-08 이전)
+## Last Completions (2026-05-25) — Idea Auto-Accumulation System + Cortex 워크스페이스
+
+- **Idea Auto-Accumulation System 구현** — 아이디어가 세션마다 분산되는 문제를 구조적으로 해결. 3개 컴포넌트 A-Team 글로벌 반영:
+  - `/end` Step 1.5 Idea Harvest — 아이데이션 세션 판별 게이트 + 레지스트리 자동 수확 (비-아이데이션 세션은 스킵)
+  - `/brainstorm` Step 4.5 Registry Sync — 생존/탈락 아이디어 자동 레지스트리 반영 (복귀 선언 뒤 실행)
+  - `/mece-gap` 신규 커맨드 — 9프레임(F1-F9) 기반 아이디어 사이 미탐색 영역 발굴. F1 형태학적 빈 셀 기본, `--deep` 시 F2-F9 추가. 축 저장으로 시계열 비교 가능.
+  - CLAUDE.md 자동 제안 테이블에 `/idea`, `/mece-gap` 추가
+  - 레드팀 리뷰 4건 반영: 토큰 절약 게이트, 중복 수확 방지, F1/deep 분리, 축 안정성
+
+## Last Completions (2026-05-25, 이전) — Cortex 워크스페이스 + YT 16개 분석 + Ritual Board
+
+- **PMI 5-Phase 완료** — `@fast-check/vitest` 설치 (property tests 13개 복구), `wiki-types.ts:81` 타입 캐스팅 수정, CLAUDE.md 207→192줄 축소. 583 tests PASS.
+- **Design Taste Evaluator Phase 1 — INDEX.md 구축** — `reference/design-systems/INDEX.md` 생성. 72 brands, 8 categories, tone clusters, incomplete entries 식별. taste-evaluator 에이전트 연결 준비 완료.
+- **Cortex PARA+6기둥 재편** — staging 587파일 OneNote 원본 구조(notebook/section_group/section)로 복원. pillars/+areas/ 중복 구조 통합 → InterStellar/2_6 hexagonal pillars/ 단일화. Dashboard 100개 6기둥 분류(interstellar 44, snowball 25, character 14, life-xlab 12, string 5). 중복 22개 해소. archives/legacy 11개 snowball 편입. 신입연수 22개 삭제.
+- **OneNote 누락 658개 다운로드** — 2_6 hexagonal pillars 2~6번 + Zeroing + Futures options 전체 다운로드 (level/order 메타데이터 포함). 3_Archive는 Microsoft API 장애로 미완료.
+- **OneNote InterStellar Migration 완료** — Zeroing 73개 + Futures options 1개 추가 다운로드 (이전 세션 누락분). cortex/projects/ 164개 중복 파일 제거. 3_Archive 118개 부분 다운로드 (API 정상 작동 구간). 최종 상태: InterStellar 1,306파일 (1_Projects 343 + 2_6 pillars 845 + 3_Archive 118), page index 921개 전량 on-disk. onenote-download-missing.py `import time` 버그 수정. 원격 이미지 293개 (Graph API URL, 텍스트 정상).
+- **Cortex 워크스페이스 재설계** — PARA 최상위 + 6기둥 Areas 하위 구조 확정. InterStellar→archive/interstellar-onenote/ 이동. 커맨드 6개 신규(/inbox, /idea, /tidy-inbox, /learn, /recall, /daily-note). CORTEX.md 매뉴얼 + governance/rules/cortex-ops.md 거버넌스. VS Code 스니펫 + Paste Image 설정.
+- **YouTube 16개 영상 풀 분석** — Groq Whisper API 전사 + 5그룹 분석 리포트 (.context/briefs/). 즉시 적용 6건: opusplan, LSP 우선, Plan-Annotate-Execute 패턴, /ppt Q0 템플릿 분기, yt-extract --transcribe, OneNote MSAL 자동갱신.
+- **Ritual Board recurring 구현** — JSON 스키마 + 서버 API 5개 + UI 하단 자동반영 + 멱등성.
+- **OneNote migration 완료** — 1,639파일 on-disk. 3_Archive 451파일. MSAL 토큰 자동갱신 추가.
+- **PKM 벤치마크** — 14개 프로젝트 조사. LLM Wiki + Obsidian Claude PKM + CortexGraph 하이브리드 방향.
+- **SKILL.md 호환성 분석** — A-Team→SKILL.md 변환 70-80% 가능.
+
+**빌드**: ✅ 583 tests PASS (50 files)
+
+## Last Completions (2026-05-24 이전)
 → [.context/SESSIONS.md](SESSIONS.md) 참조
-
-## 다음 우선순위
-- [ ] **Postiz OAuth 설정** — localhost:4007에서 소셜 미디어 계정 연동 (수동 작업)
-- [ ] **Twitter 채널** — 보류 중이나 중요 채널. 다음 발행 사이클에 재논의 필요
-- [ ] **Phase 2 콘텐츠 실제 발행** — Postiz를 통해 블로그/소셜 미디어 발행
 
 ## Multi-Model Router ✅
 Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi-model-router.md)
@@ -167,17 +154,19 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 
 ## Next Tasks
 
-### High Priority (이사회 결의 2026-05-13)
-- [ ] **제품 출시** — 별도 세션 빌드 완료 즉시 배포 (브랜딩 확정 후)
-- [ ] **브랜딩 확정 → Postiz OAuth + 소셜 계정 + 첫 발행** — 브랜딩 대기 중
-- [ ] **인프라 모라토리엄** — 제품 출시 전 새 커맨드/에이전트 빌드 금지
+### High Priority
+- [ ] **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증, 동기화 이슈
+- [ ] **모델 오케스트레이션 강제 훅 등록** — enforce-model-param.sh + model-compliance.sh를 settings.json에 등록 (이번 세션 미완)
+- [ ] **MeiliSearch launchd 등록** — com.ateam.meilisearch.plist load (바이너리 설치 완료, 데몬 미등록)
+- [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
+- [x] **매일 OUTCOME 1개 외부 산출** — Standing Orders에 추가 (2026-06-01)
 
 ### Medium Priority
-- [x] **PPT 레드팀 갭 수정** — 6건 완료 + 파이프라인 라우팅 2건 추가 수정
-- [ ] **skt_statistics 디자인 토큰 주입** — GitLab clone → drift 분석 → 토큰 적용 (URL 대기)
-- [ ] **`/autoresearch` 파일럿 실행** — `/office-hours` baseline + 3-5 experiments
-- [ ] **`/blueprint` 실사용 1회** — 다음 기능을 blueprint로 문서화
-- [ ] **Phase 1.5 skip rate 실측** (pre-check 에이전트 첫 데이터)
+- [ ] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진 (YT 그룹C 도출)
+- [ ] **LSP 활성화** — settings.json 히든 플래그 + 언어서버 설치 (YT 그룹D 도출)
+- [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정 (PRD 성공 기준 기반)
+- [ ] **Stryker 첫 full run** — mutation score baseline 측정
+- [ ] **Ritual Board 이름 확정** — 완성 후 추천
 
 ### Low Priority / Future
 - [ ] Phase 1 Causal analysis (**보류**: 데이터 축적 후)
@@ -193,7 +182,8 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 2026-04-18 이전 세션 기록 → [.context/SESSIONS.md](SESSIONS.md)
 
 ## Blockers
-없음
+- VDI GitLab CE — 사내 서버(VM) 확보 필요 (IT팀 협의)
+- Obsidian Mobile 동기화 — iCloud symlink 또는 Working Copy 중 선택 필요 (실기기 테스트 후 결정)
 
 ## 배포 현황
 - GitHub: https://github.com/ne0cean/A-Team (master)
