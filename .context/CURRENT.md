@@ -60,19 +60,39 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-31) — Loose Coupling + Fire-and-forget 버그 수정
+## Last Completions (2026-05-31 PM) — 대규모 기능 추가 + 데이터 안전 구조 개선
 
-- **커스텀 스토어 캡슐화** — writable 직접 export 제거. 3 팩토리(DataStore/ValueStore/ToggleStore) 도입. DataStore는 set 미노출. 6개 컴포넌트 리팩토링
-- **도메인별 store 파일 분리** — stores/ 디렉토리 5파일 + barrel re-export
-- **Vitest 스토어 테스트 17건** — 603 tests PASS
-- **governance 규칙 등록** — `store-encapsulation.md` + API fire-and-forget 금지 규칙
-- **toggle/split/delete await 보장** — fire-and-forget → await + 실패 시 optimistic revert. HMR 리로드 시 데이터 소실 방지
-- **injectFrames 세션당 1회 제한** — sessionStorage로 중복 inject 방지
-- **Svelte 모듈 격리 리서치** — 8 sources, 부작용 위험 8건 기록
+- **섹션 구분자(separator)** — DayCell + Frames 어드민. `---label` 입력 또는 `―` 버튼. inject-frames에서 type 보존
+- **edit-item URL 저장 버그 수정** — Worker가 url 파라미터 무시하던 근본 버그 수정
+- **삭제 항목 재등장 차단** — `_dismissed` 리스트로 carry/frame 재주입 방지
+- **Optimistic locking** — `_version` 기반. version 없는 저장 409 거부. save 후 version 갱신. 409 시 자동 재시도
+- **PATCH API** — `/api/standing-orders/patch` 부분 업데이트. 전체 교체 없이 섹션별 수정
+- **URL 전용 API** — `/api/set-url` 링크만 독립 저장. 다른 필드 안 건드림
+- **Standing PATCH 전환** — toggleActive/editText/delSO/addSO/editSODate 모두 PATCH 사용
+- **htmlToMarkdown** — 모든 contenteditable blur에서 `<a>` → `[text](url)` 복원. Item/StandingOrders/Frames 전체 적용
+- **Ctrl+K 글로벌 링크** — 캘린더/리커링/프레임 어디서든 동작. 텍스트 선택 시 인라인 링크, 미선택 시 항목 URL
+- **링크 버튼** — Standing/Weekly/Monthly/Yearly/Frames 전 항목에 🔗 추가
+- **Ctrl+Z Undo** — D1 자동 백업에서 복원. lastChangedKey 추적
+- **카테고리 간 이동** — ↕ 셀렉터 + Alt+Shift+↑↓ + 드래그. 캘린더+Frames 양쪽
+- **복수 선택** — Shift+체크박스 다중 선택 → 일괄 카테고리 이동
+- **6 Pillars 카테고리** — hexagonal 추가 (weekday 전용, 빨간색)
+- **카테고리명 편집** — Frames 어드민에서 contenteditable. `_catNames`로 D1 저장
+- **Yearly temp/perm 분리** — TEMP(올해만) + YEARLY(매년 반복) 섹션 분리
+- **음력→양력 변환** — `lunar-sync.py` + 표기 반영 (엄마 3/8, 아버지 11/27)
+- **Standing 날짜 입력** — `use:setDate` 액션, 다양한 포맷(6.1/6월2 등)
+- **스케줄러 반영 버튼** — Standing/Weekly/Monthly/Yearly + Frames 타입별
+- **NoteViewer 마우스 뒤로가기** — Button 3/4로 Back 동작
+- **Twilight Mood board** — 자유 배치 + Shift 그리드 스냅 + 리사이즈 + localStorage
+- **Vision Board HTML** — 73카드 텍스트+링크 생성 (이미지 미완: 토큰 만료)
+- **보드 템플릿** — `templates/board-template.html` 범용 포맷 저장
+- **D1 동기화 스크립트** — `scripts/sync-local.sh` D1→로컬 단방향
+- **디자인 툴킷 리서치** — shadcn-svelte/Vercel AI SDK 6/Marp 등 평가 + 레드팀 리뷰
+- **패널 순서** — RECURRING→FRAMES→VISION. 기본 펼침
+- **input↔outcome 스왑** — 5월/6월/Frames 전체
 
-## Last Completions (2026-05-31, 이전) — Dashboard Decoupling + 병합 로직 재설계
+## Last Completions (2026-05-31 AM) — Loose Coupling + Fire-and-forget 버그 수정
 
-- contenteditable use:action 통일 / 인라인 마크다운 링크 / 병합 로직 재설계 / 레드팀 리뷰 / events 시스템 / RECURRING BOARD / 드래그+키보드 정렬 / Frames Admin 링크 / 배포 구조 수정 / Week view 기본+월경계 / yearly 교정 / 경로 인코딩 / D1 정화 / Twilight Mood board / Decoupling 리서치
+- 커스텀 스토어 캡슐화 / 도메인별 store 분리 / Vitest 17건 / governance 등록 / toggle/split/delete await / injectFrames 1회 제한 / contenteditable use:action / 인라인 마크다운 링크 / 병합 로직 재설계 / RECURRING BOARD / 드래그+키보드 / Frames Admin 링크 / Week view 월경계 / yearly 교정 / D1 정화 / Twilight Mood board / Decoupling 리서치
 
 ## Session Log (2026-05-30)
 
@@ -207,12 +227,11 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 - [ ] **Stryker 첫 full run** — mutation score baseline 측정
 
 ### Low Priority / Future
+- [ ] **Vision Board 이미지** — OneNote Graph API 토큰 갱신 후 이미지 다운로드 + HTML 반영
+- [ ] **Cortex 문서 copy 버튼** — 모든 문서 상단 링크 뒤에 복사 버튼 삽입
+- [ ] **무드보드 Alt+스냅 개선** — 리사이즈 시 주변 카드 반응형 밀어내기
 - [ ] Phase 1 Causal analysis (**보류**: 데이터 축적 후)
-- [ ] 외부 데이터 연결 GA4/Mixpanel (**보류**: 비즈니스 데이터 생길 때)
 - [ ] Playwright MCP Evaluator — qa.md → 실제 앱 실행 테스트
-- [ ] Generator→Evaluator 스프린트 루프
-- [ ] /design-md 슬래시 커맨드
-- [ ] Wave 1-3 실측 A/B 벤치 → 공식 tag
 - [ ] Advisor tool 라이브 API 테스트 (**보류**: API 크레딧 필요)
 
 ## Archive
@@ -221,7 +240,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 
 ## Blockers
 - VDI GitLab CE — 사내 서버(VM) 확보 필요 (IT팀 협의)
-- Obsidian Mobile 동기화 — iCloud symlink 또는 Working Copy 중 선택 필요 (실기기 테스트 후 결정)
+- OneNote Graph API 토큰 만료 — Vision Board 이미지 다운로드 불가. Graph Explorer 로그인 후 갱신 필요
 
 ## 배포 현황
 - GitHub: https://github.com/ne0cean/A-Team (master)
