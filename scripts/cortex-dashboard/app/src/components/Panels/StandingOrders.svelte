@@ -65,11 +65,16 @@
   function editYearlyText(i, text) { if (text.trim()) { standingData.mutate(s => { s.yearly[i].text = text.trim(); }); save(); } }
   function delYearly(i) { standingData.mutate(s => { s.yearly.splice(i, 1); }); save(); }
   let newYearlyMonth = 1, newYearlyDay = 0;
-  function addYearly(text) {
+  function addYearly(text, isTemp = false) {
     if (!text?.trim()) return;
-    standingData.mutate(s => { s.yearly.push({ month: newYearlyMonth, day: newYearlyDay, text: text.trim() }); });
+    const item = { month: newYearlyMonth, day: newYearlyDay, text: text.trim() };
+    if (isTemp) item.temp = true;
+    standingData.mutate(s => { s.yearly.push(item); });
     save();
   }
+
+  $: yearlyTemps = ($standingData?.yearly || []).map((y, i) => ({...y, _idx: i})).filter(y => y.temp);
+  $: yearlyPerms = ($standingData?.yearly || []).map((y, i) => ({...y, _idx: i})).filter(y => !y.temp);
 
   function moveItem(section, idx, dir) {
     standingData.mutate(s => {
@@ -273,24 +278,52 @@
       <input placeholder="Add this-month item..." on:keydown={(e) => { if (e.key === 'Enter') { addMonthlyItem(e.target.value); e.target.value = ''; } }}>
     </div>
   {:else if activeTab === 'yearly'}
-    {#each $standingData.yearly || [] as y, i}
+    <div class="section-title" style="color:#f0c040">TEMP (올해만)</div>
+    {#each yearlyTemps as y}
       <div class="so-item" class:current-month={y.month === $currentMonth} tabindex="0" draggable="true"
-        on:dragstart={(e) => onDragStart('yearly', i, e)}
+        on:dragstart={(e) => onDragStart('yearly', y._idx, e)}
         on:dragend={onDragEnd}
         on:dragover={onDragOver}
         on:dragleave={onDragLeave}
-        on:drop={(e) => onDrop('yearly', i, e)}
-        on:keydown={(e) => onItemKey('yearly', i, e)}>
+        on:drop={(e) => onDrop('yearly', y._idx, e)}
+        on:keydown={(e) => onItemKey('yearly', y._idx, e)}>
         <div class="so-move drag-handle">⠿</div>
-        <select value={y.month} on:change={(e) => editYearlyMonth(i, e.target.value)}>
+        <select value={y.month} on:change={(e) => editYearlyMonth(y._idx, e.target.value)}>
           {#each Array.from({length:12}, (_,m) => m+1) as mm}<option value={mm}>{mm}월</option>{/each}
         </select>
-        <select value={y.day || 0} on:change={(e) => editYearlyDay(i, e.target.value)}>
+        <select value={y.day || 0} on:change={(e) => editYearlyDay(y._idx, e.target.value)}>
           <option value={0}>-</option>
           {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}</option>{/each}
         </select>
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(i, e.target.textContent)} use:setText={y.text}></span>
-        <span class="del" on:click={() => delYearly(i)}>×</span>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(y._idx, e.target.textContent)} use:setText={y.text}></span>
+        <span class="del" on:click={() => delYearly(y._idx)}>×</span>
+      </div>
+    {/each}
+    <div class="add-row">
+      <select bind:value={newYearlyMonth}>{#each Array.from({length:12}, (_,m) => m+1) as mm}<option value={mm}>{mm}월</option>{/each}</select>
+      <select bind:value={newYearlyDay}><option value={0}>-</option>{#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}</option>{/each}</select>
+      <input placeholder="Add temp..." on:keydown={(e) => { if (e.key === 'Enter') { addYearly(e.target.value, true); e.target.value = ''; } }}>
+    </div>
+
+    <div class="section-title" style="color:#8b949e;margin-top:12px">YEARLY (매년 반복)</div>
+    {#each yearlyPerms as y}
+      <div class="so-item" class:current-month={y.month === $currentMonth} tabindex="0" draggable="true"
+        on:dragstart={(e) => onDragStart('yearly', y._idx, e)}
+        on:dragend={onDragEnd}
+        on:dragover={onDragOver}
+        on:dragleave={onDragLeave}
+        on:drop={(e) => onDrop('yearly', y._idx, e)}
+        on:keydown={(e) => onItemKey('yearly', y._idx, e)}>
+        <div class="so-move drag-handle">⠿</div>
+        <select value={y.month} on:change={(e) => editYearlyMonth(y._idx, e.target.value)}>
+          {#each Array.from({length:12}, (_,m) => m+1) as mm}<option value={mm}>{mm}월</option>{/each}
+        </select>
+        <select value={y.day || 0} on:change={(e) => editYearlyDay(y._idx, e.target.value)}>
+          <option value={0}>-</option>
+          {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}</option>{/each}
+        </select>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(y._idx, e.target.textContent)} use:setText={y.text}></span>
+        <span class="del" on:click={() => delYearly(y._idx)}>×</span>
       </div>
     {/each}
     <div class="add-row">
