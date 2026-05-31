@@ -323,7 +323,10 @@
       {@const sorted = sortItems(items)}
       {@const hasPending = items.some(i => !i.done)}
       {#if items.length > 0 || isToday}
-        <div class="category cat-{cat}" class:has-pending={hasPending}>
+        <div class="category cat-{cat}" class:has-pending={hasPending}
+          on:dragover|preventDefault={(e) => e.currentTarget.classList.add('drag-over')}
+          on:dragleave={(e) => e.currentTarget.classList.remove('drag-over')}
+          on:drop|preventDefault={(e) => { e.currentTarget.classList.remove('drag-over'); onItemDrop(e, cat, items.length); }}>
           <div class="cat-label cl-{cat}">
             <span>{CAT_NAMES[cat]}</span>
             <span class="cat-actions">
