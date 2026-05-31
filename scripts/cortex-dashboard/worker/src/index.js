@@ -530,7 +530,9 @@ export default {
           // --- Step 2: Resolve frame template for this day ---
           const dow = new Date(year, month - 1, d).getDay();
           const dayType = dd.day_type || (dow === 0 ? 'block' : (dow === 5 || dow === 6) ? 'flow' : 'weekday');
-          const frame = frames[dayType];
+          // Map hf → flow frame, vacation → block frame
+          const frameKey = dayType === 'hf' ? 'flow' : dayType === 'vacation' ? 'block' : dayType;
+          const frame = frames[frameKey];
 
           // --- Step 3: Merge per category ---
           for (const cat of CATS) {

@@ -17,6 +17,21 @@
   }
   $: workout = $workoutLog[todayDateKey()] || [];
   $: isCurrentMonth = new Date().getFullYear() === $currentYear && new Date().getMonth() + 1 === $currentMonth;
+  $: todayDay = String(new Date().getDate());
+  $: todayType = isCurrentMonth ? ($monthData.days?.[todayDay]?.day_type || null) : null;
+
+  async function setTodayType(type) {
+    if (!isCurrentMonth) return;
+    const newType = todayType === type ? null : type;
+    monthData.mutate(s => {
+      if (!s.days[todayDay]) s.days[todayDay] = {};
+      if (newType) s.days[todayDay].day_type = newType;
+      else delete s.days[todayDay].day_type;
+    });
+    await api.setDayType($ym, todayDay, newType);
+    await api.injectFrames($ym, Number(todayDay), Number(todayDay));
+    onReload();
+  }
 
   function prevPeriod() {
     $currentMonth--;
@@ -101,6 +116,9 @@
           <span class="workout-chip upper" class:on={workout.includes(g.label)}
             on:click={() => toggleWo(g.label)}>{g.label}</span>
         {/each}
+        <span class="workout-sep"></span>
+        <span class="day-type-chip" class:on={todayType === 'hf'} on:click={() => setTodayType('hf')}>HF</span>
+        <span class="day-type-chip vacation" class:on={todayType === 'vacation'} on:click={() => setTodayType('vacation')}>휴가</span>
       </div>
     {/if}
   </div>
