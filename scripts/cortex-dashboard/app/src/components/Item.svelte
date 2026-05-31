@@ -117,10 +117,20 @@
     focused = true;
   }
 
+  function htmlToMd(el) {
+    let r = '';
+    for (const n of el.childNodes) {
+      if (n.nodeType === 3) r += n.textContent;
+      else if (n.tagName === 'A') r += `[${n.textContent}](${n.href})`;
+      else r += n.textContent;
+    }
+    return r.trim();
+  }
+
   function handleBlur() {
     focused = false;
     if (suppressBlur) { suppressBlur = false; return; }
-    const newText = textEl.textContent.trim();
+    const newText = htmlToMd(textEl);
     if (newText !== item.text) {
       // Auto-detect URL
       const urlMatch = newText.match(/^(https?:\/\/\S+)$/);
