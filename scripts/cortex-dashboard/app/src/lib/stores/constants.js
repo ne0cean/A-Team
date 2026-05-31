@@ -1,5 +1,5 @@
 export const CATS = ['ritual', 'input', 'work', 'outcome'];
-export const CAT_NAMES = { ritual: 'R&R', input: 'Input', work: 'Work', outcome: 'Out' };
+export const CAT_NAMES = { ritual: 'R&R', input: 'Outcome', work: 'Work', outcome: 'Input' };
 export const CAT_COLORS = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', outcome: '#bc8cff' };
 export const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 export const TYPES = ['block', 'flow', 'hf', 'vacation'];
