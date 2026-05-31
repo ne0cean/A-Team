@@ -154,6 +154,7 @@
   on:dragleave={(e) => e.currentTarget.classList.remove('drag-over')}
   on:drop|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.classList.remove('drag-over'); dispatch('drop', { e, index }); }}
 >
+  <span class="drag-handle" style="cursor:grab;color:#484f58;font-size:10px;padding:0 2px;display:none">⠿</span>
   <input type="checkbox" checked={item.done} on:change={handleToggle}>
   <span
     class="item-text"

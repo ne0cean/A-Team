@@ -366,11 +366,13 @@
           on:dragover|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.classList.add('drag-over'); }}
           on:dragleave={(e) => e.currentTarget.classList.remove('drag-over')}
           on:drop|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.classList.remove('drag-over'); onItemDrop(e, cat, items.length); }}>
-          <div class="cat-label cl-{cat}" draggable="true"
-            on:dragstart={(e) => onCatDragStart(cat, e)}
-            on:dragover|preventDefault={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-            on:dragleave={(e) => e.currentTarget.style.background = ''}
-            on:drop={(e) => { e.currentTarget.style.background = ''; onCatDrop(cat, e); }}>
+          <div class="cat-label cl-{cat}">
+            <span class="cat-drag-handle" draggable="true"
+              on:dragstart={(e) => onCatDragStart(cat, e)}
+              on:dragover|preventDefault={(e) => e.currentTarget.parentElement.style.background = 'rgba(255,255,255,0.08)'}
+              on:dragleave={(e) => e.currentTarget.parentElement.style.background = ''}
+              on:drop|preventDefault={(e) => { e.currentTarget.parentElement.style.background = ''; onCatDrop(cat, e); }}
+            >⠿</span>
             <span>{CAT_NAMES[cat]}</span>
             <span class="cat-actions">
               <span class="cat-sep-add" on:click={() => addSeparator(cat)}>―</span>
