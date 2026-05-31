@@ -75,25 +75,14 @@
     return `${s.date_month}/${s.date_day || ''}`;
   }
 
-  function setDate(node, s) {
-    let focused = false;
-    const onFocus = () => { focused = true; };
-    const onBlur = () => { focused = false; };
-    node.addEventListener('focus', onFocus);
-    node.addEventListener('blur', onBlur);
-
-    function render(s) {
-      if (focused) return;
-      node.value = formatDate(s);
-    }
-    render(s);
-    return {
-      update: render,
-      destroy() {
-        node.removeEventListener('focus', onFocus);
-        node.removeEventListener('blur', onBlur);
+  let editingDateIdx = -1;
+  let dateInputs = [];
+  $: {
+    ($standingData?.standing || []).forEach((s, i) => {
+      if (i !== editingDateIdx) {
+        dateInputs[i] = formatDate(s);
       }
-    };
+    });
   }
 
   function insertSOLink(i) {
@@ -434,8 +423,9 @@
           on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertSOLink(i); } }}
           use:setText={s.text}></span>
         <input class="so-date" type="text" placeholder="날짜"
-          use:setDate={s}
-          on:blur={(e) => editSODate(i, e.target.value)}
+          bind:value={dateInputs[i]}
+          on:focus={() => { editingDateIdx = i; }}
+          on:blur={(e) => { editingDateIdx = -1; editSODate(i, e.target.value); }}
           on:keydown={(e) => e.key === 'Enter' && e.target.blur()}>
         <span class="link-btn" on:click={() => insertSOLink(i)} title="링크 추가">&#128279;</span>
         <span style="flex:1"></span>
