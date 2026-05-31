@@ -123,23 +123,31 @@
       // 2. Recurring board item (.so-item contenteditable)
       const soItem = active.closest('.so-item');
       if (soItem) {
-        const url = prompt('URL', '');
-        if (!url) return;
-        const sel = window.getSelection();
-        const selectedText = sel?.toString().trim();
-        const label = selectedText || prompt('표시 텍스트', active.textContent?.trim() || 'link');
-        if (!label) return;
-        // Insert markdown link at cursor or replace selection
-        if (selectedText && sel.rangeCount) {
-          const range = sel.getRangeAt(0);
-          range.deleteContents();
-          const a = document.createElement('a');
-          a.href = url; a.target = '_blank'; a.textContent = label;
-          range.insertNode(a);
+        // 기존 링크 편집: 커서 근처 <a> 태그 감지
+        const sel2 = window.getSelection();
+        const nearAnchor = sel2?.anchorNode?.parentElement?.closest('a') || sel2?.anchorNode?.closest?.('a');
+        if (nearAnchor) {
+          const curUrl = nearAnchor.href || '';
+          const curLabel = nearAnchor.textContent || '';
+          const url = prompt('URL', curUrl); if (!url) return;
+          const label = prompt('표시 텍스트', curLabel); if (!label) return;
+          nearAnchor.href = url; nearAnchor.textContent = label;
+          active.dispatchEvent(new Event('blur'));
         } else {
-          active.textContent = `[${label}](${url})`;
+          const selectedText = sel2?.toString().trim() || '';
+          const url = prompt('URL', ''); if (!url) return;
+          const label = selectedText || prompt('표시 텍스트', active.textContent?.trim() || 'link'); if (!label) return;
+          if (selectedText && sel2.rangeCount) {
+            const range = sel2.getRangeAt(0);
+            range.deleteContents();
+            const a = document.createElement('a');
+            a.href = url; a.target = '_blank'; a.textContent = label;
+            range.insertNode(a);
+          } else {
+            active.textContent = `[${label}](${url})`;
+          }
+          active.dispatchEvent(new Event('blur'));
         }
-        active.dispatchEvent(new Event('blur'));
         return;
       }
 

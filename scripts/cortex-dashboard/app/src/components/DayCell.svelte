@@ -225,13 +225,11 @@
   function sortItems(items) {
     const indexed = items.map((item, i) => ({ ...item, _origIdx: i }));
     if (indexed.some(i => i.type === 'separator')) return indexed;
-    const numbered = indexed.filter(i => /^\d/.test(i.text));
-    const others = indexed.filter(i => !/^\d/.test(i.text));
-    numbered.sort((a, b) => {
-      const na = parseFloat(a.text) || 0;
-      const nb = parseFloat(b.text) || 0;
-      return nb - na;
-    });
+    // 순수 숫자/소수점만 앞에 오는 항목만 정렬 (시간 "8:30", "3시" 등 제외)
+    const isScore = t => /^\d+(\.\d+)?(\s|$)/.test(t);
+    const numbered = indexed.filter(i => isScore(i.text));
+    const others = indexed.filter(i => !isScore(i.text));
+    numbered.sort((a, b) => (parseFloat(b.text) || 0) - (parseFloat(a.text) || 0));
     return [...numbered, ...others];
   }
 

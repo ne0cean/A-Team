@@ -56,21 +56,23 @@
     api.patchStandingOrders('standing', 'add', item);
   }
 
-  // Parse date from various formats: "6.1", "6/2", "6월 2", "6-2", "6 2"
-  function parseDate(input) {
-    if (!input || !input.trim()) return null;
-    const s = input.trim();
+  // Parse one date token: "6/16", "6.16", "6월16", "16"
+  function _parseOne(raw) {
+    const s = raw.trim();
     const m = s.match(/^(\d{1,2})\s*[\.\/\-월\s]\s*(\d{1,2})일?$/);
     if (m) return { month: +m[1], day: +m[2] };
-    // Single number = day of current month
-    if (/^\d{1,2}$/.test(s)) {
-      const now = new Date();
-      return { month: now.getMonth() + 1, day: +s };
-    }
+    if (/^\d{1,2}$/.test(s)) return { month: new Date().getMonth() + 1, day: +s };
     return null;
+  }
+  // Parse comma-separated dates: "6/16, 6/30, 7/14"
+  function parseDates(input) {
+    if (!input?.trim()) return null;
+    const results = input.split(/[,，]/).map(p => _parseOne(p)).filter(Boolean);
+    return results.length ? results : null;
   }
 
   function formatDate(s) {
+    if (s?.dates?.length) return s.dates.map(d => `${d.month}/${d.day}`).join(', ');
     if (!s?.date_month) return '';
     return `${s.date_month}/${s.date_day || ''}`;
   }
@@ -102,16 +104,20 @@
   }
 
   async function editSODate(i, input) {
-    const parsed = parseDate(input);
-    const patch = parsed ? { date_month: parsed.month, date_day: parsed.day } : { date_month: null, date_day: null };
+    const parsed = parseDates(input);
+    let patch;
+    if (!parsed) {
+      patch = { date_month: null, date_day: null, dates: null };
+    } else if (parsed.length === 1) {
+      patch = { date_month: parsed[0].month, date_day: parsed[0].day, dates: null };
+    } else {
+      patch = { dates: parsed, date_month: null, date_day: null };
+    }
     standingData.mutate(s => {
-      if (parsed) {
-        s.standing[i].date_month = parsed.month;
-        s.standing[i].date_day = parsed.day;
-      } else {
-        delete s.standing[i].date_month;
-        delete s.standing[i].date_day;
-      }
+      const item = s.standing[i];
+      if (parsed?.length === 1) { item.date_month = parsed[0].month; item.date_day = parsed[0].day; delete item.dates; }
+      else if (parsed?.length > 1) { item.dates = parsed; delete item.date_month; delete item.date_day; }
+      else { delete item.date_month; delete item.date_day; delete item.dates; }
     });
     await api.patchStandingOrders('standing', 'edit', patch, i);
   }
@@ -123,8 +129,12 @@
 
     if (section === 'standing') {
       items = ($standingData.standing || [])
-        .filter(s => s.active && s.date_month === m && s.date_day)
-        .map(s => ({ text: s.text, day: s.date_day, cat: s.category || 'outcome' }));
+        .filter(s => s.active)
+        .flatMap(s => {
+          if (s.dates?.length) return s.dates.filter(d => d.month === m).map(d => ({ text: s.text, day: d.day, cat: s.category || 'outcome' }));
+          if (s.date_month === m && s.date_day) return [{ text: s.text, day: s.date_day, cat: s.category || 'outcome' }];
+          return [];
+        });
     } else if (section === 'weekly') {
       const dim = new Date(y, m, 0).getDate();
       for (const w of ($standingData.weekly_recurring || [])) {
@@ -209,18 +219,31 @@
 
   // This-month items — monthly는 object이므로 section replace
   function editMonthlyItem(i, text) {
-    standingData.mutate(s => { s.monthly[$ym][i] = text.trim(); });
+    standingData.mutate(s => {
+      const cur = s.monthly[$ym][i];
+      s.monthly[$ym][i] = typeof cur === 'object' ? { ...cur, text: text.trim() } : text.trim();
+    });
     api.patchStandingOrders('monthly', 'replace', $standingData.monthly);
   }
   function delMonthlyItem(i) {
     standingData.mutate(s => { s.monthly[$ym].splice(i, 1); });
     api.patchStandingOrders('monthly', 'replace', $standingData.monthly);
   }
-  function addMonthlyItem(text) {
+  function addMonthlyItem(text, category = '') {
     if (!text?.trim()) return;
-    standingData.mutate(s => { if (!s.monthly[$ym]) s.monthly[$ym] = []; s.monthly[$ym].push(text.trim()); });
+    const item = category ? { text: text.trim(), category } : text.trim();
+    standingData.mutate(s => { if (!s.monthly[$ym]) s.monthly[$ym] = []; s.monthly[$ym].push(item); });
     api.patchStandingOrders('monthly', 'replace', $standingData.monthly);
   }
+
+  $: {
+    const all = ($standingData.monthly?.[$ym] || []);
+    monthlyGeneral  = all.map((x,i)=>({...(typeof x==='string'?{text:x}:x),_idx:i})).filter(x=>!x.category);
+    monthlyOutcome  = all.map((x,i)=>({...(typeof x==='string'?{text:x}:x),_idx:i})).filter(x=>x.category==='outcome');
+    monthlyInput    = all.map((x,i)=>({...(typeof x==='string'?{text:x}:x),_idx:i})).filter(x=>x.category==='input');
+    monthlyWork     = all.map((x,i)=>({...(typeof x==='string'?{text:x}:x),_idx:i})).filter(x=>x.category==='work');
+  }
+  let monthlyGeneral=[], monthlyOutcome=[], monthlyInput=[], monthlyWork=[];
 
   // Yearly — PATCH only
   function editYearlyMonth(i, m) { standingData.mutate(s => { s.yearly[i].month = +m; }); api.patchStandingOrders('yearly', 'edit', { month: +m }, i); }
@@ -488,19 +511,24 @@
         <input placeholder="Add monthly recurring..." on:keydown={(e) => { if (e.key === 'Enter') { addMR(e.target.value); e.target.value = ''; } }}>
       </div>
     {/if}
-    <div class="section-title">{$ym} ONLY</div>
-    {#each $standingData.monthly?.[$ym] || [] as item, i}
-      <div class="so-item">
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editMonthlyItem(i, htmlToMarkdown(e.target))}
-          on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertMonthlyItemLink(i); } }}
-          use:setText={typeof item === 'string' ? item : item.text}></span>
-        <span class="link-btn" on:click={() => insertMonthlyItemLink(i)} title="링크 추가">&#128279;</span>
-        <span class="del" on:click={() => delMonthlyItem(i)}>×</span>
-      </div>
+    {#each [['GENERAL','',monthlyGeneral],['OUTCOME','outcome',monthlyOutcome],['INPUT','input',monthlyInput],['WORK','work',monthlyWork]] as [label, cat, group]}
+      {#if group.length > 0 || cat === ''}
+        <div class="section-title" style={cat==='work'?'color:#f0884d':cat==='outcome'?'color:#58a6ff':cat==='input'?'color:#bc8cff':''}>{$ym} {label}</div>
+        {#each group as item}
+          <div class="so-item">
+            <span contenteditable="true" style="flex:1"
+              on:blur={(e) => editMonthlyItem(item._idx, htmlToMarkdown(e.target))}
+              on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertMonthlyItemLink(item._idx); } }}
+              use:setText={item.text}></span>
+            <span class="link-btn" on:click={() => insertMonthlyItemLink(item._idx)} title="링크 추가">&#128279;</span>
+            <span class="del" on:click={() => delMonthlyItem(item._idx)}>×</span>
+          </div>
+        {/each}
+        <div class="add-row">
+          <input placeholder="Add {label.toLowerCase()}..." on:keydown={(e) => { if (e.key === 'Enter') { addMonthlyItem(e.target.value, cat); e.target.value = ''; } }}>
+        </div>
+      {/if}
     {/each}
-    <div class="add-row">
-      <input placeholder="Add this-month item..." on:keydown={(e) => { if (e.key === 'Enter') { addMonthlyItem(e.target.value); e.target.value = ''; } }}>
-    </div>
     <button class="inject-btn" on:click={() => injectSection('monthly')}>📅 스케줄러 반영</button>
   {:else if activeTab === 'yearly'}
     <div class="section-title" style="color:#f0c040">TEMP (올해만)</div>

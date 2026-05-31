@@ -422,7 +422,7 @@ export default {
           return new Response(JSON.stringify({ error: 'no standing-orders data' }), { status: 404, headers });
         }
         const arr = data[section];
-        if (!Array.isArray(arr) && action !== 'set') {
+        if (!Array.isArray(arr) && action !== 'set' && action !== 'replace') {
           return new Response(JSON.stringify({ error: `section "${section}" is not an array` }), { status: 400, headers });
         }
         if (action === 'add') {
