@@ -163,6 +163,7 @@
 
   function sortItems(items) {
     const indexed = items.map((item, i) => ({ ...item, _origIdx: i }));
+    if (indexed.some(i => i.type === 'separator')) return indexed;
     const numbered = indexed.filter(i => /^\d/.test(i.text));
     const others = indexed.filter(i => !/^\d/.test(i.text));
     numbered.sort((a, b) => {
@@ -171,6 +172,15 @@
       return nb - na;
     });
     return [...numbered, ...others];
+  }
+
+  let sepEls = {};
+  async function onSepBlur(e, cat, origIdx) {
+    const label = e.target.textContent.trim();
+    const items = dayData[cat] || [];
+    if (label !== items[origIdx]?.text) {
+      await api.editItem($ym, String(d), cat, origIdx, label, '');
+    }
   }
 
   function setOneThing(node, text) {
@@ -197,6 +207,15 @@
   async function addNewItem(cat, value) {
     if (!value.trim()) return;
     const t = value.trim();
+    // Separator: --- or ---label
+    if (/^---/.test(t)) {
+      const label = t.replace(/^-{3,}\s*/, '');
+      await api.addItem($ym, String(d), cat, label, '', 'separator');
+      newInputs[cat] = false;
+      newInputs = newInputs;
+      dispatch('reload');
+      return;
+    }
     // Auto-detect URL
     const urlMatch = t.match(/^(https?:\/\/\S+)$/);
     const mixedMatch = !urlMatch && t.match(/^(.+?)\s+(https?:\/\/\S+)$/);
@@ -305,16 +324,32 @@
             <span class="cat-add" on:click={() => showNewInput(cat)}>+</span>
           </div>
           {#each sorted as sitem (sitem._origIdx)}
-            <Item item={sitem} index={sitem._origIdx} day={d} category={cat}
-              on:toggle={(e) => onItemToggle(e, cat)}
-              on:split={(e) => onSplit(e, cat)}
-              on:edit={(e) => onEdit(e, cat)}
-              on:delete={(e) => onDelete(e, cat)}
-              on:link={(e) => onLink(e, cat)}
-              on:navigate={(e) => onNavigate(e, cat)}
-              on:dragstart={(e) => onDragStart(e.detail.e, cat, sitem._origIdx)}
-              on:drop={(e) => onItemDrop(e.detail.e, cat, sitem._origIdx)}
-            />
+            {#if sitem.type === 'separator'}
+              <div class="item-sep" draggable="true"
+                on:dragstart={(e) => onDragStart(e, cat, sitem._origIdx)}
+                on:dragover|preventDefault={(e) => e.currentTarget.classList.add('drag-over')}
+                on:dragleave={(e) => e.currentTarget.classList.remove('drag-over')}
+                on:drop|preventDefault={(e) => { e.currentTarget.classList.remove('drag-over'); onItemDrop(e, cat, sitem._origIdx); }}
+              >
+                <span class="sep-label" contenteditable="true" spellcheck="false"
+                  on:blur={(e) => onSepBlur(e, cat, sitem._origIdx)}
+                  on:keydown={(e) => e.key === 'Enter' && !e.isComposing && (e.preventDefault(), e.target.blur())}
+                >{sitem.text}</span>
+                <hr class="sep-line">
+                <span class="del-btn" on:click={() => onDelete({ detail: { index: sitem._origIdx } }, cat)}>&#215;</span>
+              </div>
+            {:else}
+              <Item item={sitem} index={sitem._origIdx} day={d} category={cat}
+                on:toggle={(e) => onItemToggle(e, cat)}
+                on:split={(e) => onSplit(e, cat)}
+                on:edit={(e) => onEdit(e, cat)}
+                on:delete={(e) => onDelete(e, cat)}
+                on:link={(e) => onLink(e, cat)}
+                on:navigate={(e) => onNavigate(e, cat)}
+                on:dragstart={(e) => onDragStart(e.detail.e, cat, sitem._origIdx)}
+                on:drop={(e) => onItemDrop(e.detail.e, cat, sitem._origIdx)}
+              />
+            {/if}
           {/each}
           {#if newInputs[cat]}
             <div class="new-item active">

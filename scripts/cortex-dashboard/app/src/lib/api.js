@@ -34,8 +34,10 @@ export async function saveMonth(ym, data) {
 export async function toggleItem(ym, day, category, index) {
   return request('/api/toggle', { method: 'POST', body: JSON.stringify({ ym, day, category, index }) });
 }
-export async function addItem(ym, day, category, text, url = '') {
-  return request('/api/add-item', { method: 'POST', body: JSON.stringify({ ym, day, category, text, url }) });
+export async function addItem(ym, day, category, text, url = '', type = '') {
+  const body = { ym, day, category, text, url };
+  if (type) body.type = type;
+  return request('/api/add-item', { method: 'POST', body: JSON.stringify(body) });
 }
 export async function editItem(ym, day, category, index, text, url = '') {
   return request('/api/edit-item', { method: 'POST', body: JSON.stringify({ ym, day, category, index, text, url }) });

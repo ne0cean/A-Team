@@ -146,14 +146,16 @@ export default {
 
       // --- Add Item (append) ---
       if (path === '/api/add-item' && method === 'POST') {
-        const { ym, day, category, text, url: itemUrl } = await request.json();
+        const { ym, day, category, text, url: itemUrl, type: itemType } = await request.json();
         if (!validYm(ym) || !validDay(day) || !validCategory(category) || typeof text !== 'string' || !validUrl(itemUrl)) {
           return new Response(JSON.stringify({ error: 'invalid item payload' }), { status: 400, headers });
         }
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
         if (!data.days[day]) data.days[day] = {};
         if (!data.days[day][category]) data.days[day][category] = [];
-        data.days[day][category].push({ text, url: itemUrl || '', done: false });
+        const newItem = { text, url: itemUrl || '', done: false };
+        if (itemType === 'separator') newItem.type = 'separator';
+        data.days[day][category].push(newItem);
         await setKey(ym, data);
         return new Response(JSON.stringify({ ok: true }), { headers });
       }
