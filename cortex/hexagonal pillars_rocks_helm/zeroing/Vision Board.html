@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vision Board</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Vision Board</div>
+<div class="date">2020년 2월 16일 일요일 오후 9:29</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'vision-board-v1';
+const IMG_BASE = '../../attachments/onenote/';
+const DEFAULT_CARDS = [{"type": "text", "content": "Vision Board", "w": 260}, {"type": "text", "content": "<a href=\"https://www.instagram.com/reel/C3j55KJPA4H/?igsh=MXF1aThibWd1NWUyZw==\" target=\"_blank\">부의</a> 갓길 차선", "w": 320}, {"type": "text", "content": "<a href=\"https://www.instagram.com/reel/C8Y71lZRuvF/?igsh=MTJwZHFjOWttcW81dA==\" target=\"_blank\">샘알트먼</a>", "w": 320}, {"type": "text", "content": "태도가, 서사다.", "w": 260}, {"type": "text", "content": "필생의 사랑을 할 것", "w": 260}, {"type": "text", "content": "필생의 업을 가질 것", "w": 260}, {"type": "text", "content": "이미 다 이룬 것으로 느끼고, 행동 하라.", "w": 260}, {"type": "text", "content": "뇌는 믿는 것을 실행한다. 사이보그가 되자.", "w": 260}, {"type": "text", "content": "CEO로 아침을 시작해, 살아.", "w": 260}, {"type": "text", "content": "회사일 이외의 모든 것이,", "w": 260}, {"type": "text", "content": "게임이고 스포츠여야해. flow", "w": 260}, {"type": "text", "content": "<a href=\"onenote:#Emergency&amp;section-id={CBF7625B-8DE4-A940-B1B4-5863C667B7A9}&amp;page-id={9762EE68-3081-4BAC-8543-B14ABF67F58D}&amp;end&amp;base-path=https://d.docs.live.net/733661839CC53BA5/문서/Inter_source/InterStellar/1_Projects/Zeroing.one\" target=\"_blank\">Emergency</a>/ Fake it till you make it → Fearless.peerless", "w": 320}, {"type": "text", "content": "나는 매일 모든면에서 더 나이지고 있다.", "w": 260}, {"type": "text", "content": "아쉬울 것 없는, 내일이 없어도 되는, 그리하여 명랑한 어른", "w": 260}, {"type": "text", "content": "이제부터는 관계가 성과다. 다른 사람이 너를 만나서 느끼는 느낌/감정. 여유, 그게 전부야. 친절은 힘보다 강하다.", "w": 260}, {"type": "text", "content": "사실인가, 필요한가, 친절한가, 나만 할 수 있는 말인가?", "w": 260}, {"type": "text", "content": "스트레스를 운영해라, 그래야 게임에 낄 수 있다.", "w": 260}, {"type": "text", "content": "외로움을 길들일 수 있다면, 이 자유가 모두 네 거야.", "w": 260}, {"type": "text", "content": "<span style=\"color:#484f58\">[이미지 - 수동 추가 필요]</span>", "w": 200}, {"type": "text", "content": "<b style=\"font-size:18px;color:#f0c040\">Family - 존경 받는 명가</b>", "w": 300}, {"type": "text", "content": "<b style=\"font-size:18px;color:#f0c040\">Interstellar</b>", "w": 300}, {"type": "text", "content": "<b style=\"font-size:18px;color:#f0c040\">Community=Peer</b>", "w": 300}, {"type": "text", "content": "금가람/ 황세연/ 이수림", "w": 260}, {"type": "text", "content": "케이트블란챗/ 제니퍼로렌스/ 레이첼 맥아담스", "w": 260}, {"type": "text", "content": "백선영/ 문지원/ 신민정/ 장소라/ 가영?", "w": 260}, {"type": "text", "content": "황혜진/ 아주라/ 정소민/ 박은빈/ 서메리", "w": 260}, {"type": "text", "content": "전지현 / 이유영/ 엄지원/", "w": 260}, {"type": "text", "content": "강지영/ 키릴", "w": 260}, {"type": "text", "content": "성격 - 촘미, 김원희, <a href=\"https://www.instagram.com/peitakagin?igsh=MWphbzlscWRreHgzcA==\" target=\"_blank\">뚯밖의 이상형</a>", "w": 320}, {"type": "text", "content": "장도연, 김원희, 원지안, 최수연, 이은규", "w": 260}, {"type": "text", "content": "<span style=\"color:#484f58\">[이미지 - 수동 추가 필요]</span>", "w": 200}, {"type": "text", "content": "Goal", "w": 260}, {"type": "text", "content": "Deadline", "w": 260}, {"type": "text", "content": "올해 하고 싶은 실패는, 이런거야.￼제품을 런칭했는데 MAU, 매출이 내가 생각한 수준(이게 있어겠지)에 못 미치는 것. 그래서 피봇을 5번 이상 하는 것.", "w": 260}, {"type": "text", "content": "Geo connetome 글로벌런칭 - MAU 500만, 매출 ##달러 Market cap. 1B의 기업가", "w": 260}, {"type": "text", "content": "뉴욕/실리콘밸리 에서 일하고 살고 싶다.", "w": 260}, {"type": "text", "content": "<span style=\"color:#484f58\">[이미지 - 수동 추가 필요]</span>", "w": 200}, {"type": "text", "content": "<a href=\"https://www.youtube.com/watch?v=WrZLUx7B5gQ\" target=\"_blank\">New York</a> City &#128509; [4K] - Manhattan at Night! Experience the City!", "w": 320}, {"type": "text", "content": "<a href=\"https://www.google.com/maps/place/New+York+Comedy+Club+-+East+Village/@40.7547278,-73.9841896,3a,75y,138.75h,80.81t/data=!3m7!1e1!3m5!1s2ipawk13mX4kGhmTajl5Pg!2e0!6shttps:%2F%2Fstreetviewpixels-pa.googleapis.com%2Fv1%2Fthumbnail%3Fcb_client%3Dmaps_sv.tactile%26w%3D900%26h%3D600%26pitch%3D9.188075273303681%26panoid%3D2ipawk13mX4kGhmTajl5Pg%26yaw%3D138.74989093370937!7i16384!8i8192!4m15!1m8!3m7!1s0x89c24fa5d33f083b:0xc80b8f06e177fe62!2sNew+York,+NY,+USA!3b1!8m2!3d40.7127753!4d-74.0059728!16zL20vMDJfMjg2!3m5!1s0x89c2590ae00ff4a3:0xc2c6270cfe87b198!8m2!3d40.7266204!4d-73.9897826!16s%2Fg%2F11gkrpz1tw?entry=ttu&amp;g_ep=EgoyMDI1MDYwMS4wIKXMDSoASAFQAw%3D%3D\" target=\"_blank\">New York Street view</a>", "w": 320}, {"type": "text", "content": "빌게이츠 세상의 문제를 해결하는 어른", "w": 260}, {"type": "text", "content": "세상의 문제를 해결하면. 그런 사람이 되는거지.", "w": 260}, {"type": "text", "content": "<span style=\"color:#484f58\">[이미지 - 수동 추가 필요]</span>", "w": 200}, {"type": "text", "content": "<a href=\"https://www.instagram.com/reel/DALwszQSIZ2/?igsh=MWU5YmZ2NHJtaGsyeA==\" target=\"_blank\">https://www.instagram.com/reel/DALwszQSIZ2/?igsh=MWU5YmZ2NHJtaGsyeA==</a>", "w": 320}, {"type": "text", "content": "1원칙 사고, 기계적으로 시도하고 실패하고, 다시 시도해", "w": 260}, {"type": "text", "content": "매몰비용과 감정의 Bais에 매몰되지 마. Don think, Just Do.", "w": 260}, {"type": "text", "content": "<span style=\"color:#484f58\">[이미지 - 수동 추가 필요]</span>", "w": 200}, {"type": "text", "content": "<b style=\"font-size:18px;color:#f0c040\">Serendipity</b>", "w": 300}, {"type": "text", "content": "<b style=\"font-size:18px;color:#f0c040\">Character - 어떤 기분, 성과, 사람으로 하루를 살 것인가</b>", "w": 300}, {"type": "text", "content": "Zeroing 기분 좋아지는, 만나고 싶은 어른, 따듯한 Pro", "w": 260}, {"type": "text", "content": "사람들이 너와 함께 할 때 느끼는 기분이, 곧 너다.￼타인과 세상에 대한 호기심/호감 + 친절함 + 바라는 것 없어 아쉬울 것 없고, 그래서 두려움이 없고, 명랑한 사람", "w": 260}, {"type": "text", "content": "호의를 반복해서 둘리가 되자.", "w": 260}, {"type": "text", "content": "친절만큼 보편적이면서도 절대적이고, ￼또한 즉각적인 효과를 보이는 마법은 없다.", "w": 260}, {"type": "text", "content": "소리내어 하는 인사는 가장 효과적인 브랜딩이다.", "w": 260}, {"type": "text", "content": "나라면, 지금의 나라면", "w": 260}, {"type": "text", "content": "맷보머", "w": 260}, {"type": "text", "content": "<b style=\"font-size:18px;color:#f0c040\">Assets</b>", "w": 300}, {"type": "text", "content": "Goal", "w": 260}, {"type": "text", "content": "Deadline", "w": 260}, {"type": "text", "content": "<span style=\"color:#484f58\">[이미지 - 수동 추가 필요]</span>", "w": 200}, {"type": "text", "content": "Matt Bomer (맷 보머)", "w": 260}, {"type": "text", "content": "<span style=\"color:#484f58\">[이미지 - 수동 추가 필요]</span>", "w": 200}, {"type": "text", "content": "<b style=\"font-size:18px;color:#f0c040\">Work</b>", "w": 300}, {"type": "text", "content": "<span style=\"color:#484f58\">[이미지 - 수동 추가 필요]</span>", "w": 200}, {"type": "text", "content": "여러분은 특별해질 수 있어요. 다르게 되는 것을 두려워하지 마세요. 여러분이 정말로 하고 싶은 일에 온전히 몰두하세요.", "w": 260}, {"type": "text", "content": "<span style=\"color:#484f58\">[이미지 - 수동 추가 필요]</span>", "w": 200}, {"type": "text", "content": "출처: &lt;<a href=\"https://maily.so/josh/posts/5xrxkxgyo2v\" target=\"_blank\">https://maily.so/josh/posts/5xrxkxgyo2v</a>&gt;", "w": 320}, {"type": "text", "content": "<a href=\"https://youtu.be/8-Mqmhh6f7E?t=223\" target=\"_blank\">결과가</a> 아니라 과정을 이미지화", "w": 260}, {"type": "text", "content": "Kill the boy", "w": 260}, {"type": "text", "content": "<span style=\"color:#484f58\">[이미지 - 수동 추가 필요]</span>", "w": 200}, {"type": "text", "content": "<a href=\"https://www.instagram.com/reels/DT0NzO_iRIz/\" target=\"_blank\">https://www.instagram.com/reels/DT0NzO_iRIz/</a>", "w": 320}, {"type": "text", "content": "<span style=\"color:#484f58\">[이미지 - 수동 추가 필요]</span>", "w": 200}, {"type": "text", "content": "결과가 아닌,", "w": 260}, {"type": "text", "content": "과정의 시각화", "w": 260}];
+
+let cards = [];
+let moving = null, resizing = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  if (saved) { cards = JSON.parse(saved); } else { cards = DEFAULT_CARDS.map(c => ({...c})); }
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString(); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

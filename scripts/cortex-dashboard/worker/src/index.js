@@ -541,11 +541,14 @@ export default {
                 if (dismissed.has(text) && itemType !== 'separator') continue;
                 const existingItem = oldFrame.find(i => i.text === text && i.type === itemType);
                 if (existingItem) {
+                  // Backfill URL from urlMap if existing lost it
+                  if (!existingItem.url && urlMap.has(text)) existingItem.url = urlMap.get(text);
                   newFrame.push(existingItem);
                 } else {
                   // Skip if manual already has same text (don't create duplicate)
                   if (itemType === 'separator' || !manual.some(i => i.text === text)) {
-                    const newItem = { text, url: itemUrl, done: false, _frame: true };
+                    const resolvedUrl = itemUrl || urlMap.get(text) || '';
+                    const newItem = { text, url: resolvedUrl, done: false, _frame: true };
                     if (itemType) newItem.type = itemType;
                     newFrame.push(newItem);
                     injected++;
