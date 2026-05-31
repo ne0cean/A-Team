@@ -28,17 +28,83 @@
     });
     // Cortex internal link handler
     window.addEventListener('open-cortex-file', (e) => openNote(e.detail));
-    // Ctrl+K: open link popup for focused item
+    // Ctrl+K: global link shortcut
     document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        const itemEl = document.activeElement?.closest('.item');
-        if (itemEl) {
-          const d = +itemEl.dataset.d;
-          const cat = itemEl.dataset.cat;
-          const idx = +itemEl.dataset.idx;
-          if (d && cat && idx >= 0) onOpenLink({ d, cat, index: idx });
+      if (!((e.ctrlKey || e.metaKey) && e.key === 'k')) return;
+      e.preventDefault();
+      const active = document.activeElement;
+      if (!active) return;
+
+      // 1. Calendar item (.item with data-d/data-cat/data-idx)
+      const calItem = active.closest('.item[data-d][data-cat]');
+      if (calItem) {
+        const d = +calItem.dataset.d;
+        const cat = calItem.dataset.cat;
+        const idx = +calItem.dataset.idx;
+        if (d && cat && idx >= 0) {
+          // Check if text is selected → inline markdown link
+          const sel = window.getSelection();
+          if (sel && sel.toString().trim()) {
+            const selectedText = sel.toString().trim();
+            const url = prompt('URL', '');
+            if (url) {
+              const range = sel.getRangeAt(0);
+              range.deleteContents();
+              const a = document.createElement('a');
+              a.href = url; a.target = '_blank'; a.textContent = selectedText;
+              range.insertNode(a);
+              // Save as markdown link in text
+              const textEl = calItem.querySelector('.item-text');
+              if (textEl) {
+                const newText = textEl.textContent;
+                const item = $monthData.days?.[String(d)]?.[cat]?.[idx];
+                if (item) api.editItem($ym, String(d), cat, idx, newText, item.url || '');
+              }
+            }
+          } else {
+            // No selection → open link popup for whole item URL
+            onOpenLink({ d, cat, index: idx });
+          }
+          return;
         }
+      }
+
+      // 2. Recurring board item (.so-item contenteditable)
+      const soItem = active.closest('.so-item');
+      if (soItem) {
+        const url = prompt('URL', '');
+        if (!url) return;
+        const sel = window.getSelection();
+        const selectedText = sel?.toString().trim();
+        const label = selectedText || prompt('표시 텍스트', active.textContent?.trim() || 'link');
+        if (!label) return;
+        // Insert markdown link at cursor or replace selection
+        if (selectedText && sel.rangeCount) {
+          const range = sel.getRangeAt(0);
+          range.deleteContents();
+          const a = document.createElement('a');
+          a.href = url; a.target = '_blank'; a.textContent = label;
+          range.insertNode(a);
+        } else {
+          active.textContent = `[${label}](${url})`;
+        }
+        active.dispatchEvent(new Event('blur'));
+        return;
+      }
+
+      // 3. Frame item (.frame-text contenteditable)
+      const frameItem = active.closest('.frame-item');
+      if (frameItem) {
+        const url = prompt('URL', '');
+        if (!url) return;
+        const sel = window.getSelection();
+        const selectedText = sel?.toString().trim();
+        const label = selectedText || prompt('표시 텍스트', active.textContent?.trim() || 'link');
+        if (!label) return;
+        const existing = active.textContent || '';
+        active.textContent = existing ? `${existing} [${label}](${url})` : `[${label}](${url})`;
+        active.dispatchEvent(new Event('blur'));
+        return;
       }
     });
     // Register SW
