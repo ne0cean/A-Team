@@ -4,6 +4,7 @@
     standingData, dayFrames, visionData, activeNote, noteEditing, sidebarOpen, ym } from './lib/stores.js';
   import * as api from './lib/api.js';
 
+  import { setLastKeyTracker, showToast } from './lib/api.js';
   import Toast from './components/Toast.svelte';
   import Header from './components/Header.svelte';
   import Calendar from './components/Calendar.svelte';
@@ -17,9 +18,11 @@
   import Frames from './components/Panels/Frames.svelte';
 
   let linkPopup = { open: false, url: '', text: '', x: 0, y: 0, target: null };
+  let lastChangedKey = null;
   let panels = { standing: true, vision: false, frames: true };
 
   onMount(async () => {
+    setLastKeyTracker(k => lastChangedKey = k);
     await loadAllData();
     // Sidebar hidden by default on all devices
     // Refresh on tab focus
@@ -28,6 +31,22 @@
     });
     // Cortex internal link handler
     window.addEventListener('open-cortex-file', (e) => openNote(e.detail));
+    // Ctrl+Z: undo last change
+    document.addEventListener('keydown', async (e) => {
+      if (!((e.ctrlKey || e.metaKey) && e.key === 'z') || e.shiftKey) return;
+      // Don't intercept undo inside contenteditable
+      if (document.activeElement?.contentEditable === 'true' || document.activeElement?.tagName === 'INPUT') return;
+      e.preventDefault();
+      const key = lastChangedKey || $ym;
+      const res = await api.undo(key);
+      if (res?.ok) {
+        showToast(`되돌림: ${key}`);
+        await loadAllData();
+      } else if (res?.error) {
+        showToast(res.error, true);
+      }
+    });
+
     // Ctrl+K: global link shortcut
     document.addEventListener('keydown', (e) => {
       if (!((e.ctrlKey || e.metaKey) && e.key === 'k')) return;

@@ -2,6 +2,11 @@ const API = '';
 
 let toastFn = null;
 export function setToast(fn) { toastFn = fn; }
+export function showToast(msg, isError) { if (toastFn) toastFn(msg, isError); }
+
+let lastKeyFn = null;
+export function setLastKeyTracker(fn) { lastKeyFn = fn; }
+function trackKey(key) { if (lastKeyFn) lastKeyFn(key); }
 
 async function request(path, opts = {}) {
   try {
@@ -46,9 +51,11 @@ export async function setUrl(ym, day, category, index, url) {
   return request('/api/set-url', { method: 'POST', body: JSON.stringify({ ym, day, category, index, url }) });
 }
 export async function editItem(ym, day, category, index, text, url = '') {
+  trackKey(ym);
   return request('/api/edit-item', { method: 'POST', body: JSON.stringify({ ym, day, category, index, text, url }) });
 }
 export async function deleteItem(ym, day, category, index) {
+  trackKey(ym);
   return request('/api/delete-item', { method: 'POST', body: JSON.stringify({ ym, day, category, index }) });
 }
 export async function splitItem(ym, day, category, index, before, after) {
@@ -83,15 +90,18 @@ export async function toggleWorkout(ym, day, part) {
 export async function undoMonth(ym) {
   return request('/api/undo', { method: 'POST', body: JSON.stringify({ ym }) });
 }
+export async function undo(key) {
+  return request('/api/undo', { method: 'POST', body: JSON.stringify({ key }) });
+}
 
 // Standing orders + day frames + vision
 export async function loadStandingOrders() { return request('/api/standing-orders'); }
-export async function saveStandingOrders(data) { return request('/api/standing-orders', { method: 'POST', body: JSON.stringify(data) }); }
+export async function saveStandingOrders(data) { trackKey('standing-orders'); return request('/api/standing-orders', { method: 'POST', body: JSON.stringify(data) }); }
 export async function patchStandingOrders(section, action, item, index) {
   return request('/api/standing-orders/patch', { method: 'POST', body: JSON.stringify({ section, action, item, index }) });
 }
 export async function loadDayFrames() { return request('/api/day-frames'); }
-export async function saveDayFrames(data) { return request('/api/day-frames', { method: 'POST', body: JSON.stringify(data) }); }
+export async function saveDayFrames(data) { trackKey('day-frames'); return request('/api/day-frames', { method: 'POST', body: JSON.stringify(data) }); }
 export async function loadVision() { return request('/api/vision'); }
 export async function saveVision(data) { return request('/api/vision', { method: 'POST', body: JSON.stringify(data) }); }
 export async function loadRecurring() { return request('/api/recurring-templates'); }
