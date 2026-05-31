@@ -20,8 +20,9 @@
   }
 
   // Parse [text](url) markdown links — supports https:// and cortex/ internal paths
+  // Also handles ] (url) with space between ] and (
   function renderRichText(node, text) {
-    const re = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const re = /\[([^\]]+)\]\s*\(([^)]+)\)/g;
     let last = 0, match;
     while ((match = re.exec(text)) !== null) {
       if (match.index > last) node.appendChild(document.createTextNode(text.slice(last, match.index)));
@@ -55,17 +56,8 @@
     function render(itm) {
       if (focused) return;
       node.textContent = '';
-      const url = safeUrl(itm.url);
-      if (url) {
-        // Whole-item link (legacy: item.url field)
-        const a = document.createElement('a');
-        a.href = url;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.textContent = itm.text;
-        a.addEventListener('click', (e) => e.stopPropagation());
-        node.appendChild(a);
-      } else if (/\[.+?\]\([^)]+\)/.test(itm.text)) {
+      // Always render text as editable; item.url accessible via 🔗 button
+      if (/\[.+?\]\s*\([^)]+\)/.test(itm.text)) {
         // Inline markdown links
         renderRichText(node, itm.text);
       } else {
@@ -158,8 +150,11 @@
     let r = '';
     for (const n of el.childNodes) {
       if (n.nodeType === 3) r += n.textContent;
-      else if (n.tagName === 'A') r += `[${n.textContent}](${n.href})`;
-      else r += n.textContent;
+      else if (n.tagName === 'A') {
+        // Preserve internal cortex paths; use data-cortex-path if set
+        const href = n.dataset.cortexPath || n.getAttribute('href') || '';
+        r += `[${n.textContent}](${href})`;
+      } else r += n.textContent;
     }
     return r.trim();
   }
