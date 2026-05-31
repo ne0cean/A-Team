@@ -75,25 +75,28 @@
   }
 
   function handleKey(e) {
-    if (e.isComposing) return;
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.isComposing) {
       e.preventDefault();
+      const fullText = htmlToMd(textEl);
       const sel = window.getSelection();
-      const fullText = textEl.textContent;
-      let beforeText = fullText;
+      // Get cursor position in plain text
+      let beforeLen = fullText.length;
       if (sel && sel.rangeCount) {
         const range = sel.getRangeAt(0);
         const preRange = range.cloneRange();
         preRange.selectNodeContents(textEl);
         preRange.setEnd(range.startContainer, range.startOffset);
-        beforeText = preRange.toString();
+        beforeLen = preRange.toString().length;
       }
-      const before = beforeText.trim();
-      const after = fullText.slice(beforeText.length).trim();
+      const before = fullText.slice(0, beforeLen).trim();
+      const after = fullText.slice(beforeLen).trim();
       suppressBlur = true;
       focused = false;
       dispatch('split', { index, before, after });
-    } else if (e.key === 'Backspace' && textEl.textContent.trim() === '') {
+      return;
+    }
+    if (e.isComposing) return;
+    if (e.key === 'Backspace' && textEl.textContent.trim() === '') {
       suppressBlur = true;
       focused = false;
       e.preventDefault();

@@ -413,8 +413,7 @@
           {#if newInputs[cat]}
             <div class="new-item active">
               <input type="text" placeholder="..."
-                on:keydown={(e) => e.key === 'Enter' && !e.isComposing && (addNewItem(cat, e.target.value), e.target.value = '')}
-                on:blur={(e) => setTimeout(() => { newInputs[cat] = false; newInputs = newInputs; }, 100)}
+                on:keydown={(e) => { if (e.key === 'Enter' && !e.isComposing && e.target.value.trim()) { addNewItem(cat, e.target.value); e.target.value = ''; } if (e.key === 'Escape') { newInputs[cat] = false; newInputs = newInputs; } }}
               >
             </div>
           {/if}
