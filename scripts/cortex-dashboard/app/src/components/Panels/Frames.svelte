@@ -38,7 +38,7 @@
     let result = '';
     for (const node of el.childNodes) {
       if (node.nodeType === 3) { result += node.textContent; }
-      else if (node.tagName === 'A') { result += `[${node.textContent}](${node.href})`; }
+      else if (node.tagName === 'A') { result += `[${node.textContent}](${node.dataset.cortexPath || node.href})`; }
       else { result += node.textContent; }
     }
     return result.trim();
@@ -71,6 +71,7 @@
           a.rel = 'noopener noreferrer';
         } else {
           a.href = '#';
+          a.dataset.cortexPath = target;
           a.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
