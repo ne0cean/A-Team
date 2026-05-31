@@ -1,5 +1,5 @@
 <script>
-  import { standingData, ym, currentMonth } from '../../lib/stores.js';
+  import { standingData, ym, currentMonth, monthData } from '../../lib/stores.js';
   import * as api from '../../lib/api.js';
 
   let activeTab = 'standing';
@@ -53,6 +53,30 @@
       }
     });
     save();
+  }
+
+  // 스케줄러 반영: 날짜가 있는 standing 항목을 해당 날짜의 캘린더에 추가
+  async function injectToScheduler() {
+    const [y, m] = $ym.split('-').map(Number);
+    const items = ($standingData.standing || []).filter(s => s.active && s.date_month && s.date_day);
+    const thisMonth = items.filter(s => s.date_month === m);
+    if (!thisMonth.length) {
+      if (api.setToast) api.setToast('반영할 항목 없음 (이번 달 날짜 없음)', true);
+      return;
+    }
+    let added = 0;
+    for (const s of thisMonth) {
+      const day = String(s.date_day);
+      const existing = $monthData.days?.[day]?.ritual || [];
+      if (existing.some(e => e.text === s.text)) continue;
+      await api.addItem($ym, day, 'ritual', s.text, '');
+      added++;
+    }
+    if (added > 0) {
+      const data = await api.loadMonth($ym);
+      if (data) monthData.load(data);
+    }
+    if (api.setToast) api.setToast(`${added}건 스케줄러 반영 완료`);
   }
 
   // Weekly
@@ -254,6 +278,7 @@
     <div class="add-row">
       <input placeholder="Add standing order..." on:keydown={(e) => { if (e.key === 'Enter') { addSO(e.target.value); e.target.value = ''; } }}>
     </div>
+    <button class="inject-btn" on:click={injectToScheduler}>📅 스케줄러 반영</button>
   {:else if activeTab === 'weekly'}
     {#each $standingData.weekly_recurring || [] as w, i}
       <div class="so-item" tabindex="0" draggable="true"
