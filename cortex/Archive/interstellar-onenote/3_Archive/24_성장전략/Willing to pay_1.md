@@ -24,13 +24,13 @@ Willing to pay
 
 - 3
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-05e395ea93137f37bbbbcc19f9f72bfe!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/044b05d29d.png)
 
 -
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-94c35f3bae12783ba5a3bc067d968a18!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/be8011262c.png)
 
 -
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f1d92905a90d74a393d075e1eff8c261!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/f4b0351574.png)
 
 -
 

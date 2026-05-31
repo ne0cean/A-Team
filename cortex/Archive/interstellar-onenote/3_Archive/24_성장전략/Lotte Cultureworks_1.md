@@ -162,7 +162,7 @@ VOD 소장 관람권 2매를 할인된 가격에 구매할 수 있는 패키지 
 
 ㅇ 키워드 검색 및, 가격/ 등록일/ 시청순위에 따른 sorting 기능 제공
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ba71ea821c927b5f8978ecdc962c384d!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/0636dd94be.png)
 
 티빙은 영화/드라마를 포괄적으로 제공하는데, TV VOD sourcing에 대한 검토는?
 
@@ -176,13 +176,13 @@ VOD 소장 관람권 2매를 할인된 가격에 구매할 수 있는 패키지 
 
 가격순으로 보여주기
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f626ac943957749e8a9126f58a65e8de!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/6f540ad795.png)
 
 국내/해외 영화로 분류
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f19b27fab12c7aa1adc1a5e611716661!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/103f58326b.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-25ffa76c5577778bb32f4825e9b09598!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/cfe5f2f156.png)
 
 대여의 경우 스트리밍 기간이 들쭉 날쭉
 

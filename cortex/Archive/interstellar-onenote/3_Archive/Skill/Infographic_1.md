@@ -250,4 +250,4 @@ Ctrl + F1 : 리본메뉴 펼치기/접기
 
 [https://www.behance.net/](https://www.behance.net/)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-90da16450c3d4d88b27f4948576363c3!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../../../attachments/onenote/6564f4d571.png)

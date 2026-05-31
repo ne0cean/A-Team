@@ -78,9 +78,9 @@ Customer 영역
 
 에이전트
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-4158ac0f30c24750bb6c8ad98d6efa48!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/bc015b1dcd.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ce421e9a66e94708b223908c4b1517ea!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/f016d69845.png)
 
 1. “감성형” AI 제휴:
 

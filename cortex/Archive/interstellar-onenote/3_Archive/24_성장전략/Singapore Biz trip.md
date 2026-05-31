@@ -12,29 +12,29 @@ modified: "2018-09-20T04:25:28Z"
 
 Singapore Biz trip
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-61c463b72fa177459780cb76be54c550!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/175c81810d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-22c512b5e99c7a0e9f9d93f8c1721a27!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/baec8dcf67.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-85241fcf54b67ed082778ba8c8e9eea9!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/52beac5286.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3c6109ae75567586b8b7acfd56d46234!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/c04329c815.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-022af9776ba17815859eed32f3637d97!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/82d3f3cf7f.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-27b4227e3be4724789973c920c8fe90d!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/fa99950787.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-be88f32f05b676319d88714a5f1b254a!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/228f5fddbf.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-8004f29c7941773a809d1142ccb3c2a2!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/405a4021f6.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-88c392e20f408cc2b6f211bce06f133d!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/faa54a22d0.png)
 
 Hotel
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-916718d170f3768ba15dbb4905799f4f!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/b5b4d45512.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3577d001a8e07119a822543817c86327!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/0b7267678c.png)
 
 - 예약 번호:&#160;1246270532 │ PIN코드:&#160;1684&#160;
 
@@ -80,11 +80,11 @@ SGD&#160;통화로1,388.86의 금액이 결제됩니다.
 
 AIRLINE _ 1,641,900
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3ce2029b6f4078bda968019491854227!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/36fac2afe2.png)
 
 -----------------------------------------------------------------------
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-51cf9ea1560c73698887fdd0e97e3550!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/e0c0cf0724.png)
 
 준비물
 

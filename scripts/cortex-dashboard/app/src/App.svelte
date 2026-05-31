@@ -5,6 +5,7 @@
   import * as api from './lib/api.js';
 
   import { setLastKeyTracker, showToast } from './lib/api.js';
+  import { setCatNames } from './lib/stores/constants.js';
   import Toast from './components/Toast.svelte';
   import Header from './components/Header.svelte';
   import Calendar from './components/Calendar.svelte';
@@ -24,6 +25,8 @@
   onMount(async () => {
     setLastKeyTracker(k => lastChangedKey = k);
     await loadAllData();
+    // Load custom category names from day-frames
+    if ($dayFrames?._catNames) setCatNames($dayFrames._catNames);
     // Sidebar hidden by default on all devices
     // Refresh on tab focus
     document.addEventListener('visibilitychange', () => {

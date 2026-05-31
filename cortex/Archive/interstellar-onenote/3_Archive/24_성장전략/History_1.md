@@ -40,7 +40,7 @@ History
 10월
 아이폰15 출시
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2ca5a408d862479e8d80f6e0aec2f53a!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/92cb13e456.png)
 
 상위 6개 치킨 브랜드
 구성

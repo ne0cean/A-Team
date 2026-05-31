@@ -16,9 +16,9 @@ Media Meetup
 
 ○ 장소 : 역삼 MARU 180
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-daced8a7a3dd71e2980b34ecdbda8ada!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/2c8d0cc4dc.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1323bb5f1c937b0c9e10ee3ff6810619!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/c1fd7c9da5.png)
 
 Session 1. 곰앤컴퍼니 김조한 이사
 
@@ -32,15 +32,15 @@ vMVPD(virtual multichannel video programming distributor)
 
 인터넷 실시간 유료방송 사업자 또는 서비스
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-2497ad8e67b670c2b04e3c9787004860!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/8f43cbca62.png)
 
 *Skinny Bundles : [https://www.linkedin.com/pulse/what-skinny-bundle-shane-cannon](https://www.linkedin.com/pulse/what-skinny-bundle-shane-cannon)
 
 인기 있는 채널만 최소한으로 구성된 저렴한 패키지 상품
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d69bd205df287f57b49cab6c51a892bc!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/82ad6069a2.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-73a93cea6d447a1896825b84c3469db1!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/f7610b3d58.png)
 
 HBO의 반격, 프리미엄 컨텐츠에 몰빵. 100가지 컨텐츠를 난사하기보다 제대로 만든 프리미엄 컨텐츠 하나가 가입자들을 끌어온다. ▶ One of channel로 HBO가 편성.
 
@@ -58,12 +58,12 @@ JTBC는 넷플릭스를 통해 해외시장 공략을 태핑하고 있따.
 
 2. 추천로직
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-4774c3723beb7b3ba52d3dc9364cc4a3!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/8e6d8a76a5.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-7eb6d79547ca774c89fb08741870ab56!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/e2aa7f2826.png)
 
 Long tail을 잡아야 하는이유 ① 요금제Up  ② 영화의 특성 - 반복소비가 다른 컨텐츠 대비 두드러지지 않는다.
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-66f07cb4ddc27145a0f6c5cf37ff2366!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/026129ca35.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ded8f639cb6471bb9b3b14d8ffa6ebfa!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/7161d69f10.png)

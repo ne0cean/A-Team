@@ -1,5 +1,6 @@
 <script>
   import { createEventDispatcher } from 'svelte';
+  import { CATS, CAT_NAMES } from '../lib/stores.js';
 
   export let item;
   export let index;
@@ -187,10 +188,7 @@
   ></span>
   <select class="move-cat" on:change={(e) => { if(e.target.value) { dispatch('movecat', { index, target: e.target.value }); e.target.value = ''; } }}>
     <option value="">↕</option>
-    <option value="ritual">R&R</option>
-    <option value="input">Outcome</option>
-    <option value="work">Work</option>
-    <option value="outcome">Input</option>
+    {#each CATS as c}{#if c !== category}<option value={c}>{CAT_NAMES[c]}</option>{/if}{/each}
   </select>
   <span class="link-btn" class:has-link={item.url} on:click={() => dispatch('link', { index })}>&#128279;</span>
   <span class="del-btn" on:click={() => dispatch('delete', { index })}>&#215;</span>

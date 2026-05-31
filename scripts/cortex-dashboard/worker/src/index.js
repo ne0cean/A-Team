@@ -53,7 +53,7 @@ export default {
       // --- Input validation ---
       const validYm = (s) => /^\d{4}-\d{2}$/.test(s);
       const clamp = (n, min, max) => Math.max(min, Math.min(max, Number(n) || 0));
-      const categories = new Set(['ritual', 'input', 'work', 'outcome']);
+      const categories = new Set(['ritual', 'input', 'work', 'hexagonal', 'outcome']);
       const validDay = (s) => {
         const n = Number(s);
         return Number.isInteger(n) && n >= 1 && n <= 31;
@@ -506,7 +506,7 @@ export default {
         }
 
         let carried = 0, injected = 0, changed = false;
-        const CATS = ['ritual','input','work','outcome'];
+        const CATS = ['ritual','input','work','hexagonal','outcome'];
 
         for (let d = start; d <= end; d++) {
           const dayKey = String(d);

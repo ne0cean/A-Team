@@ -1,5 +1,6 @@
 <script>
   import { dayFrames, ym, CATS, CAT_NAMES, CAT_COLORS } from '../../lib/stores.js';
+  import { setCatNames } from '../../lib/stores/constants.js';
   import * as api from '../../lib/api.js';
 
   const FRAME_TYPES = ['weekday', 'flow', 'block'];
@@ -218,6 +219,18 @@
     editItem(ftype, cat, idx, newText);
   }
 
+  function editCatName(cat, newName) {
+    if (!newName.trim()) return;
+    CAT_NAMES[cat] = newName.trim();
+    setCatNames({ [cat]: newName.trim() });
+    // Persist to day-frames _catNames
+    dayFrames.mutate(s => {
+      if (!s._catNames) s._catNames = {};
+      s._catNames[cat] = newName.trim();
+    });
+    save();
+  }
+
   export let onReload;
 
   async function inject() {
@@ -270,7 +283,10 @@
             on:dragleave={(e) => e.currentTarget.style.background = ''}
             on:drop|preventDefault={(e) => { e.currentTarget.style.background = ''; onDrop(ftype, cat, 0, e); }}
             style="cursor:grab">
-            <span class="cl-{cat}">{CAT_NAMES[cat]}</span>
+            <span class="cl-{cat}" contenteditable="true" spellcheck="false"
+              on:blur={(e) => editCatName(cat, e.target.textContent)}
+              on:keydown={(e) => e.key === 'Enter' && (e.preventDefault(), e.target.blur())}
+            >{CAT_NAMES[cat]}</span>
             <span class="frame-cat-type {catData.type}" on:click={() => toggleCatType(ftype, cat)}
               style="cursor:pointer" title="Click to toggle">{catData.type}</span>
           </div>

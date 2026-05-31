@@ -201,11 +201,11 @@ Pain point 예시 이미지
 
 - 제휴카드: 영업상품팀 윤세호/하우찬 - 제휴카드 담당
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-060d35a89b3d0324368ec9d3bb11cde2!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/214fb922f1.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-c1cbbc45707c0e4c0c730a93b62d0f32!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/eee350b020.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0e07d6b6554a0c59313eb4c15eb97a1f!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/407ed202da.png)
 
 [세상에서](https://www.youtube.com/watch?v=l2Lt4ucuGZc&amp;ab_channel=%EC%95%84%EB%9D%BC%EC%B1%84%EB%84%90NAILARA) 가장 작은 티머니 / NFC NAILS / T MONEY / 교통카드 / 티머니 분해 / 폴리젤/  iPhone
 
@@ -237,7 +237,7 @@ Pain point 예시 이미지
 
 그리고 알려주신 finware 제품 소개 유튜브 사이트의 댓글에도 다수 확인된 바 있듯이, 아이디어 도용 등의 노이즈 발생 가능성도 매우 크다는 판단입니다.
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-8eeafaf2543e09181721f734cae1d035!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/b8893a9ec2.png)
 
 TDL
 
@@ -559,7 +559,7 @@ hybrid card는 칩이 두개가 내장되어 있으며 각각 동작하며.
 
 ic(접촉결제방식)칩과 RF(비접촉결제방식)칩이 각각 다른 위치에 내장되어 있습니다.
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-3065fed2c8b304240063cd64d28951b6!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/ded268bf22.png)
 
 좌측이 콤비카드 우측이 하이브리드 카드입니다.
 

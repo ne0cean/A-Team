@@ -44,7 +44,7 @@ IR Pitch Deck
 
 벤처투자자들은 매달 수 백 개의 덱을 살펴보는데, 상당수는 꽤나 강력한 주장이나 가설을 담고 있다. 투자자를 설득해 투자를 유치하려면 주장에 대한 근거를 제시해야 하는 것은 당연하다. 예를 들어, 당신의 소프트웨어가 기존 제품들보다 ‘20% 더 효과적’이라고 주장한다면 그 근거가 무엇인지 궁금해할 것이다. ‘효과적’이라 것을 어떻게 정의하고 측정했는지, 비교 대상은 무엇인지 등 말이다. 지나치게 깐깐하다고 불만스러울 수도 있다. 하지만 고객생애가치(LTV) 대비 고객획득비용(CAC)의 비율이 1:5라고 주장하려면 당연히 어떻게 이를 계산하고 추정했는지, 그리고 어떤 소비자 코호트를 분석했는지 설명이 필요하다. &#160;
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0a6d348262f97b2fa29051dcd50426d4!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/0b7d291533.png)
 ](http://bridge.500startups.co.kr/wp-content/uploads/2018/08/111.jpeg)
 특수한 주장에는 그에 맞는 특수한 근거가 필요하다. -칼 세이건(미국의 천문학자이자 ‘코스모스’의 저자)
 
@@ -58,7 +58,7 @@ IR Pitch Deck
 
 공기업들은 정확한 지표를 사용하는 것이 생존의 여부와 직결되는 중요한 문제다. 부정확한 재무정보 전달은 법적인 문제가 될 수 있고, 크게는 주주 소송으로까지 이어질 수 있는 매우 민감한 사안이다. 따라서 재무 및 법무팀에서는 혹시 모를 분쟁을 피하기 위해서라도 최대한 상세하게 문서를 준비한다.
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-da7789116b637f2b99578cdd22ea307b!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/83203c07c7.png)
 ](http://bridge.500startups.co.kr/wp-content/uploads/2018/08/222-1.png)
 허브스팟(Hubspot)이 정의한 유지율에 대한 내용. 회사의 IPO 투자설명서 발췌
 
@@ -67,21 +67,21 @@ IR Pitch Deck
 도표로 속이려 하지마라
 
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-43f5cfbdc3ea7b4598be6c6afca6f60b!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/22c89dc1f8.png)
 ](http://bridge.500startups.co.kr/wp-content/uploads/2018/08/333.png)
 위의 아름다운 일러스트를 그려준 게코보드 팀에 감사드린다.
 
 통계를 가지고 속이는 방법은 다양하다. 심지어 ‘통계로 거짓말하기’라는 책도 있다. 도표도 마찬가지다. 게다가 이는 단순한 거짓말이 아니라, 조금의 창의력을 보태면 같은 자료를 가지고도 전혀 다른 메시지를 도출할 수 있다. 연 매출 곡선이 원하는만큼 가파르게 그려지지 않는다면? X축을 압축하고 Y축을 늘리면 된다. 아직도 충분히 가파르지 않다면? Y축의 일부를 잘라내면 된다. 아니면 월별 가입자 수 그래프가 별로라면? 누적 가입자 수로 대체하라. &#160;
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-726c802d35987b9cb8d31a8ad123aea7!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/4f6f8afaa6.png)
 ](http://bridge.500startups.co.kr/wp-content/uploads/2018/08/444.png)
 도표를 가공하기전 실제 연 매출(ARR) 자료
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0dcf82e3cf21731ea0337ad78512f966!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/001ba04772.png)
 ](http://bridge.500startups.co.kr/wp-content/uploads/2018/08/555.png)
 같은 도표에 X축을 압축했을 경우
 [
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-95e214ed07ae728a8fe23e5034c6593f!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/2b7db4632e.png)
 ](http://bridge.500startups.co.kr/wp-content/uploads/2018/08/666.png)
 같은 도표에 Y축 일부를 잘라낸 경우
 
@@ -163,14 +163,14 @@ Unicorn Pitch deck Sample
 
 [wework-pitch-deck](https://www.slideshare.net/AlexanderJarvis/wework-pitch-deck-55170129?ref=https://www.cirrusinsight.com/blog/startup-pitch-decks) D
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-89e1855ff7ac78bc9929b643c62d212d!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/e1d05d1cd9.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-bc9367ec0c6e7d819cb24f0bdec71dfb!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/3e42be6994.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-67cb0f9fc11079fc8f66a16b7cdb0756!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/b83d5efa6a.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-70571b0dbb617535ae27b4d9de89c0d7!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/9d1e29944d.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-191e8a44919a72f7a568196d4c62c9f5!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/c058933e13.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d5ad9147ceee7dc7bfbea17a184558c3!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/0a6103524f.png)

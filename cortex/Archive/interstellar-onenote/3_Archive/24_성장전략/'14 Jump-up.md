@@ -358,4 +358,4 @@ ________________________________________________________________________________
 
 - 택시 솔루션
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-424b8d7af88e4b4f82f8156b7b7993a5!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/31afa09bd6.png)

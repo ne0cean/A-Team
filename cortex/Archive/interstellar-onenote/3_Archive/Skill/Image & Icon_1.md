@@ -198,7 +198,7 @@ Everystockphoto   ([www.everystockphoto.com](http://www.everystockphoto.com/))
 
 [https://undraw.co/illustrations](https://undraw.co/illustrations)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0e62c173ee4843e5a955eca93d095407!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../../../attachments/onenote/45bedbe6bd.png)
 
 [http://icunow.co.kr/atlasicons/](http://icunow.co.kr/atlasicons/)
 
@@ -364,9 +364,9 @@ Everystockphoto&#160;&#160; ([www.everystockphoto.com](http://www.everystockphot
 
 [http://trendw.kr/media/16-011101.t1m](http://trendw.kr/media/16-011101.t1m)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-a46d8c59358d4f61821a03eef5ba9525!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../../../attachments/onenote/eb26b86a19.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0778905992b44ef38fd6fc91ff6d3b34!1-733661839CC53BA5!scc0e815bc79b41788469e9e4a65e6f5d/$value)
+![image](../../../../attachments/onenote/107a714bf2.png)
 
 Shift + 오른쪽 하단 기본보기 : 슬라이드 마스터 진입
 

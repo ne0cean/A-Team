@@ -22,9 +22,9 @@ Slidebean : 참고할만한 플로우와 서식 다량 보유 [https://app.slide
 
 ===================================
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b5c0926e08c27d959c313925270c3c98!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/59901874cf.png)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d1043ddad89f7976bd7c9f8039f750fd!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/d655711b65.png)
 
 이것만은 지키자:
 
@@ -46,4 +46,4 @@ Slidebean : 참고할만한 플로우와 서식 다량 보유 [https://app.slide
 
 - 현재 진행형: Making Bitcoin accessible to consumer, merchants, and developers (Coinbase)
 
-![image](https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b35910bd42e2705ab78a642433d1e3a0!1-733661839CC53BA5!7931/$value)
+![image](../../../../attachments/onenote/daf7273091.png)
