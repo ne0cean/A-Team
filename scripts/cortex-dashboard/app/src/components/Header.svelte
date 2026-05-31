@@ -18,11 +18,13 @@
   function prevPeriod() {
     $currentMonth--;
     if ($currentMonth < 1) { $currentMonth = 12; $currentYear--; }
+    $viewMode = 'month';
     onReload();
   }
   function nextPeriod() {
     $currentMonth++;
     if ($currentMonth > 12) { $currentMonth = 1; $currentYear++; }
+    $viewMode = 'month';
     onReload();
   }
   function goToday() {
