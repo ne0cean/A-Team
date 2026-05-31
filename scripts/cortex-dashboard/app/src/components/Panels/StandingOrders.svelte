@@ -6,6 +6,16 @@
 
   function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
+  function htmlToMarkdown(el) {
+    let result = '';
+    for (const node of el.childNodes) {
+      if (node.nodeType === 3) { result += node.textContent; }
+      else if (node.tagName === 'A') { result += `[${node.textContent}](${node.href})`; }
+      else { result += node.textContent; }
+    }
+    return result.trim();
+  }
+
   async function save() {
     // Safety: never save empty standing orders
     const size = JSON.stringify($standingData).length;
@@ -369,7 +379,7 @@
         on:keydown={(e) => onItemKey('standing', i, e)}>
         <div class="so-move drag-handle">⠿</div>
         <input type="checkbox" checked={s.active} on:change={() => toggleActive(i)}>
-        <span contenteditable="true" on:blur={(e) => editText(i, e.target.textContent)}
+        <span contenteditable="true" on:blur={(e) => editText(i, htmlToMarkdown(e.target))}
           on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertSOLink(i); } }}
           use:setText={s.text}></span>
         <input class="so-date" type="text" placeholder="날짜"
@@ -401,7 +411,7 @@
         <select value={w.freq} on:change={(e) => editWeeklyFreq(i, e.target.value)}>
           <option value="weekly">매주</option><option value="biweekly">격주</option>
         </select>
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editWeeklyText(i, e.target.textContent)}
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editWeeklyText(i, htmlToMarkdown(e.target))}
           on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertWeeklyLink(i); } }}
           use:setText={w.text}></span>
         <span class="link-btn" on:click={() => insertWeeklyLink(i)} title="링크 추가">&#128279;</span>
@@ -430,7 +440,7 @@
             <option value={0}>말일</option>
             {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}일</option>{/each}
           </select>
-          <span contenteditable="true" style="flex:1" on:blur={(e) => editMR(i, 'text', e.target.textContent)}
+          <span contenteditable="true" style="flex:1" on:blur={(e) => editMR(i, 'text', htmlToMarkdown(e.target))}
             on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertMRLink(i); } }}
             use:setText={m.text}></span>
           <span class="link-btn" on:click={() => insertMRLink(i)} title="링크 추가">&#128279;</span>
@@ -448,7 +458,7 @@
     <div class="section-title">{$ym} ONLY</div>
     {#each $standingData.monthly?.[$ym] || [] as item, i}
       <div class="so-item">
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editMonthlyItem(i, e.target.textContent)} use:setText={typeof item === 'string' ? item : item.text}></span>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editMonthlyItem(i, htmlToMarkdown(e.target))} use:setText={typeof item === 'string' ? item : item.text}></span>
         <span class="del" on:click={() => delMonthlyItem(i)}>×</span>
       </div>
     {/each}
@@ -474,7 +484,7 @@
           <option value={0}>-</option>
           {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}</option>{/each}
         </select>
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(y._idx, e.target.textContent)} use:setText={y.text}></span>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(y._idx, htmlToMarkdown(e.target))} use:setText={y.text}></span>
         <span class="del" on:click={() => delYearly(y._idx)}>×</span>
       </div>
     {/each}
@@ -501,7 +511,7 @@
           <option value={0}>-</option>
           {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}</option>{/each}
         </select>
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(y._idx, e.target.textContent)} use:setText={y.text}></span>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(y._idx, htmlToMarkdown(e.target))} use:setText={y.text}></span>
         <span class="del" on:click={() => delYearly(y._idx)}>×</span>
       </div>
     {/each}

@@ -31,6 +31,17 @@
 
   function getItemText(rawItem) { return typeof rawItem === 'object' ? rawItem.text : rawItem; }
 
+  // Extract markdown from contenteditable HTML (preserve [text](url) links)
+  function htmlToMarkdown(el) {
+    let result = '';
+    for (const node of el.childNodes) {
+      if (node.nodeType === 3) { result += node.textContent; }
+      else if (node.tagName === 'A') { result += `[${node.textContent}](${node.href})`; }
+      else { result += node.textContent; }
+    }
+    return result.trim();
+  }
+
   function editItem(ftype, cat, idx, text) {
     dayFrames.mutate(s => {
       const raw = s[ftype].categories[cat].items[idx];
@@ -239,7 +250,7 @@
                 on:keydown={(e) => onFrameKey(ftype, cat, idx, e)}>
                 <span class="drag-handle" style="cursor:grab;color:#484f58;font-size:12px;padding:0 2px">⠿</span>
                 <span contenteditable="true" class="frame-text" style="flex:1"
-                  on:blur={(e) => editItem(ftype, cat, idx, e.target.textContent)}
+                  on:blur={(e) => editItem(ftype, cat, idx, htmlToMarkdown(e.target))}
                   use:setFrameText={getItemText(rawItem)}></span>
                 <span class="link-btn" on:click={() => insertLink(ftype, cat, idx)} title="링크 추가">&#128279;</span>
                 <span class="frame-del" on:click={() => delItem(ftype, cat, idx)}>×</span>
