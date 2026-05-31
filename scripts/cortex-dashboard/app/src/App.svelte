@@ -65,10 +65,12 @@
           const sel = window.getSelection();
           if (sel && sel.toString().trim() && sel.rangeCount) {
             const selectedText = sel.toString().trim();
+            const range = sel.getRangeAt(0).cloneRange(); // save BEFORE prompt
             const url = prompt('URL', '');
             if (url) {
-              // Replace selection in DOM with link node
-              const range = sel.getRangeAt(0);
+              // Restore saved range and replace
+              sel.removeAllRanges();
+              sel.addRange(range);
               range.deleteContents();
               const a = document.createElement('a');
               a.href = url; a.target = '_blank'; a.textContent = selectedText;
