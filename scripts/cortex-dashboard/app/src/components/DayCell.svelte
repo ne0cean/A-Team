@@ -204,6 +204,11 @@
   let newInputs = {};
   function showNewInput(cat) { newInputs[cat] = true; newInputs = newInputs; }
 
+  async function addSeparator(cat) {
+    await api.addItem($ym, String(d), cat, '', '', 'separator');
+    dispatch('reload');
+  }
+
   async function addNewItem(cat, value) {
     if (!value.trim()) return;
     const t = value.trim();
@@ -321,7 +326,10 @@
         <div class="category cat-{cat}" class:has-pending={hasPending}>
           <div class="cat-label cl-{cat}">
             <span>{CAT_NAMES[cat]}</span>
-            <span class="cat-add" on:click={() => showNewInput(cat)}>+</span>
+            <span class="cat-actions">
+              <span class="cat-sep-add" on:click={() => addSeparator(cat)}>―</span>
+              <span class="cat-add" on:click={() => showNewInput(cat)}>+</span>
+            </span>
           </div>
           {#each sorted as sitem (sitem._origIdx)}
             {#if sitem.type === 'separator'}
