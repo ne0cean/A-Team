@@ -65,31 +65,27 @@
           const sel = window.getSelection();
           if (sel && sel.toString().trim() && sel.rangeCount) {
             const selectedText = sel.toString().trim();
-            const range = sel.getRangeAt(0).cloneRange(); // save BEFORE prompt
+            const item = $monthData.days?.[String(d)]?.[cat]?.[idx];
+            if (!item) return;
+            // Get selection position in the item text
+            const textEl = calItem.querySelector('.item-text');
+            const fullText = item.text;
+            const selStart = fullText.indexOf(selectedText);
             const url = prompt('URL', '');
-            if (url) {
-              // Restore saved range and replace
-              sel.removeAllRanges();
-              sel.addRange(range);
-              range.deleteContents();
-              const a = document.createElement('a');
-              a.href = url; a.target = '_blank'; a.textContent = selectedText;
-              a.style.color = '#58a6ff';
-              range.insertNode(a);
-              // Read back full text with markdown links preserved
-              const textEl = calItem.querySelector('.item-text');
-              if (textEl) {
-                let md = '';
-                for (const n of textEl.childNodes) {
-                  if (n.nodeType === 3) md += n.textContent;
-                  else if (n.tagName === 'A') md += `[${n.textContent}](${n.href})`;
-                  else md += n.textContent;
-                }
-                md = md.trim();
-                const item = $monthData.days?.[String(d)]?.[cat]?.[idx];
-                monthData.mutate(s => { s.days[String(d)][cat][idx].text = md; });
-                api.editItem($ym, String(d), cat, idx, md, item?.url || '');
-              }
+            if (url && selStart >= 0) {
+              const before = fullText.slice(0, selStart);
+              const after = fullText.slice(selStart + selectedText.length);
+              const md = `${before}[${selectedText}](${url})${after}`;
+              monthData.mutate(s => { s.days[String(d)][cat][idx].text = md; });
+              api.editItem($ym, String(d), cat, idx, md, item.url || '');
+              // Force re-render
+              if (textEl) textEl.blur();
+            } else if (url) {
+              // Fallback: append
+              const md = `${fullText} [${selectedText}](${url})`;
+              monthData.mutate(s => { s.days[String(d)][cat][idx].text = md; });
+              api.editItem($ym, String(d), cat, idx, md, item.url || '');
+              if (textEl) textEl.blur();
             }
           } else {
             // No selection → open link popup for whole item URL
