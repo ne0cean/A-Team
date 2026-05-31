@@ -164,6 +164,13 @@
     on:keydown={handleKey}
     use:renderContent={item}
   ></span>
+  <select class="move-cat" on:change={(e) => { if(e.target.value) { dispatch('movecat', { index, target: e.target.value }); e.target.value = ''; } }}>
+    <option value="">↕</option>
+    <option value="ritual">R&R</option>
+    <option value="input">Outcome</option>
+    <option value="work">Work</option>
+    <option value="outcome">Input</option>
+  </select>
   <span class="link-btn" class:has-link={item.url} on:click={() => dispatch('link', { index })}>&#128279;</span>
   <span class="del-btn" on:click={() => dispatch('delete', { index })}>&#215;</span>
 </div>

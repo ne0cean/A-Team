@@ -275,11 +275,17 @@
   }
 
   async function onMoveCat(e, cat) {
-    const { index, direction } = e.detail;
-    const catIdx = catOrder.indexOf(cat);
-    const targetIdx = catIdx + direction;
-    if (targetIdx < 0 || targetIdx >= catOrder.length) return;
-    const targetCat = catOrder[targetIdx];
+    const { index, direction, target } = e.detail;
+    let targetCat;
+    if (target) {
+      targetCat = target;
+    } else {
+      const catIdx = catOrder.indexOf(cat);
+      const targetIdx = catIdx + direction;
+      if (targetIdx < 0 || targetIdx >= catOrder.length) return;
+      targetCat = catOrder[targetIdx];
+    }
+    if (targetCat === cat) return;
     await api.moveItem($ym, String(d), cat, index, String(d), targetCat);
     dispatch('reload');
   }
