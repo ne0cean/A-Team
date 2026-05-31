@@ -237,7 +237,7 @@
   }
 
   $: {
-    const all = ($standingData.monthly?.[$ym] || []);
+    const all = ($standingData?.monthly?.[$ym] || []);
     monthlyGeneral  = all.map((x,i)=>({...(typeof x==='string'?{text:x}:x),_idx:i})).filter(x=>!x.category);
     monthlyOutcome  = all.map((x,i)=>({...(typeof x==='string'?{text:x}:x),_idx:i})).filter(x=>x.category==='outcome');
     monthlyInput    = all.map((x,i)=>({...(typeof x==='string'?{text:x}:x),_idx:i})).filter(x=>x.category==='input');
