@@ -267,11 +267,12 @@
         on:keydown={(e) => onItemKey('standing', i, e)}>
         <div class="so-move drag-handle">⠿</div>
         <input type="checkbox" checked={s.active} on:change={() => toggleActive(i)}>
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editText(i, e.target.textContent)} use:setText={s.text}></span>
+        <span contenteditable="true" on:blur={(e) => editText(i, e.target.textContent)} use:setText={s.text}></span>
         <input class="so-date" type="text" placeholder="날짜"
           value={formatDate(s)}
           on:blur={(e) => editSODate(i, e.target.value)}
           on:keydown={(e) => e.key === 'Enter' && e.target.blur()}>
+        <span style="flex:1"></span>
         <span class="del" on:click={() => delSO(i)}>×</span>
       </div>
     {/each}
