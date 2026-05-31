@@ -76,12 +76,24 @@
   }
 
   function setDate(node, s) {
+    let focused = false;
+    const onFocus = () => { focused = true; };
+    const onBlur = () => { focused = false; };
+    node.addEventListener('focus', onFocus);
+    node.addEventListener('blur', onBlur);
+
     function render(s) {
-      if (document.activeElement === node) return;
+      if (focused) return;
       node.value = formatDate(s);
     }
     render(s);
-    return { update: render };
+    return {
+      update: render,
+      destroy() {
+        node.removeEventListener('focus', onFocus);
+        node.removeEventListener('blur', onBlur);
+      }
+    };
   }
 
   function insertSOLink(i) {
