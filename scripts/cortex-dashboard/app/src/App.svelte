@@ -28,6 +28,19 @@
     });
     // Cortex internal link handler
     window.addEventListener('open-cortex-file', (e) => openNote(e.detail));
+    // Ctrl+K: open link popup for focused item
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const itemEl = document.activeElement?.closest('.item');
+        if (itemEl) {
+          const d = +itemEl.dataset.d;
+          const cat = itemEl.dataset.cat;
+          const idx = +itemEl.dataset.idx;
+          if (d && cat && idx >= 0) onOpenLink({ d, cat, index: idx });
+        }
+      }
+    });
     // Register SW
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -109,7 +122,7 @@
     if (dayData?.[cat]?.[index]) {
       monthData.mutate(s => { s.days[String(d)][cat][index].url = url; });
       linkPopup.open = false;
-      api.editItem($ym, String(d), cat, index, dayData[cat][index].text, url);
+      await api.setUrl($ym, String(d), cat, index, url);
     } else {
       linkPopup.open = false;
     }
@@ -121,7 +134,7 @@
     if (dayData?.[cat]?.[index]) {
       monthData.mutate(s => { s.days[String(d)][cat][index].url = ''; });
       linkPopup.open = false;
-      api.editItem($ym, String(d), cat, index, dayData[cat][index].text, '');
+      await api.setUrl($ym, String(d), cat, index, '');
     } else {
       linkPopup.open = false;
     }

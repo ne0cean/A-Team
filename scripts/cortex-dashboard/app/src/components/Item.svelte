@@ -107,6 +107,9 @@
     } else if (e.altKey && e.key === '1') {
       e.preventDefault();
       dispatch('toggle', { index });
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      dispatch('link', { index });
     }
   }
 

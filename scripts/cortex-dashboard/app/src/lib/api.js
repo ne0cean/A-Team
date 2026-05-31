@@ -42,6 +42,9 @@ export async function addItem(ym, day, category, text, url = '', type = '') {
   if (type) body.type = type;
   return request('/api/add-item', { method: 'POST', body: JSON.stringify(body) });
 }
+export async function setUrl(ym, day, category, index, url) {
+  return request('/api/set-url', { method: 'POST', body: JSON.stringify({ ym, day, category, index, url }) });
+}
 export async function editItem(ym, day, category, index, text, url = '') {
   return request('/api/edit-item', { method: 'POST', body: JSON.stringify({ ym, day, category, index, text, url }) });
 }

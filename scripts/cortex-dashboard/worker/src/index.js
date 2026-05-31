@@ -222,6 +222,21 @@ export default {
         return new Response(JSON.stringify({ ok: true }), { headers });
       }
 
+      // --- Set URL only (no text change) ---
+      if (path === '/api/set-url' && method === 'POST') {
+        const { ym, day, category, index, url } = await request.json();
+        if (!validYm(ym) || !validDay(day) || !validCategory(category)) {
+          return new Response(JSON.stringify({ error: 'invalid payload' }), { status: 400, headers });
+        }
+        const data = await getKey(ym);
+        const arr = data?.days[day]?.[category];
+        if (Array.isArray(arr) && validIndex(index, arr)) {
+          data.days[day][category][index].url = url || '';
+          await setKey(ym, data);
+        }
+        return new Response(JSON.stringify({ ok: true }), { headers });
+      }
+
       // --- Delete Item ---
       if (path === '/api/delete-item' && method === 'POST') {
         const { ym, day, category, index } = await request.json();
