@@ -67,25 +67,23 @@
             const selectedText = sel.toString().trim();
             const item = $monthData.days?.[String(d)]?.[cat]?.[idx];
             if (!item) return;
-            // Get selection position in the item text
             const textEl = calItem.querySelector('.item-text');
-            const fullText = item.text;
-            const selStart = fullText.indexOf(selectedText);
+            // Get cursor offset in plain text using Range
+            const range = sel.getRangeAt(0);
+            const preRange = document.createRange();
+            preRange.selectNodeContents(textEl);
+            preRange.setEnd(range.startContainer, range.startOffset);
+            const offset = preRange.toString().length;
+            // Blur BEFORE prompt to prevent stale overwrite
+            if (textEl) textEl.blur();
             const url = prompt('URL', '');
-            if (url && selStart >= 0) {
-              const before = fullText.slice(0, selStart);
-              const after = fullText.slice(selStart + selectedText.length);
+            if (url) {
+              const fullText = item.text;
+              const before = fullText.slice(0, offset);
+              const after = fullText.slice(offset + selectedText.length);
               const md = `${before}[${selectedText}](${url})${after}`;
               monthData.mutate(s => { s.days[String(d)][cat][idx].text = md; });
               api.editItem($ym, String(d), cat, idx, md, item.url || '');
-              // Force re-render
-              if (textEl) textEl.blur();
-            } else if (url) {
-              // Fallback: append
-              const md = `${fullText} [${selectedText}](${url})`;
-              monthData.mutate(s => { s.days[String(d)][cat][idx].text = md; });
-              api.editItem($ym, String(d), cat, idx, md, item.url || '');
-              if (textEl) textEl.blur();
             }
           } else {
             // No selection → open link popup for whole item URL
