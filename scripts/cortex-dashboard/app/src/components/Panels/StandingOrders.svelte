@@ -147,8 +147,16 @@
       }
     } else if (section === 'monthly') {
       const dim = new Date(y, m, 0).getDate();
+      // 영업일 말일: 주말이면 직전 금요일로
+      const lastBizDay = () => {
+        let d = dim;
+        const dow = new Date(y, m - 1, d).getDay();
+        if (dow === 0) d -= 2; // 일요일 → 금요일
+        else if (dow === 6) d -= 1; // 토요일 → 금요일
+        return d;
+      };
       for (const mr of ($standingData.monthly_recurring || [])) {
-        const day = mr.day === 0 ? dim : mr.day;
+        const day = mr.day === 0 ? lastBizDay() : mr.day;
         items.push({ text: mr.text, day, cat: mr.category || 'outcome' });
       }
       for (const item of ($standingData.monthly?.[$ym] || [])) {
