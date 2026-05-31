@@ -216,6 +216,7 @@ export default {
         const arr = data?.days[day]?.[category];
         if (Array.isArray(arr) && validIndex(index, arr)) {
           data.days[day][category][index].text = text;
+          if (url !== undefined) data.days[day][category][index].url = url;
           await setKey(ym, data);
         }
         return new Response(JSON.stringify({ ok: true }), { headers });
