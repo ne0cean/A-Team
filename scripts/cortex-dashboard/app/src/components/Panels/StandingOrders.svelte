@@ -24,11 +24,27 @@
     }
   }
 
-  // Standing
-  function toggleActive(i) { standingData.mutate(s => { s.standing[i].active = !s.standing[i].active; }); save(); }
-  function editText(i, text) { if (text.trim()) { standingData.mutate(s => { s.standing[i].text = text.trim(); }); save(); } }
-  function delSO(i) { standingData.mutate(s => { s.standing.splice(i, 1); }); save(); }
-  function addSO(text) { if (!text?.trim()) return; standingData.mutate(s => { s.standing.push({ id: `so-${Date.now()}`, text: text.trim(), active: true }); }); save(); }
+  // Standing — all edits use PATCH API
+  function toggleActive(i) {
+    const newVal = !$standingData.standing[i].active;
+    standingData.mutate(s => { s.standing[i].active = newVal; });
+    api.patchStandingOrders('standing', 'edit', { active: newVal }, i);
+  }
+  function editText(i, text) {
+    if (!text.trim()) return;
+    standingData.mutate(s => { s.standing[i].text = text.trim(); });
+    api.patchStandingOrders('standing', 'edit', { text: text.trim() }, i);
+  }
+  function delSO(i) {
+    standingData.mutate(s => { s.standing.splice(i, 1); });
+    api.patchStandingOrders('standing', 'delete', null, i);
+  }
+  function addSO(text) {
+    if (!text?.trim()) return;
+    const item = { id: `so-${Date.now()}`, text: text.trim(), active: true };
+    standingData.mutate(s => { s.standing.push(item); });
+    api.patchStandingOrders('standing', 'add', item);
+  }
 
   // Parse date from various formats: "6.1", "6/2", "6월 2", "6-2", "6 2"
   function parseDate(input) {
