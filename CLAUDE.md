@@ -15,7 +15,26 @@
 | `day-frames.json` | Day Type별 프레임 템플릿 (weekday/flow/block) | ⚠️ 덮어쓰기 금지 |
 | `vision-roadmap.json` | 5개년 비전 테이블 | ⚠️ 덮어쓰기 금지 |
 
-**접근 방식**: JSON 파일 직접 Read/Edit (SSOT). 서버(localhost:7843)는 UI용.
+**SSOT는 D1 (Cloudflare)** — 로컬 JSON 파일은 캐시/백업일 뿐. 브라우저 편집이 즉시 D1에 반영되므로 로컬은 항상 stale일 수 있다.
+
+**데이터 수정 의무 절차 (위반 시 사용자 데이터 소실)**:
+```
+1. node HTTPS로 D1 fetch  →  2. 메모리에서 수정  →  3. D1 push  →  4. 로컬 파일 갱신
+```
+- `curl`은 RTK hook이 가로채므로 **반드시 `node -e` HTTPS 사용**
+- 로컬 파일을 읽어서 D1에 그대로 push하는 것 **절대 금지** (브라우저 편집 내역 소실)
+- 수정 전 D1 버전 확인: `_version` 필드로 충돌 감지
+
+**D1 Read-Modify-Write 템플릿**:
+```js
+// fetch
+let body=''; https.get('https://cortex.feat-breeze.workers.dev/api/standing-orders', ...)
+// modify in memory only
+d.standing.push({...});
+// push with current version
+https.request({method:'POST', path:'/api/standing-orders'}, ...)
+```
+
 **Store 규칙**: writable 직접 export 금지. DataStore(load/mutate), ValueStore(set), ToggleStore(toggle) 팩토리 사용. 상세: [governance/rules/store-encapsulation.md](governance/rules/store-encapsulation.md)
 **절대 금지**: 마이그레이션/구조 재편 시 이 디렉토리 파일 삭제 또는 빈 데이터로 덮어쓰기.
 **백업**: 수정 전 `.bak` 생성 필수.
