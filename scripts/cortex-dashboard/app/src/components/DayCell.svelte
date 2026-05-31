@@ -48,15 +48,21 @@
     return items;
   }
 
-  async function cycleDayType() {
+  async function setDayTypeDirect(type) {
     if (!isCurrent) return;
-    const current = dayData.day_type || null;
-    const idx = current ? TYPES.indexOf(current) : -1;
-    const next = idx >= TYPES.length - 1 ? null : TYPES[idx + 1];
-    await api.setDayType($ym, String(d), next);
+    const newType = dayData.day_type === type ? null : type;
+    await api.setDayType($ym, String(d), newType);
     await api.injectFrames($ym, d, d);
     dispatch('reload');
   }
+
+  const DAY_TYPE_BTNS = [
+    { type: null,       label: '평' },
+    { type: 'flow',     label: 'FL' },
+    { type: 'block',    label: 'BK' },
+    { type: 'hf',       label: 'HF' },
+    { type: 'vacation', label: '휴' },
+  ];
 
   async function onSplit(e, cat) {
     const { index, before, after } = e.detail;
@@ -403,12 +409,19 @@
   on:drop={onDayDrop}
 >
   <div class="day-num" class:sun={dow === 0} class:sat={dow === 6}>
-    <span on:click={cycleDayType} style="cursor:pointer">
-      {d}
-      {#if dayData.day_type}
-        <span class="day-type-badge badge-{dayData.day_type}">{TYPE_LABELS[dayData.day_type]}</span>
-      {/if}
-    </span>
+    <span class="day-num-date">{d}</span>
+    {#if isCurrent}
+      <span class="day-type-btns">
+        {#each DAY_TYPE_BTNS as btn}
+          <span class="dt-btn dt-{btn.type || 'weekday'}"
+            class:active={dayData.day_type === btn.type}
+            on:click|stopPropagation={() => setDayTypeDirect(btn.type)}
+          >{btn.label}</span>
+        {/each}
+      </span>
+    {:else if dayData.day_type}
+      <span class="day-type-badge badge-{dayData.day_type}">{TYPE_LABELS[dayData.day_type]}</span>
+    {/if}
     <span>
       {#if showPastToggle}
         <span class="past-toggle" on:click={() => dispatch('togglepast')}>▲</span>
