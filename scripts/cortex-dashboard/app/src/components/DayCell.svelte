@@ -72,8 +72,8 @@
     await tick();
     const el = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${index + 1}"]`);
     el?.querySelector('.item-text')?.focus({ preventScroll: true });
-    // Server sync (don't reload — already updated locally)
-    api.splitItem($ym, String(d), cat, index, before, after);
+    // Server sync (await to guarantee persistence)
+    await api.splitItem($ym, String(d), cat, index, before, after);
   }
 
   async function onEdit(e, cat) {
@@ -96,8 +96,8 @@
       const target = allInDay[Math.min(targetIdx, allInDay.length - 1)];
       target?.querySelector('.item-text')?.focus({ preventScroll: true });
     }
-    // Server sync
-    api.deleteItem($ym, String(d), cat, idx);
+    // Server sync (await to guarantee persistence)
+    await api.deleteItem($ym, String(d), cat, idx);
   }
 
   async function onItemToggle(e, cat) {
@@ -106,7 +106,14 @@
       const item = s.days?.[String(d)]?.[cat]?.[idx];
       if (item) item.done = !item.done;
     });
-    api.toggleItem($ym, String(d), cat, idx);
+    const res = await api.toggleItem($ym, String(d), cat, idx);
+    if (!res) {
+      // Revert optimistic update on API failure
+      monthData.mutate(s => {
+        const item = s.days?.[String(d)]?.[cat]?.[idx];
+        if (item) item.done = !item.done;
+      });
+    }
   }
 
   function onLink(e, cat) {

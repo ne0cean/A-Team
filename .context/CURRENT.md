@@ -60,24 +60,17 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-05-31) — Dashboard Decoupling + 병합 로직 재설계
+## Last Completions (2026-05-31) — Loose Coupling 구현 + Store 캡슐화
 
-- **contenteditable 전체 use:action 통일** — Item/DayCell/Header/StandingOrders/Frames 모든 contenteditable에서 Svelte 반응형 `{text}` 제거. 텍스트 복제/분리/깨짐 버그 구조적 해결
-- **인라인 마크다운 링크** — `[텍스트](url)` 형식 지원. 외부 URL + cortex 내부 경로 모두 렌더링. Item/StandingOrders/Frames 3곳 적용
-- **병합 로직 재설계** — inject-frames: frame sync + carry forward + manual 보존 통합. URL backfill, done 보존, 월경계 캐리, 중복 방지, 제어 문자 자동 제거
-- **레드팀 리뷰 실행** — adversarial 에이전트: HIGH 3 / MEDIUM 4 발견. Frame 삭제 done 보존, 저장 조건 수정, Frame+Manual 중복 방지 반영
-- **events 시스템** — 감각적 기획(6회) + 서울 재발견(6회) 등록. one_thing 아래 금색 배지. Standing Orders에도 추가
-- **Standing Orders → RECURRING BOARD** 제목 변경
-- **드래그+키보드 정렬** — StandingOrders 전 탭 + Frames Admin. ⠿ 핸들 드래그 + Alt+↑/↓
-- **Frames Admin 링크 버튼** — 🔗 버튼 추가 (URL+표시텍스트 입력 → 마크다운 링크 삽입)
-- **배포 구조 수정** — wrangler.jsonc 충돌 제거, deploy.sh 생성, SW noop 교체, GITHUB_TOKEN 복구
-- **Week view 기본 뷰** + PC 사이드바 기본 숨김
-- **Week view 월경계** — adjacentMonth prop으로 이전/다음 달 데이터 표시
-- **yearly 텍스트 교정** — 9개 항목 원본 OneNote 대조 수정
-- **cortex 파일 경로 인코딩 수정** — `encodeURIComponent` 세그먼트별 적용
-- **D1 데이터 정화** — 제어 문자 + 엉뚱한 URL 제거. setKey에 자동 sanitize 추가
-- **Twilight Mood board HTML** — 편집 가능 버전 (contenteditable + 드래그 + 이미지 추가 + localStorage 자동저장)
-- **Decoupling 방법론 리서치** — 커스텀 스토어 캡슐화 → FSD 3-레이어 → Vitest 스냅샷. 메모리 저장 완료
+- **커스텀 스토어 캡슐화** — writable 직접 export 제거. 3 팩토리(DataStore/ValueStore/ToggleStore) 도입. DataStore는 set 미노출 → `$store = value` 런타임 차단. App/DayCell/Header/StandingOrders/Frames/Vision 6개 컴포넌트 리팩토링
+- **도메인별 store 파일 분리** — 단일 stores.js → stores/ 디렉토리 5파일(factories/calendar/standing/ui/constants) + barrel re-export. 기존 import 경로 100% 호환
+- **Vitest 스토어 테스트 17건** — 팩토리 단위테스트 + barrel export 검증 + 캡슐화 강제(DataStore에 set 없음) 검증. 603 tests PASS
+- **governance 규칙 등록** — `governance/rules/store-encapsulation.md` 신설 + CLAUDE.md에 Store 규칙 연동
+- **Svelte 모듈 격리 리서치** — set 숨기기/도메인 분리/runes 보류/FSD incremental/Zustand 불필요. 8개 부작용 위험 기록 (memory에 저장)
+
+## Last Completions (2026-05-31, 이전) — Dashboard Decoupling + 병합 로직 재설계
+
+- contenteditable use:action 통일 / 인라인 마크다운 링크 / 병합 로직 재설계 / 레드팀 리뷰 / events 시스템 / RECURRING BOARD / 드래그+키보드 정렬 / Frames Admin 링크 / 배포 구조 수정 / Week view 기본+월경계 / yearly 교정 / 경로 인코딩 / D1 정화 / Twilight Mood board / Decoupling 리서치
 
 ## Session Log (2026-05-30)
 
@@ -201,8 +194,6 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **Loose Coupling 단계적 적용** — 커스텀 스토어 캡슐화 (stores.js writable 직접 노출 금지) → FSD 3-레이어 → Vitest 스냅샷. TDD/ship 반복, 완성 기준 수립+측정
-- [ ] **글로벌 개발 방법론 반영** — Decoupling 패턴을 CLAUDE.md/governance에 구조적 규칙으로 등록
 - [ ] **HFK 26 SPRING Notion 작업** — https://lavender-soul-e27.notion.site/HFK-26-SPRING-33fd0f53623d8027bdb6dd7b89a16563
 - [ ] **Dashboard a11y 수정** — design audit score 65→70+
 - [ ] **제품 빌드 시작** — Connectome MVP (인프라 중독 탈피)

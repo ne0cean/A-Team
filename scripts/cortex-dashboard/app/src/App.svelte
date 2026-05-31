@@ -68,12 +68,17 @@
     if (vision) visionData.load(vision);
 
     // Auto-inject frames for today (carries forward uncompleted todos)
+    // Only once per calendar day to prevent HMR/reload from overwriting in-flight toggles
     const now = new Date();
     if (now.getFullYear() === y && now.getMonth() + 1 === m) {
       const today = now.getDate();
-      await api.injectFrames(ymStr, today, today);
-      const refreshed = await api.loadMonth(ymStr);
-      if (refreshed) monthData.load(refreshed);
+      const injectKey = `injected_${ymStr}_${today}`;
+      if (!sessionStorage.getItem(injectKey)) {
+        await api.injectFrames(ymStr, today, today);
+        sessionStorage.setItem(injectKey, '1');
+        const refreshed = await api.loadMonth(ymStr);
+        if (refreshed) monthData.load(refreshed);
+      }
     }
   }
 

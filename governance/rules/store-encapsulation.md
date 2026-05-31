@@ -55,6 +55,23 @@ stores.js         — barrel re-export (기존 import 호환)
 - mutate 콜백의 s 참조를 외부 변수에 저장하지 않는다.
 - save()는 반드시 mutate() 이후에 호출한다.
 
+## API 호출 규칙
+
+사용자 데이터를 변경하는 API 호출은 반드시 await한다. fire-and-forget 금지.
+
+```javascript
+// BAD: fire-and-forget — HMR/리로드 시 데이터 소실
+api.toggleItem(ym, day, cat, idx);
+
+// GOOD: await + 실패 시 optimistic update revert
+const res = await api.toggleItem(ym, day, cat, idx);
+if (!res) {
+  store.mutate(s => { /* revert */ });
+}
+```
+
+페이지 로드 시 부작용 있는 서버 호출(injectFrames 등)은 sessionStorage로 세션당 1회 제한.
+
 ## 적용 범위
 
 모든 Svelte 프로젝트의 전역 상태 관리에 적용.

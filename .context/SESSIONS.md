@@ -2,6 +2,22 @@
 
 ---
 
+## [2026-05-31] Loose Coupling 구현 — Store 캡슐화 + 도메인 분리
+
+**완료**:
+- 커스텀 스토어 3 팩토리(DataStore/ValueStore/ToggleStore), DataStore set 미노출
+- 6개 컴포넌트 리팩토링 (App/DayCell/Header/StandingOrders/Frames/Vision)
+- 도메인별 파일 분리 (stores/ 5파일 + barrel re-export)
+- Vitest 17 tests 추가 (603 total PASS)
+- governance/rules/store-encapsulation.md + CLAUDE.md 연동
+- Svelte 모듈 격리 리서치 (researcher 에이전트, 8 sources)
+- 부작용/장애요인 8건 기록 (memory/risk_dashboard_loose_coupling.md)
+
+**이슈**: 없음
+**빌드**: 603 tests PASS, dashboard build OK (106.72 KB)
+
+---
+
 ## [2026-05-31] Dashboard Decoupling + 병합 로직 재설계 + 링크 시스템
 
 **완료**: contenteditable use:action 전체 통일 (텍스트 복제 버그 구조적 해결), 인라인 마크다운 링크 `[text](url)` 3곳 적용 (외부 URL + cortex 내부), 병합 로직 재설계 (frame/carry/manual 통합 + URL backfill + done 보존), 레드팀 리뷰 (HIGH 3 MEDIUM 4), events 시스템 (감각적 기획/서울 재발견), RECURRING BOARD 개명, 드래그+키보드 정렬 (SO+Frames), Frames 링크 버튼, 배포 구조 수정 (wrangler.jsonc 충돌 제거 + deploy.sh), Week view 기본 + 월경계 데이터, yearly 텍스트 교정 9건, D1 데이터 정화 + setKey sanitize, Twilight Mood board 편집 가능 HTML, Decoupling 방법론 리서치 + 메모리 저장
