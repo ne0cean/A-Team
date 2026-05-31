@@ -16,7 +16,7 @@
   import Vision from './components/Panels/Vision.svelte';
   import Frames from './components/Panels/Frames.svelte';
 
-  let linkPopup = { open: false, url: '', x: 0, y: 0, target: null };
+  let linkPopup = { open: false, url: '', text: '', x: 0, y: 0, target: null };
   let panels = { standing: true, vision: false, frames: true };
 
   onMount(async () => {
@@ -99,7 +99,7 @@
     const { d, cat, index } = detail;
     const item = $monthData.days?.[String(d)]?.[cat]?.[index];
     if (!item) return;
-    linkPopup = { open: true, url: item.url || '', x: 200, y: 200, target: { d, cat, index } };
+    linkPopup = { open: true, url: item.url || '', text: item.text || '', x: 200, y: 200, target: { d, cat, index } };
   }
 
   async function onLinkSave(e) {
@@ -156,7 +156,7 @@
 <Sidebar />
 <Search onGoToDay={goToDay} onGoToResult={goToResult} onOpenNote={openNote} />
 <LinkPopup bind:open={linkPopup.open} bind:url={linkPopup.url}
-  x={linkPopup.x} y={linkPopup.y}
+  text={linkPopup.text} x={linkPopup.x} y={linkPopup.y}
   on:save={onLinkSave} on:remove={onLinkRemove} on:close={() => linkPopup.open = false} />
 
 <div class="main" class:desktop-sidebar={$sidebarOpen && window?.screen?.width >= 900}>

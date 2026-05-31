@@ -3,6 +3,7 @@
 
   export let open = false;
   export let url = '';
+  export let text = '';
   export let x = 0;
   export let y = 0;
 
@@ -16,6 +17,7 @@
 {#if open}
   <div class="link-backdrop" on:click={close}></div>
   <div class="link-popup" style="left:{x}px;top:{y}px">
+    {#if text}<div style="font-size:12px;color:#8b949e;margin-bottom:4px">{text}</div>{/if}
     <input type="text" bind:value={url} placeholder="https://..."
       on:keydown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') close(); }}>
     <div class="link-popup-btns">
