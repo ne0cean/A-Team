@@ -13,6 +13,14 @@
     const res = await api.saveStandingOrders($standingData);
     if (res?._version) {
       standingData.mutate(s => { s._version = res._version; });
+    } else if (res === null) {
+      // 409 conflict — re-fetch fresh version and retry once
+      const fresh = await api.loadStandingOrders();
+      if (fresh) {
+        standingData.mutate(s => { s._version = fresh._version; });
+        const retry = await api.saveStandingOrders($standingData);
+        if (retry?._version) standingData.mutate(s => { s._version = retry._version; });
+      }
     }
   }
 

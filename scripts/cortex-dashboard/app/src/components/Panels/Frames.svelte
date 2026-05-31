@@ -7,7 +7,18 @@
 
   async function save() {
     const res = await api.saveDayFrames($dayFrames);
-    if (res?._version) { dayFrames.mutate(s => { s._version = res._version; }); }
+    if (res?._version) {
+      dayFrames.mutate(s => { s._version = res._version; });
+    } else if (res === null) {
+      // 409 conflict — re-fetch fresh version and retry once
+      const fresh = await api.loadDayFrames();
+      if (fresh) {
+        // Merge: keep current local edits, update _version
+        dayFrames.mutate(s => { s._version = fresh._version; });
+        const retry = await api.saveDayFrames($dayFrames);
+        if (retry?._version) dayFrames.mutate(s => { s._version = retry._version; });
+      }
+    }
   }
 
   function toggleCatType(ftype, cat) {
