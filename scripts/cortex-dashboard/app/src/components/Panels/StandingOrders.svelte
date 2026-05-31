@@ -118,33 +118,32 @@
     if (section === 'standing') {
       items = ($standingData.standing || [])
         .filter(s => s.active && s.date_month === m && s.date_day)
-        .map(s => ({ text: s.text, day: s.date_day, cat: 'ritual' }));
+        .map(s => ({ text: s.text, day: s.date_day, cat: s.category || 'outcome' }));
     } else if (section === 'weekly') {
-      // weekly는 이번 달의 해당 요일 전체에 반영
       const dim = new Date(y, m, 0).getDate();
       for (const w of ($standingData.weekly_recurring || [])) {
         for (let d = 1; d <= dim; d++) {
           const dow = new Date(y, m - 1, d).getDay();
           if (dow !== w.dow) continue;
           if (w.freq === 'biweekly' && Math.floor((d - 1) / 7) % 2 !== 0) continue;
-          items.push({ text: w.text, day: d, cat: 'work' });
+          items.push({ text: w.text, day: d, cat: w.category || 'outcome' });
         }
       }
     } else if (section === 'monthly') {
       const dim = new Date(y, m, 0).getDate();
       for (const mr of ($standingData.monthly_recurring || [])) {
         const day = mr.day === 0 ? dim : mr.day;
-        items.push({ text: mr.text, day, cat: 'work' });
+        items.push({ text: mr.text, day, cat: mr.category || 'outcome' });
       }
-      // This-month items
       for (const item of ($standingData.monthly?.[$ym] || [])) {
         const text = typeof item === 'string' ? item : item.text;
-        items.push({ text, day: 1, cat: 'work' });
+        const cat = typeof item === 'object' ? (item.category || 'outcome') : 'outcome';
+        items.push({ text, day: 1, cat });
       }
     } else if (section === 'yearly') {
       for (const yr of ($standingData.yearly || [])) {
         if (yr.month === m && yr.day) {
-          items.push({ text: yr.text, day: yr.day, cat: 'ritual' });
+          items.push({ text: yr.text, day: yr.day, cat: yr.category || 'outcome' });
         }
       }
     }
