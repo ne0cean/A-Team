@@ -146,13 +146,13 @@
   }
 
   function insertLink(ftype, cat, idx) {
-    const url = prompt('URL (https:// 또는 cortex/ 경로)');
-    if (!url) return;
-    const label = prompt('표시 텍스트', url.split('/').pop() || 'link');
-    if (!label) return;
     const raw = $dayFrames[ftype].categories[cat].items[idx];
     const text = typeof raw === 'object' ? raw.text : raw;
-    const newText = text + ` [${label}](${url})`;
+    const url = prompt('URL (https:// 또는 cortex/ 경로)');
+    if (!url) return;
+    const label = prompt('표시 텍스트', text || 'link');
+    if (!label) return;
+    const newText = `[${label}](${url})`;
     editItem(ftype, cat, idx, newText);
   }
 
