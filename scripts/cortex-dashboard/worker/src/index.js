@@ -480,14 +480,17 @@ export default {
               for (const rawItem of catFrame.items) {
                 const text = typeof rawItem === 'object' ? rawItem.text : rawItem;
                 const itemUrl = typeof rawItem === 'object' ? (rawItem.url || '') : '';
-                if (dismissed.has(text)) continue;
-                const existingItem = oldFrame.find(i => i.text === text);
+                const itemType = typeof rawItem === 'object' ? rawItem.type : undefined;
+                if (dismissed.has(text) && itemType !== 'separator') continue;
+                const existingItem = oldFrame.find(i => i.text === text && i.type === itemType);
                 if (existingItem) {
                   newFrame.push(existingItem);
                 } else {
                   // Skip if manual already has same text (don't create duplicate)
-                  if (!manual.some(i => i.text === text)) {
-                    newFrame.push({ text, url: itemUrl, done: false, _frame: true });
+                  if (itemType === 'separator' || !manual.some(i => i.text === text)) {
+                    const newItem = { text, url: itemUrl, done: false, _frame: true };
+                    if (itemType) newItem.type = itemType;
+                    newFrame.push(newItem);
                     injected++;
                   }
                 }

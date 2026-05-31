@@ -72,6 +72,26 @@
     save();
   }
 
+  function addSeparator(ftype, cat) {
+    dayFrames.mutate(s => {
+      if (!s[ftype].categories[cat]) s[ftype].categories[cat] = { type: 'routine', items: [] };
+      s[ftype].categories[cat].items.push({ type: 'separator', text: '' });
+    });
+    save();
+  }
+
+  function isSeparator(rawItem) {
+    return typeof rawItem === 'object' && rawItem.type === 'separator';
+  }
+
+  function editSepLabel(ftype, cat, idx, label) {
+    dayFrames.mutate(s => {
+      const item = s[ftype].categories[cat].items[idx];
+      if (typeof item === 'object') item.text = label.trim();
+    });
+    save();
+  }
+
   function delItem(ftype, cat, idx) {
     dayFrames.mutate(s => { s[ftype].categories[cat].items.splice(idx, 1); });
     save();
@@ -161,24 +181,41 @@
               style="cursor:pointer" title="Click to toggle">{catData.type}</span>
           </div>
           {#each catData.items || [] as rawItem, idx}
-            <div class="frame-item" tabindex="0" draggable="true"
-              on:dragstart={(e) => onDragStart(ftype, cat, idx, e)}
-              on:dragend={onDragEnd}
-              on:dragover={onDragOver}
-              on:dragleave={onDragLeave}
-              on:drop={(e) => onDrop(ftype, cat, idx, e)}
-              on:keydown={(e) => onFrameKey(ftype, cat, idx, e)}>
-              <span class="drag-handle" style="cursor:grab;color:#484f58;font-size:12px;padding:0 2px">⠿</span>
-              <span contenteditable="true" class="frame-text" style="flex:1"
-                on:blur={(e) => editItem(ftype, cat, idx, e.target.textContent)}
-                use:setFrameText={getItemText(rawItem)}></span>
-              <span class="link-btn" on:click={() => insertLink(ftype, cat, idx)} title="링크 추가">&#128279;</span>
-              <span class="frame-del" on:click={() => delItem(ftype, cat, idx)}>×</span>
-            </div>
+            {#if isSeparator(rawItem)}
+              <div class="item-sep" draggable="true"
+                on:dragstart={(e) => onDragStart(ftype, cat, idx, e)}
+                on:dragend={onDragEnd}
+                on:dragover={onDragOver}
+                on:dragleave={onDragLeave}
+                on:drop={(e) => onDrop(ftype, cat, idx, e)}>
+                <span class="sep-label" contenteditable="true" spellcheck="false"
+                  on:blur={(e) => editSepLabel(ftype, cat, idx, e.target.textContent)}
+                  on:keydown={(e) => e.key === 'Enter' && !e.isComposing && (e.preventDefault(), e.target.blur())}
+                >{rawItem.text}</span>
+                <hr class="sep-line">
+                <span class="frame-del" on:click={() => delItem(ftype, cat, idx)}>×</span>
+              </div>
+            {:else}
+              <div class="frame-item" tabindex="0" draggable="true"
+                on:dragstart={(e) => onDragStart(ftype, cat, idx, e)}
+                on:dragend={onDragEnd}
+                on:dragover={onDragOver}
+                on:dragleave={onDragLeave}
+                on:drop={(e) => onDrop(ftype, cat, idx, e)}
+                on:keydown={(e) => onFrameKey(ftype, cat, idx, e)}>
+                <span class="drag-handle" style="cursor:grab;color:#484f58;font-size:12px;padding:0 2px">⠿</span>
+                <span contenteditable="true" class="frame-text" style="flex:1"
+                  on:blur={(e) => editItem(ftype, cat, idx, e.target.textContent)}
+                  use:setFrameText={getItemText(rawItem)}></span>
+                <span class="link-btn" on:click={() => insertLink(ftype, cat, idx)} title="링크 추가">&#128279;</span>
+                <span class="frame-del" on:click={() => delItem(ftype, cat, idx)}>×</span>
+              </div>
+            {/if}
           {/each}
           <div class="frame-add">
             <input placeholder="Add item..." on:keydown={(e) => { if (e.key === 'Enter') { addItem(ftype, cat, e.target.value); e.target.value = ''; } }}>
             <button on:click={(e) => { const inp = e.target.previousElementSibling; addItem(ftype, cat, inp.value); inp.value = ''; }}>+</button>
+            <button class="frame-sep-btn" on:click={() => addSeparator(ftype, cat)} title="구분선 추가">―</button>
           </div>
         </div>
       {/each}
