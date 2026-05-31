@@ -231,6 +231,13 @@ export default {
         const data = await getKey(ym);
         const arr = data?.days[day]?.[category];
         if (Array.isArray(arr) && validIndex(index, arr)) {
+          const removed = arr[index];
+          if (removed._carried || removed._frame) {
+            if (!data.days[day]._dismissed) data.days[day]._dismissed = [];
+            if (!data.days[day]._dismissed.includes(removed.text)) {
+              data.days[day]._dismissed.push(removed.text);
+            }
+          }
           arr.splice(index, 1);
           await setKey(ym, data);
         }
@@ -463,6 +470,9 @@ export default {
             const urlMap = new Map();
             for (const i of existing) { if (i.url) urlMap.set(i.text, i.url); }
 
+            // Dismissed items (user deleted carried/frame items)
+            const dismissed = new Set(dd._dismissed || []);
+
             // 3a. Frame sync
             const newFrame = [];
             const catFrame = frame?.categories?.[cat];
@@ -470,6 +480,7 @@ export default {
               for (const rawItem of catFrame.items) {
                 const text = typeof rawItem === 'object' ? rawItem.text : rawItem;
                 const itemUrl = typeof rawItem === 'object' ? (rawItem.url || '') : '';
+                if (dismissed.has(text)) continue;
                 const existingItem = oldFrame.find(i => i.text === text);
                 if (existingItem) {
                   newFrame.push(existingItem);
@@ -498,6 +509,7 @@ export default {
               const prevItems = prevDay[cat] || [];
               const undone = prevItems.filter(i => !i.done);
               for (const item of undone) {
+                if (dismissed.has(item.text)) continue;
                 if (!assembledTexts.has(item.text)) {
                   assembled.push({ text: item.text, url: item.url || '', done: false, _carried: true });
                   assembledTexts.add(item.text);
