@@ -146,11 +146,34 @@
   function onDrop(ftype, cat, toIdx, e) {
     e.preventDefault();
     e.currentTarget.classList.remove('drag-over');
-    if (dragState.ftype !== ftype || dragState.cat !== cat || dragState.idx === null || dragState.idx === toIdx) return;
+    if (!dragState.ftype || dragState.idx === null) return;
+    if (dragState.ftype === ftype && dragState.cat === cat) {
+      // Same category → reorder
+      if (dragState.idx === toIdx) return;
+      dayFrames.mutate(s => {
+        const items = s[ftype].categories[cat].items;
+        const [item] = items.splice(dragState.idx, 1);
+        items.splice(toIdx, 0, item);
+      });
+    } else if (dragState.ftype === ftype) {
+      // Same frame type, different category → move
+      dayFrames.mutate(s => {
+        const fromItems = s[ftype].categories[dragState.cat].items;
+        const [item] = fromItems.splice(dragState.idx, 1);
+        if (!s[ftype].categories[cat]) s[ftype].categories[cat] = { type: 'routine', items: [] };
+        s[ftype].categories[cat].items.splice(toIdx, 0, item);
+      });
+    }
+    save();
+  }
+
+  function moveItemToCat(ftype, fromCat, idx, toCat) {
+    if (fromCat === toCat) return;
     dayFrames.mutate(s => {
-      const items = s[ftype].categories[cat].items;
-      const [item] = items.splice(dragState.idx, 1);
-      items.splice(toIdx, 0, item);
+      const fromItems = s[ftype].categories[fromCat].items;
+      const [item] = fromItems.splice(idx, 1);
+      if (!s[ftype].categories[toCat]) s[ftype].categories[toCat] = { type: 'routine', items: [] };
+      s[ftype].categories[toCat].items.push(item);
     });
     save();
   }
@@ -219,7 +242,10 @@
       </div>
       {#each CATS as cat}
         {@const catData = frame.categories?.[cat] || { type: 'routine', items: [] }}
-        <div class="frame-cat" style="border-left:2px solid {CAT_COLORS[cat]};padding-left:6px">
+        <div class="frame-cat" style="border-left:2px solid {CAT_COLORS[cat]};padding-left:6px"
+          on:dragover|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+          on:dragleave={(e) => e.currentTarget.style.background = ''}
+          on:drop|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.style.background = ''; onDrop(ftype, cat, (catData.items||[]).length, e); }}>
           <div class="frame-cat-header">
             <span class="cl-{cat}">{CAT_NAMES[cat]}</span>
             <span class="frame-cat-type {catData.type}" on:click={() => toggleCatType(ftype, cat)}
@@ -252,6 +278,10 @@
                 <span contenteditable="true" class="frame-text" style="flex:1"
                   on:blur={(e) => editItem(ftype, cat, idx, htmlToMarkdown(e.target))}
                   use:setFrameText={getItemText(rawItem)}></span>
+                <select class="frame-move-cat" on:change={(e) => { if(e.target.value) { moveItemToCat(ftype, cat, idx, e.target.value); e.target.value=''; } }} title="카테고리 이동">
+                  <option value="">↕</option>
+                  {#each CATS as c}{#if c !== cat}<option value={c}>{CAT_NAMES[c]}</option>{/if}{/each}
+                </select>
                 <span class="link-btn" on:click={() => insertLink(ftype, cat, idx)} title="링크 추가">&#128279;</span>
                 <span class="frame-del" on:click={() => delItem(ftype, cat, idx)}>×</span>
               </div>
