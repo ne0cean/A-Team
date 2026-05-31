@@ -12,19 +12,11 @@ Don&#39;t think, just do.
  H &amp; A
 [One note refresh](https://onedrive.live.com/redir?resid=733661839CC53BA5%217896&amp;page=Edit&amp;wd=target%281_Project%2FDashbaord.one%7C82870a83-6ef2-4d90-8d73-f9a20932d194%2FProjects%20Dash%20board%7Ccbf8027e-3923-4ea4-9b96-b94e2651398d%2F%29&amp;wdorigin=NavigationUrl)/ [Traffic &amp; Banking ](onenote:#Traffic%20%20Banking&amp;section-id={82870A83-6EF2-4D90-8D73-F9A20932D194}&amp;page-id={E93C159E-5475-4AE0-9A15-2495B0261006}&amp;end&amp;base-path=https://d.docs.live.net/733661839cc53ba5/문서/Inter_source/InterStellar/1_Project/Dashbaord.one)
 
-17
-18
-19
-20
-21
-HF 22
-23
-
-5월 17일 형님들이랑 라운딩
-
-선데이미술클럽 13:30-15:30
 
 Blcok day_SUN
+
+
+![image.png](cortex/attachments/1780195705050-image.png)
 
 π1
 [π2](https://www.perplexity.ai/search/yeongeo-ridinge-gajang-doumdoe-NObCD.3PRiCbFAS2IwxYRg)
