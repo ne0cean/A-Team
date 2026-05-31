@@ -262,6 +262,7 @@
 
   let newInputs = {};
   function showNewInput(cat) { newInputs[cat] = true; newInputs = newInputs; }
+  function autoFocus(node) { requestAnimationFrame(() => { node.focus(); node.scrollIntoView({ block: 'nearest' }); }); }
 
   // Multi-select for bulk move
   let selected = new Set();
@@ -505,8 +506,10 @@
           {/each}
           {#if newInputs[cat]}
             <div class="new-item active">
-              <input type="text" placeholder="..."
+              <input type="text" placeholder="새 항목..."
+                use:autoFocus
                 on:keydown={(e) => { if (e.key === 'Enter' && !e.isComposing && e.target.value.trim()) { addNewItem(cat, e.target.value); e.target.value = ''; } if (e.key === 'Escape') { newInputs[cat] = false; newInputs = newInputs; } }}
+                on:blur={(e) => { if (!e.target.value.trim()) { newInputs[cat] = false; newInputs = newInputs; } }}
               >
             </div>
           {/if}
