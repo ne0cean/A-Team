@@ -76,12 +76,21 @@
     return { update: render };
   }
 
+  function cursorOffset() {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !sel.isCollapsed) return null;
+    const range = sel.getRangeAt(0);
+    const pre = range.cloneRange();
+    pre.selectNodeContents(textEl);
+    pre.setEnd(range.startContainer, range.startOffset);
+    return pre.toString().length;
+  }
+
   function handleKey(e) {
     if (e.key === 'Enter' && !e.isComposing) {
       e.preventDefault();
       const fullText = htmlToMd(textEl);
       const sel = window.getSelection();
-      // Get cursor position in plain text
       let beforeLen = fullText.length;
       if (sel && sel.rangeCount) {
         const range = sel.getRangeAt(0);
@@ -98,11 +107,34 @@
       return;
     }
     if (e.isComposing) return;
-    if (e.key === 'Backspace' && textEl.textContent.trim() === '') {
-      suppressBlur = true;
-      focused = false;
-      e.preventDefault();
-      dispatch('delete', { index });
+    if (e.key === 'Backspace') {
+      const text = htmlToMd(textEl);
+      if (text.trim() === '') {
+        suppressBlur = true; focused = false;
+        e.preventDefault();
+        dispatch('delete', { index });
+        return;
+      }
+      // 커서가 맨 앞이면 위 항목과 병합
+      const off = cursorOffset();
+      if (off === 0) {
+        e.preventDefault();
+        suppressBlur = true; focused = false;
+        dispatch('merge-up', { index, text });
+        return;
+      }
+    } else if (e.key === 'ArrowUp' && !e.altKey && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+      if (cursorOffset() === 0) {
+        e.preventDefault();
+        dispatch('navigate', { direction: -1, index });
+      }
+    } else if (e.key === 'ArrowDown' && !e.altKey && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+      const off = cursorOffset();
+      const total = textEl.textContent.length;
+      if (off !== null && off >= total) {
+        e.preventDefault();
+        dispatch('navigate', { direction: 1, index });
+      }
     } else if (e.key === 'ArrowDown' && e.altKey) {
       e.preventDefault();
       dispatch('navigate', { direction: 1, index });

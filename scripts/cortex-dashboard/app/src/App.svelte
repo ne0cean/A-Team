@@ -50,6 +50,17 @@
       }
     });
 
+    // Ctrl+S: 현재 편집 중인 항목 즉시 저장
+    document.addEventListener('keydown', (e) => {
+      if (!((e.ctrlKey || e.metaKey) && e.key === 's')) return;
+      e.preventDefault();
+      const active = document.activeElement;
+      if (active && (active.contentEditable === 'true' || active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+        active.blur();
+        showToast('저장됨', false, 1000);
+      }
+    });
+
     // Ctrl+K: global link shortcut
     document.addEventListener('keydown', (e) => {
       if (!((e.ctrlKey || e.metaKey) && e.key === 'k')) return;

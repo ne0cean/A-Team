@@ -85,15 +85,18 @@
     });
   }
 
+  // 선택 텍스트 캡처 (prompt 호출 전에 반드시 호출)
+  function _selText() { return window.getSelection()?.toString().trim() || ''; }
+  function _link(cur, sel, label, url) {
+    const md = `[${label}](${url})`;
+    return (sel && cur.includes(sel)) ? cur.replace(sel, md) : md;
+  }
+
   function insertSOLink(i) {
-    const s = $standingData.standing[i];
-    // Blur first to prevent stale DOM overwrite
-    if (document.activeElement?.blur) document.activeElement.blur();
-    const url = prompt('URL', '');
-    if (!url) return;
-    const label = prompt('표시 텍스트', s.text || 'link');
-    if (!label) return;
-    const newText = `[${label}](${url})`;
+    const sel = _selText(), cur = $standingData.standing[i].text || '';
+    const url = prompt('URL', ''); if (!url) return;
+    const label = prompt('표시 텍스트', sel || cur || 'link'); if (!label) return;
+    const newText = _link(cur, sel, label, url);
     standingData.mutate(st => { st.standing[i].text = newText; });
     api.patchStandingOrders('standing', 'edit', { text: newText }, i);
   }
@@ -293,53 +296,42 @@
   }
 
   function insertWeeklyLink(i) {
-    const w = $standingData.weekly_recurring[i];
-    if (document.activeElement?.blur) document.activeElement.blur();
-    const url = prompt('URL', '');
-    if (!url) return;
-    const label = prompt('표시 텍스트', w.text || 'link');
-    if (!label) return;
-    const newText = `[${label}](${url})`;
+    const sel = _selText(), cur = $standingData.weekly_recurring[i].text || '';
+    const url = prompt('URL', ''); if (!url) return;
+    const label = prompt('표시 텍스트', sel || cur || 'link'); if (!label) return;
+    const newText = _link(cur, sel, label, url);
     standingData.mutate(s => { s.weekly_recurring[i].text = newText; });
-    save();
+    api.patchStandingOrders('weekly_recurring', 'edit', { text: newText }, i);
   }
 
   function insertYearlyLink(i) {
-    const y = $standingData.yearly[i];
-    if (document.activeElement?.blur) document.activeElement.blur();
-    const url = prompt('URL', '');
-    if (!url) return;
-    const label = prompt('표시 텍스트', y.text || 'link');
-    if (!label) return;
-    const newText = `[${label}](${url})`;
+    const sel = _selText(), cur = $standingData.yearly[i].text || '';
+    const url = prompt('URL', ''); if (!url) return;
+    const label = prompt('표시 텍스트', sel || cur || 'link'); if (!label) return;
+    const newText = _link(cur, sel, label, url);
     standingData.mutate(s => { s.yearly[i].text = newText; });
-    save();
+    api.patchStandingOrders('yearly', 'edit', { text: newText }, i);
   }
 
   function insertMonthlyItemLink(i) {
     const items = $standingData.monthly?.[$ym] || [];
     const item = items[i];
-    const text = typeof item === 'string' ? item : item.text;
-    if (document.activeElement?.blur) document.activeElement.blur();
-    const url = prompt('URL', '');
-    if (!url) return;
-    const label = prompt('표시 텍스트', text || 'link');
-    if (!label) return;
-    const newText = `[${label}](${url})`;
+    const cur = typeof item === 'string' ? item : (item?.text || '');
+    const sel = _selText();
+    const url = prompt('URL', ''); if (!url) return;
+    const label = prompt('표시 텍스트', sel || cur || 'link'); if (!label) return;
+    const newText = _link(cur, sel, label, url);
     standingData.mutate(s => { s.monthly[$ym][i] = newText; });
-    save();
+    api.patchStandingOrders('monthly', 'replace', $standingData.monthly);
   }
 
   function insertMRLink(i) {
-    const m = $standingData.monthly_recurring[i];
-    if (document.activeElement?.blur) document.activeElement.blur();
-    const url = prompt('URL', '');
-    if (!url) return;
-    const label = prompt('표시 텍스트', m.text || 'link');
-    if (!label) return;
-    const newText = `[${label}](${url})`;
+    const sel = _selText(), cur = $standingData.monthly_recurring[i].text || '';
+    const url = prompt('URL', ''); if (!url) return;
+    const label = prompt('표시 텍스트', sel || cur || 'link'); if (!label) return;
+    const newText = _link(cur, sel, label, url);
     standingData.mutate(s => { s.monthly_recurring[i].text = newText; });
-    save();
+    api.patchStandingOrders('monthly_recurring', 'edit', { text: newText }, i);
   }
 
   // Drag reorder

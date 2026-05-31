@@ -120,23 +120,84 @@
     dispatch('openlink', { d, cat, index: e.detail.index });
   }
 
+  function _displayPos(allItems, origIdx) {
+    for (let i = 0; i < allItems.length; i++) {
+      if (+allItems[i].dataset.idx === origIdx) return i;
+    }
+    return -1;
+  }
+
+  function _placeCursor(el, atEnd) {
+    const sel = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(!atEnd);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
   function onNavigate(e, cat) {
     const { direction, index } = e.detail;
     const allInDay = document.querySelectorAll(`.item[data-d="${d}"][data-cat="${cat}"]`);
-    const targetIdx = index + direction;
-    if (targetIdx >= 0 && targetIdx < allInDay.length) {
-      const el = allInDay[targetIdx]?.querySelector('.item-text');
+    const dp = _displayPos(allInDay, index);
+    const targetPos = dp + direction;
+    if (targetPos >= 0 && targetPos < allInDay.length) {
+      const el = allInDay[targetPos]?.querySelector('.item-text');
       if (el) {
         el.focus({ preventScroll: true });
-        // Place cursor at end of text
-        const sel = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        range.collapse(false);
-        sel.removeAllRanges();
-        sel.addRange(range);
+        // ArrowDown→커서 맨 앞, ArrowUp→커서 맨 뒤
+        requestAnimationFrame(() => _placeCursor(el, direction < 0));
       }
     }
+  }
+
+  async function onMergeUp(e, cat) {
+    const { index, text } = e.detail;
+    const allInDay = document.querySelectorAll(`.item[data-d="${d}"][data-cat="${cat}"]`);
+    const dp = _displayPos(allInDay, index);
+    if (dp <= 0) return;
+    const prevOrigIdx = +allInDay[dp - 1].dataset.idx;
+    const prevItem = (dayData[cat] || [])[prevOrigIdx];
+    if (!prevItem || prevItem.type === 'separator') return;
+    const prevLen = prevItem.text.length;
+    const mergedText = prevItem.text + text;
+
+    monthData.mutate(s => {
+      const dd = s.days?.[String(d)];
+      if (!dd?.[cat]) return;
+      dd[cat][prevOrigIdx].text = mergedText;
+      dd[cat].splice(index, 1);
+    });
+    await tick();
+
+    const newIdx = prevOrigIdx > index ? prevOrigIdx - 1 : prevOrigIdx;
+    const targetEl = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${newIdx}"]`);
+    const tEl = targetEl?.querySelector('.item-text');
+    if (tEl) {
+      tEl.focus({ preventScroll: true });
+      requestAnimationFrame(() => {
+        // 커서를 병합 지점(prevLen)에 배치
+        const sel = window.getSelection();
+        const range = document.createRange();
+        let remaining = prevLen, placed = false;
+        for (const node of tEl.childNodes) {
+          const len = node.textContent.length;
+          if (remaining <= len) {
+            const t = node.nodeType === 3 ? node : (node.firstChild || node);
+            range.setStart(t, Math.min(remaining, t.length ?? t.textContent.length));
+            range.collapse(true);
+            placed = true;
+            break;
+          }
+          remaining -= len;
+        }
+        if (!placed) { range.selectNodeContents(tEl); range.collapse(false); }
+        sel.removeAllRanges();
+        sel.addRange(range);
+      });
+    }
+    await api.editItem($ym, String(d), cat, prevOrigIdx, mergedText, prevItem.url || '');
+    await api.deleteItem($ym, String(d), cat, index);
   }
 
   async function saveOneThing(e) {
@@ -437,6 +498,7 @@
                 on:delete={(e) => onDelete(e, cat)}
                 on:link={(e) => onLink(e, cat)}
                 on:navigate={(e) => onNavigate(e, cat)}
+                on:merge-up={(e) => onMergeUp(e, cat)}
                 on:movecat={(e) => onMoveCat(e, cat)}
                 on:dragstart={(e) => onDragStart(e.detail.e, cat, sitem._origIdx)}
                 on:drop={(e) => onItemDrop(e.detail.e, cat, sitem._origIdx)}

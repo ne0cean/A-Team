@@ -2,7 +2,7 @@ const API = '';
 
 let toastFn = null;
 export function setToast(fn) { toastFn = fn; }
-export function showToast(msg, isError) { if (toastFn) toastFn(msg, isError); }
+export function showToast(msg, isError, duration) { if (toastFn) toastFn(msg, isError, duration); }
 
 let lastKeyFn = null;
 export function setLastKeyTracker(fn) { lastKeyFn = fn; }
