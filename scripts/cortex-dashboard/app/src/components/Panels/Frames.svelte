@@ -246,7 +246,13 @@
           on:dragover|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
           on:dragleave={(e) => e.currentTarget.style.background = ''}
           on:drop|preventDefault={(e) => { e.stopPropagation(); e.currentTarget.style.background = ''; onDrop(ftype, cat, (catData.items||[]).length, e); }}>
-          <div class="frame-cat-header">
+          <div class="frame-cat-header"
+            draggable="true"
+            on:dragstart={(e) => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', cat); dragState = {ftype, cat, idx: -1}; }}
+            on:dragover|preventDefault={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+            on:dragleave={(e) => e.currentTarget.style.background = ''}
+            on:drop|preventDefault={(e) => { e.currentTarget.style.background = ''; onDrop(ftype, cat, 0, e); }}
+            style="cursor:grab">
             <span class="cl-{cat}">{CAT_NAMES[cat]}</span>
             <span class="frame-cat-type {catData.type}" on:click={() => toggleCatType(ftype, cat)}
               style="cursor:pointer" title="Click to toggle">{catData.type}</span>

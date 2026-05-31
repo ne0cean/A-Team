@@ -291,6 +291,30 @@
     save();
   }
 
+  function insertYearlyLink(i) {
+    const y = $standingData.yearly[i];
+    const url = prompt('URL', '');
+    if (!url) return;
+    const label = prompt('표시 텍스트', y.text || 'link');
+    if (!label) return;
+    const newText = `[${label}](${url})`;
+    standingData.mutate(s => { s.yearly[i].text = newText; });
+    save();
+  }
+
+  function insertMonthlyItemLink(i) {
+    const items = $standingData.monthly?.[$ym] || [];
+    const item = items[i];
+    const text = typeof item === 'string' ? item : item.text;
+    const url = prompt('URL', '');
+    if (!url) return;
+    const label = prompt('표시 텍스트', text || 'link');
+    if (!label) return;
+    const newText = `[${label}](${url})`;
+    standingData.mutate(s => { s.monthly[$ym][i] = newText; });
+    save();
+  }
+
   function insertMRLink(i) {
     const m = $standingData.monthly_recurring[i];
     const url = prompt('URL', '');
@@ -458,7 +482,10 @@
     <div class="section-title">{$ym} ONLY</div>
     {#each $standingData.monthly?.[$ym] || [] as item, i}
       <div class="so-item">
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editMonthlyItem(i, htmlToMarkdown(e.target))} use:setText={typeof item === 'string' ? item : item.text}></span>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editMonthlyItem(i, htmlToMarkdown(e.target))}
+          on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertMonthlyItemLink(i); } }}
+          use:setText={typeof item === 'string' ? item : item.text}></span>
+        <span class="link-btn" on:click={() => insertMonthlyItemLink(i)} title="링크 추가">&#128279;</span>
         <span class="del" on:click={() => delMonthlyItem(i)}>×</span>
       </div>
     {/each}
@@ -484,7 +511,10 @@
           <option value={0}>-</option>
           {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}</option>{/each}
         </select>
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(y._idx, htmlToMarkdown(e.target))} use:setText={y.text}></span>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(y._idx, htmlToMarkdown(e.target))}
+          on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertYearlyLink(y._idx); } }}
+          use:setText={y.text}></span>
+        <span class="link-btn" on:click={() => insertYearlyLink(y._idx)} title="링크 추가">&#128279;</span>
         <span class="del" on:click={() => delYearly(y._idx)}>×</span>
       </div>
     {/each}
@@ -511,7 +541,10 @@
           <option value={0}>-</option>
           {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}</option>{/each}
         </select>
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(y._idx, htmlToMarkdown(e.target))} use:setText={y.text}></span>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(y._idx, htmlToMarkdown(e.target))}
+          on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertYearlyLink(y._idx); } }}
+          use:setText={y.text}></span>
+        <span class="link-btn" on:click={() => insertYearlyLink(y._idx)} title="링크 추가">&#128279;</span>
         <span class="del" on:click={() => delYearly(y._idx)}>×</span>
       </div>
     {/each}
