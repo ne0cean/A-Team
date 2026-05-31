@@ -17,7 +17,7 @@
   import Frames from './components/Panels/Frames.svelte';
 
   let linkPopup = { open: false, url: '', x: 0, y: 0, target: null };
-  let panels = { standing: false, vision: false, frames: false };
+  let panels = { standing: true, vision: false, frames: true };
 
   onMount(async () => {
     await loadAllData();
@@ -180,22 +180,22 @@
       </div>
 
       <div class="panel">
-        <div class="panel-header" on:click={() => togglePanel('vision')}>
-          <h2>VISION & MILESTONES</h2>
-          <span class="panel-toggle">{panels.vision ? '▼' : '▶'}</span>
-        </div>
-        {#if panels.vision}
-          <div class="panel-body open"><Vision /></div>
-        {/if}
-      </div>
-
-      <div class="panel">
         <div class="panel-header" on:click={() => togglePanel('frames')}>
           <h2>DAY FRAMES (Admin)</h2>
           <span class="panel-toggle">{panels.frames ? '▼' : '▶'}</span>
         </div>
         {#if panels.frames}
           <div class="panel-body open"><Frames onReload={onReload} /></div>
+        {/if}
+      </div>
+
+      <div class="panel">
+        <div class="panel-header" on:click={() => togglePanel('vision')}>
+          <h2>VISION & MILESTONES</h2>
+          <span class="panel-toggle">{panels.vision ? '▼' : '▶'}</span>
+        </div>
+        {#if panels.vision}
+          <div class="panel-body open"><Vision /></div>
         {/if}
       </div>
     </div>

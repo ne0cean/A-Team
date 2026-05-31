@@ -55,21 +55,56 @@
     save();
   }
 
-  // 스케줄러 반영: 날짜가 있는 standing 항목을 해당 날짜의 캘린더에 추가
-  async function injectToScheduler() {
+  // 스케줄러 반영: 각 섹션의 항목을 해당 날짜의 캘린더에 추가
+  async function injectSection(section) {
     const [y, m] = $ym.split('-').map(Number);
-    const items = ($standingData.standing || []).filter(s => s.active && s.date_month && s.date_day);
-    const thisMonth = items.filter(s => s.date_month === m);
-    if (!thisMonth.length) {
-      if (api.setToast) api.setToast('반영할 항목 없음 (이번 달 날짜 없음)', true);
+    let items = [];
+
+    if (section === 'standing') {
+      items = ($standingData.standing || [])
+        .filter(s => s.active && s.date_month === m && s.date_day)
+        .map(s => ({ text: s.text, day: s.date_day, cat: 'ritual' }));
+    } else if (section === 'weekly') {
+      // weekly는 이번 달의 해당 요일 전체에 반영
+      const dim = new Date(y, m, 0).getDate();
+      for (const w of ($standingData.weekly_recurring || [])) {
+        for (let d = 1; d <= dim; d++) {
+          const dow = new Date(y, m - 1, d).getDay();
+          if (dow !== w.dow) continue;
+          if (w.freq === 'biweekly' && Math.floor((d - 1) / 7) % 2 !== 0) continue;
+          items.push({ text: w.text, day: d, cat: 'work' });
+        }
+      }
+    } else if (section === 'monthly') {
+      const dim = new Date(y, m, 0).getDate();
+      for (const mr of ($standingData.monthly_recurring || [])) {
+        const day = mr.day === 0 ? dim : mr.day;
+        items.push({ text: mr.text, day, cat: 'work' });
+      }
+      // This-month items
+      for (const item of ($standingData.monthly?.[$ym] || [])) {
+        const text = typeof item === 'string' ? item : item.text;
+        items.push({ text, day: 1, cat: 'work' });
+      }
+    } else if (section === 'yearly') {
+      for (const yr of ($standingData.yearly || [])) {
+        if (yr.month === m && yr.day) {
+          items.push({ text: yr.text, day: yr.day, cat: 'ritual' });
+        }
+      }
+    }
+
+    if (!items.length) {
+      if (api.setToast) api.setToast('이번 달 반영할 항목 없음', true);
       return;
     }
+
     let added = 0;
-    for (const s of thisMonth) {
-      const day = String(s.date_day);
-      const existing = $monthData.days?.[day]?.ritual || [];
-      if (existing.some(e => e.text === s.text)) continue;
-      await api.addItem($ym, day, 'ritual', s.text, '');
+    for (const it of items) {
+      const dayStr = String(it.day);
+      const existing = $monthData.days?.[dayStr]?.[it.cat] || [];
+      if (existing.some(e => e.text === it.text)) continue;
+      await api.addItem($ym, dayStr, it.cat, it.text, '');
       added++;
     }
     if (added > 0) {
@@ -279,7 +314,7 @@
     <div class="add-row">
       <input placeholder="Add standing order..." on:keydown={(e) => { if (e.key === 'Enter') { addSO(e.target.value); e.target.value = ''; } }}>
     </div>
-    <button class="inject-btn" on:click={injectToScheduler}>📅 스케줄러 반영</button>
+    <button class="inject-btn" on:click={() => injectSection('standing')}>📅 스케줄러 반영</button>
   {:else if activeTab === 'weekly'}
     {#each $standingData.weekly_recurring || [] as w, i}
       <div class="so-item" tabindex="0" draggable="true"
@@ -305,6 +340,7 @@
       <select bind:value={newWkFreq}><option value="weekly">매주</option><option value="biweekly">격주</option></select>
       <input placeholder="Add weekly..." on:keydown={(e) => { if (e.key === 'Enter') { addWeekly(e.target.value); e.target.value = ''; } }}>
     </div>
+    <button class="inject-btn" on:click={() => injectSection('weekly')}>📅 스케줄러 반영</button>
   {:else if activeTab === 'monthly'}
     {#if ($standingData.monthly_recurring || []).length > 0}
       <div class="section-title">MONTHLY RECURRING</div>
@@ -343,6 +379,7 @@
     <div class="add-row">
       <input placeholder="Add this-month item..." on:keydown={(e) => { if (e.key === 'Enter') { addMonthlyItem(e.target.value); e.target.value = ''; } }}>
     </div>
+    <button class="inject-btn" on:click={() => injectSection('monthly')}>📅 스케줄러 반영</button>
   {:else if activeTab === 'yearly'}
     <div class="section-title" style="color:#f0c040">TEMP (올해만)</div>
     {#each yearlyTemps as y}
@@ -397,6 +434,7 @@
       <select bind:value={newYearlyDay}><option value={0}>-</option>{#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}</option>{/each}</select>
       <input placeholder="Add yearly..." on:keydown={(e) => { if (e.key === 'Enter') { addYearly(e.target.value); e.target.value = ''; } }}>
     </div>
+    <button class="inject-btn" on:click={() => injectSection('yearly')}>📅 스케줄러 반영</button>
   {/if}
 </div>
 {/if}

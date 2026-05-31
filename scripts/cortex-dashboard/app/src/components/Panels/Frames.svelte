@@ -165,6 +165,26 @@
     const res = await api.injectFrames($ym, today, dim);
     if (onReload) onReload();
   }
+
+  async function injectFrameType(ftype) {
+    const [y, m] = $ym.split('-').map(Number);
+    const dim = new Date(y, m, 0).getDate();
+    // Find days matching this frame type
+    const { monthData } = await import('../../lib/stores.js');
+    let md;
+    monthData.subscribe(v => md = v)();
+    let count = 0;
+    for (let d = 1; d <= dim; d++) {
+      const dd = md.days?.[String(d)] || {};
+      const dow = new Date(y, m - 1, d).getDay();
+      const dayType = dd.day_type || (dow === 0 ? 'block' : dow === 6 ? 'flow' : 'weekday');
+      if (dayType !== ftype) continue;
+      await api.injectFrames($ym, d, d);
+      count++;
+    }
+    if (onReload) onReload();
+    if (api.setToast) api.setToast(`${ftype}: ${count}일 반영 완료`);
+  }
 </script>
 
 {#if $dayFrames}
@@ -222,6 +242,7 @@
           </div>
         </div>
       {/each}
+      <button class="inject-btn" on:click={() => injectFrameType(ftype)}>📅 {frame.label || ftype} 스케줄러 반영</button>
     </div>
   {/each}
 </div>
