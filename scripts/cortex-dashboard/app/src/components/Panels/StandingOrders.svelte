@@ -41,8 +41,9 @@
     return `${s.date_month}/${s.date_day || ''}`;
   }
 
-  function editSODate(i, input) {
+  async function editSODate(i, input) {
     const parsed = parseDate(input);
+    const patch = parsed ? { date_month: parsed.month, date_day: parsed.day } : { date_month: null, date_day: null };
     standingData.mutate(s => {
       if (parsed) {
         s.standing[i].date_month = parsed.month;
@@ -52,7 +53,7 @@
         delete s.standing[i].date_day;
       }
     });
-    save();
+    await api.patchStandingOrders('standing', 'edit', patch, i);
   }
 
   // 스케줄러 반영: 각 섹션의 항목을 해당 날짜의 캘린더에 추가
