@@ -65,6 +65,26 @@
     return `${s.date_month}/${s.date_day || ''}`;
   }
 
+  function setDate(node, s) {
+    function render(s) {
+      if (document.activeElement === node) return;
+      node.value = formatDate(s);
+    }
+    render(s);
+    return { update: render };
+  }
+
+  function insertSOLink(i) {
+    const s = $standingData.standing[i];
+    const url = prompt('URL', '');
+    if (!url) return;
+    const label = prompt('표시 텍스트', s.text || 'link');
+    if (!label) return;
+    const newText = `[${label}](${url})`;
+    standingData.mutate(st => { st.standing[i].text = newText; });
+    api.patchStandingOrders('standing', 'edit', { text: newText }, i);
+  }
+
   async function editSODate(i, input) {
     const parsed = parseDate(input);
     const patch = parsed ? { date_month: parsed.month, date_day: parsed.day } : { date_month: null, date_day: null };
@@ -250,6 +270,28 @@
     return { update: render };
   }
 
+  function insertWeeklyLink(i) {
+    const w = $standingData.weekly_recurring[i];
+    const url = prompt('URL', '');
+    if (!url) return;
+    const label = prompt('표시 텍스트', w.text || 'link');
+    if (!label) return;
+    const newText = `[${label}](${url})`;
+    standingData.mutate(s => { s.weekly_recurring[i].text = newText; });
+    save();
+  }
+
+  function insertMRLink(i) {
+    const m = $standingData.monthly_recurring[i];
+    const url = prompt('URL', '');
+    if (!url) return;
+    const label = prompt('표시 텍스트', m.text || 'link');
+    if (!label) return;
+    const newText = `[${label}](${url})`;
+    standingData.mutate(s => { s.monthly_recurring[i].text = newText; });
+    save();
+  }
+
   // Drag reorder
   let dragIdx = null;
   let dragSection = null;
@@ -327,11 +369,14 @@
         on:keydown={(e) => onItemKey('standing', i, e)}>
         <div class="so-move drag-handle">⠿</div>
         <input type="checkbox" checked={s.active} on:change={() => toggleActive(i)}>
-        <span contenteditable="true" on:blur={(e) => editText(i, e.target.textContent)} use:setText={s.text}></span>
+        <span contenteditable="true" on:blur={(e) => editText(i, e.target.textContent)}
+          on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertSOLink(i); } }}
+          use:setText={s.text}></span>
         <input class="so-date" type="text" placeholder="날짜"
-          value={formatDate(s)}
+          use:setDate={s}
           on:blur={(e) => editSODate(i, e.target.value)}
           on:keydown={(e) => e.key === 'Enter' && e.target.blur()}>
+        <span class="link-btn" on:click={() => insertSOLink(i)} title="링크 추가">&#128279;</span>
         <span style="flex:1"></span>
         <span class="del" on:click={() => delSO(i)}>×</span>
       </div>
@@ -356,7 +401,10 @@
         <select value={w.freq} on:change={(e) => editWeeklyFreq(i, e.target.value)}>
           <option value="weekly">매주</option><option value="biweekly">격주</option>
         </select>
-        <span contenteditable="true" style="flex:1" on:blur={(e) => editWeeklyText(i, e.target.textContent)} use:setText={w.text}></span>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editWeeklyText(i, e.target.textContent)}
+          on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertWeeklyLink(i); } }}
+          use:setText={w.text}></span>
+        <span class="link-btn" on:click={() => insertWeeklyLink(i)} title="링크 추가">&#128279;</span>
         <span class="del" on:click={() => delWeekly(i)}>×</span>
       </div>
     {/each}
@@ -382,7 +430,10 @@
             <option value={0}>말일</option>
             {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}일</option>{/each}
           </select>
-          <span contenteditable="true" style="flex:1" on:blur={(e) => editMR(i, 'text', e.target.textContent)} use:setText={m.text}></span>
+          <span contenteditable="true" style="flex:1" on:blur={(e) => editMR(i, 'text', e.target.textContent)}
+            on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertMRLink(i); } }}
+            use:setText={m.text}></span>
+          <span class="link-btn" on:click={() => insertMRLink(i)} title="링크 추가">&#128279;</span>
           <span class="del" on:click={() => delMR(i)}>×</span>
         </div>
       {/each}
