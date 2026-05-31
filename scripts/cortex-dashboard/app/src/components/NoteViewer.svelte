@@ -91,9 +91,8 @@
   <div class="note-viewer">
     {#if $noteEditing}
       <div class="md-toolbar">
-        <button on:click={onBack}>◀ Back</button>
-        <span class="md-path">{$activeNote.path}</span>
-        <button class="copy-path-btn" on:click={copyPath}>{copyDone ? '✓' : '⎘'}</button>
+        <button class="back-btn" on:click={onBack}>◀ Back</button>
+        <span class="path-group"><span class="md-path">{$activeNote.path}</span><button class="copy-path-btn" on:click={copyPath}>{copyDone ? '✓' : '⎘'}</button></span>
         <label class="upload-btn">📷
           <input type="file" accept="image/*" style="display:none"
             on:change={(e) => uploadImage(e.target.files?.[0])}>
@@ -106,9 +105,8 @@
         on:paste={handlePaste}></textarea>
     {:else}
       <div class="md-toolbar">
-        <button on:click={onBack}>◀ Back</button>
-        <span class="md-path">{$activeNote.path}</span>
-        <button class="copy-path-btn" on:click={copyPath}>{copyDone ? '✓' : '⎘'}</button>
+        <button class="back-btn" on:click={onBack}>◀ Back</button>
+        <span class="path-group"><span class="md-path">{$activeNote.path}</span><button class="copy-path-btn" on:click={copyPath}>{copyDone ? '✓' : '⎘'}</button></span>
         <button on:click={startEdit}>Edit</button>
       </div>
       <div class="md-content">{@html renderMarkdown($activeNote.content)}</div>
