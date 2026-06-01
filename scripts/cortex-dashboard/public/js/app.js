@@ -1020,8 +1020,8 @@ async function undoMonth() {
     body: JSON.stringify({ ym: ym() })
   });
   const data = await res.json();
-  if (data.ok) { alert('복원 완료'); loadMonth(); }
-  else alert('백업 없음');
+  if (data.ok) { showToast(`복원됨 (${data.restored_from})`); loadMonth(); }
+  else showToast('백업 없음', true);
 }
 
 function openSearch() {
@@ -1916,6 +1916,14 @@ document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();
     save().then(() => showToast('저장됨'));
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    const active = document.activeElement;
+    const isEditing = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+    if (!isEditing) {
+      e.preventDefault();
+      undoMonth();
+    }
   }
 }, true);
 
