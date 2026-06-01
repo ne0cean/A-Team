@@ -76,17 +76,6 @@ export default {
         return new Response(JSON.stringify({ ok: true }), { headers });
       }
 
-      // --- Workout (atomic patch — never overwritten by full month save) ---
-      if (path === '/api/workout' && method === 'POST') {
-        const { ym, day, workout } = await request.json();
-        if (!validYm(ym)) return new Response(JSON.stringify({ error: 'invalid ym' }), { status: 400, headers });
-        const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
-        if (!data.days[day]) data.days[day] = {};
-        data.days[day].workout = Array.isArray(workout) ? workout : [];
-        await setKey(ym, data);
-        return new Response(JSON.stringify({ ok: true }), { headers });
-      }
-
       // --- Toggle ---
       if (path === '/api/toggle' && method === 'POST') {
         const { ym, day, category, index } = await request.json();
@@ -254,73 +243,37 @@ export default {
         const start = clamp(fromDay || 1, 1, daysInMonth);
         const end = clamp(toDay || daysInMonth, 1, daysInMonth);
 
-        const resolveDayType = (dayData, dow) => {
-          if (dayData?.day_type) return dayData.day_type;
-          if (dow === 0) return 'block';
-          if (dow === 6) return 'flow';
-          return 'weekday';
-        };
-        const isTodoCat = (dayType, cat) => frames[dayType]?.categories?.[cat]?.type === 'todo';
-
         let injected = 0;
         for (let d = start; d <= end; d++) {
           const dayKey = String(d);
           if (!data.days[dayKey]) data.days[dayKey] = {};
           const dd = data.days[dayKey];
           const dow = new Date(year, month - 1, d).getDay();
-          const dayType = resolveDayType(dd, dow);
+          const dayType = dd.day_type || (dow === 0 ? 'block' : dow === 6 ? 'flow' : 'weekday');
           const frame = frames[dayType];
+          if (!frame?.categories) continue;
 
-          // --- Frame injection ---
-          if (frame?.categories) {
-            for (const cat of ['ritual','input','work','outcome']) {
-              const catFrame = frame.categories[cat];
-              if (!catFrame || !(catFrame.items?.length)) continue;
-              if (!dd[cat]) dd[cat] = [];
+          for (const cat of ['ritual','input','work','outcome']) {
+            const catFrame = frame.categories[cat];
+            if (!catFrame || !(catFrame.items?.length)) continue;
+            if (!dd[cat]) dd[cat] = [];
 
-              const frameTexts = (catFrame.items || []).map(r => typeof r === 'object' ? r.text : r);
-              dd[cat] = dd[cat].filter(i => !i._frame || frameTexts.includes(i.text));
+            const frameTexts = (catFrame.items || []).map(r => typeof r === 'object' ? r.text : r);
+            dd[cat] = dd[cat].filter(i => !i._frame || frameTexts.includes(i.text));
 
-              const manualItems = dd[cat].filter(i => !i._frame);
-              const existingFrame = dd[cat].filter(i => i._frame);
+            const manualItems = dd[cat].filter(i => !i._frame);
+            const existingFrame = dd[cat].filter(i => i._frame);
 
-              for (const rawItem of (catFrame.items || [])) {
-                const isObj = typeof rawItem === 'object';
-                const text = isObj ? rawItem.text : rawItem;
-                const itemUrl = isObj ? (rawItem.url || '') : '';
-                if (!existingFrame.some(i => i.text === text)) {
-                  existingFrame.push({ text, url: itemUrl, done: false, _frame: true });
-                  injected++;
-                }
-              }
-              dd[cat] = [...existingFrame, ...manualItems];
-            }
-          }
-
-          // --- Carry-over from previous day (todo categories only) ---
-          if (d > 1) {
-            const prevData = data.days[String(d - 1)];
-            if (prevData) {
-              const prevDow = new Date(year, month - 1, d - 1).getDay();
-              const prevType = resolveDayType(prevData, prevDow);
-              for (const cat of ['ritual','input','work','outcome']) {
-                if (!isTodoCat(prevType, cat)) continue;
-                if (!dd[cat]) dd[cat] = [];
-                for (const item of (prevData[cat] || [])) {
-                  if (item._frame) continue; // frame items reset each day
-                  if (item.done) {
-                    // Done in prev day → remove from this day
-                    dd[cat] = dd[cat].filter(i => i.text !== item.text);
-                  } else {
-                    // Undone → add if not already present
-                    if (!dd[cat].some(i => i.text === item.text)) {
-                      dd[cat].push({ text: item.text, url: item.url || '', done: false, _carried: true });
-                      injected++;
-                    }
-                  }
-                }
+            for (const rawItem of (catFrame.items || [])) {
+              const isObj = typeof rawItem === 'object';
+              const text = isObj ? rawItem.text : rawItem;
+              const itemUrl = isObj ? (rawItem.url || '') : '';
+              if (!existingFrame.some(i => i.text === text)) {
+                existingFrame.push({ text, url: itemUrl, done: false, _frame: true });
+                injected++;
               }
             }
+            dd[cat] = [...existingFrame, ...manualItems];
           }
         }
 

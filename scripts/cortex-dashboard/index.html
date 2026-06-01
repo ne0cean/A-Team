@@ -1,3 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1200, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d1117">
+<link rel="manifest" href="/manifest.json">
+<title>Cortex — Ritual & Routine</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'Pretendard', sans-serif; background: #0d1117; color: #e0e0e0; font-size: 12px;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+
+  /* Header */
+  .header { padding: 10px 16px; background: #161b22; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .header h1 { font-size: 16px; color: #f0c040; font-weight: 700; letter-spacing: -0.3px; }
+  .vision { font-size: 10px; color: #6e7681; margin-top: 2px; cursor: text; min-height: 14px; padding: 1px 2px; border-radius: 2px; transition: background 0.15s; }
+  .vision:focus { outline: 1px solid #30363d; background: #0d1117; color: #c9d1d9; }
+  .nav { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .nav button { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; transition: background 0.15s; }
+  .nav button:hover { background: #30363d; }
+  .nav .month-label { font-size: 15px; font-weight: 700; min-width: 100px; text-align: center; letter-spacing: -0.3px; }
+  .view-toggle { display: flex; gap: 2px; }
+  .view-toggle button.active { background: #f0c040; color: #0d1117; border-color: #f0c040; }
+  .search-btn { background: none !important; border: none !important; font-size: 14px; cursor: pointer; color: #6e7681; padding: 4px 8px !important; transition: color 0.15s; }
+  .search-btn:hover { color: #c9d1d9; }
+
+  /* Calendar grid */
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #21262d; }
+  .day-header { background: #161b22; padding: 6px 4px; text-align: center; font-weight: 600; color: #6e7681; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .day-header.sun { color: #f85149; }
+  .day-header.sat { color: #58a6ff; }
+
+  .day-cell { background: #0d1117; min-height: 110px; padding: 6px; position: relative; transition: background 0.15s; overflow-y: auto; max-height: 320px; }
+  .day-cell:hover { background: #111820; }
+  .day-cell.today { box-shadow: inset 0 0 0 2px #f0c040; background: #0d1219; }
+  .day-cell.other-month { opacity: 0.15; pointer-events: none; }
+  .day-cell.type-block { border-top: 1.5px solid #58a6ff; }
+  .day-cell.type-flow { border-top: 1.5px solid #56d364; }
+  .day-cell.type-hf { border-top: 1.5px solid #f0c040; }
+  .day-cell.type-vacation { border-top: 1.5px solid #bc8cff; }
+  .day-cell.is-holiday { background: #1a0d0d; }
+  .holiday-name { font-size: 8px; color: #f85149; margin-bottom: 2px; }
+
+  .day-num { font-weight: 700; font-size: 12px; margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: inherit; z-index: 1; padding: 2px 0; }
+  .day-num.sun { color: #f85149; }
+  .day-num.sat { color: #58a6ff; }
+  .day-num .add-btn { font-size: 14px; cursor: pointer; color: #484f58; display: none; line-height: 1; }
+  .day-cell:hover .add-btn { display: inline; }
+  .add-btn:hover { color: #f0c040 !important; }
+
+  .day-type-badge { font-size: 7px; padding: 1px 5px; border-radius: 3px; cursor: pointer; font-weight: 700; margin-left: 3px; letter-spacing: 0.3px; text-transform: uppercase; }
+  .badge-block { background: #172238; color: #58a6ff; }
+  .badge-flow { background: #12261a; color: #3fb950; }
+  .badge-hf { background: #2a2000; color: #d4a017; }
+  .badge-vacation { background: #221538; color: #bc8cff; }
+
+  .one-thing { background: #122117; padding: 3px 5px; border-radius: 3px; font-size: 10px; color: #56d364; margin-bottom: 4px; cursor: text; min-height: 16px; font-weight: 500; transition: background 0.15s; }
+  .one-thing:empty::before { content: 'ONE THING...'; color: #1e3a25; }
+  .one-thing:focus { outline: 1px solid #56d364; background: #0d2818; }
+
+  .workout-bar { display: flex; gap: 1px; margin-bottom: 4px; flex-wrap: wrap; }
+  .workout-chip { font-size: 8px; padding: 2px 4px; border-radius: 2px; cursor: pointer; user-select: none; background: #21262d; color: #6e7681; transition: all 0.15s; border: 1px solid transparent; }
+  .workout-chip.on { background: #1c3050; color: #58a6ff; border-color: #1c3050; }
+  .workout-chip.sub { font-size: 7px; padding: 1px 3px; background: #161b22; color: #484f58; }
+  .workout-chip.sub.on { background: #172238; color: #58a6ff; }
+
+  .category { margin-bottom: 6px; border-left: 2px solid transparent; padding-left: 4px; }
+  .category.cat-ritual { border-left-color: #f0c040; }
+  .category.cat-input { border-left-color: #58a6ff; }
+  .category.cat-work { border-left-color: #56d364; }
+  .category.cat-outcome { border-left-color: #bc8cff; }
+  .cat-label { font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: flex; justify-content: space-between; }
+  .cat-label.cl-ritual { color: #f0c040; }
+  .cat-label.cl-input { color: #58a6ff; }
+  .cat-label.cl-work { color: #56d364; }
+  .cat-label.cl-outcome { color: #bc8cff; }
+  .cat-label .cat-add { cursor: pointer; color: #484f58; font-size: 10px; display: none; }
+  .category:hover .cat-add { display: inline; }
+  .cat-add:hover { color: #f0c040 !important; }
+
+  .item { display: flex; align-items: flex-start; gap: 4px; padding: 2px 0; font-size: 11px; line-height: 1.5; }
+  .item input[type="checkbox"] { -webkit-appearance: none; appearance: none; margin-top: 2px; cursor: pointer; flex-shrink: 0; width: 11px; height: 11px; border: 1.5px solid #484f58; border-radius: 2px; background: transparent; position: relative; }
+  .item input[type="checkbox"]:checked { background: #56d364; border-color: #56d364; }
+  .item input[type="checkbox"]:checked::after { content: ''; position: absolute; left: 2.5px; top: 0.5px; width: 3px; height: 6px; border: solid #0d1117; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+  .item.done .item-text { text-decoration: line-through; color: #484f58; }
+  .item.is-carried .item-text::before { content: '↩ '; color: #f0c040; font-size: 9px; }
+  .item-text { flex: 1; min-height: 14px; cursor: text; word-break: break-word; }
+  .item-text:focus { outline: none; background: #161b22; border-radius: 2px; }
+  .item-text a { color: #58a6ff; text-decoration: none; }
+  .item .link-btn { color: #484f58; cursor: pointer; font-size: 8px; display: none; padding: 0 1px; }
+  .item .link-btn.has-link { color: #58a6ff; }
+  .item:hover .link-btn { display: inline; }
+  .link-btn:hover { color: #f0c040 !important; }
+  .item .del-btn { color: #484f58; cursor: pointer; font-size: 10px; display: none; padding: 0 2px; }
+  .item:hover .del-btn { display: inline; }
+  .del-btn:hover { color: #f85149 !important; }
+
+  /* Link popup */
+  .link-popup { position: fixed; z-index: 200; background: #161b22; border: 1px solid #f0c040; border-radius: 6px; padding: 8px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+  .link-popup.open { display: flex; flex-direction: column; gap: 6px; }
+  .link-popup input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 12px; padding: 4px 8px; border-radius: 3px; width: 260px; }
+  .link-popup input:focus { outline: 1px solid #f0c040; }
+  .link-popup .link-popup-btns { display: flex; gap: 4px; justify-content: flex-end; }
+  .link-popup .link-popup-btns button { padding: 3px 10px; border-radius: 3px; border: none; cursor: pointer; font-size: 11px; }
+  .link-popup .btn-save { background: #238636; color: #fff; }
+  .link-popup .btn-remove { background: #da3633; color: #fff; }
+  .link-popup .btn-cancel { background: #21262d; color: #c9d1d9; }
+
+  /* Dragging */
+  .item.dragging { opacity: 0.4; }
+  .item.drag-over { border-top: 2px solid #f0c040; }
+
+  /* Notes */
+  .day-notes { font-size: 10px; color: #8b949e; margin-top: 3px; padding: 2px 4px; background: #161b22; border-radius: 2px; min-height: 14px; display: none; }
+  .day-notes.has-content { display: block; }
+  .day-notes:focus { outline: 1px solid #484f58; color: #c9d1d9; }
+
+  /* New item input */
+  .new-item { display: none; padding: 2px 0; }
+  .new-item.active { display: flex; gap: 3px; align-items: center; }
+  .new-item input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 2px 4px; border-radius: 2px; width: 100%; }
+  .new-item input:focus { outline: 1px solid #f0c040; }
+
+  .stats { display: none; }
+
+  /* Collapsed past week */
+  .collapsed-week { padding: 6px 16px; background: #161b22; border-bottom: 1px solid #21262d; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 11px; color: #8b949e; }
+  .collapsed-week:hover { background: #21262d; }
+
+  /* Week view */
+  .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #21262d; }
+  .week-cell { background: #0d1117; min-height: 400px; padding: 8px; overflow-y: auto; max-height: 80vh; }
+  .week-cell.today { box-shadow: inset 0 0 0 2px #f0c040; }
+  .week-cell .day-num { font-size: 14px; margin-bottom: 6px; }
+  .week-cell .item { font-size: 12px; padding: 2px 0; }
+  .week-cell .item input[type="checkbox"] { width: 12px; height: 12px; }
+  .week-cell .cat-label { font-size: 9px; margin-top: 6px; }
+
+  /* Bottom panels */
+  .panels { border-top: 1px solid #30363d; }
+  .panel { background: #161b22; }
+  .panel-header { padding: 10px 16px; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262d; transition: background 0.15s; }
+  .panel-header:hover { background: #1c2028; }
+  .panel-header h2 { font-size: 12px; color: #8b949e; font-weight: 600; letter-spacing: 0.3px; }
+  .panel-toggle { color: #484f58; font-size: 10px; }
+  .panel-body { display: none; padding: 8px 16px; }
+  .panel-body.open { display: block; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; margin-bottom: 8px; }
+  .tab { padding: 5px 14px; font-size: 11px; cursor: pointer; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; transition: all 0.15s; }
+  .tab:hover { background: #2d333b; }
+  .tab.active { background: #30363d; color: #e0e0e0; border-color: #484f58; font-weight: 600; }
+
+  .so-item { display: flex; align-items: center; gap: 4px; padding: 3px 0; font-size: 11px; }
+  .so-move { display: flex; flex-direction: column; gap: 0; line-height: 1; }
+  .so-move span { cursor: pointer; color: #484f58; font-size: 9px; padding: 0 2px; user-select: none; }
+  .so-move span:hover { color: #f0c040; }
+  .so-item input[type="checkbox"] { accent-color: #56d364; }
+  .so-monthly-item { padding: 2px 0; font-size: 11px; color: #c9d1d9; }
+  .so-yearly-item { padding: 2px 0; font-size: 11px; }
+  .so-yearly-item .month-tag { font-size: 9px; color: #f0c040; margin-right: 4px; }
+  .so-yearly-item.current-month { color: #56d364; font-weight: 600; }
+
+  .hf-badge { display: inline-block; background: #3a3000; color: #f0c040; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin: 2px; }
+
+  /* Recurring template controls */
+  /* Vision roadmap */
+  .vision-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .vision-table th { background: #21262d; color: #f0c040; font-size: 10px; padding: 6px 8px; text-align: center; border: 1px solid #30363d; font-weight: 600; min-width: 100px; }
+  .vision-table th:first-child { min-width: 80px; text-align: left; color: #8b949e; }
+  .vision-table td { border: 1px solid #30363d; padding: 4px 6px; vertical-align: top; background: #0d1117; }
+  .vision-table td:first-child { background: #161b22; color: #f0c040; font-weight: 600; font-size: 10px; white-space: pre-line; }
+  .vision-table td[contenteditable]:focus { outline: 1px solid #f0c040; background: #111820; }
+  .vision-table td[contenteditable] { min-height: 30px; white-space: pre-wrap; color: #c9d1d9; font-size: 10px; line-height: 1.5; }
+
+  /* Admin notes */
+  .admin-notes { margin-top: 12px; padding: 8px; background: #0d1117; border: 1px solid #21262d; border-radius: 4px; }
+  .admin-notes-title { font-size: 10px; color: #6e7681; font-weight: 600; margin-bottom: 4px; }
+  .admin-notes-content { font-size: 11px; color: #8b949e; min-height: 20px; white-space: pre-wrap; }
+  .admin-notes-content:focus { outline: 1px solid #30363d; color: #c9d1d9; }
+
+  /* Frames admin */
+  .frame-section { margin-bottom: 16px; padding: 8px; background: #0d1117; border-radius: 4px; border: 1px solid #21262d; }
+  .frame-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .frame-section-title { font-size: 13px; font-weight: 600; }
+  .frame-type-weekday .frame-section-title { color: #c9d1d9; }
+  .frame-type-flow .frame-section-title { color: #56d364; }
+  .frame-type-block .frame-section-title { color: #58a6ff; }
+  .frame-cat { margin-bottom: 6px; padding-left: 4px; }
+  .frame-cat-header { display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-weight: 600; margin-bottom: 2px; }
+  .frame-cat-type { font-size: 9px; padding: 1px 5px; border-radius: 3px; }
+  .frame-cat-type.routine { background: #1c3a1c; color: #56d364; }
+  .frame-cat-type.todo { background: #3a3000; color: #f0c040; }
+  .frame-item { display: flex; align-items: center; gap: 4px; padding: 2px 0; font-size: 11px; }
+  .frame-item input { background: #161b22; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 2px 4px; border-radius: 2px; flex: 1; }
+  .frame-item .frame-del { color: #484f58; cursor: pointer; font-size: 11px; }
+  .frame-item .frame-del:hover { color: #f85149; }
+  .frame-add { display: flex; gap: 4px; margin-top: 3px; }
+  .frame-add input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 2px 4px; border-radius: 2px; flex: 1; }
+  .frame-add button { background: #238636; border: none; color: #fff; padding: 2px 8px; border-radius: 2px; cursor: pointer; font-size: 10px; }
+  .frame-actions { display: flex; gap: 6px; margin-top: 12px; }
+  .frame-actions button { padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; border: none; color: #fff; }
+  .frame-btn-inject { background: #238636; }
+  .frame-btn-inject:hover { background: #2ea043; }
+  .frame-btn-toggle { background: #21262d; color: #c9d1d9 !important; border: 1px solid #30363d !important; }
+
+  .rtpl-toolbar { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .rtpl-toolbar select, .rtpl-toolbar input { background: #0d1117; border: 1px solid #30363d; color: #e0e0e0; font-size: 11px; padding: 3px 5px; border-radius: 3px; }
+  .rtpl-toolbar input.rtpl-name { flex: 1; min-width: 140px; }
+  .rtpl-toolbar button { background: #238636; border: none; color: #fff; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; }
+
+  .rtpl-item { display: flex; align-items: center; gap: 5px; padding: 3px 2px; font-size: 11px; border-radius: 3px; }
+  .rtpl-item:hover { background: #21262d; }
+  .rtpl-toggle { cursor: pointer; font-size: 13px; flex-shrink: 0; }
+  .rtpl-toggle.on { color: #56d364; }
+  .rtpl-toggle.off { color: #484f58; }
+  .rtpl-cat { color: #f0c040; font-size: 9px; min-width: 34px; flex-shrink: 0; }
+  .rtpl-sched { font-size: 9px; color: #484f58; flex-shrink: 0; }
+  .rtpl-del { color: #484f58; cursor: pointer; font-size: 11px; padding: 0 3px; }
+  .rtpl-del:hover { color: #f85149; }
+
+  /* Search overlay */
+  .search-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; padding: 40px 16px; }
+  .search-overlay.open { display: flex; flex-direction: column; align-items: center; }
+  .search-box { width: 100%; max-width: 500px; }
+  .search-box input { width: 100%; background: #0d1117; border: 2px solid #f0c040; color: #e0e0e0; font-size: 16px; padding: 10px 14px; border-radius: 8px; outline: none; }
+  .search-results { width: 100%; max-width: 500px; margin-top: 12px; max-height: 60vh; overflow-y: auto; }
+  .search-result { padding: 8px 12px; background: #161b22; border-radius: 4px; margin-bottom: 4px; cursor: pointer; }
+  .search-result:hover { background: #21262d; }
+  .search-result .sr-date { color: #f0c040; font-size: 11px; font-weight: 600; }
+  .search-result .sr-match { font-size: 11px; color: #c9d1d9; margin-top: 2px; }
+  .search-result .sr-cat { font-size: 9px; color: #8b949e; }
+  mark { background: #f0c04060; color: #f0c040; border-radius: 2px; }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    .header { padding: 8px; }
+    .header h1 { font-size: 12px; }
+    .vision { display: none; }
+    .grid { grid-template-columns: repeat(7, 1fr); }
+    .day-cell { min-height: 60px; max-height: 200px; padding: 2px; font-size: 10px; }
+    .day-cell .cat-label { font-size: 7px; }
+    .day-cell .item { font-size: 9px; }
+    .day-num { font-size: 10px; }
+    .one-thing { font-size: 8px; }
+    .week-grid { grid-template-columns: 1fr; }
+    .week-cell { min-height: auto; max-height: none; }
+    .stats { padding: 6px 8px; gap: 8px; font-size: 10px; }
+    .item input[type="checkbox"] { width: 13px; height: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Cortex — Ritual & Routine</h1>
+    <span style="font-size:9px;color:#484f58;font-style:italic;margin-left:8px">Don't think, just do.</span>
+  </div>
+  <div class="nav">
+    <button id="viewToggle" onclick="toggleView()">Full Month</button>
+    <button onclick="prevPeriod()">&#9664;</button>
+    <span class="month-label" id="monthLabel"></span>
+    <button onclick="nextPeriod()">&#9654;</button>
+    <span class="search-btn" onclick="undoMonth()" title="Undo (restore backup)" style="font-size:12px">&#8630;</span>
+    <span class="search-btn" onclick="openSearch()">&#128269;</span>
+  </div>
+</div>
+<div style="padding:4px 16px;background:#161b22;border-bottom:1px solid #21262d;display:flex;align-items:center;justify-content:space-between">
+  <div style="display:flex;align-items:center;gap:6px">
+    <span style="font-size:9px;color:#6e7681">EX</span>
+    <div class="workout-bar" id="workoutBar"></div>
+  </div>
+  <div class="vision" id="visionText2" contenteditable="true" onblur="saveGoalText(this.textContent)" style="text-align:center;flex:1;margin:0 12px"></div>
+</div>
+
+<div id="calendarContainer"></div>
+
+<div class="stats" id="stats"></div>
+
+<div class="panels">
+  <!-- Vision & Milestones Panel -->
+  <div class="panel">
+    <div class="panel-header" onclick="togglePanel('visionPanel')">
+      <h2>Vision & Milestones</h2>
+      <span class="panel-toggle" id="visionPanelToggle">&#9654;</span>
+    </div>
+    <div class="panel-body" id="visionPanel"></div>
+  </div>
+
+  <!-- Standing Orders Panel -->
+  <div class="panel">
+    <div class="panel-header" onclick="togglePanel('soPanel')">
+      <h2>Standing Orders / Monthly / Yearly</h2>
+      <span class="panel-toggle" id="soPanelToggle">&#9654;</span>
+    </div>
+    <div class="panel-body" id="soPanel"></div>
+  </div>
+
+  <!-- Day Frames Admin Panel -->
+  <div class="panel">
+    <div class="panel-header" onclick="togglePanel('framesPanel')">
+      <h2>Day Frames (Admin)</h2>
+      <span class="panel-toggle" id="framesPanelToggle">&#9654;</span>
+    </div>
+    <div class="panel-body" id="framesPanel"></div>
+  </div>
+
+</div>
+
+<!-- Link Popup -->
+<div class="link-popup" id="linkPopup">
+  <input type="text" id="linkUrl" placeholder="URL (https://...)">
+  <div class="link-popup-btns">
+    <button class="btn-remove" onclick="removeLink()">Remove</button>
+    <button class="btn-cancel" onclick="closeLinkPopup()">Cancel</button>
+    <button class="btn-save" onclick="saveLink()">Save</button>
+  </div>
+</div>
+
+<!-- Search Overlay -->
+<div class="search-overlay" id="searchOverlay" onclick="if(event.target===this)closeSearch()">
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search..." oninput="debounceSearch()" onkeydown="if(event.key==='Escape')closeSearch()">
+  </div>
+  <div class="search-results" id="searchResults"></div>
+</div>
+
+<script>
 const API = '';
 const CATS = ['ritual','input','work','outcome'];
 const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Work', outcome:'Out'};
@@ -7,7 +340,6 @@ const TYPE_COLORS = {block:'badge-block',flow:'badge-flow',hf:'badge-hf',vacatio
 const TYPES = ['block','flow','hf','vacation'];
 
 let currentYear, currentMonth, currentWeekStart, monthData, standingData, recurringData;
-let todayMonthData = null; // 오늘 날짜 월 캐시 (월 탐색 시에도 유지)
 let viewMode = 'month'; // 'month' (default) or 'week'
 
 // --- Init ---
@@ -16,18 +348,19 @@ function init() {
   currentYear = now.getFullYear();
   currentMonth = now.getMonth() + 1;
   currentWeekStart = getWeekStart(now);
-  loadMonth(true);
+  loadMonth();
   loadStandingOrders();
   loadRecurringTemplates();
   loadFrames();
   loadVision();
-  loadSidebarTree('cortex');
   registerSW();
 }
 
 function registerSW() {
+  // Unregister stale SW during dev; re-enable for production
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
   }
 }
 
@@ -40,45 +373,14 @@ function getWeekStart(date) {
 }
 
 // --- Data loading ---
-let prevMonthData = null, nextMonthData = null;
-
-async function loadMonth(isInit) {
+async function loadMonth() {
   const res = await fetch(`${API}/api/month?ym=${ym()}`);
   monthData = await res.json();
-  // 오늘이 속한 월이면 todayMonthData 캐시
-  const now = new Date();
-  if (isInit || (currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1)) {
-    todayMonthData = monthData;
-  }
-  // Load adjacent months for week overlap
-  const pm = currentMonth === 1 ? 12 : currentMonth - 1;
-  const py = currentMonth === 1 ? currentYear - 1 : currentYear;
-  const nm = currentMonth === 12 ? 1 : currentMonth + 1;
-  const ny = currentMonth === 12 ? currentYear + 1 : currentYear;
-  const [prevRes, nextRes] = await Promise.all([
-    fetch(`${API}/api/month?ym=${py}-${String(pm).padStart(2,'0')}`),
-    fetch(`${API}/api/month?ym=${ny}-${String(nm).padStart(2,'0')}`)
-  ]);
-  prevMonthData = await prevRes.json();
-  nextMonthData = await nextRes.json();
-  // visionText2 is loaded from standingData.vision (global, see loadStandingOrders)
-  // Auto viewMode: 오늘이 속한 주 → This Week, 그 외 주/월 → Full Month
-  const _now = new Date();
-  const _todayWeekStart = getWeekStart(_now);
-  const _isTodayWeek = currentWeekStart.getFullYear() === _todayWeekStart.getFullYear()
-    && currentWeekStart.getMonth() === _todayWeekStart.getMonth()
-    && currentWeekStart.getDate() === _todayWeekStart.getDate();
-  viewMode = _isTodayWeek ? 'week' : 'month';
+  const vt = document.getElementById('visionText2');
+  if (vt) vt.textContent = monthData.goals?.goal || '';
   updateLabel();
   render();
   renderWorkoutBar();
-}
-
-function getDayData(d, isCurrent) {
-  if (isCurrent) return monthData.days[String(d)] || {};
-  // Previous or next month
-  if (d > 15) return prevMonthData?.days[String(d)] || {};
-  return nextMonthData?.days[String(d)] || {};
 }
 
 function updateLabel() {
@@ -96,12 +398,6 @@ function formatWeekLabel() {
 async function loadStandingOrders() {
   const res = await fetch(`${API}/api/standing-orders`);
   standingData = await res.json();
-  // 비전 텍스트: standingData.vision → monthData.goals.goal fallback
-  const vt = document.getElementById('visionText2');
-  if (vt) {
-    const mantra = standingData.vision || (todayMonthData || monthData)?.goals?.goal || '';
-    vt.textContent = mantra;
-  }
   renderStandingOrders();
 }
 
@@ -151,82 +447,54 @@ function render() {
 
 function renderMonthView() {
   const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-  const prevDaysInMonth = new Date(currentYear, currentMonth - 1, 0).getDate();
-  const firstDow = new Date(currentYear, currentMonth - 1, 1).getDay(); // 0=Sun
   const today = new Date();
   const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth;
   const todayDate = isCurrentMonth ? today.getDate() : -1;
 
-  // Build full calendar grid (6 weeks max, each week Sun-Sat)
-  const cells = []; // {d, isCurrentMonth, date}
-  // Previous month trailing days
-  for (let i = firstDow - 1; i >= 0; i--) {
-    cells.push({ d: prevDaysInMonth - i, current: false });
-  }
-  // Current month
-  for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ d, current: true });
-  }
-  // Next month leading days
-  while (cells.length % 7 !== 0) {
-    cells.push({ d: cells.length - firstDow - daysInMonth + 1, current: false });
-  }
-
-  // Group into weeks
+  // Group days into weeks
   const weeks = [];
-  for (let i = 0; i < cells.length; i += 7) {
-    weeks.push(cells.slice(i, i + 7));
+  let weekDays = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    weekDays.push(d);
+    const dow = new Date(currentYear, currentMonth - 1, d).getDay();
+    if (dow === 6 || d === daysInMonth) {
+      weeks.push([...weekDays]);
+      weekDays = [];
+    }
   }
 
-  // Determine current week — only fold past weeks in current month
-  let currentWeekIdx = 0; // default: show all weeks
-  let pastWeeks = [];
+  // Determine which week is "current" (contains today, or last week if past month)
+  let currentWeekIdx = weeks.length - 1;
   if (isCurrentMonth) {
-    currentWeekIdx = weeks.findIndex(w => w.some(c => c.current && c.d === todayDate));
-    if (currentWeekIdx === -1) currentWeekIdx = 0;
-    pastWeeks = weeks.filter((_, i) => i < currentWeekIdx);
+    currentWeekIdx = weeks.findIndex(w => w.includes(todayDate));
+    if (currentWeekIdx === -1) currentWeekIdx = weeks.length - 1;
   }
+
+  // Collect past weeks stats
+  const pastWeeks = weeks.filter((_, i) => i < currentWeekIdx);
   let pastTotal = 0, pastDone = 0;
-  pastWeeks.forEach(week => week.filter(c => c.current).forEach(c => {
-    const dd = monthData.days[String(c.d)] || {};
+  pastWeeks.forEach(week => week.forEach(d => {
+    const dd = monthData.days[String(d)] || {};
     CATS.forEach(cat => { const items = dd[cat] || []; pastTotal += items.length; pastDone += items.filter(i => i.done).length; });
   }));
 
   let html = renderDayHeaders();
 
-  // Past weeks: hidden
+  // Past weeks: hidden, toggled by arrow button in current week's Saturday cell
   if (pastWeeks.length > 0) {
     html += `<div id="pastWeeksContainer" style="display:none">`;
-    pastWeeks.forEach(week => html += renderWeekGridFull(week, todayDate));
+    pastWeeks.forEach(week => html += renderWeekGrid(week, todayDate));
     html += '</div>';
   }
 
   // Current + future weeks
   weeks.forEach((week, wIdx) => {
     if (wIdx < currentWeekIdx) return;
-    const showToggle = (wIdx === currentWeekIdx && pastWeeks.length > 0);
-    html += renderWeekGridFull(week, todayDate, showToggle);
+    _showPastToggleOnWeek = (wIdx === currentWeekIdx && pastWeeks.length > 0);
+    _pastToggleDay = _showPastToggleOnWeek ? week[week.length - 1] : -1;
+    html += renderWeekGrid(week, todayDate);
   });
 
-  return html;
-}
-
-function renderWeekGridFull(week, todayDate, showToggle) {
-  let html = '<div class="grid">';
-  week.forEach(cell => {
-    if (!cell.current) {
-      html += `<div class="day-cell other-month"><div class="day-num" style="color:#30363d">${cell.d}</div></div>`;
-    } else {
-      const isToday = cell.d === todayDate;
-      if (showToggle) {
-        _showPastToggleOnWeek = true;
-        _pastToggleDay = week.filter(c => c.current).pop()?.d || -1;
-      }
-      html += renderDayCell(cell.d, isToday, false, cell.current);
-    }
-  });
-  html += '</div>';
-  _showPastToggleOnWeek = false;
   return html;
 }
 
@@ -282,7 +550,7 @@ function renderWeekView() {
     const isToday = date.toDateString() === today.toDateString();
     const isSameMonth = date.getMonth() + 1 === currentMonth;
     html += `<div class="week-cell${isToday ? ' today' : ''}">`;
-    html += renderDayCellContent(d, isToday, true, isSameMonth);
+    html += renderDayCellContent(d, isToday, true);
     html += '</div>';
   }
   html += '</div>';
@@ -301,30 +569,13 @@ function getYearlyEvents(d) {
 }
 
 function getMonthlyRecurring(d) {
-  const results = [];
-  // monthly_recurring: structured {day, text} items
-  if (standingData?.monthly_recurring) {
-    const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-    standingData.monthly_recurring.forEach(m => {
-      if (m.day === d || (m.day === 0 && d === daysInMonth)) results.push(m);
-    });
-  }
-  // monthly[ym]: plain text strings with embedded day ranges e.g. "1~2일 PO교육", "11일(목) 코딩..."
-  const ymKey = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
-  const monthlyTexts = standingData?.monthly?.[ymKey] || [];
-  monthlyTexts.forEach(text => {
-    // Parse "N일" or "N~M일" or "N,M일" from beginning of string
-    const m = text.match(/^(\d+)(?:[~,～](\d+))?일/);
-    if (!m) return;
-    const from = parseInt(m[1]);
-    const to = m[2] ? parseInt(m[2]) : from;
-    if (d >= from && d <= to) {
-      // Strip the day prefix from display text
-      const name = text.replace(/^\d+[~,～]?\d*일\([^)]*\)\s*/, '').replace(/^\d+[~,～]?\d*일\s*/, '');
-      results.push({ text: name || text, url: '' });
-    }
+  if (!standingData?.monthly_recurring) return [];
+  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+  return standingData.monthly_recurring.filter(m => {
+    if (m.day === d) return true;
+    if (m.day === 0 && d === daysInMonth) return true;
+    return false;
   });
-  return results;
 }
 
 function getWeeklyRecurring(d) {
@@ -339,19 +590,18 @@ function getWeeklyRecurring(d) {
   });
 }
 
-function renderDayCell(d, isToday, isWeek, isCurrent) {
-  const dayData = getDayData(d, isCurrent !== false);
+function renderDayCell(d, isToday, isWeek) {
+  const dayData = monthData.days[String(d)] || {};
   const dow = new Date(currentYear, currentMonth - 1, d).getDay();
   const typeClass = dayData.day_type ? ` type-${dayData.day_type}` : '';
   const todayClass = isToday ? ' today' : '';
   const holidayClass = getHoliday(d) ? ' is-holiday' : '';
-  const otherClass = isCurrent === false ? ' other-month' : '';
 
-  return `<div class="day-cell${todayClass}${typeClass}${holidayClass}${otherClass}" ondragover="dayDragOver(event)" ondragleave="dayDragLeave(event)" ondrop="dayDrop(event,${d})">${renderDayCellContent(d, isToday, isWeek, isCurrent)}</div>`;
+  return `<div class="day-cell${todayClass}${typeClass}${holidayClass}" ondragover="dayDragOver(event)" ondragleave="dayDragLeave(event)" ondrop="dayDrop(event,${d})">${renderDayCellContent(d, isToday, isWeek)}</div>`;
 }
 
-function renderDayCellContent(d, isToday, isWeek, isCurrent) {
-  const dayData = getDayData(d, isCurrent !== false);
+function renderDayCellContent(d, isToday, isWeek) {
+  const dayData = monthData.days[String(d)] || {};
   const dow = new Date(currentYear, currentMonth - 1, d).getDay();
   const dowClass = dow === 0 ? ' sun' : dow === 6 ? ' sat' : '';
 
@@ -366,21 +616,10 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   const yearlyEvts = getYearlyEvents(d);
   const monthlyRec = getMonthlyRecurring(d);
   const weeklyRec = getWeeklyRecurring(d);
-  // Inject recurring into day data if not already present
-  const recItems = [
-    ...yearlyEvts.map(e => ({ ...e, _src: 'yearly' })),
-    ...monthlyRec.map(e => ({ ...e, _src: 'monthly' })),
-    ...weeklyRec.map(e => ({ ...e, _src: 'weekly' })),
-  ];
-  if (recItems.length) {
-    if (!dayData._recurring) dayData._recurring = [];
-    recItems.forEach(r => {
-      if (!dayData._recurring.some(x => x.text === r.text)) {
-        dayData._recurring.push({ text: r.text, done: false, _src: r._src });
-      }
-    });
-  }
-  const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '');
+  const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '')
+    + yearlyEvts.map(e => `<div style="font-size:8px;color:#f0c040;margin-bottom:1px">${esc(e.text)}</div>`).join('')
+    + monthlyRec.map(e => `<div style="font-size:8px;color:#bc8cff;margin-bottom:1px">${esc(e.text)}</div>`).join('')
+    + weeklyRec.map(e => `<div style="font-size:8px;color:#6e7681;margin-bottom:1px">${esc(e.text)}</div>`).join('');
   let html = `<div class="day-num${dowClass}" onclick="cycleDayType(${d})" style="cursor:pointer" title="Set day type">
     <span>${d}${badgeHtml}</span>
     <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
@@ -394,14 +633,9 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   >${esc(ot)}</div>`;
 
   // Categories
-  const SRC_COLORS = { yearly: '#f0c040', monthly: '#bc8cff', weekly: '#6e7681' };
-  const recArr = dayData._recurring || [];
-
   for (const cat of CATS) {
     const items = dayData[cat] || [];
-    const isFutureOrToday = isToday || new Date(currentYear, currentMonth - 1, d) >= new Date(new Date().toDateString());
-    if (items.length === 0 && recArr.length === 0 && !isFutureOrToday) continue;
-    if (items.length === 0 && cat !== 'outcome' && !isFutureOrToday) continue;
+    if (items.length === 0 && !isToday) continue;
 
     html += `<div class="category cat-${cat}">
       <div class="cat-label cl-${cat}">
@@ -409,36 +643,20 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
         <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span>
       </div>`;
 
-    // Recurring items (yearly/monthly/weekly) injected into outcome
-    if (cat === 'outcome') {
-      recArr.forEach((item, idx) => {
-        const doneClass = item.done ? 'done' : '';
-        const clr = SRC_COLORS[item._src] || '#6e7681';
-        html += `<div class="item ${doneClass}" style="border-left:2px solid ${clr};padding-left:4px">
-          <input type="checkbox" ${item.done?'checked':''} onchange="toggleRecurring(${d},${idx})">
-          <span class="item-text" contenteditable="true" style="color:${clr}"
-            onblur="editRecurring(${d},${idx},this.textContent)"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}if(event.key==='Escape'){this.blur();}"
-          >${linkify(item.text)}</span>
-          <span class="del-btn" onclick="delRecurring(${d},${idx})">&#215;</span>
-        </div>`;
-      });
-    }
-
     items.forEach((item, idx) => {
       const doneClass = item.done ? 'done' : '';
       const carriedClass = item._carried ? 'is-carried' : '';
       const checked = item.done ? 'checked' : '';
-      html += `<div class="item ${doneClass} ${carriedClass}" draggable="false"
+      html += `<div class="item ${doneClass} ${carriedClass}" draggable="true"
         ondragstart="dragStart(event,${d},'${cat}',${idx})"
-        ondragend="dragEnd(event)"
         ondragover="dragOver(event)" ondragleave="dragLeave(event)"
         ondrop="drop(event,${d},'${cat}',${idx})">
         <input type="checkbox" ${checked} onchange="toggleItem(${d},'${cat}',${idx})">
-        <span class="item-text${item.url?' has-link':''}" contenteditable="true"
+        <span class="item-text" contenteditable="true"
           onblur="editItem(${d},'${cat}',${idx},this.textContent)"
           onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
-        >${item.url ? `<a href="${esc(item.url)}" target="_blank" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
+        >${item.url ? `<a href="${esc(item.url)}" target="_blank" onclick="event.stopPropagation()">${esc(item.text)}</a>` : esc(item.text)}</span>
+        <span class="link-btn${item.url?' has-link':''}" onclick="openLinkPopup(event,${d},'${cat}',${idx})" title="Link">&#128279;</span>
         <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
       </div>`;
     });
@@ -454,7 +672,6 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   if (isToday) {
     for (const cat of CATS) {
       if ((dayData[cat] || []).length > 0) continue;
-      if (cat === 'outcome' && recArr.length > 0) continue; // already rendered with recurring
       html += `<div class="category cat-${cat}"><div class="cat-label cl-${cat}"><span>${CAT_NAMES[cat]}</span>
         <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span></div>
         <div class="new-item" id="new-${d}-${cat}">
@@ -477,27 +694,6 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
 
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function linkify(s) {
-  // Handle [text](url) markdown links (any url), then bare URLs
-  let result = '';
-  let last = 0;
-  const re = /\[([^\]]*)\]\(([^)]+)\)/g;
-  let m;
-  while ((m = re.exec(s)) !== null) {
-    result += esc(s.slice(last, m.index));
-    if (/^https?:\/\//.test(m[2])) {
-      result += `<a href="${esc(m[2])}" target="_blank" onclick="event.stopPropagation()">${esc(m[1])}</a>`;
-    } else {
-      result += esc(m[1]); // non-http URL: show text only
-    }
-    last = m.index + m[0].length;
-  }
-  result += esc(s.slice(last));
-  // Bare URLs not already inside an anchor
-  result = result.replace(/(?<!href=")(?<!">)(https?:\/\/[^\s<"&]+)/g,
-    '<a href="$1" target="_blank" onclick="event.stopPropagation()">$1</a>');
-  return result;
 }
 
 // --- Stats ---
@@ -546,36 +742,21 @@ function renderStats() {
 }
 
 // --- Data operations ---
-const AUTH = { 'Content-Type':'application/json', 'Authorization':'Bearer cortex-ritual-2026-fb' };
-
 async function save() {
+  // Safety: don't save if monthData looks empty (prevent data loss)
   const dayCount = Object.keys(monthData.days || {}).length;
   let itemCount = 0;
   for (const dd of Object.values(monthData.days || {})) {
-    for (const k of Object.keys(dd)) {
-      if (Array.isArray(dd[k])) itemCount += dd[k].length;
-    }
+    for (const c of CATS) itemCount += (dd[c] || []).length;
   }
   if (dayCount === 0 && itemCount === 0) {
-    console.warn('save() blocked: empty');
+    console.warn('save() blocked: monthData is empty, refusing to overwrite');
     return;
   }
-  try {
-    // Strip workout from each day — workout is managed exclusively via /api/workout (atomic)
-    const safeData = { ...monthData, days: {} };
-    for (const [k, dd] of Object.entries(monthData.days || {})) {
-      const { workout, ...rest } = dd;
-      safeData.days[k] = rest;
-    }
-    const res = await fetch(`${API}/api/month`, {
-      method: 'POST', headers: AUTH,
-      body: JSON.stringify({ ym: ym(), data: safeData })
-    });
-    if (!res.ok) throw new Error(res.status);
-  } catch (e) {
-    document.title = '⚠ Save failed!';
-    setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000);
-  }
+  await fetch(`${API}/api/month`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ ym: ym(), data: monthData })
+  });
 }
 
 function ensureDay(d) {
@@ -589,37 +770,9 @@ async function toggleItem(d, cat, idx) {
   await save(); render();
 }
 
-async function toggleRecurring(d, idx) {
-  const dd = ensureDay(d);
-  if (!dd._recurring) return;
-  dd._recurring[idx].done = !dd._recurring[idx].done;
-  await save(); render();
-}
-async function editRecurring(d, idx, text) {
-  const dd = ensureDay(d);
-  if (!dd._recurring?.[idx]) return;
-  const trimmed = text.trim();
-  if (!trimmed || trimmed === dd._recurring[idx].text) return;
-  dd._recurring[idx].text = trimmed;
-  await save();
-}
-async function delRecurring(d, idx) {
-  const dd = ensureDay(d);
-  if (!dd._recurring) return;
-  dd._recurring.splice(idx, 1);
-  await save(); render();
-}
-
 // --- Link popup ---
 let linkTarget = null;
 let longPressTimer = null;
-
-function openLinkPopupFromSpan(span, d, cat, idx) {
-  // Ctrl+K from contenteditable span — position near cursor
-  const rect = span.getBoundingClientRect();
-  const fakeEvent = { clientX: rect.left, clientY: rect.bottom + 4, changedTouches: null, touches: null };
-  openLinkPopup(fakeEvent, d, cat, idx);
-}
 
 function openLinkPopup(event, d, cat, idx) {
   const item = ensureDay(d)[cat]?.[idx];
@@ -629,12 +782,11 @@ function openLinkPopup(event, d, cat, idx) {
   const input = document.getElementById('linkUrl');
   input.value = item.url || '';
   popup.classList.add('open');
-  // Position near click/touch — check changedTouches first (touchend), then touches, then clientX
-  const touch = event.changedTouches?.[0] || event.touches?.[0];
-  const cx = event.clientX || touch?.clientX || window.innerWidth / 2;
-  const cy = event.clientY || touch?.clientY || window.innerHeight / 2;
-  popup.style.left = Math.min(cx, window.innerWidth - 300) + 'px';
-  popup.style.top = Math.min(cy, window.innerHeight - 120) + 'px';
+  // Position near click/touch
+  const x = Math.min(event.clientX || event.touches?.[0]?.clientX || 100, window.innerWidth - 300);
+  const y = Math.min(event.clientY || event.touches?.[0]?.clientY || 100, window.innerHeight - 100);
+  popup.style.left = x + 'px';
+  popup.style.top = y + 'px';
   setTimeout(() => input.focus(), 50);
 }
 
@@ -705,26 +857,13 @@ async function editItem(d, cat, idx, newText) {
   if (!newText.trim()) return;
   const item = ensureDay(d)[cat]?.[idx];
   if (!item) return;
-  const t = newText.trim();
-  if (item.text === t) return;
-  // Auto-detect URL pasted into existing item
-  const urlMatch = t.match(/^(https?:\/\/\S+)$/);
-  const embeddedMatch = !urlMatch && t.match(/(https?:\/\/\S+)/);
-  if (urlMatch && !item.url) {
-    item.url = t;
-  } else if (embeddedMatch && !item.url) {
-    item.url = embeddedMatch[1];
-  }
-  item.text = t;
-  await save(); render();
+  // Don't overwrite if text hasn't actually changed (avoids link textContent issues)
+  if (item.text === newText.trim()) return;
+  item.text = newText.trim();
+  await save();
 }
 
 function handleItemKey(e, d, cat, idx) {
-  if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
-    e.preventDefault();
-    openLinkPopupFromSpan(e.target, d, cat, idx);
-    return;
-  }
   if (e.key === 'Enter') {
     e.preventDefault();
     const sel = window.getSelection();
@@ -780,21 +919,7 @@ async function addNewItem(d, cat, text) {
   if (!text.trim()) return;
   const day = ensureDay(d);
   if (!day[cat]) day[cat] = [];
-  const t = text.trim();
-  // Auto-detect URL: if entire input is a URL, set as url+text
-  const urlMatch = t.match(/^(https?:\/\/\S+)$/);
-  // Or extract URL from mixed text: "label https://..."
-  const mixedMatch = !urlMatch && t.match(/^(.+?)\s+(https?:\/\/\S+)$/);
-  const embeddedMatch = !urlMatch && !mixedMatch && t.match(/(https?:\/\/\S+)/);
-  if (urlMatch) {
-    day[cat].push({ text: t, url: t, done: false });
-  } else if (mixedMatch) {
-    day[cat].push({ text: mixedMatch[1].trim(), url: mixedMatch[2], done: false });
-  } else if (embeddedMatch) {
-    day[cat].push({ text: t, url: embeddedMatch[1], done: false });
-  } else {
-    day[cat].push({ text: t, url: '', done: false });
-  }
+  day[cat].push({ text: text.trim(), url: '', done: false });
   await save(); render();
 }
 
@@ -815,9 +940,9 @@ function addItemPrompt(d) {
 }
 
 async function saveGoalText(text) {
-  if (!standingData) standingData = {};
-  standingData.vision = text.trim();
-  await saveStandingData();
+  if (!monthData.goals) monthData.goals = {};
+  monthData.goals.goal = text.trim();
+  await save();
 }
 
 async function saveOneThing(d, text) {
@@ -827,12 +952,11 @@ async function saveOneThing(d, text) {
 
 function renderWorkoutBar() {
   const today = new Date().getDate();
-  const dd = (todayMonthData || monthData).days?.[String(today)] || {};
+  const dd = monthData.days[String(today)] || {};
   const wo = dd.workout || [];
   const WORKOUT_GROUPS = [
-    { label: '전면', parts: [] },
-    { label: '측면', parts: [] },
-    { label: '후면', parts: [] },
+    { label: '하체', parts: ['전면','측면','후면'] },
+    { label: '어깨', parts: [] },
     { label: '등', parts: [] },
     { label: '가슴', parts: [] },
   ];
@@ -854,19 +978,12 @@ function renderWorkoutBar() {
 
 async function toggleWorkout(part) {
   const today = String(new Date().getDate());
-  const target = todayMonthData || monthData;
-  if (!target.days[today]) target.days[today] = {};
-  if (!target.days[today].workout) target.days[today].workout = [];
-  const idx = target.days[today].workout.indexOf(part);
-  if (idx >= 0) target.days[today].workout.splice(idx, 1);
-  else target.days[today].workout.push(part);
-  // atomic workout save — dedicated endpoint, never overwritten by full month save
-  const now = new Date();
-  const todayYm = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  await fetch(`${API}/api/workout`, {
-    method: 'POST', headers: AUTH,
-    body: JSON.stringify({ ym: todayYm, day: today, workout: target.days[today].workout })
-  });
+  const dd = ensureDay(today);
+  if (!dd.workout) dd.workout = [];
+  const idx = dd.workout.indexOf(part);
+  if (idx >= 0) dd.workout.splice(idx, 1);
+  else dd.workout.push(part);
+  await save();
   renderWorkoutBar();
 }
 
@@ -890,7 +1007,7 @@ async function cycleDayType(d) {
   const next = idx >= TYPES.length - 1 ? null : TYPES[idx + 1];
 
   await fetch(`${API}/api/day-type`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ ym: ym(), day: String(d), type: next })
   });
 
@@ -899,7 +1016,7 @@ async function cycleDayType(d) {
 
   // Auto-inject frame for this day
   await fetch(`${API}/api/inject-frames`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ ym: ym(), fromDay: d, toDay: d })
   });
   await loadMonth(); // reload to get injected items
@@ -911,13 +1028,8 @@ let dragData = null;
 function dragStart(e, d, cat, idx) {
   dragData = { d, cat, idx };
   e.target.classList.add('dragging');
-  e.target.classList.remove('drag-ready');
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', ''); // required for firefox
-}
-function dragEnd(e) {
-  e.target.draggable = false;
-  e.target.classList.remove('dragging', 'drag-ready');
 }
 function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
 function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
@@ -931,7 +1043,7 @@ async function drop(e, d, cat, toIdx) {
   if (dragData.d === d && dragData.cat === cat) {
     if (dragData.idx === toIdx) return;
     await fetch(`${API}/api/reorder`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ ym: ym(), day: String(d), category: cat, fromIdx: dragData.idx, toIdx })
     });
     const items = ensureDay(d)[cat];
@@ -942,7 +1054,7 @@ async function drop(e, d, cat, toIdx) {
   // Different day → move across days
   else {
     await fetch(`${API}/api/move-item`, {
-      method: 'POST', headers: AUTH,
+      method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ ym: ym(), fromDay: String(dragData.d), fromCat: dragData.cat, fromIdx: dragData.idx, toDay: String(d), toCat: cat })
     });
     await loadMonth();
@@ -957,7 +1069,7 @@ async function dayDrop(e, d) {
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
   if (!dragData || dragData.d === d) return;
   await fetch(`${API}/api/move-item`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ ym: ym(), fromDay: String(dragData.d), fromCat: dragData.cat, fromIdx: dragData.idx, toDay: String(d), toCat: dragData.cat })
   });
   await loadMonth();
@@ -969,7 +1081,7 @@ let searchTimer;
 async function undoMonth() {
   if (!confirm(`${ym()} 데이터를 직전 백업으로 복원할까요?`)) return;
   const res = await fetch(`${API}/api/undo`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ ym: ym() })
   });
   const data = await res.json();
@@ -994,38 +1106,18 @@ function debounceSearch() {
 async function doSearch() {
   const q = document.getElementById('searchInput').value.trim();
   if (q.length < 2) { document.getElementById('searchResults').innerHTML = ''; return; }
-  const res = await fetch(`${API}/api/search/unified?q=${encodeURIComponent(q)}`);
-  const data = await res.json();
+  const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`);
+  const results = await res.json();
   const container = document.getElementById('searchResults');
-  let html = '';
-
-  // Schedule results
-  if (data.schedule?.length) {
-    html += '<div style="font-size:10px;color:#f0c040;padding:4px 12px;font-weight:600">SCHEDULE</div>';
-    html += data.schedule.map(r => {
-      const matchHtml = r.matches.map(m => {
-        const highlighted = esc(m.text).replace(new RegExp(esc(q), 'gi'), '<mark>$&</mark>');
-        return `<div class="sr-match"><span class="sr-cat">${m.field}</span> ${highlighted}</div>`;
-      }).join('');
-      return `<div class="search-result" onclick="goToResult('${r.ym}',${r.day})">
-        <div class="sr-date">${r.ym} / ${r.day}일</div>${matchHtml}</div>`;
+  if (!results.length) { container.innerHTML = '<div style="color:#484f58;text-align:center;padding:20px">No results</div>'; return; }
+  container.innerHTML = results.slice(0, 50).map(r => {
+    const matchHtml = r.matches.map(m => {
+      const highlighted = esc(m.text).replace(new RegExp(esc(q), 'gi'), '<mark>$&</mark>');
+      return `<div class="sr-match"><span class="sr-cat">${m.field}</span> ${highlighted}</div>`;
     }).join('');
-  }
-
-  // Notes results
-  if (data.notes?.length) {
-    html += '<div style="font-size:10px;color:#58a6ff;padding:4px 12px;font-weight:600;margin-top:8px">NOTES</div>';
-    html += data.notes.map(r => {
-      const icon = r.type === 'dir' ? '&#128193;' : '&#128196;';
-      const onclick = r.type === 'dir' ? `closeSearch();loadSidebarTree('${r.path}')` : `closeSearch();openNote('${r.path}')`;
-      return `<div class="search-result" onclick="${onclick}">
-        <span>${icon}</span> <span>${esc(r.name)}</span>
-        <span style="font-size:9px;color:#484f58;margin-left:8px">${esc(r.path)}</span></div>`;
-    }).join('');
-  }
-
-  if (!html) html = '<div style="color:#484f58;text-align:center;padding:20px">No results</div>';
-  container.innerHTML = html;
+    return `<div class="search-result" onclick="goToResult('${r.ym}',${r.day})">
+      <div class="sr-date">${r.ym} / ${r.day}일</div>${matchHtml}</div>`;
+  }).join('');
 }
 function goToResult(resultYm, day) {
   closeSearch();
@@ -1069,23 +1161,11 @@ function renderStandingOrders() {
     html += '<div style="margin-top:6px;font-size:10px;color:#8b949e">Happy Friday:</div>';
     hfThisMonth.forEach(d => { html += `<span class="hf-badge">${d.split('-')[2]}일</span>`; });
   }
-  // Holiday — 전체 월별
-  const allHolidays = Object.entries(standingData.holidays || {}).sort(([a],[b]) => a.localeCompare(b));
-  if (allHolidays.length) {
-    const byMonth = {};
-    allHolidays.forEach(([d, name]) => {
-      const ym = d.slice(0, 7);
-      if (!byMonth[ym]) byMonth[ym] = [];
-      byMonth[ym].push({ day: d.split('-')[2], name });
-    });
+  // Holiday
+  const holidaysThisMonth = Object.entries(standingData.holidays || {}).filter(([k]) => k.startsWith(ymKey));
+  if (holidaysThisMonth.length) {
     html += '<div style="margin-top:6px;font-size:10px;color:#8b949e">Holidays:</div>';
-    Object.entries(byMonth).forEach(([ym, items]) => {
-      const isCurrent = ym === ymKey;
-      html += `<div style="margin-top:4px;font-size:9px;color:${isCurrent ? '#f0c040' : '#484f58'};font-weight:${isCurrent ? '600' : '400'}">${ym.replace('-','.')}:</div>`;
-      items.forEach(({ day, name }) => {
-        html += `<div class="so-monthly-item" style="${isCurrent ? '' : 'color:#6e7681'}">${day}일 — ${esc(name)}</div>`;
-      });
-    });
+    holidaysThisMonth.forEach(([d, name]) => { html += `<div class="so-monthly-item">${d.split('-')[2]}일 — ${esc(name)}</div>`; });
   }
   html += '</div>';
 
@@ -1218,7 +1298,7 @@ function renderStandingOrders() {
 // --- Standing Orders CRUD ---
 async function saveStandingData() {
   await fetch(`${API}/api/standing-orders`, {
-    method:'POST', headers: AUTH,
+    method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(standingData)
   });
 }
@@ -1329,103 +1409,6 @@ function showSOTab(name, el) {
   el.classList.add('active');
 }
 
-// --- Cortex Notes (sidebar + note viewer) ---
-let cortexPath = 'cortex';
-let cortexFile = null;
-let cortexEditing = false;
-
-function renderMarkdown(md) {
-  return esc(md)
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^---$/gm, '<hr>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-    .replace(/^- (.+)$/gm, '&bull; $1')
-    .replace(/\n/g, '<br>');
-}
-
-async function createNewNote() {
-  // Show folder selection + name input
-  const folders = [
-    'cortex/inbox',
-    'cortex/hexagonal pillars_rocks_helm/1-character',
-    'cortex/hexagonal pillars_rocks_helm/2-mo-chuisle',
-    'cortex/hexagonal pillars_rocks_helm/3-string',
-    'cortex/hexagonal pillars_rocks_helm/4-interstellar',
-    'cortex/hexagonal pillars_rocks_helm/5-life-xlab',
-    'cortex/hexagonal pillars_rocks_helm/6-snowball',
-    'cortex/hexagonal pillars_rocks_helm/zeroing',
-    'cortex/projects',
-    'cortex/resources',
-    cortexPath
-  ];
-  const unique = [...new Set(folders)];
-  const folderLabels = unique.map(f => f.replace('cortex/hexagonal pillars_rocks_helm/', '⬡ ').replace('cortex/', ''));
-  const choice = prompt('Save to:\n' + unique.map((f, i) => `${i}: ${folderLabels[i]}`).join('\n') + '\n\nEnter number (default: current folder):');
-  const targetFolder = (choice !== null && choice !== '' && unique[+choice]) ? unique[+choice] : cortexPath;
-
-  const name = prompt('Note name (without .md):');
-  if (!name?.trim()) return;
-  const fileName = name.trim().replace(/\s+/g, '-') + '.md';
-  const filePath = targetFolder + '/' + fileName;
-  const content = `# ${name.trim()}\n\n`;
-  const res = await fetch(`${API}/api/cortex/file`, {
-    method: 'POST', headers: AUTH,
-    body: JSON.stringify({ filePath, content })
-  });
-  const data = await res.json();
-  if (data.ok) {
-    cortexFile = { path: filePath, name: fileName, content, sha: data.sha };
-    cortexEditing = true;
-    document.getElementById('dashboardView').style.display = 'none';
-    document.getElementById('scheduleNav').style.display = 'none';
-    document.getElementById('noteView').style.display = '';
-    document.getElementById('noteContent').innerHTML = renderNoteViewer();
-    loadSidebarTree(cortexPath);
-  } else {
-    alert('Create failed: ' + (data.error || 'unknown'));
-  }
-}
-
-async function saveCortexFile() {
-  const textarea = document.getElementById('cortexEditArea');
-  if (!textarea || !cortexFile) return;
-  const content = textarea.value;
-  const res = await fetch(`${API}/api/cortex/file`, {
-    method: 'POST', headers: AUTH,
-    body: JSON.stringify({ filePath: cortexFile.path, content, sha: cortexFile.sha })
-  });
-  const data = await res.json();
-  if (data.ok) {
-    cortexFile.content = content;
-    cortexFile.sha = data.sha;
-    cortexEditing = false;
-    document.getElementById('noteContent').innerHTML = renderNoteViewer();
-  } else {
-    alert('Save failed: ' + (data.error || 'unknown'));
-  }
-}
-
-async function searchCortex(q) {
-  if (!q || q.length < 2) return;
-  const res = await fetch(`${API}/api/cortex/search?q=${encodeURIComponent(q)}`);
-  const results = await res.json();
-  const el = document.getElementById('sidebarTree');
-  if (!el) return;
-  if (!results.length) { el.innerHTML = '<div style="color:#484f58;padding:8px">No results</div>'; return; }
-  el.innerHTML = results.map(r => {
-    const icon = r.type === 'dir' ? '&#128193;' : '&#128196;';
-    const onclick = r.type === 'dir'
-      ? `loadSidebarTree('${r.path}')`
-      : `openNote('${r.path}')`;
-    return `<div class="tree-item" onclick="${onclick}"><span class="icon">${icon}</span><span class="name">${esc(r.name)}</span></div>`;
-  }).join('');
-}
-
 // --- Vision & Milestones ---
 let visionData = null;
 
@@ -1469,7 +1452,7 @@ function renderVision() {
 
 async function saveVisionData() {
   await fetch(`${API}/api/vision`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify(visionData)
   });
 }
@@ -1551,7 +1534,7 @@ const catColorMap = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', outc
 
 async function saveFramesData() {
   await fetch(`${API}/api/day-frames`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify(framesData)
   });
 }
@@ -1613,7 +1596,7 @@ async function injectFrames() {
   const [y, m] = ym().split('-').map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
   const res = await fetch(`${API}/api/inject-frames`, {
-    method: 'POST', headers: AUTH,
+    method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ ym: ym(), fromDay: today, toDay: daysInMonth })
   });
   const data = await res.json();
@@ -1707,227 +1690,7 @@ function togglePanel(id) {
 function prevMonth() { prevPeriod(); }
 function nextMonth() { nextPeriod(); }
 
-// --- Pull-to-refresh ---
-let pullY = 0, pullActive = false;
-document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-    e.preventDefault();
-    save();
-  }
-});
-
-// Long-press drag: 300ms hold → draggable 활성화
-let _dragLongPressTimer = null;
-let _dragPendingEl = null;
-document.addEventListener('pointerdown', e => {
-  const item = e.target.closest('.item[draggable]');
-  if (!item) return;
-  _dragPendingEl = item;
-  _dragLongPressTimer = setTimeout(() => {
-    item.draggable = true;
-    item.classList.add('drag-ready');
-    _dragLongPressTimer = null;
-  }, 300);
-});
-document.addEventListener('pointerup', () => {
-  if (_dragLongPressTimer) { clearTimeout(_dragLongPressTimer); _dragLongPressTimer = null; }
-  if (_dragPendingEl) { _dragPendingEl.classList.remove('drag-ready'); _dragPendingEl = null; }
-});
-document.addEventListener('pointermove', e => {
-  // Cancel long-press if moved significantly before timeout
-  if (_dragLongPressTimer && _dragPendingEl) {
-    const moved = Math.abs(e.movementX) > 3 || Math.abs(e.movementY) > 3;
-    if (moved) { clearTimeout(_dragLongPressTimer); _dragLongPressTimer = null; _dragPendingEl = null; }
-  }
-});
-
-document.addEventListener('touchstart', e => {
-  pullY = e.touches[0].screenY;
-  pullActive = (document.documentElement.scrollTop || document.body.scrollTop) < 5;
-}, { passive: true });
-document.addEventListener('touchend', e => {
-  if (!pullActive) return;
-  const dy = e.changedTouches[0].screenY - pullY;
-  if (dy > 80) location.reload();
-  pullActive = false;
-});
-
-// --- Capture ---
-async function submitCapture() {
-  const input = document.getElementById('captureInput');
-  const text = input?.value?.trim();
-  if (!text) return;
-
-  // Try schedule shorthand: [月/]日 카테고리 내용
-  const match = text.match(/^(?:(\d{1,2})\/)?(\d{1,2})\s+(r|i|w|o|ritual|input|work|outcome|리추얼|인풋|워크|아웃컴|업무|결과)\s+(.+)$/i);
-  if (match) {
-    const aliases = {r:'ritual',i:'input',w:'work',o:'outcome',ritual:'ritual',input:'input',work:'work',outcome:'outcome','리추얼':'ritual','인풋':'input','워크':'work','아웃컴':'outcome','업무':'work','결과':'outcome'};
-    const month = match[1] ? parseInt(match[1]) : currentMonth;
-    const day = parseInt(match[2]);
-    const cat = aliases[match[3].toLowerCase()];
-    const content = match[4].trim();
-    if (cat) {
-      const ymStr = `${currentYear}-${String(month).padStart(2,'0')}`;
-      const res = await fetch(`${API}/api/add-item`, { method:'POST', headers:AUTH, body:JSON.stringify({ym:ymStr,day:String(day),category:cat,text:content,url:''}) });
-      if (res.ok) { input.value = ''; loadMonth(); return; }
-    }
-  }
-
-  // Otherwise save as inbox note
-  const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g,'-');
-  const slug = text.slice(0,30).replace(/[^a-zA-Z0-9가-힣]/g,'-').replace(/-+/g,'-');
-  const filePath = `cortex/inbox/${ts.slice(0,10)}-${slug}.md`;
-  const md = `---\ncaptured: ${new Date().toISOString()}\nsource: dashboard\n---\n\n${text}`;
-  const res = await fetch(`${API}/api/cortex/file`, { method:'POST', headers:AUTH, body:JSON.stringify({filePath,content:md}) });
-  if (res.ok) { input.value = ''; alert('Saved to inbox'); }
-  else alert('Save failed');
-}
-
-async function captureImage(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async () => {
-    const base64 = reader.result.split(',')[1];
-    const res = await fetch(`${API}/api/cortex/upload`, { method:'POST', headers:AUTH, body:JSON.stringify({fileName:file.name,base64}) });
-    const data = await res.json();
-    if (data.ok) {
-      const input = document.getElementById('captureInput');
-      if (input) input.value = (input.value ? input.value + ' ' : '') + data.markdown;
-    }
-  };
-  reader.readAsDataURL(file);
-}
-
-// --- Sidebar ---
-function isDesktop() {
-  return window.screen.width >= 900;
-}
-
-function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebarOverlay');
-  const main = document.getElementById('main');
-  if (isDesktop()) {
-    sidebar?.classList.toggle('desktop-open');
-    main?.classList.toggle('desktop-sidebar');
-  } else {
-    sidebarOpen = !sidebarOpen;
-    sidebar?.classList.toggle('open', sidebarOpen);
-    overlay?.classList.toggle('open', sidebarOpen);
-  }
-}
-
-// Sidebar: starts closed (user manually opens)
-
-async function loadSidebarTree(dirPath) {
-  cortexPath = dirPath || 'cortex';
-  const el = document.getElementById('sidebarTree');
-  if (!el) return;
-  const res = await fetch(`${API}/api/cortex/tree?path=${encodeURIComponent(cortexPath)}`);
-  if (!res.ok) { el.innerHTML = '<div style="color:#f85149;padding:8px">Load failed</div>'; return; }
-  const items = await res.json();
-  items.sort((a, b) => {
-    if (a.type === 'dir' && b.type !== 'dir') return -1;
-    if (a.type !== 'dir' && b.type === 'dir') return 1;
-    return a.name.localeCompare(b.name);
-  });
-  let html = '';
-  if (cortexPath !== 'cortex') {
-    const parent = cortexPath.split('/').slice(0, -1).join('/') || 'cortex';
-    html += `<div class="tree-item" onclick="loadSidebarTree('${parent}')"><span class="icon">&#11014;</span><span class="name">..</span></div>`;
-  }
-  const parts = cortexPath.split('/');
-  html += '<div class="cortex-breadcrumb">';
-  parts.forEach((p, i) => {
-    const full = parts.slice(0, i + 1).join('/');
-    html += `<span onclick="loadSidebarTree('${full}')">${p}</span>`;
-    if (i < parts.length - 1) html += ' / ';
-  });
-  html += '</div>';
-  html += items.filter(i => !i.name.startsWith('.')).map(i => {
-    const icon = i.type === 'dir' ? '&#128193;' : '&#128196;';
-    const onclick = i.type === 'dir'
-      ? `loadSidebarTree('${i.path}')`
-      : `openNote('${i.path}')`;
-    return `<div class="tree-item" onclick="${onclick}"><span class="icon">${icon}</span><span class="name">${esc(i.name)}</span></div>`;
-  }).join('');
-  el.innerHTML = html;
-}
-
-async function openNote(filePath) {
-  const res = await fetch(`${API}/api/cortex/file?path=${encodeURIComponent(filePath)}`);
-  if (!res.ok) return;
-  cortexFile = await res.json();
-  cortexEditing = false;
-  document.getElementById('dashboardView').style.display = 'none';
-  document.getElementById('scheduleNav').style.display = 'none';
-  const noteView = document.getElementById('noteView');
-  noteView.style.display = '';
-  noteView.querySelector('#noteContent').innerHTML = renderNoteViewer();
-  if (window.innerWidth < 900) toggleSidebar();
-}
-
-function showDashboard() {
-  document.getElementById('dashboardView').style.display = '';
-  document.getElementById('scheduleNav').style.display = '';
-  document.getElementById('noteView').style.display = 'none';
-  cortexFile = null;
-}
-
-function renderNoteViewer() {
-  if (!cortexFile) return '';
-  const { path: fp, content, name } = cortexFile;
-  if (cortexEditing) {
-    return `<div class="md-toolbar">
-      <button onclick="showDashboard()">&#9664; Back</button>
-      <span class="md-path">${esc(fp)}</span>
-      <label style="cursor:pointer;font-size:10px;color:#58a6ff;padding:3px 8px">&#128247; <input type="file" accept="image/*" style="display:none" onchange="uploadImage(this.files[0])"></label>
-      <button onclick="saveCortexFile()">Save</button>
-      <button onclick="cortexEditing=false;document.getElementById('noteContent').innerHTML=renderNoteViewer()">Cancel</button>
-    </div><textarea class="md-edit" id="cortexEditArea" onpaste="handlePaste(event)">${esc(content)}</textarea>`;
-  }
-  return `<div class="md-toolbar">
-    <button onclick="showDashboard()">&#9664; Back</button>
-    <span class="md-path">${esc(fp)}</span>
-    <button onclick="cortexEditing=true;document.getElementById('noteContent').innerHTML=renderNoteViewer();document.getElementById('cortexEditArea')?.focus()">Edit</button>
-  </div><div class="md-content">${renderMarkdown(content)}</div>`;
-}
-
-async function uploadImage(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async () => {
-    const base64 = reader.result.split(',')[1];
-    const res = await fetch(`${API}/api/cortex/upload`, {
-      method: 'POST', headers: AUTH,
-      body: JSON.stringify({ fileName: file.name, base64, contentType: file.type })
-    });
-    const data = await res.json();
-    if (data.ok) {
-      const textarea = document.getElementById('cortexEditArea');
-      if (textarea) {
-        const pos = textarea.selectionStart;
-        const before = textarea.value.slice(0, pos);
-        const after = textarea.value.slice(pos);
-        textarea.value = before + `\n${data.markdown}\n` + after;
-      }
-    } else {
-      alert('Upload failed');
-    }
-  };
-  reader.readAsDataURL(file);
-}
-
-function handlePaste(event) {
-  const items = event.clipboardData?.items;
-  if (!items) return;
-  for (const item of items) {
-    if (item.type.startsWith('image/')) {
-      event.preventDefault();
-      uploadImage(item.getAsFile());
-      return;
-    }
-  }
-}
-
 init();
+</script>
+</body>
+</html>
