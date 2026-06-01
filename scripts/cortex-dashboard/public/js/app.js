@@ -1285,10 +1285,28 @@ function renderStandingOrders() {
 
 // --- Standing Orders CRUD ---
 async function saveStandingData() {
-  await fetch(`${API}/api/standing-orders`, {
+  const res = await fetch(`${API}/api/standing-orders`, {
     method:'POST', headers: AUTH,
     body: JSON.stringify(standingData)
   });
+  if (res.status === 409) {
+    // Version conflict — reload from server to get latest _version, then retry
+    const fresh = await fetch(`${API}/api/standing-orders`);
+    const freshData = await fresh.json();
+    // Merge: keep client's structural changes but adopt server _version
+    standingData._version = freshData._version;
+    const res2 = await fetch(`${API}/api/standing-orders`, {
+      method:'POST', headers: AUTH,
+      body: JSON.stringify(standingData)
+    });
+    const d2 = await res2.json();
+    if (d2._version) standingData._version = d2._version;
+    if (!res2.ok) showToast('저장 실패 (충돌)', true);
+    return;
+  }
+  const data = await res.json().catch(() => ({}));
+  if (data._version) standingData._version = data._version;
+  if (!res.ok) showToast('저장 실패', true);
 }
 
 function moveSOItem(section, idx, dir) {

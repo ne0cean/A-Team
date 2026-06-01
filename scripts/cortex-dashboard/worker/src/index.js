@@ -110,6 +110,12 @@ export default {
           if (existingCount > 10 && newCount === 0 && newDayCount === 0) {
             return new Response(JSON.stringify({ error: 'blocked: would erase data' }), { status: 400, headers });
           }
+          // Preserve workout — client strips it before POSTing (managed via /api/workout)
+          for (const [day, dd] of Object.entries(existing.days || {})) {
+            if (dd.workout?.length && data.days[day] && !data.days[day].workout) {
+              data.days[day].workout = dd.workout;
+            }
+          }
         }
         await setKey(ym, data);
         return new Response(JSON.stringify({ ok: true }), { headers });
