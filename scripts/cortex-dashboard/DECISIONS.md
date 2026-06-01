@@ -65,6 +65,20 @@ grep -n "saveStandingData\|_version" public/js/app.js      # 409 충돌 처리
 - **CSS**: `del-btn`에 `visibility: hidden` / hover 시 `visibility: visible`
 - **금지**: `display: none` / `display: inline` — 레이아웃 시프트 발생
 
+### 7b. goToDay data-day 속성
+- **코드**: `data-day="${d}"` on `.day-cell` — `app.js renderDayCell`
+- **이유**: goToDay()가 `[data-day]` 셀렉터로 해당 날짜로 스크롤. 없으면 항상 실패
+
+### 7c. Arrow 키 아이템 탐색
+- **함수**: `handleItemKey` ArrowUp/ArrowDown 핸들러
+- **동작**: 같은 day+cat에서 위/아래 인덱스 항목으로 포커스 이동
+
+### 7d. Frame 인라인 편집 + 루틴 bleeding 필터
+- **함수**: `editFrameItemFromCalendar(d, cat, idx, newText)` — 달력에서 `_frame` 항목 편집 → 프레임 템플릿 수정 → 오늘~월말 자동 재주입
+- **함수**: `toggleEl(id)` — 미래 날짜 루틴 뱃지 토글
+- **CSS**: `.frame-group-hdr`, `.frame-group-body`, `.frame-text`
+- **렌더 규칙**: 미래 날짜의 `_frame` 항목은 "루틴 N▸" 접힌 뱃지로만 표시 (데이터 유지, 표시만 숨김)
+
 ### 7. getMonthlyRecurring() string 가드
 - **함수**: `getMonthlyRecurring(d)` — `app.js:303`
 - **필수 코드**: `if (typeof text !== 'string') return;` (또는 continue)
@@ -169,4 +183,4 @@ grep -n "saveStandingData\|_version" public/js/app.js      # 409 충돌 처리
 ## VERSION
 
 - Created: 2026-06-01
-- Last updated: 2026-06-01 (Feature Registry 추가, auth 체크 제거 반영)
+- Last updated: 2026-06-01 (Feature Registry 추가, auth 체크 제거 반영, Bug fixes A1-A4, Arrow nav, Frame inline edit, Routine bleeding filter)

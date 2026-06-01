@@ -794,6 +794,37 @@ async function editItem(d, cat, idx, newText) {
   await save(); render();
 }
 
+async function editFrameItemFromCalendar(d, cat, idx, newText) {
+  const item = ensureDay(d)[cat]?.[idx];
+  if (!item?._frame) { editItem(d, cat, idx, newText); return; }
+  const oldText = item.text;
+  const newTrimmed = newText.trim();
+  if (!newTrimmed || newTrimmed === oldText) return;
+  const dayData = monthData[`${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`] || {};
+  const dow = new Date(currentYear, currentMonth - 1, d).getDay();
+  const ftype = dayData.day_type || (dow === 0 ? 'block' : dow === 6 ? 'flow' : 'weekday');
+  if (!framesData?.[ftype]?.categories?.[cat]?.items) return;
+  const fItems = framesData[ftype].categories[cat].items;
+  const fi = fItems.findIndex(i => (typeof i === 'object' ? i.text : i) === oldText);
+  if (fi < 0) return;
+  if (typeof fItems[fi] === 'object') fItems[fi].text = newTrimmed;
+  else fItems[fi] = newTrimmed;
+  await saveFramesData();
+  const today = new Date().getDate();
+  const [y, m] = ym().split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  await fetch(`${API}/api/inject-frames`, {
+    method: 'POST', headers: AUTH,
+    body: JSON.stringify({ ym: ym(), fromDay: today, toDay: daysInMonth })
+  });
+  await loadMonth();
+}
+
+function toggleEl(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
 function handleItemKey(e, d, cat, idx) {
   if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
     e.preventDefault();
@@ -830,6 +861,16 @@ function handleItemKey(e, d, cat, idx) {
         newItem?.querySelector('.item-text')?.focus({ preventScroll: true });
       }, 50);
     });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (idx > 0) {
+      document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${idx-1}"]`)
+        ?.querySelector('.item-text')?.focus({ preventScroll: true });
+    }
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${idx+1}"]`)
+      ?.querySelector('.item-text')?.focus({ preventScroll: true });
   } else if (e.key === 'Backspace' && e.target.textContent.trim() === '') {
     e.preventDefault(); delItem(d, cat, idx, true);
   } else if (e.altKey && e.key === '1') {
