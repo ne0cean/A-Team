@@ -313,6 +313,7 @@ function getMonthlyRecurring(d) {
   const ymKey = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
   const monthlyTexts = standingData?.monthly?.[ymKey] || [];
   monthlyTexts.forEach(text => {
+    if (typeof text !== 'string') return; // skip object-format items
     // Parse "N일" or "N~M일" or "N,M일" from beginning of string
     const m = text.match(/^(\d+)(?:[~,～](\d+))?일/);
     if (!m) return;

@@ -53,6 +53,14 @@
 - `daily_mantra` 필드는 폐기됨. 절대 부활시키지 말 것
 - fallback: `monthData.goals.goal`
 
+### monthly[] 데이터 타입 혼재 (복원 금지)
+
+- `standingData.monthly[ym]` 배열은 **string과 object가 혼재** 가능
+- string: `"N일 이벤트명"` — day cell 주입 대상
+- object: `{"text":"...","category":"work"}` — day-triggered items, day 특정 불가 → **주입 금지, skip**
+- `getMonthlyRecurring()`에서 반드시 `typeof text !== 'string'` 체크로 skip
+- 이 체크 누락 시 `text.match()` → TypeError → render() 크래시 → 스케쥴러 전체 공백
+
 ### 링크 삽입 방식
 
 - **마크다운 인라인**: `[텍스트](URL)` 형식으로 항목 text 내 특정 단어에 링크 삽입 가능
