@@ -161,7 +161,7 @@
 
 ## 자율 모드 진입 시 (의무)
 사용자가 "랄프 모드", "자동으로", "자는 동안", "풀자동", "알아서 해" 등 트리거 사용 시:
-1. **반드시 `governance/rules/autonomous-loop.md` 먼저 Read** (6개 강제 조항)
+1. **반드시 `governance/rules/autonomous-loop.md` 먼저 Read** (9개 강제 조항, 조항 9: Circuit Breaker + AGENT_STATUS 블록)
 2. 특히 **강제 조항 6 (나레이션 금지)** — 질문뿐 아니라 상태 요약·인사·경계 선언 등 모든 사용자 대상 텍스트 최소화
 3. 위반 시 자율 모드 자동 중단, 다음 iteration에서 이 문서 재독
 
