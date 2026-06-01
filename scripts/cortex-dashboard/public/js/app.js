@@ -616,9 +616,12 @@ async function save() {
       body: JSON.stringify({ ym: ym(), data: safeData })
     });
     if (!res.ok) throw new Error(res.status);
+    return true;
   } catch (e) {
     document.title = '⚠ Save failed!';
     setTimeout(() => document.title = 'Cortex — Ritual & Routine', 3000);
+    showToast('저장 실패', true);
+    return false;
   }
 }
 
