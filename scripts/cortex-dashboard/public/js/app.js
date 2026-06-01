@@ -448,6 +448,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       const carriedClass = item._carried ? 'is-carried' : '';
       const checked = item.done ? 'checked' : '';
       html += `<div class="item ${doneClass} ${carriedClass}" draggable="false"
+        data-d="${d}" data-cat="${cat}" data-idx="${idx}"
         ondragstart="dragStart(event,${d},'${cat}',${idx})"
         ondragend="dragEnd(event)"
         ondragover="dragOver(event)" ondragleave="dragLeave(event)"
@@ -776,29 +777,36 @@ function handleItemKey(e, d, cat, idx) {
     e.preventDefault();
     const sel = window.getSelection();
     const fullText = e.target.textContent;
-    const offset = sel.focusOffset;
-    const before = fullText.slice(0, offset).trim();
-    const after = fullText.slice(offset).trim();
+    // Use Range for accurate cursor offset — sel.focusOffset is node-relative, breaks with <a> tags
+    let beforeText = fullText;
+    if (sel && sel.rangeCount) {
+      const range = sel.getRangeAt(0);
+      const preRange = range.cloneRange();
+      preRange.selectNodeContents(e.target);
+      preRange.setEnd(range.startContainer, range.startOffset);
+      beforeText = preRange.toString();
+    }
+    const before = beforeText.trim();
+    const after = fullText.slice(beforeText.length).trim();
+    // Suppress onblur so editItem doesn't overwrite our split when DOM rebuilds
+    e.target.onblur = null;
     // Update current item with text before cursor
     const day = ensureDay(d);
     if (!day[cat]) day[cat] = [];
-    day[cat][idx].text = before || fullText.trim();
+    day[cat][idx].text = before;
     // Insert new item with text after cursor
     day[cat].splice(idx + 1, 0, { text: after, url: '', done: false });
     save().then(() => {
       render();
-      // Focus the new item
       setTimeout(() => {
-        const items = document.querySelectorAll(`.item[draggable]`);
-        let count = 0;
-        for (const item of items) {
-          const span = item.querySelector('.item-text');
-          if (span && span.textContent === after) { span.focus(); break; }
-        }
+        const newItem = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${idx + 1}"]`);
+        newItem?.querySelector('.item-text')?.focus({ preventScroll: true });
       }, 50);
     });
   } else if (e.key === 'Backspace' && e.target.textContent.trim() === '') {
-    e.preventDefault(); delItem(d, cat, idx);
+    e.preventDefault(); delItem(d, cat, idx, true);
+  } else if (e.altKey && e.key === '1') {
+    e.preventDefault(); toggleItem(d, cat, idx);
   }
 }
 
@@ -818,9 +826,20 @@ async function addNewItemAfter(d, cat, afterIdx) {
   }, 50);
 }
 
-async function delItem(d, cat, idx) {
+async function delItem(d, cat, idx, refocus) {
   ensureDay(d)[cat].splice(idx, 1);
   await save(); render();
+  if (refocus) {
+    setTimeout(() => {
+      const day = ensureDay(d);
+      const len = (day[cat] || []).length;
+      const targetIdx = len === 0 ? null : idx > 0 ? idx - 1 : 0;
+      if (targetIdx !== null) {
+        const el = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${targetIdx}"]`);
+        el?.querySelector('.item-text')?.focus({ preventScroll: true });
+      }
+    }, 50);
+  }
 }
 
 async function addNewItem(d, cat, text) {
