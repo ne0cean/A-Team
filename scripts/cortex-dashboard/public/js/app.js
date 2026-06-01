@@ -800,7 +800,7 @@ async function editFrameItemFromCalendar(d, cat, idx, newText) {
   const oldText = item.text;
   const newTrimmed = newText.trim();
   if (!newTrimmed || newTrimmed === oldText) return;
-  const dayData = monthData[`${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`] || {};
+  const dayData = monthData.days?.[String(d)] || {};
   const dow = new Date(currentYear, currentMonth - 1, d).getDay();
   const ftype = dayData.day_type || (dow === 0 ? 'block' : dow === 6 ? 'flow' : 'weekday');
   if (!framesData?.[ftype]?.categories?.[cat]?.items) return;
