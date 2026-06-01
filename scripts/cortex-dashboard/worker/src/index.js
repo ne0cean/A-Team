@@ -460,17 +460,25 @@ export default {
 
       // --- Workout ---
       if (path === '/api/workout' && method === 'POST') {
-        const { ym, day, part } = await request.json();
-        if (!validYm(ym) || !validDay(day) || typeof part !== 'string') {
+        const { ym, day, workout, part } = await request.json();
+        if (!validYm(ym) || !validDay(day)) {
           return new Response(JSON.stringify({ error: 'invalid workout payload' }), { status: 400, headers });
         }
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
         if (!data.days[day]) data.days[day] = {};
         const dd = data.days[day];
-        if (!dd.workout) dd.workout = [];
-        const idx = dd.workout.indexOf(part);
-        if (idx >= 0) dd.workout.splice(idx, 1);
-        else dd.workout.push(part);
+        if (Array.isArray(workout)) {
+          // Client sends full array — save directly
+          dd.workout = workout;
+        } else if (typeof part === 'string') {
+          // Legacy toggle behavior
+          if (!dd.workout) dd.workout = [];
+          const idx = dd.workout.indexOf(part);
+          if (idx >= 0) dd.workout.splice(idx, 1);
+          else dd.workout.push(part);
+        } else {
+          return new Response(JSON.stringify({ error: 'invalid workout payload' }), { status: 400, headers });
+        }
         await setKey(ym, data);
         return new Response(JSON.stringify({ ok: true, workout: dd.workout }), { headers });
       }
