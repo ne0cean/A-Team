@@ -1045,3 +1045,17 @@ de9c77d [feat]: 토큰 비용 추정 + Pre-Check Skip Gate 실행체 (171 tests)
 
 **이슈**: macOS bash 3.2 declare -A 미지원 (pre-existing, 기능 영향 없음)
 **빌드**: ✅ 537 tests PASS (40 files)
+
+## [2026-05-25~28] Dashboard 통합 앱 전환 + Cortex 뇌 시스템 + MeiliSearch
+
+**완료**:
+- 프론트엔드 모듈 분리 (2014줄 → index.html + css/main.css + js/app.js) + Cloudflare Workers assets 서빙
+- 원노트 구조 적용: 좌측 사이드바(cortex 노트 트리) + 메인(캘린더)
+- 노트 뷰어/에디터, 이미지 업로드, 새 노트 생성, Capture 바, 통합 검색
+- Cortex 뇌 시스템: catalog.jsonl + access-log + cortex-health + system-health
+- MeiliSearch v1.45.0 도입: 3499문서 인덱싱, Telegram 검색 연동
+- Obsidian Mobile iCloud symlink, PKM PARA+6기둥 구조 확정
+- 583 tests PASS (50 files)
+
+**이슈**: API 상수 누락으로 캘린더 렌더 실패 → 수정
+**빌드**: ✅ 583 tests PASS
