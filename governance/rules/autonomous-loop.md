@@ -112,6 +112,34 @@ Turn N 시작
 
 **측정**: 자율 모드 1회 세션에서 사용자를 향한 텍스트 출력 총 길이가 500 bytes 초과하면 위반. 커밋 메시지·도구 입력은 제외.
 
+### 강제 조항 9: Circuit Breaker (2026-06-01 신설, ralph circuit_breaker.sh 흡수)
+
+자율 루프가 진전 없이 반복되는 것을 감지하면 즉시 루프를 중단한다.
+
+#### OPEN 조건 (셋 중 하나라도 해당 시 즉시 OPEN)
+| 조건 | 임계값 | 설명 |
+|------|--------|------|
+| `no_progress` | 연속 3 iteration | 파일 변경 0건 + 커밋 0건 |
+| `same_error` | 동일 오류 5회 반복 | 오류 메시지 앞 80자 동일 |
+| `permission_denial` | 2회 | 권한 거부(EACCES, EPERM, "Permission denied") 감지 |
+
+#### 상태 전이
+```
+CLOSED (정상) → OPEN (차단) → HALF_OPEN (복구 모니터링, 수동 전환만)
+```
+
+#### OPEN 시 필수 동작
+1. `RESUME.md`에 `circuit_breaker: OPEN` + 원인 기록
+2. `RECOMMENDATION: [원인 설명 + 수동 개입 필요 사항]` 출력
+3. 루프 즉시 종료 — 다음 iteration 진행 금지
+4. 아침 보고 시 OPEN 사유 1줄 포함
+
+#### 복구
+- HALF_OPEN 전환은 사용자 명시 승인 또는 `/pickup` 진입 시만 허용
+- 자율 루프가 자동으로 HALF_OPEN 전환 금지
+
+---
+
 ### 강제 조항 8: Dual-condition Exit (2026-05-08 신설, frankbria/ralph-claude-code 차용)
 
 자율 루프 종료는 **두 조건 모두 충족 시**에만:
@@ -170,6 +198,31 @@ echo "이 태스크의 완료는 어떤 명령 exit 0으로 판정 가능한가?
 2. 다음 iteration에서 복구 우선
 3. 누적 위반 3회 시 자율 모드 자동 중단, 사용자 확인 요청
 4. 이 문서를 다음 iteration에서 재읽기
+
+---
+
+## 세션 종료 마커 (AGENT_STATUS 블록)
+
+자율 루프 종료 시 반드시 아래 형식으로 상태를 기록한다.
+`RESUME.md`의 마지막 섹션 또는 아침 보고 상단에 출력.
+
+```
+---AGENT_STATUS---
+EXIT_SIGNAL: [DONE|NEEDS_INPUT|BLOCKED|TOKEN_LIMIT]
+TASKS_COMPLETED: [완료된 태스크 요약 — 1줄]
+FILES_MODIFIED: [수정된 파일 수]
+TESTS_STATUS: [PASS N|FAIL N|SKIPPED]
+WORK_TYPE: [implementation|research|fix|docs]
+RECOMMENDATION: [다음 세션에서 할 것 — 1줄]
+---END---
+```
+
+**필드 규칙**:
+- `EXIT_SIGNAL: DONE` — 모든 태스크 완료 + Dual-condition 충족
+- `EXIT_SIGNAL: NEEDS_INPUT` — 사용자 결정 필요 항목 발생
+- `EXIT_SIGNAL: BLOCKED` — Circuit Breaker OPEN 또는 외부 의존 차단
+- `EXIT_SIGNAL: TOKEN_LIMIT` — 토큰 한계로 중단, 다음 pickup에서 이어받기
+- `TESTS_STATUS: SKIPPED` — 테스트 불가한 순수 문서/설정 변경
 
 ---
 

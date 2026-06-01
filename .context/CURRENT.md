@@ -166,9 +166,13 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 
 ### High Priority
 - [ ] **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증, 동기화 이슈
+  - why: Phase 0 인프라 완성 → 일일 업무 루프 신뢰성 확보 → 1인 팀 운영 자동화 기반
 - [ ] **모델 오케스트레이션 강제 훅 등록** — enforce-model-param.sh + model-compliance.sh를 settings.json에 등록 (이번 세션 미완)
+  - why: Phase 0 거버넌스 → 모델 비용 과소비 방지 → 지속 가능한 1인 AI 팀 운영
 - [ ] **MeiliSearch launchd 등록** — com.ateam.meilisearch.plist load (바이너리 설치 완료, 데몬 미등록)
+  - why: Phase 1 검색 인프라 → Cortex 노트 전문 검색 자동화 → 1인 팀 정보 접근 속도 대기업 수준
 - [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
+  - why: Phase 0 인프라 → 실제 제품 출시 시작 → Pieter Levels $3.5M/년 벤치마크 달성
 
 ### Medium Priority
 - [ ] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진 (YT 그룹C 도출)
@@ -191,8 +195,14 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 2026-04-18 이전 세션 기록 → [.context/SESSIONS.md](SESSIONS.md)
 
 ## Blockers
-- VDI GitLab CE — 사내 서버(VM) 확보 필요 (IT팀 협의)
-- Obsidian Mobile 동기화 — iCloud symlink 또는 Working Copy 중 선택 필요 (실기기 테스트 후 결정)
+- [BLOCKED] **VDI GitLab CE** — 사내 서버(VM) 확보 필요
+  - blocked_by: 외부 (IT팀 VM 확보 협의)
+  - impact: LOW
+  - workaround: GitHub 임시 사용 중
+- [BLOCKED] **Obsidian Mobile 동기화** — 동기화 방식 미확정
+  - blocked_by: 수동 작업 (실기기 테스트 후 iCloud symlink vs Working Copy 선택 필요)
+  - impact: LOW
+  - workaround: Telegram → cortex/inbox 자동 캡처로 모바일 입력 대체 중
 
 ## 배포 현황
 - GitHub: https://github.com/ne0cean/A-Team (master)
