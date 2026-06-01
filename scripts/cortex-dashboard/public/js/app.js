@@ -830,18 +830,21 @@ function renderWorkoutBar() {
   const dd = (todayMonthData || monthData).days?.[String(today)] || {};
   const wo = dd.workout || [];
   const WORKOUT_GROUPS = [
-    { label: '전면', parts: [] },
-    { label: '측면', parts: [] },
-    { label: '후면', parts: [] },
-    { label: '등', parts: [] },
-    { label: '가슴', parts: [] },
+    { label: '전면', parts: [], color: 'blue' },
+    { label: '측면', parts: [], color: 'blue' },
+    { label: '후면', parts: [], color: 'blue' },
+    { label: '등',   parts: [], color: 'green' },
+    { label: '가슴', parts: [], color: 'green' },
   ];
   const el = document.getElementById('workoutBar');
   if (!el) return;
   let chips = '';
+  let prevColor = null;
   WORKOUT_GROUPS.forEach(g => {
+    if (prevColor && prevColor !== g.color) chips += `<span style="display:inline-block;width:6px"></span>`;
+    prevColor = g.color;
     const isOn = wo.includes(g.label);
-    chips += `<span class="workout-chip${isOn?' on':''}" onclick="toggleWorkout('${g.label}')">${g.label}</span>`;
+    chips += `<span class="workout-chip ${g.color}${isOn?' on':''}" onclick="toggleWorkout('${g.label}')">${g.label}</span>`;
     if (isOn && g.parts.length) {
       g.parts.forEach(p => {
         const pOn = wo.includes(g.label+'/'+p);

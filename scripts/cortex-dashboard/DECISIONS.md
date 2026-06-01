@@ -64,6 +64,7 @@
 
 - 헤더 텍스트 영역(`visionText2`): 월 변경과 독립적. `standingData.daily_mantra`에서만 로드
 - `workoutBar`: `todayMonthData` 기반. 보는 월이 아닌 오늘 날짜 월에 저장
+- **Workout 칩 색상**: 전면/측면/후면 = 파란색(#58a6ff), 등/가슴 = 초록색(#56d364). 두 그룹 사이 6px 이격. 복원 금지
 - 항목 `draggable` 속성: 기본 `false`. long-press 후에만 `true`로 전환
 
 ---
