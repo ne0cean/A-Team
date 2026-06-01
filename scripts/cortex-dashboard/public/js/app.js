@@ -89,9 +89,12 @@ function formatWeekLabel() {
 async function loadStandingOrders() {
   const res = await fetch(`${API}/api/standing-orders`);
   standingData = await res.json();
-  // 비전 텍스트: standing-orders에서 로드 (월 독립적)
+  // 비전 텍스트: standing-orders.daily_mantra 우선, 없으면 현재 월 goals.goal
   const vt = document.getElementById('visionText2');
-  if (vt) vt.textContent = standingData.daily_mantra || '';
+  if (vt) {
+    const mantra = standingData.daily_mantra || (todayMonthData || monthData)?.goals?.goal || '';
+    vt.textContent = mantra;
+  }
   renderStandingOrders();
 }
 
@@ -1733,11 +1736,7 @@ function toggleSidebar() {
   }
 }
 
-// Auto-open sidebar on desktop
-if (isDesktop()) {
-  document.getElementById('sidebar')?.classList.add('desktop-open');
-  document.getElementById('main')?.classList.add('desktop-sidebar');
-}
+// Sidebar: starts closed (user manually opens)
 
 async function loadSidebarTree(dirPath) {
   cortexPath = dirPath || 'cortex';
