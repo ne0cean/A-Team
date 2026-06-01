@@ -157,6 +157,24 @@ session_summary: "한 줄"
 
 ---
 
+### Phase 6 — Docs Sync (USER_GUIDE.md 자동 갱신)
+
+메이저 통합 이후 USER_GUIDE.md가 drift하지 않도록 자동 재생성:
+
+```bash
+# 변경 범위 확인 (에이전트/커맨드 수)
+AGENTS=$(ls .claude/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
+COMMANDS=$(ls .claude/commands/*.md 2>/dev/null | wc -l | tr -d ' ')
+echo "Agents: ${AGENTS}, Commands: ${COMMANDS}"
+```
+
+- `governance/skills/SKILL-INDEX.md` (SSOT) 기반으로 USER_GUIDE.md 재생성
+- 이전 버전과 에이전트/커맨드 수 비교 — 변동 없으면 스킵
+- 재생성 방식: 이 스킬 내에서 직접 Write (간단한 변동) 또는 `doc-sync` 에이전트 위임 (대규모 변경)
+- 산출물: `USER_GUIDE.md` (갱신) + pmi 보고서에 "Docs Sync: N agents, M commands" 기록
+
+---
+
 ## 실행 방식
 
 이 스킬은 **Claude가 순차 수행** (서브에이전트 아님 — 전체 레포 컨텍스트 필요).

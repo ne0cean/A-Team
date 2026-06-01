@@ -23,7 +23,7 @@ fi
 
 # ── UI 파일 필터 (PreToolUse와 동일) ─────────────────────────────
 case "$file_path" in
-  *.tsx|*.jsx|*.css|*.scss|*.styled.ts|*.styled.tsx) ;;
+  *.tsx|*.jsx|*.css|*.scss|*.styled.ts|*.styled.tsx|*.js|*.html) ;;
   *) exit 0 ;;
 esac
 
