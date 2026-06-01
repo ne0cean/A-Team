@@ -1944,10 +1944,11 @@ function toast(msg, isError) { showToast(msg, isError); }
 
 // --- Pull-to-refresh ---
 let pullY = 0, pullActive = false;
-document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+window.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
     e.preventDefault();
-    save().then(() => showToast('저장됨'));
+    e.stopPropagation();
+    save().then(() => showToast('저장됨')).catch(err => showToast('저장 실패: ' + err.message, true));
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
     const active = document.activeElement;
@@ -1957,7 +1958,7 @@ document.addEventListener('keydown', e => {
       undoMonth();
     }
   }
-}, true);
+}, { capture: true });
 
 // Long-press drag: 300ms hold → draggable 활성화
 let _dragLongPressTimer = null;
