@@ -148,6 +148,18 @@
 | /excel-to-csv | Excel → CSV 변환 | auto |
 | /repos | 레포지토리 현황 관리 | manual |
 
+### Utilities & Session Tools
+| Command | Description | Trigger |
+|---------|-------------|---------|
+| /browse | 브라우저 자동화 | manual |
+| /daily-review | [Deprecated → /daily-brief] 일별 변경사항 분석 | manual |
+| /dashboard-prd | 대시보드 PRD 대화형 생성 | auto |
+| /handoff | 모델 전환 핸드오프 — 맥락 저장 + 프롬프트 생성 | manual |
+| /office-hours | 아이디어 검증 & 설계 발견 | auto |
+| /thinking-partner | 복잡한 문제 질문과 탐색으로 함께 풀기 | manual |
+| /todo | 빠른 메모 관리 | manual |
+| /webapp-prd | 웹앱 PRD 대화형 생성 | auto |
+
 ---
 
 ## Governance Skills (`governance/skills/`)

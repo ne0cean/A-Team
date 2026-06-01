@@ -39,7 +39,14 @@ export type EventType =
   | 'sleep_resume_probe'
   | 'ops_pr_monitoring'
   | 'ops_cs_response'
-  | 'command_coaching';
+  | 'command_coaching'
+  // Phase 1+ agent tracking (Paperclip Phase 0)
+  | 'agent_tool_call'
+  | 'agent_cost'
+  | 'run_start'
+  | 'run_end'
+  | 'task_checkout'
+  | 'task_release';
 
 export interface AnalyticsEvent {
   skill: string;
@@ -97,6 +104,13 @@ export interface AnalyticsEvent {
   sleepResumeAttempt?: number;
   sleepResumeBackoffMs?: number;
   sleepResumeProbePassed?: boolean;
+
+  // agent_tool_call / agent_cost / run_* (Paperclip Phase 0)
+  agentId?: string;
+  runId?: string;
+  parentRunId?: string;
+  costCents?: number;
+  modelId?: string;
 }
 
 // --- Logging ---

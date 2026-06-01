@@ -45,6 +45,56 @@ git status --short
 git diff --stat HEAD~1 2>/dev/null | tail -5
 ```
 
+## Step 1.5 — Heartbeat 9-Check (Paperclip Pattern 5)
+
+빠르게 9항목 점검 — 상태 한 줄씩 출력:
+
+```bash
+# 1. RESUME.md 미완료?
+[ -f ".context/RESUME.md" ] && ! grep -q "status:.*completed" ".context/RESUME.md" \
+  && echo "HB1: RESUME active" || echo "HB1: RESUME clear"
+
+# 2. git dirty 파일 수
+DIRTY=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+echo "HB2: git dirty=${DIRTY} files"
+
+# 3. In Progress Files 유무
+IN_PROG=$(awk '/^## In Progress Files/,/^## /' ".context/CURRENT.md" 2>/dev/null \
+  | grep -vE "^##|없음|\(없음\)" | grep -v "^$" | wc -l | tr -d ' ')
+echo "HB3: in_progress=${IN_PROG} files"
+
+# 4. 마지막 커밋 이후 경과
+LAST_COMMIT=$(git log -1 --format="%ar" 2>/dev/null || echo "unknown")
+echo "HB4: last_commit=${LAST_COMMIT}"
+
+# 5. 마지막 알려진 테스트 상태 (CURRENT.md 빌드 섹션)
+TEST_LINE=$(grep -m1 "tests PASS\|test.*pass\|PASS\|✅" ".context/CURRENT.md" 2>/dev/null | head -c 60 || echo "unknown")
+echo "HB5: last_test=${TEST_LINE}"
+
+# 6. Blockers 변경 여부
+BLOCKERS=$(grep -c "^\- \[BLOCKED\]" ".context/CURRENT.md" 2>/dev/null || echo 0)
+echo "HB6: blockers=${BLOCKERS}"
+
+# 7. CURRENT.md 갱신 필요 (오늘 날짜 포함 여부)
+TODAY=$(date +%Y-%m-%d)
+grep -q "$TODAY" ".context/CURRENT.md" 2>/dev/null \
+  && echo "HB7: CURRENT.md today=yes" || echo "HB7: CURRENT.md today=no (갱신 필요 가능성)"
+
+# 8. a-team-absorbed 변경 여부
+ABSORBED_DIRTY=$(git -C ~/Projects/a-team-absorbed status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+echo "HB8: absorbed_dirty=${ABSORBED_DIRTY}"
+
+# 9. Cloudflare 배포 상태 (마지막 배포 기록)
+DEPLOY_LINE=$(grep -m1 "Version:\|배포\|deploy" ".context/CURRENT.md" 2>/dev/null | head -c 80 || echo "unknown")
+echo "HB9: last_deploy=${DEPLOY_LINE}"
+```
+
+해석:
+- HB2 dirty > 10 → uncommitted 작업 대량 존재, 커밋 우선
+- HB3 > 0 → In Progress 작업 있음, 파일 읽고 재개
+- HB6 > 0 → 블로커 확인 후 우회 방법 검토
+- HB7 today=no → CURRENT.md 오래됐음, 세션 후 갱신 권장
+
 ## Step 2 — 컨텍스트 로드
 
 다음 파일을 순서대로 읽는다:
