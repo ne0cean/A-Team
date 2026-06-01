@@ -1726,10 +1726,15 @@ function renderFrames() {
       </div>`;
 
       (catData.items || []).forEach((rawItem, idx) => {
-        const isObj = typeof rawItem === 'object';
-        const text = isObj ? rawItem.text : rawItem;
-        const url = isObj ? (rawItem.url || '') : '';
-        const hasUrl = url.length > 0;
+        // Separator: render as divider, not editable input
+        if (typeof rawItem === 'object' && rawItem.type === 'separator') {
+          html += `<div class="frame-separator" style="border-top:1px solid #30363d;margin:4px 0;padding:2px 0;font-size:9px;color:#6e7681">${esc(rawItem.text || '')}</div>`;
+          return;
+        }
+        const parsed = getFrameItem(ftype, cat, idx);
+        const text = parsed.text || '';
+        const url = parsed.url || '';
+        const hasUrl = url.length > 0 && url !== '#';
         html += `<div class="frame-item">
           <span style="color:#484f58;font-size:9px">${idx+1}</span>
           <input value="${esc(text)}" onchange="editFrameItem('${ftype}','${cat}',${idx},this.value)">
@@ -1773,7 +1778,11 @@ function toggleCatType(ftype, cat) {
 
 function getFrameItem(ftype, cat, idx) {
   const raw = framesData[ftype].categories[cat].items[idx];
-  return typeof raw === 'object' ? raw : { text: raw, url: '' };
+  if (typeof raw === 'object') return raw;
+  // Parse embedded markdown link: [text](url)suffix
+  const m = raw.match(/^\[([^\]]*)\]\(([^)]+)\)(.*)/);
+  if (m) return { text: m[1] + m[3], url: m[2] };
+  return { text: raw, url: '' };
 }
 
 function setFrameItem(ftype, cat, idx, obj) {
