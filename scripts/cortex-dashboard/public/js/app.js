@@ -62,13 +62,13 @@ async function loadMonth(isInit) {
   prevMonthData = await prevRes.json();
   nextMonthData = await nextRes.json();
   // visionText2 is loaded from standingData.daily_mantra (global, see loadStandingOrders)
-  // Auto viewMode: 당월 → This Week(week), 타월 → Full Month(month)
+  // Auto viewMode: 오늘이 속한 주 → This Week, 그 외 주/월 → Full Month
   const _now = new Date();
-  if (currentYear === _now.getFullYear() && currentMonth === _now.getMonth() + 1) {
-    viewMode = 'week';
-  } else {
-    viewMode = 'month';
-  }
+  const _todayWeekStart = getWeekStart(_now);
+  const _isTodayWeek = currentWeekStart.getFullYear() === _todayWeekStart.getFullYear()
+    && currentWeekStart.getMonth() === _todayWeekStart.getMonth()
+    && currentWeekStart.getDate() === _todayWeekStart.getDate();
+  viewMode = _isTodayWeek ? 'week' : 'month';
   updateLabel();
   render();
   renderWorkoutBar();
@@ -282,7 +282,7 @@ function renderWeekView() {
     const isToday = date.toDateString() === today.toDateString();
     const isSameMonth = date.getMonth() + 1 === currentMonth;
     html += `<div class="week-cell${isToday ? ' today' : ''}">`;
-    html += renderDayCellContent(d, isToday, true);
+    html += renderDayCellContent(d, isToday, true, isSameMonth);
     html += '</div>';
   }
   html += '</div>';
@@ -416,7 +416,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
           onblur="editItem(${d},'${cat}',${idx},this.textContent)"
           onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
         >${item.url ? `<a href="${esc(item.url)}" target="_blank" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
-        <span class="link-btn${item.url?' has-link':''}" onclick="openLinkPopup(event,${d},'${cat}',${idx})" title="Link">&#128279;</span>
+        <span class="link-btn${item.url?' has-link':''}" onclick="openLinkPopup(event,${d},'${cat}',${idx})" ontouchend="event.preventDefault();openLinkPopup(event,${d},'${cat}',${idx})" title="Link">&#128279;</span>
         <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
       </div>`;
     });
@@ -456,7 +456,21 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function linkify(s) {
-  return esc(s).replace(/(https?:\/\/[^\s&]+)/g, '<a href="$1" target="_blank" onclick="event.stopPropagation()">$1</a>');
+  // Handle [text](url) markdown links, then bare URLs
+  let result = '';
+  let last = 0;
+  const re = /\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g;
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    result += esc(s.slice(last, m.index));
+    result += `<a href="${esc(m[2])}" target="_blank" onclick="event.stopPropagation()">${esc(m[1])}</a>`;
+    last = m.index + m[0].length;
+  }
+  result += esc(s.slice(last));
+  // Bare URLs not already inside an anchor
+  result = result.replace(/(?<!href=")(?<!">)(https?:\/\/[^\s<"&]+)/g,
+    '<a href="$1" target="_blank" onclick="event.stopPropagation()">$1</a>');
+  return result;
 }
 
 // --- Stats ---
@@ -561,11 +575,12 @@ function openLinkPopup(event, d, cat, idx) {
   const input = document.getElementById('linkUrl');
   input.value = item.url || '';
   popup.classList.add('open');
-  // Position near click/touch
-  const x = Math.min(event.clientX || event.touches?.[0]?.clientX || 100, window.innerWidth - 300);
-  const y = Math.min(event.clientY || event.touches?.[0]?.clientY || 100, window.innerHeight - 100);
-  popup.style.left = x + 'px';
-  popup.style.top = y + 'px';
+  // Position near click/touch — check changedTouches first (touchend), then touches, then clientX
+  const touch = event.changedTouches?.[0] || event.touches?.[0];
+  const cx = event.clientX || touch?.clientX || window.innerWidth / 2;
+  const cy = event.clientY || touch?.clientY || window.innerHeight / 2;
+  popup.style.left = Math.min(cx, window.innerWidth - 300) + 'px';
+  popup.style.top = Math.min(cy, window.innerHeight - 120) + 'px';
   setTimeout(() => input.focus(), 50);
 }
 

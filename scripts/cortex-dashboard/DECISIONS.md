@@ -40,6 +40,13 @@
 - **`todayMonthData` 캐시**: 오늘 날짜 월 데이터를 캐시. 다른 월 탐색 시에도 오늘 날짜 기준 데이터는 항상 `todayMonthData` 사용
 - **Vision text SSOT**: `standingData.daily_mantra` (standing-orders API). `monthData.goals.goal`은 레거시 fallback만
 
+### 링크 삽입 방식
+
+- **마크다운 인라인**: `[텍스트](URL)` 형식으로 항목 text 내 특정 단어에 링크 삽입 가능
+- `linkify()` 함수가 이를 `<a>` 태그로 렌더링
+- `item.url` (항목 전체 URL) 방식은 legacy — 새 링크는 마크다운 방식 사용
+- 모바일: `ontouchend` 이벤트로 링크 버튼 처리 (`onclick`만으로는 모바일 터치 누락)
+
 ### CSS 규칙
 
 - 헤더 텍스트 영역(`visionText2`): 월 변경과 독립적. `standingData.daily_mantra`에서만 로드
