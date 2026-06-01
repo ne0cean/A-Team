@@ -54,6 +54,14 @@ E2E/복잡한 테스트 갭 → AskUserQuestion
 - BROKEN 항목 발견 시 → 자동 수정 후 계속
 - 수정 불가 항목 → AskUserQuestion
 
+## Step 5.8: Diff Sanity Gate
+```bash
+bash scripts/quality-gate-stage2.sh staged
+```
+- exit 1 (BLOCK) → 즉시 ship 중단, 위반 내용 출력
+- exit 2 (WARN) → AskUserQuestion (진행/스킵 선택)
+- exit 0 → 계속
+
 ## Step 5.5: Design Gate (UI 변경 감지 시 자동)
 변경 파일에 `*.tsx/.jsx/.vue/.svelte/.css/.scss` 포함 시:
 ```bash
