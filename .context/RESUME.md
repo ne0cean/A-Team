@@ -10,12 +10,17 @@ task: **Cortex Dashboard input↔outcome 데이터 진단** — GET /api/month?y
 ## 재개 포인트
 - CURRENT.md Next Tasks 확인 후 최우선 항목부터 시작
 
+## 완료
+- [x] **Cortex Dashboard input↔outcome CAT_NAMES 정상화** — input='Input', outcome='Outcome' 수정. SW v13 배포. 07b9f97
+- [x] **모델 오케스트레이션 강제 훅 등록** — settings.json에 이미 등록 확인
+- [x] **MeiliSearch launchd 등록** — com.ateam.meilisearch 이미 로드됨
+
 ## 미완료 Next Tasks (High Priority)
-- [ ] **Cortex Dashboard input↔outcome 데이터 진단** — GET /api/month?ym=2026-06 샘플 확인 → 오염 범위 판단 → D1 migration 또는 CAT_NAMES 정상화
-- [ ] **Growth System 설계 + 구현** — T1 day cell done/total 배지, T2 pillar 균형 bar, T3 notes #lesson 태그, T4 analytics 연동
-- [ ] **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증, 동기화 이슈
-- [ ] **모델 오케스트레이션 강제 훅 등록** — enforce-model-param.sh + model-compliance.sh를 settings.json에 등록 (이번 세션 미완)
-- [ ] **MeiliSearch launchd 등록** — com.ateam.meilisearch.plist load (바이너리 설치 완료, 데몬 미등록)
+- [x] **T1 day cell done/total 배지** — 완료. 19511ba
+- [DEFERRED] **T2 pillar 균형 bar** — 설계 결정 필요 (pillar balance 정의, UI)
+- [DEFERRED] **T3 notes #lesson 태그** — 설계 결정 필요
+- [DEFERRED] **T4 analytics 연동** — 설계 결정 필요
+- [DEFERRED] **Dashboard 통합 앱 안정화** — 실기기 검증 필요
 
 ## 메모
-세션이 /end 없이 종료됨. 위 태스크부터 이어서 진행.
+자동 재개. CAT_NAMES 버그 수정 완료. Growth System이 다음 우선순위.
