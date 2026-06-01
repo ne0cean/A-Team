@@ -18,14 +18,6 @@ export default {
     };
     if (method === 'OPTIONS') return new Response(null, { headers });
 
-    // Auth: require API_SECRET for write operations (POST/PUT/DELETE)
-    // GET (read) is open for browser access; writes need token
-    if (method !== 'GET' && path.startsWith('/api/')) {
-      const auth = request.headers.get('Authorization');
-      if (auth !== `Bearer ${env.API_SECRET}`) {
-        return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers });
-      }
-    }
 
     try {
       // --- Input validation ---
