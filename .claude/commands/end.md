@@ -189,6 +189,20 @@ node "$(git rev-parse --show-toplevel 2>/dev/null)/scripts/log-event.mjs" \
 
 요약: 의도오해/스코프폭주/결과물불일치/컨텍스트단절/재작업루프 5유형 분석 → Before/After 예시 → analytics 저장.
 
+## Step 6.75 — 레슨→훅 커버리지 체크 (자동)
+
+이번 세션에서 MEMORY.md에 새 레슨이 추가됐으면:
+1. 레슨 태그 확인 (`global`, `cortex`, `d1`, `api` 등)
+2. 해당 레슨을 강제하는 훅/게이트가 settings.json에 있는지 체크
+3. 없으면 1줄 제안:
+
+```
+⚙️ 레슨 '[레슨명]' — 강제 훅 없음
+   제안: pre-bash.sh 또는 pre-edit-cortex.sh에 패턴 추가 검토
+```
+
+**체크 기준**: 레슨이 "이 실수를 반복하지 말라"는 내용이고, 코드/파일/명령 패턴으로 자동 감지 가능한 경우만 제안. 문서/프로세스 레슨은 스킵.
+
 ## Step 6.8 — Command Usage Coaching (자동)
 
 세션 중 사용된 커맨드 vs 사용 안 했지만 **썼으면 더 좋았을** 커맨드를 분석.
