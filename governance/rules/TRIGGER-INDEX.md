@@ -24,7 +24,8 @@ grep -i "키워드" ~/tools/A-Team/governance/rules/TRIGGER-INDEX.md
 |------|-------|-------------|--------|
 | `ateam-sovereignty.md` | 236 | A-Team 파일 수정 시 / 프로젝트 ↔ A-Team 동기화 시 | sovereignty, 독립, central hub, survey, 제8원칙 |
 | `ateam-first.md` | 99 | 새 기능/메커니즘 설계 요청 / 사용자 A-Team 용어 언급 | survey before invent, 기존 자원, 용어 매핑 |
-| `autonomous-loop.md` | 140 | "자동", "밤새", "/loop", "/ralph" 등 자율 모드 표현 감지 | 자율 루프, execute-before-describe, wakeup, 강제 조항 |
+| `autonomous-loop.md` | 243 | "자동", "밤새", "/loop", "/ralph" 등 자율 모드 표현 감지 | 자율 루프, execute-before-describe, wakeup, 강제 조항, Circuit Breaker, AGENT_STATUS |
+| `goal-ancestry.md` | 97 | `/vibe` 신규 태스크 추가 시 / High Priority 태스크 why: 누락 감지 | goal ancestry, why 계보, Phase → 비전, 방향성 추적 |
 | `truth-contract.md` | 121 | **상시 적용** (최우선) — 말-실행 괴리 위험 상황 | 거짓말 금지, tool call 선행, 검증 |
 | `tool-search.md` | 86 | `.mcp.json` 편집 / RFC-003 활성 / defer_loading 언급 | ToolSearch, defer_loading, MCP, RFC-003 |
 | `checkpointing.md` | 116 | `/end`, `/handoff`, 세션 종료 | checkpoint, 세션 상태 보존 |
