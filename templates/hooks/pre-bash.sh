@@ -51,6 +51,14 @@ for pattern in "${!DANGEROUS[@]}"; do
 done
 
 # ── 경고 패턴 (차단하지 않고 시스템 메시지만) ─────────────────
+# ── wrangler deploy — Layer 3 자동 검증 트리거 ───────────────
+if echo "$cmd" | grep -qE "wrangler deploy"; then
+  VERIFY_SCRIPT="/Users/noir/Projects/a-team/scripts/cortex-dashboard/post-deploy-verify.sh"
+  printf '{"systemMessage":"🚀 wrangler deploy 감지됨 (Layer 3 활성)\n\n배포 완료 후 반드시 실행하세요:\n  bash %s\n\nD1 데이터 생존 확인 없이 완료 선언 금지."}\n' "$VERIFY_SCRIPT"
+  exit 0
+fi
+
+# ── 경고 패턴 (차단하지 않고 시스템 메시지만) ─────────────────
 WARN_PATTERNS=(
   "git push"
   "npm publish"
