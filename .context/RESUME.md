@@ -1,46 +1,21 @@
 ---
 mode: normal
-status: completed
-created: 2026-05-15T21:10:00+09:00
-task: PPT 모듈 컨설팅급 업그레이드 — 레드팀 갭 수정
+status: active
+created: 2026-06-01T20:15:07+0900
+task: **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증, 동기화 이슈
 ---
 
-# RESUME — PPT 엔진 레드팀 갭 수정 (완료)
+# RESUME — 세션 자동 저장 (auto-save-on-stop)
 
-## 완료 요약
+## 재개 포인트
+- CURRENT.md Next Tasks 확인 후 최우선 항목부터 시작
 
-### 1. [CRITICAL] LICENSE 추가 ✅
-- `scripts/ppt/mckinsey_pptx/LICENSE` 생성 (MIT, seulee26 attribution)
+## 미완료 Next Tasks (High Priority)
+- [ ] **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증, 동기화 이슈
+- [ ] **모델 오케스트레이션 강제 훅 등록** — enforce-model-param.sh + model-compliance.sh를 settings.json에 등록 (이번 세션 미완)
+- [ ] **MeiliSearch launchd 등록** — com.ateam.meilisearch.plist load (바이너리 설치 완료, 데몬 미등록)
+- [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
+- [ ] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진 (YT 그룹C 도출)
 
-### 2. [HIGH] CJK 폰트 수정 ✅
-- `base.py set_run()`: `get_or_add_rPr()` + `<a:ea typeface>` XML 주입
-- generate_v2.py의 `set_cjk_font()` 동일 패턴 적용
-
-### 3. [HIGH] convert_spec() 데이터 손실 4건 수정 ✅
-- cover subtitle pop-pop 버그 제거
-- data_table: headers 보존 (`column_headers`, `categories[0].name`)
-- bar_chart: multi-series `break` 제거 → 전체 시리즈 보존
-- timeline: `[:4]` 제거 → 5개 이상 이벤트 지원
-
-### 4. [HIGH] convert_spec() 고급 타입 ✅
-- ppt-strategist.md: consulting 모드 섹션 추가 (native type 사용법)
-
-### 5. [HIGH] 파이프라인 연결 ✅
-- server.py: McKinsey/BCG/Bain 카드 3개 추가 (UI 분기)
-- server.py: `CONSULTING_STYLES` → `generate_consulting.py --style` 라우팅
-- 테마 레이블 전체 11개로 확장
-
-### 6. [HIGH] server.py 보안 ✅
-- `_sanitize_slug()`: `..` 제거 + regex whitelist
-- `VALID_THEMES` frozenset 검증
-- UUID 파일 ID + 1시간 TTL + `_cleanup_generated()`
-
-## 테스트
-- convert_spec() 4개 케이스 PASS (isolated unit test)
-- Security slug/theme 검증 PASS
-- 537 tests: 기존 6-7 flaky 실패 그대로 (PPT 관련 0 실패)
-
-## 다음 우선순위
-- Postiz OAuth 설정 (수동 작업)
-- Phase 2 콘텐츠 실제 발행
-- Twitter 채널 재논의
+## 메모
+세션이 /end 없이 종료됨. 위 태스크부터 이어서 진행.
