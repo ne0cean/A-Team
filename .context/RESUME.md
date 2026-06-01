@@ -12,10 +12,8 @@ task: **Cortex Dashboard input↔outcome 데이터 진단** — GET /api/month?y
 
 ## 완료된 Tasks
 - [x] **T1 day cell done/total 배지** — feat(cortex-dashboard) 19511ba
-
-## 완료된 Tasks (2026-06-02 자율 세션)
 - [x] **MeiliSearch launchd** — com.ateam.meilisearch 이미 등록+실행 중 (port 7700, {"status":"available"} 확인)
-- [x] **T2 pillar 균형 bar + T3 #lesson 태그** — 커밋 3079547 (이전 세션)
+- [x] **T2 pillar 균형 bar + T3 #lesson 태그** — 커밋 3079547
 
 ## 미완료 Next Tasks (High Priority)
 - [DEFERRED: 사용자 승인 필요] **Cortex Dashboard input↔outcome D1 마이그레이션**
@@ -24,8 +22,10 @@ task: **Cortex Dashboard input↔outcome 데이터 진단** — GET /api/month?y
   - Day 2부터는 frame 템플릿 기준 정상 (input=미디어소비, outcome=할일)
   - 조치: D1에서 input↔outcome 전 레코드 컬럼 스왑 마이그레이션 — 파괴적 작업, 사용자 확인 후 진행
 - [DEFERRED: 설계 결정 필요] **Growth System T4 analytics 연동** — Worker/D1에 이벤트 테이블 추가 방식 vs log-event.mjs 방식 미정
-- [ ] **모델 오케스트레이션 강제 훅 등록** — enforce-model-param.sh + model-compliance.sh를 settings.json에 등록 (사용자 IDE 직접 수정 선호)
-- [ ] **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증, 동기화 이슈
+- [SKIP: 사용자 IDE 직접 수정 선호] **모델 오케스트레이션 강제 훅 등록**
+- [SKIP: 모바일 기기 필요] **Dashboard 통합 앱 안정화**
+- [SKIP: Stryker 미설정, 설계 필요] **Stryker 첫 full run**
 
-## 메모
-세션이 /end 없이 종료됨. 위 태스크부터 이어서 진행.
+## 자율 세션 상태 (2026-06-02)
+- 실행 가능한 태스크 없음 — 모두 사용자 승인/설계 결정 필요
+- 다음 사용자 세션에서 D1 마이그레이션 승인 후 진행 권장
