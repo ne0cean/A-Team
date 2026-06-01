@@ -60,6 +60,20 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-01) — 기획-검수-빌드-검수 4-레이어 품질 사이클 구축
+
+- **4-레이어 Shift-Left 품질 아키텍처 완성** — 이틀간 데이터 유실·회귀·QA 사고 근본 원인(레슨↔훅 단절) 해결
+- **Layer 0** (UserPromptSubmit): `pre-answer.sh` → cortex 편집 의도 감지 시 DECISIONS.md 자동 주입
+- **Layer 1** (PreToolUse BLOCK): `pre-edit-cortex.sh` → 10개 필수 함수 grep, 누락 시 exit 2 BLOCK (exit 2 검증됨)
+- **Layer 2** (PostToolUse warn): `post-edit-cortex.sh` → 편집 후 회귀 감지, additionalContext 경고 주입
+- **Layer 3** (wrangler deploy): `pre-bash.sh` wrangler detect → 배포 전 verify 프라이밍 systemMessage
+- **post-deploy-verify.sh** — 4개 D1 엔드포인트 자동 검증 스크립트 (수동 실행)
+- **pre-write.sh D1 가드** — INSERT OR REPLACE → 경고, setKey() merge 누락 → 경고
+- **scripts/cortex-dashboard/CLAUDE.md** — D1 SSOT 규칙 + PRE-EDIT 체크리스트 참조 고정
+- **/end Step 6.75** — 새 레슨 기록 시 훅 커버리지 체크 자동화
+- **plan-eng 검토** — APPROVED_WITH_CONCERNS → T7+T8 구현으로 APPROVED 달성
+- **537 tests PASS** 유지
+
 ## Last Completions (2026-06-01) — Cortex Dashboard 회귀 복구 + 데이터 유실 방지 + Paperclip 분석
 
 - **22개 파일 버전 비교** — 22f3473(어제) vs HEAD(오늘) 병렬 에이전트 4개로 전수 분석. 19개 TODAY_BETTER, 3개 MERGE_NEEDED

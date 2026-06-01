@@ -1030,3 +1030,18 @@ de9c77d [feat]: 토큰 비용 추정 + Pre-Check Skip Gate 실행체 (171 tests)
 - 45cd5e6 fix: 누락 커맨드 배포 + orphan 감지 가드 추가
 - 8d11d21 docs: 통합 평가 프레임워크 추가 (17번 doc)
 - 2c0caa3 feat: 멀티 에이전트 패턴 Phase 1 통합 (MoA + Guardrail + Checkpointing)
+
+## [2026-06-01] 기획-검수-빌드-검수 4-레이어 품질 사이클 구축
+
+**완료**:
+- 시스템 감사: 레슨↔규칙↔훅 3레이어 단절 구조 문제 발견 (8개 P0/P1/P2 갭)
+- P0 갭 수정: pre-bash.sh 등록, pre-write.sh 등록, model-compliance.sh 등록, SubagentStop 훅 추가
+- 4-레이어 Shift-Left 품질 아키텍처 신규 구현: Layer 0~3 완성
+- pre-edit-cortex.sh (Layer 1 BLOCK) + post-edit-cortex.sh (Layer 2 warn) 신규
+- post-deploy-verify.sh Layer 3 D1 검증 스크립트
+- /end Step 6.75 레슨→훅 커버리지 체크 추가
+- /plan-eng 검토 → APPROVED (T7 wrangler auto-trigger, T8 /end 훅 체크 구현)
+- pre-edit-cortex.sh BLOCK 검증 완료 (exit 2 확인)
+
+**이슈**: macOS bash 3.2 declare -A 미지원 (pre-existing, 기능 영향 없음)
+**빌드**: ✅ 537 tests PASS (40 files)
