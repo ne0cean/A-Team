@@ -1755,7 +1755,7 @@ function renderFrames() {
   el.innerHTML = html;
 }
 
-const catColorMap = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', outcome: '#bc8cff' };
+const catColorMap = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', hexagonal: '#f85149', outcome: '#bc8cff' };
 
 async function saveFramesData() {
   await fetch(`${API}/api/day-frames`, {
