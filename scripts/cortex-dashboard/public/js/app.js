@@ -547,7 +547,33 @@ function renderStats() {
 }
 
 // --- Data operations ---
-const AUTH = { 'Content-Type':'application/json', 'Authorization':'Bearer cortex-ritual-2026-fb' };
+const TOKEN_KEY = 'cortex.dashboard.token';
+function authHeaders() {
+  const token = window.CORTEX_AUTH_TOKEN || localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || '';
+  const headers = { 'Content-Type':'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+async function retryAuth(res) {
+  if (res.status !== 401) return false;
+  const token = prompt('Cortex access token');
+  if (!token) return false;
+  localStorage.setItem(TOKEN_KEY, token.trim());
+  return true;
+}
+const _rawFetch = window.fetch.bind(window);
+window.fetch = async (input, init = {}) => {
+  const url = typeof input === 'string' ? input : input?.url || '';
+  const next = { ...init };
+  if (url.includes('/api/')) next.headers = { ...(next.headers || {}), ...authHeaders() };
+  const res = await _rawFetch(input, next);
+  if (res.status === 401 && await retryAuth(res)) {
+    if (url.includes('/api/')) next.headers = { ...(next.headers || {}), ...authHeaders() };
+    return _rawFetch(input, next);
+  }
+  return res;
+};
+const AUTH = authHeaders; // legacy alias — use authHeaders() directly
 
 async function save() {
   const dayCount = Object.keys(monthData.days || {}).length;
@@ -1062,6 +1088,10 @@ function renderStandingOrders() {
       </div>
       <input type="checkbox" ${s.active?'checked':''} onchange="toggleSOActive(${i})">
       <span contenteditable="true" style="flex:1" onblur="editSOText(${i},this.textContent)">${esc(s.text)}</span>
+      <input class="so-date-input" placeholder="날짜" value="${esc(s.date||'')}"
+        onblur="setSoDate(${i},this.value)"
+        onkeydown="if(event.key==='Enter'){this.blur();}"
+        title="날짜 입력: 6월 11일 / 6/11 / 6.11">
       <span class="del-btn" onclick="delSO(${i})" style="display:inline">&#215;</span>
     </div>`;
   });
@@ -1244,6 +1274,42 @@ function moveSOItem(section, idx, dir) {
 function toggleSOActive(i) { standingData.standing[i].active = !standingData.standing[i].active; saveStandingData(); }
 function editSOText(i, text) { if(text.trim()) standingData.standing[i].text = text.trim(); saveStandingData(); }
 function delSO(i) { standingData.standing.splice(i, 1); saveStandingData(); renderStandingOrders(); }
+function parseSoDate(raw) {
+  if (!raw?.trim()) return null;
+  const s = raw.trim();
+  // "6월 11일", "6월11일"
+  let m = s.match(/^(\d{1,2})\s*월\s*(\d{1,2})\s*일?$/);
+  if (m) return { month: +m[1], day: +m[2] };
+  // "6/11", "6.11", "6-11"
+  m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})$/);
+  if (m) return { month: +m[1], day: +m[2] };
+  // "11" → current month
+  m = s.match(/^(\d{1,2})$/);
+  if (m) return { month: currentMonth, day: +m[1] };
+  return null;
+}
+function setSoDate(i, raw) {
+  const parsed = parseSoDate(raw);
+  standingData.standing[i].date = raw.trim();
+  saveStandingData();
+  if (!parsed) return;
+  // Inject into scheduler: find or create day entry
+  const targetYm = `${currentYear}-${String(parsed.month).padStart(2,'0')}`;
+  const dayKey = String(parsed.day);
+  const item = standingData.standing[i];
+  // Use todayMonthData if same month, else need to load — for now patch monthData if same ym
+  const targetData = (targetYm === ym()) ? monthData : null;
+  if (!targetData) { showToast(`${parsed.month}/${parsed.day} 저장됨 (다른 월)`); return; }
+  if (!targetData.days[dayKey]) targetData.days[dayKey] = {};
+  const cat = targetData.days[dayKey];
+  if (!cat.outcome) cat.outcome = [];
+  if (!cat.outcome.some(x => x.text === item.text)) {
+    cat.outcome.push({ text: item.text, done: false, _soScheduled: true });
+    save().then(() => { showToast(`${parsed.month}/${parsed.day}에 추가됨`); render(); });
+  } else {
+    showToast(`이미 ${parsed.month}/${parsed.day}에 있음`);
+  }
+}
 function addSO(text) {
   if (!text?.trim()) return;
   standingData.standing.push({ id: `so-${Date.now()}`, text: text.trim(), active: true });
@@ -1711,14 +1777,29 @@ function togglePanel(id) {
 function prevMonth() { prevPeriod(); }
 function nextMonth() { nextPeriod(); }
 
+// --- Toast ---
+let _toastTimer = null;
+function showToast(msg = '저장됨') {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 1500);
+}
+
 // --- Pull-to-refresh ---
 let pullY = 0, pullActive = false;
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();
-    save();
+    save().then(() => showToast('저장됨'));
   }
-});
+}, true);
 
 // Long-press drag: 300ms hold → draggable 활성화
 let _dragLongPressTimer = null;

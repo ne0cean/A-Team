@@ -40,6 +40,26 @@
 - **`todayMonthData` 캐시**: 오늘 날짜 월 데이터를 캐시. 다른 월 탐색 시에도 오늘 날짜 기준 데이터는 항상 `todayMonthData` 사용
 - **Vision text SSOT**: `standingData.daily_mantra` (standing-orders API). `monthData.goals.goal`은 레거시 fallback만
 
+### ⚠️ 데이터 무결성 원칙 (절대 위반 금지)
+
+> 사용자가 입력한 모든 변경사항은 아무리 작아도 즉시 반영되어야 하며, 사용자 허가 없이 절대 삭제/유실되어선 안 된다.
+
+**서버 저장 규칙**:
+- **`/api/month` POST**: `INSERT OR REPLACE` 전에 기존 `workout` 필드 보존 (클라이언트가 strip하기 때문)
+- **`/api/standing-orders` POST**: full replace 금지. 기존 데이터와 merge 후 저장 (`{ ...existing, ...incoming }`)
+- **`/api/day-frames` POST**: 동일. merge 방식
+- **새 KV 엔드포인트 추가 시**: 반드시 merge 방식으로 구현. full replace는 허용하지 않음
+
+**클라이언트 저장 규칙**:
+- `save()`: workout 필드 strip 후 저장 (서버가 기존 workout 보존)
+- `saveStandingData()`: 전체 `standingData` 전송 (서버 merge가 안전망)
+- 새 필드 추가 시: 서버 merge 로직에 해당 필드 보존 코드 추가 여부 확인 필수
+
+**절대 금지**:
+- `setKey(key, data)` 직접 호출 (merge 없이) — worker 내부에서만, 항상 merge 선행
+- 클라이언트에서 일부 필드만 전송하는 POST — 서버 merge가 없으면 data loss 발생
+- 필드명 변경 시 마이그레이션 없이 코드만 수정 — 기존 저장값 유실됨
+
 ### Recurring Items — Outcome 카테고리 귀속 (복원 금지)
 
 - **모든 recurring items (yearly/monthly/weekly)는 Out(come) 카테고리 안에 렌더링** — 별도 블록 표시 금지
@@ -60,6 +80,21 @@
 - object: `{"text":"...","category":"work"}` — day-triggered items, day 특정 불가 → **주입 금지, skip**
 - `getMonthlyRecurring()`에서 반드시 `typeof text !== 'string'` 체크로 skip
 - 이 체크 누락 시 `text.match()` → TypeError → render() 크래시 → 스케쥴러 전체 공백
+
+### Standing 날짜 입력 (복원 금지)
+
+- **위치**: 각 Standing 항목 텍스트 우측에 72px 입력칸 (`.so-date-input`)
+- **저장**: `standingData.standing[i].date` 문자열로 저장
+- **포맷 자동인식**: `6월 11일`, `6/11`, `6.11`, `6-11`, `11`(당월) → `{ month, day }`
+- **스케쥴러 반영**: 파싱된 날짜의 `monthData.days[day].outcome`에 해당 항목 추가 (`_soScheduled: true`)
+- 다른 월이면 즉시 주입 불가 → 토스트 알림만 표시
+- `parseSoDate()`, `setSoDate()` 함수로 처리
+
+### Auth 구조 (복원 금지)
+
+- **`authHeaders()`**: `localStorage['cortex.dashboard.token']` → `sessionStorage` → `window.CORTEX_AUTH_TOKEN` 순으로 읽음
+- **`window.fetch` 인터셉터**: 모든 `/api/` 호출에 자동으로 auth 헤더 주입. 401 시 토큰 재입력 프롬프트
+- **`AUTH` 상수 하드코딩 금지**: 토큰은 항상 localStorage에서 읽어야 함. 하드코딩하면 `env.API_SECRET` 불일치 → 401
 
 ### 링크 삽입 방식
 

@@ -1,5 +1,6 @@
-const CACHE = 'cortex-v8';
-const SHELL = ['/', '/css/main.css', '/js/app.js', '/favicon.svg', '/manifest.json'];
+const CACHE = 'cortex-v9';
+const SHELL = ['/', '/css/main.css', '/favicon.svg', '/manifest.json'];
+// app.js is network-first — always load latest code
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
@@ -16,8 +17,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Network-first for API
-  if (url.pathname.startsWith('/api/')) {
+  // Network-first: API and app.js (always get latest)
+  if (url.pathname.startsWith('/api/') || url.pathname === '/js/app.js') {
     e.respondWith(
       fetch(e.request).then(r => {
         if (r.ok && e.request.method === 'GET') {
@@ -30,7 +31,7 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Stale-while-revalidate for shell
+  // Stale-while-revalidate for other shell files
   e.respondWith(
     caches.match(e.request).then(cached => {
       const fetched = fetch(e.request).then(r => {

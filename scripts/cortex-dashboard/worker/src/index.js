@@ -71,6 +71,12 @@ export default {
           if (existingCount > 10 && newCount === 0 && newDayCount === 0) {
             return new Response(JSON.stringify({ error: 'blocked: would erase data' }), { status: 400, headers });
           }
+          // Preserve workout — client strips it before sending (managed via /api/workout)
+          for (const [day, dd] of Object.entries(existing.days || {})) {
+            if (dd.workout?.length && data.days[day] && !data.days[day].workout) {
+              data.days[day].workout = dd.workout;
+            }
+          }
         }
         await setKey(ym, data);
         return new Response(JSON.stringify({ ok: true }), { headers });
@@ -232,7 +238,10 @@ export default {
           return new Response(JSON.stringify(data || {}), { headers });
         }
         if (method === 'POST') {
-          const data = await request.json();
+          const incoming = await request.json();
+          // Merge with existing — never silently lose fields the client didn't send
+          const existing = await getKey(key) || {};
+          const data = { ...existing, ...incoming };
           await setKey(key, data);
           return new Response(JSON.stringify({ ok: true }), { headers });
         }
