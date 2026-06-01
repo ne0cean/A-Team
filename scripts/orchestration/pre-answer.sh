@@ -18,6 +18,25 @@ echo "$(date +%H:%M:%S) FIRE msg=$(echo $MSG | head -c 60)" >> "$LOG"
 [ -z "$GROQ_API_KEY" ] && { echo '{}'; exit 0; }
 [ -z "$MSG" ] && { echo '{}'; exit 0; }
 
+# ── Cortex 편집 의도 감지 → DECISIONS.md 자동 주입 ──────────
+IS_CORTEX_EDIT=false
+echo "$MSG" | grep -qiE '(app\.js|worker|index\.js|cortex|dashboard).*(수정|고쳐|변경|추가|삭제|바꿔|고치|편집)' && IS_CORTEX_EDIT=true
+echo "$MSG" | grep -qiE '(수정|고쳐|변경|추가|삭제|바꿔|고치|편집).*(app\.js|worker|index\.js|cortex|dashboard)' && IS_CORTEX_EDIT=true
+
+if $IS_CORTEX_EDIT; then
+  DECISIONS_FILE="/Users/noir/Projects/a-team/scripts/cortex-dashboard/DECISIONS.md"
+  if [ -f "$DECISIONS_FILE" ]; then
+    # PRE-EDIT 체크리스트 + INTENTIONALLY REMOVED 섹션만 추출
+    DCTX=$(awk '/^## ⚠️ PRE-EDIT/{found=1} found{print} /^## FEATURE REGISTRY/{if(found>1)exit; found++} /^## INTENTIONALLY/{print; found=99} found==99 && /^---/{exit}' "$DECISIONS_FILE" | head -60)
+    CTX=$(printf '%s' "$DCTX" | python3 -c "import sys; import json; print(json.dumps(sys.stdin.read())[1:-1])" 2>/dev/null)
+    if [ -n "$CTX" ]; then
+      echo "$(date +%H:%M:%S) CORTEX_EDIT_INTENT injected" >> "$LOG"
+      printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"[CORTEX PRE-EDIT 자동 주입]\\n%s"}}\n' "$CTX"
+      exit 0
+    fi
+  fi
+fi
+
 # Only for questions about code/files (not every message)
 IS_QUESTION=false
 echo "$MSG" | grep -qE '[?？]' && IS_QUESTION=true

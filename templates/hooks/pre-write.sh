@@ -96,4 +96,26 @@ for pattern in "${SECURITY_PATTERNS[@]}"; do
   fi
 done
 
+# ── D1 데이터 가드 (cortex worker/schema 파일) ────────────────
+if echo "$file_path" | grep -qE "cortex-dashboard.*(worker.*index\.js|schema\.sql)"; then
+  content=$(echo "$input" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    print(d.get('tool_input', {}).get('new_string', '') or d.get('tool_input', {}).get('content', ''))
+except:
+    print('')
+" 2>/dev/null)
+
+  if echo "$content" | grep -q "INSERT OR REPLACE"; then
+    printf '{"systemMessage":"⚠️ D1 데이터 가드: INSERT OR REPLACE 감지\nINSERT OR IGNORE 를 사용하세요 — 배포마다 사용자 데이터를 덮어씁니다."}\n'
+    exit 0
+  fi
+
+  if echo "$content" | grep -qE "setKey\s*\(" && ! echo "$content" | grep -qE "merge|spread|\.\.\.("; then
+    printf '{"systemMessage":"⚠️ D1 데이터 가드: setKey() 직접 호출 감지\n기존 데이터를 먼저 읽고 merge 후 저장하세요 — 다른 필드 전체 소실 위험."}\n'
+    exit 0
+  fi
+fi
+
 exit 0
