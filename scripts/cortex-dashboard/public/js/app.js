@@ -61,7 +61,7 @@ async function loadMonth(isInit) {
   ]);
   prevMonthData = await prevRes.json();
   nextMonthData = await nextRes.json();
-  // visionText2 is loaded from standingData.daily_mantra (global, see loadStandingOrders)
+  // visionText2 is loaded from standingData.vision (global, see loadStandingOrders)
   // Auto viewMode: 오늘이 속한 주 → This Week, 그 외 주/월 → Full Month
   const _now = new Date();
   const _todayWeekStart = getWeekStart(_now);
@@ -96,10 +96,10 @@ function formatWeekLabel() {
 async function loadStandingOrders() {
   const res = await fetch(`${API}/api/standing-orders`);
   standingData = await res.json();
-  // 비전 텍스트: standing-orders.daily_mantra 우선, 없으면 현재 월 goals.goal
+  // 비전 텍스트: standingData.vision → monthData.goals.goal fallback
   const vt = document.getElementById('visionText2');
   if (vt) {
-    const mantra = standingData.daily_mantra || (todayMonthData || monthData)?.goals?.goal || '';
+    const mantra = standingData.vision || (todayMonthData || monthData)?.goals?.goal || '';
     vt.textContent = mantra;
   }
   renderStandingOrders();
@@ -301,13 +301,30 @@ function getYearlyEvents(d) {
 }
 
 function getMonthlyRecurring(d) {
-  if (!standingData?.monthly_recurring) return [];
-  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-  return standingData.monthly_recurring.filter(m => {
-    if (m.day === d) return true;
-    if (m.day === 0 && d === daysInMonth) return true;
-    return false;
+  const results = [];
+  // monthly_recurring: structured {day, text} items
+  if (standingData?.monthly_recurring) {
+    const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+    standingData.monthly_recurring.forEach(m => {
+      if (m.day === d || (m.day === 0 && d === daysInMonth)) results.push(m);
+    });
+  }
+  // monthly[ym]: plain text strings with embedded day ranges e.g. "1~2일 PO교육", "11일(목) 코딩..."
+  const ymKey = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
+  const monthlyTexts = standingData?.monthly?.[ymKey] || [];
+  monthlyTexts.forEach(text => {
+    // Parse "N일" or "N~M일" or "N,M일" from beginning of string
+    const m = text.match(/^(\d+)(?:[~,～](\d+))?일/);
+    if (!m) return;
+    const from = parseInt(m[1]);
+    const to = m[2] ? parseInt(m[2]) : from;
+    if (d >= from && d <= to) {
+      // Strip the day prefix from display text
+      const name = text.replace(/^\d+[~,～]?\d*일\([^)]*\)\s*/, '').replace(/^\d+[~,～]?\d*일\s*/, '');
+      results.push({ text: name || text, url: '' });
+    }
   });
+  return results;
 }
 
 function getWeeklyRecurring(d) {
@@ -376,31 +393,37 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
   >${esc(ot)}</div>`;
 
-  // Recurring items (weekly/monthly/yearly) — rendered as checkable items
-  const recArr = dayData._recurring || [];
-  if (recArr.length) {
-    const SRC_COLORS = { yearly: '#f0c040', monthly: '#bc8cff', weekly: '#6e7681' };
-    recArr.forEach((item, idx) => {
-      const doneClass = item.done ? 'done' : '';
-      const clr = SRC_COLORS[item._src] || '#6e7681';
-      html += `<div class="item ${doneClass}" style="border-left:2px solid ${clr};padding-left:4px">
-        <input type="checkbox" ${item.done?'checked':''} onchange="toggleRecurring(${d},${idx})">
-        <span class="item-text" style="color:${clr}">${linkify(item.text)}</span>
-      </div>`;
-    });
-  }
-
   // Categories
+  const SRC_COLORS = { yearly: '#f0c040', monthly: '#bc8cff', weekly: '#6e7681' };
+  const recArr = dayData._recurring || [];
+
   for (const cat of CATS) {
     const items = dayData[cat] || [];
     const isFutureOrToday = isToday || new Date(currentYear, currentMonth - 1, d) >= new Date(new Date().toDateString());
-    if (items.length === 0 && !isFutureOrToday) continue;
+    if (items.length === 0 && recArr.length === 0 && !isFutureOrToday) continue;
+    if (items.length === 0 && cat !== 'outcome' && !isFutureOrToday) continue;
 
     html += `<div class="category cat-${cat}">
       <div class="cat-label cl-${cat}">
         <span>${CAT_NAMES[cat]}</span>
         <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span>
       </div>`;
+
+    // Recurring items (yearly/monthly/weekly) injected into outcome
+    if (cat === 'outcome') {
+      recArr.forEach((item, idx) => {
+        const doneClass = item.done ? 'done' : '';
+        const clr = SRC_COLORS[item._src] || '#6e7681';
+        html += `<div class="item ${doneClass}" style="border-left:2px solid ${clr};padding-left:4px">
+          <input type="checkbox" ${item.done?'checked':''} onchange="toggleRecurring(${d},${idx})">
+          <span class="item-text" contenteditable="true" style="color:${clr}"
+            onblur="editRecurring(${d},${idx},this.textContent)"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}if(event.key==='Escape'){this.blur();}"
+          >${linkify(item.text)}</span>
+          <span class="del-btn" onclick="delRecurring(${d},${idx})">&#215;</span>
+        </div>`;
+      });
+    }
 
     items.forEach((item, idx) => {
       const doneClass = item.done ? 'done' : '';
@@ -412,11 +435,10 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
         ondragover="dragOver(event)" ondragleave="dragLeave(event)"
         ondrop="drop(event,${d},'${cat}',${idx})">
         <input type="checkbox" ${checked} onchange="toggleItem(${d},'${cat}',${idx})">
-        <span class="item-text" contenteditable="true"
+        <span class="item-text${item.url?' has-link':''}" contenteditable="true"
           onblur="editItem(${d},'${cat}',${idx},this.textContent)"
           onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
         >${item.url ? `<a href="${esc(item.url)}" target="_blank" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
-        <span class="link-btn${item.url?' has-link':''}" onclick="openLinkPopup(event,${d},'${cat}',${idx})" ontouchend="event.preventDefault();openLinkPopup(event,${d},'${cat}',${idx})" title="Link">&#128279;</span>
         <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
       </div>`;
     });
@@ -432,6 +454,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   if (isToday) {
     for (const cat of CATS) {
       if ((dayData[cat] || []).length > 0) continue;
+      if (cat === 'outcome' && recArr.length > 0) continue; // already rendered with recurring
       html += `<div class="category cat-${cat}"><div class="cat-label cl-${cat}"><span>${CAT_NAMES[cat]}</span>
         <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span></div>
         <div class="new-item" id="new-${d}-${cat}">
@@ -456,14 +479,18 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function linkify(s) {
-  // Handle [text](url) markdown links, then bare URLs
+  // Handle [text](url) markdown links (any url), then bare URLs
   let result = '';
   let last = 0;
-  const re = /\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g;
+  const re = /\[([^\]]*)\]\(([^)]+)\)/g;
   let m;
   while ((m = re.exec(s)) !== null) {
     result += esc(s.slice(last, m.index));
-    result += `<a href="${esc(m[2])}" target="_blank" onclick="event.stopPropagation()">${esc(m[1])}</a>`;
+    if (/^https?:\/\//.test(m[2])) {
+      result += `<a href="${esc(m[2])}" target="_blank" onclick="event.stopPropagation()">${esc(m[1])}</a>`;
+    } else {
+      result += esc(m[1]); // non-http URL: show text only
+    }
     last = m.index + m[0].length;
   }
   result += esc(s.slice(last));
@@ -562,10 +589,31 @@ async function toggleRecurring(d, idx) {
   dd._recurring[idx].done = !dd._recurring[idx].done;
   await save(); render();
 }
+async function editRecurring(d, idx, text) {
+  const dd = ensureDay(d);
+  if (!dd._recurring?.[idx]) return;
+  const trimmed = text.trim();
+  if (!trimmed || trimmed === dd._recurring[idx].text) return;
+  dd._recurring[idx].text = trimmed;
+  await save();
+}
+async function delRecurring(d, idx) {
+  const dd = ensureDay(d);
+  if (!dd._recurring) return;
+  dd._recurring.splice(idx, 1);
+  await save(); render();
+}
 
 // --- Link popup ---
 let linkTarget = null;
 let longPressTimer = null;
+
+function openLinkPopupFromSpan(span, d, cat, idx) {
+  // Ctrl+K from contenteditable span — position near cursor
+  const rect = span.getBoundingClientRect();
+  const fakeEvent = { clientX: rect.left, clientY: rect.bottom + 4, changedTouches: null, touches: null };
+  openLinkPopup(fakeEvent, d, cat, idx);
+}
 
 function openLinkPopup(event, d, cat, idx) {
   const item = ensureDay(d)[cat]?.[idx];
@@ -666,6 +714,11 @@ async function editItem(d, cat, idx, newText) {
 }
 
 function handleItemKey(e, d, cat, idx) {
+  if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    openLinkPopupFromSpan(e.target, d, cat, idx);
+    return;
+  }
   if (e.key === 'Enter') {
     e.preventDefault();
     const sel = window.getSelection();
@@ -757,7 +810,7 @@ function addItemPrompt(d) {
 
 async function saveGoalText(text) {
   if (!standingData) standingData = {};
-  standingData.daily_mantra = text.trim();
+  standingData.vision = text.trim();
   await saveStandingData();
 }
 

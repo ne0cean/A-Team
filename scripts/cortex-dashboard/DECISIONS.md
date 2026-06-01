@@ -40,6 +40,19 @@
 - **`todayMonthData` 캐시**: 오늘 날짜 월 데이터를 캐시. 다른 월 탐색 시에도 오늘 날짜 기준 데이터는 항상 `todayMonthData` 사용
 - **Vision text SSOT**: `standingData.daily_mantra` (standing-orders API). `monthData.goals.goal`은 레거시 fallback만
 
+### Recurring Items — Outcome 카테고리 귀속 (복원 금지)
+
+- **모든 recurring items (yearly/monthly/weekly)는 Out(come) 카테고리 안에 렌더링** — 별도 블록 표시 금지
+- 컬러 코딩 유지: 노랑=yearly, 보라=monthly, 회색=weekly
+- contenteditable + del 버튼으로 해당 날짜 오버라이드 가능 (standing orders 원본 유지)
+- `standingData.monthly[ym]` 문자열 항목도 파싱해서 day cell 주입 (`N~M일` prefix 제거 후 표시)
+
+### Header Vision Text (복원 금지)
+
+- **SSOT**: `standingData.vision` 필드 — `loadStandingOrders()` 에서 읽고 `saveGoalText()` 에서 씀
+- `daily_mantra` 필드는 폐기됨. 절대 부활시키지 말 것
+- fallback: `monthData.goals.goal`
+
 ### 링크 삽입 방식
 
 - **마크다운 인라인**: `[텍스트](URL)` 형식으로 항목 text 내 특정 단어에 링크 삽입 가능
