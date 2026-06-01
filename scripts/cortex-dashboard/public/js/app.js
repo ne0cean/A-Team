@@ -1137,7 +1137,7 @@ function renderStandingOrders() {
 // --- Standing Orders CRUD ---
 async function saveStandingData() {
   await fetch(`${API}/api/standing-orders`, {
-    method:'POST', headers:{'Content-Type':'application/json'},
+    method:'POST', headers: AUTH,
     body: JSON.stringify(standingData)
   });
 }
