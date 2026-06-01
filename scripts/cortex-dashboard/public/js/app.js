@@ -62,6 +62,13 @@ async function loadMonth(isInit) {
   prevMonthData = await prevRes.json();
   nextMonthData = await nextRes.json();
   // visionText2 is loaded from standingData.daily_mantra (global, see loadStandingOrders)
+  // Auto viewMode: 당월 → This Week(week), 타월 → Full Month(month)
+  const _now = new Date();
+  if (currentYear === _now.getFullYear() && currentMonth === _now.getMonth() + 1) {
+    viewMode = 'week';
+  } else {
+    viewMode = 'month';
+  }
   updateLabel();
   render();
   renderWorkoutBar();
