@@ -1,6 +1,6 @@
 const API = '';
-const CATS = ['ritual','input','work','outcome'];
-const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Work', outcome:'Out'};
+const CATS = ['ritual','input','work','hexagonal','outcome'];
+const CAT_NAMES = {ritual:'R&R', input:'Outcome', work:'Work', hexagonal:'6 Pillars', outcome:'Input'};
 const DAY_NAMES = ['일','월','화','수','목','금','토'];
 const TYPE_LABELS = {block:'BLOCK',flow:'FLOW',hf:'HF',vacation:'휴가'};
 const TYPE_COLORS = {block:'badge-block',flow:'badge-flow',hf:'badge-hf',vacation:'badge-vacation'};
@@ -1698,6 +1698,8 @@ const CAT_TYPE_LABELS = { routine: 'Routine (매일 리셋)', todo: 'To-do (이�
 async function loadFrames() {
   const res = await fetch(`${API}/api/day-frames`);
   framesData = await res.json();
+  // Apply saved category name overrides (_catNames stored in day-frames data)
+  if (framesData._catNames) Object.assign(CAT_NAMES, framesData._catNames);
   renderFrames();
 }
 

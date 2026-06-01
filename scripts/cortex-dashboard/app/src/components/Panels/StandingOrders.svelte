@@ -1,0 +1,606 @@
+<script>
+  import { standingData, ym, currentMonth, monthData } from '../../lib/stores.js';
+  import * as api from '../../lib/api.js';
+
+  let activeTab = 'standing';
+
+  function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  function htmlToMarkdown(el) {
+    let result = '';
+    for (const node of el.childNodes) {
+      if (node.nodeType === 3) { result += node.textContent; }
+      else if (node.tagName === 'A') { result += `[${node.textContent}](${node.href})`; }
+      else { result += node.textContent; }
+    }
+    return result.trim();
+  }
+
+  async function save() {
+    // Safety: never save empty standing orders
+    const size = JSON.stringify($standingData).length;
+    if (size < 50) { console.warn('save blocked: standingData too small', size); return; }
+    const res = await api.saveStandingOrders($standingData);
+    if (res?._version) {
+      standingData.mutate(s => { s._version = res._version; });
+    } else if (res === null) {
+      // 409 conflict — re-fetch fresh version and retry once
+      const fresh = await api.loadStandingOrders();
+      if (fresh) {
+        standingData.mutate(s => { s._version = fresh._version; });
+        const retry = await api.saveStandingOrders($standingData);
+        if (retry?._version) standingData.mutate(s => { s._version = retry._version; });
+      }
+    }
+  }
+
+  // Standing — all edits use PATCH API
+  function toggleActive(i) {
+    const newVal = !$standingData.standing[i].active;
+    standingData.mutate(s => { s.standing[i].active = newVal; });
+    api.patchStandingOrders('standing', 'edit', { active: newVal }, i);
+  }
+  function editText(i, text) {
+    if (!text.trim()) return;
+    standingData.mutate(s => { s.standing[i].text = text.trim(); });
+    api.patchStandingOrders('standing', 'edit', { text: text.trim() }, i);
+  }
+  function delSO(i) {
+    standingData.mutate(s => { s.standing.splice(i, 1); });
+    api.patchStandingOrders('standing', 'delete', null, i);
+  }
+  function addSO(text) {
+    if (!text?.trim()) return;
+    const item = { id: `so-${Date.now()}`, text: text.trim(), active: true };
+    standingData.mutate(s => { s.standing.push(item); });
+    api.patchStandingOrders('standing', 'add', item);
+  }
+
+  // Parse one date token: "6/16", "6.16", "6월16", "16"
+  function _parseOne(raw) {
+    const s = raw.trim();
+    const m = s.match(/^(\d{1,2})\s*[\.\/\-월\s]\s*(\d{1,2})일?$/);
+    if (m) return { month: +m[1], day: +m[2] };
+    if (/^\d{1,2}$/.test(s)) return { month: new Date().getMonth() + 1, day: +s };
+    return null;
+  }
+  // Parse comma-separated dates: "6/16, 6/30, 7/14"
+  function parseDates(input) {
+    if (!input?.trim()) return null;
+    const results = input.split(/[,，]/).map(p => _parseOne(p)).filter(Boolean);
+    return results.length ? results : null;
+  }
+
+  function formatDate(s) {
+    if (s?.dates?.length) return s.dates.map(d => `${d.month}/${d.day}`).join(', ');
+    if (!s?.date_month) return '';
+    return `${s.date_month}/${s.date_day || ''}`;
+  }
+
+  let editingDateIdx = -1;
+  let dateInputs = [];
+  $: {
+    ($standingData?.standing || []).forEach((s, i) => {
+      if (i !== editingDateIdx) {
+        dateInputs[i] = formatDate(s);
+      }
+    });
+  }
+
+  // 선택 텍스트 캡처 (prompt 호출 전에 반드시 호출)
+  function _selText() { return window.getSelection()?.toString().trim() || ''; }
+  function _link(cur, sel, label, url) {
+    const md = `[${label}](${url})`;
+    return (sel && cur.includes(sel)) ? cur.replace(sel, md) : md;
+  }
+
+  function insertSOLink(i) {
+    const sel = _selText(), cur = $standingData.standing[i].text || '';
+    const url = prompt('URL', ''); if (!url) return;
+    const label = prompt('표시 텍스트', sel || cur || 'link'); if (!label) return;
+    const newText = _link(cur, sel, label, url);
+    standingData.mutate(st => { st.standing[i].text = newText; });
+    api.patchStandingOrders('standing', 'edit', { text: newText }, i);
+  }
+
+  async function editSODate(i, input) {
+    const parsed = parseDates(input);
+    let patch;
+    if (!parsed) {
+      patch = { date_month: null, date_day: null, dates: null };
+    } else if (parsed.length === 1) {
+      patch = { date_month: parsed[0].month, date_day: parsed[0].day, dates: null };
+    } else {
+      patch = { dates: parsed, date_month: null, date_day: null };
+    }
+    standingData.mutate(s => {
+      const item = s.standing[i];
+      if (parsed?.length === 1) { item.date_month = parsed[0].month; item.date_day = parsed[0].day; delete item.dates; }
+      else if (parsed?.length > 1) { item.dates = parsed; delete item.date_month; delete item.date_day; }
+      else { delete item.date_month; delete item.date_day; delete item.dates; }
+    });
+    await api.patchStandingOrders('standing', 'edit', patch, i);
+  }
+
+  // 스케줄러 반영: 각 섹션의 항목을 해당 날짜의 캘린더에 추가
+  async function injectSection(section) {
+    const [y, m] = $ym.split('-').map(Number);
+    let items = [];
+
+    if (section === 'standing') {
+      items = ($standingData.standing || [])
+        .filter(s => s.active)
+        .flatMap(s => {
+          if (s.dates?.length) return s.dates.filter(d => d.month === m).map(d => ({ text: s.text, day: d.day, cat: s.category || 'outcome' }));
+          if (s.date_month === m && s.date_day) return [{ text: s.text, day: s.date_day, cat: s.category || 'outcome' }];
+          return [];
+        });
+    } else if (section === 'weekly') {
+      const dim = new Date(y, m, 0).getDate();
+      for (const w of ($standingData.weekly_recurring || [])) {
+        for (let d = 1; d <= dim; d++) {
+          const dow = new Date(y, m - 1, d).getDay();
+          if (dow !== w.dow) continue;
+          if (w.freq === 'biweekly' && Math.floor((d - 1) / 7) % 2 !== 0) continue;
+          items.push({ text: w.text, day: d, cat: w.category || 'outcome' });
+        }
+      }
+    } else if (section === 'monthly') {
+      const dim = new Date(y, m, 0).getDate();
+      // 영업일 말일: 주말이면 직전 금요일로
+      const lastBizDay = () => {
+        let d = dim;
+        const dow = new Date(y, m - 1, d).getDay();
+        if (dow === 0) d -= 2; // 일요일 → 금요일
+        else if (dow === 6) d -= 1; // 토요일 → 금요일
+        return d;
+      };
+      for (const mr of ($standingData.monthly_recurring || [])) {
+        const day = mr.day === 0 ? lastBizDay() : mr.day;
+        items.push({ text: mr.text, day, cat: mr.category || 'outcome' });
+      }
+      for (const item of ($standingData.monthly?.[$ym] || [])) {
+        const text = typeof item === 'string' ? item : item.text;
+        const cat = typeof item === 'object' ? (item.category || 'outcome') : 'outcome';
+        items.push({ text, day: 1, cat });
+      }
+    } else if (section === 'yearly') {
+      for (const yr of ($standingData.yearly || [])) {
+        if (yr.month === m && yr.day) {
+          items.push({ text: yr.text, day: yr.day, cat: yr.category || 'outcome' });
+        }
+      }
+    }
+
+    if (!items.length) {
+      if (api.setToast) api.setToast('이번 달 반영할 항목 없음', true);
+      return;
+    }
+
+    let added = 0;
+    for (const it of items) {
+      const dayStr = String(it.day);
+      const existing = $monthData.days?.[dayStr]?.[it.cat] || [];
+      if (existing.some(e => e.text === it.text)) continue;
+      // outcome 상단 삽입 (index 0), 나머지는 append
+      if (it.cat === 'outcome') {
+        await api.insertItem($ym, dayStr, it.cat, 0, it.text, '');
+      } else {
+        await api.addItem($ym, dayStr, it.cat, it.text, '');
+      }
+      added++;
+    }
+    if (added > 0) {
+      const data = await api.loadMonth($ym);
+      if (data) monthData.load(data);
+    }
+    if (api.setToast) api.setToast(`${added}건 스케줄러 반영 완료`);
+  }
+
+  // Weekly — PATCH only (save() 전체교체 금지)
+  function editWeeklyDow(i, dow) { standingData.mutate(s => { s.weekly_recurring[i].dow = +dow; }); api.patchStandingOrders('weekly_recurring', 'edit', { dow: +dow }, i); }
+  function editWeeklyFreq(i, freq) { standingData.mutate(s => { s.weekly_recurring[i].freq = freq; }); api.patchStandingOrders('weekly_recurring', 'edit', { freq }, i); }
+  function editWeeklyText(i, text) { if (text.trim()) { standingData.mutate(s => { s.weekly_recurring[i].text = text.trim(); }); api.patchStandingOrders('weekly_recurring', 'edit', { text: text.trim() }, i); } }
+  function delWeekly(i) { standingData.mutate(s => { s.weekly_recurring.splice(i, 1); }); api.patchStandingOrders('weekly_recurring', 'delete', null, i); }
+  let newWkDow = 1, newWkFreq = 'weekly';
+  function addWeekly(text) {
+    if (!text?.trim()) return;
+    const item = { dow: newWkDow, freq: newWkFreq, text: text.trim() };
+    standingData.mutate(s => { if (!s.weekly_recurring) s.weekly_recurring = []; s.weekly_recurring.push(item); });
+    api.patchStandingOrders('weekly_recurring', 'add', item);
+  }
+
+  // Monthly recurring — PATCH only
+  function editMR(i, field, val) {
+    const v = field === 'text' ? val.trim() : +val;
+    standingData.mutate(s => { s.monthly_recurring[i][field] = v; });
+    api.patchStandingOrders('monthly_recurring', 'edit', { [field]: v }, i);
+  }
+  function delMR(i) { standingData.mutate(s => { s.monthly_recurring.splice(i, 1); }); api.patchStandingOrders('monthly_recurring', 'delete', null, i); }
+  let newMRDay = 0;
+  function addMR(text) {
+    if (!text?.trim()) return;
+    const item = { day: newMRDay, text: text.trim() };
+    standingData.mutate(s => { if (!s.monthly_recurring) s.monthly_recurring = []; s.monthly_recurring.push(item); });
+    api.patchStandingOrders('monthly_recurring', 'add', item);
+  }
+
+  // This-month items — monthly는 object이므로 section replace
+  function editMonthlyItem(i, text) {
+    standingData.mutate(s => {
+      const cur = s.monthly[$ym][i];
+      s.monthly[$ym][i] = typeof cur === 'object' ? { ...cur, text: text.trim() } : text.trim();
+    });
+    api.patchStandingOrders('monthly', 'replace', $standingData.monthly);
+  }
+  function delMonthlyItem(i) {
+    standingData.mutate(s => { s.monthly[$ym].splice(i, 1); });
+    api.patchStandingOrders('monthly', 'replace', $standingData.monthly);
+  }
+  function addMonthlyItem(text, category = '') {
+    if (!text?.trim()) return;
+    const item = category ? { text: text.trim(), category } : text.trim();
+    standingData.mutate(s => { if (!s.monthly[$ym]) s.monthly[$ym] = []; s.monthly[$ym].push(item); });
+    api.patchStandingOrders('monthly', 'replace', $standingData.monthly);
+  }
+
+  $: {
+    const all = ($standingData?.monthly?.[$ym] || []);
+    monthlyGeneral  = all.map((x,i)=>({...(typeof x==='string'?{text:x}:x),_idx:i})).filter(x=>!x.category);
+    monthlyOutcome  = all.map((x,i)=>({...(typeof x==='string'?{text:x}:x),_idx:i})).filter(x=>x.category==='outcome');
+    monthlyInput    = all.map((x,i)=>({...(typeof x==='string'?{text:x}:x),_idx:i})).filter(x=>x.category==='input');
+    monthlyWork     = all.map((x,i)=>({...(typeof x==='string'?{text:x}:x),_idx:i})).filter(x=>x.category==='work');
+  }
+  let monthlyGeneral=[], monthlyOutcome=[], monthlyInput=[], monthlyWork=[];
+
+  // Yearly — PATCH only
+  function editYearlyMonth(i, m) { standingData.mutate(s => { s.yearly[i].month = +m; }); api.patchStandingOrders('yearly', 'edit', { month: +m }, i); }
+  function editYearlyDay(i, d) { standingData.mutate(s => { s.yearly[i].day = +d; }); api.patchStandingOrders('yearly', 'edit', { day: +d }, i); }
+  function editYearlyText(i, text) { if (text.trim()) { standingData.mutate(s => { s.yearly[i].text = text.trim(); }); api.patchStandingOrders('yearly', 'edit', { text: text.trim() }, i); } }
+  function delYearly(i) { standingData.mutate(s => { s.yearly.splice(i, 1); }); api.patchStandingOrders('yearly', 'delete', null, i); }
+  let newYearlyMonth = 1, newYearlyDay = 0;
+  function addYearly(text, isTemp = false) {
+    if (!text?.trim()) return;
+    const item = { month: newYearlyMonth, day: newYearlyDay, text: text.trim() };
+    if (isTemp) item.temp = true;
+    standingData.mutate(s => { s.yearly.push(item); });
+    api.patchStandingOrders('yearly', 'add', item);
+  }
+
+  $: yearlyTemps = ($standingData?.yearly || []).map((y, i) => ({...y, _idx: i})).filter(y => y.temp);
+  $: yearlyPerms = ($standingData?.yearly || []).map((y, i) => ({...y, _idx: i})).filter(y => !y.temp);
+
+  function moveItem(section, idx, dir) {
+    standingData.mutate(s => {
+      let arr;
+      if (section === 'standing') arr = s.standing;
+      else if (section === 'weekly_recurring') arr = s.weekly_recurring;
+      else if (section === 'monthly_recurring') arr = s.monthly_recurring;
+      else if (section === 'monthly') arr = s.monthly[$ym] || [];
+      else if (section === 'yearly') arr = s.yearly;
+      else return;
+      const target = idx + dir;
+      if (target < 0 || target >= arr.length) return;
+      [arr[idx], arr[target]] = [arr[target], arr[idx]];
+    });
+    // 순서 변경은 해당 섹션만 replace
+    if (section === 'monthly') api.patchStandingOrders('monthly', 'replace', $standingData.monthly);
+    else api.patchStandingOrders(section, 'replace', $standingData[section]);
+  }
+
+  const DOW_NAMES = ['일','월','화','수','목','금','토'];
+
+  function setText(node, text) {
+    function render(text) {
+      if (document.activeElement === node) return;
+      node.textContent = '';
+      if (!text) return;
+      const re = /\[([^\]]+)\]\(([^)]+)\)/g;
+      let last = 0, match;
+      while ((match = re.exec(text)) !== null) {
+        if (match.index > last) node.appendChild(document.createTextNode(text.slice(last, match.index)));
+        const a = document.createElement('a');
+        const target = match[2];
+        if (target.startsWith('http://') || target.startsWith('https://')) {
+          a.href = target;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+        } else {
+          a.href = '#';
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.dispatchEvent(new CustomEvent('open-cortex-file', { detail: target }));
+          });
+        }
+        a.textContent = match[1];
+        a.style.color = '#58a6ff';
+        a.addEventListener('click', (e) => e.stopPropagation());
+        node.appendChild(a);
+        last = re.lastIndex;
+      }
+      if (last === 0) node.textContent = text;
+      else if (last < text.length) node.appendChild(document.createTextNode(text.slice(last)));
+    }
+    render(text);
+    return { update: render };
+  }
+
+  function insertWeeklyLink(i) {
+    const sel = _selText(), cur = $standingData.weekly_recurring[i].text || '';
+    const url = prompt('URL', ''); if (!url) return;
+    const label = prompt('표시 텍스트', sel || cur || 'link'); if (!label) return;
+    const newText = _link(cur, sel, label, url);
+    standingData.mutate(s => { s.weekly_recurring[i].text = newText; });
+    api.patchStandingOrders('weekly_recurring', 'edit', { text: newText }, i);
+  }
+
+  function insertYearlyLink(i) {
+    const sel = _selText(), cur = $standingData.yearly[i].text || '';
+    const url = prompt('URL', ''); if (!url) return;
+    const label = prompt('표시 텍스트', sel || cur || 'link'); if (!label) return;
+    const newText = _link(cur, sel, label, url);
+    standingData.mutate(s => { s.yearly[i].text = newText; });
+    api.patchStandingOrders('yearly', 'edit', { text: newText }, i);
+  }
+
+  function insertMonthlyItemLink(i) {
+    const items = $standingData.monthly?.[$ym] || [];
+    const item = items[i];
+    const cur = typeof item === 'string' ? item : (item?.text || '');
+    const sel = _selText();
+    const url = prompt('URL', ''); if (!url) return;
+    const label = prompt('표시 텍스트', sel || cur || 'link'); if (!label) return;
+    const newText = _link(cur, sel, label, url);
+    standingData.mutate(s => { s.monthly[$ym][i] = newText; });
+    api.patchStandingOrders('monthly', 'replace', $standingData.monthly);
+  }
+
+  function insertMRLink(i) {
+    const sel = _selText(), cur = $standingData.monthly_recurring[i].text || '';
+    const url = prompt('URL', ''); if (!url) return;
+    const label = prompt('표시 텍스트', sel || cur || 'link'); if (!label) return;
+    const newText = _link(cur, sel, label, url);
+    standingData.mutate(s => { s.monthly_recurring[i].text = newText; });
+    api.patchStandingOrders('monthly_recurring', 'edit', { text: newText }, i);
+  }
+
+  // Drag reorder
+  let dragIdx = null;
+  let dragSection = null;
+
+  function onDragStart(section, idx, e) {
+    dragIdx = idx;
+    dragSection = section;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+    e.currentTarget.classList.add('dragging');
+  }
+  function onDragEnd(e) {
+    e.currentTarget.classList.remove('dragging');
+    dragIdx = null;
+    dragSection = null;
+  }
+  function onDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+  }
+  function onDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+  function onDrop(section, toIdx, e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    if (dragSection !== section || dragIdx === null || dragIdx === toIdx) return;
+    standingData.mutate(s => {
+      let arr;
+      if (section === 'standing') arr = s.standing;
+      else if (section === 'weekly_recurring') arr = s.weekly_recurring;
+      else if (section === 'monthly_recurring') arr = s.monthly_recurring;
+      else if (section === 'yearly') arr = s.yearly;
+      else return;
+      const [item] = arr.splice(dragIdx, 1);
+      arr.splice(toIdx, 0, item);
+    });
+    save();
+    dragIdx = null;
+  }
+
+  // Alt+Arrow key reorder
+  function onItemKey(section, idx, e) {
+    if (!e.altKey) return;
+    if (e.key === 'ArrowUp') { e.preventDefault(); moveItem(section, idx, -1); focusItem(e.currentTarget.parentElement, idx - 1); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); moveItem(section, idx, 1); focusItem(e.currentTarget.parentElement, idx + 1); }
+  }
+  function focusItem(container, idx) {
+    if (!container) return;
+    requestAnimationFrame(() => {
+      const items = container.querySelectorAll('.so-item');
+      items[idx]?.focus();
+    });
+  }
+</script>
+
+{#if $standingData}
+<div class="so-panel">
+  <div class="tabs">
+    {#each ['standing','weekly','monthly','yearly'] as tab}
+      <div class="tab" class:active={activeTab === tab} on:click={() => activeTab = tab}>
+        {tab === 'standing' ? 'Standing' : tab === 'weekly' ? 'Weekly' : tab === 'monthly' ? 'Monthly' : 'Yearly'}
+      </div>
+    {/each}
+  </div>
+
+  {#if activeTab === 'standing'}
+    {#each $standingData.standing || [] as s, i}
+      <div class="so-item" tabindex="0" draggable="true"
+        on:dragstart={(e) => onDragStart('standing', i, e)}
+        on:dragend={onDragEnd}
+        on:dragover={onDragOver}
+        on:dragleave={onDragLeave}
+        on:drop={(e) => onDrop('standing', i, e)}
+        on:keydown={(e) => onItemKey('standing', i, e)}>
+        <div class="so-move drag-handle">⠿</div>
+        <input type="checkbox" checked={s.active} on:change={() => toggleActive(i)}>
+        <span contenteditable="true" on:blur={(e) => editText(i, htmlToMarkdown(e.target))}
+          on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertSOLink(i); } }}
+          use:setText={s.text}></span>
+        <input class="so-date" type="text" placeholder="날짜"
+          bind:value={dateInputs[i]}
+          on:focus={() => { editingDateIdx = i; }}
+          on:blur={(e) => { editingDateIdx = -1; editSODate(i, e.target.value); }}
+          on:keydown={(e) => e.key === 'Enter' && e.target.blur()}>
+        <span class="link-btn" on:click={() => insertSOLink(i)} title="링크 추가">&#128279;</span>
+        <span style="flex:1"></span>
+        <span class="del" on:click={() => delSO(i)}>×</span>
+      </div>
+    {/each}
+    <div class="add-row">
+      <input placeholder="Add standing order..." on:keydown={(e) => { if (e.key === 'Enter') { addSO(e.target.value); e.target.value = ''; } }}>
+    </div>
+    <button class="inject-btn" on:click={() => injectSection('standing')}>📅 스케줄러 반영</button>
+  {:else if activeTab === 'weekly'}
+    {#each $standingData.weekly_recurring || [] as w, i}
+      <div class="so-item" tabindex="0" draggable="true"
+        on:dragstart={(e) => onDragStart('weekly_recurring', i, e)}
+        on:dragend={onDragEnd}
+        on:dragover={onDragOver}
+        on:dragleave={onDragLeave}
+        on:drop={(e) => onDrop('weekly_recurring', i, e)}
+        on:keydown={(e) => onItemKey('weekly_recurring', i, e)}>
+        <div class="so-move drag-handle">⠿</div>
+        <select value={w.dow} on:change={(e) => editWeeklyDow(i, e.target.value)}>
+          {#each DOW_NAMES as n, di}<option value={di}>{n}</option>{/each}
+        </select>
+        <select value={w.freq} on:change={(e) => editWeeklyFreq(i, e.target.value)}>
+          <option value="weekly">매주</option><option value="biweekly">격주</option>
+        </select>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editWeeklyText(i, htmlToMarkdown(e.target))}
+          on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertWeeklyLink(i); } }}
+          use:setText={w.text}></span>
+        <span class="link-btn" on:click={() => insertWeeklyLink(i)} title="링크 추가">&#128279;</span>
+        <span class="del" on:click={() => delWeekly(i)}>×</span>
+      </div>
+    {/each}
+    <div class="add-row">
+      <select bind:value={newWkDow}>{#each DOW_NAMES as n, i}<option value={i}>{n}</option>{/each}</select>
+      <select bind:value={newWkFreq}><option value="weekly">매주</option><option value="biweekly">격주</option></select>
+      <input placeholder="Add weekly..." on:keydown={(e) => { if (e.key === 'Enter') { addWeekly(e.target.value); e.target.value = ''; } }}>
+    </div>
+    <button class="inject-btn" on:click={() => injectSection('weekly')}>📅 스케줄러 반영</button>
+  {:else if activeTab === 'monthly'}
+    {#if ($standingData.monthly_recurring || []).length > 0}
+      <div class="section-title">MONTHLY RECURRING</div>
+      {#each $standingData.monthly_recurring as m, i}
+        <div class="so-item" tabindex="0" draggable="true"
+          on:dragstart={(e) => onDragStart('monthly_recurring', i, e)}
+          on:dragend={onDragEnd}
+          on:dragover={onDragOver}
+          on:dragleave={onDragLeave}
+          on:drop={(e) => onDrop('monthly_recurring', i, e)}
+          on:keydown={(e) => onItemKey('monthly_recurring', i, e)}>
+          <div class="so-move drag-handle">⠿</div>
+          <select value={m.day} on:change={(e) => editMR(i, 'day', e.target.value)}>
+            <option value={0}>말일</option>
+            {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}일</option>{/each}
+          </select>
+          <span contenteditable="true" style="flex:1" on:blur={(e) => editMR(i, 'text', htmlToMarkdown(e.target))}
+            on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertMRLink(i); } }}
+            use:setText={m.text}></span>
+          <span class="link-btn" on:click={() => insertMRLink(i)} title="링크 추가">&#128279;</span>
+          <span class="del" on:click={() => delMR(i)}>×</span>
+        </div>
+      {/each}
+      <div class="add-row">
+        <select bind:value={newMRDay}>
+          <option value={0}>말일</option>
+          {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}일</option>{/each}
+        </select>
+        <input placeholder="Add monthly recurring..." on:keydown={(e) => { if (e.key === 'Enter') { addMR(e.target.value); e.target.value = ''; } }}>
+      </div>
+    {/if}
+    {#each [['GENERAL','',monthlyGeneral],['OUTCOME','outcome',monthlyOutcome],['INPUT','input',monthlyInput],['WORK','work',monthlyWork]] as [label, cat, group]}
+      {#if group.length > 0 || cat === ''}
+        <div class="section-title" style={cat==='work'?'color:#f0884d':cat==='outcome'?'color:#58a6ff':cat==='input'?'color:#bc8cff':''}>{$ym} {label}</div>
+        {#each group as item}
+          <div class="so-item">
+            <span contenteditable="true" style="flex:1"
+              on:blur={(e) => editMonthlyItem(item._idx, htmlToMarkdown(e.target))}
+              on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertMonthlyItemLink(item._idx); } }}
+              use:setText={item.text}></span>
+            <span class="link-btn" on:click={() => insertMonthlyItemLink(item._idx)} title="링크 추가">&#128279;</span>
+            <span class="del" on:click={() => delMonthlyItem(item._idx)}>×</span>
+          </div>
+        {/each}
+        <div class="add-row">
+          <input placeholder="Add {label.toLowerCase()}..." on:keydown={(e) => { if (e.key === 'Enter') { addMonthlyItem(e.target.value, cat); e.target.value = ''; } }}>
+        </div>
+      {/if}
+    {/each}
+    <button class="inject-btn" on:click={() => injectSection('monthly')}>📅 스케줄러 반영</button>
+  {:else if activeTab === 'yearly'}
+    <div class="section-title" style="color:#f0c040">TEMP (올해만)</div>
+    {#each yearlyTemps as y}
+      <div class="so-item" class:current-month={y.month === $currentMonth} tabindex="0" draggable="true"
+        on:dragstart={(e) => onDragStart('yearly', y._idx, e)}
+        on:dragend={onDragEnd}
+        on:dragover={onDragOver}
+        on:dragleave={onDragLeave}
+        on:drop={(e) => onDrop('yearly', y._idx, e)}
+        on:keydown={(e) => onItemKey('yearly', y._idx, e)}>
+        <div class="so-move drag-handle">⠿</div>
+        <select value={y.month} on:change={(e) => editYearlyMonth(y._idx, e.target.value)}>
+          {#each Array.from({length:12}, (_,m) => m+1) as mm}<option value={mm}>{mm}월</option>{/each}
+        </select>
+        <select value={y.day || 0} on:change={(e) => editYearlyDay(y._idx, e.target.value)}>
+          <option value={0}>-</option>
+          {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}</option>{/each}
+        </select>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(y._idx, htmlToMarkdown(e.target))}
+          on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertYearlyLink(y._idx); } }}
+          use:setText={y.text}></span>
+        <span class="link-btn" on:click={() => insertYearlyLink(y._idx)} title="링크 추가">&#128279;</span>
+        <span class="del" on:click={() => delYearly(y._idx)}>×</span>
+      </div>
+    {/each}
+    <div class="add-row">
+      <select bind:value={newYearlyMonth}>{#each Array.from({length:12}, (_,m) => m+1) as mm}<option value={mm}>{mm}월</option>{/each}</select>
+      <select bind:value={newYearlyDay}><option value={0}>-</option>{#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}</option>{/each}</select>
+      <input placeholder="Add temp..." on:keydown={(e) => { if (e.key === 'Enter') { addYearly(e.target.value, true); e.target.value = ''; } }}>
+    </div>
+
+    <div class="section-title" style="color:#8b949e;margin-top:12px">YEARLY (매년 반복)</div>
+    {#each yearlyPerms as y}
+      <div class="so-item" class:current-month={y.month === $currentMonth} tabindex="0" draggable="true"
+        on:dragstart={(e) => onDragStart('yearly', y._idx, e)}
+        on:dragend={onDragEnd}
+        on:dragover={onDragOver}
+        on:dragleave={onDragLeave}
+        on:drop={(e) => onDrop('yearly', y._idx, e)}
+        on:keydown={(e) => onItemKey('yearly', y._idx, e)}>
+        <div class="so-move drag-handle">⠿</div>
+        <select value={y.month} on:change={(e) => editYearlyMonth(y._idx, e.target.value)}>
+          {#each Array.from({length:12}, (_,m) => m+1) as mm}<option value={mm}>{mm}월</option>{/each}
+        </select>
+        <select value={y.day || 0} on:change={(e) => editYearlyDay(y._idx, e.target.value)}>
+          <option value={0}>-</option>
+          {#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}</option>{/each}
+        </select>
+        <span contenteditable="true" style="flex:1" on:blur={(e) => editYearlyText(y._idx, htmlToMarkdown(e.target))}
+          on:keydown={(e) => { if ((e.ctrlKey||e.metaKey) && e.key === 'k') { e.preventDefault(); insertYearlyLink(y._idx); } }}
+          use:setText={y.text}></span>
+        <span class="link-btn" on:click={() => insertYearlyLink(y._idx)} title="링크 추가">&#128279;</span>
+        <span class="del" on:click={() => delYearly(y._idx)}>×</span>
+      </div>
+    {/each}
+    <div class="add-row">
+      <select bind:value={newYearlyMonth}>{#each Array.from({length:12}, (_,m) => m+1) as mm}<option value={mm}>{mm}월</option>{/each}</select>
+      <select bind:value={newYearlyDay}><option value={0}>-</option>{#each Array.from({length:31}, (_,d) => d+1) as dd}<option value={dd}>{dd}</option>{/each}</select>
+      <input placeholder="Add yearly..." on:keydown={(e) => { if (e.key === 'Enter') { addYearly(e.target.value); e.target.value = ''; } }}>
+    </div>
+    <button class="inject-btn" on:click={() => injectSection('yearly')}>📅 스케줄러 반영</button>
+  {/if}
+</div>
+{/if}
+
+<!-- styles in global app.css -->
