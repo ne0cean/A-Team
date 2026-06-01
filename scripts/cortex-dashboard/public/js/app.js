@@ -410,9 +410,15 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   const progressBadge = totalCount > 0
     ? `<span class="day-progress" style="font-size:9px;color:${doneCount===totalCount?'#56d364':'#6e7681'};margin-left:4px" title="${doneCount}/${totalCount} 완료">${doneCount}/${totalCount}</span>`
     : '';
+  // T3: #lesson tag indicator
+  const notesText = dayData.notes || '';
+  const lessonCount = (notesText.match(/#lesson/gi) || []).length;
+  const lessonBadge = lessonCount > 0
+    ? `<span class="lesson-badge" title="${lessonCount}개 레슨">L</span>`
+    : '';
   const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '');
   let html = `<div class="day-num${dowClass}" onclick="cycleDayType(${d})" style="cursor:pointer" title="Set day type">
-    <span>${d}${badgeHtml}${progressBadge}</span>
+    <span>${d}${badgeHtml}${progressBadge}${lessonBadge}</span>
     <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
   </div>${evtHtml}`;
 
@@ -522,13 +528,14 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     }
   }
 
-  // Notes
+  // Notes (T3: highlight #lesson tags)
   const notes = dayData.notes || '';
   const notesCls = notes ? 'day-notes has-content' : 'day-notes';
+  const notesHtml = esc(notes).replace(/\n/g,'<br>').replace(/#lesson/gi, '<span class="note-lesson-tag">#lesson</span>');
   html += `<div class="${notesCls}" id="notes-${d}" contenteditable="true"
     onblur="saveNotes(${d}, this.innerText)"
     onkeydown="if(event.key==='Escape')this.blur()"
-  >${esc(notes).replace(/\n/g,'<br>')}</div>`;
+  >${notesHtml}</div>`;
 
   return html;
 }
@@ -584,11 +591,27 @@ function renderStats() {
 
   let html = `<span>Total: <span class="stat-value">${done}/${total}</span> (${pct}%)</span>`;
 
-  // Per-category
+  // T2: Pillar balance bar
+  const catColorMap = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', hexagonal: '#f85149', outcome: '#bc8cff' };
+  const totalItems = CATS.reduce((s, c) => s + catStats[c].total, 0);
+  if (totalItems > 0) {
+    let segs = '';
+    CATS.forEach(cat => {
+      const s = catStats[cat];
+      if (s.total === 0) return;
+      const widthPct = (s.total / totalItems * 100).toFixed(1);
+      const donePct = Math.round(s.done / s.total * 100);
+      const col = catColorMap[cat];
+      segs += `<div class="pillar-seg" style="width:${widthPct}%;background:${col};opacity:${0.3 + donePct/100*0.7}" title="${CAT_NAMES[cat]}: ${donePct}% (${s.done}/${s.total})"></div>`;
+    });
+    html += `<div class="pillar-bar-wrap"><div class="pillar-bar-label">Pillar balance</div><div class="pillar-bar">${segs}</div></div>`;
+  }
+
+  // Per-category text
   for (const cat of CATS) {
     const s = catStats[cat];
     const p = s.total > 0 ? Math.round(s.done/s.total*100) : 0;
-    html += `<span>${CAT_NAMES[cat]}: ${p}%</span>`;
+    html += `<span style="color:${catColorMap[cat]}">${CAT_NAMES[cat]}: ${p}%</span>`;
   }
 
   // Mini heatmap
