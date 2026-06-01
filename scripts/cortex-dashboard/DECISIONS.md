@@ -10,7 +10,7 @@
 app.js 또는 main.css 편집 전, 아래를 grep으로 검증하고 **모두 존재 확인 후** 편집 시작:
 
 ```bash
-# 반드시 존재해야 할 함수들
+# app.js 필수 함수
 grep -n "parseSoDate\|setSoDate" public/js/app.js          # Standing 날짜 입력
 grep -n "showToast" public/js/app.js                       # Toast 알림
 grep -n "window.fetch = " public/js/app.js                 # fetch 인터셉터
@@ -18,9 +18,16 @@ grep -n "capture: true" public/js/app.js                   # CTRL+S 캡처
 grep -n "renderWorkoutBar\|toggleWorkout" public/js/app.js # Workout 바
 grep -n "so-date-input" public/css/main.css                # Standing 날짜 input CSS
 grep -n "visibility:hidden\|visibility: hidden" public/css/main.css  # del-btn 레이아웃 fix
+
+# worker 필수 로직 (worker/src/index.js 편집 또는 복원 시)
+grep -n "Preserve workout" worker/src/index.js             # ⚠️ workout 보존 — 절대 누락 금지
+grep -n "!i._frame" worker/src/index.js                    # ⚠️ carry 시 routine 제외
+grep -n "saveStandingData\|_version" public/js/app.js      # 409 충돌 처리
 ```
 
-하나라도 없으면 → **편집 중단, 사용자에게 보고**.
+하나라도 없으면 → **편집/배포 중단, 사용자에게 보고**.
+
+**worker 복원/교체 후 반드시 위 worker 항목 재확인. 원격 버전에는 이 패치들이 없음.**
 
 ---
 
