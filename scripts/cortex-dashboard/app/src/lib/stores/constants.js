@@ -1,5 +1,5 @@
 export const CATS = ['ritual', 'input', 'work', 'hexagonal', 'outcome'];
-export const DEFAULT_CAT_NAMES = { ritual: 'R&R', input: 'Outcome', work: 'Work', hexagonal: '6 Pillars', outcome: 'Input' };
+export const DEFAULT_CAT_NAMES = { ritual: 'R&R', input: 'Input', work: 'Work', hexagonal: '6 Pillars', outcome: 'Outcome' };
 export let CAT_NAMES = { ...DEFAULT_CAT_NAMES };
 export function setCatNames(names) { Object.assign(CAT_NAMES, names); }
 export const CAT_COLORS = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', hexagonal: '#f85149', outcome: '#bc8cff' };

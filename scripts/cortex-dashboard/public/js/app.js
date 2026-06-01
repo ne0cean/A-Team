@@ -1,6 +1,6 @@
 const API = '';
 const CATS = ['ritual','input','work','hexagonal','outcome'];
-const CAT_NAMES = {ritual:'R&R', input:'Outcome', work:'Work', hexagonal:'6 Pillars', outcome:'Input'};
+const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Work', hexagonal:'6 Pillars', outcome:'Outcome'};
 const DAY_NAMES = ['일','월','화','수','목','금','토'];
 const TYPE_LABELS = {block:'BLOCK',flow:'FLOW',hf:'HF',vacation:'휴가'};
 const TYPE_COLORS = {block:'badge-block',flow:'badge-flow',hf:'badge-hf',vacation:'badge-vacation'};
