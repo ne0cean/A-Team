@@ -365,7 +365,7 @@ function renderDayCell(d, isToday, isWeek, isCurrent) {
   const holidayClass = getHoliday(d) ? ' is-holiday' : '';
   const otherClass = isCurrent === false ? ' other-month' : '';
 
-  return `<div class="day-cell${todayClass}${typeClass}${holidayClass}${otherClass}" ondragover="dayDragOver(event)" ondragleave="dayDragLeave(event)" ondrop="dayDrop(event,${d})">${renderDayCellContent(d, isToday, isWeek, isCurrent)}</div>`;
+  return `<div class="day-cell${todayClass}${typeClass}${holidayClass}${otherClass}" data-day="${d}" ondragover="dayDragOver(event)" ondragleave="dayDragLeave(event)" ondrop="dayDrop(event,${d})">${renderDayCellContent(d, isToday, isWeek, isCurrent)}</div>`;
 }
 
 function renderDayCellContent(d, isToday, isWeek, isCurrent) {
@@ -443,10 +443,37 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       });
     }
 
-    items.forEach((item, idx) => {
+    // Future days: collapse _frame items into a toggleable badge
+    const _ftd = new Date(); _ftd.setHours(0,0,0,0);
+    const _fcd = new Date(currentYear, currentMonth - 1, d); _fcd.setHours(0,0,0,0);
+    const _isFuture = isCurrent !== false && _fcd > _ftd;
+    const _frameItems = _isFuture ? items.filter(i => i._frame) : [];
+    if (_frameItems.length > 0) {
+      const _tid = `ft-${d}-${cat}`;
+      html += `<span class="frame-group-hdr" onclick="toggleEl('${_tid}')">루틴 ${_frameItems.length}▸</span>
+        <div id="${_tid}" class="frame-group-body" style="display:none">`;
+      _frameItems.forEach(item => {
+        const idx = items.indexOf(item);
+        html += `<div class="item${item.done?' done':''}" data-d="${d}" data-cat="${cat}" data-idx="${idx}">
+          <input type="checkbox" ${item.done?'checked':''} onchange="toggleItem(${d},'${cat}',${idx})">
+          <span class="item-text frame-text" contenteditable="true"
+            onblur="editFrameItemFromCalendar(${d},'${cat}',${idx},this.textContent)"
+            onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
+          >${linkify(item.text)}</span>
+          <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
+        </div>`;
+      });
+      html += '</div>';
+    }
+    const _renderItems = _isFuture ? items.filter(i => !i._frame) : items;
+    _renderItems.forEach((item, _vi) => {
+      const idx = _isFuture ? items.indexOf(item) : _vi;
       const doneClass = item.done ? 'done' : '';
       const carriedClass = item._carried ? 'is-carried' : '';
       const checked = item.done ? 'checked' : '';
+      const blurFn = item._frame
+        ? `editFrameItemFromCalendar(${d},'${cat}',${idx},this.textContent)`
+        : `editItem(${d},'${cat}',${idx},this.textContent)`;
       html += `<div class="item ${doneClass} ${carriedClass}" draggable="false"
         data-d="${d}" data-cat="${cat}" data-idx="${idx}"
         ondragstart="dragStart(event,${d},'${cat}',${idx})"
@@ -454,8 +481,8 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
         ondragover="dragOver(event)" ondragleave="dragLeave(event)"
         ondrop="drop(event,${d},'${cat}',${idx})">
         <input type="checkbox" ${checked} onchange="toggleItem(${d},'${cat}',${idx})">
-        <span class="item-text${item.url?' has-link':''}" contenteditable="true"
-          onblur="editItem(${d},'${cat}',${idx},this.textContent)"
+        <span class="item-text${item.url?' has-link':''}${item._frame?' frame-text':''}" contenteditable="true"
+          onblur="${blurFn}"
           onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
         >${item.url ? `<a href="${esc(item.url)}" target="_blank" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
         <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
@@ -489,7 +516,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   html += `<div class="${notesCls}" id="notes-${d}" contenteditable="true"
     onblur="saveNotes(${d}, this.innerText)"
     onkeydown="if(event.key==='Escape')this.blur()"
-  >${esc(notes).replace(/\\n/g,'<br>')}</div>`;
+  >${esc(notes).replace(/\n/g,'<br>')}</div>`;
 
   return html;
 }
@@ -1073,7 +1100,7 @@ async function doSearch() {
     html += '<div style="font-size:10px;color:#f0c040;padding:4px 12px;font-weight:600">SCHEDULE</div>';
     html += data.schedule.map(r => {
       const matchHtml = r.matches.map(m => {
-        const highlighted = esc(m.text).replace(new RegExp(esc(q), 'gi'), '<mark>$&</mark>');
+        const highlighted = esc(m.text).replace(new RegExp(escRegex(q), 'gi'), '<mark>$&</mark>');
         return `<div class="sr-match"><span class="sr-cat">${m.field}</span> ${highlighted}</div>`;
       }).join('');
       return `<div class="search-result" onclick="goToResult('${r.ym}',${r.day})">
@@ -1337,7 +1364,7 @@ function moveSOItem(section, idx, dir) {
   if (section === 'standing') arr = standingData.standing;
   else if (section === 'weekly_recurring') arr = standingData.weekly_recurring;
   else if (section === 'monthly_recurring') arr = standingData.monthly_recurring;
-  else if (section === 'monthly') arr = standingData.monthly[ym()] || [];
+  else if (section === 'monthly') arr = standingData.monthly?.[ym()] || [];
   else if (section === 'yearly') arr = standingData.yearly;
   else return;
   if (target < 0 || target >= arr.length) return;
@@ -1392,19 +1419,20 @@ function addSO(text) {
 
 function editMonthlyItem(i, text) {
   const k = ym();
-  if (!standingData.monthly[k]) return;
+  if (!standingData.monthly?.[k]) return;
   standingData.monthly[k][i] = text.trim();
   saveStandingData();
 }
 function delMonthlyItem(i) {
   const k = ym();
-  if (!standingData.monthly[k]) return;
+  if (!standingData.monthly?.[k]) return;
   standingData.monthly[k].splice(i, 1);
   saveStandingData(); renderStandingOrders();
 }
 function addMonthlyItem(text) {
   if (!text?.trim()) return;
   const k = ym();
+  if (!standingData.monthly) standingData.monthly = {};
   if (!standingData.monthly[k]) standingData.monthly[k] = [];
   standingData.monthly[k].push(text.trim());
   saveStandingData(); renderStandingOrders();
