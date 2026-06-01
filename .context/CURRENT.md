@@ -60,6 +60,17 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-01) — Cortex Dashboard 복구 + 다수 버그 수정
+
+- **hexagonal(6 Pillars) 카테고리 복구** — CATS/CAT_NAMES에 hexagonal 추가, catColorMap 수정(`#f85149`), D1 day-frames 동기화
+- **workout API 불일치 수정** — Worker가 `part`(단일)만 받던 것을 `workout`(배열) 형식도 수락하도록 수정 → 운동 체크 저장 정상화
+- **어드민 마크다운 링크 파싱** — `getFrameItem()`이 `[text](url)suffix` 패턴 자동 파싱 → input에 클린 텍스트, 🔗 버튼에 URL 추출
+- **세퍼레이터 렌더링** — 어드민 프레임 에디터에서 separator 아이템을 editable input 대신 divider 라인으로 표시
+- **CTRL+S 강화** — `document` → `window`, `e.stopPropagation()` 추가, `key.toLowerCase()` 정규화
+- **셀 스크롤 완전 제거** — hover-scroll 방식이 페이지 스크롤을 intercept하는 근본 문제 → `overflow:hidden` 고정
+- **SW v11 캐시 강제 갱신** — 이전 CSS/JS 캐시 클리어
+- **git push 해결** — remote 501 auto-snapshot 커밋에 Windows 경로 초과 파일 포함 → `-s ours` 전략으로 merge 후 push
+
 ## Last Completions (2026-05-28) — Dashboard 통합 앱 전환 (OneNote 구조)
 
 - **프론트엔드 모듈 분리** — 2014줄 단일 HTML → index.html(앱 셸 ~100줄) + css/main.css(274줄) + js/app.js(1650줄). Cloudflare Workers assets로 서빙.
@@ -159,7 +170,6 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 - [ ] **모델 오케스트레이션 강제 훅 등록** — enforce-model-param.sh + model-compliance.sh를 settings.json에 등록 (이번 세션 미완)
 - [ ] **MeiliSearch launchd 등록** — com.ateam.meilisearch.plist load (바이너리 설치 완료, 데몬 미등록)
 - [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
-- [x] **매일 OUTCOME 1개 외부 산출** — Standing Orders에 추가 (2026-06-01)
 
 ### Medium Priority
 - [ ] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진 (YT 그룹C 도출)

@@ -2,6 +2,14 @@
 
 ---
 
+## [2026-06-01] Cortex Dashboard 복구 + 다수 버그 수정
+
+**완료**: hexagonal 카테고리 복구(CATS/CAT_NAMES/catColorMap), workout API array 수락 수정, 어드민 마크다운 링크 파싱(getFrameItem), 세퍼레이터 divider 렌더링, CTRL+S window+stopPropagation 강화, 셀 스크롤 완전 제거(overflow:hidden), SW v11 강제 갱신, git push -s ours 해결
+**이슈**: CTRL+S 브라우저 팝업 차단 여부는 사용자 측 환경에서 검증 필요. 셀 내용이 320px 초과 시 클리핑됨(스크롤 의도적 제거)
+**빌드**: ✅ Cloudflare Workers 배포 성공 (Version: c4845d80)
+
+---
+
 ## [2026-05-16] 디자인 거버넌스 시스템 + PPT 파이프라인 수정
 
 **완료**:
