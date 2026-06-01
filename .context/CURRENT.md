@@ -182,6 +182,8 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 - [ ] **Ritual Board 이름 확정** — 완성 후 추천
 
 ### Low Priority / Future
+- [ ] **PPT 컨설팅 페이퍼 수준 보강** — Bain/BCG 벤치마크 기반 로드맵 실행. (1) Inline Pullquote 레이아웃 (2) Light weight 헤드라인 옵션 (3) text_chart 복합 레이아웃 (4) Portrait 포맷 지원 (5) 컨설팅 3사 스타일 완전 재현. 목표: Top 컨설팅 페이퍼 수준 출력. 상세: `reference/ppt-benchmarks/ANALYSIS.md`
+  - why: PPT 모듈 → 컨설팅급 산출물 자동화 → 대기업 팀 수준 대체
 - [ ] Phase 1 Causal analysis (**보류**: 데이터 축적 후)
 - [ ] 외부 데이터 연결 GA4/Mixpanel (**보류**: 비즈니스 데이터 생길 때)
 - [ ] Playwright MCP Evaluator — qa.md → 실제 앱 실행 테스트
