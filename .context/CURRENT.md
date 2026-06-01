@@ -60,17 +60,16 @@
 ## In Progress Files
 - (없음)
 
-## Last Completions (2026-06-01) — Cortex Dashboard 복구 + 다수 버그 수정
+## Last Completions (2026-06-01) — Cortex Dashboard 회귀 복구 + 데이터 유실 방지 + Paperclip 분석
 
-- **hexagonal(6 Pillars) 카테고리 복구** — CATS/CAT_NAMES에 hexagonal 추가, catColorMap 수정(`#f85149`), D1 day-frames 동기화
-- **workout API 불일치 수정** — Worker가 `part`(단일)만 받던 것을 `workout`(배열) 형식도 수락하도록 수정 → 운동 체크 저장 정상화
-- **어드민 마크다운 링크 파싱** — `getFrameItem()`이 `[text](url)suffix` 패턴 자동 파싱 → input에 클린 텍스트, 🔗 버튼에 URL 추출
-- **세퍼레이터 렌더링** — 어드민 프레임 에디터에서 separator 아이템을 editable input 대신 divider 라인으로 표시
-- **CTRL+S 강화** — `document` → `window`, `e.stopPropagation()` 추가, `key.toLowerCase()` 정규화
-- **셀 스크롤 완전 제거** — hover-scroll 방식이 페이지 스크롤을 intercept하는 근본 문제 → `overflow:hidden` 고정
-- **SW v11 캐시 강제 갱신** — 이전 CSS/JS 캐시 클리어
-- **git push 해결** — remote 501 auto-snapshot 커밋에 Windows 경로 초과 파일 포함 → `-s ours` 전략으로 merge 후 push
-
+- **22개 파일 버전 비교** — 22f3473(어제) vs HEAD(오늘) 병렬 에이전트 4개로 전수 분석. 19개 TODAY_BETTER, 3개 MERGE_NEEDED
+- **app.js 회귀 4건 복구** — Range 기반 Enter 커서 계산, data-d/cat/idx 속성, delItem refocus, Alt+1 단축키 (451/783/808/829번)
+- **day-cell 스크롤바 영구 제거** — app.css overflow-y: auto → hidden (Svelte 빌드가 계속 덮어쓰던 근본 원인)
+- **seed.sql 데이터 유실 방지** — INSERT OR REPLACE → INSERT OR IGNORE 전수 교체. 배포마다 EX/헤드텍스트 날아가던 원인 해결
+- **D1 데이터 생존 확인** — vision, workout-log(EX) 모두 살아있음
+- **Cloudflare 배포** — worker + Svelte 빌드 완료 (Version: 85093782)
+- **Paperclip 분석** — 레드팀 + 이사회 심의 → 전면 도입 기각. cherry-pick 4종 로드맵 작성 (docs/architecture/paperclip-cherrypick-roadmap.md)
+- hexagonal 카테고리 복구, workout API 수정, 어드민 마크다운 링크 파싱, CTRL+S/Z 강화, SW v11 캐시 갱신
 ## Last Completions (2026-05-28) — Dashboard 통합 앱 전환 (OneNote 구조)
 
 - **프론트엔드 모듈 분리** — 2014줄 단일 HTML → index.html(앱 셸 ~100줄) + css/main.css(274줄) + js/app.js(1650줄). Cloudflare Workers assets로 서빙.

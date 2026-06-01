@@ -1,4 +1,12 @@
-# SESSIONS — A-Team 세션 로그
+# SE## [2026-06-01] Cortex Dashboard 회귀 복구 + 데이터 유실 방지 + Paperclip 분석
+
+**완료**: 22개 파일 어제/오늘 버전 전수 비교(병렬 에이전트 4개) → app.js 회귀 4건 복구(Range 커서/data-*/delItem refocus/Alt+1), app.css day-cell overflow-y:hidden(스크롤바 근본 제거), seed.sql OR REPLACE→OR IGNORE(EX/헤드텍스트 데이터 유실 방지), D1 생존 확인, Cloudflare 배포, Paperclip 레드팀+이사회 기각+cherry-pick 로드맵 4종 작성
+**이슈**: seed.sql이 .gitignore에 있어 OR IGNORE 변경은 로컬만 적용됨 (배포 시 seed.sql 실행 안 하면 무관)
+**빌드**: ✅ Cloudflare Workers 배포 (Version: 85093782), commit 0b0e587 pushed
+
+---
+
+SSIONS — A-Team 세션 로그
 
 ---
 
