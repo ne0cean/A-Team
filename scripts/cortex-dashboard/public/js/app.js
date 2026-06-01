@@ -145,8 +145,25 @@ function syncMonthFromWeek() {
 // --- Render ---
 function render() {
   const container = document.getElementById('calendarContainer');
+
+  // Flush one-thing field before DOM rebuild
+  const focused = document.activeElement;
+  if (focused && focused.classList.contains('one-thing')) focused.blur();
+
+  // Preserve scroll positions
+  const mainEl = document.getElementById('main');
+  const scrollY = window.scrollY || window.pageYOffset;
+  const mainScrollTop = mainEl ? mainEl.scrollTop : 0;
+  const cellScrolls = {};
+  document.querySelectorAll('.day-cell').forEach((c, i) => { cellScrolls[i] = c.scrollTop; });
+
   container.innerHTML = viewMode === 'month' ? renderMonthView() : renderWeekView();
   renderStats();
+
+  // Restore scroll positions
+  window.scrollTo(0, scrollY);
+  if (mainEl) mainEl.scrollTop = mainScrollTop;
+  document.querySelectorAll('.day-cell').forEach((c, i) => { if (cellScrolls[i]) c.scrollTop = cellScrolls[i]; });
 }
 
 function renderMonthView() {
@@ -1063,6 +1080,23 @@ function goToResult(resultYm, day) {
   currentYear = y; currentMonth = m;
   loadMonth();
 }
+function goToDay(day) {
+  closeSearch();
+  const el = document.querySelector(`.day-cell[data-day="${day}"]`);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function escRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function searchPage(q) {
+  const qRegex = new RegExp(escRegex(q), 'gi');
+  const results = [];
+  document.querySelectorAll('.item-text').forEach(el => {
+    if (qRegex.test(el.textContent)) {
+      const cell = el.closest('.day-cell');
+      if (cell) results.push({ el, day: cell.dataset.day });
+    }
+  });
+  return results;
+}
 
 // --- Standing Orders Panel ---
 function renderStandingOrders() {
@@ -1457,7 +1491,7 @@ async function createNewNote() {
     document.getElementById('noteContent').innerHTML = renderNoteViewer();
     loadSidebarTree(cortexPath);
   } else {
-    alert('Create failed: ' + (data.error || 'unknown'));
+    toast('Create failed: ' + (data.error || 'unknown'), true);
   }
 }
 
@@ -1476,7 +1510,7 @@ async function saveCortexFile() {
     cortexEditing = false;
     document.getElementById('noteContent').innerHTML = renderNoteViewer();
   } else {
-    alert('Save failed: ' + (data.error || 'unknown'));
+    toast('Save failed: ' + (data.error || 'unknown'), true);
   }
 }
 
@@ -1511,21 +1545,49 @@ function renderVision() {
   const years = visionData.years || [];
   const cats = visionData.categories || [];
 
-  let html = '<div style="overflow-x:auto"><table class="vision-table">';
-  // Header
-  html += '<tr><th>구분</th>';
-  years.forEach(y => { html += `<th>${y}</th>`; });
-  html += '</tr>';
-  // Rows
-  cats.forEach((cat, ci) => {
-    html += `<tr><td>${esc(cat.label)}</td>`;
-    years.forEach(y => {
-      const val = cat.cells?.[y] || '';
-      html += `<td contenteditable="true" onblur="editVisionCell(${ci},'${y}',this.innerText)">${esc(val).replace(/\n/g,'<br>')}</td>`;
-    });
-    html += '</tr>';
+  let html = '<div class="vision-board">';
+
+  // Category header row
+  html += '<div class="vision-header-row"><div style="width:52px;min-width:52px"></div>';
+  cats.forEach(cat => {
+    html += `<div class="vision-header-cell">${esc(cat.label)}</div>`;
   });
-  html += '</table></div>';
+  html += '</div>';
+
+  // Year rows
+  years.forEach(y => {
+    html += `<div class="vision-year-row">`;
+    html += `<div class="vision-year-label">${esc(y)}</div>`;
+    cats.forEach((cat, ci) => {
+      const raw = cat.cells?.[y] || '';
+      const cell = (typeof raw === 'object' && raw !== null) ? raw : { text: raw, image: null };
+      const hasImg = !!cell.image;
+
+      html += `<div class="vision-card${hasImg ? ' has-image' : ' no-image'}">`;
+
+      if (hasImg) {
+        html += `<img class="vision-card-img" src="${cell.image}" alt="">`;
+        html += `<div class="vision-card-overlay">`;
+        html += `<div class="vision-card-text" contenteditable="true" onblur="editVisionCell(${ci},'${y}',this)">${esc(cell.text).replace(/\n/g,'<br>')}</div>`;
+        html += `</div>`;
+      } else {
+        html += `<div class="vision-card-empty-hint"><span>🖼</span><span style="font-size:9px">이미지 추가</span></div>`;
+        html += `<div class="vision-card-text" contenteditable="true" onblur="editVisionCell(${ci},'${y}',this)">${esc(cell.text).replace(/\n/g,'<br>')}</div>`;
+      }
+
+      html += `<div class="vision-card-actions">`;
+      html += `<button class="vision-card-btn" onclick="uploadVisionImage(${ci},'${y}')" title="이미지 업로드">📷</button>`;
+      if (hasImg) {
+        html += `<button class="vision-card-btn" onclick="removeVisionImage(${ci},'${y}')" title="이미지 제거">✕</button>`;
+      }
+      html += `</div>`;
+
+      html += `</div>`; // .vision-card
+    });
+    html += `</div>`; // .vision-year-row
+  });
+
+  html += '</div>';
 
   // Admin notes
   const notes = visionData.admin_notes || '';
@@ -1544,11 +1606,64 @@ async function saveVisionData() {
   });
 }
 
-function editVisionCell(catIdx, year, text) {
+function editVisionCell(catIdx, year, el) {
   if (!visionData.categories[catIdx]) return;
   if (!visionData.categories[catIdx].cells) visionData.categories[catIdx].cells = {};
-  visionData.categories[catIdx].cells[year] = text.trim();
+  const raw = visionData.categories[catIdx].cells[year] || '';
+  const existing = (typeof raw === 'object' && raw !== null) ? { ...raw } : { text: '', image: null };
+  existing.text = (typeof el === 'string' ? el : el.innerText).trim();
+  visionData.categories[catIdx].cells[year] = existing;
   saveVisionData();
+}
+
+async function uploadVisionImage(catIdx, year) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const dataUrl = await resizeImageTo600(file);
+    if (!visionData.categories[catIdx].cells) visionData.categories[catIdx].cells = {};
+    const raw = visionData.categories[catIdx].cells[year] || '';
+    const existing = (typeof raw === 'object' && raw !== null) ? { ...raw } : { text: raw, image: null };
+    existing.image = dataUrl;
+    visionData.categories[catIdx].cells[year] = existing;
+    await saveVisionData();
+    renderVision();
+  };
+  input.click();
+}
+
+async function removeVisionImage(catIdx, year) {
+  if (!visionData.categories?.[catIdx]?.cells) return;
+  const raw = visionData.categories[catIdx].cells[year] || '';
+  const existing = (typeof raw === 'object' && raw !== null) ? { ...raw } : { text: raw, image: null };
+  existing.image = null;
+  visionData.categories[catIdx].cells[year] = existing;
+  await saveVisionData();
+  renderVision();
+}
+
+function resizeImageTo600(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 600;
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+        else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function editVisionNotes(text) {
@@ -1687,7 +1802,7 @@ async function injectFrames() {
     body: JSON.stringify({ ym: ym(), fromDay: today, toDay: daysInMonth })
   });
   const data = await res.json();
-  alert(`${data.range}: ${data.injected} changes applied`);
+  showToast(`${data.range}: ${data.injected} 적용됨`);
   loadMonth();
 }
 
@@ -1779,7 +1894,7 @@ function nextMonth() { nextPeriod(); }
 
 // --- Toast ---
 let _toastTimer = null;
-function showToast(msg = '저장됨') {
+function showToast(msg = '저장됨', isError = false) {
   let el = document.getElementById('toast');
   if (!el) {
     el = document.createElement('div');
@@ -1787,10 +1902,13 @@ function showToast(msg = '저장됨') {
     document.body.appendChild(el);
   }
   el.textContent = msg;
+  el.className = 'toast' + (isError ? ' error' : '');
   el.classList.add('show');
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.remove('show'), 1500);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), isError ? 3000 : 1500);
 }
+// Legacy alias
+function toast(msg, isError) { showToast(msg, isError); }
 
 // --- Pull-to-refresh ---
 let pullY = 0, pullActive = false;
@@ -1864,8 +1982,8 @@ async function submitCapture() {
   const filePath = `cortex/inbox/${ts.slice(0,10)}-${slug}.md`;
   const md = `---\ncaptured: ${new Date().toISOString()}\nsource: dashboard\n---\n\n${text}`;
   const res = await fetch(`${API}/api/cortex/file`, { method:'POST', headers:AUTH, body:JSON.stringify({filePath,content:md}) });
-  if (res.ok) { input.value = ''; alert('Saved to inbox'); }
-  else alert('Save failed');
+  if (res.ok) { input.value = ''; showToast('Saved to inbox'); }
+  else showToast('Save failed', true);
 }
 
 async function captureImage(file) {
@@ -1997,7 +2115,7 @@ async function uploadImage(file) {
         textarea.value = before + `\n${data.markdown}\n` + after;
       }
     } else {
-      alert('Upload failed');
+      toast('Upload failed', true);
     }
   };
   reader.readAsDataURL(file);
@@ -2016,3 +2134,19 @@ function handlePaste(event) {
 }
 
 init();
+
+// Refresh workout bar when tab becomes visible (picks up mobile changes)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    fetch(`${API}/api/month?ym=${ym()}`)
+      .then(r => r.json())
+      .then(data => {
+        for (const [day, dd] of Object.entries(data.days || {})) {
+          if (!monthData.days[day]) monthData.days[day] = {};
+          if (dd.workout !== undefined) monthData.days[day].workout = dd.workout;
+        }
+        renderWorkoutBar();
+      })
+      .catch(() => {});
+  }
+});
