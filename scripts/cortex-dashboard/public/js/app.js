@@ -451,6 +451,18 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       }
     });
   }
+  // T1: done/total badge
+  let doneCount = 0, totalCount = 0;
+  for (const cat of CATS) {
+    for (const item of (dayData[cat] || [])) {
+      if (!item || item._frame || item.type === 'separator') continue;
+      totalCount++;
+      if (item.done) doneCount++;
+    }
+  }
+  const progressBadge = totalCount > 0
+    ? `<span class="day-progress" style="font-size:9px;color:${doneCount===totalCount?'#56d364':'#6e7681'};margin-left:4px" title="${doneCount}/${totalCount} 완료">${doneCount}/${totalCount}</span>`
+    : '';
   // T3: #lesson tag indicator
   const notesText = dayData.notes || '';
   const lessonCount = (notesText.match(/#lesson/gi) || []).length;
@@ -459,7 +471,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     : '';
   const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '');
   let html = `<div class="day-num${dowClass}" onclick="cycleDayType(${d})" style="cursor:pointer" title="Set day type">
-    <span>${d}${badgeHtml}${lessonBadge}</span>
+    <span>${d}${badgeHtml}${progressBadge}${lessonBadge}</span>
     <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
   </div>${evtHtml}`;
 
