@@ -1,6 +1,6 @@
 ---
 mode: normal
-status: active
+status: idle
 created: 2026-06-02T19:04:15+0900
 task: **Cortex Dashboard #2/#16/#24/#26 브라우저 확인** — 사용자 수동 확인 후 이상 발견 시 CODE-FIX 요청. 원본 설명 파일 미존재, 코드 분석상 구현됨.
 ---
