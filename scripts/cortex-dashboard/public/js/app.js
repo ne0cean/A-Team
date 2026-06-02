@@ -23,6 +23,30 @@ function init() {
   loadVision();
   loadSidebarTree('cortex');
   registerSW();
+  initCellScrollDelay();
+}
+
+// #6 — day-cell hover 300ms 후 스크롤 활성화 (이벤트 델리게이션)
+let _cellScrollTimers = new WeakMap();
+function initCellScrollDelay() {
+  document.addEventListener('mouseover', e => {
+    const cell = e.target.closest('.day-cell');
+    if (!cell) return;
+    // 셀 내부 요소 간 이동이면 무시
+    if (e.relatedTarget && cell.contains(e.relatedTarget)) return;
+    if (_cellScrollTimers.has(cell)) return;
+    const t = setTimeout(() => cell.classList.add('scroll-active'), 300);
+    _cellScrollTimers.set(cell, t);
+  }, true);
+  document.addEventListener('mouseout', e => {
+    const cell = e.target.closest('.day-cell');
+    if (!cell) return;
+    // 셀 내부 요소로 이동이면 무시
+    if (e.relatedTarget && cell.contains(e.relatedTarget)) return;
+    const t = _cellScrollTimers.get(cell);
+    if (t !== undefined) { clearTimeout(t); _cellScrollTimers.delete(cell); }
+    cell.classList.remove('scroll-active');
+  }, true);
 }
 
 function registerSW() {
@@ -160,10 +184,12 @@ function render() {
   container.innerHTML = viewMode === 'month' ? renderMonthView() : renderWeekView();
   renderStats();
 
-  // Restore scroll positions
-  window.scrollTo(0, scrollY);
-  if (mainEl) mainEl.scrollTop = mainScrollTop;
-  document.querySelectorAll('.day-cell').forEach((c, i) => { if (cellScrolls[i]) c.scrollTop = cellScrolls[i]; });
+  // Restore scroll positions (rAF to avoid race with browser repaint)
+  requestAnimationFrame(() => {
+    window.scrollTo(0, scrollY);
+    if (mainEl) mainEl.scrollTop = mainScrollTop;
+    document.querySelectorAll('.day-cell').forEach((c, i) => { if (cellScrolls[i]) c.scrollTop = cellScrolls[i]; });
+  });
 }
 
 function renderMonthView() {
@@ -1371,29 +1397,42 @@ function renderStandingOrders() {
   html += '<div id="soTab-weekly" style="display:none">';
   const wr = standingData.weekly_recurring || [];
   const wrLen = wr.length;
-  wr.forEach((w, i) => {
-    html += `<div class="so-item">
-      <div class="so-move">
-        <span onclick="moveSOItem('weekly_recurring',${i},-1)" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
-        <span onclick="moveSOItem('weekly_recurring',${i},1)" ${i===wrLen-1?'style="visibility:hidden"':''}>&#9660;</span>
-      </div>
-      <select style="width:40px;background:#0d1117;border:1px solid #30363d;color:#f0c040;font-size:10px;border-radius:2px" onchange="editWeeklyDow(${i},+this.value)">
-        ${DOW_NAMES_SHORT.map((n,di)=>`<option value="${di}" ${w.dow===di?'selected':''}>${n}</option>`).join('')}
-      </select>
-      <select style="width:44px;background:#0d1117;border:1px solid #30363d;color:#6e7681;font-size:10px;border-radius:2px" onchange="editWeeklyFreq(${i},this.value)">
-        <option value="weekly" ${w.freq==='weekly'?'selected':''}>매주</option>
-        <option value="biweekly" ${w.freq==='biweekly'?'selected':''}>격주</option>
-      </select>
-      <span contenteditable="true" style="flex:1" onblur="editWeeklyText(${i},this.textContent)">${linkify(w.text)}</span>
-      <span class="del-btn" onclick="delWeekly(${i})" style="display:inline">&#215;</span>
-    </div>`;
-  });
+  // #11 — WORK / Activity 구분 렌더링
+  const wrWork = wr.map((w,i)=>({w,i})).filter(x => !x.w.section || x.w.section === 'work');
+  const wrActivity = wr.map((w,i)=>({w,i})).filter(x => x.w.section === 'activity');
+  const renderWeeklyItem = ({w, i}) => `<div class="so-item">
+    <div class="so-move">
+      <span onclick="moveSOItem('weekly_recurring',${i},-1)" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
+      <span onclick="moveSOItem('weekly_recurring',${i},1)" ${i===wrLen-1?'style="visibility:hidden"':''}>&#9660;</span>
+    </div>
+    <select style="width:40px;background:#0d1117;border:1px solid #30363d;color:#f0c040;font-size:10px;border-radius:2px" onchange="editWeeklyDow(${i},+this.value)">
+      ${DOW_NAMES_SHORT.map((n,di)=>`<option value="${di}" ${w.dow===di?'selected':''}>${n}</option>`).join('')}
+    </select>
+    <select style="width:44px;background:#0d1117;border:1px solid #30363d;color:#6e7681;font-size:10px;border-radius:2px" onchange="editWeeklyFreq(${i},this.value)">
+      <option value="weekly" ${w.freq==='weekly'?'selected':''}>매주</option>
+      <option value="biweekly" ${w.freq==='biweekly'?'selected':''}>격주</option>
+    </select>
+    <span contenteditable="true" style="flex:1" onblur="editWeeklyText(${i},this.textContent)">${linkify(w.text)}</span>
+    ${w.section === 'activity' ? `<span onclick="addWeeklyToToday('${esc(w.text)}')" style="cursor:pointer;font-size:9px;color:#56d364;padding:0 4px" title="오늘 Outcome에 추가">→</span>` : ''}
+    <span class="del-btn" onclick="delWeekly(${i})" style="display:inline">&#215;</span>
+  </div>`;
+  if (wrWork.length > 0) {
+    html += '<div style="font-size:9px;color:#6e7681;margin:6px 0 3px;font-weight:600">WORK</div>';
+    wrWork.forEach(x => { html += renderWeeklyItem(x); });
+  }
+  if (wrActivity.length > 0) {
+    html += '<div style="font-size:9px;color:#56d364;margin:6px 0 3px;font-weight:600">ACTIVITY</div>';
+    wrActivity.forEach(x => { html += renderWeeklyItem(x); });
+  }
   html += `<div class="frame-add" style="gap:4px">
     <select id="newWkDow" style="width:40px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;border-radius:2px">
       ${DOW_NAMES_SHORT.map((n,i)=>`<option value="${i}">${n}</option>`).join('')}
     </select>
     <select id="newWkFreq" style="width:44px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;border-radius:2px">
       <option value="weekly">매주</option><option value="biweekly">격주</option>
+    </select>
+    <select id="newWkSection" style="width:52px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;border-radius:2px">
+      <option value="work">WORK</option><option value="activity">ACT</option>
     </select>
     <input placeholder="Add weekly item..." onkeydown="if(event.key==='Enter'){addWeekly(this.value);this.value='';}">
     <button onclick="addWeekly(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button>
@@ -1635,9 +1674,20 @@ function addWeekly(text) {
   if (!text?.trim()) return;
   const dow = +(document.getElementById('newWkDow')?.value || 1);
   const freq = document.getElementById('newWkFreq')?.value || 'weekly';
+  const section = document.getElementById('newWkSection')?.value || 'work';
   if (!standingData.weekly_recurring) standingData.weekly_recurring = [];
-  standingData.weekly_recurring.push({ dow, freq, text: text.trim() });
+  standingData.weekly_recurring.push({ dow, freq, text: text.trim(), section });
   saveStandingData(); renderStandingOrders();
+}
+
+async function addWeeklyToToday(text) {
+  if (!text?.trim()) return;
+  const today = new Date().getDate();
+  const day = ensureDay(today);
+  if (!day.outcome) day.outcome = [];
+  day.outcome.push({ text: text.trim(), done: false });
+  await save(); render();
+  showToast(`오늘 Outcome에 추가됨: ${text.trim()}`);
 }
 
 function editYearlyMonth(i, month) { standingData.yearly[i].month = month; saveStandingData(); }
@@ -1903,6 +1953,12 @@ function editVisionNotes(text) {
 let framesData = null;
 const FRAME_TYPES = ['weekday', 'flow', 'block'];
 const FRAME_TYPE_LABELS = { weekday: 'Weekday (평일)', flow: 'Flow Day (토/HF)', block: 'Block Day (일)' };
+// #18 — frame type별 카테고리 이름 override / 숨김
+const FRAME_CAT_OVERRIDES = {
+  flow:    { labels: { outcome: 'INPUT' } },
+  block:   { labels: { outcome: 'INPUT' } },
+  weekday: { hide: ['outcome', 'input'] }
+};
 const CAT_TYPE_LABELS = { routine: 'Routine (매일 리셋)', todo: 'To-do (이월)' };
 
 async function loadFrames() {
@@ -1923,12 +1979,16 @@ function renderFrames() {
     html += `<div class="frame-section frame-type-${ftype}" style="flex:1;min-width:280px">`;
     html += `<div class="frame-section-header"><span class="frame-section-title">${esc(frame.label || FRAME_TYPE_LABELS[ftype])}</span></div>`;
 
+    const _frameOverride = FRAME_CAT_OVERRIDES[ftype] || {};
     for (const cat of CATS) {
+      // #18 — weekday에서 outcome/input 숨김
+      if (_frameOverride.hide && _frameOverride.hide.includes(cat)) continue;
       const catData = frame.categories?.[cat] || { type: 'routine', items: [] };
       const catType = catData.type || 'routine';
+      const catLabel = (_frameOverride.labels && _frameOverride.labels[cat]) || CAT_NAMES[cat];
       html += `<div class="frame-cat" style="border-left:2px solid ${catColorMap[cat]};padding-left:6px">`;
       html += `<div class="frame-cat-header">
-        <span class="cl-${cat}">${CAT_NAMES[cat]}</span>
+        <span class="cl-${cat}">${catLabel}</span>
         <span class="frame-cat-type ${catType}" onclick="toggleCatType('${ftype}','${cat}')" style="cursor:pointer" title="Click to toggle">${catType}</span>
       </div>`;
 

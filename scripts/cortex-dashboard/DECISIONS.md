@@ -183,4 +183,4 @@ grep -n "saveStandingData\|_version" public/js/app.js      # 409 충돌 처리
 ## VERSION
 
 - Created: 2026-06-01
-- Last updated: 2026-06-01 (Feature Registry 추가, auth 체크 제거 반영, Bug fixes A1-A4, Arrow nav, Frame inline edit, Routine bleeding filter)
+- Last updated: 2026-06-02 (QA 1차 수정: EX XOR, default day types, carry-over OUTCOME only, 진척률 제거, 날짜컬럼, 공휴일 접힘, linkify SO, CTRL+K fix, 이달메모, 정렬, 구분선, 6PILLARS sync, italic 제거, cell scroll, ONETHING CTRL+K, arrow nav cross-cat)
