@@ -65,7 +65,8 @@
 - **1차 배포 (cf2426ed)** — 16개 항목: EX XOR toggle, default day types (getEffectiveDayType), carry-over OUTCOME only, progress bar 제거, SO date column 216px, holidays collapsible, linkify SO/weekly, CTRL+K fix, 이달 메모 bar, 월간/연간 정렬, separator 렌더링+버튼, 6PILLARS sync across frames, italic 제거, day-cell scroll, ONETHING CTRL+K, arrow nav cross-cat
 - **2차 배포 (cdd637d7)** — 4개 항목: #4/#7 scroll jump → requestAnimationFrame 수정, #6 hover 300ms 딜레이, #11 주간 WORK/Activity 구분+오늘추가버튼, #18 FLOW/BLOCK outcome→INPUT/평일 숨김
 - **DECISIONS.md** 갱신, push + wrangler deploy 완료
-- **남은 4개** (USER-TEST) — #2/#16/#24/#26 — 다음 세션 브라우저 확인 후 필요 시 CODE-FIX
+- **T1 day cell done/total 배지 복구** (1585fade) — QA 1차 커밋에서 누락된 T1 재추가
+- **#2/#16/#24/#26** — 원본 설명 파일 미존재. 코드 분석 결과 현재 구현 확인됨(브라우저 테스트 권장)
 
 ## Last Completions (2026-06-01) — 기획-검수-빌드-검수 4-레이어 품질 사이클 구축
 
@@ -118,11 +119,9 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **Cortex Dashboard QA 최종 점검** — `node --check` + 배포 URL 수동 테스트 + USER-TEST #2/#16/#24/#26 브라우저 확인. 실패 항목 CODE-FIX 후 재배포. 점검 명령: grep/node 체크리스트 직전 세션 공유됨
-- [ ] **Cortex Dashboard input↔outcome 데이터 진단** — GET /api/month?ym=2026-06 샘플 확인 → 오염 범위 판단 → D1 migration 또는 CAT_NAMES 정상화
-  - why: 카테고리 데이터 뒤섞임 → 필드명 의미 불명확 → 장기적 데이터 무결성 위협
-- [ ] **Growth System 설계 + 구현** — T1 day cell done/total 배지, T2 pillar 균형 bar, T3 notes #lesson 태그, T4 analytics 연동
-  - why: 매 세션 학습 축적 → Cortex Dashboard가 단순 스케줄러에서 성장 루프 도구로
+- [ ] **Cortex Dashboard #2/#16/#24/#26 브라우저 확인** — 원본 설명 미존재, 브라우저에서 직접 확인 후 이상 발견 시 CODE-FIX. T1 배지는 복구 완료.
+- [x] **Cortex Dashboard input↔outcome 데이터 진단** — 코드 CLEAN 확인. 6/1 15:45~22:23 입력분만 UI 수동 확인 권장. 마이그레이션 불필요.
+- [x] **Growth System T1~T4 완료** — T1 done/total 배지, T2 pillar 균형 bar, T3 #lesson 태그, T4 scripts/cortex-growth-snapshot.mjs (D1 직접 조회 → analytics.jsonl emit)
 - [ ] **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증, 동기화 이슈
   - why: Phase 0 인프라 완성 → 일일 업무 루프 신뢰성 확보 → 1인 팀 운영 자동화 기반
 - [ ] **모델 오케스트레이션 강제 훅 등록** — enforce-model-param.sh + model-compliance.sh를 settings.json에 등록 (이번 세션 미완)
