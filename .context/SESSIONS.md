@@ -1,4 +1,14 @@
-# SE## [2026-06-01] Cortex Dashboard 회귀 복구 + 데이터 유실 방지 + Paperclip 분석
+# SESSIONS — A-Team 세션 로그
+
+## [2026-06-02] Cortex Dashboard QA 26항목 수정 — 1차+2차 배포
+
+**완료**: 총 20개 항목 구현·배포. 1차(cf2426ed) 16개: EX XOR/default day types/carry-over OUTCOME only/progress bar 제거/SO date column/holidays collapsible/linkify/CTRL+K fix/이달 메모/정렬/separator/6PILLARS sync/italic/cell scroll/ONETHING CTRL+K/arrow nav cross-cat. 2차(cdd637d7) 4개: scroll jump→rAF/hover delay 300ms/주간 WORK·Activity 구분/FLOW·BLOCK 카테고리명 override
+**이슈**: USER-TEST 4개(#2/#16/#24/#26) — 이미 구현됐을 가능성 있음, 다음 세션 브라우저 확인 필요
+**빌드**: ✅ wrangler deploy 완료 (cortex-dashboard.feat-breeze.workers.dev), push 완료
+
+---
+
+## [2026-06-01] Cortex Dashboard 회귀 복구 + 데이터 유실 방지 + Paperclip 분석
 
 **완료**: 22개 파일 어제/오늘 버전 전수 비교(병렬 에이전트 4개) → app.js 회귀 4건 복구(Range 커서/data-*/delItem refocus/Alt+1), app.css day-cell overflow-y:hidden(스크롤바 근본 제거), seed.sql OR REPLACE→OR IGNORE(EX/헤드텍스트 데이터 유실 방지), D1 생존 확인, Cloudflare 배포, Paperclip 레드팀+이사회 기각+cherry-pick 로드맵 4종 작성
 **이슈**: seed.sql이 .gitignore에 있어 OR IGNORE 변경은 로컬만 적용됨 (배포 시 seed.sql 실행 안 하면 무관)

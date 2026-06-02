@@ -60,6 +60,13 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-02) — Cortex Dashboard QA 1차+2차 수정 (20개 항목)
+
+- **1차 배포 (cf2426ed)** — 16개 항목: EX XOR toggle, default day types (getEffectiveDayType), carry-over OUTCOME only, progress bar 제거, SO date column 216px, holidays collapsible, linkify SO/weekly, CTRL+K fix, 이달 메모 bar, 월간/연간 정렬, separator 렌더링+버튼, 6PILLARS sync across frames, italic 제거, day-cell scroll, ONETHING CTRL+K, arrow nav cross-cat
+- **2차 배포 (cdd637d7)** — 4개 항목: #4/#7 scroll jump → requestAnimationFrame 수정, #6 hover 300ms 딜레이, #11 주간 WORK/Activity 구분+오늘추가버튼, #18 FLOW/BLOCK outcome→INPUT/평일 숨김
+- **DECISIONS.md** 갱신, push + wrangler deploy 완료
+- **남은 4개** (USER-TEST) — #2/#16/#24/#26 — 다음 세션 브라우저 확인 후 필요 시 CODE-FIX
+
 ## Last Completions (2026-06-01) — 기획-검수-빌드-검수 4-레이어 품질 사이클 구축
 
 - **4-레이어 Shift-Left 품질 아키텍처 완성** — 이틀간 데이터 유실·회귀·QA 사고 근본 원인(레슨↔훅 단절) 해결
@@ -111,6 +118,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
+- [ ] **Cortex Dashboard QA 최종 점검** — `node --check` + 배포 URL 수동 테스트 + USER-TEST #2/#16/#24/#26 브라우저 확인. 실패 항목 CODE-FIX 후 재배포. 점검 명령: grep/node 체크리스트 직전 세션 공유됨
 - [ ] **Cortex Dashboard input↔outcome 데이터 진단** — GET /api/month?ym=2026-06 샘플 확인 → 오염 범위 판단 → D1 migration 또는 CAT_NAMES 정상화
   - why: 카테고리 데이터 뒤섞임 → 필드명 의미 불명확 → 장기적 데이터 무결성 위협
 - [ ] **Growth System 설계 + 구현** — T1 day cell done/total 배지, T2 pillar 균형 bar, T3 notes #lesson 태그, T4 analytics 연동
