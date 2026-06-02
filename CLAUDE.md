@@ -127,6 +127,10 @@
 | 디버깅 3턴+ | → `/investigate` |
 | 보안 민감 코드 (auth/crypto/token/payment) | → `/cso` |
 | 5+ 파일 변경 완료 | → `/pmi` |
+| 5+ 파일 변경 완료 (문서 포함) | → `/doc-sync` (코드↔문서 드리프트 감지) |
+| 배포 직전 최종 검증 | → `/land` (/ship 포함이나 단독 실행 가능) |
+| 복잡한 계획 논의, 멀티 단계 작업 | → `/autoplan` (CEO+디자인+엔지니어링 3단계) |
+| PR/브랜치/GitHub PR 링크 언급 | → `/github-review` (PR 전용 리뷰) |
 | push 전 리뷰 없음 | → `/review` 또는 `/ship` |
 | UI/CSS/컴포넌트 수정 | → `/design-audit` (자동 훅) |
 | PPT 생성 완료 직후 | → `/design-score` |
@@ -153,6 +157,12 @@
 | 법률/라이선스/컴플라이언스 | → `/legal-check` |
 | 회고/개선점 정리 | → `/retro` |
 | 월간 전략 점검 | → `/board` |
+| GitHub 이슈 분류/우선순위 | → `/issue-triage` |
+| 데몬/백그라운드 프로세스 이상 | → `/watchdog` |
+| 크로스 디바이스 컨텍스트 전달 | → `/rc` (리모트 핸드오버) |
+| "리서치 모드", "자율 리서치 시작/정지" | → `/re` (Research Mode 데몬) |
+| MARP/슬라이드 마크다운 발표자료 언급 | → marp-writer 에이전트 호출 |
+| 토큰 소진 임박, 다른 AI로 전환 필요 | → `/handoff` |
 | 세션 시작 + 오늘 브리핑 없음 | → `/daily-brief` |
 | "트렌드", "경쟁사", "뭘 해야 하지" | → `/daily-brief` |
 | "성장", "발전", "수용", "최신" | → `/daily-brief` |
