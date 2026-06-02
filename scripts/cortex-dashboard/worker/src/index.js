@@ -468,8 +468,20 @@ export default {
         if (!data.days[day]) data.days[day] = {};
         const dd = data.days[day];
         if (Array.isArray(workout)) {
-          // Client sends full array — save directly
-          dd.workout = workout;
+          // Client sends full array — enforce XOR server-side (전면/측면/후면 XOR, 등/가슴 XOR)
+          const BLUE = ['전면', '측면', '후면'];
+          const GREEN = ['등', '가슴'];
+          const xorResult = [];
+          for (const p of workout) {
+            const grp = BLUE.includes(p) ? BLUE : GREEN.includes(p) ? GREEN : null;
+            if (grp) {
+              for (let i = xorResult.length - 1; i >= 0; i--) {
+                if (grp.includes(xorResult[i])) xorResult.splice(i, 1);
+              }
+            }
+            if (!xorResult.includes(p)) xorResult.push(p);
+          }
+          dd.workout = xorResult;
         } else if (typeof part === 'string') {
           // Legacy toggle behavior
           if (!dd.workout) dd.workout = [];
