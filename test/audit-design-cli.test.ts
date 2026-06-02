@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { execFileSync } from 'child_process';
+import { execSync } from 'child_process';
 import { writeFileSync, mkdtempSync, rmSync, existsSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
-const SCRIPT = path.join(REPO_ROOT, 'scripts', 'audit-design.mjs');
+const SCRIPT = 'scripts/audit-design.mjs';
 
 let TMP: string;
 let GOOD: string;
@@ -14,10 +14,9 @@ let ANALYTICS: string;
 
 function runCli(file: string, extraArgs: string[] = []): { code: number; stdout: string; stderr: string } {
   try {
-    const stdout = execFileSync(
-      'npx',
-      ['tsx', SCRIPT, file, `--analytics=${ANALYTICS}`, ...extraArgs],
-      { cwd: REPO_ROOT, encoding: 'utf-8' },
+    const stdout = execSync(
+      `npx tsx "${SCRIPT}" "${file}" --analytics="${ANALYTICS}" ${extraArgs.join(' ')}`,
+      { cwd: REPO_ROOT, encoding: 'utf-8', shell: true },
     );
     return { code: 0, stdout, stderr: '' };
   } catch (e: any) {

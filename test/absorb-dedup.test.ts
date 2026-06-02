@@ -36,8 +36,11 @@ function setupFakeEnv() {
 
 function runScan(): string {
   return execSync(
-    `FORCE=1 ATEAM_MASTER="${MASTER}" HOME="${TMP}" bash "${path.join(MASTER, 'scripts', 'absorb-scan.sh')}"`,
-    { encoding: 'utf-8' },
+    `bash "${path.join(MASTER, 'scripts', 'absorb-scan.sh')}"`,
+    {
+      encoding: 'utf-8',
+      env: { ...process.env, FORCE: '1', ATEAM_MASTER: MASTER, HOME: TMP },
+    },
   );
 }
 

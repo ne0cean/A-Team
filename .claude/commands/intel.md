@@ -179,8 +179,8 @@ if [[ "$SUBCOMMAND" == "competitor" ]]; then
 
   echo ""
   echo "📊 $COMPANY 분석 완료"
-  echo "   가격 티어: $PRICING개"
-  echo "   핵심 기능: $FEATURES개"
+  echo "   가격 티어: ${PRICING}개"
+  echo "   핵심 기능: ${FEATURES}개"
   echo "   데이터 품질: $QUALITY"
 
 elif [[ "$SUBCOMMAND" == "trend" ]]; then
@@ -191,7 +191,7 @@ elif [[ "$SUBCOMMAND" == "trend" ]]; then
 
   echo ""
   echo "📈 $KEYWORD 트렌드 분석"
-  echo "   언급: $MENTIONS건 (최근 30일)"
+  echo "   언급: ${MENTIONS}건 (최근 30일)"
   echo "   트렌드: $TREND"
   echo "   긍정도: $(echo "$SENTIMENT * 100" | bc)%"
 
@@ -203,8 +203,8 @@ elif [[ "$SUBCOMMAND" == "persona" ]]; then
 
   echo ""
   echo "👥 $SEGMENT 페르소나 분석"
-  echo "   JTBD: $JTBD_COUNT개"
-  echo "   Pain Points: $PAIN_COUNT개"
+  echo "   JTBD: ${JTBD_COUNT}개"
+  echo "   Pain Points: ${PAIN_COUNT}개"
   echo "   신뢰도: $CONFIDENCE"
 
 elif [[ "$SUBCOMMAND" == "brief" ]]; then

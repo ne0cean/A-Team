@@ -19,7 +19,7 @@
 
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { register } from 'node:module';
 
 // tsx loader는 호출 측 (`npx tsx`) 에서 자동 등록됨. node 직접 실행 시 fallback.
@@ -59,9 +59,9 @@ function readToneFromOverride() {
 }
 
 const { detectDesignSmells, meetsThreshold, hasA11yViolations } =
-  await import(path.join(REPO_ROOT, 'lib', 'design-smell-detector.ts'));
+  await import(pathToFileURL(path.join(REPO_ROOT, 'lib', 'design-smell-detector.ts')).href);
 const { logDesignAudit } =
-  await import(path.join(REPO_ROOT, 'lib', 'analytics.ts'));
+  await import(pathToFileURL(path.join(REPO_ROOT, 'lib', 'analytics.ts')).href);
 
 const results = [];
 let allPassed = true;

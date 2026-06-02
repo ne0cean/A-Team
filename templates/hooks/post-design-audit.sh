@@ -99,10 +99,12 @@ if [ $EXIT_CODE -eq 0 ] && echo "$SUMMARY" | grep -q "total=0"; then
 fi
 
 # ── additionalContext 생성 ───────────────────────────────────────
+# Normalize path separators — Windows backslashes break Python string literals
+file_path_safe="${file_path//\\/\/}"
 python3 -c "
 import json
 ctx = '''## Design Audit Result
-File: \`$file_path\`
+File: \`$file_path_safe\`
 Gate: \`$DESIGN_AUDIT_GATE\`
 
 \`\`\`

@@ -240,8 +240,9 @@ describe('verification-gate-check.sh', () => {
     const input = JSON.stringify({ tool_input: { command: 'git commit -m "feat: add feature"' } });
     let out = '';
     try {
-      out = execSync(`echo '${input}' | HOME=${fakeHome} bash ${GATE_SCRIPT}`, {
+      out = execSync(`bash "${GATE_SCRIPT}"`, {
         encoding: 'utf8',
+        input,
         env: { ...process.env, HOME: fakeHome, HISTFILE: path.join(fakeHome, '.zsh_history') },
       });
     } catch (e: any) {

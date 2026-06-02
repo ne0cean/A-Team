@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { execFileSync } from 'child_process';
+import { execSync } from 'child_process';
 import { writeFileSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
-const SCRIPT = path.join(REPO_ROOT, 'scripts', 'dashboard.mjs');
+const SCRIPT = 'scripts/dashboard.mjs';
 
 function makeFixture(): string {
   const tmp = mkdtempSync(path.join(tmpdir(), 'dashboard-'));
@@ -23,8 +23,8 @@ function makeFixture(): string {
 describe('scripts/dashboard.mjs', () => {
   it('renders skill/event/repo aggregates and Module Health table', () => {
     const file = makeFixture();
-    const out = execFileSync('npx', ['tsx', SCRIPT, `--file=${file}`], {
-      cwd: REPO_ROOT, encoding: 'utf-8',
+    const out = execSync(`npx tsx "${SCRIPT}" "--file=${file}"`, {
+      cwd: REPO_ROOT, encoding: 'utf-8', shell: true,
     });
     expect(out).toMatch(/By Skill/);
     expect(out).toMatch(/design-auditor/);
@@ -36,8 +36,8 @@ describe('scripts/dashboard.mjs', () => {
 
   it('outputs structured JSON when --json passed', () => {
     const file = makeFixture();
-    const out = execFileSync('npx', ['tsx', SCRIPT, `--file=${file}`, '--json'], {
-      cwd: REPO_ROOT, encoding: 'utf-8',
+    const out = execSync(`npx tsx "${SCRIPT}" "--file=${file}" --json`, {
+      cwd: REPO_ROOT, encoding: 'utf-8', shell: true,
     });
     const parsed = JSON.parse(out);
     expect(parsed.totalEvents).toBe(3);
@@ -49,8 +49,8 @@ describe('scripts/dashboard.mjs', () => {
 
   it('filters by --module', () => {
     const file = makeFixture();
-    const out = execFileSync('npx', ['tsx', SCRIPT, `--file=${file}`, '--module=design', '--json'], {
-      cwd: REPO_ROOT, encoding: 'utf-8',
+    const out = execSync(`npx tsx "${SCRIPT}" "--file=${file}" --module=design --json`, {
+      cwd: REPO_ROOT, encoding: 'utf-8', shell: true,
     });
     const parsed = JSON.parse(out);
     expect(parsed.totalEvents).toBe(2);

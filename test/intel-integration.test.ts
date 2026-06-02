@@ -124,8 +124,8 @@ describe('Intel Aggregate Script', () => {
   it('aggregates all files when no keyword filter', () => {
     // INTEL_DIR 환경변수를 테스트 디렉토리로 설정
     const result = execSync(
-      `INTEL_DIR="${TEST_INTEL_DIR}" node "${AGGREGATE_SCRIPT}" "all"`,
-      { encoding: 'utf8' }
+      `node "${AGGREGATE_SCRIPT}" "all"`,
+      { encoding: 'utf8', env: { ...process.env, INTEL_DIR: TEST_INTEL_DIR } }
     );
 
     const aggregated = JSON.parse(result);
@@ -140,8 +140,8 @@ describe('Intel Aggregate Script', () => {
 
   it('filters files by project keyword', () => {
     const result = execSync(
-      `INTEL_DIR="${TEST_INTEL_DIR}" node "${AGGREGATE_SCRIPT}" "saas"`,
-      { encoding: 'utf8' }
+      `node "${AGGREGATE_SCRIPT}" "saas"`,
+      { encoding: 'utf8', env: { ...process.env, INTEL_DIR: TEST_INTEL_DIR } }
     );
 
     const aggregated = JSON.parse(result);
@@ -163,8 +163,8 @@ describe('Intel Aggregate Script', () => {
   it('returns error when no matching files', () => {
     try {
       execSync(
-        `INTEL_DIR="${TEST_INTEL_DIR}" node "${AGGREGATE_SCRIPT}" "nonexistent-keyword-xyz"`,
-        { encoding: 'utf8', stdio: 'pipe' }
+        `node "${AGGREGATE_SCRIPT}" "nonexistent-keyword-xyz"`,
+        { encoding: 'utf8', stdio: 'pipe', env: { ...process.env, INTEL_DIR: TEST_INTEL_DIR } }
       );
       // 실패해야 함
       expect(true).toBe(false);
@@ -177,8 +177,8 @@ describe('Intel Aggregate Script', () => {
 
   it('validates output JSON structure', () => {
     const result = execSync(
-      `INTEL_DIR="${TEST_INTEL_DIR}" node "${AGGREGATE_SCRIPT}" "all"`,
-      { encoding: 'utf8' }
+      `node "${AGGREGATE_SCRIPT}" "all"`,
+      { encoding: 'utf8', env: { ...process.env, INTEL_DIR: TEST_INTEL_DIR } }
     );
 
     const aggregated = JSON.parse(result);

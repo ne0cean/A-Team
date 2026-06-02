@@ -132,7 +132,7 @@ describe('templates/hooks/post-ui-verify.sh', () => {
     expect(stdout.trim()).toBe('');
   });
 
-  it('UI extensions all recognized: .tsx .jsx .css .scss .styled.ts .styled.tsx', () => {
+  it('UI extensions all recognized: .tsx .jsx .css .scss .styled.ts .styled.tsx', { timeout: 30000 }, () => {
     // All must pass dev-server unreachable path silently — no extension rejection
     for (const ext of ['.tsx', '.jsx', '.css', '.scss', '.styled.ts', '.styled.tsx']) {
       const { code, stdout } = runHook(
