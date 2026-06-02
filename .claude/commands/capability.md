@@ -1,5 +1,7 @@
 # /capability — 부서별 점수 + 런칭 시나리오 매핑
 
+> Analytics: `node scripts/log-event.mjs command_start name=capability` — 실행 시작 시 반드시 호출
+
 A-Team의 "회사" 역량을 정량 평가합니다.
 
 ## 실행

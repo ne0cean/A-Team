@@ -8,6 +8,8 @@ allowed-tools:
   - Glob
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=excel-to-csv` — 실행 시작 시 반드시 호출
+
 # Excel to CSV Converter
 
 Claude Code는 .xlsx/.xls 파일을 직접 읽을 수 없다. 이 커맨드는 Excel 파일을 UTF-8 CSV로 변환하여 분석 가능하게 만든다.

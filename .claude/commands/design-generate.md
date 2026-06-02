@@ -1,5 +1,7 @@
 # /design-generate — 비주얼 에셋 생성 오케스트레이터
 
+> Analytics: `node scripts/log-event.mjs command_start name=design-generate` — 실행 시작 시 반드시 호출
+
 **용도**: Art Direction 브리핑 기반 비주얼 생성 실행 + 품질 체크 + 저장.
 `/design-brief` 완료 후 실행하거나, `--brief` 플래그로 브리핑 동시 실행.
 

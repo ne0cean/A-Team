@@ -1,5 +1,7 @@
 # /marketing — 마케팅 마스터 오케스트레이터
 
+> Analytics: `node scripts/log-event.mjs command_start name=marketing` — 실행 시작 시 반드시 호출
+
 **용도**: 1인 마케팅 회사 풀 파이프라인. 토픽 입력 → 리서치 → 생성 → 15개 포맷 → 배포 → 분석까지 원스탑.
 
 ## 빠른 시작

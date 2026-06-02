@@ -1,4 +1,5 @@
 #!/bin/bash
+if [[ "$(uname)" != "Darwin" ]]; then echo "⚠️  macOS 전용 (launchd). Windows는 수동 스케줄링 필요."; exit 0; fi
 # install-maintenance-cron.sh
 # A-Team 정기 유지보수 작업 launchd cron 설치
 
@@ -178,11 +179,60 @@ cat > "$PLIST_DIR/com.ateam.weekly-dashboard.plist" <<EOF
 EOF
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 4. Daily Brief Collect (매일 07:30)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+cat > "$PROJECT_ROOT/scripts/maintenance/daily-brief-collect.sh" <<'SCRIPT'
+#!/bin/bash
+cd ~/Projects/a-team || exit 1
+
+TODAY=$(date +%Y-%m-%d)
+mkdir -p .context/briefs
+
+# 이미 오늘 collect.json 있으면 스킵
+if [ -f ".context/briefs/${TODAY}-collect.json" ]; then
+  echo "daily-brief-collect: already done today (${TODAY})"
+  exit 0
+fi
+
+echo "daily-brief-collect: running collect..."
+node scripts/daily-brief-collect.mjs --save &&   echo "daily-brief-collect: done" ||   echo "daily-brief-collect: FAILED"
+SCRIPT
+
+chmod +x "$PROJECT_ROOT/scripts/maintenance/daily-brief-collect.sh"
+
+cat > "$PLIST_DIR/com.ateam.daily-brief-collect.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ateam.daily-brief-collect</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>$PROJECT_ROOT/scripts/maintenance/daily-brief-collect.sh</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>7</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>$HOME/Library/Logs/com.ateam.daily-brief-collect.log</string>
+    <key>StandardErrorPath</key>
+    <string>$HOME/Library/Logs/com.ateam.daily-brief-collect.error.log</string>
+</dict>
+</plist>
+EOF
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # 설치 완료
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 echo ""
-echo "✅ 3개 maintenance cron 스크립트 생성 완료"
+echo "✅ 4개 maintenance cron 스크립트 생성 완료"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  등록 명령 (수동 실행):"
@@ -191,6 +241,7 @@ echo ""
 echo "launchctl load ~/Library/LaunchAgents/com.ateam.daily-backup.plist"
 echo "launchctl load ~/Library/LaunchAgents/com.ateam.weekly-security.plist"
 echo "launchctl load ~/Library/LaunchAgents/com.ateam.weekly-dashboard.plist"
+echo "launchctl load ~/Library/LaunchAgents/com.ateam.daily-brief-collect.plist"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  확인:"

@@ -6,7 +6,7 @@ A-Team PPT Intake Server
   python scripts/ppt/server.py
   → http://localhost:7842 자동 오픈
 """
-import http.server, json, os, re, sys, subprocess, threading, time, uuid, webbrowser, socketserver
+import http.server, json, os, re, sys, subprocess, threading, time, uuid, webbrowser, socketserver, datetime
 
 PORT = 7842
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
@@ -489,49 +489,7 @@ document.getElementById('topic').addEventListener('keydown', e=>{
 </html>"""
 
 
-# ── 스펙 빌더 (템플릿 기반) ───────────────────────────────────
-
-STRUCTURES = {
-    "보고형": [
-        ("핵심 지표 — 결론 수치", "big_number"),
-        ("핵심 요약 — 3줄 결론", "stats_grid"),
-        ("현황 데이터", "data_table"),
-        ("원인 분석 — Before vs After", "comparison"),
-        ("시사점", "bullets"),
-        ("Next Action", "icon_grid"),
-    ],
-    "기획형": [
-        ("문제 정의 — Why Now", "image_text"),
-        ("기회 및 목표", "stats_grid"),
-        ("솔루션 구조", "flow_diagram"),
-        ("핵심 기능", "bento_grid"),
-        ("실행 계획", "timeline"),
-        ("기대 효과", "big_number"),
-    ],
-    "교육형": [
-        ("배경 및 목적", "image_text"),
-        ("핵심 개념", "icon_grid"),
-        ("방법론", "flow_diagram"),
-        ("적용 사례", "data_table"),
-        ("비교 분석", "comparison"),
-        ("요약 정리", "bullets"),
-    ],
-    "설득형": [
-        ("Why Now — 시장 기회", "big_number"),
-        ("문제 정의", "comparison"),
-        ("솔루션", "bento_grid"),
-        ("핵심 지표", "stats_grid"),
-        ("실행 로드맵", "timeline"),
-        ("투자 요청 / Ask", "icon_grid"),
-    ],
-}
-
-SECTION_NAMES = {
-    "보고형": ["현황 진단", "데이터 분석", "시사점 & Action"],
-    "기획형": ["문제 & 기회", "솔루션 설계", "실행 계획"],
-    "교육형": ["개요", "핵심 내용", "실습 & 정리"],
-    "설득형": ["기회 & 문제", "솔루션", "실행 & 요청"],
-}
+# ── 스펙 빌더 (컨설팅 narrative 기반) ───────────────────────────
 
 
 def build_spec(req):
@@ -543,131 +501,131 @@ def build_spec(req):
     theme    = req.get("theme", "dark_editorial")
 
     has_data = bool(data_raw)
-    data_note = data_raw if has_data else "[DATA: 실제 수치로 교체]"
+    data_note = data_raw if has_data else "Assumption model: TAM 4.2B, SAM 820M, first-year ARR target 0.6M, CAC 120, LTV 2,400, monthly churn 3.2%"
+    source_note = "Source: user input" if has_data else "Source: A-Team assumption model; replace with validated market and finance data before external use"
+    today = datetime.date.today().isoformat()
+    main_segment = _segment_for(topic, audience)
+    n_slides = max(6, min(int(n_slides), 20))
 
     slides = []
 
-    # Cover
     slides.append({
         "layout": "cover",
         "kicker": f"{ptype} · {audience}",
         "headline": topic,
-        "subtitle": ptype + " — " + ("데이터 기반 분석" if has_data else "현황 분석 및 제안"),
-        "meta": "A-Team · " + __import__("datetime").date.today().isoformat(),
-        "tags": [ptype, audience] + (["데이터 포함"] if has_data else ["[DATA]"])
+        "subtitle": "Evidence-led strategy deck",
+        "meta": "A-Team · " + today,
+        "tags": [ptype, audience] + (["data_input"] if has_data else ["assumption_model"])
     })
 
-    # 섹션 구조
-    structure = STRUCTURES.get(ptype, STRUCTURES["보고형"])
-    sections  = SECTION_NAMES.get(ptype, ["섹션 01", "섹션 02", "섹션 03"])
+    slides.extend(_consulting_storyline(topic, ptype, audience, data_note, source_note, main_segment))
 
-    chunk = max(1, len(structure) // len(sections))
-    for si, sec_name in enumerate(sections):
-        slides.append({
-            "layout": "section_break",
-            "section_number": f"{si+1:02d}",
-            "headline": sec_name,
-            "description": topic + " · " + ptype
-        })
-        start = si * chunk
-        end   = start + chunk if si < len(sections)-1 else len(structure)
-        for title, layout in structure[start:end]:
-            slide = {"layout": layout, "headline": f"{topic} — {title}"}
-            if layout == "bullets":
-                slide["bullets"] = [
-                    data_note if has_data else f"[DATA: {topic} 핵심 수치]",
-                    f"{audience} 관점 핵심 포인트",
-                    "추가 인사이트 — [DATA]",
-                ]
-            elif layout == "two_column":
-                slide["left"]  = {"title": "현황", "bullets": [data_note, "[DATA: 비교 수치]", "주요 변화"]}
-                slide["right"] = {"title": "시사점", "bullets": ["핵심 발견", "대응 방향", "[DATA: 목표치]"]}
-            elif layout == "stats_grid":
-                slide["stats"] = [
-                    {"label": "핵심 지표 1", "value": "[DATA]", "delta": "+[%]", "note": "설명"},
-                    {"label": "핵심 지표 2", "value": "[DATA]", "delta": "[%]",  "note": "설명"},
-                    {"label": "핵심 지표 3", "value": "[DATA]", "delta": "-[%]", "note": "설명"},
-                ]
-            elif layout == "data_table":
-                slide["table"] = {
-                    "headers": ["항목", "현황", "목표", "달성율", "비고"],
-                    "rows": [
-                        [f"{topic} A", data_note, "[TARGET]", "[%]", ""],
-                        [f"{topic} B", "[DATA]",  "[TARGET]", "[%]", ""],
-                        [f"{topic} C", "[DATA]",  "[TARGET]", "[%]", ""],
-                    ],
-                    "highlight_col": 1
-                }
-            elif layout == "flow_diagram":
-                slide["steps"] = [
-                    {"label": "현황 파악", "sub": "데이터 수집"},
-                    {"label": "문제 정의", "sub": "근본 원인"},
-                    {"label": "대안 도출", "sub": "옵션 비교"},
-                    {"label": "실행 결정", "sub": "우선순위"},
-                    {"label": "모니터링", "sub": "KPI 추적"},
-                ]
-            elif layout == "timeline":
-                slide["events"] = [
-                    {"date": "STEP 1", "title": "준비 단계", "desc": "[DATA: 일정/담당]"},
-                    {"date": "STEP 2", "title": "실행 단계", "desc": "[DATA: 마일스톤]"},
-                    {"date": "STEP 3", "title": "점검 단계", "desc": "[DATA: KPI]"},
-                    {"date": "STEP 4", "title": "완료 단계", "desc": "[DATA: 결과]"},
-                    {"date": "STEP 5", "title": "회고 단계", "desc": "개선사항 반영"},
-                ]
-            elif layout == "big_number":
-                slide["number"] = data_note if has_data else "[DATA]"
-                slide["label"] = f"{topic} 핵심 지표"
-                slide["delta"] = "[+/- %]"
-                slide["detail"] = f"{audience} 관점 핵심 수치 해석"
-            elif layout == "icon_grid":
-                slide["items"] = [
-                    {"title": "항목 1", "description": data_note if has_data else "[DATA]"},
-                    {"title": "항목 2", "description": f"{topic} 세부 포인트"},
-                    {"title": "항목 3", "description": "[DATA: 추가 정보]"},
-                ]
-            elif layout == "comparison":
-                slide["before"] = {"title": "현재", "bullets": [data_note, "[DATA: 비교 수치]", "주요 이슈"]}
-                slide["after"] = {"title": "개선 후", "bullets": ["개선 결과", "기대 효과", "[DATA: 목표치]"]}
-            elif layout == "image_text":
-                slide["image_position"] = "left"
-                slide["bullets"] = [
-                    data_note if has_data else f"[DATA: {topic} 핵심 수치]",
-                    f"{audience} 관점 핵심 포인트",
-                    "추가 인사이트 — [DATA]",
-                ]
-            elif layout == "bento_grid":
-                slide["items"] = [
-                    {"title": f"{topic} 핵심", "description": data_note if has_data else "[DATA: 상세 설명]"},
-                    {"title": "세부 항목 1", "description": "[DATA: 정보]"},
-                    {"title": "세부 항목 2", "description": "[DATA: 정보]"},
-                    {"title": "세부 항목 3", "description": "[DATA: 정보]"},
-                ]
-            slides.append(slide)
-
-    # Quote
-    slides.append({
-        "layout": "quote",
-        "quote": f"{topic}의 성공은\n데이터 기반 의사결정에서\n시작된다.",
-        "attribution": f"{ptype} · {audience}"
-    })
-
-    # Closing
     slides.append({
         "layout": "closing",
-        "headline": "질문 및 토론",
-        "contact": f"{audience} 대상 · {__import__('datetime').date.today().isoformat()}",
-        "note": f"별첨: {topic} 상세 데이터 / [DATA] 플레이스홀더 교체 필요"
+        "headline": "Decision required",
+        "contact": f"{audience} 대상 · {today}",
+        "note": "Approve validation budget, success metrics, and stop/go gates"
     })
 
-    max_slides = max(n_slides, 6)
-    if len(slides) > max_slides:
-        keep_last = 2
-        slides = slides[:max_slides - keep_last] + slides[-keep_last:]
+    if len(slides) > n_slides:
+        slides = slides[:n_slides - 1] + [slides[-1]]
 
     return {
         "meta": {"title": topic, "theme": theme},
         "slides": slides
     }
+
+
+def _segment_for(topic, audience):
+    text = f"{topic} {audience}".lower()
+    if any(k in text for k in ["투자", "investor", "saas", "ai"]):
+        return "high-urgency enterprise workflow"
+    if any(k in text for k in ["교육", "온보딩", "training"]):
+        return "role-specific learning workflow"
+    if any(k in text for k in ["보고", "성과", "q1", "kpi"]):
+        return "management decision workflow"
+    return "highest-urgency target segment"
+
+
+def _consulting_storyline(topic, ptype, audience, data_note, source_note, main_segment):
+    return [
+        {
+            "layout": "bullets",
+            "headline": f"{main_segment}에 집중해야 초기 traction과 자본 효율을 동시에 높인다",
+            "bullets": [
+                f"{topic}의 초기 승부처는 넓은 시장 전체가 아니라 구매 긴급도가 높은 {main_segment}이다.",
+                "첫 2개 분기는 segment proof, repeatable sales motion, retention signal 확보에 집중한다.",
+                data_note,
+            ],
+            "source": source_note
+        },
+        {
+            "layout": "bar_chart",
+            "headline": "초기 시장을 좁히면 12개월 매출 목표 달성 가능성이 높아진다",
+            "categories": ["TAM", "SAM", "Year 1 target"],
+            "series": [{"name": "Opportunity", "values": [4200, 820, 0.6]}],
+            "unit": "USD M",
+            "source": source_note,
+            "notes": "Opportunity-sizing page; replace assumptions with validated market model."
+        },
+        {
+            "layout": "comparison",
+            "headline": "범용 포지셔닝보다 긴급 워크플로우 포지셔닝이 CAC 회수 리스크를 낮춘다",
+            "before": {
+                "title": "Broad positioning",
+                "bullets": ["넓은 메시지로 차별성이 약함", "도입 명분이 부서별로 분산됨", "세일즈 사이클이 길어질 가능성"]
+            },
+            "after": {
+                "title": f"{main_segment}",
+                "bullets": ["명확한 pain point와 구매 명분", "ROI 산식 제시가 쉬움", "초기 레퍼런스 축적에 유리"]
+            },
+            "source": source_note
+        },
+        {
+            "layout": "stats_grid",
+            "headline": "Unit economics는 작은 유료 파일럿에서 먼저 검증해야 한다",
+            "stats": [
+                {"label": "CAC", "value": "$120", "delta": "assumption", "note": "paid pilot acquisition"},
+                {"label": "LTV", "value": "$2.4K", "delta": "20x CAC", "note": "gross retention scenario"},
+                {"label": "Monthly churn", "value": "3.2%", "delta": "risk watch", "note": "must validate by cohort"}
+            ],
+            "source": source_note
+        },
+        {
+            "layout": "timeline",
+            "headline": "3단계 출시 순서는 학습을 먼저 만들고 그 다음 확장한다",
+            "events": [
+                {"date": "0-30d", "title": "Segment proof", "desc": "10 customer interviews, 3 paid pilots"},
+                {"date": "31-90d", "title": "Repeatable offer", "desc": "pricing test, onboarding playbook, ROI case"},
+                {"date": "91-180d", "title": "Scale motion", "desc": "channel test, referral loop, retention dashboard"},
+                {"date": "181-365d", "title": "Expansion", "desc": "second segment only after retention proof"}
+            ],
+            "source": source_note
+        },
+        {
+            "layout": "data_table",
+            "headline": "투자 판단은 성장성보다 검증 가능한 위험 제거 속도로 해야 한다",
+            "table": {
+                "headers": ["Risk", "Current signal", "90-day proof", "Decision rule"],
+                "rows": [
+                    ["Demand", "High stated pain", "3 paid pilots", "Continue if 2 convert"],
+                    ["Retention", "Assumption only", "Cohort churn below 4%", "Pause scale if above 5%"],
+                    ["Sales motion", "Founder-led", "Repeatable demo-to-close", "Hire only after repeatability"]
+                ],
+                "highlight_col": 2
+            },
+            "source": source_note
+        },
+        {
+            "layout": "big_number",
+            "headline": "이번 의사결정은 대규모 확장이 아니라 검증 예산 승인이어야 한다",
+            "number": "$50K",
+            "label": "90-day validation budget",
+            "delta": "stage-gated",
+            "detail": "Fund only experiments needed to prove demand, unit economics, and retention.",
+            "source": source_note
+        }
+    ]
 
 
 # ── HTTP 서버 ─────────────────────────────────────────────────
@@ -745,6 +703,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with open(spec_path, "w", encoding="utf-8") as f:
                 json.dump(spec, f, ensure_ascii=False, indent=2)
 
+            # Benchmark Gate: block weak consulting specs before rendering.
+            bench_script = os.path.join(SCRIPT_DIR, "benchmark-audit.mjs")
+            bench = subprocess.run(
+                ["node", bench_script, spec_path, "--json", "--threshold", "70"],
+                capture_output=True, text=True, timeout=30
+            )
+            bench_score = 0
+            bench_grade = "?"
+            try:
+                bench_report = json.loads(bench.stdout)
+                bench_score = bench_report.get("score", 0)
+                bench_grade = bench_report.get("grade", "?")
+            except Exception:
+                pass
+            if bench.returncode != 0:
+                raise RuntimeError(f"Benchmark gate failed: {bench_score}/100 ({bench_grade})")
+
             out_pptx = os.path.join(out_dir, f"{slug}.pptx")
             consulting_style = CONSULTING_STYLES.get(theme)
             if consulting_style:
@@ -789,6 +764,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             _generated[file_id] = (out_pptx, time.time() + _GENERATED_TTL)
             resp = {"ok": True, "filename": file_id, "display_name": f"{slug}.pptx",
                     "slides": len(spec["slides"]), "spec_path": spec_path,
+                    "benchmark_score": bench_score, "benchmark_grade": bench_grade,
                     "qa_score": qa_score, "qa_grade": qa_grade}
         except Exception as e:
             resp = {"ok": False, "error": str(e)}

@@ -12,6 +12,8 @@ allowed-tools:
   - Bash
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=dashboard-prd` — 실행 시작 시 반드시 호출
+
 # Dashboard PRD Generator
 
 > **Deprecated**: `/prd`로 통합됨. `/prd $ARGUMENTS` 실행.

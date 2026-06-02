@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+if [[ "$(uname)" != "Darwin" ]]; then echo "⚠️  macOS 전용 (launchd). Windows는 수동 스케줄링 필요."; exit 0; fi
 # install-auto-switch-cron.sh — Install/manage the a-team auto-switch launchd job.
 set -e
 

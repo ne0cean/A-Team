@@ -585,8 +585,8 @@ export default {
 
             if (prevDay) {
               const prevItems = prevDay[cat] || [];
-              // Only carry manual todos and previously-carried items — NOT frame(routine) items
-              const undone = prevItems.filter(i => !i.done && !i._frame);
+              // Only carry OUTCOME category manual todos — NOT frame(routine) items, NOT other categories
+              const undone = cat === 'outcome' ? prevItems.filter(i => !i.done && !i._frame) : [];
               for (const item of undone) {
                 if (dismissed.has(item.text)) continue;
                 if (!assembledTexts.has(item.text)) {

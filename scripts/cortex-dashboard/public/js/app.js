@@ -209,7 +209,23 @@ function renderMonthView() {
     CATS.forEach(cat => { const items = dd[cat] || []; pastTotal += items.length; pastDone += items.filter(i => i.done).length; });
   }));
 
-  let html = renderDayHeaders();
+  // 이달 메모: monthly 항목 중 날짜 prefix 없는 것들 캘린더 상단에 표시
+  const ymKeyMemo = ym();
+  const monthlyMemoItems = (standingData?.monthly?.[ymKeyMemo] || []).filter(item => {
+    const text = typeof item === 'string' ? item : (item.text || '');
+    return typeof text === 'string' && !text.match(/^\d+[~,～]?\d*일/);
+  });
+  let html = '';
+  if (monthlyMemoItems.length > 0) {
+    html += `<div class="monthly-memo-bar">`;
+    html += `<span class="monthly-memo-label">이달 메모</span>`;
+    monthlyMemoItems.forEach(item => {
+      const text = typeof item === 'string' ? item : (item.text || '');
+      html += `<span class="monthly-memo-item">${linkify(text)}</span>`;
+    });
+    html += `</div>`;
+  }
+  html += renderDayHeaders();
 
   // Past weeks: hidden
   if (pastWeeks.length > 0) {
@@ -357,10 +373,20 @@ function getWeeklyRecurring(d) {
   });
 }
 
+function getEffectiveDayType(dayData, d) {
+  if (dayData.day_type) return dayData.day_type;
+  const dow = new Date(currentYear, currentMonth - 1, d).getDay();
+  const isHol = !!getHoliday(d);
+  if (isHol || dow === 6) return 'flow'; // 공휴일·토 → FLOW
+  if (dow === 0) return 'block';         // 일 → BLOCK
+  return null;
+}
+
 function renderDayCell(d, isToday, isWeek, isCurrent) {
   const dayData = getDayData(d, isCurrent !== false);
   const dow = new Date(currentYear, currentMonth - 1, d).getDay();
-  const typeClass = dayData.day_type ? ` type-${dayData.day_type}` : '';
+  const effectiveType = getEffectiveDayType(dayData, d);
+  const typeClass = effectiveType ? ` type-${effectiveType}` : '';
   const todayClass = isToday ? ' today' : '';
   const holidayClass = getHoliday(d) ? ' is-holiday' : '';
   const otherClass = isCurrent === false ? ' other-month' : '';
@@ -373,8 +399,9 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   const dow = new Date(currentYear, currentMonth - 1, d).getDay();
   const dowClass = dow === 0 ? ' sun' : dow === 6 ? ' sat' : '';
 
-  const badgeHtml = dayData.day_type
-    ? ` <span class="day-type-badge ${TYPE_COLORS[dayData.day_type]}" onclick="event.stopPropagation();cycleDayType(${d})">${TYPE_LABELS[dayData.day_type]}</span>`
+  const _effType = getEffectiveDayType(dayData, d);
+  const badgeHtml = _effType
+    ? ` <span class="day-type-badge ${TYPE_COLORS[_effType]}" onclick="event.stopPropagation();cycleDayType(${d})" style="${dayData.day_type ? '' : 'opacity:0.45'}">${TYPE_LABELS[_effType]}</span>`
     : '';
   let pastArrow = '';
   if (_pastToggleDay === d) {
@@ -398,18 +425,6 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       }
     });
   }
-  // T1: done/total badge
-  let doneCount = 0, totalCount = 0;
-  for (const cat of CATS) {
-    for (const item of (dayData[cat] || [])) {
-      if (!item || item._frame || item.type === 'separator') continue;
-      totalCount++;
-      if (item.done) doneCount++;
-    }
-  }
-  const progressBadge = totalCount > 0
-    ? `<span class="day-progress" style="font-size:9px;color:${doneCount===totalCount?'#56d364':'#6e7681'};margin-left:4px" title="${doneCount}/${totalCount} 완료">${doneCount}/${totalCount}</span>`
-    : '';
   // T3: #lesson tag indicator
   const notesText = dayData.notes || '';
   const lessonCount = (notesText.match(/#lesson/gi) || []).length;
@@ -418,7 +433,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     : '';
   const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '');
   let html = `<div class="day-num${dowClass}" onclick="cycleDayType(${d})" style="cursor:pointer" title="Set day type">
-    <span>${d}${badgeHtml}${progressBadge}${lessonBadge}</span>
+    <span>${d}${badgeHtml}${lessonBadge}</span>
     <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
   </div>${evtHtml}`;
 
@@ -426,8 +441,8 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   const ot = dayData.one_thing || '';
   html += `<div class="one-thing" contenteditable="true"
     onblur="saveOneThing(${d}, this.textContent)"
-    onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
-  >${esc(ot)}</div>`;
+    onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}else if(event.key.toLowerCase()==='k'&&(event.ctrlKey||event.metaKey)){event.preventDefault();event.stopPropagation();openOneThingLinkPopup(event,${d});}"
+  >${linkify(ot)}</div>`;
 
   // Categories
   const SRC_COLORS = { yearly: '#f0c040', monthly: '#bc8cff', weekly: '#6e7681' };
@@ -442,6 +457,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     html += `<div class="category cat-${cat}">
       <div class="cat-label cl-${cat}">
         <span>${CAT_NAMES[cat]}</span>
+        <span class="cat-add" onclick="addSeparatorItem(${d},'${cat}')" title="구분선 추가" style="font-size:9px;color:#484f58;margin-right:1px">—</span>
         <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span>
       </div>`;
 
@@ -486,6 +502,11 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     const _renderItems = _isFuture ? items.filter(i => !i._frame) : items;
     _renderItems.forEach((item, _vi) => {
       const idx = _isFuture ? items.indexOf(item) : _vi;
+      // Separator item — render as horizontal divider
+      if (item.type === 'separator') {
+        html += `<div class="item-separator"><span>${esc(item.text || '')}</span><span class="del-btn" onclick="delItem(${d},'${cat}',${idx})" style="visibility:hidden">&#215;</span></div>`;
+        return;
+      }
       const doneClass = item.done ? 'done' : '';
       const carriedClass = item._carried ? 'is-carried' : '';
       const checked = item.done ? 'checked' : '';
@@ -724,6 +745,19 @@ async function delRecurring(d, idx) {
 let linkTarget = null;
 let longPressTimer = null;
 
+function openOneThingLinkPopup(event, d) {
+  // Insert [text](url) markdown at cursor position in one-thing field
+  const sel = window.getSelection();
+  const selectedText = sel && sel.rangeCount ? sel.toString() : '';
+  const url = prompt('URL 입력:', 'https://');
+  if (!url) return;
+  const label = selectedText || prompt('링크 텍스트:', '') || url;
+  const dd = ensureDay(d);
+  const current = dd.one_thing || '';
+  dd.one_thing = current + (current ? ' ' : '') + `[${label}](${url})`;
+  save().then(() => render());
+}
+
 function openLinkPopupFromSpan(span, d, cat, idx) {
   // Ctrl+K from contenteditable span — position near cursor
   const rect = span.getBoundingClientRect();
@@ -861,8 +895,9 @@ function toggleEl(id) {
 }
 
 function handleItemKey(e, d, cat, idx) {
-  if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
+  if (e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey)) {
     e.preventDefault();
+    e.stopPropagation();
     openLinkPopupFromSpan(e.target, d, cat, idx);
     return;
   }
@@ -901,11 +936,32 @@ function handleItemKey(e, d, cat, idx) {
     if (idx > 0) {
       document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${idx-1}"]`)
         ?.querySelector('.item-text')?.focus({ preventScroll: true });
+    } else {
+      // Navigate to last item of previous category in same day
+      const catIdx = CATS.indexOf(cat);
+      for (let ci = catIdx - 1; ci >= 0; ci--) {
+        const prevCat = CATS[ci];
+        const prevItems = document.querySelectorAll(`.item[data-d="${d}"][data-cat="${prevCat}"]`);
+        if (prevItems.length > 0) {
+          prevItems[prevItems.length - 1].querySelector('.item-text')?.focus({ preventScroll: true });
+          break;
+        }
+      }
     }
   } else if (e.key === 'ArrowDown') {
     e.preventDefault();
-    document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${idx+1}"]`)
-      ?.querySelector('.item-text')?.focus({ preventScroll: true });
+    const nextEl = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${idx+1}"]`);
+    if (nextEl) {
+      nextEl.querySelector('.item-text')?.focus({ preventScroll: true });
+    } else {
+      // Navigate to first item of next category in same day
+      const catIdx = CATS.indexOf(cat);
+      for (let ci = catIdx + 1; ci < CATS.length; ci++) {
+        const nextCat = CATS[ci];
+        const firstEl = document.querySelector(`.item[data-d="${d}"][data-cat="${nextCat}"][data-idx="0"]`);
+        if (firstEl) { firstEl.querySelector('.item-text')?.focus({ preventScroll: true }); break; }
+      }
+    }
   } else if (e.key === 'Backspace' && e.target.textContent.trim() === '') {
     e.preventDefault(); delItem(d, cat, idx, true);
   } else if (e.altKey && e.key === '1') {
@@ -950,6 +1006,12 @@ async function addNewItem(d, cat, text) {
   const day = ensureDay(d);
   if (!day[cat]) day[cat] = [];
   const t = text.trim();
+  // text___ syntax → separator item
+  const sepMatch = t.match(/^(.*?)_{3,}$/);
+  if (sepMatch) {
+    day[cat].push({ text: sepMatch[1].trim(), type: 'separator', done: false });
+    await save(); render(); return;
+  }
   // Auto-detect URL: if entire input is a URL, set as url+text
   const urlMatch = t.match(/^(https?:\/\/\S+)$/);
   // Or extract URL from mixed text: "label https://..."
@@ -970,6 +1032,13 @@ async function addNewItem(d, cat, text) {
 function addItemInline(d, cat) {
   const c = document.getElementById(`new-${d}-${cat}`);
   if (c) { c.classList.add('active'); c.querySelector('input').focus(); }
+}
+
+async function addSeparatorItem(d, cat) {
+  const day = ensureDay(d);
+  if (!day[cat]) day[cat] = [];
+  day[cat].push({ text: '', type: 'separator', done: false });
+  await save(); render();
 }
 
 function addItemPrompt(d) {
@@ -1029,9 +1098,22 @@ async function toggleWorkout(part) {
   const target = todayMonthData || monthData;
   if (!target.days[today]) target.days[today] = {};
   if (!target.days[today].workout) target.days[today].workout = [];
-  const idx = target.days[today].workout.indexOf(part);
-  if (idx >= 0) target.days[today].workout.splice(idx, 1);
-  else target.days[today].workout.push(part);
+  const wo = target.days[today].workout;
+  const idx = wo.indexOf(part);
+  if (idx >= 0) {
+    wo.splice(idx, 1);
+  } else {
+    // Mutual exclusion groups: 전면/측면/후면 XOR, 등/가슴 XOR
+    const BLUE_GROUP = ['전면', '측면', '후면'];
+    const GREEN_GROUP = ['등', '가슴'];
+    const group = BLUE_GROUP.includes(part) ? BLUE_GROUP : GREEN_GROUP.includes(part) ? GREEN_GROUP : null;
+    if (group) {
+      for (let gi = wo.length - 1; gi >= 0; gi--) {
+        if (group.includes(wo[gi])) wo.splice(gi, 1);
+      }
+    }
+    wo.push(part);
+  }
   // atomic workout save — dedicated endpoint, never overwritten by full month save
   const now = new Date();
   const todayYm = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -1246,7 +1328,7 @@ function renderStandingOrders() {
         <span onclick="moveSOItem('standing',${i},1)" ${i===soLen-1?'style="visibility:hidden"':''}>&#9660;</span>
       </div>
       <input type="checkbox" ${s.active?'checked':''} onchange="toggleSOActive(${i})">
-      <span contenteditable="true" style="flex:1" onblur="editSOText(${i},this.textContent)">${esc(s.text)}</span>
+      <span contenteditable="true" style="flex:1" onblur="editSOText(${i},this.textContent)">${linkify(s.text)}</span>
       <input class="so-date-input" placeholder="날짜" value="${esc(s.date||'')}"
         onblur="setSoDate(${i},this.value)"
         onkeydown="if(event.key==='Enter'){this.blur();}"
@@ -1262,7 +1344,7 @@ function renderStandingOrders() {
     html += '<div style="margin-top:6px;font-size:10px;color:#8b949e">Happy Friday:</div>';
     hfThisMonth.forEach(d => { html += `<span class="hf-badge">${d.split('-')[2]}일</span>`; });
   }
-  // Holiday — 전체 월별
+  // Holiday — 전체 월별 (접힌 상태로 기본)
   const allHolidays = Object.entries(standingData.holidays || {}).sort(([a],[b]) => a.localeCompare(b));
   if (allHolidays.length) {
     const byMonth = {};
@@ -1271,7 +1353,7 @@ function renderStandingOrders() {
       if (!byMonth[ym]) byMonth[ym] = [];
       byMonth[ym].push({ day: d.split('-')[2], name });
     });
-    html += '<div style="margin-top:6px;font-size:10px;color:#8b949e">Holidays:</div>';
+    html += '<details style="margin-top:6px"><summary style="font-size:10px;color:#8b949e;cursor:pointer;user-select:none">Holidays</summary>';
     Object.entries(byMonth).forEach(([ym, items]) => {
       const isCurrent = ym === ymKey;
       html += `<div style="margin-top:4px;font-size:9px;color:${isCurrent ? '#f0c040' : '#484f58'};font-weight:${isCurrent ? '600' : '400'}">${ym.replace('-','.')}:</div>`;
@@ -1279,6 +1361,7 @@ function renderStandingOrders() {
         html += `<div class="so-monthly-item" style="${isCurrent ? '' : 'color:#6e7681'}">${day}일 — ${esc(name)}</div>`;
       });
     });
+    html += '</details>';
   }
   html += '</div>';
 
@@ -1301,7 +1384,7 @@ function renderStandingOrders() {
         <option value="weekly" ${w.freq==='weekly'?'selected':''}>매주</option>
         <option value="biweekly" ${w.freq==='biweekly'?'selected':''}>격주</option>
       </select>
-      <span contenteditable="true" style="flex:1" onblur="editWeeklyText(${i},this.textContent)">${esc(w.text)}</span>
+      <span contenteditable="true" style="flex:1" onblur="editWeeklyText(${i},this.textContent)">${linkify(w.text)}</span>
       <span class="del-btn" onclick="delWeekly(${i})" style="display:inline">&#215;</span>
     </div>`;
   });
@@ -1320,8 +1403,8 @@ function renderStandingOrders() {
   // Monthly — editable
   html += '<div id="soTab-monthly" style="display:none">';
 
-  // Monthly Recurring (매달 반복)
-  const mr = standingData.monthly_recurring || [];
+  // Monthly Recurring (매달 반복) — 날짜 오름차순
+  const mr = (standingData.monthly_recurring || []).slice().sort((a, b) => (a.day || 0) - (b.day || 0));
   const mrLen = mr.length;
   if (mrLen > 0) {
     html += '<div style="font-size:9px;color:#6e7681;margin-bottom:4px;font-weight:600">MONTHLY RECURRING</div>';
@@ -1370,11 +1453,12 @@ function renderStandingOrders() {
     <button onclick="addMonthlyItem(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button></div>`;
   html += '</div>';
 
-  // Yearly — editable
+  // Yearly — editable, 월/일 오름차순
   html += '<div id="soTab-yearly" style="display:none">';
   const yLen = (standingData.yearly || []).length;
   const selStyle = 'background:#0d1117;border:1px solid #30363d;color:#f0c040;font-size:10px;border-radius:2px';
-  (standingData.yearly || []).forEach((y, i) => {
+  const yearlyDisplayOrder = (standingData.yearly || []).map((y, i) => ({ y, i })).sort((a, b) => (a.y.month - b.y.month) || ((a.y.day || 0) - (b.y.day || 0)));
+  yearlyDisplayOrder.forEach(({ y, i }) => {
     const isCurrent = y.month === currentMonthNum;
     const dayVal = y.day || 0;
     const dayOpts = '<option value="0"' + (!dayVal?' selected':'') + '>-</option>' +
@@ -1924,6 +2008,18 @@ function editFrameItem(ftype, cat, idx, text) {
   const item = getFrameItem(ftype, cat, idx);
   item.text = text.trim();
   setFrameItem(ftype, cat, idx, item);
+  // 6PILLARS (hexagonal) sync across all frame types
+  if (cat === 'hexagonal') {
+    FRAME_TYPES.forEach(ft => {
+      if (ft === ftype) return;
+      const ftItems = framesData[ft]?.categories?.hexagonal?.items;
+      if (ftItems && idx < ftItems.length) {
+        const ftItem = getFrameItem(ft, cat, idx);
+        ftItem.text = text.trim();
+        setFrameItem(ft, cat, idx, ftItem);
+      }
+    });
+  }
   saveFramesData();
 }
 

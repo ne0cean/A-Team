@@ -1,5 +1,7 @@
 # /marketing-generate — 콘텐츠 생성
 
+> Analytics: `node scripts/log-event.mjs command_start name=marketing-generate` — 실행 시작 시 반드시 호출
+
 **용도**: 블로그/아티클 생성. 리서치 → 초안 → 인간 리뷰 게이트.
 
 ## 실행 흐름

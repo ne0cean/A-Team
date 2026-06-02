@@ -2,6 +2,8 @@
 description: /design-score — UI/PPT 빌드 후 품질 평가 + 학습 루프
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=design-score` — 실행 시작 시 반드시 호출
+
 # /design-score — 디자인 품질 피드백 루프
 
 > Build → Capture → Score → Learn → Adjust

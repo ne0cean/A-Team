@@ -2,6 +2,8 @@
 description: GitHub PR 리뷰 — 변경사항 분석 후 reviewer 에이전트 리뷰 + GitHub 코멘트 게시
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=github-review` — 실행 시작 시 반드시 호출
+
 GitHub PR 코드 리뷰를 자동화합니다. 인수로 PR 번호를 전달하거나, 없으면 가장 최근 열린 PR을 대상으로 합니다.
 
 ## 실행 흐름

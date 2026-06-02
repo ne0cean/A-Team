@@ -12,6 +12,8 @@ allowed-tools:
   - Bash
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=webapp-prd` — 실행 시작 시 반드시 호출
+
 # Web Application PRD Generator
 
 > **Deprecated**: `/prd`로 통합됨. `/prd $ARGUMENTS` 실행.

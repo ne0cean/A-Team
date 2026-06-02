@@ -8,6 +8,8 @@ allowed-tools:
   - Glob
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=csv-clean` — 실행 시작 시 반드시 호출
+
 # CSV Data Quality Cleaner
 
 CSV 파일의 데이터 품질 문제를 정리한다. Excel 없이도 독립 사용 가능 (은행 CSV, API 내보내기 등).

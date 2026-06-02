@@ -2,6 +2,8 @@
 description: /qa — 웹 앱 체계적 QA 테스트
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=qa` — 실행 시작 시 반드시 호출
+
 `qa` 서브에이전트(subagent_type="qa")를 호출하여 실행하세요.
 
 - 사용자 인자(URL, --pages, --category)가 있으면 그대로 전달

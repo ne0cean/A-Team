@@ -2,6 +2,8 @@
 description: /legal-check — 프로젝트 법률 문서 컴플라이언스 검사
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=legal-check` — 실행 시작 시 반드시 호출
+
 현재 프로젝트의 법률/컴플라이언스 상태를 검사한다.
 
 ## Step 1 — 라이선스 컴플라이언스

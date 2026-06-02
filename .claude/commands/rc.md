@@ -2,6 +2,8 @@
 description: 리모트 컨트롤 핸드오버 — 디바이스 간 작업 컨텍스트를 심리스하게 이어줍니다
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=rc` — 실행 시작 시 반드시 호출
+
 # /rc — Remote Control 핸드오버
 
 디바이스를 오가며 작업을 이어받습니다. **릴레이 서버 상태에 따라 자동으로 Send/Receive 모드를 판단**합니다.

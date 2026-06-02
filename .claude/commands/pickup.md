@@ -37,6 +37,16 @@ fi
 
 ---
 
+## Step 0.5 — Scheduled Reviews
+
+```bash
+node ~/Projects/a-team/scripts/check-scheduled-reviews.mjs 2>/dev/null || true
+```
+- due 항목 있음 → 브리핑에 포함 + "예약 리뷰 N건 도래" 안내
+- due 항목 없음 → 스킵
+
+---
+
 ## Step 1 — 상태 확인 (흔적 있을 때만)
 
 ```bash

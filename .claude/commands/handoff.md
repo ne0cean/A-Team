@@ -2,6 +2,8 @@
 description: 모델 전환 핸드오프 — 현재 맥락을 저장하고 새 AI로 전달할 프롬프트 생성
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=handoff` — 실행 시작 시 반드시 호출
+
 모델 전환(토큰 소진 / 다른 AI로 전환)을 준비합니다. 즉시 실행합니다.
 
 ## 실행 순서

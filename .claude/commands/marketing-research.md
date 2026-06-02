@@ -1,5 +1,7 @@
 # /marketing-research — 리서치 파이프라인
 
+> Analytics: `node scripts/log-event.mjs command_start name=marketing-research` — 실행 시작 시 반드시 호출
+
 **용도**: 콘텐츠 제작 전 완전한 시장 리서치 실행. 키워드 분석 → 경쟁사 분석 → 오디언스 인텔리전스 → 트렌드 → 콘텐츠 브리프 생성.
 
 ## 플래그

@@ -2,6 +2,8 @@
 description: Research Mode 관리 — 자율 리서치 에이전트 시작/정지/상태 확인
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=re` — 실행 시작 시 반드시 호출
+
 Research Mode 데몬을 관리합니다.
 사용자가 입력한 인수를 확인하여 해당 작업을 **즉시 실행**합니다. 인수 없으면 status를 실행합니다.
 

@@ -18,6 +18,212 @@ SSIONS — A-Team 세션 로그
 
 ---
 
+## [2026-05-28] Dashboard 통합 앱 전환 (OneNote 구조)
+
+**완료**: 프론트엔드 모듈 분리 (2014줄→셸+CSS+JS), 원노트 구조 (좌측 사이드바+메인 대시보드), 노트 열람/편집/생성, 이미지 업로드(파일+붙여넣기→GitHub), Capture 바, 통합 검색(D1+GitHub), PWA SW, 월 경계 데이터, PC 사이드바 토글.
+**이슈**: `const API=''` 누락→캘린더 미렌더링 (배포 전 검증 미흡). GitHub tree 캐시 지연. SW 캐시 업데이트 지연.
+**빌드**: ✅ 583 tests PASS
+
+## [2026-05-27] Cortex 뇌 시스템 + MeiliSearch + Dashboard 개선 + 모델 오케스트레이션 감사
+
+**완료**: Cortex Tier 1 구현(catalog/access-log/cortex-health/system-health + /vibe tidy 자동화). MeiliSearch 3499문서 인덱싱(typo tolerance). Telegram 검색(?키워드 → cortex+DDG+Groq 종합) + 일정 추가(28 w 팀미팅) + 음성 전사. Dashboard UI 대규모 개선(viewport 1200px 고정, pull-to-refresh, URL 자동링크, EX 헤더 통합, 캘린더 이전/다음달 표시, recurring 체크 가능, Worker save 안전장치 수정). AI-native PKM 20개 벤치마크. 모델 오케스트레이션 리뷰 — 로컬 모델 사용 0건 적발, 강제 훅 작성(미등록). 냉철한 제언 6건(인프라 중독, Connectome 즉시 시작, String 강화).
+**이슈**: 모델 오케스트레이션 훅 settings.json 미등록(deny됨). MeiliSearch launchd 미등록. Dashboard 캘린더 말일 버그 잔존 가능. GitHub Push Protection 차단(MSAL 토큰 — unblock URL 필요).
+**빌드**: ✅ 583 tests PASS
+
+## [2026-05-26] Dashboard 클라우드 배포 + 보안 감사 + Obsidian Mobile
+
+**완료**: Cloudflare Workers+D1 배포(`cortex.feat-breeze.workers.dev`). 레드팀 E2E 감사→P0/P1 8건 수정(봇 토큰 env, Worker 인증, execSync→fetch, 0.0.0.0→127.0.0.1, save() 에러, 입력 검증). tidy-inbox 자동분류 스크립트+cron. 외부 모델 교차 감사(Groq Llama 70B) 구조 추가. Telegram 텍스트 E2E 검증. Obsidian Mobile iCloud symlink 설정. `/end` PRD 자동 동기화 Step 3.45. Favicon.
+**이슈**: Telegram offset 미영속(재시작 시 중복). 사진/링크/음성 미테스트. 로컬↔D1 동기화 자동화 미구현. Dashboard 프론트 AUTH 토큰 하드코딩(public HTML에 노출).
+**빌드**: ✅ 583 tests PASS
+
+## [2026-05-26] Cortex 구조 확정 + 모바일 캡처 인프라
+
+**완료**: Cortex PARA-B 구조 확정 — areas→"hexagonal pillars_rocks_helm" rename, 6pillars(845md)+3_Archive(451md) 기둥별 매핑 병합, 1_Projects(343md)→projects/ 이동, ritual-routine 중복 해소. Telegram→cortex/inbox 자동 캡처 데몬(launchd 상시). Obsidian vault 설정. PKM 6시스템 세부분류 벤치마크 리서치 완료.
+**이슈**: Obsidian Mobile 동기화 방식 미결정 (iCloud symlink vs Working Copy). Cortex 상세 구조(depth 2 + MOC + naming) 다음 세션에서 확정 필요.
+**빌드**: ✅ 583 tests PASS
+
+## [2026-05-26] Cortex Ritual Dashboard v2 전면 리빌드
+
+**완료**: OneNote 10년 주간 플래너 → localhost:7843 대시보드 완전 이전. 서버 v2 (20+ API), Day Frames 시스템 (3 day types + routine/todo + 이월), Standing Orders 4탭 CRUD, 공휴일 33개 + HF 11개 캘린더 반영, Vision & Milestones 5개년 테이블, 크로스데이 D&D, 하이퍼링크, Undo, 디자인 개선. 데이터 마이그레이션 (May 209 + June 344 items), 오타 16건 수정.
+**이슈**: 데이터 유실 3회 발생 (SW 캐시, 마이그레이션 덮어쓰기, inject-frames 빈 데이터). 빈 데이터 저장 방지 안전장치 추가로 해결. OneNote 원본 재파싱 미완 (git .md 기반 오타 잔존).
+**빌드**: ✅ 583 tests PASS
+
+---
+
+## [2026-05-25] Cortex 워크스페이스 + YT 16개 분석 + PKM 벤치마크 + 거버넌스 V2
+
+**완료**:
+- Cortex PARA 워크스페이스 전면 재설계 (디렉토리 재편, 커맨드 7개, CORTEX.md 매뉴얼, VS Code 설정)
+- 거버넌스 V2 — Cascade Updates, Typed Links(7종), NoteType(5종), Knowledge Consolidation, Worker Output Rule
+- YouTube 16개 영상 Groq Whisper 전사 + 5그룹 분석 리포트 + 즉시 적용 6건 (opusplan, LSP, Plan-Annotate-Execute, /ppt Q0, yt --transcribe, MSAL 갱신)
+- Ritual Board recurring templates (JSON + API 5개 + 자동주입)
+- OneNote migration 완료 (1,639파일, MSAL 자동갱신, 3_Archive 451)
+- PKM 벤치마크 14개 + 5개 GitHub 레포 딥다이브 (소스코드 직접 분석)
+- SKILL.md 호환성 분석 (70-80% 변환 가능)
+- Connectome에 위키 패턴 적용 (/idea /inbox /consolidate /recall)
+- wiki-types.ts 확장 (WikiCategory +5, LinkType 7종, NoteType 5종)
+
+**이슈**: Whisper 로컬 CPU 과부하 → Groq API 전환으로 해결. 백그라운드 작업 실패 미보고 → 피드백 반영(즉시 알림 규칙).
+**빌드**: ✅ 583 tests PASS
+
+---
+
+## [2026-05-25] Idea Auto-Accumulation System
+
+**완료**:
+- `/end` Step 1.5 Idea Harvest 추가 (아이데이션 세션 판별 게이트 + 중복 수확 방지)
+- `/brainstorm` Step 4.5 Registry Sync 추가 (복귀 선언 뒤 실행)
+- `/mece-gap` 신규 커맨드 (F1 형태학적 빈 셀 기본, --deep 시 F2-F9)
+- CLAUDE.md 자동 제안 테이블에 `/idea`, `/mece-gap` 추가
+- 레드팀 리뷰 4건 반영
+
+**이슈**: 없음
+**빌드**: 테스트 없음 (커맨드/거버넌스 파일만 수정)
+
+---
+
+## [2026-05-24] Cortex 통합 + Ritual Dashboard + Thinking Toolkit
+
+**완료**:
+- OneNote InterStellar 447페이지 cortex 분류 완료 (961 files). classify.py 2회 실행. 6 Hexagonal Pillars 구조 확인.
+- Cortex 웹 대시보드 (localhost:7843) — contenteditable 캘린더 그리드. 체크/편집 → .json+.md 즉시 저장. launchd 자동시작.
+- OneNote 링크 주입 (inject-links.py) — 139파일 frontmatter에 onenote_url 추가
+- snapshot.py + sync.py — OneNote 변경 감지 + 차분 동기화
+- staging 192페이지 추가 다운로드 (6기둥 섹션). 360페이지 남음 (토큰 만료)
+- Thinking Toolkit (`cortex/thinking-toolkit.md`) — 자동감지 + /end 수확 프로토콜. Ideation Frameworks 5개.
+- `/morning` 스킬 — 목표 상기 + One Thing 강제 + Pillar 연결
+- ritual-routine-archive.sh + new-month.sh
+
+**이슈**:
+- OneNote API 토큰 1시간 만료 — 360페이지 미완료 (6기둥 본체)
+- markdownify 변환 품질 — 원노트 spatial layout → .md 변환 시 가독성 저하
+- 스크린샷 OCR 오류 — 원본 API 데이터가 아닌 캡처에서 텍스트 추출한 실수. 원본 .md 파일 활용으로 수정 방향 확정.
+- 대시보드 하단 섹션 (상시/Yearly/Monthly/Vision/Character) 마이그레이션 미착수 — 다음 세션
+
+**빌드**: ✅ 563 tests PASS
+
+---
+
+## [2026-05-23] OneNote → Obsidian 마이그레이션
+
+**완료**:
+- OneNote InterStellar 노트북 → Obsidian 마이그레이션 375/~475페이지 (79%)
+- Microsoft Graph API + device code flow + markdownify HTML→MD 변환
+- 12섹션(1_, 2.SLL, 3.HFK, 5.Sport, A TEAM, Dashboard, MK1, MKT_FB, Side hustle, Writing, 1.Character 등) 17디렉토리
+- skip-existing 재실행 가능 스크립트 (`/tmp/onenote-migration/migrate.py`)
+
+**이슈**:
+- API 속도제한(429 Too Many Requests) — REQUEST_DELAY 1.0s + 점진적 백오프로 대응
+- 토큰 1시간 만료 — 재인증 1회 수행, 2차 만료로 ~100페이지 미완료 (1. Character 61/100~)
+- device code flow에서 인증과 마이그레이션을 별도 프로세스로 실행하면 토큰 유실 → `auth_and_run.py` 통합 스크립트로 해결
+
+**빌드**: ✅ 563 tests PASS
+
+---
+
+## [2026-05-23] Quality Pipeline + PRD + do-better 마이그레이션
+
+**완료**:
+- Quality Pipeline 3-Layer (property-based + mutation + fitness + Layer 2 자동 리뷰 + CI mutation job)
+- Branch Protection 설정 (master PR+CI 필수)
+- A-Team PRD v1.0 작성 (/office-hours Amazon 모드 → PR/FAQ → PRD)
+- 핵심 발견: 74개 중 5개만 사용, 인간 호출 의존 구조
+- PRD Gate (governance/rules/prd-gate.md + vibe Step 0.9) — PRD 없이 빌드 금지
+- do-better-workspace-v2 라인바이라인 분석 (119파일, 23K줄, 22 skills, 5 agents)
+- do-better 마이그레이션 Phase 1: researcher 소스 체이닝 업그레이드, analysis-worker/content-worker 신규 (슬롭 점검+6단계 분석)
+- Anti-Slop 원칙 quality-pipeline.md 반영
+- A-Team-1 → a-team 중복 clone 통합
+- bypass 모드 활성화
+**이슈**: 없음
+**빌드**: ✅ 563 tests PASS (기존 flaky 1건)
+
+## [2026-05-23] Quality Pipeline + 탑 클래스 개발 프로세스
+
+**완료**:
+- Quality Pipeline 3-Layer 시스템 (governance/rules/quality-pipeline.md SSOT)
+- 12개 개발 방법론 시그널 자동 전환 (CLAUDE.md)
+- Property-Based Testing — fast-check v4.8, 12 tests (confidence.ts + harness-score.ts)
+- Mutation Testing — StrykerJS v9.6.1, stryker.config.mjs, npm run mutate
+- Architecture Fitness Functions — 6 tests (레이어 경계 + 순환 의존성 + 모듈 독립)
+- CI mutation job 추가 (PR only, incremental 캐시)
+- Branch Protection 설정 완료 (master PR+CI 필수)
+- PR 템플릿 quality gates 강화
+- /end에서 리뷰 제거 → Layer 2 (빌드 완료 시점)로 이동
+**이슈**: 없음
+**빌드**: ✅ 576 tests PASS (기존 flaky 1건)
+
+## [2026-05-16] 디자인 거버넌스 + PPT 파이프라인 수정
+
+**완료**:
+- 디자인 토큰 템플릿 5프리셋 + variables.css + tailwind-tokens.js
+- 디자인 드리프트 감지기 (CSS/JSX 매직넘버 스캔, A~F 등급)
+- designer 에이전트 3단계 토큰 라이프사이클
+- PPT 파이프라인 consulting 모드 + 테마 라우팅
+- Growth Engine 일간 실행 GREEN 3건 적용
+**이슈**: 없음
+**빌드**: ✅ 531 tests PASS
+
+## [2026-05-15] Growth Engine (자율 성장 엔진)
+
+**완료**:
+- /daily-brief 자율 성장 엔진 (크롤링→분석→자동 적용→보고)
+- growth-engine 에이전트 (GREEN/YELLOW/RED 안전 등급)
+- 거버넌스 주기 완성: 일간(/daily-brief) + 주간(/insights) + 월간(/board)
+- /daily-review deprecated → /daily-brief 흡수
+**이슈**: 없음
+**빌드**: ✅ 532 tests PASS
+
+## [2026-05-22] Wiring Integrity 자동 검증 + Scheduled Reviews 시스템
+
+**완료**:
+- wiring integrity 테스트 4종 (refs/agents/bash/frontmatter) — npm test 자동 실행
+- scheduled-reviews 시스템 — JSON 등록 → vibe/pickup에서 due 항목 자동 표시
+- governance/rules/no-watch-promises.md — "지켜보겠다" 거짓 약속 금지 규칙
+- PMI 완전 실행 — Phase 1-5 + adversarial CONFIRMED 5건 수정
+- $VAR한글 bash 버그 6건 수정 (absorb-scan.sh + intel.md)
+- coding-safety.md §3 한국어+Bash 변수 안전 규칙
+- pmi.md SSOT drift 해소 (adversarial "선택"→"필수")
+- intel-analyzer.md name 필드 추가
+- reference/resources.md WSJ Guide 레퍼런스 저장
+
+**이슈**: WSJ Guide Scribd 페이지 파싱 미완 (인증 벽). 로컬 PDF 확보 후 재시도 필요
+**빌드**: ✅ 558 tests PASS (47 files)
+
+---
+
+## [2026-05-21] PPT benchmark corpus + consulting planner 연결
+
+**완료**:
+- 공식 컨설팅 벤치마크 코퍼스 추가 (`reference/ppt-benchmarks/manifest.json`, `selected-slides.json`, README)
+- `scripts/ppt/benchmark-corpus.mjs` 추가: 공식 PDF fetch, PyMuPDF fallback render, 로컬 캐시 분리
+- `scripts/ppt/benchmark-audit.mjs` 추가: action title / evidence density / placeholder / bloated big number / decorative layout 점수화
+- `scripts/ppt/server.py`를 템플릿 나열식에서 컨설팅 narrative 기반 planner로 교체
+- benchmark gate를 spec 생성 직후 연결
+- `scripts/ppt/generate_consulting.py`의 `bar_chart`/`data_table` 변환 필드 정합성 수정
+- 새 spec benchmark score `100/100 A`, consulting PPT QA `100/100 A`, 전체 테스트 `544 PASS`
+
+**이슈**: macOS Quick Look 썸네일에서 한글이 `?`로 렌더링됨. `mckinsey_pptx` CJK 폰트 경로 추가 점검 필요
+
+**빌드**: ✅ `npm run build`, `npm test`
+
+## [2026-05-21] Multi-Agent 지원 구조 + 문서 hygiene
+
+**완료**:
+- AGENTS.md 신설 + CLAUDE.md 레이어 분리 (Claude Code 전용 / Universal 분리)
+- GEMINI.md 자동 생성 → Codex·Gemini CLI 멀티 에이전트 대응
+- scripts/sync-agents.mjs: pre-commit hook으로 AGENTS/GEMINI.md 자동 동기화
+- vibe-init.sh: 세션 시작 시 프로젝트에 AGENTS.md + GEMINI.md 자동 복사
+- 문서 drift 수정: README 537→531, package.json ISC→MIT, PROTOCOL.md 참조 3개
+- governance/rules/lifecycle.md: 커맨드 상한선 60→80 현실화
+- CURRENT.md 200→165줄 (2주 초과분 이관)
+- launchctl 스크립트 4개 Windows 무음 실패 → 명시적 경고 후 exit
+
+**이슈**: Windows에서 mklink symlink 실패 → cp fallback (진짜 symlink 아님, vibe-init 복사로 대체)
+
+**빌드**: ✅ (문서·스크립트·거버넌스 변경, 테스트 없음)
+
+---
+
 ## [2026-05-16] 디자인 거버넌스 시스템 + PPT 파이프라인 수정
 
 **완료**:
@@ -1031,31 +1237,14 @@ de9c77d [feat]: 토큰 비용 추정 + Pre-Check Skip Gate 실행체 (171 tests)
 - 8d11d21 docs: 통합 평가 프레임워크 추가 (17번 doc)
 - 2c0caa3 feat: 멀티 에이전트 패턴 Phase 1 통합 (MoA + Guardrail + Checkpointing)
 
-## [2026-06-01] 기획-검수-빌드-검수 4-레이어 품질 사이클 구축
+## [2026-05-25] PMI + Design INDEX + Cortex PARA 재편
 
 **완료**:
-- 시스템 감사: 레슨↔규칙↔훅 3레이어 단절 구조 문제 발견 (8개 P0/P1/P2 갭)
-- P0 갭 수정: pre-bash.sh 등록, pre-write.sh 등록, model-compliance.sh 등록, SubagentStop 훅 추가
-- 4-레이어 Shift-Left 품질 아키텍처 신규 구현: Layer 0~3 완성
-- pre-edit-cortex.sh (Layer 1 BLOCK) + post-edit-cortex.sh (Layer 2 warn) 신규
-- post-deploy-verify.sh Layer 3 D1 검증 스크립트
-- /end Step 6.75 레슨→훅 커버리지 체크 추가
-- /plan-eng 검토 → APPROVED (T7 wrangler auto-trigger, T8 /end 훅 체크 구현)
-- pre-edit-cortex.sh BLOCK 검증 완료 (exit 2 확인)
+- PMI 5-Phase — fast-check 설치, wiki-types TSC 수정, CLAUDE.md 축소, 583 tests PASS
+- Design Taste Evaluator Phase 1 — INDEX.md 72 brands, 8 categories, tone clusters
+- Cortex 재편 — staging 587파일 OneNote 원본 구조 복원, pillars/areas 중복 제거, Dashboard 100개 6기둥 분류
+- OneNote 누락 658개 다운로드 (2_6 pillars 2~6번 전체)
+- claude 실행 문제 해결 (claude-remote 서버 종료)
 
-**이슈**: macOS bash 3.2 declare -A 미지원 (pre-existing, 기능 영향 없음)
-**빌드**: ✅ 537 tests PASS (40 files)
-
-## [2026-05-25~28] Dashboard 통합 앱 전환 + Cortex 뇌 시스템 + MeiliSearch
-
-**완료**:
-- 프론트엔드 모듈 분리 (2014줄 → index.html + css/main.css + js/app.js) + Cloudflare Workers assets 서빙
-- 원노트 구조 적용: 좌측 사이드바(cortex 노트 트리) + 메인(캘린더)
-- 노트 뷰어/에디터, 이미지 업로드, 새 노트 생성, Capture 바, 통합 검색
-- Cortex 뇌 시스템: catalog.jsonl + access-log + cortex-health + system-health
-- MeiliSearch v1.45.0 도입: 3499문서 인덱싱, Telegram 검색 연동
-- Obsidian Mobile iCloud symlink, PKM PARA+6기둥 구조 확정
-- 583 tests PASS (50 files)
-
-**이슈**: API 상수 누락으로 캘린더 렌더 실패 → 수정
-**빌드**: ✅ 583 tests PASS
+**이슈**: OneNote 3_Archive 미다운로드 (Microsoft API 장애)
+**빌드**: ✅ 583 tests PASS (50 files)

@@ -10,7 +10,7 @@
 1. 이 파일 (PROTOCOL.md)            ← 지금 읽는 중
 2. docs/06-build-methodology.md     ← 5-Phase 전체 라이프사이클
 3. docs/08-orchestration-patterns.md ← 어떤 구조로 짤 것인가
-4. docs/09-production-strategy.md   ← 어떤 도구로, 어떻게 운영할 것인가
+4. docs/08-orchestration-patterns.md ← 어떤 도구로, 어떻게 운영할 것인가
 ```
 
 ---
@@ -35,13 +35,13 @@
   → 파일 소유권 선언 → PARALLEL_PLAN.md 작성 (templates/PARALLEL_PLAN.md)
 
 [Phase 3] Execution
-  → 에이전트 스폰 (docs/07 또는 수동)
+  → 에이전트 스폰 (docs/10-claude-code-subagents.md 또는 수동)
   → 통신: inbox 메시지 / CURRENT.md (docs/04)
   → 블로커 발생 시 CURRENT.md에 즉시 기록
 
 [Phase 4] Monitoring
   → clawteam board attach (실시간) 또는 CURRENT.md 주기 확인
-  → 중요 변경 전후 Reviewer 에이전트 호출 (docs/09 전략 3)
+  → 중요 변경 전후 Reviewer 에이전트 호출 (docs/08-orchestration-patterns.md 전략 3)
   → 품질 게이트 / 토큰 예산 / 정지 조건 (docs/08 Step 6)
 
 [Phase 5] Integration
@@ -69,12 +69,12 @@
 | 04 | `docs/04-coordination-protocol.md` | 비동기 파일 기반 에이전트 간 조율 |
 | 05 | `docs/05-mcp-servers.md` | 멀티 에이전트용 MCP 서버 선택 가이드 |
 | 06 | `docs/06-build-methodology.md` | **5-Phase 완전 라이프사이클** ← 핵심 |
-| 07 | `docs/07-clawteam.md` | ClawTeam CLI 치트시트 + 수동 조율 비교 |
+| 07 | *(삭제됨)* | ClawTeam CLI 문서 — 해당 내용은 docs/10-claude-code-subagents.md 참조 |
 | 08 | `docs/08-orchestration-patterns.md` | TAO루프 / Supervisor / Swarm / 계층형 패턴 |
-| 09 | `docs/09-production-strategy.md` | LangGraph / CrewAI / MCP+ClawTeam 선택 + 3가지 운영전략 |
+| 09 | *(삭제됨)* | 운영전략 — 해당 내용은 docs/08-orchestration-patterns.md 참조 |
 | 10 | `docs/10-claude-code-subagents.md` | Claude Code 서브에이전트 5종 운용 가이드 |
 | 11 | `docs/11-integration-guide.md` | Vibe-Toolkit + A-Team 통합 가이드 |
-| 12 | `docs/12-harness-engineering.md` | **하네스 엔지니어링** (확정적 AI 제어 레이어) |
+| 12 | `docs/12-harness-and-hooks.md` | **하네스 엔지니어링** (확정적 AI 제어 레이어) |
 | 13 | `docs/13-context-continuity-protocol.md` | **맥락 지속성 프로토콜** (Mirror & Sync) |
 | 14 | `docs/14-mobile-development.md` | **모바일 개발 가이드** (폰에서 Claude & Antigravity) |
 

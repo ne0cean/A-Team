@@ -2,7 +2,7 @@
 
 > The AI team that works while you sleep.
 
-![Tests](https://img.shields.io/badge/tests-537%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-531%20passing-brightgreen)
 ![Commands](https://img.shields.io/badge/commands-74-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -27,7 +27,7 @@ You write the direction. A-Team handles the rest — including overnight.
 | Legal / compliance | — | — | — | **/legal-check** |
 | OKR / strategy | — | — | — | **/okr /board** |
 | Governance rules | — | — | — | **31 rules** |
-| Test coverage | — | — | — | **537 tests** |
+| Test coverage | — | — | — | **531 tests** |
 
 ### Five things that set A-Team apart
 
@@ -204,7 +204,7 @@ a-team/
 ├── governance/          # 31 rules + 18 skill packs
 ├── scripts/             # 78 automation scripts
 ├── templates/           # 18 project templates
-└── test/                # 40 test suites (537 tests)
+└── test/                # 40 test suites (531 tests)
 ```
 
 ### Agent roles

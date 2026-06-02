@@ -71,6 +71,35 @@ if [ -d "$AGENT_SRC" ]; then
   echo "   총 $(ls "$AGENT_DST"/*.md 2>/dev/null | wc -l | tr -d ' ')개 에이전트 설치됨"
 fi
 
+# --- AGENTS.md 연결 (타 에이전트용) ---
+# 현재 디렉토리에 AGENTS.md 연결 생성 (프로젝트별 실행 시)
+AGENTS_SRC="$ATEAM_DIR/AGENTS.md"
+AGENTS_DST="$(pwd)/AGENTS.md"
+
+if [ "$(pwd)" != "$ATEAM_DIR" ]; then
+  # Windows: mklink로 진짜 심링크, 실패 시 복사본 fallback
+  if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+    WIN_SRC=$(cygpath -w "$AGENTS_SRC" 2>/dev/null || echo "$AGENTS_SRC")
+    WIN_DST=$(cygpath -w "$AGENTS_DST" 2>/dev/null || echo "$AGENTS_DST")
+    if [ -L "$AGENTS_DST" ] 2>/dev/null; then
+      echo "✅ AGENTS.md — 이미 심링크"
+    else
+      rm -f "$AGENTS_DST"
+      cmd /c mklink "$(cygpath -w "$AGENTS_DST")" "$(cygpath -w "$AGENTS_SRC")" >/dev/null 2>&1 \
+        && echo "✅ AGENTS.md — Windows 심링크 생성" \
+        || { cp "$AGENTS_SRC" "$AGENTS_DST"; echo "✅ AGENTS.md — 복사본 생성 (mklink 권한 없음 — 개발자 모드 권장)"; }
+    fi
+  else
+    # macOS / Linux: 일반 symlink
+    if [ -L "$AGENTS_DST" ] && [ "$(readlink "$AGENTS_DST")" = "$AGENTS_SRC" ]; then
+      echo "✅ AGENTS.md — 이미 최신 심링크"
+    else
+      ln -sf "$AGENTS_SRC" "$AGENTS_DST"
+      echo "✅ AGENTS.md — 심링크 생성 (Codex/Gemini 등 타 에이전트용)"
+    fi
+  fi
+fi
+
 # Guard: docs/commands/ 에 .claude/commands/에 없는 커맨드가 있으면 경고
 DOCS_CMD="$ATEAM_DIR/docs/commands"
 if [ -d "$DOCS_CMD" ]; then

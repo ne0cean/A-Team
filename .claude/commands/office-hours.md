@@ -3,6 +3,14 @@
 코드 작성 전 아이디어를 체계적으로 검증한다.
 `/plan-ceo-review` 또는 `/plan-eng-review` 전에 사용.
 
+## Step -1 — Ideation Frameworks 로드 (필수)
+
+```bash
+cat ~/Projects/a-team/cortex/thinking-toolkit.md | grep -A 200 "## Ideation Frameworks"
+```
+
+8프레임(F1-F8)을 읽고, 빌더 모드 브레인스토밍 시 적절한 프레임을 제안한다.
+
 ## 언제 사용하나
 - "이거 만들 가치가 있을까?"
 - "어떻게 접근하면 좋지?"

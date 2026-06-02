@@ -2,6 +2,8 @@
 description: /card-news — 인스타그램 카드뉴스 8장 자동 생성
 ---
 
+> Analytics: `node scripts/log-event.mjs command_start name=card-news` — 실행 시작 시 반드시 호출
+
 # /card-news — 카드뉴스 자동 생성
 
 > **출처**: 짐코딩 (https://youtu.be/501KRO5QSXM)

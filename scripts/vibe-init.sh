@@ -65,9 +65,23 @@ if [ -n "$ATEAM_PATH" ]; then
     fi
   fi
 
-  if ! readlink ~/.claude/commands/end.md 2>/dev/null | grep -q a-team; then
+  if ! readlink ~/.claude/commands/end.md 2>/dev/null | grep -qi a-team; then
     SYMLINK_OK=false
     add_alert "symlink broken"
+  fi
+
+  # AGENTS.md / GEMINI.md 자동 동기화 — 현재 프로젝트가 A-Team이 아닐 때만
+  CURRENT_DIR="$(pwd)"
+  if [ "$CURRENT_DIR" != "$ATEAM_PATH" ]; then
+    for agent_file in AGENTS.md GEMINI.md; do
+      SRC="$ATEAM_PATH/$agent_file"
+      DST="$CURRENT_DIR/$agent_file"
+      if [ -f "$SRC" ]; then
+        if [ ! -f "$DST" ] || ! diff -q "$DST" "$SRC" >/dev/null 2>&1; then
+          cp "$SRC" "$DST"
+        fi
+      fi
+    done
   fi
 fi
 
@@ -110,11 +124,13 @@ if [ -f ".context/RESUME.md" ]; then
   fi
 fi
 
-# === Step 0.6b: launchd 확인 ===
-PROJ_NAME=$(basename "$(pwd -P)" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')
-LABEL="com.ateam.sleep-resume.${PROJ_NAME}"
-[ "$(pwd -P)" = "$ATEAM_PATH" ] && LABEL="com.ateam.sleep-resume"
-launchctl list 2>/dev/null | grep -q "$LABEL" && LAUNCHD_ACTIVE=true
+# === Step 0.6b: launchd 확인 (macOS 전용) ===
+if [[ "$(uname)" == "Darwin" ]]; then
+  PROJ_NAME=$(basename "$(pwd -P)" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')
+  LABEL="com.ateam.sleep-resume.${PROJ_NAME}"
+  [ "$(pwd -P)" = "$ATEAM_PATH" ] && LABEL="com.ateam.sleep-resume"
+  launchctl list 2>/dev/null | grep -q "$LABEL" && LAUNCHD_ACTIVE=true
+fi
 
 # === Step 0.66: DESIGN.md ===
 DESIGN_MD=$(ls DESIGN.md design.md 2>/dev/null | head -1 || true)
@@ -136,6 +152,16 @@ if [ -f "improvements/pending.md" ]; then
   PENDING_IMP=$(grep -c "⏳" "improvements/pending.md" 2>/dev/null || echo 0)
   PENDING_P0=$(grep "⏳.*P0" "improvements/pending.md" 2>/dev/null | wc -l | tr -d ' ' || echo 0)
   [ "$PENDING_P0" -gt 0 ] && add_alert "P0: ${PENDING_P0}"
+fi
+
+# === Step 0.7: Daily Brief 자동 수집 ===
+if [ "$(basename "$(pwd -P)")" = "a-team" ]; then
+  TODAY=$(date +%Y-%m-%d)
+  BRIEF_DIR=".context/briefs"
+  mkdir -p "$BRIEF_DIR" 2>/dev/null
+  if [ ! -f "${BRIEF_DIR}/${TODAY}-collect.json" ]; then
+    node scripts/daily-brief-collect.mjs --save 2>/dev/null && add_alert "daily-brief: collected" || true
+  fi
 fi
 
 # === Git 상태 ===
@@ -188,5 +214,21 @@ else
     IFS='|' read -ra ACT_ARR <<< "$ACTIONS"
     for a in "${ACT_ARR[@]}"; do [ -n "$a" ] && echo "→ $a"; done
   fi
+
+  # System health (latest report summary)
+  LATEST_HEALTH=$(ls -t "$REPO_ROOT/.context/briefs/system-health-"*.md 2>/dev/null | head -1)
+  if [ -n "$LATEST_HEALTH" ]; then
+    HEALTH_SCORE=$(grep -o 'Score: [0-9]*/100' "$LATEST_HEALTH" | head -1)
+    HEALTH_ISSUES=$(grep -c '⚠️\|🔴\|❌' "$LATEST_HEALTH" 2>/dev/null || echo 0)
+    echo ""
+    echo "🏥 System: $HEALTH_SCORE (이슈 ${HEALTH_ISSUES}건) — $(basename "$LATEST_HEALTH")"
+  fi
+
+  # Cortex tidy block
+  if [ -f "$REPO_ROOT/scripts/cortex-tidy-pick.mjs" ]; then
+    echo ""
+    node "$REPO_ROOT/scripts/cortex-tidy-pick.mjs" 2>/dev/null || true
+  fi
+
   echo "━━━━━━━━━━━━━━━"
 fi
