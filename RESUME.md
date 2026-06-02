@@ -1,51 +1,31 @@
 ---
 mode: idle
-entered_at: 2026-04-22T05:47:00+09:00
-last_session: 2026-04-22T05:40~05:48 KST
-contract: autonomous-loop.md v2026-04-15 (강제 조항 1-7)
+entered_at: 2026-06-02T07:10:00+09:00
+last_session: 2026-06-02 세션 (병렬 진단 + T4)
 status: queue_complete
-session_goal: "Phase 0 안전 큐 5건 순차 실행 완료"
 ---
 
-## 이전 세션 요약 (2026-04-22)
+## 이전 세션 요약 (2026-06-02)
 
-Phase 0 안전 큐 5건 전부 처리/확인 완료:
-
-| # | 태스크 | 커밋 |
+| # | 태스크 | 결과 |
 |---|--------|------|
-| 1 | 마케팅 5개 커맨드 logMarketingEvent 경로 | `84ca8e7` |
-| 2 | budget-tracker ↔ cost-tracker 통합 (impl + test 3건) | `02bcd66` + `278de73` |
-| 3 | worktree-exec.sh 안내 coder.md 추가 | `7a29a61` |
-| 4 | sleep.md 압축 | N/A — 이미 `/zzz` 통합, 파일 없음 |
-| 5 | eval/templates b3-b5 | N/A — b1~b6 이미 전부 존재 |
+| 1 | QA #2/#16/#24/#26 코드 분석 | 코드 구현됨, 브라우저 확인 필요 |
+| 2 | T1 배지 회귀 복구 | f2686029 배포 완료 |
+| 3 | D1 input↔outcome 진단 | 코드 CLEAN, 마이그레이션 불필요 |
+| 4 | 모델 훅 확인 | 이미 등록됨 |
+| 5 | MeiliSearch | Windows 미설치, 보류 |
+| 6 | Growth System T4 | scripts/cortex-growth-snapshot.mjs 구현+푸시 (52243d5c) |
 
-**검증**: `tsc --noEmit` ✅ · `vitest run` 32 files / 428 tests ALL PASS · 미커밋 파일 없음
+**빌드**: 576 PASS · tsc 0 errors · push 완료
 
-## 다음 세션 우선순위 (CURRENT.md Next Tasks 기준)
+## 다음 세션 우선순위
 
-### High Priority
-1. **`/design-retro` 자동 실행** — 2026-04-22 10:17 KST 예약됨 (크론 소멸 대비 수동도 OK)
-2. **Postiz Docker 가동 + OAuth** → `content/social/2026-04-18-claude-sleep-resume/` 실제 발행
-3. **[HUMAN INSERT] 3개 채우기** — LinkedIn 2개 + Instagram caption 1개
-4. **Advisor tool 라이브 API 테스트** — `ANTHROPIC_API_KEY` 필요
+### P0 (다음 세션 바로 시작)
+1. **Cortex Dashboard #2/#16/#24/#26 브라우저 확인** — 사용자가 브라우저에서 직접 확인 후 이상 항목 Claude에게 CODE-FIX 요청
+2. **Dashboard 통합 앱 안정화** — 모바일 UX, 노트 로딩, 이미지 업로드 실기기 검증
 
-### Medium Priority
-5. `/autoresearch` 파일럿 실행 — `/office-hours` baseline + 3-5 experiments
-6. `/blueprint` 실사용 1회
-7. PMI MEDIUM M4 — ralph-daemon sleep-mode flag
-8. eval-store A/B 수집 개시
-
-### Phase 0.5 (사용자 confirm 대기)
-- `.context/designs/capability-growth-engine.md` — 7 컴포넌트 자동 갭 감지 엔진
-- Confirm 시 Phase 0.5 빌드 시작 (1주 예상)
-
-## 프로젝트 상태
-
-- **Branch**: `master` (8070c6e, origin 대비 +3 커밋 unpushed)
-- **Tests**: 428 PASS / 32 files
-- **tsc**: 0 errors
-- **Blockers**: 없음
-- **Longform 프로젝트**: `/Users/noir/Projects/longform/ai-video-studio/` — 별도 워크스페이스, Intel 다큐 스크립트 작업 중 (A-Team 밖)
+### P1
+3. **제품 빌드 시작** — Connectome MVP (인프라 중독 탈피)
 
 ## Resume
 `/pickup` 시 이 RESUME.md → CURRENT.md Next Tasks 순서로 작업 재개.

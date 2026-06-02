@@ -60,50 +60,24 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-02) — 병렬 진단 + Growth System T4 + QA 마무리
+
+- **병렬 에이전트 3개** — QA 코드 분석 / D1 진단 / 훅+MeiliSearch 상태 확인
+- **T1 배지 회귀 복구** (1585fade) — QA 커밋 과정에서 누락된 done/total 배지 재추가 + 배포 f2686029
+- **input↔outcome 진단 완료** — 코드 CLEAN, 마이그레이션 불필요. 6/1 15:45~22:23 입력분만 UI 수동 확인 권장
+- **모델 훅 확인** — enforce-model-param.js + model-compliance.js 이미 PreToolUse 등록됨
+- **Growth System T4** (52243d5c) — `scripts/cortex-growth-snapshot.mjs` 구현. D1→done/total/pillar/#lesson 집계→analytics.jsonl emit. T1~T4 전체 완료
+- **576 tests PASS** (ppt-benchmark 2개 파일 기존 실패, 무관)
+
 ## Last Completions (2026-06-02) — Cortex Dashboard QA 1차+2차 수정 (20개 항목)
 
-- **1차 배포 (cf2426ed)** — 16개 항목: EX XOR toggle, default day types (getEffectiveDayType), carry-over OUTCOME only, progress bar 제거, SO date column 216px, holidays collapsible, linkify SO/weekly, CTRL+K fix, 이달 메모 bar, 월간/연간 정렬, separator 렌더링+버튼, 6PILLARS sync across frames, italic 제거, day-cell scroll, ONETHING CTRL+K, arrow nav cross-cat
-- **2차 배포 (cdd637d7)** — 4개 항목: #4/#7 scroll jump → requestAnimationFrame 수정, #6 hover 300ms 딜레이, #11 주간 WORK/Activity 구분+오늘추가버튼, #18 FLOW/BLOCK outcome→INPUT/평일 숨김
-- **DECISIONS.md** 갱신, push + wrangler deploy 완료
-- **T1 day cell done/total 배지 복구** (1585fade) — QA 1차 커밋에서 누락된 T1 재추가
-- **#2/#16/#24/#26** — 원본 설명 파일 미존재. 코드 분석 결과 현재 구현 확인됨(브라우저 테스트 권장)
+- 1차(cf2426ed) 16개 + 2차(cdd637d7) 4개 수정·배포. #2/#16/#24/#26 코드 분석 완료(브라우저 확인 대기)
 
-## Last Completions (2026-06-01) — 기획-검수-빌드-검수 4-레이어 품질 사이클 구축
+## Last Completions (2026-06-01) — 기획-검수-빌드-검수 4-레이어 + Dashboard 복구
 
-- **4-레이어 Shift-Left 품질 아키텍처 완성** — 이틀간 데이터 유실·회귀·QA 사고 근본 원인(레슨↔훅 단절) 해결
-- **Layer 0** (UserPromptSubmit): `pre-answer.sh` → cortex 편집 의도 감지 시 DECISIONS.md 자동 주입
-- **Layer 1** (PreToolUse BLOCK): `pre-edit-cortex.sh` → 10개 필수 함수 grep, 누락 시 exit 2 BLOCK (exit 2 검증됨)
-- **Layer 2** (PostToolUse warn): `post-edit-cortex.sh` → 편집 후 회귀 감지, additionalContext 경고 주입
-- **Layer 3** (wrangler deploy): `pre-bash.sh` wrangler detect → 배포 전 verify 프라이밍 systemMessage
-- **post-deploy-verify.sh** — 4개 D1 엔드포인트 자동 검증 스크립트 (수동 실행)
-- **pre-write.sh D1 가드** — INSERT OR REPLACE → 경고, setKey() merge 누락 → 경고
-- **scripts/cortex-dashboard/CLAUDE.md** — D1 SSOT 규칙 + PRE-EDIT 체크리스트 참조 고정
-- **/end Step 6.75** — 새 레슨 기록 시 훅 커버리지 체크 자동화
-- **plan-eng 검토** — APPROVED_WITH_CONCERNS → T7+T8 구현으로 APPROVED 달성
+- 4-레이어 Shift-Left 품질 아키텍처 완성 (Layer 0~3 훅), Dashboard Track A~D 버그 수정·배포, Paperclip 기각 + cherry-pick 로드맵
 - **537 tests PASS** 유지
 
-## Last Completions (2026-06-01) — Cortex Dashboard 사용성 복구 Track A~D + /ship 검증
-
-- **Track A: 버그 4개** — monthly null 크래시(optional chaining), goToDay 스크롤(data-day 속성), 검색 regex(escRegex), 노트 개행(/\n/g)
-- **Track B: Routine bleeding** — 미래 날짜 `_frame` 항목 → "루틴 N▸" 접힌 뱃지, 클릭 시 펼침 (데이터 보존)
-- **Track C: 방향키 탐색** — handleItemKey에 ArrowUp/ArrowDown 추가
-- **Track D: Frame 인라인 편집** — `editFrameItemFromCalendar()` + `toggleEl()` — 전 카테고리 frame 항목 달력에서 직접 편집 → 오늘~월말 자동 재주입
-- **SW v12, CSS (.frame-group-hdr/.body/.frame-text), DECISIONS.md** 갱신
-- **wrangler deploy** — v9875e9be 배포
-- **/plan-eng** — Cortex Dashboard 다음 작업 계획: input↔outcome 진단(T0) + Growth System(T1~T4)
-- **/ship 검증** — monthData.days 접근 버그 발견·수정 후 재배포 v51e19518
-- **537 tests PASS** 유지
-
-## Last Completions (2026-06-01) — Cortex Dashboard 회귀 복구 + 데이터 유실 방지 + Paperclip 분석
-
-- **22개 파일 버전 비교** — 22f3473(어제) vs HEAD(오늘) 병렬 에이전트 4개로 전수 분석. 19개 TODAY_BETTER, 3개 MERGE_NEEDED
-- **app.js 회귀 4건 복구** — Range 기반 Enter 커서 계산, data-d/cat/idx 속성, delItem refocus, Alt+1 단축키 (451/783/808/829번)
-- **day-cell 스크롤바 영구 제거** — app.css overflow-y: auto → hidden (Svelte 빌드가 계속 덮어쓰던 근본 원인)
-- **seed.sql 데이터 유실 방지** — INSERT OR REPLACE → INSERT OR IGNORE 전수 교체. 배포마다 EX/헤드텍스트 날아가던 원인 해결
-- **D1 데이터 생존 확인** — vision, workout-log(EX) 모두 살아있음
-- **Cloudflare 배포** — worker + Svelte 빌드 완료 (Version: 85093782)
-- **Paperclip 분석** — 레드팀 + 이사회 심의 → 전면 도입 기각. cherry-pick 4종 로드맵 작성 (docs/architecture/paperclip-cherrypick-roadmap.md)
-- hexagonal 카테고리 복구, workout API 수정, 어드민 마크다운 링크 파싱, CTRL+S/Z 강화, SW v11 캐시 갱신
 ## Last Completions (2026-05-24 이전)
 → [.context/SESSIONS.md](SESSIONS.md) 참조
 
@@ -119,17 +93,9 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
-- [ ] **Cortex Dashboard #2/#16/#24/#26 브라우저 확인** — 원본 설명 미존재, 브라우저에서 직접 확인 후 이상 발견 시 CODE-FIX. T1 배지는 복구 완료.
-- [x] **Cortex Dashboard input↔outcome 데이터 진단** — 코드 CLEAN 확인. 6/1 15:45~22:23 입력분만 UI 수동 확인 권장. 마이그레이션 불필요.
-- [x] **Growth System T1~T4 완료** — T1 done/total 배지, T2 pillar 균형 bar, T3 #lesson 태그, T4 scripts/cortex-growth-snapshot.mjs (D1 직접 조회 → analytics.jsonl emit)
+- [ ] **Cortex Dashboard #2/#16/#24/#26 브라우저 확인** — 사용자 수동 확인 후 이상 발견 시 CODE-FIX 요청. 원본 설명 파일 미존재, 코드 분석상 구현됨.
 - [ ] **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증, 동기화 이슈
-  - why: Phase 0 인프라 완성 → 일일 업무 루프 신뢰성 확보 → 1인 팀 운영 자동화 기반
-- [ ] **모델 오케스트레이션 강제 훅 등록** — enforce-model-param.sh + model-compliance.sh를 settings.json에 등록 (이번 세션 미완)
-  - why: Phase 0 거버넌스 → 모델 비용 과소비 방지 → 지속 가능한 1인 AI 팀 운영
-- [ ] **MeiliSearch launchd 등록** — com.ateam.meilisearch.plist load (바이너리 설치 완료, 데몬 미등록)
-  - why: Phase 1 검색 인프라 → Cortex 노트 전문 검색 자동화 → 1인 팀 정보 접근 속도 대기업 수준
 - [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
-  - why: Phase 0 인프라 → 실제 제품 출시 시작 → Pieter Levels $3.5M/년 벤치마크 달성
 
 ### Medium Priority
 - [ ] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진 (YT 그룹C 도출)
