@@ -75,3 +75,20 @@
 
 
 - ⏳ **IMP-20260508-CARD** /card-news 스킬 — 인스타 카드뉴스 8장 자동 생성 (HTML→PNG). 출처: 짐코딩. P2. .research/notes/2026-05-08-card-news-automation.md
+
+---
+
+## Cold Review 개선안 — 2026-06-02
+
+### P0 긴급
+- [ ] **커맨드 87→60개 이하 감축** — 사용 기록 0 + 6개월 미사용 커맨드 archived/로 이동 (30분)
+- [ ] **에이전트 32→20개 이하 감축** — 중복/미사용 에이전트 정리 (1시간)
+- [ ] **Analytics hook 설치** — settings.json PreToolUse에 log-event 자동 호출 등록. 커맨드별 수동 호출 의존 구조 폐기 (1시간)
+- [ ] **zzz/ralph 실사용 검증** — sleep-resume.sh --add-dir 호환 수정 후 1회 실제 야간 실행 (반나절)
+
+### P1 중요
+- [ ] **미연결 스킬 7개 처리** — sse-endpoint/termux-remote/add-provider/e2e-test/upgrade/auto-sync/ui-inspect → 커맨드 연결 또는 삭제 (1시간)
+- [ ] **marketing.performance-marketing 첫 구현** — friction-log 2회 반복, score 29 최우선 갭 (반나절)
+
+### P2 장기
+- [ ] **커밋 타입 규칙 강제** — Pre-commit hook으로 타입 없는 커밋 차단 (30분)
