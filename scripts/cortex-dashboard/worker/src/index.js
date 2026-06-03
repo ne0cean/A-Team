@@ -328,7 +328,7 @@ export default {
             try {
               if (dd.one_thing?.toLowerCase().includes(q)) matches.push({ field: 'one_thing', text: dd.one_thing });
               if (dd.notes?.toLowerCase().includes(q)) matches.push({ field: 'notes', text: dd.notes });
-              for (const cat of ['ritual','input','work','outcome']) {
+              for (const cat of ['ritual','input','work','hexagonal','outcome']) {
                 for (const item of (dd[cat] || [])) {
                   if (item.text?.toLowerCase().includes(q)) matches.push({ field: cat, text: item.text });
                 }
@@ -563,12 +563,33 @@ export default {
             // 3a. Frame sync
             const newFrame = [];
             const catFrame = frame?.categories?.[cat];
+            const catType = catFrame?.type || 'routine'; // 'routine' | 'todo'
+
+            // Routine categories render live from template in the frontend — skip injection
+            // Just clean up any old _frame/_carried items that were previously injected
+            if (catType === 'routine') {
+              const before = JSON.stringify(existing);
+              const cleaned = existing.filter(i => !i._frame && !i._carried);
+              if (JSON.stringify(cleaned) !== before) {
+                dd[cat] = cleaned;
+                changed = true;
+              }
+              continue;
+            }
+
+            // For todo categories: items completed in prevDay should NOT be re-injected
+            const prevDoneTodos = new Set();
+            if (catType === 'todo' && prevDay) {
+              (prevDay[cat] || []).forEach(i => { if (i.done) prevDoneTodos.add(i.text); });
+            }
             if (catFrame?.items?.length) {
               for (const rawItem of catFrame.items) {
                 const text = typeof rawItem === 'object' ? rawItem.text : rawItem;
                 const itemUrl = typeof rawItem === 'object' ? (rawItem.url || '') : '';
                 const itemType = typeof rawItem === 'object' ? rawItem.type : undefined;
                 if (dismissed.has(text) && itemType !== 'separator') continue;
+                // todo category: skip items completed in previous day
+                if (catType === 'todo' && itemType !== 'separator' && prevDoneTodos.has(text)) continue;
                 const existingItem = oldFrame.find(i => i.text === text && i.type === itemType);
                 if (existingItem) {
                   // Backfill URL from urlMap if existing lost it
@@ -594,29 +615,9 @@ export default {
               }
             }
 
-            // 3b. Carry: undone items from previous day
-            const assembled = [...newFrame, ...oldCarry, ...manual];
-            const assembledTexts = new Set(assembled.map(i => i.text));
-
-            if (prevDay) {
-              const prevItems = prevDay[cat] || [];
-              // Only carry OUTCOME category manual todos — NOT frame(routine) items, NOT other categories
-              const undone = cat === 'outcome' ? prevItems.filter(i => !i.done && !i._frame) : [];
-              for (const item of undone) {
-                if (dismissed.has(item.text)) continue;
-                if (!assembledTexts.has(item.text)) {
-                  assembled.push({ text: item.text, url: item.url || '', done: false, _carried: true });
-                  assembledTexts.add(item.text);
-                  carried++;
-                } else {
-                  // URL merge: if existing item lacks URL but source has it, backfill
-                  if (item.url) {
-                    const target = assembled.find(a => a.text === item.text && !a.url);
-                    if (target) target.url = item.url;
-                  }
-                }
-              }
-            }
+            // 3b. Carry: frontend handles lazy 1-day carry, worker must NOT cascade
+            // Only keep existing manual items; strip old _carried injections
+            const assembled = [...newFrame, ...manual];
 
             dd[cat] = assembled;
             if (JSON.stringify(dd[cat]) !== before) changed = true;
@@ -630,7 +631,7 @@ export default {
       // --- Cortex File Browser (GitHub API proxy) ---
       const REPO = 'ne0cean/A-Team';
       const ghHeaders = {
-        'Authorization': `token ${env.GITHUB_TOKEN}`,
+        ...(env.GITHUB_TOKEN ? { 'Authorization': `token ${env.GITHUB_TOKEN}` } : {}),
         'Accept': 'application/vnd.github.v3+json',
         'User-Agent': 'cortex-worker'
       };
@@ -748,7 +749,7 @@ export default {
             const matches = [];
             try {
               if (dd.one_thing?.toLowerCase().includes(q)) matches.push({ field:'one_thing', text:dd.one_thing });
-              for (const cat of ['ritual','input','work','outcome']) {
+              for (const cat of ['ritual','input','work','hexagonal','outcome']) {
                 for (const item of (dd[cat] || [])) {
                   if (item.text?.toLowerCase().includes(q)) matches.push({ field:cat, text:item.text });
                 }

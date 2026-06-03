@@ -1,6 +1,6 @@
 const API = '';
-const CATS = ['ritual','input','work','hexagonal','outcome'];
-const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Work', hexagonal:'6 Pillars', outcome:'Outcome'};
+const CATS = ['ritual','work','hexagonal','outcome','input'];
+const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Tasks', hexagonal:'6 Pillars', outcome:'Outcome'};
 const DAY_NAMES = ['일','월','화','수','목','금','토'];
 const TYPE_LABELS = {block:'BLOCK',flow:'FLOW',hf:'HF',vacation:'휴가'};
 const TYPE_COLORS = {block:'badge-block',flow:'badge-flow',hf:'badge-hf',vacation:'badge-vacation'};
@@ -26,27 +26,19 @@ function init() {
   initCellScrollDelay();
 }
 
-// #6 — day-cell hover 300ms 후 스크롤 활성화 (이벤트 델리게이션)
-let _cellScrollTimers = new WeakMap();
+// #6 — day-cell 내부 스크롤: overflow-y는 항상 hidden, wheel 이벤트로 직접 제어
 function initCellScrollDelay() {
-  document.addEventListener('mouseover', e => {
+  document.addEventListener('wheel', e => {
     const cell = e.target.closest('.day-cell');
     if (!cell) return;
-    // 셀 내부 요소 간 이동이면 무시
-    if (e.relatedTarget && cell.contains(e.relatedTarget)) return;
-    if (_cellScrollTimers.has(cell)) return;
-    const t = setTimeout(() => cell.classList.add('scroll-active'), 300);
-    _cellScrollTimers.set(cell, t);
-  }, true);
-  document.addEventListener('mouseout', e => {
-    const cell = e.target.closest('.day-cell');
-    if (!cell) return;
-    // 셀 내부 요소로 이동이면 무시
-    if (e.relatedTarget && cell.contains(e.relatedTarget)) return;
-    const t = _cellScrollTimers.get(cell);
-    if (t !== undefined) { clearTimeout(t); _cellScrollTimers.delete(cell); }
-    cell.classList.remove('scroll-active');
-  }, true);
+    const { scrollTop, scrollHeight, clientHeight } = cell;
+    if (scrollHeight <= clientHeight) return; // 스크롤 불필요 → 페이지 스크롤
+    const atTop = scrollTop === 0 && e.deltaY < 0;
+    const atBottom = Math.ceil(scrollTop + clientHeight) >= scrollHeight && e.deltaY > 0;
+    if (atTop || atBottom) return; // 경계 → 페이지 스크롤
+    e.preventDefault();
+    cell.scrollTop += e.deltaY;
+  }, { passive: false });
 }
 
 function registerSW() {
@@ -189,6 +181,11 @@ function render() {
     window.scrollTo(0, scrollY);
     if (mainEl) mainEl.scrollTop = mainScrollTop;
     document.querySelectorAll('.day-cell').forEach((c, i) => { if (cellScrolls[i]) c.scrollTop = cellScrolls[i]; });
+    // Week view: scroll today into center on narrow screens
+    if (viewMode !== 'month') {
+      const todayCell = document.querySelector('.week-grid .week-cell.today');
+      if (todayCell) todayCell.scrollIntoView({ inline: 'center', behavior: 'instant', block: 'nearest' });
+    }
   });
 }
 
@@ -361,6 +358,16 @@ function getYearlyEvents(d) {
 
 function getMonthlyRecurring(d) {
   const results = [];
+  // standing orders with date field: "6/15", "6월 15일", "6.15"
+  if (standingData?.standing) {
+    standingData.standing.forEach(item => {
+      if (!item.date || !item.active) return;
+      const mm = item.date.match(/(\d+)[\/월\.](\d+)/);
+      if (!mm) return;
+      const mo = parseInt(mm[1]), dy = parseInt(mm[2]);
+      if (mo === currentMonth && dy === d) results.push({ text: item.text, url: '' });
+    });
+  }
   // monthly_recurring: structured {day, text} items
   if (standingData?.monthly_recurring) {
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
@@ -403,9 +410,77 @@ function getEffectiveDayType(dayData, d) {
   if (dayData.day_type) return dayData.day_type;
   const dow = new Date(currentYear, currentMonth - 1, d).getDay();
   const isHol = !!getHoliday(d);
-  if (isHol || dow === 6) return 'flow'; // 공휴일·토 → FLOW
-  if (dow === 0) return 'block';         // 일 → BLOCK
+  if (isHol || dow === 6) return 'flow';
+  if (dow === 0) return 'block';
   return null;
+}
+
+function getFrameTypeForDay(d, dayData) {
+  return getEffectiveDayType(dayData, d) || 'weekday';
+}
+
+function getDayCatType(d, dayData, cat) {
+  const ft = getFrameTypeForDay(d, dayData);
+  return framesData?.[ft]?.categories?.[cat]?.type || 'routine';
+}
+
+// Routine → live from template (done states in _rdone_${cat})
+// Todo   → stored per-day in dayData[cat]
+function getCatItemsForRender(d, dayData, cat) {
+  if (!framesData) return dayData[cat] || [];
+  const ft = getFrameTypeForDay(d, dayData);
+  const catMeta = framesData[ft]?.categories?.[cat];
+  const catType = catMeta?.type || 'routine';
+
+  if (catType === 'todo') {
+    // Filter out old injections
+    const stored = (dayData[cat] || []).filter(i => !i._frame && !i._carried);
+    const today = new Date().getDate();
+
+    if (stored.length > 0) return stored;
+
+    // Lazy carry: ONLY from yesterday → today
+    if (d === today) {
+      const prevDay = monthData.days?.[String(d - 1)];
+      if (prevDay) {
+        const prevTodo = (prevDay[cat] || []).filter(i => !i.done && !i._frame && !i._carried);
+        if (prevTodo.length > 0) {
+          const items = prevTodo.map(i => ({ text: i.text, url: i.url || '', done: false, _carried: true }));
+          ensureDay(d)[cat] = items; save();
+          return items;
+        }
+      }
+    }
+
+    // No stored items — show template defaults (collapsed in future days)
+    const templateItems = catMeta?.items || [];
+    return templateItems.map(ti => {
+      if (typeof ti === 'object' && ti.type === 'separator') return { ...ti, _frame: true };
+      const base = typeof ti === 'object' ? { text: ti.text || '', url: ti.url || '' } : { text: String(ti), url: '' };
+      return { ...base, done: false, _frame: true };
+    });
+  }
+
+  // Routine: live from template
+  const templateItems = catMeta?.items || [];
+  if (!templateItems.length) return [];
+  const rdoneKey = `_rdone_${cat}`;
+  let doneSet = new Set();
+  if (Array.isArray(dayData[rdoneKey])) {
+    doneSet = new Set(dayData[rdoneKey]);
+  } else {
+    // Legacy: text-match from stored items
+    const stored = dayData[cat] || [];
+    templateItems.forEach((ti, idx) => {
+      const text = typeof ti === 'object' ? ti.text : String(ti);
+      if (stored.some(si => si.text === text && si.done)) doneSet.add(idx);
+    });
+  }
+  return templateItems.map((ti, idx) => {
+    if (typeof ti === 'object' && ti.type === 'separator') return { ...ti, _frame: true };
+    const base = typeof ti === 'object' ? { text: ti.text || '', url: ti.url || '' } : { text: String(ti), url: '' };
+    return { ...base, done: doneSet.has(idx), _frame: true };
+  });
 }
 
 function renderDayCell(d, isToday, isWeek, isCurrent) {
@@ -451,18 +526,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       }
     });
   }
-  // T1: done/total badge
-  let doneCount = 0, totalCount = 0;
-  for (const cat of CATS) {
-    for (const item of (dayData[cat] || [])) {
-      if (!item || item._frame || item.type === 'separator') continue;
-      totalCount++;
-      if (item.done) doneCount++;
-    }
-  }
-  const progressBadge = totalCount > 0
-    ? `<span class="day-progress" style="font-size:9px;color:${doneCount===totalCount?'#56d364':'#6e7681'};margin-left:4px" title="${doneCount}/${totalCount} 완료">${doneCount}/${totalCount}</span>`
-    : '';
+  const progressBadge = '';
   // T3: #lesson tag indicator
   const notesText = dayData.notes || '';
   const lessonCount = (notesText.match(/#lesson/gi) || []).length;
@@ -478,20 +542,22 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   // One Thing
   const ot = dayData.one_thing || '';
   html += `<div class="one-thing" contenteditable="true"
-    onblur="saveOneThing(${d}, this.textContent)"
+    onblur="saveOneThing(${d}, htmlToMarkdown(this.innerHTML))"
     onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}else if(event.key.toLowerCase()==='k'&&(event.ctrlKey||event.metaKey)){event.preventDefault();event.stopPropagation();openOneThingLinkPopup(event,${d});}"
   >${linkify(ot)}</div>`;
 
   // Categories
   const SRC_COLORS = { yearly: '#f0c040', monthly: '#bc8cff', weekly: '#6e7681' };
   const recArr = dayData._recurring || [];
+  const _renderedCats = new Set();
 
   for (const cat of CATS) {
-    const items = dayData[cat] || [];
+    const items = getCatItemsForRender(d, dayData, cat);
     const isFutureOrToday = isToday || new Date(currentYear, currentMonth - 1, d) >= new Date(new Date().toDateString());
     if (items.length === 0 && recArr.length === 0 && !isFutureOrToday) continue;
     if (items.length === 0 && cat !== 'outcome' && !isFutureOrToday) continue;
 
+    _renderedCats.add(cat);
     html += `<div class="category cat-${cat}">
       <div class="cat-label cl-${cat}">
         <span>${CAT_NAMES[cat]}</span>
@@ -520,18 +586,23 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     const _fcd = new Date(currentYear, currentMonth - 1, d); _fcd.setHours(0,0,0,0);
     const _isFuture = isCurrent !== false && _fcd > _ftd;
     const _frameItems = _isFuture ? items.filter(i => i._frame) : [];
+    const _nonSepFrame = _frameItems.filter(i => i.type !== 'separator');
     if (_frameItems.length > 0) {
       const _tid = `ft-${d}-${cat}`;
-      html += `<span class="frame-group-hdr" onclick="toggleEl('${_tid}')">루틴 ${_frameItems.length}▸</span>
+      html += `<span class="frame-group-hdr" onclick="toggleEl('${_tid}')">루틴 ${_nonSepFrame.length}▸</span>
         <div id="${_tid}" class="frame-group-body" style="display:none">`;
       _frameItems.forEach(item => {
         const idx = items.indexOf(item);
+        if (item.type === 'separator') {
+          html += `<div class="item-separator"><span class="sep-label">${esc(item.text || '')}</span><span class="sep-line"></span></div>`;
+          return;
+        }
         html += `<div class="item${item.done?' done':''}" data-d="${d}" data-cat="${cat}" data-idx="${idx}">
           <input type="checkbox" ${item.done?'checked':''} onchange="toggleItem(${d},'${cat}',${idx})">
           <span class="item-text frame-text" contenteditable="true"
-            onblur="editFrameItemFromCalendar(${d},'${cat}',${idx},this.textContent)"
+            onblur="editFrameItemFromCalendar(${d},'${cat}',${idx},htmlToMarkdown(this.innerHTML))"
             onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
-          >${linkify(item.text)}</span>
+          >${item.url ? `<a href="${esc(item.url)}" target="_blank" onmousedown="event.preventDefault();window.open(this.href,'_blank')" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
           <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
         </div>`;
       });
@@ -542,15 +613,15 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       const idx = _isFuture ? items.indexOf(item) : _vi;
       // Separator item — render as horizontal divider
       if (item.type === 'separator') {
-        html += `<div class="item-separator"><span>${esc(item.text || '')}</span><span class="del-btn" onclick="delItem(${d},'${cat}',${idx})" style="visibility:hidden">&#215;</span></div>`;
+        html += `<div class="item-separator"><span class="sep-label" contenteditable="true" onblur="editSeparatorItem(${d},'${cat}',${idx},this.textContent)">${esc(item.text || '')}</span><span class="sep-line"></span><span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span></div>`;
         return;
       }
       const doneClass = item.done ? 'done' : '';
       const carriedClass = item._carried ? 'is-carried' : '';
       const checked = item.done ? 'checked' : '';
       const blurFn = item._frame
-        ? `editFrameItemFromCalendar(${d},'${cat}',${idx},this.textContent)`
-        : `editItem(${d},'${cat}',${idx},this.textContent)`;
+        ? `editFrameItemFromCalendar(${d},'${cat}',${idx},htmlToMarkdown(this.innerHTML))`
+        : `editItem(${d},'${cat}',${idx},htmlToMarkdown(this.innerHTML))`;
       html += `<div class="item ${doneClass} ${carriedClass}" draggable="false"
         data-d="${d}" data-cat="${cat}" data-idx="${idx}"
         ondragstart="dragStart(event,${d},'${cat}',${idx})"
@@ -561,7 +632,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
         <span class="item-text${item.url?' has-link':''}${item._frame?' frame-text':''}" contenteditable="true"
           onblur="${blurFn}"
           onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
-        >${item.url ? `<a href="${esc(item.url)}" target="_blank" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
+        >${item.url ? `<a href="${esc(item.url)}" target="_blank" onmousedown="event.preventDefault();window.open(this.href,'_blank')" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
         <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
       </div>`;
     });
@@ -573,12 +644,13 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     </div></div>`;
   }
 
-  // Empty cats for today
+  // Empty cats for today — skip cats already rendered by main loop
   if (isToday) {
     for (const cat of CATS) {
-      if ((dayData[cat] || []).length > 0) continue;
+      if (_renderedCats.has(cat)) continue; // already rendered above
       if (cat === 'outcome' && recArr.length > 0) continue; // already rendered with recurring
       html += `<div class="category cat-${cat}"><div class="cat-label cl-${cat}"><span>${CAT_NAMES[cat]}</span>
+        <span class="cat-add" onclick="addSeparatorItem(${d},'${cat}')" title="구분선 추가" style="font-size:9px;color:#484f58;margin-right:1px">—</span>
         <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span></div>
         <div class="new-item" id="new-${d}-${cat}">
           <input type="text" placeholder="..." onkeydown="if(event.key==='Enter'){addNewItem(${d},'${cat}',this.value);this.value='';}"
@@ -602,6 +674,15 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function htmlToMarkdown(html) {
+  // Convert <a href="url">text</a> back to [text](url), strip remaining tags
+  return html
+    .replace(/<a\s+[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, '[$2]($1)')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .trim();
+}
+
 function linkify(s) {
   // Handle [text](url) markdown links (any url), then bare URLs
   let result = '';
@@ -611,7 +692,7 @@ function linkify(s) {
   while ((m = re.exec(s)) !== null) {
     result += esc(s.slice(last, m.index));
     if (/^https?:\/\//.test(m[2])) {
-      result += `<a href="${esc(m[2])}" target="_blank" onclick="event.stopPropagation()">${esc(m[1])}</a>`;
+      result += `<a href="${esc(m[2])}" target="_blank" onmousedown="event.preventDefault();window.open(this.href,'_blank')" onclick="event.stopPropagation()">${esc(m[1])}</a>`;
     } else {
       result += esc(m[1]); // non-http URL: show text only
     }
@@ -620,7 +701,7 @@ function linkify(s) {
   result += esc(s.slice(last));
   // Bare URLs not already inside an anchor
   result = result.replace(/(?<!href=")(?<!">)(https?:\/\/[^\s<"&]+)/g,
-    '<a href="$1" target="_blank" onclick="event.stopPropagation()">$1</a>');
+    '<a href="$1" target="_blank" onmousedown="event.preventDefault();window.open(this.href,\'_blank\')" onclick="event.stopPropagation()">$1</a>');
   return result;
 }
 
@@ -646,32 +727,7 @@ function renderStats() {
     dailyDone.push(dayTotal > 0 ? dayDone / dayTotal : 0);
   }
 
-  const pct = total > 0 ? Math.round(done/total*100) : 0;
-
-  let html = `<span>Total: <span class="stat-value">${done}/${total}</span> (${pct}%)</span>`;
-
-  // T2: Pillar balance bar
-  const catColorMap = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', hexagonal: '#f85149', outcome: '#bc8cff' };
-  const totalItems = CATS.reduce((s, c) => s + catStats[c].total, 0);
-  if (totalItems > 0) {
-    let segs = '';
-    CATS.forEach(cat => {
-      const s = catStats[cat];
-      if (s.total === 0) return;
-      const widthPct = (s.total / totalItems * 100).toFixed(1);
-      const donePct = Math.round(s.done / s.total * 100);
-      const col = catColorMap[cat];
-      segs += `<div class="pillar-seg" style="width:${widthPct}%;background:${col};opacity:${0.3 + donePct/100*0.7}" title="${CAT_NAMES[cat]}: ${donePct}% (${s.done}/${s.total})"></div>`;
-    });
-    html += `<div class="pillar-bar-wrap"><div class="pillar-bar-label">Pillar balance</div><div class="pillar-bar">${segs}</div></div>`;
-  }
-
-  // Per-category text
-  for (const cat of CATS) {
-    const s = catStats[cat];
-    const p = s.total > 0 ? Math.round(s.done/s.total*100) : 0;
-    html += `<span style="color:${catColorMap[cat]}">${CAT_NAMES[cat]}: ${p}%</span>`;
-  }
+  let html = '';
 
   // Mini heatmap
   html += '<span class="heatmap">';
@@ -754,7 +810,17 @@ function ensureDay(d) {
 }
 
 async function toggleItem(d, cat, idx) {
-  ensureDay(d)[cat][idx].done = !ensureDay(d)[cat][idx].done;
+  const dayData = ensureDay(d);
+  const catType = getDayCatType(d, dayData, cat);
+  if (catType === 'todo') {
+    if (!dayData[cat]?.[idx]) return;
+    dayData[cat][idx].done = !dayData[cat][idx].done;
+  } else {
+    const key = `_rdone_${cat}`;
+    if (!dayData[key]) dayData[key] = [];
+    const pos = dayData[key].indexOf(idx);
+    if (pos === -1) dayData[key].push(idx); else dayData[key].splice(pos, 1);
+  }
   await save(); render();
 }
 
@@ -797,10 +863,28 @@ function openOneThingLinkPopup(event, d) {
 }
 
 function openLinkPopupFromSpan(span, d, cat, idx) {
-  // Ctrl+K from contenteditable span — position near cursor
-  const rect = span.getBoundingClientRect();
-  const fakeEvent = { clientX: rect.left, clientY: rect.bottom + 4, changedTouches: null, touches: null };
-  openLinkPopup(fakeEvent, d, cat, idx);
+  // Ctrl+K: attach URL to item, using selected text as label if any
+  const sel = window.getSelection();
+  const selectedText = sel && sel.rangeCount ? sel.toString().trim() : '';
+  const url = prompt('URL 입력:', 'https://');
+  if (!url || url === 'https://') return;
+  const dayData = monthData.days?.[String(d)] || {};
+  const catType = getDayCatType(d, dayData, cat);
+  if (catType === 'routine') {
+    const ft = getFrameTypeForDay(d, dayData);
+    const fItems = framesData?.[ft]?.categories?.[cat]?.items;
+    if (!fItems || idx >= fItems.length) return;
+    if (typeof fItems[idx] !== 'object') fItems[idx] = { text: String(fItems[idx]), url: '' };
+    fItems[idx].url = url;
+    if (selectedText) fItems[idx].text = selectedText;
+    saveFramesData().then(() => { renderFrames(); render(); });
+    return;
+  }
+  const item = ensureDay(d)[cat]?.[idx];
+  if (!item) return;
+  item.url = url;
+  if (selectedText) item.text = selectedText;
+  save().then(() => render());
 }
 
 function openLinkPopup(event, d, cat, idx) {
@@ -888,30 +972,70 @@ async function editItem(d, cat, idx, newText) {
   const item = ensureDay(d)[cat]?.[idx];
   if (!item) return;
   const t = newText.trim();
+  // htmlToMarkdown re-encodes <a href="url">text</a> → [text](url)
+  // Extract and store properly to avoid rendering [text](url) as link text
+  const mdLink = t.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+  if (mdLink) {
+    const [, label, url] = mdLink;
+    if (item.text === label && item.url === url) return;
+    item.text = label; item.url = url;
+    await save(); render(); return;
+  }
   if (item.text === t) return;
   // Auto-detect URL pasted into existing item
   const urlMatch = t.match(/^(https?:\/\/\S+)$/);
   const embeddedMatch = !urlMatch && t.match(/(https?:\/\/\S+)/);
-  if (urlMatch && !item.url) {
-    item.url = t;
-  } else if (embeddedMatch && !item.url) {
-    item.url = embeddedMatch[1];
-  }
+  if (urlMatch && !item.url) item.url = t;
+  else if (embeddedMatch && !item.url) item.url = embeddedMatch[1];
   item.text = t;
   await save(); render();
 }
 
 async function editFrameItemFromCalendar(d, cat, idx, newText) {
+  const dayData = monthData.days?.[String(d)] || {};
+  const ft = getFrameTypeForDay(d, dayData);
+  const catType = getDayCatType(d, dayData, cat);
+  const mdLink = newText.trim().match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+  const newTrimmed = mdLink ? mdLink[1] : newText.trim();
+  if (!newTrimmed) return;
+
+  if (catType === 'routine') {
+    // Live routine: edit template directly by index
+    const fItems = framesData?.[ft]?.categories?.[cat]?.items;
+    if (!fItems || idx >= fItems.length) return;
+    const cur = typeof fItems[idx] === 'object' ? fItems[idx].text : fItems[idx];
+    if (newTrimmed === cur && !mdLink) return;
+    if (typeof fItems[idx] === 'object') { fItems[idx].text = newTrimmed; if (mdLink) fItems[idx].url = mdLink[2]; }
+    else fItems[idx] = mdLink ? { text: newTrimmed, url: mdLink[2] } : newTrimmed;
+    // 6 Pillars sync across frame types
+    if (cat === 'hexagonal') {
+      const firstSep = fItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
+      const syncBefore = firstSep === -1 ? fItems.length : firstSep;
+      if (idx < syncBefore) {
+        FRAME_TYPES.forEach(ft2 => {
+          if (ft2 === ft) return;
+          const ft2Items = framesData[ft2]?.categories?.hexagonal?.items;
+          if (!ft2Items || idx >= ft2Items.length) return;
+          const ft2Sep = ft2Items.findIndex(i => typeof i === 'object' && i.type === 'separator');
+          if (ft2Sep === -1 || idx < ft2Sep) {
+            if (typeof ft2Items[idx] === 'object') ft2Items[idx].text = newTrimmed;
+            else ft2Items[idx] = newTrimmed;
+          }
+        });
+      }
+    }
+    await saveFramesData();
+    renderFrames(); render();
+    return;
+  }
+
+  // Todo: check if item is a _frame copy or manual
   const item = ensureDay(d)[cat]?.[idx];
   if (!item?._frame) { editItem(d, cat, idx, newText); return; }
   const oldText = item.text;
-  const newTrimmed = newText.trim();
   if (!newTrimmed || newTrimmed === oldText) return;
-  const dayData = monthData.days?.[String(d)] || {};
-  const dow = new Date(currentYear, currentMonth - 1, d).getDay();
-  const ftype = dayData.day_type || (dow === 0 ? 'block' : dow === 6 ? 'flow' : 'weekday');
-  if (!framesData?.[ftype]?.categories?.[cat]?.items) return;
-  const fItems = framesData[ftype].categories[cat].items;
+  const fItems = framesData?.[ft]?.categories?.[cat]?.items;
+  if (!fItems) return;
   const fi = fItems.findIndex(i => (typeof i === 'object' ? i.text : i) === oldText);
   if (fi < 0) return;
   if (typeof fItems[fi] === 'object') fItems[fi].text = newTrimmed;
@@ -920,10 +1044,8 @@ async function editFrameItemFromCalendar(d, cat, idx, newText) {
   const today = new Date().getDate();
   const [y, m] = ym().split('-').map(Number);
   const daysInMonth = new Date(y, m, 0).getDate();
-  await fetch(`${API}/api/inject-frames`, {
-    method: 'POST', headers: AUTH,
-    body: JSON.stringify({ ym: ym(), fromDay: today, toDay: daysInMonth })
-  });
+  await fetch(`${API}/api/inject-frames`, { method: 'POST', headers: AUTH,
+    body: JSON.stringify({ ym: ym(), fromDay: today, toDay: daysInMonth }) });
   await loadMonth();
 }
 
@@ -1023,8 +1145,32 @@ async function addNewItemAfter(d, cat, afterIdx) {
   }, 50);
 }
 
+async function editSeparatorItem(d, cat, idx, text) {
+  const dayData = ensureDay(d);
+  const catType = getDayCatType(d, dayData, cat);
+  if (catType === 'routine') {
+    // Routine separator → edit in frame template
+    const ft = getFrameTypeForDay(d, dayData);
+    const item = framesData?.[ft]?.categories?.[cat]?.items?.[idx];
+    if (item && typeof item === 'object' && item.type === 'separator') {
+      item.text = text.trim();
+      saveFramesData();
+    }
+    return;
+  }
+  const item = dayData[cat]?.[idx];
+  if (item && item.type === 'separator') { item.text = text.trim(); await save(); }
+}
+
 async function delItem(d, cat, idx, refocus) {
-  ensureDay(d)[cat].splice(idx, 1);
+  const dayData = ensureDay(d);
+  const catType = getDayCatType(d, dayData, cat);
+  if (catType === 'routine') {
+    const ft = getFrameTypeForDay(d, dayData);
+    delFrameItem(ft, cat, idx);
+    return;
+  }
+  dayData[cat].splice(idx, 1);
   await save(); render();
   if (refocus) {
     setTimeout(() => {
@@ -1041,7 +1187,14 @@ async function delItem(d, cat, idx, refocus) {
 
 async function addNewItem(d, cat, text) {
   if (!text.trim()) return;
-  const day = ensureDay(d);
+  const dayData = ensureDay(d);
+  const catType = getDayCatType(d, dayData, cat);
+  if (catType === 'routine') {
+    const ft = getFrameTypeForDay(d, dayData);
+    addFrameItem(ft, cat, text.trim());
+    return;
+  }
+  const day = dayData;
   if (!day[cat]) day[cat] = [];
   const t = text.trim();
   // text___ syntax → separator item
@@ -1286,8 +1439,14 @@ function debounceSearch() {
 async function doSearch() {
   const q = document.getElementById('searchInput').value.trim();
   if (q.length < 2) { document.getElementById('searchResults').innerHTML = ''; return; }
-  const res = await fetch(`${API}/api/search/unified?q=${encodeURIComponent(q)}`);
-  const data = await res.json();
+  let data;
+  try {
+    const res = await fetch(`${API}/api/search/unified?q=${encodeURIComponent(q)}`);
+    data = await res.json();
+  } catch (e) {
+    document.getElementById('searchResults').innerHTML = '<div style="color:#f85149;padding:12px">검색 오류: ' + esc(String(e)) + '</div>';
+    return;
+  }
   const container = document.getElementById('searchResults');
   let html = '';
 
@@ -1366,7 +1525,7 @@ function renderStandingOrders() {
         <span onclick="moveSOItem('standing',${i},1)" ${i===soLen-1?'style="visibility:hidden"':''}>&#9660;</span>
       </div>
       <input type="checkbox" ${s.active?'checked':''} onchange="toggleSOActive(${i})">
-      <span contenteditable="true" style="flex:1" onblur="editSOText(${i},this.textContent)">${linkify(s.text)}</span>
+      <span contenteditable="true" style="flex:1" onblur="editSOText(${i},htmlToMarkdown(this.innerHTML))">${linkify(s.text)}</span>
       <input class="so-date-input" placeholder="날짜" value="${esc(s.date||'')}"
         onblur="setSoDate(${i},this.value)"
         onkeydown="if(event.key==='Enter'){this.blur();}"
@@ -1377,10 +1536,16 @@ function renderStandingOrders() {
   html += `<div class="frame-add"><input placeholder="Add standing order..." onkeydown="if(event.key==='Enter'){addSO(this.value);this.value='';}">
     <button onclick="addSO(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button></div>`;
   // HF dates
-  const hfThisMonth = (standingData.happy_friday || []).filter(d => d.startsWith(ymKey));
-  if (hfThisMonth.length) {
+  const hfFromNow = (standingData.happy_friday || [])
+    .filter(d => d.slice(0, 7) >= ymKey && d.slice(0, 4) === String(currentYear))
+    .sort();
+  if (hfFromNow.length) {
     html += '<div style="margin-top:6px;font-size:10px;color:#8b949e">Happy Friday:</div>';
-    hfThisMonth.forEach(d => { html += `<span class="hf-badge">${d.split('-')[2]}일</span>`; });
+    hfFromNow.forEach(d => {
+      const [, mo, dy] = d.split('-');
+      const label = mo === String(currentMonth).padStart(2,'0') ? `${+dy}일` : `${+mo}/${+dy}`;
+      html += `<span class="hf-badge">${label}</span>`;
+    });
   }
   // Holiday — 전체 월별 (접힌 상태로 기본)
   const allHolidays = Object.entries(standingData.holidays || {}).sort(([a],[b]) => a.localeCompare(b));
@@ -1583,9 +1748,9 @@ function moveSOItem(section, idx, dir) {
   saveStandingData(); renderStandingOrders();
 }
 
-function toggleSOActive(i) { standingData.standing[i].active = !standingData.standing[i].active; saveStandingData(); }
-function editSOText(i, text) { if(text.trim()) standingData.standing[i].text = text.trim(); saveStandingData(); }
-function delSO(i) { standingData.standing.splice(i, 1); saveStandingData(); renderStandingOrders(); }
+function toggleSOActive(i) { standingData.standing[i].active = !standingData.standing[i].active; saveStandingData(); render(); }
+function editSOText(i, text) { if(text.trim()) standingData.standing[i].text = text.trim(); saveStandingData(); render(); }
+function delSO(i) { standingData.standing.splice(i, 1); saveStandingData(); renderStandingOrders(); render(); }
 function parseSoDate(raw) {
   if (!raw?.trim()) return null;
   const s = raw.trim();
@@ -1625,7 +1790,7 @@ function setSoDate(i, raw) {
 function addSO(text) {
   if (!text?.trim()) return;
   standingData.standing.push({ id: `so-${Date.now()}`, text: text.trim(), active: true });
-  saveStandingData(); renderStandingOrders();
+  saveStandingData(); renderStandingOrders(); render();
 }
 
 function editMonthlyItem(i, text) {
@@ -1967,9 +2132,8 @@ const FRAME_TYPES = ['weekday', 'flow', 'block'];
 const FRAME_TYPE_LABELS = { weekday: 'Weekday (평일)', flow: 'Flow Day (토/HF)', block: 'Block Day (일)' };
 // #18 — frame type별 카테고리 이름 override / 숨김
 const FRAME_CAT_OVERRIDES = {
-  flow:    { labels: { outcome: 'INPUT' } },
-  block:   { labels: { outcome: 'INPUT' } },
-  weekday: { hide: ['outcome', 'input'] }
+  flow:  { labels: { outcome: 'INPUT' } },
+  block: { labels: { outcome: 'Feedback' } }
 };
 const CAT_TYPE_LABELS = { routine: 'Routine (매일 리셋)', todo: 'To-do (이월)' };
 
@@ -1992,30 +2156,35 @@ function renderFrames() {
     html += `<div class="frame-section-header"><span class="frame-section-title">${esc(frame.label || FRAME_TYPE_LABELS[ftype])}</span></div>`;
 
     const _frameOverride = FRAME_CAT_OVERRIDES[ftype] || {};
-    for (const cat of CATS) {
-      // #18 — weekday에서 outcome/input 숨김
+    const catOrder = frame._catOrder || CATS;
+    for (const cat of catOrder) {
       if (_frameOverride.hide && _frameOverride.hide.includes(cat)) continue;
       const catData = frame.categories?.[cat] || { type: 'routine', items: [] };
       const catType = catData.type || 'routine';
       const catLabel = (_frameOverride.labels && _frameOverride.labels[cat]) || CAT_NAMES[cat];
-      html += `<div class="frame-cat" style="border-left:2px solid ${catColorMap[cat]};padding-left:6px">`;
+      html += `<div class="frame-cat" draggable="true" data-frame-drag="cat" data-ftype="${ftype}" data-cat="${cat}" style="border-left:2px solid ${catColorMap[cat]};padding-left:6px">`;
       html += `<div class="frame-cat-header">
+        <span class="drag-handle" title="드래그로 순서 변경">⠿</span>
         <span class="cl-${cat}">${catLabel}</span>
         <span class="frame-cat-type ${catType}" onclick="toggleCatType('${ftype}','${cat}')" style="cursor:pointer" title="Click to toggle">${catType}</span>
       </div>`;
 
       (catData.items || []).forEach((rawItem, idx) => {
-        // Separator: render as divider, not editable input
         if (typeof rawItem === 'object' && rawItem.type === 'separator') {
-          html += `<div class="frame-separator" style="border-top:1px solid #30363d;margin:4px 0;padding:2px 0;font-size:9px;color:#6e7681">${esc(rawItem.text || '')}</div>`;
+          html += `<div class="frame-separator" draggable="true" data-frame-drag="item" data-ftype="${ftype}" data-cat="${cat}" data-idx="${idx}">
+            <span class="drag-handle" title="드래그">⠿</span>
+            <span class="sep-label" contenteditable="true" onblur="editFrameSeparator('${ftype}','${cat}',${idx},this.textContent)">${esc(rawItem.text || '')}</span>
+            <span class="sep-line"></span>
+            <span class="del-btn" onclick="delFrameItem('${ftype}','${cat}',${idx})">&#215;</span>
+          </div>`;
           return;
         }
         const parsed = getFrameItem(ftype, cat, idx);
         const text = parsed.text || '';
         const url = parsed.url || '';
         const hasUrl = url.length > 0 && url !== '#';
-        html += `<div class="frame-item">
-          <span style="color:#484f58;font-size:9px">${idx+1}</span>
+        html += `<div class="frame-item" draggable="true" data-frame-drag="item" data-ftype="${ftype}" data-cat="${cat}" data-idx="${idx}">
+          <span class="drag-handle" title="드래그">⠿</span>
           <input value="${esc(text)}" onchange="editFrameItem('${ftype}','${cat}',${idx},this.value)">
           <span class="link-btn${hasUrl?' has-link':''}" onclick="openFrameLink(event,'${ftype}','${cat}',${idx})" style="cursor:pointer;font-size:8px;display:inline">&#128279;</span>
           <span class="frame-del" onclick="delFrameItem('${ftype}','${cat}',${idx})">&#215;</span>
@@ -2025,6 +2194,7 @@ function renderFrames() {
       html += `<div class="frame-add">
         <input placeholder="Add item..." onkeydown="if(event.key==='Enter'){addFrameItem('${ftype}','${cat}',this.value);this.value='';}">
         <button onclick="addFrameItem('${ftype}','${cat}',this.previousElementSibling.value);this.previousElementSibling.value=''">+</button>
+        <button onclick="addFrameSeparator('${ftype}','${cat}')" title="구분선 추가" style="font-size:10px;padding:0 4px">─</button>
       </div>`;
       html += '</div>';
     }
@@ -2037,6 +2207,7 @@ function renderFrames() {
   </div>`;
 
   el.innerHTML = html;
+  if (!el._dragInited) { initFrameDrag(el); el._dragInited = true; }
 }
 
 const catColorMap = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', hexagonal: '#f85149', outcome: '#bc8cff' };
@@ -2052,7 +2223,7 @@ function toggleCatType(ftype, cat) {
   const catData = framesData[ftype].categories[cat];
   catData.type = catData.type === 'routine' ? 'todo' : 'routine';
   saveFramesData();
-  renderFrames();
+  renderFrames(); render();
 }
 
 function getFrameItem(ftype, cat, idx) {
@@ -2070,29 +2241,65 @@ function setFrameItem(ftype, cat, idx, obj) {
 
 function addFrameItem(ftype, cat, text) {
   if (!text?.trim()) return;
+  if (!framesData[ftype]) framesData[ftype] = { label: ftype, categories: {} };
+  if (!framesData[ftype].categories) framesData[ftype].categories = {};
   if (!framesData[ftype].categories[cat]) framesData[ftype].categories[cat] = { type: 'routine', items: [] };
   framesData[ftype].categories[cat].items.push(text.trim());
+  // 6PILLARS (hexagonal) sync — stop at separator
+  if (cat === 'hexagonal') {
+    const srcItems = framesData[ftype].categories.hexagonal.items;
+    const firstSep = srcItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
+    if (firstSep === -1) { // no separator → sync new item to all frames
+      FRAME_TYPES.forEach(ft => {
+        if (ft === ftype) return;
+        if (!framesData[ft]?.categories) return;
+        if (!framesData[ft].categories[cat]) framesData[ft].categories[cat] = { type: 'routine', items: [] };
+        const ftItems = framesData[ft].categories[cat].items;
+        const ftSep = ftItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
+        if (ftSep === -1) ftItems.push(text.trim());
+        else ftItems.splice(ftSep, 0, text.trim());
+      });
+    }
+  }
   saveFramesData();
-  renderFrames();
+  renderFrames(); render();
+}
+
+function addFrameSeparator(ftype, cat) {
+  const label = prompt('구분선 텍스트 (비워두면 선만):', '') ?? null;
+  if (label === null) return;
+  if (!framesData[ftype].categories[cat]) framesData[ftype].categories[cat] = { type: 'routine', items: [] };
+  framesData[ftype].categories[cat].items.push({ type: 'separator', text: label.trim() });
+  saveFramesData();
+  renderFrames(); render();
 }
 
 function editFrameItem(ftype, cat, idx, text) {
   const item = getFrameItem(ftype, cat, idx);
   item.text = text.trim();
   setFrameItem(ftype, cat, idx, item);
-  // 6PILLARS (hexagonal) sync across all frame types
+  // 6PILLARS (hexagonal) sync — stop at separator
   if (cat === 'hexagonal') {
-    FRAME_TYPES.forEach(ft => {
-      if (ft === ftype) return;
-      const ftItems = framesData[ft]?.categories?.hexagonal?.items;
-      if (ftItems && idx < ftItems.length) {
-        const ftItem = getFrameItem(ft, cat, idx);
-        ftItem.text = text.trim();
-        setFrameItem(ft, cat, idx, ftItem);
-      }
-    });
+    const srcItems = framesData[ftype]?.categories?.hexagonal?.items || [];
+    const firstSep = srcItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
+    const syncBefore = firstSep === -1 ? srcItems.length : firstSep;
+    if (idx < syncBefore) {
+      FRAME_TYPES.forEach(ft => {
+        if (ft === ftype) return;
+        const ftItems = framesData[ft]?.categories?.hexagonal?.items;
+        if (!ftItems) return;
+        const ftFirstSep = ftItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
+        const ftSyncBefore = ftFirstSep === -1 ? ftItems.length : ftFirstSep;
+        if (idx < ftSyncBefore) {
+          const ftItem = getFrameItem(ft, cat, idx);
+          ftItem.text = text.trim();
+          setFrameItem(ft, cat, idx, ftItem);
+        }
+      });
+    }
   }
   saveFramesData();
+  renderFrames(); render();
 }
 
 let frameLinkTarget = null;
@@ -2111,9 +2318,139 @@ function openFrameLink(event, ftype, cat, idx) {
 }
 
 function delFrameItem(ftype, cat, idx) {
-  framesData[ftype].categories[cat].items.splice(idx, 1);
+  const items = framesData[ftype]?.categories?.[cat]?.items;
+  if (!items) return;
+  // Determine sync scope before splicing
+  const firstSep = items.findIndex(i => typeof i === 'object' && i.type === 'separator');
+  const shouldSync = cat === 'hexagonal' && (firstSep === -1 || idx < firstSep);
+  items.splice(idx, 1);
+  if (shouldSync) {
+    FRAME_TYPES.forEach(ft => {
+      if (ft === ftype) return;
+      const ftItems = framesData[ft]?.categories?.hexagonal?.items;
+      if (!ftItems || idx >= ftItems.length) return;
+      const ftFirstSep = ftItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
+      if (ftFirstSep === -1 || idx < ftFirstSep) ftItems.splice(idx, 1);
+    });
+  }
   saveFramesData();
-  renderFrames();
+  renderFrames(); render();
+}
+
+function editFrameSeparator(ftype, cat, idx, text) {
+  const item = framesData[ftype]?.categories?.[cat]?.items?.[idx];
+  if (!item || typeof item !== 'object' || item.type !== 'separator') return;
+  item.text = text.trim();
+  saveFramesData();
+  renderFrames(); render();
+}
+
+let _frameDrag = null;
+function initFrameDrag(panel) {
+  let _touchTimer = null, _touchEl = null;
+
+  panel.addEventListener('dragstart', e => {
+    if (e.target.closest('input,[contenteditable]')) return;
+    const el = e.target.closest('[data-frame-drag]');
+    if (!el) return;
+    _frameDrag = { role: el.dataset.frameDrag, ftype: el.dataset.ftype, cat: el.dataset.cat,
+      idx: el.dataset.idx !== undefined ? parseInt(el.dataset.idx) : undefined, el };
+    el.classList.add('drag-on');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+  });
+
+  panel.addEventListener('dragend', () => {
+    panel.querySelectorAll('.drag-on,.drag-target').forEach(x => x.classList.remove('drag-on','drag-target'));
+    _frameDrag = null;
+  });
+
+  panel.addEventListener('dragover', e => {
+    if (!_frameDrag) return;
+    const el = e.target.closest('[data-frame-drag]');
+    if (!el || el === _frameDrag.el) return;
+    if (el.dataset.frameDrag !== _frameDrag.role) return;
+    if (_frameDrag.role === 'item' && (el.dataset.ftype !== _frameDrag.ftype || el.dataset.cat !== _frameDrag.cat)) return;
+    if (_frameDrag.role === 'cat' && el.dataset.ftype !== _frameDrag.ftype) return;
+    e.preventDefault();
+    panel.querySelectorAll('.drag-target').forEach(x => x.classList.remove('drag-target'));
+    el.classList.add('drag-target');
+  });
+
+  panel.addEventListener('drop', e => {
+    e.preventDefault();
+    if (!_frameDrag) return;
+    const el = e.target.closest('[data-frame-drag]');
+    if (!el || el === _frameDrag.el || el.dataset.frameDrag !== _frameDrag.role) return;
+    if (_frameDrag.role === 'item') {
+      if (el.dataset.ftype !== _frameDrag.ftype || el.dataset.cat !== _frameDrag.cat) return;
+      const from = _frameDrag.idx, to = parseInt(el.dataset.idx);
+      if (from === to) return;
+      const items = framesData[_frameDrag.ftype].categories[_frameDrag.cat].items;
+      const [moved] = items.splice(from, 1); items.splice(to, 0, moved);
+    } else if (_frameDrag.role === 'cat') {
+      if (el.dataset.ftype !== _frameDrag.ftype) return;
+      const ftype = _frameDrag.ftype;
+      if (!framesData[ftype]._catOrder) framesData[ftype]._catOrder = [...CATS];
+      const order = framesData[ftype]._catOrder;
+      const fi = order.indexOf(_frameDrag.cat), ti = order.indexOf(el.dataset.cat);
+      if (fi === -1 || ti === -1 || fi === ti) return;
+      order.splice(fi, 1); order.splice(ti, 0, _frameDrag.cat);
+    }
+    saveFramesData(); renderFrames();
+  });
+
+  // Touch long-press
+  panel.addEventListener('touchstart', e => {
+    if (e.target.closest('input,[contenteditable]')) return;
+    const el = e.target.closest('[data-frame-drag]');
+    if (!el) return;
+    _touchTimer = setTimeout(() => {
+      _touchEl = el;
+      _frameDrag = { role: el.dataset.frameDrag, ftype: el.dataset.ftype, cat: el.dataset.cat,
+        idx: el.dataset.idx !== undefined ? parseInt(el.dataset.idx) : undefined, el };
+      el.classList.add('drag-on');
+      navigator.vibrate?.(50);
+    }, 400);
+  }, { passive: true });
+
+  panel.addEventListener('touchmove', e => {
+    if (_touchTimer) { clearTimeout(_touchTimer); _touchTimer = null; }
+    if (!_frameDrag) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const under = document.elementFromPoint(t.clientX, t.clientY)?.closest('[data-frame-drag]');
+    panel.querySelectorAll('.drag-target').forEach(x => x.classList.remove('drag-target'));
+    if (under && under !== _touchEl) under.classList.add('drag-target');
+  }, { passive: false });
+
+  panel.addEventListener('touchend', e => {
+    if (_touchTimer) { clearTimeout(_touchTimer); _touchTimer = null; }
+    if (!_frameDrag) return;
+    const t = e.changedTouches[0];
+    const under = document.elementFromPoint(t.clientX, t.clientY)?.closest('[data-frame-drag]');
+    if (under && under !== _touchEl && under.dataset.frameDrag === _frameDrag.role) {
+      if (_frameDrag.role === 'item' && under.dataset.ftype === _frameDrag.ftype && under.dataset.cat === _frameDrag.cat) {
+        const from = _frameDrag.idx, to = parseInt(under.dataset.idx);
+        if (from !== to) {
+          const items = framesData[_frameDrag.ftype].categories[_frameDrag.cat].items;
+          const [moved] = items.splice(from, 1); items.splice(to, 0, moved);
+          saveFramesData(); renderFrames();
+        }
+      } else if (_frameDrag.role === 'cat' && under.dataset.ftype === _frameDrag.ftype) {
+        const ftype = _frameDrag.ftype;
+        if (!framesData[ftype]._catOrder) framesData[ftype]._catOrder = [...CATS];
+        const order = framesData[ftype]._catOrder;
+        const fi = order.indexOf(_frameDrag.cat), ti = order.indexOf(under.dataset.cat);
+        if (fi !== -1 && ti !== -1 && fi !== ti) {
+          order.splice(fi, 1); order.splice(ti, 0, _frameDrag.cat);
+          saveFramesData(); renderFrames();
+        }
+      }
+    }
+    panel.querySelectorAll('.drag-on,.drag-target').forEach(x => x.classList.remove('drag-on','drag-target'));
+    _frameDrag = null; _touchEl = null;
+  });
 }
 
 async function injectFrames() {
