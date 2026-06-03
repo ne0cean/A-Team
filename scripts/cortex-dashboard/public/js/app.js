@@ -433,14 +433,13 @@ function getCatItemsForRender(d, dayData, cat) {
   const catType = catMeta?.type || 'routine';
 
   if (catType === 'todo') {
-    // Filter out old injections
+    // Manual items stored per-day (no _frame/_carried flags)
     const stored = (dayData[cat] || []).filter(i => !i._frame && !i._carried);
     const today = new Date().getDate();
+    const templateItems = catMeta?.items || [];
 
-    if (stored.length > 0) return stored;
-
-    // Lazy carry: ONLY from yesterday → today
-    if (d === today) {
+    // Lazy carry for today if both stored and template are empty
+    if (stored.length === 0 && templateItems.length === 0 && d === today) {
       const prevDay = monthData.days?.[String(d - 1)];
       if (prevDay) {
         const prevTodo = (prevDay[cat] || []).filter(i => !i.done && !i._frame && !i._carried);
@@ -452,13 +451,19 @@ function getCatItemsForRender(d, dayData, cat) {
       }
     }
 
-    // No stored items — show template defaults (collapsed in future days)
-    const templateItems = catMeta?.items || [];
-    return templateItems.map(ti => {
+    if (!templateItems.length) return stored;
+
+    // Merge: template as base (with done state from stored), manual-only items appended
+    const storedByText = new Map(stored.map(i => [i.text, i]));
+    const result = templateItems.map(ti => {
       if (typeof ti === 'object' && ti.type === 'separator') return { ...ti, _frame: true };
       const base = typeof ti === 'object' ? { text: ti.text || '', url: ti.url || '' } : { text: String(ti), url: '' };
-      return { ...base, done: false, _frame: true };
+      const s = storedByText.get(base.text);
+      if (s) storedByText.delete(base.text);
+      return { ...base, done: s ? s.done : false, url: s?.url || base.url, _frame: true };
     });
+    storedByText.forEach(item => result.push(item)); // manual-only additions
+    return result;
   }
 
   // Routine: live from template
@@ -589,8 +594,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     const _nonSepFrame = _frameItems.filter(i => i.type !== 'separator');
     if (_frameItems.length > 0) {
       const _tid = `ft-${d}-${cat}`;
-      html += `<span class="frame-group-hdr" onclick="toggleEl('${_tid}')">루틴 ${_nonSepFrame.length}▸</span>
-        <div id="${_tid}" class="frame-group-body" style="display:none">`;
+      html += `<div id="${_tid}" class="frame-group-body">`;
       _frameItems.forEach(item => {
         const idx = items.indexOf(item);
         if (item.type === 'separator') {
@@ -862,29 +866,33 @@ function openOneThingLinkPopup(event, d) {
   save().then(() => render());
 }
 
+let ctrlkTarget = null;
 function openLinkPopupFromSpan(span, d, cat, idx) {
-  // Ctrl+K: attach URL to item, using selected text as label if any
+  // Ctrl+K: attach URL to item using the link popup (no prompt)
   const sel = window.getSelection();
   const selectedText = sel && sel.rangeCount ? sel.toString().trim() : '';
-  const url = prompt('URL 입력:', 'https://');
-  if (!url || url === 'https://') return;
   const dayData = monthData.days?.[String(d)] || {};
   const catType = getDayCatType(d, dayData, cat);
+  ctrlkTarget = { d, cat, idx, catType, selectedText };
+  const popup = document.getElementById('linkPopup');
+  const input = document.getElementById('linkUrl');
+  // Prefill existing URL
+  let currentUrl = '';
   if (catType === 'routine') {
     const ft = getFrameTypeForDay(d, dayData);
-    const fItems = framesData?.[ft]?.categories?.[cat]?.items;
-    if (!fItems || idx >= fItems.length) return;
-    if (typeof fItems[idx] !== 'object') fItems[idx] = { text: String(fItems[idx]), url: '' };
-    fItems[idx].url = url;
-    if (selectedText) fItems[idx].text = selectedText;
-    saveFramesData().then(() => { renderFrames(); render(); });
-    return;
+    const fi = framesData?.[ft]?.categories?.[cat]?.items?.[idx];
+    if (fi && typeof fi === 'object') currentUrl = fi.url || '';
+  } else {
+    const items = getCatItemsForRender(d, dayData, cat);
+    if (items[idx]) currentUrl = items[idx].url || '';
   }
-  const item = ensureDay(d)[cat]?.[idx];
-  if (!item) return;
-  item.url = url;
-  if (selectedText) item.text = selectedText;
-  save().then(() => render());
+  input.value = currentUrl;
+  popup.dataset.mode = 'ctrlk';
+  popup.classList.add('open');
+  const rect = span.getBoundingClientRect();
+  popup.style.left = Math.min(rect.left, window.innerWidth - 300) + 'px';
+  popup.style.top = Math.min(rect.bottom + 4, window.innerHeight - 120) + 'px';
+  setTimeout(() => input.focus(), 50);
 }
 
 function openLinkPopup(event, d, cat, idx) {
@@ -910,6 +918,7 @@ function closeLinkPopup() {
   popup.dataset.mode = '';
   linkTarget = null;
   frameLinkTarget = null;
+  ctrlkTarget = null;
   mrLinkIdx = null;
 }
 
@@ -927,6 +936,26 @@ async function saveLink() {
     item.url = url;
     setFrameItem(ftype, cat, idx, item);
     saveFramesData(); renderFrames(); closeLinkPopup();
+    return;
+  }
+  if (popup.dataset.mode === 'ctrlk' && ctrlkTarget) {
+    const { d, cat, idx, catType, selectedText } = ctrlkTarget;
+    if (catType === 'routine') {
+      const dayData = monthData.days?.[String(d)] || {};
+      const ft = getFrameTypeForDay(d, dayData);
+      const fItems = framesData?.[ft]?.categories?.[cat]?.items;
+      if (fItems && idx < fItems.length) {
+        if (typeof fItems[idx] !== 'object') fItems[idx] = { text: String(fItems[idx]), url: '' };
+        fItems[idx].url = url;
+        if (selectedText) fItems[idx].text = selectedText;
+      }
+      saveFramesData(); renderFrames(); render();
+    } else {
+      const item = ensureDay(d)[cat]?.[idx];
+      if (item) { item.url = url; if (selectedText) item.text = selectedText; }
+      await save(); render();
+    }
+    closeLinkPopup();
     return;
   }
   if (!linkTarget) return;
@@ -948,6 +977,22 @@ async function removeLink() {
     item.url = '';
     setFrameItem(ftype, cat, idx, item);
     saveFramesData(); renderFrames(); closeLinkPopup();
+    return;
+  }
+  if (popup.dataset.mode === 'ctrlk' && ctrlkTarget) {
+    const { d, cat, idx, catType } = ctrlkTarget;
+    if (catType === 'routine') {
+      const dayData = monthData.days?.[String(d)] || {};
+      const ft = getFrameTypeForDay(d, dayData);
+      const fItems = framesData?.[ft]?.categories?.[cat]?.items;
+      if (fItems && idx < fItems.length && typeof fItems[idx] === 'object') fItems[idx].url = '';
+      saveFramesData(); renderFrames(); render();
+    } else {
+      const item = ensureDay(d)[cat]?.[idx];
+      if (item) item.url = '';
+      await save(); render();
+    }
+    closeLinkPopup();
     return;
   }
   if (!linkTarget) return;
@@ -2143,6 +2188,7 @@ async function loadFrames() {
   // Apply saved category name overrides (_catNames stored in day-frames data)
   if (framesData._catNames) Object.assign(CAT_NAMES, framesData._catNames);
   renderFrames();
+  render(); // Re-render calendar with frame template items
 }
 
 function renderFrames() {
@@ -2244,22 +2290,22 @@ function addFrameItem(ftype, cat, text) {
   if (!framesData[ftype]) framesData[ftype] = { label: ftype, categories: {} };
   if (!framesData[ftype].categories) framesData[ftype].categories = {};
   if (!framesData[ftype].categories[cat]) framesData[ftype].categories[cat] = { type: 'routine', items: [] };
-  framesData[ftype].categories[cat].items.push(text.trim());
-  // 6PILLARS (hexagonal) sync — stop at separator
+  const srcItems = framesData[ftype].categories[cat].items;
+  const srcSep = srcItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
+  // Insert before separator so new items are always in the "shared" region
+  if (srcSep === -1) srcItems.push(text.trim());
+  else srcItems.splice(srcSep, 0, text.trim());
+  // 6PILLARS (hexagonal) sync — always sync new items to all frame types
   if (cat === 'hexagonal') {
-    const srcItems = framesData[ftype].categories.hexagonal.items;
-    const firstSep = srcItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
-    if (firstSep === -1) { // no separator → sync new item to all frames
-      FRAME_TYPES.forEach(ft => {
-        if (ft === ftype) return;
-        if (!framesData[ft]?.categories) return;
-        if (!framesData[ft].categories[cat]) framesData[ft].categories[cat] = { type: 'routine', items: [] };
-        const ftItems = framesData[ft].categories[cat].items;
-        const ftSep = ftItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
-        if (ftSep === -1) ftItems.push(text.trim());
-        else ftItems.splice(ftSep, 0, text.trim());
-      });
-    }
+    FRAME_TYPES.forEach(ft => {
+      if (ft === ftype) return;
+      if (!framesData[ft]?.categories) return;
+      if (!framesData[ft].categories[cat]) framesData[ft].categories[cat] = { type: 'routine', items: [] };
+      const ftItems = framesData[ft].categories[cat].items;
+      const ftSep = ftItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
+      if (ftSep === -1) ftItems.push(text.trim());
+      else ftItems.splice(ftSep, 0, text.trim());
+    });
   }
   saveFramesData();
   renderFrames(); render();

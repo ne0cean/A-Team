@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-03] Cortex Dashboard 핵심 버그 수정
+
+**완료**: loadFrames() 후 render() 누락 (프레임→캘린더 미반영 근본 원인) 수정. 6 Pillars addFrameItem separator 있을 때 sync 안 되던 버그 수정. Ctrl+K prompt()→linkPopup UI 전환(mode=ctrlk). 미래 날짜 루틴 기본 펼침. routine/todo 아키텍처 정비, worker carry cascade 제거.
+**이슈**: loadFrames/loadMonth 병렬 실행 → framesData null 상태로 render() 호출되는 타이밍 버그였음.
+**빌드**: ✅ 배포 완료 (4c07a9dd)
+
 ## [2026-06-03] 3-Tier Knowledge Architecture + PostToolUse:Bash 진단 훅
 
 **완료**: governance/patterns/ 4개(browser-automation/data-mutation/api-error-handling/visual-qa) + governance/diagnostics/ 2개(browser-automation-failures/cloudflare-worker-errors) 신규. /vibe Step 0.85 Domain Pattern Gate 추가(절대경로). /end Step 6.76 레슨→패턴 커버리지 체크 추가. scripts/hooks/post-bash-diagnostic.sh 신규(Bash 실패 시 진단 파일 자동 서페이싱). ~/.claude/settings.json PostToolUse:Bash 훅 등록. 훅 26ms 오버헤드 검증.

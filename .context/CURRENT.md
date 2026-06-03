@@ -60,6 +60,15 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-03) — Cortex Dashboard 핵심 버그 수정 5건
+
+- **loadFrames → render() 누락** (근본 원인): loadFrames() 완료 후 renderFrames()만 호출, render() 미호출 → 캘린더에 프레임 내용 미반영. render() 1줄 추가로 수정
+- **6 Pillars addFrameItem 동기화**: separator 있을 때 sync 안 되던 버그 수정. 새 항목은 항상 separator 앞에 삽입 + 전 frame type 동기
+- **Ctrl+K 팝업 UI**: prompt() → 기존 linkPopup UI 재사용. mode='ctrlk' 추가. routine/todo 분기 저장 처리
+- **미래 날짜 루틴 기본 펼침**: frame-group-hdr badge 제거, 기본 펼침으로 변경
+- **routine 카테고리/todo 아키텍처**: 템플릿 live 렌더링, worker inject-frames carry 캐스케이드 제거, 중복 카테고리 렌더링 방지
+- 배포: `https://cortex.feat-breeze.workers.dev` (Version: 4c07a9dd)
+
 ## Last Completions (2026-06-03) — 3-Tier Knowledge Architecture + 진단 훅
 
 - **governance/patterns/ 4개 신규** — browser-automation / data-mutation / api-error-handling / visual-qa
@@ -102,6 +111,7 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 ## Next Tasks
 
 ### High Priority
+- [ ] **Cortex inject-frames 정리** — 배포 후 inject-frames 버튼 실행해 days 4-30 잘못된 _carried 항목 청소
 - [ ] **Cortex Dashboard #2/#16/#24/#26 브라우저 확인** — 사용자 수동 확인 후 이상 발견 시 CODE-FIX 요청. 원본 설명 파일 미존재, 코드 분석상 구현됨.
 - [ ] **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증, 동기화 이슈
 - [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
