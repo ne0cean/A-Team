@@ -459,6 +459,9 @@ export default {
       }
 
       // --- Workout ---
+      if (path === '/api/workout' && method === 'GET') {
+        return new Response('Method Not Allowed', { status: 405, headers: { ...headers, 'Allow': 'POST' } });
+      }
       if (path === '/api/workout' && method === 'POST') {
         const { ym, day, workout, part } = await request.json();
         if (!validYm(ym) || !validDay(day)) {
@@ -773,7 +776,12 @@ export default {
       }
 
       // Pass through to assets (static files served by Cloudflare)
-      return env.ASSETS.fetch(request);
+      try {
+        return await env.ASSETS.fetch(request);
+      } catch (e) {
+        console.error('ASSETS.fetch failed:', e?.message);
+        return new Response('Not Found', { status: 404, headers });
+      }
 
     } catch (e) {
       console.error(e);

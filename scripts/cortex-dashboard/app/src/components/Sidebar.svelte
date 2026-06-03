@@ -8,6 +8,14 @@
   $: loadTree($cortexPath);
 
   async function loadTree(path) {
+    const cacheKey = `cortex-tree:${path || 'cortex'}`;
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const { data, ts } = JSON.parse(cached);
+        if (Date.now() - ts < 5 * 60 * 1000) { items = data; return; }
+      }
+    } catch {}
     const data = await api.loadTree(path || 'cortex');
     if (!data) return;
     items = data
@@ -17,6 +25,9 @@
         if (a.type !== 'dir' && b.type === 'dir') return 1;
         return a.name.localeCompare(b.name);
       });
+    try {
+      sessionStorage.setItem(cacheKey, JSON.stringify({ data: items, ts: Date.now() }));
+    } catch {}
   }
 
   function navigate(path) {
@@ -55,6 +66,7 @@
     if (res?.ok) {
       $activeNote = { path: filePath, name: fileName, content, sha: res.sha };
       $noteEditing = true;
+      try { sessionStorage.removeItem(`cortex-tree:${$cortexPath}`); } catch {}
       loadTree($cortexPath);
     }
   }
@@ -82,6 +94,7 @@
     class="tree-search"
     bind:value={searchQuery}
     placeholder="Search notes..."
+    aria-label="Search notes"
     on:keydown={(e) => e.key === 'Enter' && searchNotes()}
   >
 
