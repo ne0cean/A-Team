@@ -74,6 +74,36 @@ fi
 - `resume_active` 또는 `git_dirty > 5` 또는 `in_progress` 있음 → **pickup 경량 경로**
 - 그 외 → **vibe 풀 경로** (Step 1~4)
 
+**Step 0.85 — Domain Pattern Gate** (전체 프로젝트):
+```bash
+PATTERNS_DIR="/Users/noir/Projects/a-team/governance/patterns"
+LOADED_PATTERNS=""
+
+# Playwright/Browser 자동화 프로젝트 감지
+if [ -d "scripts/browser" ] || find . -maxdepth 3 -name "playwright.config*" 2>/dev/null | grep -q .; then
+  LOADED_PATTERNS="$LOADED_PATTERNS browser-automation"
+  echo "pattern_gate: [browser-automation] scripts/browser 감지 → governance/patterns/browser-automation.md 로드됨"
+fi
+
+# Cloudflare Worker 프로젝트 감지
+if [ -f "wrangler.toml" ] || [ -f "wrangler.json" ]; then
+  LOADED_PATTERNS="$LOADED_PATTERNS api-error-handling data-mutation"
+  echo "pattern_gate: [cloudflare-worker] wrangler.toml 감지 → api-error-handling.md + data-mutation.md 로드됨"
+fi
+
+# Visual QA 패턴 (browser 감지 시 함께)
+if echo "$LOADED_PATTERNS" | grep -q "browser-automation"; then
+  echo "pattern_gate: [visual-qa] → governance/patterns/visual-qa.md 로드됨"
+fi
+
+if [ -z "$LOADED_PATTERNS" ]; then
+  echo "pattern_gate: 특정 도메인 미감지, 범용 모드"
+fi
+```
+- 패턴 로드됨 → 해당 체크리스트를 **첫 번째 구현 액션 전에** 확인 의무
+- 새 스크립트/API 작성 전: 해당 pattern.md의 "설계 체크리스트" 섹션 Read
+- 에러 발생 시: `governance/diagnostics/` 해당 플레이북으로 진단
+
 **Step 0.9 — PRD Gate** (전체 프로젝트):
 ```bash
 PRD_EXISTS=$(find . -maxdepth 3 -name "*prd*" -o -name "*PRD*" 2>/dev/null | grep -iE '\.md$' | head -1)

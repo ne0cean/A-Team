@@ -1,5 +1,17 @@
 # A-Team Improvements — Pending
 
+---
+
+## Done — 2026-06 (이번 세션)
+
+- [x] **Playwright ARIA API deprecated 수정** — `page.accessibility.snapshot()` → `page.ariaSnapshot()` (`scripts/browser/snapshot.js`, `flow.js`)
+- [x] **flow.js --url 플래그 버그 수정** — --url이 navigate에 미사용 → auto-prepend goto 로직 추가
+- [x] **qa 에이전트 browse 의존성 제거** — browse 데몬 → Playwright 스크립트 직접 호출로 교체 (`.claude/agents/qa.md`)
+- [x] **3-Tier Knowledge Architecture 구축** — `governance/patterns/` 4개 + `governance/diagnostics/` 2개 + `/vibe` domain detection gate 추가
+- [x] **내부 스킬 vs Glance MCP 비교 검토** — 결론: 정적 QA는 내부 스킬로 충분, Glance는 동적 탐색용
+
+---
+
 역류/등록된 개선사항 후보. `/improve apply` 또는 `/absorb` 스캔 결과로 등록.
 
 (buggy 초기 스캔 결과 제거됨. 다음 /absorb 또는 주간 launchd fire 시 재등록.)
