@@ -2,7 +2,7 @@
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
-**537 tests PASS** (2026-06-01). Cortex Dashboard 사용성 복구 + 품질 게이트 4-레이어 구축.
+**541 tests PASS** (2026-06-03). 3-Tier Knowledge Architecture + PostToolUse:Bash 진단 훅 구축.
 
 ## 🎯 Team Roadmap (단일 진실의 원천)
 
@@ -60,6 +60,15 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-03) — 3-Tier Knowledge Architecture + 진단 훅
+
+- **governance/patterns/ 4개 신규** — browser-automation / data-mutation / api-error-handling / visual-qa
+- **governance/diagnostics/ 2개 신규** — browser-automation-failures / cloudflare-worker-errors (5섹션 진단 트리)
+- **/vibe Step 0.85 Domain Pattern Gate** — wrangler.toml / scripts/browser/ 감지 → 패턴 파일 절대경로 Read 자동 주입
+- **/end Step 6.76 레슨→패턴 커버리지 체크** — 신규 레슨 태그 → 대응 패턴 파일 미갱신 시 1줄 알림
+- **PostToolUse:Bash 훅** — `scripts/hooks/post-bash-diagnostic.sh` + `~/.claude/settings.json` 훅 등록. Bash 실패 시 진단 파일 자동 서페이싱. 26ms 오버헤드 검증.
+- **541 tests PASS**
+
 ## Last Completions (2026-06-02) — 병렬 진단 + Growth System T4 + QA 마무리
 
 - **병렬 에이전트 3개** — QA 코드 분석 / D1 진단 / 훅+MeiliSearch 상태 확인
@@ -98,7 +107,6 @@ Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi
 - [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
 
 ### Medium Priority
-- [x] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진 (YT 그룹C 도출) ✓ scripts/ppt/generate_from_template.py 완료
 - [ ] **LSP 활성화** — settings.json 히든 플래그 + 언어서버 설치 (YT 그룹D 도출)
 - [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정 (PRD 성공 기준 기반)
 - [ ] **Stryker 첫 full run** — mutation score baseline 측정

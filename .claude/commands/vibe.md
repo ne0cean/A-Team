@@ -100,10 +100,10 @@ if [ -z "$LOADED_PATTERNS" ]; then
   echo "pattern_gate: 특정 도메인 미감지, 범용 모드"
 fi
 ```
-- **감지된 패턴 파일을 반드시 Read tool로 컨텍스트에 주입한다** (echo 메시지만으론 불충분):
-  - browser-automation 감지 → `Read governance/patterns/browser-automation.md`
-  - cloudflare-worker 감지 → `Read governance/patterns/api-error-handling.md`, `Read governance/patterns/data-mutation.md`
-  - visual-qa 감지 → `Read governance/patterns/visual-qa.md`
+- **감지된 패턴 파일을 반드시 Read tool로 컨텍스트에 주입한다** (echo 메시지만으론 불충분, 절대경로 사용):
+  - browser-automation 감지 → `Read /Users/noir/Projects/a-team/governance/patterns/browser-automation.md`
+  - cloudflare-worker 감지 → `Read /Users/noir/Projects/a-team/governance/patterns/api-error-handling.md` + `Read /Users/noir/Projects/a-team/governance/patterns/data-mutation.md`
+  - visual-qa 감지 → `Read /Users/noir/Projects/a-team/governance/patterns/visual-qa.md`
 - 파일 Read 후 "설계 체크리스트" 섹션을 첫 번째 구현 액션 전에 반드시 확인
 - 에러 발생 시: `Read governance/diagnostics/` 해당 플레이북으로 즉시 진단
 

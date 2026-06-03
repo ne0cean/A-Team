@@ -1,5 +1,13 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-03] 3-Tier Knowledge Architecture + PostToolUse:Bash 진단 훅
+
+**완료**: governance/patterns/ 4개(browser-automation/data-mutation/api-error-handling/visual-qa) + governance/diagnostics/ 2개(browser-automation-failures/cloudflare-worker-errors) 신규. /vibe Step 0.85 Domain Pattern Gate 추가(절대경로). /end Step 6.76 레슨→패턴 커버리지 체크 추가. scripts/hooks/post-bash-diagnostic.sh 신규(Bash 실패 시 진단 파일 자동 서페이싱). ~/.claude/settings.json PostToolUse:Bash 훅 등록. 훅 26ms 오버헤드 검증.
+**이슈**: 없음
+**빌드**: ✅ 541 PASS
+
+---
+
 ## [2026-06-02] 병렬 진단 + Growth System T4 완료
 
 **완료**: 병렬 에이전트 3개 — QA코드분석(#2/#16/#24/#26 구현확인, T1배지회귀 복구+배포 f2686029) / D1진단(코드CLEAN, 마이그레이션불필요) / 훅확인(이미등록, MeiliSearch 보류). Growth System T4 `scripts/cortex-growth-snapshot.mjs` 구현 — D1 직접 조회 → done/total/pillar/#lesson 집계 → analytics.jsonl emit (52243d5c, pushed)
