@@ -47,25 +47,12 @@ function parseArgs() {
 
 async function captureAriaSnapshot(page) {
   try {
-    const snapshot = await page.accessibility.snapshot({ interestingOnly: false });
-    return snapshot ? formatAriaTree(snapshot, 0) : '# Empty accessibility tree';
+    // page.ariaSnapshot() returns YAML string directly (Playwright 1.46+)
+    const yaml = await page.ariaSnapshot();
+    return yaml || '# Empty accessibility tree';
   } catch {
     return '# Accessibility snapshot unavailable';
   }
-}
-
-function formatAriaTree(node, depth) {
-  const indent = '  '.repeat(depth);
-  let line = `${indent}- ${node.role || 'unknown'}`;
-  if (node.name) line += ` "${node.name}"`;
-  if (node.value) line += ` value="${node.value}"`;
-  let result = line + '\n';
-  if (node.children) {
-    for (const child of node.children) {
-      result += formatAriaTree(child, depth + 1);
-    }
-  }
-  return result;
 }
 
 async function collectBoundingBoxes(page) {

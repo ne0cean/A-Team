@@ -20,6 +20,7 @@ function parseArgs() {
   const args = process.argv.slice(2);
   const opts = {
     steps: '[]',
+    url: null,
     viewport: '375x812',
     out: '/tmp/ui-inspect/flow',
     timeout: 10000,
@@ -27,6 +28,7 @@ function parseArgs() {
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
       case '--steps': opts.steps = args[++i]; break;
+      case '--url': opts.url = args[++i]; break;
       case '--viewport': opts.viewport = args[++i]; break;
       case '--out': opts.out = args[++i]; break;
       case '--timeout': opts.timeout = parseInt(args[++i], 10); break;
@@ -81,9 +83,9 @@ async function executeStep(page, step, outDir, stepIndex) {
     }
 
     case 'snapshot': {
-      const snapshot = await page.accessibility.snapshot({ interestingOnly: false });
+      const yaml = await page.ariaSnapshot();
       const snapshotPath = path.join(outDir, `step-${stepIndex}.yaml`);
-      fs.writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2), 'utf-8');
+      fs.writeFileSync(snapshotPath, yaml || '# Empty accessibility tree', 'utf-8');
       result.snapshotPath = snapshotPath;
       break;
     }
@@ -103,6 +105,11 @@ async function main() {
   } catch {
     console.log(JSON.stringify({ error: 'Invalid --steps JSON' }));
     process.exit(1);
+  }
+
+  // --url shorthand: auto-prepend goto if first step isn't already goto
+  if (opts.url && steps[0]?.action !== 'goto') {
+    steps.unshift({ action: 'goto', url: opts.url });
   }
 
   const [vw, vh] = opts.viewport.split('x').map(Number);
