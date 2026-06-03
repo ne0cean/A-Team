@@ -9,6 +9,7 @@ description: /qa — 웹 앱 체계적 QA 테스트
 - 사용자 인자(URL, --pages, --category)가 있으면 그대로 전달
 - 에이전트 완료 후 헬스 스코어와 이슈 목록을 사용자에게 요약 보고
 - CRITICAL 이슈는 반드시 강조
+- claude-remote 프로젝트이면 마지막에 1줄 추가: "WS/터미널 검증: `/ws-qa` 실행 권장"
 
 ## `--design` 플래그 (자동 체이닝)
 
