@@ -258,6 +258,30 @@ node "$(git rev-parse --show-toplevel 2>/dev/null)/scripts/log-event.mjs" \
 
 **체크 기준**: 레슨이 "이 실수를 반복하지 말라"는 내용이고, 코드/파일/명령 패턴으로 자동 감지 가능한 경우만 제안. 문서/프로세스 레슨은 스킵.
 
+## Step 6.76 — 레슨→패턴 파일 커버리지 체크 (자동)
+
+이번 세션에서 MEMORY.md에 새 레슨이 추가됐으면, 해당 레슨이 `governance/patterns/`에 반영됐는지 확인:
+
+**태그 → 패턴 파일 매핑**:
+| 레슨 태그 | 연결 패턴 파일 |
+|----------|--------------|
+| `playwright` `browser` `aria` `automation` | `governance/patterns/browser-automation.md` |
+| `d1` `ssot` `data-loss` `patch` `read-modify-write` | `governance/patterns/data-mutation.md` |
+| `worker` `cloudflare` `api` `405` `404` `500` | `governance/patterns/api-error-handling.md` |
+| `qa` `screenshot` `glance` `visual-testing` `token` | `governance/patterns/visual-qa.md` |
+
+**동작**:
+1. 새 레슨 태그와 위 매핑을 대조
+2. 매핑되는 패턴 파일이 있고, 이번 세션에서 해당 파일이 수정 안 됐으면:
+   ```
+   📐 패턴 업데이트 제안: '[레슨명]' → governance/patterns/[파일].md 갱신 권장
+      (안티패턴 또는 체크리스트에 추가)
+   ```
+3. 이미 반영됐으면 스킵 (나레이션 없이)
+4. 매핑 없는 레슨 (문서/프로세스성) → 스킵
+
+**목적**: 레슨이 MEMORY.md(사후 기록)에만 머물지 않고, governance/patterns/(사전 예방)까지 진화되도록 보장.
+
 ## Step 6.8 — Command Usage Coaching (자동)
 
 세션 중 사용된 커맨드 vs 사용 안 했지만 **썼으면 더 좋았을** 커맨드를 분석.
