@@ -2430,7 +2430,12 @@ function renderNoteViewer() {
 
 async function uploadImage(file) {
   if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    toast('이미지가 5MB를 초과합니다. 더 작은 이미지를 사용해주세요.', true);
+    return;
+  }
   const reader = new FileReader();
+  reader.onerror = () => { toast('이미지 읽기 실패. 파일 형식을 확인해주세요.', true); };
   reader.onload = async () => {
     const base64 = reader.result.split(',')[1];
     const res = await fetch(`${API}/api/cortex/upload`, {
