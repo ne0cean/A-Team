@@ -41,8 +41,14 @@ grep -i "키워드" ~/tools/A-Team/governance/rules/TRIGGER-INDEX.md
 | `lifecycle.md` | 40 | 새 커맨드/에이전트 추가 시 / 커맨드 수 60개 근접 시 | lifecycle, zombie, 상한선, deprecated |
 | `model-allocation.md` | 70 | **상시 적용** — 매 사용자 메시지 직후 모델 적정성 자가평가 | 모델 적정성, opus, sonnet, 위임, 비용 |
 | `auto-pilot.md` | 130 | "auto-pilot/자율주행/쭉 진행/승인 없이/끝까지 알아서" / 다단계 워크플로우 자율 실행 | auto-pilot, 자율주행, STOP 조건, 옵션 B |
+| `task-ac.md` | 60 | 수정 파일 2개 이상 / "추가·수정·마이그레이션·동기화" 패턴 / 이전 세션 실패 이력 | AC, 수락 기준, 완료 선언, 태스크 검증, BDD |
+| `quality-pipeline.md` | 10 | 변경 3+ 파일 / 빌드 완료 / 품질 게이트 트리거 | quality, adversarial, CSO, 빌드 게이트 |
+| `research-integration.md` | 30 | researcher 에이전트 결과 적용 시 / 외부 코드 반영 시 | 리서치, source, 출처, 외부 코드 |
+| `impact-analysis.md` | 35 | lib/*.ts, scripts/*.mjs, governance/*.md 수정 시 / 영향도 분석 요청 시 | impact, 영향도, BFS, dependency, 변경 전파 |
+| `risk-tier.md` | 45 | 구현 시작 전 위험도 평가 / CRITICAL 판정 시 / human-in-the-loop 트리거 | risk, 위험도, LOW/MEDIUM/HIGH/CRITICAL, guardrail |
+| `supervisor-pattern.md` | 50 | orchestrator 설계 / vigil-orchestrator 관계 / retry 에스컬레이션 패턴 | supervisor, worker, retry, escalate, 에스컬레이션 |
 
-**합계**: ~1,245 lines. **트리거 매칭 없이 기본 로드하지 말 것**.
+**합계**: ~1,475 lines. **트리거 매칭 없이 기본 로드하지 말 것**.
 
 ---
 

@@ -5,6 +5,11 @@ export default defineConfig({
     globals: true,
     include: ['test/**/*.test.ts'],
     testTimeout: 10_000,
+    server: {
+      deps: {
+        external: ['**/scripts/ppt/*.mjs'],
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'json', 'json-summary'],

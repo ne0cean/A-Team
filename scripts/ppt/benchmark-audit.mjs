@@ -7,14 +7,14 @@
  */
 
 import { existsSync, readFileSync } from 'fs';
-import { resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { resolve } from 'path';
 
 const ACTION_VERBS = [
   'increase', 'reduce', 'improve', 'shift', 'prioritize', 'focus', 'separate',
   'accelerate', 'protect', 'capture', 'requires', 'drives', 'enables',
-  '확대', '축소', '개선', '전환', '집중', '우선', '분리', '가속', '방어',
-  '확보', '필요', '견인', '가능', '해야', '된다', '높인다', '낮춘다'
+  '\ud655\ub300', '\ucd95\uc18c', '\uac1c\uc120', '\uc804\ud658', '\uc9d1\uc911', '\uc6b0\uc120', '\ubd84\ub9ac', '\uac00\uc18d', '\ubc29\uc5b4',
+  '\ud655\ubcf4', '\ud544\uc694', '\uacac\uc778', '\uac00\ub2a5', '\ud574\uc57c', '\ub41c\ub2e4', '\ub192\uc778\ub2e4', '\ub0ae\ucd98\ub2e4'
 ];
 
 const EVIDENCE_LAYOUTS = new Set([
