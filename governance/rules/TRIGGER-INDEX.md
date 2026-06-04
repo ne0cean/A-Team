@@ -40,6 +40,8 @@ grep -i "키워드" ~/tools/A-Team/governance/rules/TRIGGER-INDEX.md
 | `visual-verification.md` | 74 | UI 파일 수정 / 시각 검증 필요 시 | UI, Playwright, 시각 검증 |
 | `lifecycle.md` | 40 | 새 커맨드/에이전트 추가 시 / 커맨드 수 60개 근접 시 | lifecycle, zombie, 상한선, deprecated |
 | `model-allocation.md` | 70 | **상시 적용** — 매 사용자 메시지 직후 모델 적정성 자가평가 | 모델 적정성, opus, sonnet, 위임, 비용 |
+| `quality-pipeline.md` | - | TDD 강제 / 빌드 품질 검증 / Layer 1-3 파이프라인 활성화 | quality-pipeline, TDD, 빌드 검증, 품질 자동화 |
+| `research-integration.md` | - | researcher 에이전트 결과를 컨텍스트에 통합 시 | research-integration, researcher, 리서치 통합 |
 | `auto-pilot.md` | 130 | "auto-pilot/자율주행/쭉 진행/승인 없이/끝까지 알아서" / 다단계 워크플로우 자율 실행 | auto-pilot, 자율주행, STOP 조건, 옵션 B |
 | `task-ac.md` | 60 | 수정 파일 2개 이상 / "추가·수정·마이그레이션·동기화" 패턴 / 이전 세션 실패 이력 | AC, 수락 기준, 완료 선언, 태스크 검증, BDD |
 | `quality-pipeline.md` | 10 | 변경 3+ 파일 / 빌드 완료 / 품질 게이트 트리거 | quality, adversarial, CSO, 빌드 게이트 |

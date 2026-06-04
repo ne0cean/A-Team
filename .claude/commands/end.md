@@ -4,19 +4,16 @@ description: 세션 종료 — 상태 갱신, 빌드 검증, 커밋, push (+ 선
 
 다음 순서대로 세션을 마무리합니다.
 
-## Step 0 — Pre-flight: 미완료 확인 (의무)
+## Step 0 — Pre-flight: 미완료 AC 확인
 
-실행 전 다음 두 항목 확인:
-1. `~/.claude/current-task-ac.txt` — pending `[ ]` AC 항목
-2. `~/.claude/queue.txt` — 대기 중인 사용자 메시지
+세션 종료 전 미완료 AC가 없는지 확인한다.
 
-미완료 항목 발견 시:
-- 항목 목록 표시
-- "위 항목이 미완료입니다. 그냥 종료할까요? (y = 종료 / n = 계속 작업)"
-- 사용자 'y' 응답 시에만 Step 1부터 진행
-- 사용자 'n' 응답 시 /end 중단, 미완료 항목부터 처리
+```bash
+cat ~/.claude/current-task-ac.txt 2>/dev/null | grep "\- \[ \]" || echo "✅ 미완료 AC 없음"
+```
 
-**면제:** 사용자가 "강제 종료", "그냥 닫아" 명시 시
+- **미완료 AC 있음** → VERIFY CMD 실행 후 완료 선언, 또는 session-checkpoint.txt에 저장 후 다음 세션으로 이관
+- **없음 또는 파일 없음** → Step 1 진행
 
 ## Step 1 — CURRENT.md 갱신
 `.context/CURRENT.md`를 갱신한다 (없으면 스킵):

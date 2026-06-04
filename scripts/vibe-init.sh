@@ -124,6 +124,15 @@ if [ -f ".context/RESUME.md" ]; then
   fi
 fi
 
+# === Step 0.6a: session-checkpoint 확인 ===
+HOME_DIR="${HOME:-$USERPROFILE}"
+CHECKPOINT_FILE="$HOME_DIR/.claude/session-checkpoint.txt"
+if [ -f "$CHECKPOINT_FILE" ]; then
+  echo "⚠️  미완료 세션 체크포인트 발견: $CHECKPOINT_FILE"
+  echo "   /pickup 으로 이전 작업을 재개하거나 파일을 삭제하세요."
+  add_action "/pickup"
+fi
+
 # === Step 0.6b: launchd 확인 (macOS 전용) ===
 if [[ "$(uname)" == "Darwin" ]]; then
   PROJ_NAME=$(basename "$(pwd -P)" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')

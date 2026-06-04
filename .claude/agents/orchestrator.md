@@ -325,32 +325,18 @@ if context_usage > threshold:
 - 순차 태스크: 선행 완료 확인 후
 - 각 에이전트에 governance 객체 + file_ownership + dod + prior_learnings 포함 JSON 전달
 
-## Phase 5: 결과 취합 + Vigil 검증
-
-### 에이전트 출력 status 표준 필드
-모든 worker는 다음 필드로 응답 (상세: `governance/rules/supervisor-pattern.md`):
-```json
-{ "status": "DONE|PARTIAL|BLOCKED|FAILED", "changed_files": [], "summary": "", "must_fix": [], "retry_count": 0, "escalate": false }
-```
-
+## Phase 5: 결과 취합
 1. 구조화 출력 수집 → 충돌/불일치 감지
-2. **Vigil 자동 호출** — coder 완료 선언 후 다음 중 하나라도 해당하면:
-   - 수정 파일 2개 이상 (`changed_files.length >= 2`)
-   - `~/.claude/current-task-ac.txt` 존재
-   - 사용자 명시 요청
+2. CURRENT.md 갱신 (완료 + 다음 태스크)
+3. 최종 출력: 
 
-   Vigil 결과 분기:
-   - `VERIFIED` → Step 3 계속
-   - `PARTIAL` → 미완료 항목 사용자 보고 후 계속/중단 질문
-   - `FAILED` → coder 재디스패치 (최대 2회). 2회 후 FAIL → 사용자 에스컬레이션
+### Phase 5.0: vigil 자동 호출 조건
+다음 중 하나라도 해당 시 vigil 에이전트 자동 호출:
+- 에이전트 3개 이상 스폰된 작업
+-  또는  파일 변경 포함
+- 보안/인증 관련 코드 변경
 
-3. **Reviewer retry 에스컬레이션** — reviewer가 다음 조건 충족 시 자동 에스컬레이션:
-   - `reviewer.verdict == "REJECTED" && reviewer.retry_count >= 2`
-   - 사용자에게 REJECTED 이유 + [수정 계속 / 현 상태 수락 / 태스크 재정의] 선택지 제시
-   - 자동 재디스패치 금지 (무한 루프 방지)
-
-4. CURRENT.md 갱신 (완료 + 다음 태스크)
-5. 최종 출력: `{ status, summary, completed_tasks, next_steps, commit_message }`
+vigil 호출: 
 
 ### Phase 5.5: 디스패치 머지 (❸/❹ 사용 시)
 `scripts/merge-dispatch.sh --check` → `--merge` → `--cleanup`. 충돌 시 목록 표시 + 수동 해결 안내.
