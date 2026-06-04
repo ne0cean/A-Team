@@ -2216,14 +2216,17 @@ const SOURCE_SYNC_MAP = {
 const FRAME_TYPE_LABELS = { weekday: 'Weekday (평일)', flow: 'Flow Day (토/HF)', block: 'Block Day (일)' };
 // #18 — frame type별 카테고리 이름 override / 숨김
 const FRAME_CAT_OVERRIDES = {
-  flow:  { labels: { outcome: 'INPUT' } },
-  block: { labels: { outcome: 'Feedback' } }
+  flow:  { labels: { outcome: 'Source' } },
+  block: { labels: { outcome: 'Source' } }
 };
 const CAT_TYPE_LABELS = { routine: 'Routine (매일 리셋)', todo: 'To-do (이월)' };
 
 async function loadFrames() {
   const res = await fetch(`${API}/api/day-frames`);
-  framesData = await res.json();
+  const raw = await res.json();
+  // Unwrap if data was accidentally saved with 'day-frames' wrapper
+  framesData = raw['day-frames'] || raw;
+  if (raw._version && !framesData._version) framesData._version = raw._version;
   // Apply saved category name overrides (_catNames stored in day-frames data)
   if (framesData._catNames) Object.assign(CAT_NAMES, framesData._catNames);
   renderFrames();
@@ -2298,10 +2301,12 @@ function renderFrames() {
 const catColorMap = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', hexagonal: '#f85149', outcome: '#bc8cff' };
 
 async function saveFramesData() {
-  await fetch(`${API}/api/day-frames`, {
+  const res = await fetch(`${API}/api/day-frames`, {
     method: 'POST', headers: AUTH,
     body: JSON.stringify(framesData)
   });
+  const result = await res.json().catch(() => ({}));
+  if (result._version) framesData._version = result._version;
 }
 
 function toggleCatType(ftype, cat) {
