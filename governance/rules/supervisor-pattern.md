@@ -117,8 +117,8 @@ Orchestrator (Supervisor)
 | Vigil (완료 검증) | 구현 | .claude/agents/vigil.md |
 | retry + escalation | 구현 | orchestrator.md Phase 5 |
 | Human-in-the-loop | 부분 구현 | risk-tier.md |
-| Phase 체크포인트 | 설계 완료 | .context/checkpoints/ |
-| SubagentStop hook | 미구현 | HIGH priority |
+| Phase 체크포인트 | 구현 | .context/checkpoints/ (subagent-stop.js 자동 저장) |
+| SubagentStop hook | 구현 | ~/.claude/hooks/subagent-stop.js |
 
 ---
 
