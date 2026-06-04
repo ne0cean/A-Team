@@ -1,22 +1,21 @@
 ---
 mode: normal
-status: deferred
-created: 2026-06-03T01:47:25+0900
-updated: 2026-06-03T02:00:00+0900
-task: 모든 태스크 사용자 액션 필요 — deferred
+status: active
+created: 2026-06-04T19:51:58+0900
+task: **Cortex inject-frames 정리** — 배포 후 inject-frames 버튼 실행해 days 4-30 잘못된 _carried 항목 청소
 ---
 
 # RESUME — 세션 자동 저장 (auto-save-on-stop)
 
 ## 재개 포인트
-- 사용자 세션 시작 후 아래 deferred 태스크 확인
+- CURRENT.md Next Tasks 확인 후 최우선 항목부터 시작
 
 ## 미완료 Next Tasks (High Priority)
-- [deferred] **Cortex Dashboard #2/#16/#24/#26 브라우저 확인** — 사용자 수동 확인 필요
-- [deferred] **Dashboard 통합 앱 안정화** — 실기기 피드백 필요
-- [deferred] **제품 빌드 시작** — Connectome MVP 방향 결정 필요
-- [deferred] **LSP 활성화** — settings.json 사용자 직접 수정 선호
-- [deferred] **A-Team OKR 설정** — 사용자 입력 필요
+- [ ] **Cortex inject-frames 정리** — 배포 후 inject-frames 버튼 실행해 days 4-30 잘못된 _carried 항목 청소
+- [ ] **Cortex Dashboard #2/#16/#24/#26 브라우저 확인** — 사용자 수동 확인 후 이상 발견 시 CODE-FIX 요청. 원본 설명 파일 미존재, 코드 분석상 구현됨.
+- [ ] **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증, 동기화 이슈
+- [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
+- [ ] **LSP 활성화** — settings.json 히든 플래그 + 언어서버 설치 (YT 그룹D 도출)
 
 ## 메모
-자율 모드 — 모든 태스크가 사용자 액션/승인 필요. Deferred.
+세션이 /end 없이 종료됨. 위 태스크부터 이어서 진행.
