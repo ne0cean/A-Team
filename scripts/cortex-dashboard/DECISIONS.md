@@ -5,6 +5,27 @@
 
 ---
 
+## 🚀 배포 절차 (2026-06-04 사고 후 강제화)
+
+```bash
+# 반드시 worker/ 에서 --config 명시
+cd scripts/cortex-dashboard/worker
+npx wrangler deploy --config wrangler.toml
+
+# 배포 후 즉시 검증 (이것까지 해야 "완료")
+curl -s -w "\n%{http_code}" "https://cortex.feat-breeze.workers.dev/api/day-frames" | tail -1
+# → 반드시 200
+```
+
+**절대 금지**:
+- `npx wrangler deploy` (--config 없이) → parent `wrangler.jsonc` 읽혀 cortex-dashboard worker에 배포됨
+- `npx wrangler deploy --name cortex` → worker JS 누락으로 API 전체 404
+- root `cortex-dashboard/` 에서 `npx wrangler deploy` → 동일 문제
+
+**UI 변경 시 "완료" 기준**: curl 200 + ui-inspector 에이전트로 화면 실제 확인까지
+
+---
+
 ## ⚠️ PRE-EDIT 필수 체크리스트 (편집 전 매번 실행)
 
 app.js 또는 main.css 편집 전, 아래를 grep으로 검증하고 **모두 존재 확인 후** 편집 시작:
