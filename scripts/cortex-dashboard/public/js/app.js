@@ -632,6 +632,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
         ondragend="dragEnd(event)"
         ondragover="dragOver(event)" ondragleave="dragLeave(event)"
         ondrop="drop(event,${d},'${cat}',${idx})">
+        <span class="drag-handle" data-drag-handle title="이동">⠿</span>
         <input type="checkbox" ${checked} onchange="toggleItem(${d},'${cat}',${idx})">
         <span class="item-text${item.url?' has-link':''}${item._frame?' frame-text':''}" contenteditable="true"
           onblur="${blurFn}"
@@ -1133,7 +1134,16 @@ async function handleItemKey(e, d, cat, idx) {
       render();
       setTimeout(() => {
         const newItem = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${idx + 1}"]`);
-        newItem?.querySelector('.item-text')?.focus({ preventScroll: true });
+        if (newItem) {
+          const _sy = window.scrollY || window.pageYOffset;
+          const _mx = document.getElementById('main')?.scrollTop || 0;
+          newItem.querySelector('.item-text')?.focus({ preventScroll: true });
+          requestAnimationFrame(() => {
+            window.scrollTo(0, _sy);
+            const mainEl = document.getElementById('main');
+            if (mainEl) mainEl.scrollTop = _mx;
+          });
+        }
       }, 50);
     });
   } else if (e.key === 'ArrowUp') {
@@ -2642,6 +2652,12 @@ document.addEventListener('pointerdown', e => {
   const item = e.target.closest('.item[draggable]');
   if (!item) return;
   _dragPendingEl = item;
+  // Drag handle: immediate activation (no long-press required)
+  if (e.target.closest('[data-drag-handle]')) {
+    item.draggable = true;
+    item.classList.add('drag-ready');
+    return;
+  }
   _dragLongPressTimer = setTimeout(() => {
     item.draggable = true;
     item.classList.add('drag-ready');
@@ -2661,6 +2677,7 @@ document.addEventListener('pointermove', e => {
 });
 
 document.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) { pullActive = false; return; } // 핀치줌 등 멀티터치 무시
   pullY = e.touches[0].screenY;
   pullActive = (document.documentElement.scrollTop || document.body.scrollTop) < 5;
 }, { passive: true });
