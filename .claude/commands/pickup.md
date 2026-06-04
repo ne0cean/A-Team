@@ -21,8 +21,13 @@ IN_PROGRESS=""
 [ -f ".context/CURRENT.md" ] && \
   IN_PROGRESS=$(awk '/^## In Progress Files/,/^## /' ".context/CURRENT.md" 2>/dev/null | grep -vE "^##|없음|\(없음\)" | grep -v "^$" | head -1)
 
+# 4. .context/checkpoints/ 에 활성 체크포인트?
+CHECKPOINTS=""
+mkdir -p ".context/checkpoints/archive" 2>/dev/null
+CHECKPOINTS=$(ls ".context/checkpoints"/*.json 2>/dev/null | grep -v archive | head -1)
+
 # 판정
-if [ -n "$RESUME_ACTIVE" ] || [ -n "$GIT_DIRTY" ] || [ -n "$IN_PROGRESS" ]; then
+if [ -n "$RESUME_ACTIVE" ] || [ -n "$GIT_DIRTY" ] || [ -n "$IN_PROGRESS" ] || [ -n "$CHECKPOINTS" ]; then
   echo "✅ 작업 흔적 감지 — 경량 복구 진행"
 else
   echo "📭 작업 흔적 없음 — 새 세션입니다. /vibe 실행할까요? (Y/n)"
@@ -113,6 +118,7 @@ echo "HB9: last_deploy=${DEPLOY_LINE}"
 2. `.context/CURRENT.md` — 현재 상태 / In Progress / Next Tasks / Blockers
 3. `memory/MEMORY.md` — 프로젝트 패턴 및 규칙
 4. `CLAUDE.md` — 거버넌스 규칙 (있으면)
+5. **`.context/checkpoints/`** — 활성 체크포인트 (있으면): `ls .context/checkpoints/*.json 2>/dev/null | grep -v archive | sort -r | head -3` 로 최신 3개 확인 후 가장 최근 파일 Read. `status: in_progress` 항목이 있으면 `resume_prompt` 참조해 재개 우선.
 
 ## Step 2.5 — Zzz-Mode 감지 (자동, 과거 Sleep-Mode)
 

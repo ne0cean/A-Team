@@ -69,6 +69,10 @@ mode: resume
 - path1
 - path2
 
+## Checkpoints
+- subagent checkpoint: `.context/checkpoints/{timestamp}-subagent.json` (SubagentStop 훅 자동 생성)
+- 수동: `bash scripts/checkpoint.sh save <task_id> <agent> in_progress "<resume_prompt>"`
+
 ## Resume Command
 다음 턴 첫 줄에 실행:
   /pickup
@@ -103,6 +107,7 @@ CronCreate(
 - **매 Phase 완료 시** orchestrator가 자동 갱신
 - **매 커밋 직후** 해당 커밋 SHA 추가
 - 이어받기 시 RESUME.md의 `Completed` 섹션 먼저 체크 — 이미 끝난 작업 재실행 금지
+- **SubagentStop 훅이 체크포인트 자동 저장** (변경 파일 1개+ + pending AC 있을 때): `/pickup` Step 2에서 `.context/checkpoints/` 를 읽어 `resume_prompt` 반영
 
 ---
 
@@ -114,6 +119,7 @@ CronCreate(
 | RESUME.md 없음 | `/pickup`이 `.context/CURRENT.md` 로 폴백 |
 | 크론이 기대 시점에 안 firing | 다음 세션 시작 시 `/vibe` 가 RESUME.md 감지 → 자동 제안 |
 | durable 미지원 환경 | `.claude/scheduled_tasks.json` 확인 후 fallback |
+| checkpoints 로드 실패 | RESUME.md → CURRENT.md 순으로 폴백, checkpoints 디렉토리 없으면 스킵 |
 
 ---
 
