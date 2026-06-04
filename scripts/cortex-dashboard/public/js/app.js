@@ -358,14 +358,23 @@ function getYearlyEvents(d) {
 
 function getMonthlyRecurring(d) {
   const results = [];
-  // standing orders with date field: "6/15", "6월 15일", "6.15"
+  // standing orders with date field: "6/15", "6월 15일", "6.15" (multi-date supported)
   if (standingData?.standing) {
     standingData.standing.forEach(item => {
-      if (!item.date || !item.active) return;
-      const mm = item.date.match(/(\d+)[\/월\.](\d+)/);
-      if (!mm) return;
-      const mo = parseInt(mm[1]), dy = parseInt(mm[2]);
-      if (mo === currentMonth && dy === d) results.push({ text: item.text, url: '' });
+      if (!item.active) return;
+      let match = false;
+      if (item.dates?.length) {
+        match = item.dates.some(dt => dt.month === currentMonth && dt.day === d);
+      } else if (item.date) {
+        const re = /(\d+)[\/월\.](\d+)/g;
+        let m;
+        while ((m = re.exec(item.date)) !== null) {
+          if (parseInt(m[1]) === currentMonth && parseInt(m[2]) === d) { match = true; break; }
+        }
+      }
+      if (!match) return;
+      const displayText = item.text.includes(':') ? item.text.split(':')[0].trim() : item.text;
+      results.push({ text: displayText, url: item.url || '' });
     });
   }
   // monthly_recurring: structured {day, text} items

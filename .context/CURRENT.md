@@ -76,8 +76,11 @@
 - **TRIGGER-INDEX.md** — impact-analysis / risk-tier / supervisor-pattern 3개 rule 추가 (합계 ~1,475 lines)
 - **540 tests PASS** (임시 파일 pre-existing 실패 3개 무관)
 
+## Last Completions (2026-06-05) — AC Impact Auto-Injector
+
+- **ac-impact-injector.sh** — `scripts/hooks/ac-impact-injector.sh` 구현. PostToolUse:Write|Edit 훅. `current-task-ac.txt` 저장 시 자동으로 `impact.mjs` 실행 → RISK 등급 주입. 3 엣지 케이스 검증 (idempotency, non-AC file, placeholder RISK). settings.json 등록 설정 제공 (사용자 직접 적용 필요). **541 tests PASS**.
+
 ## Next Tasks
-- [ ] `impact.mjs` 결과 → AC 생성 시 자동 주입 (risk-tier 연동)
 
 ## Blockers
 - (없음)
