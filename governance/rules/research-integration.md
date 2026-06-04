@@ -1,50 +1,33 @@
-# Research Integration — 외부 리서치 반영 추적
+# Research Integration — Researcher 결과 컨텍스트 통합 규칙
 
-> **목적**: 외부 리서치(웹, 논문, 도구)로 가져온 코드/패턴 적용 시 출처 추적 + 검증 의무화.
+> SSOT: researcher 에이전트 결과를 메인 컨텍스트에 효율적으로 통합하는 방법론
 
-## 트리거 조건
+## 원칙
 
-- researcher 에이전트 결과 → 코드/설계 적용 시
-- "~에서 참고", "외부 예제", "검색해서 가져온" 패턴 감지 시
-- WebSearch/WebFetch 결과를 구현에 직접 반영 시
+1. **요약만 흡수** — 전체 리서치 결과를 컨텍스트에 붓지 않는다. 핵심 인사이트 3-5줄로 요약.
+2. **액션 연결** — 모든 리서치 결과는 구체적 Next Action과 연결된다.
+3. **중복 방지** — 이미 MEMORY.md나 CURRENT.md에 있는 정보 재수집 금지.
 
-## 의무 사항
+## 통합 패턴
 
-### 1. AC에 Source 필드 추가
-
+### Researcher → Orchestrator
 ```
-TASK: [태스크 이름]
-Source: https://... ([방법론/패턴 이름])
-AC:
-  - [ ] 구현이 소스에서 주장한 동작과 일치하는가?
-```
-
-### 2. .research/notes/ 저장
-
-연구 노트 파일명: `YYYY-MM-DD-[주제].md`
-내용: 원본 URL + 핵심 인사이트 1-3줄 + A-Team 적용 방법
-
-### 3. Vigil 자동 검증 항목 추가
-
-Source가 있는 AC에 vigil이 자동으로 추가하는 체크:
-```
-- [ ] 소스 주장 검증: 구현이 Source에서 설명한 동작과 일치하는가?
+researcher 결과 수신 후:
+1. insights[] 추출 → 3줄 이내 요약
+2. action_items[] → CURRENT.md Next Tasks에 추가
+3. references[] → memory/research-refs.md에 저장 (컨텍스트 비우기)
 ```
 
-## ateam-first 우선순위
-
-외부 리서치 전에 A-Team 내부 자원 먼저 확인:
+### 중복 방지 체크
 ```bash
-grep -r "키워드" governance/ .claude/agents/ .research/
+grep -i "키워드" memory/MEMORY.md ~/.claude/memory/MEMORY.md 2>/dev/null | head -3
 ```
-동일 패턴이 이미 있으면 외부 리서치 불필요 → 내부 자원 재사용.
+이미 있으면 리서치 생략 → 기존 내용 활용.
 
-## 면제
-
-- 공식 라이브러리 문서 직접 참조 (API 사용법)
-- 단순 버그 수정용 StackOverflow 코드 스니펫 (5줄 이하)
+## Trigger 조건
+- researcher 에이전트 호출 결과 수신 시
+- `/autoresearch` 완료 시
+- 외부 API/문서 조회 결과를 컨텍스트에 통합할 때
 
 ---
-
-**연관 규칙**: `ateam-first.md`, `task-ac.md`, `truth-contract.md`
 **Last updated**: 2026-06-04
