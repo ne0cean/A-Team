@@ -60,6 +60,14 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-05) — Next Tasks 검증 완료
+
+- **impact.mjs smoke test** ✓ — BFS 정상 작동: `lib/intel-types.ts` → `test/intel-integration.test.ts`, `test/intel.test.ts` 2개 영향 파일 추적
+- **pickup/resume checkpoints** ✓ — 이미 구현됨: pickup.md Step 2 + Step 0 감지, resume.md line 110/122
+- **vibe-init.sh Step 0.65b** ✓ — 이미 구현됨: Phase Checkpoints `.context/checkpoints/*.json` 읽기
+- **reviewer.md retry_count** ✓ — 이미 구현됨: 출력 스키마 + 에스컬레이션 조건(retry_count >= 2 → BLOCKED)
+- **SubagentStop 훅 등록** ✓ — settings.json 등록 확인, 코드 정상
+
 ## Last Completions (2026-06-04) — AI 개발 방법론 거버넌스 통합 + SubagentStop 훅
 
 - **거버넌스 구조 5개 Fix** — quality-pipeline 체인 수리, Compaction AC 자동 저장, /end pre-flight 미완료 확인, orchestrator↔vigil 자동 통합, research-integration.md 신설
@@ -69,11 +77,6 @@
 - **540 tests PASS** (임시 파일 pre-existing 실패 3개 무관)
 
 ## Next Tasks
-- [ ] SubagentStop 훅 실제 발화 검증 (더미 서브에이전트 실행 → vigil-pending.json 확인)
-- [ ] `scripts/impact.mjs` smoke test (실제 파일 경로로 BFS 결과 확인)
-- [ ] `/pickup` + `/resume`에서 `.context/checkpoints/` 읽어 Phase 재개 안내
-- [ ] `vibe-init.sh` Step 0.65 — `.context/checkpoints/` 최신 파일 포함
-- [ ] `.claude/agents/reviewer.md` — `retry_count` 출력 필드 + 에스컬레이션 조건 추가
 - [ ] `impact.mjs` 결과 → AC 생성 시 자동 주입 (risk-tier 연동)
 
 ## Blockers
