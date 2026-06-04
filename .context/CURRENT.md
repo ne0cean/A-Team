@@ -60,6 +60,25 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-04) — AI 개발 방법론 거버넌스 통합 + SubagentStop 훅
+
+- **거버넌스 구조 5개 Fix** — quality-pipeline 체인 수리, Compaction AC 자동 저장, /end pre-flight 미완료 확인, orchestrator↔vigil 자동 통합, research-integration.md 신설
+- **외부 리서치 → 구현** — `scripts/impact.mjs` (BFS 영향도 분석), `governance/rules/risk-tier.md` (4등급 체계), `governance/rules/supervisor-pattern.md` (Generator-Evaluator 격리 + retry 에스컬레이션)
+- **SubagentStop 훅** — `~/.claude/hooks/subagent-stop.js`: 변경 파일 2개+ → vigil 큐잉 + `.context/checkpoints/` Phase 체크포인트 자동 저장. settings.json 등록 완료
+- **TRIGGER-INDEX.md** — impact-analysis / risk-tier / supervisor-pattern 3개 rule 추가 (합계 ~1,475 lines)
+- **540 tests PASS** (임시 파일 pre-existing 실패 3개 무관)
+
+## Next Tasks
+- [ ] SubagentStop 훅 실제 발화 검증 (더미 서브에이전트 실행 → vigil-pending.json 확인)
+- [ ] `scripts/impact.mjs` smoke test (실제 파일 경로로 BFS 결과 확인)
+- [ ] `/pickup` + `/resume`에서 `.context/checkpoints/` 읽어 Phase 재개 안내
+- [ ] `vibe-init.sh` Step 0.65 — `.context/checkpoints/` 최신 파일 포함
+- [ ] `.claude/agents/reviewer.md` — `retry_count` 출력 필드 + 에스컬레이션 조건 추가
+- [ ] `impact.mjs` 결과 → AC 생성 시 자동 주입 (risk-tier 연동)
+
+## Blockers
+- (없음)
+
 ## Last Completions (2026-06-03) — Cortex Dashboard 핵심 버그 수정 5건
 
 - **loadFrames → render() 누락** (근본 원인): loadFrames() 완료 후 renderFrames()만 호출, render() 미호출 → 캘린더에 프레임 내용 미반영. render() 1줄 추가로 수정

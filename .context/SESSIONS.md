@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-04] AI 개발 방법론 거버넌스 통합 + SubagentStop 훅
+
+**완료**: 거버넌스 구조 5개 Fix (체인 수리·Compaction 저장·/end pre-flight·vigil 통합·리서치 추적). 외부 리서치(nx/turborepo/LangGraph/CrewAI/AutoGen) → impact.mjs + risk-tier.md + supervisor-pattern.md 구현. SubagentStop 훅 신설 (변경 파일 감지→vigil 큐잉→.context/checkpoints/ 저장). TRIGGER-INDEX 3개 rule 추가 (~1,475 lines).
+**이슈**: impact.mjs/SubagentStop 실제 실행 미검증. reviewer.md retry_count 필드 미추가. .context/checkpoints/ 읽는 pickup/resume 로직 미구현.
+**빌드**: ✅ 540 PASS (임시 파일 pre-existing 실패 3개 무관)
+
 ## [2026-06-03] Cortex Dashboard 핵심 버그 수정
 
 **완료**: loadFrames() 후 render() 누락 (프레임→캘린더 미반영 근본 원인) 수정. 6 Pillars addFrameItem separator 있을 때 sync 안 되던 버그 수정. Ctrl+K prompt()→linkPopup UI 전환(mode=ctrlk). 미래 날짜 루틴 기본 펼침. routine/todo 아키텍처 정비, worker carry cascade 제거.
