@@ -41,8 +41,9 @@ grep -i "키워드" ~/tools/A-Team/governance/rules/TRIGGER-INDEX.md
 | `lifecycle.md` | 40 | 새 커맨드/에이전트 추가 시 / 커맨드 수 60개 근접 시 | lifecycle, zombie, 상한선, deprecated |
 | `model-allocation.md` | 70 | **상시 적용** — 매 사용자 메시지 직후 모델 적정성 자가평가 | 모델 적정성, opus, sonnet, 위임, 비용 |
 | `auto-pilot.md` | 130 | "auto-pilot/자율주행/쭉 진행/승인 없이/끝까지 알아서" / 다단계 워크플로우 자율 실행 | auto-pilot, 자율주행, STOP 조건, 옵션 B |
+| `task-ac.md` | 60 | 수정 파일 2개 이상 / "추가·수정·마이그레이션·동기화" 패턴 / 이전 세션 실패 이력 | AC, 수락 기준, 완료 선언, 태스크 검증, BDD |
 
-**합계**: ~1,245 lines. **트리거 매칭 없이 기본 로드하지 말 것**.
+**합계**: ~1,305 lines. **트리거 매칭 없이 기본 로드하지 말 것**.
 
 ---
 

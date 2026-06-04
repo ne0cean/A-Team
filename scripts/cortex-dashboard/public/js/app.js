@@ -1099,7 +1099,7 @@ function toggleEl(id) {
   if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
-function handleItemKey(e, d, cat, idx) {
+async function handleItemKey(e, d, cat, idx) {
   if (e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey)) {
     e.preventDefault();
     e.stopPropagation();
@@ -2100,10 +2100,11 @@ function renderVision() {
 }
 
 async function saveVisionData() {
-  await fetch(`${API}/api/vision`, {
+  const res = await fetch(`${API}/api/vision`, {
     method: 'POST', headers: AUTH,
     body: JSON.stringify(visionData)
   });
+  if (!res.ok) throw new Error(`저장 실패: ${res.status}`);
 }
 
 function editVisionCell(catIdx, year, el) {
