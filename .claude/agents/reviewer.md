@@ -123,6 +123,10 @@ model: sonnet
 }
 ```
 
+> **retry_count 사용법**: orchestrator가 이전 리뷰 결과의 `retry_count`를 읽어 +1 후 전달.
+> `retry_count >= 2` + verdict=REJECTED → 즉시 `status: BLOCKED` 출력, 사람 에스컬레이션.
+```
+
 ### Adversarial Counter-Check (선택적)
 CRITICAL/HIGH 이슈가 0건일 때 — 거짓 음성(false negative)이 아닌지 반증 검증:
 - `lib/adversarial.ts` runAdversarialChecks() 로 프로젝트 상태 교차 검증
@@ -142,7 +146,7 @@ fail   → REJECTED
 - **APPROVED** (`status: DONE`): CRITICAL/HIGH 이슈 없음, gate=pass
 - **APPROVED_WITH_WARNINGS** (`status: DONE_WITH_CONCERNS`): CRITICAL 없음, HIGH 있지만 블로커 아님, gate=retry
 - **REJECTED** (`status: DONE_WITH_CONCERNS`): CRITICAL 1개 이상, 또는 HIGH 3개 이상, gate=fail
-- **에스컬레이션** (`status: BLOCKED`): 2회 REJECTED 후에도 미해결
+- **에스컬레이션** (`status: BLOCKED`): `retry_count >= 2` 이고 REJECTED → `status: BLOCKED`, orchestrator에게 사람 에스컬레이션 요청
 
 ## 원칙
 - **증거 기반 판정**: "아마 처리됨", "likely handled" 표현 절대 금지. 코드를 직접 읽고 인용할 것

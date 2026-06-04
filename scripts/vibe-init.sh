@@ -173,6 +173,20 @@ if [ -f "$CHECKPOINT" ]; then
   fi
 fi
 
+# === Step 0.65b: Phase Checkpoints (.context/checkpoints/) ===
+if [ -d ".context/checkpoints" ]; then
+  LATEST_CP=$(ls -t ".context/checkpoints"/*.json 2>/dev/null | grep -v archive | head -1 || true)
+  if [ -n "$LATEST_CP" ]; then
+    CP_STATUS=$(python3 -c "import json; d=json.load(open('$LATEST_CP')); print(d.get('status','?'))" 2>/dev/null || echo "?")
+    CP_PHASE=$(python3 -c "import json; d=json.load(open('$LATEST_CP')); print(d.get('phase','?'))" 2>/dev/null || echo "?")
+    CP_TS=$(python3 -c "import json; d=json.load(open('$LATEST_CP')); print(d.get('timestamp','?')[:16])" 2>/dev/null || echo "?")
+    if [ "$CP_STATUS" = "in_progress" ]; then
+      add_alert "checkpoint: Phase [${CP_PHASE}] in_progress (${CP_TS}) — /pickup 으로 재개"
+      add_action "/pickup"
+    fi
+  fi
+fi
+
 # === Step 0.7: Daily Brief 자동 수집 ===
 if [ "$(basename "$(pwd -P)")" = "a-team" ]; then
   TODAY=$(date +%Y-%m-%d)

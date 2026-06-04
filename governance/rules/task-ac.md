@@ -9,12 +9,30 @@
 - "추가/수정/마이그레이션/동기화/이식/반영" 패턴
 - 이전 세션에서 동일 태스크가 실패한 이력
 
+## Risk Tier 자동 판정 (AC 작성 전 필수)
+
+AC 작성 전 `scripts/impact.mjs`로 위험 등급을 먼저 판정한다:
+
+```bash
+node scripts/impact.mjs <수정할-파일> | grep "→" | wc -l  # 영향 파일 수
+```
+
+| 영향 파일 수 | 등급 | AC 요구사항 |
+|------------|------|-----------|
+| 0, 수정 1파일 | LOW | AC 생략 가능 |
+| 1-3개 또는 수정 2-5파일 | MEDIUM | AC 필수 |
+| 4-9개 또는 수정 6-9파일 | HIGH | AC + vigil + reviewer |
+| 10개+ 또는 아키텍처/보안 | CRITICAL | 사용자 승인 먼저 |
+
+AC 헤더에 `RISK: [LOW|MEDIUM|HIGH|CRITICAL]` 포함. 상세: `governance/rules/risk-tier.md`
+
 ## AC 작성 형식
 
 구현 시작 **전** Claude가 이 형식으로 작성:
 
 ```
 TASK: [태스크 이름]
+RISK: [LOW|MEDIUM|HIGH|CRITICAL]  # impact.mjs 결과 기반
 FILES: [수정 대상 파일 목록]
 AC:
   - [ ] [grep/bash로 검증 가능한 기준 1]
