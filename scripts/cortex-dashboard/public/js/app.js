@@ -447,17 +447,24 @@ function getCatItemsForRender(d, dayData, cat) {
     const today = new Date().getDate();
     const templateItems = catMeta?.items || [];
 
-    // Lazy carry for today if both stored and template are empty
-    if (stored.length === 0 && templateItems.length === 0 && d === today) {
+    // Today and future: carry undone items from prev day (cascade)
+    if (!templateItems.length && d >= today) {
       const prevDay = monthData.days?.[String(d - 1)];
       if (prevDay) {
-        const prevTodo = (prevDay[cat] || []).filter(i => !i.done && !i._frame && !i._carried);
-        if (prevTodo.length > 0) {
-          const items = prevTodo.map(i => ({ text: i.text, url: i.url || '', done: false, _carried: true }));
-          ensureDay(d)[cat] = items; save();
-          return items;
+        // Include _carried for cascade: prev day's undone items (manual + carried)
+        const prevUndone = (prevDay[cat] || []).filter(i => !i.done && !i._frame);
+        if (prevUndone.length > 0) {
+          const existingTexts = new Set((dayData[cat] || []).map(i => i.text));
+          const newCarried = prevUndone.filter(i => !existingTexts.has(i.text));
+          if (newCarried.length > 0) {
+            const toAdd = newCarried.map(i => ({ text: i.text, url: i.url || '', done: false, _carried: true }));
+            const existing = (dayData[cat] || []).filter(i => !i._frame);
+            ensureDay(d)[cat] = [...existing, ...toAdd];
+            save();
+          }
         }
       }
+      return (ensureDay(d)[cat] || []).filter(i => !i._frame);
     }
 
     if (!templateItems.length) return stored;
@@ -2200,6 +2207,12 @@ function editVisionNotes(text) {
 // --- Day Frames Admin ---
 let framesData = null;
 const FRAME_TYPES = ['weekday', 'flow', 'block'];
+// Source group sync: weekday.input ↔ block.outcome ↔ flow.outcome
+const SOURCE_SYNC_MAP = {
+  'weekday:input':  [['block','outcome'],['flow','outcome']],
+  'block:outcome':  [['weekday','input'],['flow','outcome']],
+  'flow:outcome':   [['weekday','input'],['block','outcome']],
+};
 const FRAME_TYPE_LABELS = { weekday: 'Weekday (평일)', flow: 'Flow Day (토/HF)', block: 'Block Day (일)' };
 // #18 — frame type별 카테고리 이름 override / 숨김
 const FRAME_CAT_OVERRIDES = {
@@ -2333,6 +2346,13 @@ function addFrameItem(ftype, cat, text) {
       else ftItems.splice(ftSep, 0, text.trim());
     });
   }
+  // Source group sync (weekday.input ↔ block/flow.outcome)
+  for (const [st, sc] of (SOURCE_SYNC_MAP[`${ftype}:${cat}`] || [])) {
+    if (!framesData[st]?.categories?.[sc]) continue;
+    const tItems = framesData[st].categories[sc].items;
+    const tSep = tItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
+    if (tSep === -1) tItems.push(text.trim()); else tItems.splice(tSep, 0, text.trim());
+  }
   saveFramesData();
   renderFrames(); render();
 }
@@ -2370,6 +2390,11 @@ function editFrameItem(ftype, cat, idx, text) {
       });
     }
   }
+  // Source group sync
+  for (const [st, sc] of (SOURCE_SYNC_MAP[`${ftype}:${cat}`] || [])) {
+    const stItem = getFrameItem(st, sc, idx);
+    if (stItem) { stItem.text = text.trim(); setFrameItem(st, sc, idx, stItem); }
+  }
   saveFramesData();
   renderFrames(); render();
 }
@@ -2404,6 +2429,11 @@ function delFrameItem(ftype, cat, idx) {
       const ftFirstSep = ftItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
       if (ftFirstSep === -1 || idx < ftFirstSep) ftItems.splice(idx, 1);
     });
+  }
+  // Source group sync
+  for (const [st, sc] of (SOURCE_SYNC_MAP[`${ftype}:${cat}`] || [])) {
+    const stItems = framesData[st]?.categories?.[sc]?.items;
+    if (stItems && idx < stItems.length) stItems.splice(idx, 1);
   }
   saveFramesData();
   renderFrames(); render();
