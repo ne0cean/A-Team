@@ -2734,6 +2734,7 @@ document.addEventListener('touchend', async e => {
 document.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) { pullActive = false; return; } // 핀치줌 등 멀티터치 무시
   if (e.target.closest('[data-drag-handle]')) { pullActive = false; return; } // 드래그 핸들은 PTR 스킵
+  if (window.visualViewport && window.visualViewport.scale > 1.05) { pullActive = false; return; } // 줌 상태에서 PTR 차단
   pullY = e.touches[0].screenY;
   pullActive = (document.documentElement.scrollTop || document.body.scrollTop) < 5;
 }, { passive: true });
