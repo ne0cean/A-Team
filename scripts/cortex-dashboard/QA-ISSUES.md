@@ -2,7 +2,7 @@
 
 > 복원 기준: git commit cf2426ed / cdd637d7 / 1585fade + qa-reports/2026-06-02-02.md + SESSIONS.md
 > 원본 문서 미존재 (누락). 이 파일이 SSOT.
-> 최종 갱신: 2026-06-03
+> 최종 갱신: 2026-06-04
 
 ---
 
@@ -44,9 +44,9 @@
 | 21 | frame-text italic 제거 | 프레임 텍스트 이탤릭 스타일 제거 | FIXED | cf2426ed |
 | 22 | day-cell 내부 스크롤 | overflow-y: auto + max-height: 320px (hover 시 scroll-active) | FIXED | cf2426ed |
 | 23 | ONETHING CTRL+K | ONETHING 필드에서 CTRL+K 하이퍼링크 삽입 지원 | FIXED | cf2426ed |
-| 24 | GET /api/workout 500 에러 | GET 핸들러 없음 → 500 반환. 클라이언트 기능은 /api/month 경유로 정상이나 직접 호출 시 500 | BUG | — |
+| 24 | GET /api/workout 500 에러 | GET /api/workout → 405 Method Not Allowed 반환 (Allow: POST 헤더 포함) | FIXED | code |
 | 25 | Arrow 키 카테고리 경계 통과 | ArrowUp/Down으로 카테고리 간 경계 통과 네비게이션 | FIXED | cf2426ed |
-| 26 | /nonexistent 경로 → 500 | 존재하지 않는 경로가 404가 아닌 500 반환. env.ASSETS.fetch 에러 미처리 | BUG | — |
+| 26 | /nonexistent 경로 → 500 | ASSETS.fetch try/catch → 404 반환으로 수정. console.error 로깅 유지 | FIXED | code |
 
 ---
 
@@ -60,23 +60,7 @@
 
 ---
 
-## 미수정 버그 요약
-
-### BUG (2개)
-
-**B-1: #26 — /nonexistent → 500 (HIGH)**
-- 재현: `curl https://cortex.feat-breeze.workers.dev/nonexistent`
-- 원인: Worker catch 블록에서 env.ASSETS.fetch 실패 시 500 반환
-- 수정: try/catch → 404 반환
-  ```js
-  try { return await env.ASSETS.fetch(request); }
-  catch { return new Response('Not Found', { status: 404, headers }); }
-  ```
-
-**B-2: #24 — GET /api/workout → 500 (MEDIUM)**
-- 원인: GET 핸들러 없음 (POST만 존재)
-- 영향: 직접 GET 호출 시 500. 클라이언트 기능은 /api/month 통해 정상
-- 수정: 405 Method Not Allowed 반환 또는 GET 핸들러 추가
+## 잔여 확인 항목
 
 ### BROWSER CHECK (2개)
 
@@ -100,8 +84,7 @@
 
 | 상태 | 개수 |
 |------|------|
-| FIXED | 20 (1차 16 + 2차 4) + T1/T2/T3 3 = 23 |
+| FIXED | 23 (1차 16 + 2차 4 + T3) + #24/#26 코드확인 = 25 |
 | BROWSER | 2 (#2, #16) |
-| BUG | 2 (#24, #26) |
 | UNKNOWN | 1 (#20) |
 | **전체** | **26 + 3(T) = 29** |
