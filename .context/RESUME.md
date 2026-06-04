@@ -1,6 +1,6 @@
 ---
 mode: normal
-status: active
+status: needs_input
 created: 2026-06-04T19:51:58+0900
 task: **impact.mjs → AC 자동 주입** 완료
 ---
