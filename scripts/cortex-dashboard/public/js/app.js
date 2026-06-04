@@ -824,6 +824,8 @@ function ensureDay(d) {
 }
 
 async function toggleItem(d, cat, idx) {
+  const _sy = window.scrollY || window.pageYOffset;
+  const _mx = document.getElementById('main')?.scrollTop || 0;
   const dayData = ensureDay(d);
   const catType = getDayCatType(d, dayData, cat);
   if (catType === 'todo') {
@@ -836,13 +838,17 @@ async function toggleItem(d, cat, idx) {
     if (pos === -1) dayData[key].push(idx); else dayData[key].splice(pos, 1);
   }
   await save(); render();
+  requestAnimationFrame(() => { window.scrollTo(0, _sy); const m = document.getElementById('main'); if (m) m.scrollTop = _mx; });
 }
 
 async function toggleRecurring(d, idx) {
+  const _sy = window.scrollY || window.pageYOffset;
+  const _mx = document.getElementById('main')?.scrollTop || 0;
   const dd = ensureDay(d);
   if (!dd._recurring) return;
   dd._recurring[idx].done = !dd._recurring[idx].done;
   await save(); render();
+  requestAnimationFrame(() => { window.scrollTo(0, _sy); const m = document.getElementById('main'); if (m) m.scrollTop = _mx; });
 }
 async function editRecurring(d, idx, text) {
   const dd = ensureDay(d);
@@ -2685,8 +2691,49 @@ document.addEventListener('pointermove', e => {
   }
 });
 
+// Touch drag for mobile — drag handle 기반
+let _touchDragEl = null, _touchDragData = null, _touchDragTarget = null;
+document.addEventListener('touchstart', e => {
+  const handle = e.target.closest('[data-drag-handle]');
+  if (!handle) return;
+  const item = handle.closest('.item');
+  if (!item) return;
+  e.preventDefault();
+  _touchDragEl = item;
+  _touchDragData = { d: parseInt(item.dataset.d), cat: item.dataset.cat, idx: parseInt(item.dataset.idx) };
+  item.classList.add('dragging');
+}, { passive: false });
+document.addEventListener('touchmove', e => {
+  if (!_touchDragEl) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  const ti = el?.closest('.item[data-d]');
+  if (_touchDragTarget && _touchDragTarget !== ti) _touchDragTarget.classList.remove('drag-over');
+  if (ti && ti !== _touchDragEl) { ti.classList.add('drag-over'); _touchDragTarget = ti; }
+  else _touchDragTarget = null;
+}, { passive: false });
+document.addEventListener('touchend', async e => {
+  if (!_touchDragEl || !_touchDragData) return;
+  _touchDragEl.classList.remove('dragging', 'drag-ready');
+  if (_touchDragTarget) {
+    _touchDragTarget.classList.remove('drag-over');
+    const { d, cat, idx } = _touchDragData;
+    const toD = parseInt(_touchDragTarget.dataset.d), toCat = _touchDragTarget.dataset.cat, toIdx = parseInt(_touchDragTarget.dataset.idx);
+    if (d === toD && cat === toCat && idx !== toIdx) {
+      await fetch(`${API}/api/reorder`, { method:'POST', headers:AUTH, body:JSON.stringify({ ym:ym(), day:String(d), category:cat, fromIdx:idx, toIdx }) });
+      const items = ensureDay(d)[cat]; const [moved] = items.splice(idx,1); items.splice(toIdx,0,moved); render();
+    } else if (d !== toD || cat !== toCat) {
+      await fetch(`${API}/api/move-item`, { method:'POST', headers:AUTH, body:JSON.stringify({ ym:ym(), fromDay:String(d), fromCat:cat, fromIdx:idx, toDay:String(toD), toCat }) });
+      await loadMonth();
+    }
+  }
+  _touchDragEl = null; _touchDragData = null; _touchDragTarget = null;
+}, { passive: false });
+
 document.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) { pullActive = false; return; } // 핀치줌 등 멀티터치 무시
+  if (e.target.closest('[data-drag-handle]')) { pullActive = false; return; } // 드래그 핸들은 PTR 스킵
   pullY = e.touches[0].screenY;
   pullActive = (document.documentElement.scrollTop || document.body.scrollTop) < 5;
 }, { passive: true });
