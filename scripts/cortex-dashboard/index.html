@@ -1481,7 +1481,9 @@ const CAT_TYPE_LABELS = { routine: 'Routine (매일 리셋)', todo: 'To-do (이�
 
 async function loadFrames() {
   const res = await fetch(`${API}/api/day-frames`);
-  framesData = await res.json();
+  const raw = await res.json();
+  framesData = raw['day-frames'] || raw;
+  if (raw._version && !framesData._version) framesData._version = raw._version;
   renderFrames();
 }
 
@@ -1537,10 +1539,12 @@ function renderFrames() {
 const catColorMap = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', outcome: '#bc8cff' };
 
 async function saveFramesData() {
-  await fetch(`${API}/api/day-frames`, {
+  const res = await fetch(`${API}/api/day-frames`, {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify(framesData)
   });
+  const result = await res.json().catch(() => ({}));
+  if (result._version) framesData._version = result._version;
 }
 
 function toggleCatType(ftype, cat) {
