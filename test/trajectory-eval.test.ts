@@ -14,7 +14,7 @@ function writeAnalytics(events: object[]): string {
 }
 
 function runEval(logPath: string, extra = ''): { score: any; composite: number; grade: string } {
-  const out = execSync(`node ${SCRIPT} --log ${logPath} --json ${extra}`, {
+  const out = execSync(`node "${SCRIPT}" --log "${logPath}" --json ${extra}`, {
     encoding: 'utf8',
   });
   const result = JSON.parse(out);
@@ -209,7 +209,7 @@ describe('verification-gate-check.sh', () => {
   function runGate(cmd: string): string {
     const input = JSON.stringify({ tool_input: { command: cmd } });
     try {
-      return execSync(`echo '${input}' | bash ${GATE_SCRIPT}`, {
+      return execSync(`echo '${input}' | bash "${GATE_SCRIPT}"`, {
         encoding: 'utf8',
       });
     } catch (e: any) {

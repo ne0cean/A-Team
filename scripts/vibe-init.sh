@@ -154,6 +154,16 @@ if [ -f "improvements/pending.md" ]; then
   [ "$PENDING_P0" -gt 0 ] && add_alert "P0: ${PENDING_P0}"
 fi
 
+# === Step 0.65: Session Checkpoint ===
+CHECKPOINT="$HOME/.claude/session-checkpoint.txt"
+if [ -f "$CHECKPOINT" ]; then
+  PENDING_AC=$(grep -c "- \[ \]" "$CHECKPOINT" 2>/dev/null || echo 0)
+  if [ "$PENDING_AC" -gt 0 ]; then
+    add_alert "session_checkpoint: ${PENDING_AC} pending AC (prev session)"
+    add_action "session_checkpoint_restore"
+  fi
+fi
+
 # === Step 0.7: Daily Brief 자동 수집 ===
 if [ "$(basename "$(pwd -P)")" = "a-team" ]; then
   TODAY=$(date +%Y-%m-%d)

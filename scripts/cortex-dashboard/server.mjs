@@ -25,14 +25,16 @@
  */
 
 import { createServer } from 'http';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, readdirSync } from 'fs';
-import { join, dirname, extname } from 'path';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, readdirSync, statSync } from 'fs';
+import { join, dirname, extname, resolve, relative, isAbsolute, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = 7843;
+const PUBLIC_DIR = join(__dirname, 'public');
 const DATA_DIR = join(__dirname, '../../cortex/areas/life/ritual-routine');
+const CORTEX_ROOT = join(__dirname, '../../cortex');
 
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 
@@ -368,6 +370,7 @@ function searchMonths(query) {
 // --- Static file serving ---
 const MIME = {
   '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
   '.json': 'application/json',
   '.js': 'application/javascript',
   '.png': 'image/png',
@@ -402,6 +405,61 @@ function jsonRes(res, code, data) {
   res.end(JSON.stringify(data));
 }
 
+function publicFile(...parts) {
+  return join(PUBLIC_DIR, ...parts);
+}
+
+function safeCortexPath(inputPath = 'cortex') {
+  const raw = String(inputPath || 'cortex').replace(/\\/g, '/');
+  const relPath = raw === 'cortex' ? '' : raw.startsWith('cortex/') ? raw.slice('cortex/'.length) : raw;
+  const absPath = resolve(CORTEX_ROOT, relPath);
+  const rel = relative(CORTEX_ROOT, absPath);
+  if (rel.startsWith('..') || isAbsolute(rel)) throw new Error('invalid cortex path');
+  return absPath;
+}
+
+function toCortexPath(absPath) {
+  const rel = relative(CORTEX_ROOT, absPath).replace(/\\/g, '/');
+  return rel ? `cortex/${rel}` : 'cortex';
+}
+
+function searchCortex(query) {
+  const q = query.toLowerCase();
+  const results = [];
+  const stack = [CORTEX_ROOT];
+
+  while (stack.length && results.length < 30) {
+    const current = stack.pop();
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      if (entry.name.startsWith('.')) continue;
+      const abs = join(current, entry.name);
+      const apiPath = toCortexPath(abs);
+      const nameMatch = entry.name.toLowerCase().includes(q) || apiPath.toLowerCase().includes(q);
+
+      if (entry.isDirectory()) {
+        if (nameMatch) results.push({ name: entry.name, path: apiPath, type: 'dir' });
+        stack.push(abs);
+        continue;
+      }
+
+      if (!entry.isFile()) continue;
+      if (nameMatch) {
+        results.push({ name: entry.name, path: apiPath, type: 'file' });
+        continue;
+      }
+
+      if (entry.name.toLowerCase().endsWith('.md')) {
+        try {
+          const content = readFileSync(abs, 'utf-8').toLowerCase();
+          if (content.includes(q)) results.push({ name: entry.name, path: apiPath, type: 'file' });
+        } catch {}
+      }
+    }
+  }
+
+  return results;
+}
+
 // --- Server ---
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
@@ -416,10 +474,13 @@ const server = createServer(async (req, res) => {
 
   try {
     // --- Static files ---
-    if (path === '/' || path === '/index.html') return serveFile(res, join(__dirname, 'index.html'));
-    if (path === '/manifest.json' || path === '/manifest.webmanifest') return serveFile(res, join(__dirname, 'manifest.json'));
-    if (path === '/sw.js') return serveFile(res, join(__dirname, 'sw.js'));
-    if (path.startsWith('/icons/')) return serveFile(res, join(__dirname, path));
+    if (path === '/' || path === '/index.html') return serveFile(res, publicFile('index.html'));
+    if (path === '/manifest.json' || path === '/manifest.webmanifest') return serveFile(res, publicFile('manifest.json'));
+    if (path === '/sw.js') return serveFile(res, publicFile('sw.js'));
+    if (path === '/favicon.svg') return serveFile(res, publicFile('favicon.svg'));
+    if (path.startsWith('/css/') || path.startsWith('/js/') || path.startsWith('/icons/')) {
+      return serveFile(res, publicFile(path.slice(1)));
+    }
 
     // --- Month API ---
     if (path === '/api/month' && req.method === 'GET') {
@@ -454,6 +515,28 @@ const server = createServer(async (req, res) => {
       return jsonRes(res, 200, { ok: true });
     }
 
+    if (path === '/api/insert-item' && req.method === 'POST') {
+      const { ym, day, category, index, text, url: itemUrl } = JSON.parse(await readBody(req));
+      const data = loadMonth(ym);
+      const dd = ensureDay(data, day);
+      if (!dd[category]) dd[category] = [];
+      const insertAt = Math.max(0, Math.min(Number(index) || 0, dd[category].length));
+      dd[category].splice(insertAt, 0, { text: text || '', url: itemUrl || '', done: false });
+      saveMonth(ym, data);
+      return jsonRes(res, 200, { ok: true });
+    }
+
+    if (path === '/api/split-item' && req.method === 'POST') {
+      const { ym, day, category, index, before, after } = JSON.parse(await readBody(req));
+      const data = loadMonth(ym);
+      const item = data.days[day]?.[category]?.[index];
+      if (!item) return jsonRes(res, 404, { ok: false, error: 'not found' });
+      item.text = before || '';
+      data.days[day][category].splice(Number(index) + 1, 0, { text: after || '', url: '', done: false });
+      saveMonth(ym, data);
+      return jsonRes(res, 200, { ok: true });
+    }
+
     if (path === '/api/one-thing' && req.method === 'POST') {
       const { ym, day, text } = JSON.parse(await readBody(req));
       const data = loadMonth(ym);
@@ -463,10 +546,11 @@ const server = createServer(async (req, res) => {
     }
 
     if (path === '/api/edit-item' && req.method === 'POST') {
-      const { ym, day, category, index, text } = JSON.parse(await readBody(req));
+      const { ym, day, category, index, text, url: itemUrl } = JSON.parse(await readBody(req));
       const data = loadMonth(ym);
       if (data.days[day]?.[category]?.[index]) {
         data.days[day][category][index].text = text;
+        if (itemUrl !== undefined) data.days[day][category][index].url = itemUrl || '';
         saveMonth(ym, data);
       }
       return jsonRes(res, 200, { ok: true });
@@ -530,6 +614,18 @@ const server = createServer(async (req, res) => {
       return jsonRes(res, 200, { ok: true });
     }
 
+    if (path === '/api/workout' && req.method === 'POST') {
+      const { ym, day, part } = JSON.parse(await readBody(req));
+      const data = loadMonth(ym);
+      const dd = ensureDay(data, day);
+      if (!dd.workout) dd.workout = [];
+      const idx = dd.workout.indexOf(part);
+      if (idx >= 0) dd.workout.splice(idx, 1);
+      else dd.workout.push(part);
+      saveMonth(ym, data);
+      return jsonRes(res, 200, { ok: true, workout: dd.workout });
+    }
+
     // --- Reorder ---
     if (path === '/api/reorder' && req.method === 'POST') {
       const { ym, day, category, fromIdx, toIdx } = JSON.parse(await readBody(req));
@@ -548,6 +644,68 @@ const server = createServer(async (req, res) => {
       const q = url.searchParams.get('q') || '';
       if (!q) return jsonRes(res, 200, []);
       return jsonRes(res, 200, searchMonths(q));
+    }
+
+    if (path === '/api/search/unified' && req.method === 'GET') {
+      const q = url.searchParams.get('q') || '';
+      if (!q) return jsonRes(res, 200, { schedule: [], notes: [] });
+      return jsonRes(res, 200, { schedule: searchMonths(q), notes: searchCortex(q) });
+    }
+
+    // --- Cortex local file browser ---
+    if (path === '/api/cortex/tree' && req.method === 'GET') {
+      const dirPath = url.searchParams.get('path') || 'cortex';
+      const absPath = safeCortexPath(dirPath);
+      if (!existsSync(absPath) || !statSync(absPath).isDirectory()) return jsonRes(res, 404, { error: 'not found' });
+      const items = readdirSync(absPath, { withFileTypes: true }).map(entry => {
+        const child = join(absPath, entry.name);
+        return {
+          name: entry.name,
+          path: toCortexPath(child),
+          type: entry.isDirectory() ? 'dir' : 'file',
+          size: entry.isFile() ? statSync(child).size : 0
+        };
+      });
+      return jsonRes(res, 200, items);
+    }
+
+    if (path === '/api/cortex/file' && req.method === 'GET') {
+      const filePath = url.searchParams.get('path');
+      if (!filePath) return jsonRes(res, 400, { error: 'path required' });
+      const absPath = safeCortexPath(filePath);
+      if (!existsSync(absPath) || !statSync(absPath).isFile()) return jsonRes(res, 404, { error: 'not found' });
+      return jsonRes(res, 200, {
+        path: toCortexPath(absPath),
+        name: basename(absPath),
+        content: readFileSync(absPath, 'utf-8'),
+        sha: ''
+      });
+    }
+
+    if (path === '/api/cortex/file' && req.method === 'POST') {
+      const { filePath, content } = JSON.parse(await readBody(req));
+      if (!filePath || content === undefined) return jsonRes(res, 400, { error: 'filePath, content required' });
+      const absPath = safeCortexPath(filePath);
+      mkdirSync(dirname(absPath), { recursive: true });
+      writeFileSync(absPath, content, 'utf-8');
+      return jsonRes(res, 200, { ok: true, sha: String(Date.now()) });
+    }
+
+    if (path === '/api/cortex/upload' && req.method === 'POST') {
+      const { fileName, base64 } = JSON.parse(await readBody(req));
+      if (!fileName || !base64) return jsonRes(res, 400, { error: 'fileName, base64 required' });
+      const safeName = `${Date.now()}-${basename(fileName).replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const target = safeCortexPath(`cortex/attachments/${safeName}`);
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, Buffer.from(base64, 'base64'));
+      const apiPath = toCortexPath(target);
+      return jsonRes(res, 200, { ok: true, path: apiPath, markdown: `![${fileName}](${apiPath})` });
+    }
+
+    if (path === '/api/cortex/search' && req.method === 'GET') {
+      const q = url.searchParams.get('q') || '';
+      if (!q) return jsonRes(res, 200, []);
+      return jsonRes(res, 200, searchCortex(q));
     }
 
     // --- Standing Orders ---

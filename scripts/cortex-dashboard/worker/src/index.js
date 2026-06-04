@@ -279,6 +279,19 @@ export default {
         return new Response(JSON.stringify({ ok: true }), { headers });
       }
 
+      // --- Workout ---
+      if (path === '/api/workout' && method === 'POST') {
+        const { ym, day, part } = await request.json();
+        const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
+        if (!data.days[day]) data.days[day] = {};
+        if (!data.days[day].workout) data.days[day].workout = [];
+        const idx = data.days[day].workout.indexOf(part);
+        if (idx >= 0) data.days[day].workout.splice(idx, 1);
+        else data.days[day].workout.push(part);
+        await setKey(ym, data);
+        return new Response(JSON.stringify({ ok: true, workout: data.days[day].workout }), { headers });
+      }
+
       // --- Reorder ---
       if (path === '/api/reorder' && method === 'POST') {
         const { ym, day, category, fromIdx, toIdx } = await request.json();

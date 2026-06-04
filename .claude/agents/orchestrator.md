@@ -325,10 +325,19 @@ if context_usage > threshold:
 - 순차 태스크: 선행 완료 확인 후
 - 각 에이전트에 governance 객체 + file_ownership + dod + prior_learnings 포함 JSON 전달
 
-## Phase 5: 결과 취합
+## Phase 5: 결과 취합 + Vigil 검증
 1. 구조화 출력 수집 → 충돌/불일치 감지
-2. CURRENT.md 갱신 (완료 + 다음 태스크)
-3. 최종 출력: `{ status, summary, completed_tasks, next_steps, commit_message }`
+2. **Vigil 자동 호출** — coder 완료 선언 후 다음 중 하나라도 해당하면:
+   - 수정 파일 2개 이상
+   - `~/.claude/current-task-ac.txt` 존재
+   - 사용자 명시 요청
+   
+   Vigil 결과 분기:
+   - `VERIFIED` → Step 3 계속
+   - `PARTIAL` → 미완료 항목 사용자 보고 후 계속/중단 질문
+   - `FAILED` → coder 재디스패치 (최대 2회). 2회 후 FAIL → 사용자 에스컬레이션
+3. CURRENT.md 갱신 (완료 + 다음 태스크)
+4. 최종 출력: `{ status, summary, completed_tasks, next_steps, commit_message }`
 
 ### Phase 5.5: 디스패치 머지 (❸/❹ 사용 시)
 `scripts/merge-dispatch.sh --check` → `--merge` → `--cleanup`. 충돌 시 목록 표시 + 수동 해결 안내.

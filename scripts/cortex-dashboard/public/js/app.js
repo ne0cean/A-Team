@@ -2114,7 +2114,7 @@ function editVisionCell(catIdx, year, el) {
   const existing = (typeof raw === 'object' && raw !== null) ? { ...raw } : { text: '', image: null };
   existing.text = (typeof el === 'string' ? el : el.innerText).trim();
   visionData.categories[catIdx].cells[year] = existing;
-  saveVisionData();
+  saveVisionData().catch(err => showToast('저장 실패: ' + err.message, true));
 }
 
 async function uploadVisionImage(catIdx, year) {
@@ -2169,7 +2169,7 @@ function resizeImageTo600(file) {
 
 function editVisionNotes(text) {
   visionData.admin_notes = text.trim();
-  saveVisionData();
+  saveVisionData().catch(err => showToast('저장 실패: ' + err.message, true));
 }
 
 // --- Day Frames Admin ---

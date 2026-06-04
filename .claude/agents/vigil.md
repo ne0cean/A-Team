@@ -62,3 +62,11 @@ Mismatches: [불일치 항목]
 - 수동: "vigil 돌려줘", "/vigil", "실제로 됐는지 확인해줘"
 - 자동: orchestrator가 coder 완료 선언 후 자동 호출 가능
 - AC 파일: `~/.claude/current-task-ac.txt` 참조
+
+## Orchestrator 통합
+
+- **자동 호출**: orchestrator Phase 5 — coder 완료 선언 + 수정 파일 2개+ 또는 AC 파일 존재 시
+- **수동 호출**: `/vigil` 또는 "vigil 돌려줘", "실제로 됐어?"
+- **범위**: coder/구현 에이전트의 완료 주장 검증만. 설계 결정·아키텍처 검토 불가.
+- **orchestrator 부재 시**: 단독으로 동일 검증 수행 (git diff + 파일 + 빌드 + AC)
+- **Step 4 파일 없을 때**: `current-task-ac.txt` 없거나 비어있으면 Step 4 SKIP (AC 없는 태스크)
