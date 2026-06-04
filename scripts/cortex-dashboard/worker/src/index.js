@@ -620,14 +620,6 @@ export default {
                 }
               }
             }
-            // Preserve done frame items removed from template (demote to manual)
-            for (const item of oldFrame) {
-              if (item.done && !newFrame.some(f => f.text === item.text)) {
-                delete item._frame;
-                manual.push(item);
-              }
-            }
-
             // 3b. Carry: frontend handles lazy 1-day carry, worker must NOT cascade
             // Only keep existing manual items; strip old _carried injections
             const assembled = [...newFrame, ...manual];
