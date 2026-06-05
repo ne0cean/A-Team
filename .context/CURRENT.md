@@ -60,7 +60,15 @@
 ## In Progress Files
 - (없음)
 
-<<<<<<< HEAD
+## Last Completions (2026-06-05) — Cortex Dashboard 다수 버그 수정
+
+- **_catNames.input "Outcome" 버그** 수정: D1에서 "input":"Outcome" 제거 → Input 라벨 정상화
+- **flow/block Outcome/Source 분리**: source 카테고리 신설(기존 15개 아이템), outcome 빈 todo로 분리. SOURCE_SYNC_MAP weekday.input↔flow.source↔block.source 재매핑
+- **일괄 붙여넣기 textarea 방식**: Add item input→textarea 교체, submitFrameTextarea() 구현. Citrix VDI 환경 동작
+- **workout null 오염 근본 수정**: 중복 POST 핸들러(라인 283) 제거, Day5 null 정리
+- **배포 경로 오류 수정**: wrangler.jsonc → worker/wrangler.toml --config 명시 배포로 정정
+- **CAT_NAMES source 추가**: source:"Source" + catColorMap 주황색 추가
+
 ## Last Completions (2026-06-05) — Next Tasks 검증 완료
 
 - **impact.mjs smoke test** ✓ — BFS 정상 작동: `lib/intel-types.ts` → `test/intel-integration.test.ts`, `test/intel.test.ts` 2개 영향 파일 추적
@@ -68,131 +76,3 @@
 - **vibe-init.sh Step 0.65b** ✓ — 이미 구현됨: Phase Checkpoints `.context/checkpoints/*.json` 읽기
 - **reviewer.md retry_count** ✓ — 이미 구현됨: 출력 스키마 + 에스컬레이션 조건(retry_count >= 2 → BLOCKED)
 - **SubagentStop 훅 등록** ✓ — settings.json 등록 확인, 코드 정상
-=======
-## Last Completions (2026-06-04) — 이전 세션 불충분 요소 보완 + Cortex 배포
-
-- **pickup/resume checkpoints 통합** (03a96ad5): pickup.md Step 0 체크포인트 감지 조건 + Step 2 checkpoints 5번째 컨텍스트 소스. resume.md 템플릿 Checkpoints 섹션 + SubagentStop 자동 저장 규칙 + 폴백 추가. .context/checkpoints/ mkdir -p 자동 생성.
-- **impact.mjs 실행 검증**: lib/analytics.ts → test/analytics.test.ts 의존 추적 정상 확인
-- **SubagentStop 훅 등록 확인**: ~/.claude/settings.json lines 334-344 등록 완료
-- **reviewer.md retry_count**: 이미 Line 122에 존재 확인 (추가 불필요)
-- **vigil.md name 필드 추가** (b0b757da): wiring-integrity-frontmatter 테스트 수정. 576 PASS → 576 PASS 유지
-- **QA-ISSUES #24/#26 FIXED** (1168cfa3): 코드에 이미 수정됨 확인. BUG 0개, BROWSER 2개(#2/#16) 잔여
-- **Cortex Dashboard 배포** (516a68ee): wrangler deploy 완료, 11개 파일 업로드
-
-## Last Completions (2026-06-05) — Cortex 버그 수정 다수 + HF 이동
-
-- **inject-frames `_frame` 마커 버그** 수정: `promotedTexts` 패턴으로 manual→_frame promote, routine cleanup 텍스트 기반 필터
-- **UI 5개 버그** 수정: 스크롤 점프(`_weekScrolledToToday` 플래그), 검색 개선, Cortex 버튼 오늘 week view(`goTodayWeek`), SO 엔터 처리, separator 클릭 편집
-- **multi-line paste → checklist** + URL 하이퍼링크 보존 (`parsePasteLine`, `handleItemPaste`)
-- **박Telegram carry-over 무한 반복** 근본 수정: D1 스테일 항목 직접 삭제(Day4 2건/Day5 4건), render에서 `save()` 분리(`_pendingCarrySave`), `&nbsp;` 정규화, `_carry_rejects_${cat}` 거부 목록
-- **workout null 정리**: Day5 workout `[null,null,null,null]` → `[]` 수정
-- **6월 12일 HF → 6월 29일** D1 반영: `happy_friday`, `holidays`, `day_type` 세 곳 모두
-- SW 캐시 v19→v21, 배포 완료
-
-## Last Completions (2026-06-04) — AI 개발 방법론 거버넌스 통합 + SubagentStop 훅
-
-- **거버넌스 구조 5개 Fix** — quality-pipeline 체인 수리, Compaction AC 자동 저장, /end pre-flight 미완료 확인, orchestrator↔vigil 자동 통합, research-integration.md 신설
-- **외부 리서치 → 구현** — `scripts/impact.mjs` (BFS 영향도 분석), `governance/rules/risk-tier.md` (4등급 체계), `governance/rules/supervisor-pattern.md` (Generator-Evaluator 격리 + retry 에스컬레이션)
-- **SubagentStop 훅** — `~/.claude/hooks/subagent-stop.js`: 변경 파일 2개+ → vigil 큐잉 + `.context/checkpoints/` Phase 체크포인트 자동 저장. settings.json 등록 완료
-- **TRIGGER-INDEX.md** — impact-analysis / risk-tier / supervisor-pattern 3개 rule 추가 (합계 ~1,475 lines)
-- **540 tests PASS** (임시 파일 pre-existing 실패 3개 무관)
-
-## Last Completions (2026-06-05) — AC Impact Auto-Injector
-
-- **ac-impact-injector.sh** — `scripts/hooks/ac-impact-injector.sh` 구현. PostToolUse:Write|Edit 훅. `current-task-ac.txt` 저장 시 자동으로 `impact.mjs` 실행 → RISK 등급 주입. 3 엣지 케이스 검증 (idempotency, non-AC file, placeholder RISK). settings.json 등록 설정 제공 (사용자 직접 적용 필요). **541 tests PASS**.
-
-## Next Tasks
-
-## Blockers
-- (없음)
-
-## Last Completions (2026-06-03) — Cortex Dashboard 핵심 버그 수정 5건
-
-- **loadFrames → render() 누락** (근본 원인): loadFrames() 완료 후 renderFrames()만 호출, render() 미호출 → 캘린더에 프레임 내용 미반영. render() 1줄 추가로 수정
-- **6 Pillars addFrameItem 동기화**: separator 있을 때 sync 안 되던 버그 수정. 새 항목은 항상 separator 앞에 삽입 + 전 frame type 동기
-- **Ctrl+K 팝업 UI**: prompt() → 기존 linkPopup UI 재사용. mode='ctrlk' 추가. routine/todo 분기 저장 처리
-- **미래 날짜 루틴 기본 펼침**: frame-group-hdr badge 제거, 기본 펼침으로 변경
-- **routine 카테고리/todo 아키텍처**: 템플릿 live 렌더링, worker inject-frames carry 캐스케이드 제거, 중복 카테고리 렌더링 방지
-- 배포: `https://cortex.feat-breeze.workers.dev` (Version: 4c07a9dd)
-
-## Last Completions (2026-06-03) — 3-Tier Knowledge Architecture + 진단 훅
-
-- **governance/patterns/ 4개 신규** — browser-automation / data-mutation / api-error-handling / visual-qa
-- **governance/diagnostics/ 2개 신규** — browser-automation-failures / cloudflare-worker-errors (5섹션 진단 트리)
-- **/vibe Step 0.85 Domain Pattern Gate** — wrangler.toml / scripts/browser/ 감지 → 패턴 파일 절대경로 Read 자동 주입
-- **/end Step 6.76 레슨→패턴 커버리지 체크** — 신규 레슨 태그 → 대응 패턴 파일 미갱신 시 1줄 알림
-- **PostToolUse:Bash 훅** — `scripts/hooks/post-bash-diagnostic.sh` + `~/.claude/settings.json` 훅 등록. Bash 실패 시 진단 파일 자동 서페이싱. 26ms 오버헤드 검증.
-- **541 tests PASS**
-
-## Last Completions (2026-06-02) — 병렬 진단 + Growth System T4 + QA 마무리
-
-- **병렬 에이전트 3개** — QA 코드 분석 / D1 진단 / 훅+MeiliSearch 상태 확인
-- **T1 배지 회귀 복구** (1585fade) — QA 커밋 과정에서 누락된 done/total 배지 재추가 + 배포 f2686029
-- **input↔outcome 진단 완료** — 코드 CLEAN, 마이그레이션 불필요. 6/1 15:45~22:23 입력분만 UI 수동 확인 권장
-- **모델 훅 확인** — enforce-model-param.js + model-compliance.js 이미 PreToolUse 등록됨
-- **Growth System T4** (52243d5c) — `scripts/cortex-growth-snapshot.mjs` 구현. D1→done/total/pillar/#lesson 집계→analytics.jsonl emit. T1~T4 전체 완료
-- **576 tests PASS** (ppt-benchmark 2개 파일 기존 실패, 무관)
-
-## Last Completions (2026-06-02) — Cortex Dashboard QA 1차+2차 수정 (20개 항목)
-
-- 1차(cf2426ed) 16개 + 2차(cdd637d7) 4개 수정·배포. #2/#16/#24/#26 코드 분석 완료(브라우저 확인 대기)
-
-## Last Completions (2026-06-01) — 기획-검수-빌드-검수 4-레이어 + Dashboard 복구
-
-- 4-레이어 Shift-Left 품질 아키텍처 완성 (Layer 0~3 훅), Dashboard Track A~D 버그 수정·배포, Paperclip 기각 + cherry-pick 로드맵
-- **537 tests PASS** 유지
-
-## Last Completions (2026-05-24 이전)
-→ [.context/SESSIONS.md](SESSIONS.md) 참조
-
-## Multi-Model Router ✅
-Phase 1-5 완료. 설계: [.context/designs/multi-model-router.md](designs/multi-model-router.md)
-
-## Completed Phases (참조용)
-- **Phase 0-0.5** ✅ — 메타 인프라 + Capability Growth Engine
-- **Phase 1** ✅ — 분석/BI (insights + anomaly + weekly report)
-- **Phase 2** ⏸️ 80% — 인텔리전스 (발행 블로커: 브랜딩 미확정)
-- **P4** ✅ — Governance & Trust (/board + Legal + BCP/DR + OKR Rocks)
-
-## Next Tasks
-
-### High Priority
-- [ ] **Cortex inject-frames 정리** — 배포 후 inject-frames 버튼 실행해 days 4-30 잘못된 _carried 항목 청소
-- [ ] **Cortex Dashboard #2/#16/#24/#26 브라우저 확인** — 사용자 수동 확인 후 이상 발견 시 CODE-FIX 요청. 원본 설명 파일 미존재, 코드 분석상 구현됨.
-- [ ] **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증, 동기화 이슈
-- [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포 (인프라 중독 탈피)
-
-### Medium Priority
-- [ ] **LSP 활성화** — settings.json 히든 플래그 + 언어서버 설치 (YT 그룹D 도출)
-- [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정 (PRD 성공 기준 기반)
-- [ ] **Stryker 첫 full run** — mutation score baseline 측정
-- [ ] **Ritual Board 이름 확정** — 완성 후 추천
-
-### Low Priority / Future
-- [ ] **PPT 컨설팅 페이퍼 수준 보강** — Bain/BCG 벤치마크 기반 로드맵 실행. (1) Inline Pullquote 레이아웃 (2) Light weight 헤드라인 옵션 (3) text_chart 복합 레이아웃 (4) Portrait 포맷 지원 (5) 컨설팅 3사 스타일 완전 재현. 목표: Top 컨설팅 페이퍼 수준 출력. 상세: `reference/ppt-benchmarks/ANALYSIS.md`
-  - why: PPT 모듈 → 컨설팅급 산출물 자동화 → 대기업 팀 수준 대체
-- [ ] Phase 1 Causal analysis (**보류**: 데이터 축적 후)
-- [ ] 외부 데이터 연결 GA4/Mixpanel (**보류**: 비즈니스 데이터 생길 때)
-- [ ] Playwright MCP Evaluator — qa.md → 실제 앱 실행 테스트
-- [ ] Generator→Evaluator 스프린트 루프
-- [ ] /design-md 슬래시 커맨드
-- [ ] Wave 1-3 실측 A/B 벤치 → 공식 tag
-- [ ] Advisor tool 라이브 API 테스트 (**보류**: API 크레딧 필요)
-
-## Archive
-
-2026-04-18 이전 세션 기록 → [.context/SESSIONS.md](SESSIONS.md)
-
-## Blockers
-- [BLOCKED] **VDI GitLab CE** — 사내 서버(VM) 확보 필요
-  - blocked_by: 외부 (IT팀 VM 확보 협의)
-  - impact: LOW
-  - workaround: GitHub 임시 사용 중
-- [BLOCKED] **Obsidian Mobile 동기화** — 동기화 방식 미확정
-  - blocked_by: 수동 작업 (실기기 테스트 후 iCloud symlink vs Working Copy 선택 필요)
-  - impact: LOW
-  - workaround: Telegram → cortex/inbox 자동 캡처로 모바일 입력 대체 중
-
-## 배포 현황
-- GitHub: https://github.com/ne0cean/A-Team (master)
-- 글로벌 커맨드: ~/.claude/commands/ (install-commands.sh로 배포)

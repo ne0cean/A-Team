@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-05] Cortex Dashboard 다수 버그 수정
+
+**완료**: _catNames.input "Outcome" 버그 수정(D1), flow/block Source/Outcome 카테고리 분리(source 신설, SOURCE_SYNC_MAP 재매핑), 일괄 붙여넣기 textarea 방식으로 재구현(Citrix VDI 대응), workout null 오염 근본 수정(중복 POST 핸들러 제거), 배포 경로 오류 수정(wrangler.toml --config 명시), CAT_NAMES/catColorMap source 추가
+**이슈**: 배포를 wrangler.jsonc로 잘못 하던 문제가 여러 번 재발 — worker/wrangler.toml --config 명시 필수 (CLAUDE.md 주석에 이미 경고 있었음)
+**빌드**: ✅
+
 ## [2026-06-04] 이전 세션 불충분 요소 보완
 
 **완료**: pickup.md Step 0 체크포인트 감지 조건 추가 + Step 2 checkpoints 5번째 컨텍스트 소스로 추가 (mkdir -p 자동 생성 포함). resume.md 템플릿에 Checkpoints 섹션 + SubagentStop 자동 저장 규칙 + 폴백 추가. impact.mjs 실행 검증 (lib/analytics.ts→test/analytics.test.ts 추적 정상). SubagentStop 훅 settings.json 등록 확인. reviewer.md retry_count 이미 존재 확인 (추가 불필요). QA-ISSUES #24/#26 FIXED 상태 갱신 (코드 이미 수정됨 확인).

@@ -1,6 +1,6 @@
 const API = '';
 const CATS = ['ritual','work','hexagonal','outcome','input'];
-const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Tasks', hexagonal:'6 Pillars', outcome:'Outcome'};
+const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Tasks', hexagonal:'6 Pillars', outcome:'Outcome', source:'Source'};
 const DAY_NAMES = ['일','월','화','수','목','금','토'];
 const TYPE_LABELS = {block:'BLOCK',flow:'FLOW',hf:'HF',vacation:'휴가'};
 const TYPE_COLORS = {block:'badge-block',flow:'badge-flow',hf:'badge-hf',vacation:'badge-vacation'};
@@ -2325,18 +2325,15 @@ function editVisionNotes(text) {
 // --- Day Frames Admin ---
 let framesData = null;
 const FRAME_TYPES = ['weekday', 'flow', 'block'];
-// Source group sync: weekday.input ↔ block.outcome ↔ flow.outcome
+// Source group sync: weekday.input ↔ block.source ↔ flow.source
 const SOURCE_SYNC_MAP = {
-  'weekday:input':  [['block','outcome'],['flow','outcome']],
-  'block:outcome':  [['weekday','input'],['flow','outcome']],
-  'flow:outcome':   [['weekday','input'],['block','outcome']],
+  'weekday:input':  [['block','source'],['flow','source']],
+  'block:source':   [['weekday','input'],['flow','source']],
+  'flow:source':    [['weekday','input'],['block','source']],
 };
 const FRAME_TYPE_LABELS = { weekday: 'Weekday (평일)', flow: 'Flow Day (토/HF)', block: 'Block Day (일)' };
 // #18 — frame type별 카테고리 이름 override / 숨김
-const FRAME_CAT_OVERRIDES = {
-  flow:  { labels: { outcome: 'Source' } },
-  block: { labels: { outcome: 'Source' } }
-};
+const FRAME_CAT_OVERRIDES = {};
 const CAT_TYPE_LABELS = { routine: 'Routine (매일 리셋)', todo: 'To-do (이월)' };
 
 async function loadFrames() {
@@ -2397,10 +2394,15 @@ function renderFrames() {
         </div>`;
       });
 
-      html += `<div class="frame-add">
-        <input placeholder="Add item..." onkeydown="if(event.key==='Enter'){addFrameItem('${ftype}','${cat}',this.value);this.value='';}">
-        <button onclick="addFrameItem('${ftype}','${cat}',this.previousElementSibling.value);this.previousElementSibling.value=''">+</button>
-        <button onclick="addFrameSeparator('${ftype}','${cat}')" title="구분선 추가" style="font-size:10px;padding:0 4px">─</button>
+      html += `<div class="frame-add" style="flex-direction:column;align-items:stretch;gap:3px">
+        <textarea rows="1" placeholder="Add item… (여러 줄 붙여넣기 가능)"
+          style="resize:none;overflow:hidden;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:12px;border-radius:3px;padding:3px 6px;width:100%;box-sizing:border-box;font-family:inherit"
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitFrameTextarea(this,'${ftype}','${cat}');}"></textarea>
+        <div style="display:flex;gap:4px">
+          <button onclick="submitFrameTextarea(this.parentElement.previousElementSibling,'${ftype}','${cat}')" style="flex:1">+</button>
+          <button onclick="addFrameSeparator('${ftype}','${cat}')" title="구분선 추가" style="font-size:10px;padding:0 4px">─</button>
+        </div>
       </div>`;
       html += '</div>';
     }
@@ -2416,7 +2418,7 @@ function renderFrames() {
   if (!el._dragInited) { initFrameDrag(el); el._dragInited = true; }
 }
 
-const catColorMap = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', hexagonal: '#f85149', outcome: '#bc8cff' };
+const catColorMap = { ritual: '#f0c040', input: '#58a6ff', work: '#56d364', hexagonal: '#f85149', outcome: '#bc8cff', source: '#ff9500' };
 
 async function saveFramesData() {
   const res = await fetch(`${API}/api/day-frames`, {
@@ -2447,17 +2449,16 @@ function setFrameItem(ftype, cat, idx, obj) {
   framesData[ftype].categories[cat].items[idx] = obj.url ? obj : obj.text;
 }
 
-function addFrameItem(ftype, cat, text) {
+function _addFrameItemToData(ftype, cat, text) {
   if (!text?.trim()) return;
   if (!framesData[ftype]) framesData[ftype] = { label: ftype, categories: {} };
   if (!framesData[ftype].categories) framesData[ftype].categories = {};
   if (!framesData[ftype].categories[cat]) framesData[ftype].categories[cat] = { type: 'routine', items: [] };
   const srcItems = framesData[ftype].categories[cat].items;
   const srcSep = srcItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
-  // Insert before separator so new items are always in the "shared" region
   if (srcSep === -1) srcItems.push(text.trim());
   else srcItems.splice(srcSep, 0, text.trim());
-  // 6PILLARS (hexagonal) sync — always sync new items to all frame types
+  // 6PILLARS (hexagonal) sync
   if (cat === 'hexagonal') {
     FRAME_TYPES.forEach(ft => {
       if (ft === ftype) return;
@@ -2476,6 +2477,20 @@ function addFrameItem(ftype, cat, text) {
     const tSep = tItems.findIndex(i => typeof i === 'object' && i.type === 'separator');
     if (tSep === -1) tItems.push(text.trim()); else tItems.splice(tSep, 0, text.trim());
   }
+}
+
+function addFrameItem(ftype, cat, text) {
+  _addFrameItemToData(ftype, cat, text);
+  saveFramesData();
+  renderFrames(); render();
+}
+
+function submitFrameTextarea(el, ftype, cat) {
+  const lines = el.value.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+  if (!lines.length) return;
+  lines.forEach(line => _addFrameItemToData(ftype, cat, line));
+  el.value = '';
+  el.style.height = 'auto';
   saveFramesData();
   renderFrames(); render();
 }
