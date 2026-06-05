@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-05] Cortex Dashboard — GitHub 401 프롬프트 버그 수정
+
+**완료**: `/api/cortex/tree|file|upload` GitHub 오류 401→502 변환. "Cortex access token" 프롬프트 재발 방지. MEMORY 레슨 저장(lesson_github_401_passthrough.md). 배포 완료(bc5ed0fa)
+**이슈**: Worker가 GitHub API 401을 그대로 클라이언트에 pass-through → retryAuth 발동. 3개 엔드포인트 모두 발생 가능했음
+**빌드**: ✅
+
 ## [2026-06-05] Cortex Dashboard Round 2 — 검색/스크롤/textarea 수정
 
 **완료**: GitHub Code Search API로 notes 내용 검색 전환(fallback: tree path-only), unified search schedule에 source 카테고리 추가, SW 캐시 v23→v24, speed gate(deltaY>40) 스크롤 의도 감지, input textarea 적용(getDayCatType 조건 제거), addItemPrompt querySelector 버그 수정. 배포 완료(6b417ea0)
