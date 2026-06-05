@@ -853,8 +853,12 @@ function authHeaders() {
   if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
 }
-async function retryAuth(res) {
+let _authPromptShown = false;
+async function retryAuth(res, url) {
   if (res.status !== 401) return false;
+  console.error('[cortex] 401 from:', url);
+  if (_authPromptShown) return false; // 세션당 1회만
+  _authPromptShown = true;
   const token = prompt('Cortex access token');
   if (!token) return false;
   localStorage.setItem(TOKEN_KEY, token.trim());
@@ -866,7 +870,7 @@ window.fetch = async (input, init = {}) => {
   const next = { ...init };
   if (url.includes('/api/')) next.headers = { ...(next.headers || {}), ...authHeaders() };
   const res = await _rawFetch(input, next);
-  if (res.status === 401 && await retryAuth(res)) {
+  if (res.status === 401 && await retryAuth(res, url)) {
     if (url.includes('/api/')) next.headers = { ...(next.headers || {}), ...authHeaders() };
     return _rawFetch(input, next);
   }
