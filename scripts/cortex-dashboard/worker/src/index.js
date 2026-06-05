@@ -521,7 +521,7 @@ export default {
         }
 
         let carried = 0, injected = 0, changed = false;
-        const CATS = ['ritual','input','work','hexagonal','outcome'];
+        const CATS = ['ritual','input','work','hexagonal','outcome','source'];
 
         for (let d = start; d <= end; d++) {
           const dayKey = String(d);
