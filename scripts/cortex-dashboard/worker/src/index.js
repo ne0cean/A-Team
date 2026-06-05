@@ -646,7 +646,7 @@ export default {
         }
         const ghUrl = `https://api.github.com/repos/${REPO}/contents/${dirPath.split('/').map(s => encodeURIComponent(s)).join('/')}?ref=master`;
         const ghRes = await fetch(ghUrl, { headers: ghHeaders });
-        if (!ghRes.ok) return new Response(JSON.stringify({ error: 'github error', status: ghRes.status }), { status: ghRes.status, headers });
+        if (!ghRes.ok) return new Response(JSON.stringify({ error: 'github error', status: ghRes.status }), { status: 502, headers });
         const items = await ghRes.json();
         // Simplify response
         const simplified = (Array.isArray(items) ? items : [items]).map(i => ({
@@ -687,7 +687,7 @@ export default {
           body: JSON.stringify(body)
         });
         const result = await ghRes.json();
-        if (!ghRes.ok) return new Response(JSON.stringify({ error: result.message || 'save failed' }), { status: ghRes.status, headers });
+        if (!ghRes.ok) return new Response(JSON.stringify({ error: result.message || 'save failed' }), { status: ghRes.status === 401 ? 502 : ghRes.status, headers });
         return new Response(JSON.stringify({ ok: true, sha: result.content?.sha }), { headers });
       }
 
@@ -709,7 +709,7 @@ export default {
           })
         });
         const result = await ghRes.json();
-        if (!ghRes.ok) return new Response(JSON.stringify({ error: result.message || 'upload failed' }), { status: ghRes.status, headers });
+        if (!ghRes.ok) return new Response(JSON.stringify({ error: result.message || 'upload failed' }), { status: ghRes.status === 401 ? 502 : ghRes.status, headers });
         return new Response(JSON.stringify({ ok: true, path: filePath, markdown: `![${fileName}](${filePath})` }), { headers });
       }
 
