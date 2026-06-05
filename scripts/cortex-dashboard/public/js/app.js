@@ -9,6 +9,7 @@ const TYPES = ['block','flow','hf','vacation'];
 let currentYear, currentMonth, currentWeekStart, monthData, standingData, recurringData;
 let todayMonthData = null; // 오늘 날짜 월 캐시 (월 탐색 시에도 유지)
 let viewMode = 'month'; // 'month' (default) or 'week'
+let _weekScrolledToToday = false; // only scroll today into view on mode switch, not every render
 
 // --- Init ---
 function init() {
@@ -130,6 +131,7 @@ async function loadRecurringTemplates() {
 // --- View toggle ---
 function toggleView() {
   viewMode = viewMode === 'week' ? 'month' : 'week';
+  _weekScrolledToToday = false; // allow scrollIntoView on next week render
   document.getElementById('viewToggle').textContent = viewMode === 'week' ? 'Full Month' : 'This Week';
   document.getElementById('monthLabel').textContent = viewMode === 'month'
     ? `${currentYear}. ${currentMonth}` : formatWeekLabel();
@@ -166,27 +168,31 @@ function render() {
   const focused = document.activeElement;
   if (focused && focused.classList.contains('one-thing')) focused.blur();
 
-  // Preserve scroll positions
+  // Preserve scroll positions — save by day-key (month) or by index (week)
   const mainEl = document.getElementById('main');
   const scrollY = window.scrollY || window.pageYOffset;
   const mainScrollTop = mainEl ? mainEl.scrollTop : 0;
-  const cellScrolls = {};
-  document.querySelectorAll('.day-cell').forEach((c, i) => { cellScrolls[i] = c.scrollTop; });
+  const cellScrollsByDay = {};
+  const cellScrollsByIdx = {};
+  document.querySelectorAll('.day-cell[data-day]').forEach(c => { const v = c.scrollTop; if (v) cellScrollsByDay[c.dataset.day] = v; });
+  document.querySelectorAll('.week-cell').forEach((c, i) => { const v = c.scrollTop; if (v) cellScrollsByIdx[i] = v; });
 
   container.innerHTML = viewMode === 'month' ? renderMonthView() : renderWeekView();
   renderStats();
 
-  // Restore scroll positions (rAF to avoid race with browser repaint)
-  requestAnimationFrame(() => {
+  // Restore scroll positions — double-rAF for reliable layout commit
+  requestAnimationFrame(() => requestAnimationFrame(() => {
     window.scrollTo(0, scrollY);
     if (mainEl) mainEl.scrollTop = mainScrollTop;
-    document.querySelectorAll('.day-cell').forEach((c, i) => { if (cellScrolls[i]) c.scrollTop = cellScrolls[i]; });
-    // Week view: scroll today into center on narrow screens
-    if (viewMode !== 'month') {
+    document.querySelectorAll('.day-cell[data-day]').forEach(c => { const v = cellScrollsByDay[c.dataset.day]; if (v) c.scrollTop = v; });
+    document.querySelectorAll('.week-cell').forEach((c, i) => { const v = cellScrollsByIdx[i]; if (v) c.scrollTop = v; });
+    // Week view: scroll today into center ONLY on mode switch (not on every re-render)
+    if (viewMode !== 'month' && !_weekScrolledToToday) {
       const todayCell = document.querySelector('.week-grid .week-cell.today');
       if (todayCell) todayCell.scrollIntoView({ inline: 'center', behavior: 'instant', block: 'nearest' });
+      _weekScrolledToToday = true;
     }
-  });
+  }));
 }
 
 function renderMonthView() {
@@ -324,7 +330,15 @@ function togglePastWeeks() {
 
 function renderWeekView() {
   const today = new Date();
-  let html = '<div class="week-grid">';
+  let todayColIdx = -1;
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(currentWeekStart);
+    date.setDate(date.getDate() + i);
+    if (date.toDateString() === today.toDateString()) { todayColIdx = i; break; }
+  }
+  // Build grid-template-columns: today gets 1.3fr, others 1fr
+  const cols = Array.from({length: 7}, (_, i) => i === todayColIdx ? '1.3fr' : '1fr').join(' ');
+  let html = `<div class="week-grid" style="grid-template-columns:${cols}">`;
   // Headers
   DAY_NAMES.forEach((n, i) => {
     const cls = i === 0 ? ' sun' : i === 6 ? ' sat' : '';
@@ -343,6 +357,20 @@ function renderWeekView() {
   }
   html += '</div>';
   return html;
+}
+
+function goTodayWeek() {
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth() + 1;
+  currentWeekStart = getWeekStart(now);
+  if (viewMode !== 'week') {
+    viewMode = 'week';
+    _weekScrolledToToday = false;
+    document.getElementById('viewToggle').textContent = 'Full Month';
+    document.getElementById('monthLabel').textContent = formatWeekLabel();
+  }
+  loadMonth();
 }
 
 function getHoliday(d) {
@@ -1602,7 +1630,7 @@ function renderStandingOrders() {
         <span onclick="moveSOItem('standing',${i},1)" ${i===soLen-1?'style="visibility:hidden"':''}>&#9660;</span>
       </div>
       <input type="checkbox" ${s.active?'checked':''} onchange="toggleSOActive(${i})">
-      <span contenteditable="true" style="flex:1" onblur="editSOText(${i},htmlToMarkdown(this.innerHTML))">${linkify(s.text)}</span>
+      <span contenteditable="true" style="flex:1" onblur="editSOText(${i},htmlToMarkdown(this.innerHTML))" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${linkify(s.text)}</span>
       <input class="so-date-input" placeholder="날짜" value="${esc(s.date||'')}"
         onblur="setSoDate(${i},this.value)"
         onkeydown="if(event.key==='Enter'){this.blur();}"
@@ -2046,20 +2074,32 @@ async function saveCortexFile() {
   }
 }
 
+let _sidebarSearchTimer;
+function debounceSidebarSearch(q) {
+  clearTimeout(_sidebarSearchTimer);
+  if (!q || q.length < 2) { loadSidebarTree(); return; }
+  _sidebarSearchTimer = setTimeout(() => searchCortex(q), 300);
+}
 async function searchCortex(q) {
   if (!q || q.length < 2) return;
-  const res = await fetch(`${API}/api/cortex/search?q=${encodeURIComponent(q)}`);
-  const results = await res.json();
   const el = document.getElementById('sidebarTree');
   if (!el) return;
-  if (!results.length) { el.innerHTML = '<div style="color:#484f58;padding:8px">No results</div>'; return; }
-  el.innerHTML = results.map(r => {
-    const icon = r.type === 'dir' ? '&#128193;' : '&#128196;';
-    const onclick = r.type === 'dir'
-      ? `loadSidebarTree('${r.path}')`
-      : `openNote('${r.path}')`;
-    return `<div class="tree-item" onclick="${onclick}"><span class="icon">${icon}</span><span class="name">${esc(r.name)}</span></div>`;
-  }).join('');
+  el.innerHTML = '<div style="color:#8b949e;padding:8px">검색 중...</div>';
+  try {
+    const res = await fetch(`${API}/api/cortex/search?q=${encodeURIComponent(q)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const results = await res.json();
+    if (!results.length) { el.innerHTML = '<div style="color:#484f58;padding:8px">No results</div>'; return; }
+    el.innerHTML = results.map(r => {
+      const icon = r.type === 'dir' ? '&#128193;' : '&#128196;';
+      const onclick = r.type === 'dir'
+        ? `loadSidebarTree('${r.path}')`
+        : `openNote('${r.path}')`;
+      return `<div class="tree-item" onclick="${onclick}"><span class="icon">${icon}</span><span class="name">${esc(r.name)}</span></div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="color:#f85149;padding:8px">검색 오류: ${esc(String(e))}</div>`;
+  }
 }
 
 // --- Vision & Milestones ---
