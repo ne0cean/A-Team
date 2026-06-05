@@ -60,6 +60,16 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-05) — Cortex Dashboard Round 2
+
+- **Notes 검색 → GitHub Code Search API**: 파일 내용 검색으로 전환. fallback(path-only) 유지
+- **unified search schedule source 추가**: source 카테고리 검색 포함
+- **Input textarea 전체 적용**: getDayCatType 조건 제거, 모든 카테고리 textarea
+- **스크롤 speed gate**: deltaY > 40 → 페이지 스크롤 의도로 pass-through
+- **addItemPrompt querySelector 버그 수정**: textarea 우선 선택
+- **SW 캐시 v23 → v24**, 배포 완료 (6b417ea0)
+- **BLOCK**: `GITHUB_TOKEN` Cloudflare 시크릿 미등록 → notes 내용 검색 여전히 fallback 상태. `npx wrangler secret put GITHUB_TOKEN --config wrangler.toml` 실행 필요
+
 ## Last Completions (2026-06-05) — Cortex Dashboard 다수 버그 수정
 
 - **_catNames.input "Outcome" 버그** 수정: D1에서 "input":"Outcome" 제거 → Input 라벨 정상화
