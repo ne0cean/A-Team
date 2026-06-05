@@ -79,10 +79,30 @@
 - **배포 경로 오류 수정**: wrangler.jsonc → worker/wrangler.toml --config 명시 배포로 정정
 - **CAT_NAMES source 추가**: source:"Source" + catColorMap 주황색 추가
 
-## Last Completions (2026-06-05) — Next Tasks 검증 완료
+## Last Completions (2026-06-05) — Cortex-Confluence 동기화 설계
 
-- **impact.mjs smoke test** ✓ — BFS 정상 작동: `lib/intel-types.ts` → `test/intel-integration.test.ts`, `test/intel.test.ts` 2개 영향 파일 추적
-- **pickup/resume checkpoints** ✓ — 이미 구현됨: pickup.md Step 2 + Step 0 감지, resume.md line 110/122
-- **vibe-init.sh Step 0.65b** ✓ — 이미 구현됨: Phase Checkpoints `.context/checkpoints/*.json` 읽기
-- **reviewer.md retry_count** ✓ — 이미 구현됨: 출력 스키마 + 에스컬레이션 조건(retry_count >= 2 → BLOCKED)
-- **SubagentStop 훅 등록** ✓ — settings.json 등록 확인, 코드 정상
+- **Blueprint 작성** — `blueprint-cortex-confluence-sync.md` (VDI↔로컬 Cortex 스케줄러 양방향 실시간 동기화)
+- **JSON→XHTML 변환기 초안** — `scripts/confluence-sync/json-to-confluence.mjs` (월간 캘린더 77K, Standing Orders 9K, Day Frames 4K chars 생성 확인)
+- **설계 결정 기록** — `.context/design-decisions.md` 신설 (SSOT=Cortex, Confluence=VDI 터널)
+- **BLOCK**: Confluence PAT 발급 확인 필요 (VDI 접속 시). Cortex 데이터 구조 안정화 선행 필요
+
+## Last Completions (2026-06-05) — Cortex Dashboard Round 2 + 버그 수정
+
+- Notes 검색 GitHub Code Search API 전환, unified search, textarea 전체 적용
+- source 카테고리 신설, flow/block outcome/source 분리, SOURCE_SYNC_MAP 재매핑
+- 일괄 붙여넣기 textarea (Citrix VDI 환경 동작), workout null 오염 근본 수정
+- impact.mjs/pickup-resume/vibe-init checkpoints/reviewer retry_count/SubagentStop 검증 완료
+
+## Next Tasks
+
+### High Priority
+- [ ] **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
+- [ ] **Confluence PAT 발급** — VDI에서 프로필 > Personal Access Tokens 확인
+- [ ] **Confluence 역변환기 + daemon** — 안정화 후 구현 재개
+- [ ] **제품 빌드 시작** — Connectome MVP
+- [ ] **Dashboard GITHUB_TOKEN 시크릿 등록** — notes 내용 검색 활성화
+
+### Medium Priority
+- [ ] **Dashboard a11y 수정** — design audit score 65→70+
+- [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정
+- [ ] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진
