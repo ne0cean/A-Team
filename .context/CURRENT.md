@@ -86,6 +86,15 @@
 - **설계 결정 기록** — `.context/design-decisions.md` 신설 (SSOT=Cortex, Confluence=VDI 터널)
 - **BLOCK**: Confluence PAT 발급 확인 필요 (VDI 접속 시). Cortex 데이터 구조 안정화 선행 필요
 
+## Last Completions (2026-06-05) — Cortex Frame 카테고리 관계 재정의
+
+- **GITHUB_TOKEN 시크릿 등록** — Cloudflare Worker `cortex` 배포. notes 내용 검색 활성화
+- **SOURCE_SYNC_MAP 수정** — weekday:input 제거, flow:source ↔ block:source만 유지
+- **work 레이블** Tasks → Work
+- **_carried 시각** ↩ 노란 아이콘 제거, 짙은 회색(#888) 텍스트
+- **D1 weekday.input** type `routine` → `todo` (이월 파이프라인 활성화)
+- 배포 완료 (`dade39b5`) — outcome/input 미체크 항목 날짜 순 이월 동작
+
 ## Last Completions (2026-06-05) — Cortex Dashboard Round 2 + 버그 수정
 
 - Notes 검색 GitHub Code Search API 전환, unified search, textarea 전체 적용
@@ -100,7 +109,6 @@
 - [ ] **Confluence PAT 발급** — VDI에서 프로필 > Personal Access Tokens 확인
 - [ ] **Confluence 역변환기 + daemon** — 안정화 후 구현 재개
 - [ ] **제품 빌드 시작** — Connectome MVP
-- [ ] **Dashboard GITHUB_TOKEN 시크릿 등록** — notes 내용 검색 활성화
 
 ### Medium Priority
 - [ ] **Dashboard a11y 수정** — design audit score 65→70+
