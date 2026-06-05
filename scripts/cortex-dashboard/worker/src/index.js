@@ -328,7 +328,7 @@ export default {
             try {
               if (dd.one_thing?.toLowerCase().includes(q)) matches.push({ field: 'one_thing', text: dd.one_thing });
               if (dd.notes?.toLowerCase().includes(q)) matches.push({ field: 'notes', text: dd.notes });
-              for (const cat of ['ritual','input','work','hexagonal','outcome']) {
+              for (const cat of ['ritual','input','work','hexagonal','outcome','source']) {
                 for (const item of (dd[cat] || [])) {
                   if (item.text?.toLowerCase().includes(q)) matches.push({ field: cat, text: item.text });
                 }

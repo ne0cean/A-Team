@@ -53,6 +53,9 @@ function initCellScrollDelay() {
     const entryTime = cellEntryTime.get(cell) || 0;
     if (now - entryTime < ENTRY_GATE_MS) return;
 
+    // Speed gate: 빠른 스크롤(flick) → 페이지 스크롤 의도
+    if (Math.abs(e.deltaY) > 40) return;
+
     const atTop = scrollTop === 0 && e.deltaY < 0;
     const atBottom = Math.ceil(scrollTop + clientHeight) >= scrollHeight && e.deltaY > 0;
 
@@ -735,21 +738,13 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       </div>`;
     });
 
-    if (getDayCatType(d, dayData, cat) === 'todo') {
-      html += `<div class="new-item" id="new-${d}-${cat}">
-        <textarea rows="1" placeholder="..."
-          style="resize:none;overflow:hidden;background:transparent;border:none;color:#e0e0e0;font-size:12px;padding:0;width:100%;box-sizing:border-box;font-family:inherit;outline:none"
-          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitDayCatTextarea(this,${d},'${cat}');}"
-          onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)"></textarea>
-      </div></div>`;
-    } else {
-      html += `<div class="new-item" id="new-${d}-${cat}">
-        <input type="text" placeholder="..."
-          onkeydown="if(event.key==='Enter'){addNewItem(${d},'${cat}',this.value);this.value='';this.parentElement.classList.remove('active');}"
-          onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)">
-      </div></div>`;
-    }
+    html += `<div class="new-item" id="new-${d}-${cat}">
+      <textarea rows="1" placeholder="..."
+        style="resize:none;overflow:hidden;background:transparent;border:none;color:#e0e0e0;font-size:12px;padding:0;width:100%;box-sizing:border-box;font-family:inherit;outline:none"
+        oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitDayCatTextarea(this,${d},'${cat}');}"
+        onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)"></textarea>
+    </div></div>`;
   }
 
   // Empty cats for today — skip cats already rendered by main loop
@@ -760,15 +755,11 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       html += `<div class="category cat-${cat}"><div class="cat-label cl-${cat}"><span>${CAT_NAMES[cat]}</span>
         <span class="cat-add" onclick="addSeparatorItem(${d},'${cat}')" title="구분선 추가" style="font-size:9px;color:#484f58;margin-right:1px">—</span>
         <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span></div>
-        <div class="new-item" id="new-${d}-${cat}">${getDayCatType(d, dayData, cat) === 'todo'
-          ? `<textarea rows="1" placeholder="..."
-              style="resize:none;overflow:hidden;background:transparent;border:none;color:#e0e0e0;font-size:12px;padding:0;width:100%;box-sizing:border-box;font-family:inherit;outline:none"
-              oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitDayCatTextarea(this,${d},'${cat}');}"
-              onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)"></textarea>`
-          : `<input type="text" placeholder="..." onkeydown="if(event.key==='Enter'){addNewItem(${d},'${cat}',this.value);this.value='';}"
-              onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)">`
-        }</div></div>`;
+        <div class="new-item" id="new-${d}-${cat}"><textarea rows="1" placeholder="..."
+          style="resize:none;overflow:hidden;background:transparent;border:none;color:#e0e0e0;font-size:12px;padding:0;width:100%;box-sizing:border-box;font-family:inherit;outline:none"
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitDayCatTextarea(this,${d},'${cat}');}"
+          onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)"></textarea></div></div>`;
     }
   }
 
@@ -1485,7 +1476,7 @@ function addItemPrompt(d) {
   setTimeout(() => {
     for (const cat of CATS) {
       const c = document.getElementById(`new-${d}-${cat}`);
-      if (c) { c.classList.add('active'); c.querySelector('input').focus(); return; }
+      if (c) { c.classList.add('active'); const el = c.querySelector('textarea') || c.querySelector('input'); if (el) el.focus(); return; }
     }
   }, 50);
 }
