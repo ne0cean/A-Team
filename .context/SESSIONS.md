@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-05] Cortex Frame 카테고리 관계 재정의
+
+**완료**: SOURCE_SYNC_MAP weekday:input 제거(flow↔block만), work 레이블 Tasks→Work, _carried ↩아이콘→회색 텍스트(#888), weekday.input routine→todo(이월 활성화), GITHUB_TOKEN Cloudflare 등록. 배포(dade39b5)
+**이슈**: D1 PUT endpoint 없음 → POST + _version 옵티미스틱 락 필요. weekday.input이 routine이라 이월 미작동 발견
+**빌드**: ✅
+
 ## [2026-06-05] Cortex Dashboard — GitHub 401 프롬프트 버그 수정
 
 **완료**: `/api/cortex/tree|file|upload` GitHub 오류 401→502 변환. "Cortex access token" 프롬프트 재발 방지. MEMORY 레슨 저장(lesson_github_401_passthrough.md). 배포 완료(bc5ed0fa)
