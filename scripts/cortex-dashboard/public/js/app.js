@@ -480,7 +480,11 @@ function getCatItemsForRender(d, dayData, cat) {
       const prevDay = monthData.days?.[String(d - 1)];
       if (prevDay) {
         // Include _carried for cascade: prev day's undone items (manual + carried)
-        const prevUndone = (prevDay[cat] || []).filter(i => !i.done && !i._frame);
+        // Also exclude items matching prev day's frame template (routine items that lost _frame marker)
+        const prevDow = new Date(currentYear, currentMonth - 1, d - 1).getDay();
+        const prevFt = prevDay.day_type || (prevDow === 0 ? 'block' : prevDow === 6 ? 'flow' : 'weekday');
+        const prevFrameTexts = new Set((framesData?.[prevFt]?.categories?.[cat]?.items || []).map(ti => typeof ti === 'object' ? ti.text : String(ti)));
+        const prevUndone = (prevDay[cat] || []).filter(i => !i.done && !i._frame && !prevFrameTexts.has(i.text));
         if (prevUndone.length > 0) {
           const existingTexts = new Set((dayData[cat] || []).map(i => i.text));
           const newCarried = prevUndone.filter(i => !existingTexts.has(i.text));

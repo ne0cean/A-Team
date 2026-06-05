@@ -580,10 +580,12 @@ export default {
             const catType = catFrame?.type || 'routine'; // 'routine' | 'todo'
 
             // Routine categories render live from template in the frontend — skip injection
-            // Just clean up any old _frame/_carried items that were previously injected
+            // Clean up _frame/_carried AND manual items matching template text
+            // (manual items may have lost _frame marker due to editing or old inject code)
             if (catType === 'routine') {
               const before = JSON.stringify(existing);
-              const cleaned = existing.filter(i => !i._frame && !i._carried);
+              const frameTexts = new Set((catFrame?.items || []).map(ti => typeof ti === 'object' ? ti.text : String(ti)));
+              const cleaned = existing.filter(i => !i._frame && !i._carried && !frameTexts.has(i.text));
               if (JSON.stringify(cleaned) !== before) {
                 dd[cat] = cleaned;
                 changed = true;
