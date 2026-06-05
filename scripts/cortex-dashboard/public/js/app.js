@@ -483,11 +483,17 @@ function getCatItemsForRender(d, dayData, cat) {
         // Also exclude items matching prev day's frame template (routine items that lost _frame marker)
         const prevDow = new Date(currentYear, currentMonth - 1, d - 1).getDay();
         const prevFt = prevDay.day_type || (prevDow === 0 ? 'block' : prevDow === 6 ? 'flow' : 'weekday');
-        const prevFrameTexts = new Set((framesData?.[prevFt]?.categories?.[cat]?.items || []).map(ti => typeof ti === 'object' ? ti.text : String(ti)));
-        const prevUndone = (prevDay[cat] || []).filter(i => !i.done && !i._frame && !prevFrameTexts.has(i.text));
+        const normText = t => (t || '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+        const prevFrameTexts = new Set((framesData?.[prevFt]?.categories?.[cat]?.items || []).map(ti => normText(typeof ti === 'object' ? ti.text : String(ti))));
+        // Rejection list: texts explicitly deleted by user — never re-carry
+        const rejectKey = `_carry_rejects_${cat}`;
+        const rejected = new Set((dayData[rejectKey] || []).map(normText));
+        const prevUndone = (prevDay[cat] || []).filter(i =>
+          !i.done && !i._frame && !prevFrameTexts.has(normText(i.text)) && !rejected.has(normText(i.text))
+        );
         if (prevUndone.length > 0) {
-          const existingTexts = new Set((dayData[cat] || []).map(i => i.text));
-          const newCarried = prevUndone.filter(i => !existingTexts.has(i.text));
+          const existingTexts = new Set((dayData[cat] || []).map(i => normText(i.text)));
+          const newCarried = prevUndone.filter(i => !existingTexts.has(normText(i.text)));
           if (newCarried.length > 0) {
             const toAdd = newCarried.map(i => ({ text: i.text, url: i.url || '', done: false, _carried: true }));
             const existing = (dayData[cat] || []).filter(i => !i._frame);
@@ -1331,6 +1337,17 @@ async function delItem(d, cat, idx, refocus) {
     const ft = getFrameTypeForDay(d, dayData);
     delFrameItem(ft, cat, idx);
     return;
+  }
+  // Track deleted item text in rejection list so it won't be re-carried from prev day
+  const deletedItem = dayData[cat]?.[idx];
+  if (deletedItem && !deletedItem.type) {
+    const rejectKey = `_carry_rejects_${cat}`;
+    if (!dayData[rejectKey]) dayData[rejectKey] = [];
+    const normText = t => (t || '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+    const normalized = normText(deletedItem.text);
+    if (normalized && !dayData[rejectKey].map(t => normText(t)).includes(normalized)) {
+      dayData[rejectKey].push(deletedItem.text);
+    }
   }
   dayData[cat].splice(idx, 1);
   await save(); render();
