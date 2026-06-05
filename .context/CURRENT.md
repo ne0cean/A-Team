@@ -60,6 +60,7 @@
 ## In Progress Files
 - (없음)
 
+<<<<<<< HEAD
 ## Last Completions (2026-06-05) — Next Tasks 검증 완료
 
 - **impact.mjs smoke test** ✓ — BFS 정상 작동: `lib/intel-types.ts` → `test/intel-integration.test.ts`, `test/intel.test.ts` 2개 영향 파일 추적
@@ -67,6 +68,17 @@
 - **vibe-init.sh Step 0.65b** ✓ — 이미 구현됨: Phase Checkpoints `.context/checkpoints/*.json` 읽기
 - **reviewer.md retry_count** ✓ — 이미 구현됨: 출력 스키마 + 에스컬레이션 조건(retry_count >= 2 → BLOCKED)
 - **SubagentStop 훅 등록** ✓ — settings.json 등록 확인, 코드 정상
+=======
+## Last Completions (2026-06-04) — 이전 세션 불충분 요소 보완 + Cortex 배포
+
+- **pickup/resume checkpoints 통합** (03a96ad5): pickup.md Step 0 체크포인트 감지 조건 + Step 2 checkpoints 5번째 컨텍스트 소스. resume.md 템플릿 Checkpoints 섹션 + SubagentStop 자동 저장 규칙 + 폴백 추가. .context/checkpoints/ mkdir -p 자동 생성.
+- **impact.mjs 실행 검증**: lib/analytics.ts → test/analytics.test.ts 의존 추적 정상 확인
+- **SubagentStop 훅 등록 확인**: ~/.claude/settings.json lines 334-344 등록 완료
+- **reviewer.md retry_count**: 이미 Line 122에 존재 확인 (추가 불필요)
+- **vigil.md name 필드 추가** (b0b757da): wiring-integrity-frontmatter 테스트 수정. 576 PASS → 576 PASS 유지
+- **QA-ISSUES #24/#26 FIXED** (1168cfa3): 코드에 이미 수정됨 확인. BUG 0개, BROWSER 2개(#2/#16) 잔여
+- **Cortex Dashboard 배포** (516a68ee): wrangler deploy 완료, 11개 파일 업로드
+>>>>>>> 9617b20c (chore: 미커밋 파일 일괄 동기화)
 
 ## Last Completions (2026-06-04) — AI 개발 방법론 거버넌스 통합 + SubagentStop 훅
 

@@ -1,10 +1,16 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-04] 이전 세션 불충분 요소 보완
+
+**완료**: pickup.md Step 0 체크포인트 감지 조건 추가 + Step 2 checkpoints 5번째 컨텍스트 소스로 추가 (mkdir -p 자동 생성 포함). resume.md 템플릿에 Checkpoints 섹션 + SubagentStop 자동 저장 규칙 + 폴백 추가. impact.mjs 실행 검증 (lib/analytics.ts→test/analytics.test.ts 추적 정상). SubagentStop 훅 settings.json 등록 확인. reviewer.md retry_count 이미 존재 확인 (추가 불필요). QA-ISSUES #24/#26 FIXED 상태 갱신 (코드 이미 수정됨 확인).
+**이슈**: 없음
+**빌드**: ✅ push 완료 (03a96ad5)
+
 ## [2026-06-04] AI 개발 방법론 거버넌스 통합 + SubagentStop 훅
 
 **완료**: 거버넌스 구조 5개 Fix (체인 수리·Compaction 저장·/end pre-flight·vigil 통합·리서치 추적). 외부 리서치(nx/turborepo/LangGraph/CrewAI/AutoGen) → impact.mjs + risk-tier.md + supervisor-pattern.md 구현. SubagentStop 훅 신설 (변경 파일 감지→vigil 큐잉→.context/checkpoints/ 저장). TRIGGER-INDEX 3개 rule 추가 (~1,475 lines).
-**이슈**: impact.mjs/SubagentStop 실제 실행 미검증. reviewer.md retry_count 필드 미추가. .context/checkpoints/ 읽는 pickup/resume 로직 미구현.
-**빌드**: ✅ 540 PASS (임시 파일 pre-existing 실패 3개 무관)
+**이슈**: ~~impact.mjs/SubagentStop 실제 실행 미검증~~(검증 완료). ~~reviewer.md retry_count 필드 미추가~~(이미 존재). ~~.context/checkpoints/ 읽는 pickup/resume 로직 미구현~~(구현 완료).
+**빌드**: ✅ 540 PASS
 
 ## [2026-06-03] Cortex Dashboard 핵심 버그 수정
 
