@@ -2403,11 +2403,10 @@ function editVisionNotes(text) {
 // --- Day Frames Admin ---
 let framesData = null;
 const FRAME_TYPES = ['weekday', 'flow', 'block'];
-// Source group sync: weekday.input ↔ block.source ↔ flow.source
+// Source group sync: flow.source ↔ block.source (weekday.input은 독립)
 const SOURCE_SYNC_MAP = {
-  'weekday:input':  [['block','source'],['flow','source']],
-  'block:source':   [['weekday','input'],['flow','source']],
-  'flow:source':    [['weekday','input'],['block','source']],
+  'block:source':   [['flow','source']],
+  'flow:source':    [['block','source']],
 };
 const FRAME_TYPE_LABELS = { weekday: 'Weekday (평일)', flow: 'Flow Day (토/HF)', block: 'Block Day (일)' };
 // #18 — frame type별 카테고리 이름 override / 숨김
