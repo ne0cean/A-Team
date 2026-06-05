@@ -28,16 +28,48 @@ function init() {
   initCellScrollDelay();
 }
 
-// #6 — day-cell 내부 스크롤: overflow-y는 항상 hidden, wheel 이벤트로 직접 제어
+// #6 — day-cell 스크롤: hover-entry gate(200ms) + boundary momentum(400ms)
+// 진입 직후 wheel = 페이지 스크롤 의도. 경계 도달 후 연속 wheel = 관성 통과.
 function initCellScrollDelay() {
+  const cellEntryTime = new WeakMap();
+  const cellBoundaryHit = new WeakMap(); // { time, dir }
+  const ENTRY_GATE_MS = 200;
+  const MOMENTUM_MS = 400;
+
+  document.addEventListener('mouseenter', e => {
+    const cell = e.target.closest('.day-cell');
+    if (cell) cellEntryTime.set(cell, Date.now());
+  }, true);
+
   document.addEventListener('wheel', e => {
     const cell = e.target.closest('.day-cell');
     if (!cell) return;
     const { scrollTop, scrollHeight, clientHeight } = cell;
-    if (scrollHeight <= clientHeight) return; // 스크롤 불필요 → 페이지 스크롤
+    if (scrollHeight <= clientHeight) return;
+
+    const now = Date.now();
+
+    // Hover-entry gate: 셀 진입 후 200ms 이내 → 페이지 스크롤 의도
+    const entryTime = cellEntryTime.get(cell) || 0;
+    if (now - entryTime < ENTRY_GATE_MS) return;
+
     const atTop = scrollTop === 0 && e.deltaY < 0;
     const atBottom = Math.ceil(scrollTop + clientHeight) >= scrollHeight && e.deltaY > 0;
-    if (atTop || atBottom) return; // 경계 → 페이지 스크롤
+
+    if (atTop || atBottom) {
+      cellBoundaryHit.set(cell, { time: now, dir: e.deltaY > 0 ? 1 : -1 });
+      return; // 경계 → 페이지 스크롤
+    }
+
+    // Boundary momentum: 경계 직후 같은 방향 400ms 이내 → 관성으로 페이지 스크롤
+    const bh = cellBoundaryHit.get(cell);
+    if (bh && (now - bh.time < MOMENTUM_MS) && ((e.deltaY > 0) === (bh.dir === 1))) {
+      return;
+    }
+    if (bh && (now - bh.time >= MOMENTUM_MS || (e.deltaY > 0) !== (bh.dir === 1))) {
+      cellBoundaryHit.delete(cell);
+    }
+
     e.preventDefault();
     cell.scrollTop += e.deltaY;
   }, { passive: false });
@@ -90,6 +122,7 @@ async function loadMonth(isInit) {
   updateLabel();
   render();
   renderWorkoutBar();
+  ensureSoScheduled();
 }
 
 function getDayData(d, isCurrent) {
@@ -121,6 +154,7 @@ async function loadStandingOrders() {
     vt.textContent = mantra;
   }
   renderStandingOrders();
+  ensureSoScheduled();
 }
 
 async function loadRecurringTemplates() {
@@ -701,11 +735,21 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       </div>`;
     });
 
-    html += `<div class="new-item" id="new-${d}-${cat}">
-      <input type="text" placeholder="..."
-        onkeydown="if(event.key==='Enter'){addNewItem(${d},'${cat}',this.value);this.value='';this.parentElement.classList.remove('active');}"
-        onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)">
-    </div></div>`;
+    if (getDayCatType(d, dayData, cat) === 'todo') {
+      html += `<div class="new-item" id="new-${d}-${cat}">
+        <textarea rows="1" placeholder="..."
+          style="resize:none;overflow:hidden;background:transparent;border:none;color:#e0e0e0;font-size:12px;padding:0;width:100%;box-sizing:border-box;font-family:inherit;outline:none"
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitDayCatTextarea(this,${d},'${cat}');}"
+          onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)"></textarea>
+      </div></div>`;
+    } else {
+      html += `<div class="new-item" id="new-${d}-${cat}">
+        <input type="text" placeholder="..."
+          onkeydown="if(event.key==='Enter'){addNewItem(${d},'${cat}',this.value);this.value='';this.parentElement.classList.remove('active');}"
+          onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)">
+      </div></div>`;
+    }
   }
 
   // Empty cats for today — skip cats already rendered by main loop
@@ -716,10 +760,15 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       html += `<div class="category cat-${cat}"><div class="cat-label cl-${cat}"><span>${CAT_NAMES[cat]}</span>
         <span class="cat-add" onclick="addSeparatorItem(${d},'${cat}')" title="구분선 추가" style="font-size:9px;color:#484f58;margin-right:1px">—</span>
         <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span></div>
-        <div class="new-item" id="new-${d}-${cat}">
-          <input type="text" placeholder="..." onkeydown="if(event.key==='Enter'){addNewItem(${d},'${cat}',this.value);this.value='';}"
-            onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)">
-        </div></div>`;
+        <div class="new-item" id="new-${d}-${cat}">${getDayCatType(d, dayData, cat) === 'todo'
+          ? `<textarea rows="1" placeholder="..."
+              style="resize:none;overflow:hidden;background:transparent;border:none;color:#e0e0e0;font-size:12px;padding:0;width:100%;box-sizing:border-box;font-family:inherit;outline:none"
+              oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitDayCatTextarea(this,${d},'${cat}');}"
+              onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)"></textarea>`
+          : `<input type="text" placeholder="..." onkeydown="if(event.key==='Enter'){addNewItem(${d},'${cat}',this.value);this.value='';}"
+              onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)">`
+        }</div></div>`;
     }
   }
 
@@ -1405,7 +1454,22 @@ async function addNewItem(d, cat, text) {
 
 function addItemInline(d, cat) {
   const c = document.getElementById(`new-${d}-${cat}`);
-  if (c) { c.classList.add('active'); c.querySelector('input').focus(); }
+  if (c) {
+    c.classList.add('active');
+    const el = c.querySelector('textarea') || c.querySelector('input');
+    if (el) el.focus();
+  }
+}
+
+async function submitDayCatTextarea(el, d, cat) {
+  const lines = el.value.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+  if (!lines.length) return;
+  for (const line of lines) {
+    await addNewItem(d, cat, line);
+  }
+  el.value = '';
+  el.style.height = 'auto';
+  el.closest('.new-item')?.classList.remove('active');
 }
 
 async function addSeparatorItem(d, cat) {
@@ -1970,6 +2034,25 @@ function setSoDate(i, raw) {
     showToast(`이미 ${parsed.month}/${parsed.day}에 있음`);
   }
 }
+// 페이지 로드/월 전환 시 standing 날짜 항목을 당월 outcome에 자동 주입 (idempotent)
+function ensureSoScheduled() {
+  if (!standingData?.standing || !monthData) return;
+  let injected = false;
+  standingData.standing.forEach(item => {
+    if (!item.date || !item.active) return;
+    const parsed = parseSoDate(item.date);
+    if (!parsed || parsed.month !== currentMonth) return;
+    const dayKey = String(parsed.day);
+    if (!monthData.days[dayKey]) monthData.days[dayKey] = {};
+    if (!monthData.days[dayKey].outcome) monthData.days[dayKey].outcome = [];
+    if (!monthData.days[dayKey].outcome.some(x => x.text === item.text)) {
+      monthData.days[dayKey].outcome.push({ text: item.text, done: false, _soScheduled: true });
+      injected = true;
+    }
+  });
+  if (injected) save();
+}
+
 function addSO(text) {
   if (!text?.trim()) return;
   standingData.standing.push({ id: `so-${Date.now()}`, text: text.trim(), active: true });
@@ -2820,6 +2903,10 @@ window.addEventListener('keydown', e => {
     e.stopPropagation();
     save().then(() => showToast('저장됨')).catch(err => showToast('저장 실패: ' + err.message, true));
   }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+    e.preventDefault();
+    openSearch();
+  }
   if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
     const active = document.activeElement;
     const isEditing = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
@@ -2987,7 +3074,12 @@ async function loadSidebarTree(dirPath) {
   const el = document.getElementById('sidebarTree');
   if (!el) return;
   const res = await fetch(`${API}/api/cortex/tree?path=${encodeURIComponent(cortexPath)}`);
-  if (!res.ok) { el.innerHTML = '<div style="color:#f85149;padding:8px">Load failed</div>'; return; }
+  if (!res.ok) {
+    el.innerHTML = `<div style="color:#f85149;padding:8px">Load failed
+      <button onclick="loadSidebarTree('${cortexPath}')" style="margin-left:8px;font-size:11px;padding:2px 8px;background:#21262d;border:1px solid #30363d;color:#e0e0e0;border-radius:3px;cursor:pointer">Retry</button>
+    </div>`;
+    return;
+  }
   const items = await res.json();
   items.sort((a, b) => {
     if (a.type === 'dir' && b.type !== 'dir') return -1;
