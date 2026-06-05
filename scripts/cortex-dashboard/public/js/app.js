@@ -661,7 +661,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       const idx = _isFuture ? items.indexOf(item) : _vi;
       // Separator item — render as horizontal divider
       if (item.type === 'separator') {
-        html += `<div class="item-separator"><span class="sep-label" contenteditable="true" onblur="editSeparatorItem(${d},'${cat}',${idx},this.textContent)">${esc(item.text || '')}</span><span class="sep-line"></span><span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span></div>`;
+        html += `<div class="item-separator" onclick="this.querySelector('.sep-label').focus()"><span class="sep-label" contenteditable="true" data-placeholder="구분선 텍스트..." onblur="editSeparatorItem(${d},'${cat}',${idx},this.textContent)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${esc(item.text || '')}</span><span class="sep-line"></span><span class="del-btn" onclick="event.stopPropagation();delItem(${d},'${cat}',${idx})">&#215;</span></div>`;
         return;
       }
       const doneClass = item.done ? 'done' : '';
@@ -681,6 +681,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
         <span class="item-text${item.url?' has-link':''}${item._frame?' frame-text':''}" contenteditable="true"
           onblur="${blurFn}"
           onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
+          onpaste="handleItemPaste(event,${d},'${cat}',${idx})"
         >${item.url ? `<a href="${esc(item.url)}" target="_blank" onmousedown="event.preventDefault();window.open(this.href,'_blank')" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
         <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
       </div>`;
@@ -1248,6 +1249,58 @@ async function addNewItemAfter(d, cat, afterIdx) {
       if (span && span.textContent === '') { span.focus(); break; }
     }
   }, 50);
+}
+
+// Parse a single pasted line → { text, url }
+function parsePasteLine(line) {
+  const mdLink = line.match(/^\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/);
+  if (mdLink) return { text: mdLink[1], url: mdLink[2] };
+  const bareUrl = line.match(/^(https?:\/\/\S+)$/);
+  if (bareUrl) return { text: '', url: bareUrl[1] };
+  const inlineUrl = line.match(/(https?:\/\/\S+)/);
+  if (inlineUrl) {
+    const url = inlineUrl[1];
+    const text = line.replace(url, '').trim();
+    return { text: text || url, url };
+  }
+  return { text: line, url: '' };
+}
+
+async function handleItemPaste(event, d, cat, idx) {
+  const raw = event.clipboardData.getData('text/plain');
+  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+  if (lines.length <= 1) return; // 한 줄이면 기본 paste 동작 유지
+  event.preventDefault();
+
+  const dayData = ensureDay(d);
+  if (!dayData[cat]) dayData[cat] = [];
+
+  // 현재 아이템이 _frame이면 일반 아이템으로 처리 불가 → 새 아이템만 삽입
+  const currentItem = dayData[cat][idx];
+  const firstParsed = parsePasteLine(lines[0]);
+
+  if (currentItem && !currentItem._frame) {
+    // 첫 번째 줄로 현재 아이템 업데이트
+    currentItem.text = firstParsed.text || firstParsed.url;
+    if (firstParsed.url) currentItem.url = firstParsed.url;
+    // 나머지 줄을 현재 아이템 바로 뒤에 삽입
+    const newItems = lines.slice(1).map(l => {
+      const p = parsePasteLine(l);
+      return { text: p.text || p.url, url: p.url, done: false };
+    });
+    dayData[cat].splice(idx + 1, 0, ...newItems);
+  } else {
+    // frame 아이템이거나 없는 경우 → 현재 위치 뒤에 전부 삽입
+    const newItems = lines.map(l => {
+      const p = parsePasteLine(l);
+      return { text: p.text || p.url, url: p.url, done: false };
+    });
+    dayData[cat].splice(idx + 1, 0, ...newItems);
+  }
+
+  // blur 억제 (onblur가 덮어쓰지 않도록)
+  event.target.onblur = null;
+  await save(); render();
 }
 
 async function editSeparatorItem(d, cat, idx, text) {
