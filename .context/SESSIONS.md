@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-05] Cortex Dashboard Round 2 — 검색/스크롤/textarea 수정
+
+**완료**: GitHub Code Search API로 notes 내용 검색 전환(fallback: tree path-only), unified search schedule에 source 카테고리 추가, SW 캐시 v23→v24, speed gate(deltaY>40) 스크롤 의도 감지, input textarea 적용(getDayCatType 조건 제거), addItemPrompt querySelector 버그 수정. 배포 완료(6b417ea0)
+**이슈**: GitHub Code Search API 인증 없이 동작 안 함(403) — `GITHUB_TOKEN` Cloudflare Worker 시크릿 등록 필요 (`npx wrangler secret put GITHUB_TOKEN --config wrangler.toml`)
+**빌드**: ✅ Deployed cortex
+
 ## [2026-06-05] Cortex Dashboard 다수 버그 수정
 
 **완료**: _catNames.input "Outcome" 버그 수정(D1), flow/block Source/Outcome 카테고리 분리(source 신설, SOURCE_SYNC_MAP 재매핑), 일괄 붙여넣기 textarea 방식으로 재구현(Citrix VDI 대응), workout null 오염 근본 수정(중복 POST 핸들러 제거), 배포 경로 오류 수정(wrangler.toml --config 명시), CAT_NAMES/catColorMap source 추가
