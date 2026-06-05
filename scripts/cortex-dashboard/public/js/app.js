@@ -1,6 +1,6 @@
 const API = '';
 const CATS = ['ritual','work','hexagonal','outcome','input','source'];
-const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Tasks', hexagonal:'6 Pillars', outcome:'Outcome', source:'Source'};
+const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Work', hexagonal:'6 Pillars', outcome:'Outcome', source:'Source'};
 const DAY_NAMES = ['일','월','화','수','목','금','토'];
 const TYPE_LABELS = {block:'BLOCK',flow:'FLOW',hf:'HF',vacation:'휴가'};
 const TYPE_COLORS = {block:'badge-block',flow:'badge-flow',hf:'badge-hf',vacation:'badge-vacation'};
@@ -2403,11 +2403,10 @@ function editVisionNotes(text) {
 // --- Day Frames Admin ---
 let framesData = null;
 const FRAME_TYPES = ['weekday', 'flow', 'block'];
-// Source group sync: weekday.input ↔ block.source ↔ flow.source
+// Source group sync: flow.source ↔ block.source only (weekday.input 독립)
 const SOURCE_SYNC_MAP = {
-  'weekday:input':  [['block','source'],['flow','source']],
-  'block:source':   [['weekday','input'],['flow','source']],
-  'flow:source':    [['weekday','input'],['block','source']],
+  'block:source': [['flow','source']],
+  'flow:source':  [['block','source']],
 };
 const FRAME_TYPE_LABELS = { weekday: 'Weekday (평일)', flow: 'Flow Day (토/HF)', block: 'Block Day (일)' };
 // #18 — frame type별 카테고리 이름 override / 숨김
