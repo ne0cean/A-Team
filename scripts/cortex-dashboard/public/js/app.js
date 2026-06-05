@@ -10,6 +10,7 @@ let currentYear, currentMonth, currentWeekStart, monthData, standingData, recurr
 let todayMonthData = null; // 오늘 날짜 월 캐시 (월 탐색 시에도 유지)
 let viewMode = 'month'; // 'month' (default) or 'week'
 let _weekScrolledToToday = false; // only scroll today into view on mode switch, not every render
+let _pendingCarrySave = false; // carry logic sets this; render() saves once at the end
 
 // --- Init ---
 function init() {
@@ -179,6 +180,9 @@ function render() {
 
   container.innerHTML = viewMode === 'month' ? renderMonthView() : renderWeekView();
   renderStats();
+
+  // Persist carried items to D1 once per render cycle (carry logic flags this)
+  if (_pendingCarrySave) { _pendingCarrySave = false; save(); }
 
   // Restore scroll positions — double-rAF for reliable layout commit
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -498,7 +502,7 @@ function getCatItemsForRender(d, dayData, cat) {
             const toAdd = newCarried.map(i => ({ text: i.text, url: i.url || '', done: false, _carried: true }));
             const existing = (dayData[cat] || []).filter(i => !i._frame);
             ensureDay(d)[cat] = [...existing, ...toAdd];
-            save();
+            _pendingCarrySave = true; // save deferred — called once after render()
           }
         }
       }
