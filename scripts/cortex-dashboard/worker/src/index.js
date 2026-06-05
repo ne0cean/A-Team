@@ -575,6 +575,7 @@ export default {
 
             // 3a. Frame sync
             const newFrame = [];
+            const promotedTexts = new Set();
             const catFrame = frame?.categories?.[cat];
             const catType = catFrame?.type || 'routine'; // 'routine' | 'todo'
 
@@ -609,9 +610,16 @@ export default {
                   if (!existingItem.url && urlMap.has(text)) existingItem.url = urlMap.get(text);
                   newFrame.push(existingItem);
                 } else {
-                  // Skip if manual already has same text (don't create duplicate)
-                  if (itemType === 'separator' || !manual.some(i => i.text === text)) {
-                    const resolvedUrl = itemUrl || urlMap.get(text) || '';
+                  const resolvedUrl = itemUrl || urlMap.get(text) || '';
+                  const manualMatch = !itemType && manual.find(i => i.text === text);
+                  if (itemType === 'separator') {
+                    newFrame.push({ text, url: resolvedUrl, done: false, _frame: true, type: itemType });
+                    injected++;
+                  } else if (manualMatch) {
+                    // Promote: item was injected without _frame marker — fix it
+                    newFrame.push({ ...manualMatch, _frame: true });
+                    promotedTexts.add(text);
+                  } else {
                     const newItem = { text, url: resolvedUrl, done: false, _frame: true };
                     if (itemType) newItem.type = itemType;
                     newFrame.push(newItem);
@@ -621,8 +629,8 @@ export default {
               }
             }
             // 3b. Carry: frontend handles lazy 1-day carry, worker must NOT cascade
-            // Only keep existing manual items; strip old _carried injections
-            const assembled = [...newFrame, ...manual];
+            // Exclude promoted-to-frame items from manual; strip old _carried injections
+            const assembled = [...newFrame, ...manual.filter(i => !promotedTexts.has(i.text))];
 
             dd[cat] = assembled;
             if (JSON.stringify(dd[cat]) !== before) changed = true;
