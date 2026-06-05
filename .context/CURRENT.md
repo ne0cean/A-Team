@@ -78,7 +78,16 @@
 - **vigil.md name 필드 추가** (b0b757da): wiring-integrity-frontmatter 테스트 수정. 576 PASS → 576 PASS 유지
 - **QA-ISSUES #24/#26 FIXED** (1168cfa3): 코드에 이미 수정됨 확인. BUG 0개, BROWSER 2개(#2/#16) 잔여
 - **Cortex Dashboard 배포** (516a68ee): wrangler deploy 완료, 11개 파일 업로드
->>>>>>> 9617b20c (chore: 미커밋 파일 일괄 동기화)
+
+## Last Completions (2026-06-05) — Cortex 버그 수정 다수 + HF 이동
+
+- **inject-frames `_frame` 마커 버그** 수정: `promotedTexts` 패턴으로 manual→_frame promote, routine cleanup 텍스트 기반 필터
+- **UI 5개 버그** 수정: 스크롤 점프(`_weekScrolledToToday` 플래그), 검색 개선, Cortex 버튼 오늘 week view(`goTodayWeek`), SO 엔터 처리, separator 클릭 편집
+- **multi-line paste → checklist** + URL 하이퍼링크 보존 (`parsePasteLine`, `handleItemPaste`)
+- **박Telegram carry-over 무한 반복** 근본 수정: D1 스테일 항목 직접 삭제(Day4 2건/Day5 4건), render에서 `save()` 분리(`_pendingCarrySave`), `&nbsp;` 정규화, `_carry_rejects_${cat}` 거부 목록
+- **workout null 정리**: Day5 workout `[null,null,null,null]` → `[]` 수정
+- **6월 12일 HF → 6월 29일** D1 반영: `happy_friday`, `holidays`, `day_type` 세 곳 모두
+- SW 캐시 v19→v21, 배포 완료
 
 ## Last Completions (2026-06-04) — AI 개발 방법론 거버넌스 통합 + SubagentStop 훅
 
