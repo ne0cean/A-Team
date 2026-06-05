@@ -751,7 +751,7 @@ export default {
             const matches = [];
             try {
               if (dd.one_thing?.toLowerCase().includes(q)) matches.push({ field:'one_thing', text:dd.one_thing });
-              for (const cat of ['ritual','input','work','hexagonal','outcome']) {
+              for (const cat of ['ritual','input','work','hexagonal','outcome','source']) {
                 for (const item of (dd[cat] || [])) {
                   if (item.text?.toLowerCase().includes(q)) matches.push({ field:cat, text:item.text });
                 }
@@ -761,17 +761,32 @@ export default {
           }
         }
 
-        // Notes search (GitHub tree)
+        // Notes search (GitHub Code Search API — file contents)
         let noteResults = [];
         try {
-          const treeUrl = `https://api.github.com/repos/${REPO}/git/trees/master?recursive=1`;
-          const treeRes = await fetch(treeUrl, { headers: ghHeaders });
-          if (treeRes.ok) {
-            const treeData = await treeRes.json();
-            noteResults = (treeData.tree || [])
-              .filter(i => i.path.startsWith('cortex/') && i.path.toLowerCase().includes(q))
-              .slice(0, 20)
-              .map(i => ({ name: i.path.split('/').pop(), path: i.path, type: i.type === 'tree' ? 'dir' : 'file' }));
+          const codeSearchUrl = `https://api.github.com/search/code?q=${encodeURIComponent(q)}+repo:${REPO}+in:file+path:cortex/`;
+          const codeRes = await fetch(codeSearchUrl, {
+            headers: { ...ghHeaders, 'Accept': 'application/vnd.github.v3.text-match+json' }
+          });
+          if (codeRes.ok) {
+            const codeData = await codeRes.json();
+            noteResults = (codeData.items || []).slice(0, 20).map(i => ({
+              name: i.name,
+              path: i.path,
+              type: 'file',
+              snippet: i.text_matches?.[0]?.fragment || ''
+            }));
+          } else {
+            // fallback: path-only search
+            const treeUrl = `https://api.github.com/repos/${REPO}/git/trees/master?recursive=1`;
+            const treeRes = await fetch(treeUrl, { headers: ghHeaders });
+            if (treeRes.ok) {
+              const treeData = await treeRes.json();
+              noteResults = (treeData.tree || [])
+                .filter(i => i.path.startsWith('cortex/') && i.path.toLowerCase().includes(q))
+                .slice(0, 20)
+                .map(i => ({ name: i.path.split('/').pop(), path: i.path, type: i.type === 'tree' ? 'dir' : 'file' }));
+            }
           }
         } catch {}
 
