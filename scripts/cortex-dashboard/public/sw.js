@@ -1,4 +1,4 @@
-const CACHE = 'cortex-v21';
+const CACHE = 'cortex-v22';
 const SHELL = ['/', '/css/main.css', '/favicon.svg', '/manifest.json'];
 // app.js is network-first — always load latest code
 

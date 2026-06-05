@@ -1,5 +1,5 @@
 const API = '';
-const CATS = ['ritual','work','hexagonal','outcome','input'];
+const CATS = ['ritual','work','hexagonal','outcome','input','source'];
 const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Tasks', hexagonal:'6 Pillars', outcome:'Outcome', source:'Source'};
 const DAY_NAMES = ['일','월','화','수','목','금','토'];
 const TYPE_LABELS = {block:'BLOCK',flow:'FLOW',hf:'HF',vacation:'휴가'};
@@ -2735,7 +2735,9 @@ function renderRecurringTemplates() {
       </div>`;
     });
   }
-  document.getElementById('rtPanel').innerHTML = html;
+  const rtPanel = document.getElementById('rtPanel');
+  if (!rtPanel) return;
+  rtPanel.innerHTML = html;
   updateRTExtra();
 }
 
