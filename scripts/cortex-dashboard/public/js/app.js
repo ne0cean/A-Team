@@ -12,6 +12,7 @@ let viewMode = 'month'; // 'month' (default) or 'week'
 let _weekScrolledToToday = false; // only scroll today into view on mode switch, not every render
 let _pendingCarrySave = false; // carry logic sets this; render() saves once at the end
 let _lunarMode = false; // yearly add form: 음력 toggle state
+let _activeSOTab = 'standing'; // persists tab across renderStandingOrders() calls
 
 // --- Korean Lunar Calendar Conversion ---
 // Data: ny=[solarMonth,solarDay of 음1/1], lm=leap month (0=none), ml=month lengths (29/30 days)
@@ -749,7 +750,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
           <span class="item-text frame-text" contenteditable="true"
             onblur="editFrameItemFromCalendar(${d},'${cat}',${idx},htmlToMarkdown(this.innerHTML))"
             onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
-          >${item.url ? `<a href="${esc(item.url)}" target="_blank" onmousedown="event.preventDefault();window.open(this.href,'_blank')" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
+          >${item.url && !item.text.includes('](') ? `<a href="${esc(item.url)}" target="_blank" onmousedown="event.preventDefault();window.open(this.href,'_blank')" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
           <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
         </div>`;
       });
@@ -781,7 +782,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
           onblur="${blurFn}"
           onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
           onpaste="handleItemPaste(event,${d},'${cat}',${idx})"
-        >${item.url ? `<a href="${esc(item.url)}" target="_blank" onmousedown="event.preventDefault();window.open(this.href,'_blank')" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
+        >${item.url && !item.text.includes('](') ? `<a href="${esc(item.url)}" target="_blank" onmousedown="event.preventDefault();window.open(this.href,'_blank')" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
         <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
       </div>`;
     });
@@ -2000,6 +2001,8 @@ function renderStandingOrders() {
   html += '</div>';
 
   document.getElementById('soPanel').innerHTML = html;
+  // Restore active tab after innerHTML rebuild
+  showSOTab(_activeSOTab);
 }
 
 // --- Standing Orders CRUD ---
@@ -2133,13 +2136,13 @@ function editMR(i, field, val) {
   else standingData.monthly_recurring[i][field] = val;
   saveStandingData();
 }
-function delMR(i) { standingData.monthly_recurring.splice(i, 1); saveStandingData(); renderStandingOrders(); }
+function delMR(i) { standingData.monthly_recurring.splice(i, 1); saveStandingData(); renderStandingOrders(); render(); }
 function addMR(text) {
   if (!text?.trim()) return;
   if (!standingData.monthly_recurring) standingData.monthly_recurring = [];
   const day = +(document.getElementById('newMRDay')?.value || 0);
   standingData.monthly_recurring.push({ day, text: text.trim() });
-  saveStandingData(); renderStandingOrders();
+  saveStandingData(); renderStandingOrders(); render();
 }
 
 let mrLinkIdx = null;
@@ -2159,7 +2162,7 @@ function openMRLink(event, idx) {
 function editWeeklyDow(i, dow) { standingData.weekly_recurring[i].dow = dow; saveStandingData(); }
 function editWeeklyFreq(i, freq) { standingData.weekly_recurring[i].freq = freq; saveStandingData(); }
 function editWeeklyText(i, text) { if(text.trim()) standingData.weekly_recurring[i].text = text.trim(); saveStandingData(); }
-function delWeekly(i) { standingData.weekly_recurring.splice(i, 1); saveStandingData(); renderStandingOrders(); }
+function delWeekly(i) { standingData.weekly_recurring.splice(i, 1); saveStandingData(); renderStandingOrders(); render(); }
 function addWeekly(text) {
   if (!text?.trim()) return;
   const dow = +(document.getElementById('newWkDow')?.value || 1);
@@ -2167,7 +2170,7 @@ function addWeekly(text) {
   const section = document.getElementById('newWkSection')?.value || 'work';
   if (!standingData.weekly_recurring) standingData.weekly_recurring = [];
   standingData.weekly_recurring.push({ dow, freq, text: text.trim(), section });
-  saveStandingData(); renderStandingOrders();
+  saveStandingData(); renderStandingOrders(); render();
 }
 
 async function addWeeklyToToday(text) {
@@ -2183,11 +2186,11 @@ async function addWeeklyToToday(text) {
 function editYearlyMonth(i, month) { standingData.yearly[i].month = month; saveStandingData(); }
 function editYearlyDay(i, day) { standingData.yearly[i].day = day || 0; saveStandingData(); }
 function editYearlyText(i, text) { if(text.trim()) standingData.yearly[i].text = text.trim(); saveStandingData(); }
-function delYearly(i) { standingData.yearly.splice(i, 1); saveStandingData(); renderStandingOrders(); }
+function delYearly(i) { standingData.yearly.splice(i, 1); saveStandingData(); renderStandingOrders(); render(); }
 function toggleLunarMode() {
   _lunarMode = !_lunarMode;
+  _activeSOTab = 'yearly';
   renderStandingOrders();
-  setTimeout(() => showSOTab('yearly', document.querySelector('#soPanel .tab:last-child')), 0);
 }
 function addYearly(text) {
   if (!text?.trim()) return;
@@ -2201,16 +2204,24 @@ function addYearly(text) {
     standingData.yearly.push({ month: lm, day: ld, text: text.trim() });
   }
   _lunarMode = false;
-  saveStandingData(); renderStandingOrders();
+  saveStandingData(); renderStandingOrders(); render();
 }
 
 function showSOTab(name, el) {
+  _activeSOTab = name;
   ['standing','weekly','monthly','yearly'].forEach(t => {
-    const el = document.getElementById(`soTab-${t}`);
-    if (el) el.style.display = t === name ? '' : 'none';
+    const tabEl = document.getElementById(`soTab-${t}`);
+    if (tabEl) tabEl.style.display = t === name ? '' : 'none';
   });
-  el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
+  if (!el) {
+    const idx = ['standing','weekly','monthly','yearly'].indexOf(name);
+    const tabEls = document.querySelectorAll('#soPanel .tabs .tab');
+    el = tabEls[idx];
+  }
+  if (el) {
+    el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
 }
 
 // --- Cortex Notes (sidebar + note viewer) ---
