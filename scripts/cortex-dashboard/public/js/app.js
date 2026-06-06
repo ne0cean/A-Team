@@ -443,8 +443,10 @@ function getSoEvents(d) {
   if (!standingData?.standing) return [];
   return standingData.standing.filter(item => {
     if (!item.date || item.active === false) return false;
-    const parsed = parseSoDate(item.date);
-    return parsed && parsed.month === currentMonth && parsed.day === d;
+    return item.date.split(',').some(part => {
+      const parsed = parseSoDate(part.trim());
+      return parsed && parsed.month === currentMonth && parsed.day === d;
+    });
   });
 }
 
@@ -758,7 +760,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       const idx = _isFuture ? items.indexOf(item) : _vi;
       // Separator item — render as horizontal divider
       if (item.type === 'separator') {
-        html += `<div class="item-separator" onclick="this.querySelector('.sep-label').focus()"><span class="sep-label" contenteditable="true" data-placeholder="구분선 텍스트..." onblur="editSeparatorItem(${d},'${cat}',${idx},this.textContent)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${esc(item.text || '')}</span><span class="sep-line"></span><span class="del-btn" onclick="event.stopPropagation();delItem(${d},'${cat}',${idx})">&#215;</span></div>`;
+        html += `<div class="item-separator" data-d="${d}" data-cat="${cat}" data-idx="${idx}" draggable="false" ondragstart="dragStart(event,${d},'${cat}',${idx})" ondragend="dragEnd(event)" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,${d},'${cat}',${idx})" onclick="this.querySelector('.sep-label').focus()"><span class="sep-label" data-drag-handle contenteditable="true" data-placeholder="구분선 텍스트..." onblur="editSeparatorItem(${d},'${cat}',${idx},this.textContent)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${esc(item.text || '')}</span><span class="sep-line"></span><span class="del-btn" onclick="event.stopPropagation();delItem(${d},'${cat}',${idx})">&#215;</span></div>`;
         return;
       }
       const doneClass = item.done ? 'done' : '';
@@ -773,8 +775,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
         ondragend="dragEnd(event)"
         ondragover="dragOver(event)" ondragleave="dragLeave(event)"
         ondrop="drop(event,${d},'${cat}',${idx})">
-        <span class="drag-handle" data-drag-handle title="이동">⠿</span>
-        <input type="checkbox" ${checked} onchange="toggleItem(${d},'${cat}',${idx})">
+        <input type="checkbox" ${checked} data-drag-handle onchange="toggleItem(${d},'${cat}',${idx})">
         <span class="item-text${item.url?' has-link':''}${item._frame?' frame-text':''}" contenteditable="true"
           onblur="${blurFn}"
           onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
@@ -2047,7 +2048,8 @@ function editSOText(i, text) { if(text.trim()) standingData.standing[i].text = t
 function delSO(i) { standingData.standing.splice(i, 1); saveStandingData(); renderStandingOrders(); render(); }
 function parseSoDate(raw) {
   if (!raw?.trim()) return null;
-  const s = raw.trim();
+  // Strip trailing parenthetical suffixes like (토), (일), (1교시) etc.
+  const s = raw.trim().replace(/\s*\([^)]*\)\s*$/, '').trim();
   // "6월 11일", "6월11일"
   let m = s.match(/^(\d{1,2})\s*월\s*(\d{1,2})\s*일?$/);
   if (m) return { month: +m[1], day: +m[2] };
@@ -2973,7 +2975,7 @@ window.addEventListener('keydown', e => {
 let _dragLongPressTimer = null;
 let _dragPendingEl = null;
 document.addEventListener('pointerdown', e => {
-  const item = e.target.closest('.item[draggable]');
+  const item = e.target.closest('.item[draggable], .item-separator[draggable]');
   if (!item) return;
   _dragPendingEl = item;
   // Drag handle: immediate activation (no long-press required)
@@ -2990,7 +2992,11 @@ document.addEventListener('pointerdown', e => {
 });
 document.addEventListener('pointerup', () => {
   if (_dragLongPressTimer) { clearTimeout(_dragLongPressTimer); _dragLongPressTimer = null; }
-  if (_dragPendingEl) { _dragPendingEl.classList.remove('drag-ready'); _dragPendingEl = null; }
+  if (_dragPendingEl) {
+    _dragPendingEl.classList.remove('drag-ready');
+    _dragPendingEl.draggable = false; // 드래그 없이 클릭만 한 경우 리셋
+    _dragPendingEl = null;
+  }
 });
 document.addEventListener('pointermove', e => {
   // Cancel long-press if moved significantly before timeout
