@@ -4,13 +4,48 @@ const CAT_NAMES = {ritual:'R&R', input:'Input', work:'Work', hexagonal:'6 Pillar
 const DAY_NAMES = ['일','월','화','수','목','금','토'];
 const TYPE_LABELS = {block:'BLOCK',flow:'FLOW',hf:'HF',vacation:'휴가'};
 const TYPE_COLORS = {block:'badge-block',flow:'badge-flow',hf:'badge-hf',vacation:'badge-vacation'};
-const TYPES = ['block','flow','hf','vacation'];
+const TYPES = ['block','flow'];
 
 let currentYear, currentMonth, currentWeekStart, monthData, standingData, recurringData;
 let todayMonthData = null; // 오늘 날짜 월 캐시 (월 탐색 시에도 유지)
 let viewMode = 'month'; // 'month' (default) or 'week'
 let _weekScrolledToToday = false; // only scroll today into view on mode switch, not every render
 let _pendingCarrySave = false; // carry logic sets this; render() saves once at the end
+let _lunarMode = false; // yearly add form: 음력 toggle state
+
+// --- Korean Lunar Calendar Conversion ---
+// Data: ny=[solarMonth,solarDay of 음1/1], lm=leap month (0=none), ml=month lengths (29/30 days)
+// Leap month is inserted AFTER the lm-th regular month in ml array
+const _KLD = {
+  2020:{ny:[1,25],lm:4, ml:[30,30,29,30,29,30,29,29,30,29,30,29,30]},
+  2021:{ny:[2,12],lm:0, ml:[30,29,30,29,30,30,29,30,29,30,29,30]},
+  2022:{ny:[2, 1],lm:0, ml:[30,29,30,29,30,30,29,30,30,29,30,29]},
+  2023:{ny:[1,22],lm:2, ml:[29,30,29,29,30,29,30,30,29,30,29,30,30]},
+  2024:{ny:[2,10],lm:0, ml:[29,30,29,30,29,30,30,29,30,29,30,30]},
+  2025:{ny:[1,29],lm:6, ml:[30,29,30,29,30,29,30,29,29,30,30,29,30]},
+  2026:{ny:[2,17],lm:0, ml:[29,30,29,30,29,30,29,30,30,29,30,29]},
+  2027:{ny:[2, 6],lm:5, ml:[30,29,30,29,30,30,29,30,29,30,30,29,29]},
+  2028:{ny:[1,26],lm:0, ml:[30,29,30,29,30,29,30,29,30,30,29,30]},
+  2029:{ny:[2,13],lm:0, ml:[29,30,29,30,29,30,29,30,29,30,30,29]},
+  2030:{ny:[2, 3],lm:3, ml:[30,29,30,30,29,30,29,30,29,30,29,30,29]},
+  2031:{ny:[1,23],lm:0, ml:[29,30,29,30,29,30,29,30,29,30,29,30]},
+  2032:{ny:[2,11],lm:0, ml:[30,29,30,29,30,29,30,29,30,29,30,29]},
+  2033:{ny:[1,31],lm:11,ml:[30,29,30,29,30,29,30,29,30,29,30,30,29]},
+  2034:{ny:[2,19],lm:0, ml:[29,30,29,30,29,30,29,30,29,30,29,30]},
+  2035:{ny:[2, 8],lm:6, ml:[30,29,30,29,30,29,30,29,30,29,30,30,29]},
+};
+function lunarToSolar(year, lMonth, lDay) {
+  const d = _KLD[year];
+  if (!d) return null;
+  let offset = lDay - 1;
+  let mi = 0;
+  for (let m = 1; m < lMonth; m++) {
+    offset += d.ml[mi++];
+    if (d.lm > 0 && m === d.lm) offset += d.ml[mi++]; // skip leap month
+  }
+  const dt = new Date(year, d.ny[0] - 1, d.ny[1] + offset);
+  return { month: dt.getMonth() + 1, day: dt.getDate() };
+}
 
 // --- Init ---
 function init() {
@@ -422,7 +457,13 @@ function getHoliday(d) {
 
 function getYearlyEvents(d) {
   if (!standingData?.yearly) return [];
-  return standingData.yearly.filter(y => y.month === currentMonth && y.day === d);
+  return standingData.yearly.filter(y => {
+    if (y.lunar && y.lunarMonth && y.lunarDay) {
+      const sol = lunarToSolar(currentYear, y.lunarMonth, y.lunarDay);
+      return sol ? (sol.month === currentMonth && sol.day === d) : (y.month === currentMonth && y.day === d);
+    }
+    return y.month === currentMonth && y.day === d;
+  });
 }
 
 function getMonthlyRecurring(d) {
@@ -430,15 +471,17 @@ function getMonthlyRecurring(d) {
   // standing orders with date field: "6/15", "6월 15일", "6.15" (multi-date supported)
   if (standingData?.standing) {
     standingData.standing.forEach(item => {
-      if (!item.active) return;
+      if (item.active === false) return;
       let match = false;
       if (item.dates?.length) {
         match = item.dates.some(dt => dt.month === currentMonth && dt.day === d);
       } else if (item.date) {
-        const re = /(\d+)[\/월\.](\d+)/g;
-        let m;
-        while ((m = re.exec(item.date)) !== null) {
-          if (parseInt(m[1]) === currentMonth && parseInt(m[2]) === d) { match = true; break; }
+        const parsed = parseSoDate(item.date);
+        if (parsed) {
+          match = parsed.month === currentMonth && parsed.day === d;
+        } else {
+          const dayOnly = parseInt(item.date.trim());
+          if (!isNaN(dayOnly)) match = dayOnly === d;
         }
       }
       if (!match) return;
@@ -484,11 +527,15 @@ function getWeeklyRecurring(d) {
   });
 }
 
+function isHappyFriday(d) {
+  const key = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  return (standingData?.happy_friday || []).includes(key);
+}
 function getEffectiveDayType(dayData, d) {
   if (dayData.day_type) return dayData.day_type;
   const dow = new Date(currentYear, currentMonth - 1, d).getDay();
   const isHol = !!getHoliday(d);
-  if (isHol || dow === 6) return 'flow';
+  if (isHol || dow === 6 || isHappyFriday(d)) return 'flow';
   if (dow === 0) return 'block';
   return null;
 }
@@ -670,8 +717,9 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       recArr.forEach((item, idx) => {
         const doneClass = item.done ? 'done' : '';
         const clr = SRC_COLORS[item._src] || '#6e7681';
-        html += `<div class="item ${doneClass}" style="border-left:2px solid ${clr};padding-left:4px">
+        html += `<div class="item ${doneClass}" style="border-left:2px solid ${clr}">
           <input type="checkbox" ${item.done?'checked':''} onchange="toggleRecurring(${d},${idx})">
+          <span class="src-dot" style="background:${clr}"></span>
           <span class="item-text" contenteditable="true" style="color:${clr}"
             onblur="editRecurring(${d},${idx},this.textContent)"
             onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}if(event.key==='Escape'){this.blur();}"
@@ -1246,11 +1294,14 @@ async function handleItemKey(e, d, cat, idx) {
         if (newItem) {
           const _sy = window.scrollY || window.pageYOffset;
           const _mx = document.getElementById('main')?.scrollTop || 0;
+          const cellEl = newItem.closest('.day-cell[data-day]');
+          const _cellScroll = cellEl?.scrollTop || 0;
           newItem.querySelector('.item-text')?.focus({ preventScroll: true });
           requestAnimationFrame(() => {
             window.scrollTo(0, _sy);
             const mainEl = document.getElementById('main');
             if (mainEl) mainEl.scrollTop = _mx;
+            if (cellEl) cellEl.scrollTop = _cellScroll;
           });
         }
       }, 50);
@@ -1878,7 +1929,7 @@ function renderStandingOrders() {
           <option value="0" ${item.day===0?'selected':''}>말일</option>
           ${Array.from({length:31},(_,d)=>`<option value="${d+1}" ${item.day===d+1?'selected':''}>${d+1}일</option>`).join('')}
         </select>
-        <span contenteditable="true" style="flex:1" onblur="editMR(${i},'text',this.textContent)">${esc(item.text)}</span>
+        <span contenteditable="true" style="flex:1" onblur="editMR(${i},'text',this.textContent)">${linkify(item.text)}</span>
         <span class="link-btn" onclick="openMRLink(event,${i})" style="cursor:pointer;font-size:8px;display:inline">&#128279;</span>
         <span class="del-btn" onclick="delMR(${i})" style="display:inline">&#215;</span>
       </div>`;
@@ -1903,7 +1954,7 @@ function renderStandingOrders() {
         <span onclick="moveSOItem('monthly',${i},-1)" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
         <span onclick="moveSOItem('monthly',${i},1)" ${i===mLen-1?'style="visibility:hidden"':''}>&#9660;</span>
       </div>
-      <span contenteditable="true" style="flex:1" onblur="editMonthlyItem(${i},this.textContent)">${esc(text)}</span>
+      <span contenteditable="true" style="flex:1" onblur="editMonthlyItem(${i},this.textContent)">${linkify(text)}</span>
       <span class="del-btn" onclick="delMonthlyItem(${i})" style="display:inline">&#215;</span>
     </div>`;
   });
@@ -1932,7 +1983,7 @@ function renderStandingOrders() {
       <select style="width:42px;${selStyle}" onchange="editYearlyDay(${i},+this.value)">
         ${dayOpts}
       </select>
-      <span contenteditable="true" style="flex:1" onblur="editYearlyText(${i},this.textContent)">${esc(y.text)}</span>
+      <span contenteditable="true" style="flex:1" onblur="editYearlyText(${i},this.textContent)">${linkify(y.text)}${y.lunar ? `<span style="font-size:8px;color:#8b949e;margin-left:4px">(음 ${y.lunarMonth}/${y.lunarDay})</span>` : ''}</span>
       <span class="del-btn" onclick="delYearly(${i})" style="display:inline">&#215;</span>
     </div>`;
   });
@@ -1943,6 +1994,7 @@ function renderStandingOrders() {
     <select id="newYearlyDay" style="width:42px;${selStyle}">
       <option value="0">-</option>${Array.from({length:31},(_,d)=>`<option value="${d+1}">${d+1}</option>`).join('')}
     </select>
+    <button id="lunarToggleBtn" onclick="toggleLunarMode()" style="width:28px;font-size:10px;padding:0 4px;background:${_lunarMode?'#2a2000':'#161b22'};color:${_lunarMode?'#f0c040':'#6e7681'};border:1px solid ${_lunarMode?'#f0c040':'#30363d'};border-radius:2px;cursor:pointer" title="음력 입력 모드">음</button>
     <input placeholder="Add yearly item..." onkeydown="if(event.key==='Enter'){addYearly(this.value);this.value='';}">
     <button onclick="addYearly(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button></div>`;
   html += '</div>';
@@ -2132,11 +2184,23 @@ function editYearlyMonth(i, month) { standingData.yearly[i].month = month; saveS
 function editYearlyDay(i, day) { standingData.yearly[i].day = day || 0; saveStandingData(); }
 function editYearlyText(i, text) { if(text.trim()) standingData.yearly[i].text = text.trim(); saveStandingData(); }
 function delYearly(i) { standingData.yearly.splice(i, 1); saveStandingData(); renderStandingOrders(); }
+function toggleLunarMode() {
+  _lunarMode = !_lunarMode;
+  renderStandingOrders();
+  setTimeout(() => showSOTab('yearly', document.querySelector('#soPanel .tab:last-child')), 0);
+}
 function addYearly(text) {
   if (!text?.trim()) return;
-  const month = +(document.getElementById('newYearlyMonth')?.value || 1);
-  const day = +(document.getElementById('newYearlyDay')?.value || 0);
-  standingData.yearly.push({ month, day, text: text.trim() });
+  const lm = +(document.getElementById('newYearlyMonth')?.value || 1);
+  const ld = +(document.getElementById('newYearlyDay')?.value || 0);
+  if (_lunarMode && ld > 0) {
+    const solar = lunarToSolar(currentYear, lm, ld);
+    const entry = { month: solar?.month || lm, day: solar?.day || ld, text: text.trim(), lunar: true, lunarMonth: lm, lunarDay: ld };
+    standingData.yearly.push(entry);
+  } else {
+    standingData.yearly.push({ month: lm, day: ld, text: text.trim() });
+  }
+  _lunarMode = false;
   saveStandingData(); renderStandingOrders();
 }
 
