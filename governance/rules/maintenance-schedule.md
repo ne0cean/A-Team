@@ -17,6 +17,7 @@
 | **주간** | Autoresearch 판정 | Shadow 모드 데이터 집계 | ✅ launchd | LOW |
 | **격주** | Design Retro | design-auditor 사용 회고 | 📋 수동 | LOW |
 | **월간** | Cold Review | 전체 구조 냉철한 감사 | ✅ launchd | HIGH |
+| **월간** | Goal Cascade | 다음 달 monthly-YYYY-MM.md 생성 | ✅ scheduled-reviews | MEDIUM |
 | **분기** | Dependency Update | npm outdated → 수동 업데이트 | 📋 수동 | MEDIUM |
 | **분기** | Phase Gate 검토 | 로드맵 진행 상황 평가 | 📋 수동 | HIGH |
 
