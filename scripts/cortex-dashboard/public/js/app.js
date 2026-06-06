@@ -456,6 +456,15 @@ function getHoliday(d) {
   return standingData.holidays[key] || null;
 }
 
+function getSoEvents(d) {
+  if (!standingData?.standing) return [];
+  return standingData.standing.filter(item => {
+    if (!item.date || item.active === false) return false;
+    const parsed = parseSoDate(item.date);
+    return parsed && parsed.month === currentMonth && parsed.day === d;
+  });
+}
+
 function getYearlyEvents(d) {
   if (!standingData?.yearly) return [];
   return standingData.yearly.filter(y => {
@@ -657,6 +666,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     pastArrow = `<span onclick="event.stopPropagation();togglePastWeeks()" id="pastToggleIcon" style="cursor:pointer;color:#484f58;font-size:10px" title="Past weeks">&#9650;</span>`;
   }
   const holiday = getHoliday(d);
+  const soEvts = getSoEvents(d);
   const yearlyEvts = getYearlyEvents(d);
   const monthlyRec = getMonthlyRecurring(d);
   const weeklyRec = getWeeklyRecurring(d);
@@ -682,8 +692,12 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     ? `<span class="lesson-badge" title="${lessonCount}개 레슨">L</span>`
     : '';
   const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '');
+  const soBadges = soEvts.map(s => {
+    const label = s.text.includes(':') ? s.text.split(':')[0].trim() : s.text.trim();
+    return `<span class="so-date-badge">${esc(label)}</span>`;
+  }).join('');
   let html = `<div class="day-num${dowClass}" onclick="cycleDayType(${d})" style="cursor:pointer" title="Set day type">
-    <span>${d}${badgeHtml}${progressBadge}${lessonBadge}</span>
+    <span>${d}${badgeHtml}${progressBadge}${lessonBadge}${soBadges}</span>
     <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
   </div>${evtHtml}`;
 
@@ -2086,21 +2100,7 @@ function setSoDate(i, raw) {
 }
 // 페이지 로드/월 전환 시 standing 날짜 항목을 당월 outcome에 자동 주입 (idempotent)
 function ensureSoScheduled() {
-  if (!standingData?.standing || !monthData) return;
-  let injected = false;
-  standingData.standing.forEach(item => {
-    if (!item.date || item.active === false) return;
-    const parsed = parseSoDate(item.date);
-    if (!parsed || parsed.month !== currentMonth) return;
-    const dayKey = String(parsed.day);
-    if (!monthData.days[dayKey]) monthData.days[dayKey] = {};
-    if (!monthData.days[dayKey].outcome) monthData.days[dayKey].outcome = [];
-    if (!monthData.days[dayKey].outcome.some(x => x.text === item.text)) {
-      monthData.days[dayKey].outcome.push({ text: item.text, done: false, _soScheduled: true });
-      injected = true;
-    }
-  });
-  if (injected) save().then(() => render());
+  // Disabled — standing date items are now shown as badges in the day header (getSoEvents)
 }
 
 function addSO(text) {
