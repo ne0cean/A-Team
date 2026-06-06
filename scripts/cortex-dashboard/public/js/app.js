@@ -2089,7 +2089,7 @@ function ensureSoScheduled() {
   if (!standingData?.standing || !monthData) return;
   let injected = false;
   standingData.standing.forEach(item => {
-    if (!item.date || !item.active) return;
+    if (!item.date || item.active === false) return;
     const parsed = parseSoDate(item.date);
     if (!parsed || parsed.month !== currentMonth) return;
     const dayKey = String(parsed.day);
@@ -2100,7 +2100,7 @@ function ensureSoScheduled() {
       injected = true;
     }
   });
-  if (injected) save();
+  if (injected) save().then(() => render());
 }
 
 function addSO(text) {
