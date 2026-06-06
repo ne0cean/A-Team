@@ -1983,7 +1983,7 @@ function renderStandingOrders() {
       <select style="width:42px;${selStyle}" onchange="editYearlyDay(${i},+this.value)">
         ${dayOpts}
       </select>
-      <span contenteditable="true" style="flex:1" onblur="editYearlyText(${i},this.textContent)">${linkify(y.text)}${y.lunar ? `<span style="font-size:8px;color:#8b949e;margin-left:4px">(음 ${y.lunarMonth}/${y.lunarDay})</span>` : ''}</span>
+      <span contenteditable="true" style="flex:1" onblur="editYearlyText(${i},this.textContent)">${linkify(y.text)}${y.lunar && y.lunarMonth && y.lunarDay ? `<span style="font-size:8px;color:#8b949e;margin-left:4px">(음 ${y.lunarMonth}/${y.lunarDay})</span>` : ''}</span>
       <span class="del-btn" onclick="delYearly(${i})" style="display:inline">&#215;</span>
     </div>`;
   });
