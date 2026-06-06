@@ -3,6 +3,7 @@ mode: zzz
 entered_at: 2026-06-06T00:00:00+0900
 status: needs_input
 session_goal: "T33A USB 분리 복구 시간 150s→35s 수정 완료. 복귀 후 위젯 탭 1회로 적용."
+zzz_check: "2026-06-06 — Next Tasks 전부 외부 승인/설계 결정 필요. 자율 실행 불가. 대기 중."
 ---
 
 ## In Progress
