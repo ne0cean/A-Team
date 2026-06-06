@@ -255,6 +255,33 @@ node "$(git rev-parse --show-toplevel 2>/dev/null)/scripts/log-event.mjs" \
 
 요약: 의도오해/스코프폭주/결과물불일치/컨텍스트단절/재작업루프 5유형 분석 → Before/After 예시 → analytics 저장.
 
+## Step 6.74 — Debrief 트리거 (자동)
+
+세션에서 다음 중 2개 이상 해당하면 `/debrief` 실행을 제안한다:
+
+```bash
+# 감지 조건
+ROLLBACK=$(git log --oneline -10 2>/dev/null | grep -cE "revert|rollback|undo|임시|WIP" || echo 0)
+POSTMORTEM=$(ls .context/POSTMORTEM-*.md 2>/dev/null | wc -l)
+LESSON_ADDED=$(git diff --cached --name-only 2>/dev/null | grep -c "lesson_\|MEMORY.md" || echo 0)
+```
+
+**제안 조건** (2개 이상 해당):
+- 롤백/revert 커밋 1개 이상
+- POSTMORTEM 파일 생성됨
+- 새 레슨이 이번 세션에 추가됨
+- 사용자가 세션 중 "시발", "안됨", "왜", "모르겠" 등 좌절 표현 3회 이상
+- 디버깅 시간 30분+ (같은 파일을 5회 이상 수정)
+
+**출력**:
+```
+💡 복잡한 세션 감지 — /debrief 실행 권장
+   오늘의 학습을 구조화하고 다음 세션 Pre-flight Gate를 설정합니다.
+   실행: /debrief
+```
+
+강제 실행 아님. 사용자 판단에 맡김.
+
 ## Step 6.75 — 레슨→훅 커버리지 체크 (자동)
 
 이번 세션에서 MEMORY.md에 새 레슨이 추가됐으면:
