@@ -1,26 +1,26 @@
 ---
-mode: normal
+mode: zzz
+entered_at: 2026-06-06T00:00:00+0900
 status: needs_input
-created: 2026-06-04T19:51:58+0900
-task: **impact.mjs → AC 자동 주입** 완료
+session_goal: "T33A 실패 근본 원인 분석 완료. 복귀 후 standalone 실증 테스트 + 검증."
 ---
 
-# RESUME — 세션 자동 저장 (auto-save-on-stop)
-
-## 재개 포인트
-- CURRENT.md Next Tasks 확인 후 최우선 항목부터 시작
+## In Progress
+- (없음)
 
 ## Completed This Session
-- [x] **impact.mjs 결과 → AC 생성 시 자동 주입** — `scripts/hooks/ac-impact-injector.sh` 구현. PostToolUse:Write|Edit. 541 tests PASS.
-  - settings.json에 훅 추가 필요 (사용자 직접): PostToolUse Edit|Write hooks에 `bash /Users/noir/Projects/a-team/scripts/hooks/ac-impact-injector.sh` 추가
+- [x] T33A 실패 근본 원인 철저 분석 문서화 → POSTMORTEM-2026-06-06.md
+- [x] 테스트 2건 수정: scheduled-reviews.json 복구, benchmark-corpus.mjs 중복 import 제거 (582 PASS)
+- [x] Cortex Dashboard a11y 수정: aria-label 14개 추가, SW v26 bump, 라이브 배포 완료 (200 OK)
+  - 파일: `/Users/noir/Projects/t33a-remapper/.context/POSTMORTEM-2026-06-06.md`
+  - 위젯 삭제 3중 버그 원인 + 수정 상태 기록
+  - Standalone 반복 실패 4-레이어 구조 분석
+  - 복귀 후 즉시 실행 가능한 Step-by-Step 체크리스트
 
-## 미완료 Next Tasks (High Priority, 수동 개입 필요)
-- [ ] **Cortex inject-frames 정리** — 배포 후 inject-frames 버튼 실행해 days 4-30 잘못된 _carried 항목 청소
-- [ ] **Cortex Dashboard #2/#16/#24/#26 브라우저 확인** — 사용자 수동 확인 후 이상 발견 시 CODE-FIX 요청
-- [ ] **Dashboard 통합 앱 안정화** — 모바일 UX 피드백, 사이드바 노트 로딩 속도, 이미지 업로드 실기기 검증
-- [ ] **제품 빌드 시작** — Connectome MVP 이번 주 배포
-- [ ] **LSP 활성화** — settings.json 히든 플래그 + 언어서버 설치
+## Next Immediate Step
+복귀 후: `/Users/noir/Projects/t33a-remapper/.context/POSTMORTEM-2026-06-06.md` 읽기
+→ "복귀 후 해야 할 것 Step 1-4" 순서대로 실행
+→ USB 분리 standalone 실증 테스트
 
-## 메모
-위 미완료 태스크는 모두 수동 개입 필요 (브라우저 클릭, 실기기 테스트, 아키텍처 결정).
-자율 모드에서 추가로 실행 가능한 자동화 태스크 없음 → NEEDS_INPUT 대기.
+## Files Touched
+- /Users/noir/Projects/t33a-remapper/.context/POSTMORTEM-2026-06-06.md (신규)
