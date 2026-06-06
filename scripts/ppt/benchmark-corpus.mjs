@@ -8,7 +8,6 @@
 import { createWriteStream, existsSync, mkdirSync, readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { basename, dirname, join, resolve } from 'path';
-import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
 import https from 'https';
 import http from 'http';
