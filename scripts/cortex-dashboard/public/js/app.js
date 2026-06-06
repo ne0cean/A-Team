@@ -681,7 +681,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     const label = s.text.includes(':') ? s.text.split(':')[0].trim() : s.text.trim();
     return `<span class="so-date-badge">${esc(label)}</span>`;
   }).join('');
-  let html = `<div class="day-num${dowClass}" onclick="cycleDayType(${d})" style="cursor:pointer" title="Set day type">
+  let html = `<div class="day-num${dowClass}">
     <span>${d}${badgeHtml}${progressBadge}${lessonBadge}${soBadges}</span>
     <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
   </div>${evtHtml}`;
