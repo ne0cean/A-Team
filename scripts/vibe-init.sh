@@ -150,6 +150,24 @@ if [ -f ".context/team-roadmap.md" ]; then
   ROADMAP_STATUS=$(grep -E '^status:' ".context/team-roadmap.md" 2>/dev/null | head -1 | sed -E 's/.*: *//' | tr -d '"' || echo "")
 fi
 
+# === Step 0.68: Goal Cascade 체크 ===
+VISION_DIR=""
+for vd in "$ATEAM_PATH/cortex/areas/life/vision" "cortex/areas/life/vision"; do
+  [ -d "$vd" ] && VISION_DIR="$vd" && break
+done
+if [ -n "$VISION_DIR" ]; then
+  MONTH=$(date +%Y-%m)
+  MONTHLY_FILE="$VISION_DIR/monthly-${MONTH}.md"
+  ANNUAL_FILE="$VISION_DIR/annual-$(date +%Y).md"
+  if [ ! -f "$MONTHLY_FILE" ]; then
+    add_alert "Goal Cascade: monthly-${MONTH}.md 없음 — 월간 포커스 설정 필요"
+  fi
+  if [ -f "$ANNUAL_FILE" ]; then
+    ANNUAL_THEME=$(grep -E '^2[0-9]{3} 테마' "$ANNUAL_FILE" | head -1 | sed 's/.*→ //')
+    [ -n "$ANNUAL_THEME" ] && echo "🎯 올해: ${ANNUAL_THEME}"
+  fi
+fi
+
 # === Step 0.69: Capability ===
 if [ -f "lib/capability-map.json" ] && [ -f "scripts/capability.mjs" ]; then
   SCORES=$(node scripts/capability.mjs --json 2>/dev/null || echo "")
