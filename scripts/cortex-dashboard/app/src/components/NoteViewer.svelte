@@ -52,7 +52,9 @@
 
   let copyDone = false;
   function copyPath() {
-    navigator.clipboard.writeText($activeNote.path);
+    const path = $activeNote.path;
+    const name = path.split('/').pop().replace(/\.md$/, '');
+    navigator.clipboard.writeText(`[${name}](${path})`);
     copyDone = true;
     setTimeout(() => { copyDone = false; }, 1500);
   }
