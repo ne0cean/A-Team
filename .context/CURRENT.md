@@ -60,6 +60,16 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-06) — Cortex Dashboard UX + 버그 수정 (SW v34)
+
+- **탭 상태 유지** — `_activeSOTab`으로 CRUD 후 탭 리셋 방지
+- **캘린더 미갱신 수정** — yearly/weekly/monthly_recurring CRUD 후 `render()` 추가
+- **standing 날짜 뱃지** — 다중 날짜(쉼표 구분) + `(토)` suffix 파싱. 날짜 우측 오렌지 뱃지. outcome 주입 → render-time 계산으로 전환
+- **linkify** — `item.url` 있어도 텍스트에 `](` 포함 시 linkify 적용
+- **드래그 핸들** — `⠿` 제거, 체크박스/구분선텍스트를 핸들로
+- **셀 스크롤** — speed/entry gate 제거, `overflow-y: auto`
+- **day_type 오발동 방지** — day-num onclick 제거, 배지 클릭만 cycleDayType
+
 ## Last Completions (2026-06-05) — Cortex Dashboard Round 2
 
 - **Notes 검색 → GitHub Code Search API**: 파일 내용 검색으로 전환. fallback(path-only) 유지
