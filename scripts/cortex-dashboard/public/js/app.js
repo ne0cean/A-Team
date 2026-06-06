@@ -64,50 +64,33 @@ function init() {
   initCellScrollDelay();
 }
 
-// #6 — day-cell 스크롤: hover-entry gate(200ms) + boundary momentum(400ms)
-// 진입 직후 wheel = 페이지 스크롤 의도. 경계 도달 후 연속 wheel = 관성 통과.
+// #6 — day-cell 스크롤: 셀에 overflow 있으면 셀 스크롤 우선, 경계 도달 시 페이지 스크롤
 function initCellScrollDelay() {
-  const cellEntryTime = new WeakMap();
   const cellBoundaryHit = new WeakMap(); // { time, dir }
-  const ENTRY_GATE_MS = 200;
-  const MOMENTUM_MS = 400;
-
-  document.addEventListener('mouseenter', e => {
-    const cell = e.target.closest('.day-cell');
-    if (cell) cellEntryTime.set(cell, Date.now());
-  }, true);
+  const MOMENTUM_MS = 300;
 
   document.addEventListener('wheel', e => {
     const cell = e.target.closest('.day-cell');
     if (!cell) return;
     const { scrollTop, scrollHeight, clientHeight } = cell;
-    if (scrollHeight <= clientHeight) return;
+    if (scrollHeight <= clientHeight + 2) return; // 셀에 overflow 없으면 패스
 
     const now = Date.now();
-
-    // Hover-entry gate: 셀 진입 후 200ms 이내 → 페이지 스크롤 의도
-    const entryTime = cellEntryTime.get(cell) || 0;
-    if (now - entryTime < ENTRY_GATE_MS) return;
-
-    // Speed gate: 빠른 스크롤(flick) → 페이지 스크롤 의도
-    if (Math.abs(e.deltaY) > 40) return;
-
-    const atTop = scrollTop === 0 && e.deltaY < 0;
+    const atTop = scrollTop <= 0 && e.deltaY < 0;
     const atBottom = Math.ceil(scrollTop + clientHeight) >= scrollHeight && e.deltaY > 0;
 
     if (atTop || atBottom) {
+      // 경계 도달 → 페이지 스크롤 허용 (momentum 윈도우 시작)
       cellBoundaryHit.set(cell, { time: now, dir: e.deltaY > 0 ? 1 : -1 });
-      return; // 경계 → 페이지 스크롤
+      return;
     }
 
-    // Boundary momentum: 경계 직후 같은 방향 400ms 이내 → 관성으로 페이지 스크롤
+    // 경계 직후 같은 방향 → 관성으로 페이지 스크롤
     const bh = cellBoundaryHit.get(cell);
     if (bh && (now - bh.time < MOMENTUM_MS) && ((e.deltaY > 0) === (bh.dir === 1))) {
       return;
     }
-    if (bh && (now - bh.time >= MOMENTUM_MS || (e.deltaY > 0) !== (bh.dir === 1))) {
-      cellBoundaryHit.delete(cell);
-    }
+    cellBoundaryHit.delete(cell);
 
     e.preventDefault();
     cell.scrollTop += e.deltaY;
@@ -193,7 +176,7 @@ async function loadStandingOrders() {
     vt.textContent = mantra;
   }
   renderStandingOrders();
-  ensureSoScheduled();
+  render(); // standing 날짜 뱃지를 캘린더에 반영
 }
 
 async function loadRecurringTemplates() {
