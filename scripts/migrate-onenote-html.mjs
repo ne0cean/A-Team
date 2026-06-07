@@ -344,16 +344,19 @@ async function processOnenoteHtmlSource(onenoteHtmlPath, dstDir, dstSection, tit
     }
   );
 
-  // Add dark theme override + make images responsive
-  const darkOverride = `
-<style>
-html, body { background: #1e1e1e !important; color: #e0e0e0 !important; font-family: 'Segoe UI', -apple-system, sans-serif !important; }
-* { color: inherit !important; background-color: transparent !important; border-color: #444 !important; }
-a { color: #6cb0f6 !important; }
-table { border-collapse: collapse; width: 100%; }
-td, th { border: 1px solid #444; padding: 6px 10px; vertical-align: top; }
-img { max-width: 100%; height: auto; border-radius: 4px; }
-</style>`;
+  // Detect absolute-layout pages (e.g. Vision Board) and calculate container dimensions
+  const isAbsolute = rawHtml.includes('data-absolute-enabled="true"');
+  let pageW = 0, pageH = 0;
+  if (isAbsolute) {
+    for (const m of rawHtml.matchAll(/position:absolute;left:(\d+)px;top:(\d+)px(?:;width:(\d+)px)?/g)) {
+      const r = parseInt(m[1]) + (m[3] ? parseInt(m[3]) : 400);
+      const b = parseInt(m[2]) + 400;
+      if (r > pageW) pageW = r;
+      if (b > pageH) pageH = b;
+    }
+    pageW = Math.max(pageW + 40, 1200);
+    pageH = Math.max(pageH + 80, 800);
+  }
 
   const pageHtml = `<!DOCTYPE html>
 <html lang="ko">
@@ -369,9 +372,13 @@ body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-syst
 .toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
 .toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; }
 .toolbar button:hover { background: #30363d; color: #fff; }
-.onenote-body { padding: 20px 24px 80px; }
+${isAbsolute
+  ? `.onenote-body { overflow: auto; }
+.onenote-body > * { position: relative; min-width: ${pageW}px; min-height: ${pageH}px; }`
+  : `.onenote-body { padding: 20px 24px 80px; }`
+}
 .onenote-body * { color: #e0e0e0 !important; background-color: transparent !important; }
-.onenote-body table { border-collapse: collapse; width: 100%; margin-bottom: 12px; }
+.onenote-body table { border-collapse: collapse; margin-bottom: 12px; }
 .onenote-body td, .onenote-body th { border: 1px solid #444 !important; padding: 6px 10px !important; vertical-align: top; }
 .onenote-body img { max-width: 100%; height: auto; border-radius: 4px; display: block; }
 .onenote-body a { color: #6cb0f6 !important; text-decoration: none; }
