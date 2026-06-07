@@ -41,11 +41,23 @@ Assets: Cloudflare Workers static assets (`public/`)
 
 ---
 
+## Service Worker 버전 bump — 사전 경고 필수 (절대 원칙)
+
+`public/sw.js` 의 `CACHE` 버전을 올리면 **브라우저가 열린 모든 탭을 즉시 강제 리로드**한다.
+(`skipWaiting()` + `clients.claim()` 콤보 → 새 SW가 모든 클라이언트 즉시 점유)
+
+**bump 전 반드시 사용자에게 알릴 것:**
+> "SW 버전을 올리면 현재 열린 모든 탭이 강제 새로고침됩니다. 진행할까요?"
+
+사용자 확인 없이 bump + 배포 = 금지.
+
+---
+
 ## 소스 구조
 - `public/js/app.js` — 프론트엔드 (vanilla JS)
 - `worker/src/index.js` — Cloudflare Worker
 - `worker/schema.sql` — D1 스키마 (INSERT OR IGNORE 전용)
-- `public/sw.js` — Service Worker (버전 bump 필수)
+- `public/sw.js` — Service Worker (버전 bump = 탭 전체 리로드, 사전 경고 필수)
 
 ---
 
