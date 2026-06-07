@@ -1,5 +1,12 @@
 # CURRENT — A-Team 글로벌 툴킷
 
+## Pre-flight Gate — 2026-06-07 debrief
+- [ ] CLAUDE.md 절대 금지 섹션 읽기 (cortex 파일 삭제는 승인 필수)
+- [ ] Graph API URL regex 수정 시 `.+\/\$value` 패턴 사용 (lesson_onenote_graph_url_regex.md)
+- [ ] 3_Archive 미마이그레이션 451개 (회사 관련) — 필요 시 별도 작업
+- [ ] cortex/2/5-life-xlab/ritual-routine/ 보호 파일 절대 덮어쓰기 금지
+
+
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
 **541 tests PASS** (2026-06-03). 3-Tier Knowledge Architecture + PostToolUse:Bash 진단 훅 구축.
@@ -21,6 +28,8 @@
 | 6 | 운영 (PR/CS/세일즈/재무) | ⏳ |
 
 **최근 완성**:
+- **OneNote → Cortex HTML 카드보드 전면 재마이그레이션** (2026-06-07): 기존 오염 마이그레이션(1313개 중복) 제거. Archive 원본 1638개 .md → HTML 카드보드 1137개 생성(3525 카드). 이미지 MD5 매핑(707 PNG 100% 자동 복원). 신규 cortex 0–4 디렉토리 구조. Twilight Mood board 포맷 준용. Graph API URL 괄호 regex 버그 수정. `scripts/migrate-onenote-html.mjs` 신규.
+
 - **Phase 2 콘텐츠 완성 — [HUMAN INSERT] 3개 + 품질 검증** (2026-05-03, 2 커밋): PingWatch (Sarah Chen, edge 모니터링 180ms, churn 8%→2.1%), FormSnap (Marcus, 48h 첫 수익 $87 MRR, before/after 아키텍처), ReplyGuard (Jake, edge AI 45ms, margin 62%→91%) 케이스 스터디 추가. Intel 인용 정확성 검증 완료 (Vercel 가격/기능, Edge computing 127 mentions, Indie hackers JTBD/Pain Points 일치). AI smell 제거 ("here's the thing" 삭제). **489 tests PASS** 유지.
 - **Phase 2 Gate 달성 — Intel 시스템 E2E 검증 완료** (2026-05-03, 4 커밋): Phase 2 파일럿 Step 1-5 완료 — Vercel 경쟁사 분석 (3 tiers, 10 features, dataQuality: complete) + Edge Computing 트렌드 (rising, 127 mentions, 70% positive) + Indie Hackers 페르소나 (confidence: high, JTBD 7개, Pain Points 14개) + 마케팅 브리프 통합 (227 lines) + **블로그 콘텐츠 3,247 words** (`content/drafts/2026-05-03-edge-saas-launch.md`). **Phase 2 Gate 6/6 조건 충족** — 마케팅 콘텐츠에 intel 데이터 인용 (`intel_sources: [vercel.json, edge-computing.json, indie-hackers.json]`, [HUMAN INSERT] 3개). Intel-aggregate "all" 키워드 수정. Analytics 이벤트 로깅 (`intel_used: true`). maintenance-schedule.md (11개 정기 작업) + install-maintenance-cron.sh. **489 tests PASS** 유지.
 - **Phase 2 파일럿 Step 1-4 + 정기 유지보수 시스템** (2026-05-03, 3 커밋): `/intel` 실전 실행 — Vercel 경쟁사 분석 (dataQuality: complete) + Edge Computing 트렌드 (rising, 65% 긍정) + Indie Hackers 페르소나 (confidence: high, JTBD 5개, Pain Points 12개) + 마케팅 브리프 통합 (227 lines). Intel 데이터 활용도 100%. maintenance-schedule.md (11개 정기 작업) + install-maintenance-cron.sh (launchd daily-backup/weekly-security/weekly-dashboard 자동 생성). **489 tests PASS** 유지.
