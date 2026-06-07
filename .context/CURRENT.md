@@ -1,9 +1,9 @@
 # CURRENT — A-Team 글로벌 툴킷
 
 ## Pre-flight Gate — 2026-06-07
-- [ ] Vision Board / Twilight Mood board 시각 확인 후 전체 재마이그레이션 컨펌 받기
-- [ ] 전체 재마이그레이션 후 Cortex Worker 배포
-- [ ] cortex/2/5-life-xlab/ritual-routine/ 보호 파일 절대 덮어쓰기 금지
+- [x] Vision Board / Twilight Mood board 시각 확인 후 전체 재마이그레이션 컨펌 받기 (2026-06-07 승인)
+- [x] 전체 재마이그레이션 후 Cortex Worker 배포 (16e0ae6a)
+- [x] cortex/2/5-life-xlab/ritual-routine/ 보호 파일 절대 덮어쓰기 금지 ✅
 
 
 ## Status
@@ -164,7 +164,7 @@
 ## Next Tasks
 
 ### High Priority
-- [ ] **Vision Board / Twilight Mood board 컨펌** → 전체 재마이그레이션 (`node scripts/migrate-onenote-html.mjs --apply`) → Cortex Worker 배포
+- [x] **Vision Board / Twilight Mood board 컨펌** → 전체 재마이그레이션 + Cortex Worker 배포 완료 (2026-06-07)
 - [ ] **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
 - [ ] **Confluence PAT 발급** — VDI에서 프로필 > Personal Access Tokens 확인
 - [ ] **Confluence 역변환기 + daemon** — 안정화 후 구현 재개
