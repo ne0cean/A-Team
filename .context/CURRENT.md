@@ -60,6 +60,16 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-07) — Goal Cascade + Obsidian 연결 + Cortex Vision 교체
+
+- **Goal Cascade 구조** — `cortex/areas/life/vision/annual-2026.md` + `monthly-2026-06.md` 생성. vision-roadmap.json 2026 데이터 기반. `/vibe` 시 `🎯 올해: Start美` 표시 (vibe-init.sh Step 0.68)
+- **월간 스케줄러** — `scripts/maintenance/monthly-cascade-create.sh` (롤링 자동 생성) + scheduled-reviews.json 연동. 매월 1일 알림
+- **Obsidian vault** — `cortex/` 폴더를 vault로 열면 기존 .md 전부 Graph view 시각화
+- **Twilight Mood board 복원** — git history에서 HTML + onenote attachments 707개 복원
+- **Vision panel 교체** — Cortex 대시보드 Vision & Milestones → Twilight Mood board iframe 대체 배포 (SW v35)
+- **SW bump 경고 규칙** — cortex CLAUDE.md + MEMORY.md 반영. SW 버전 bump 전 사용자 경고 의무화
+- **board-template.html** — git history에서 복원
+
 ## Last Completions (2026-06-07) — H&A 채널 리서치 (트레바리 + 웰리트립)
 
 - **트레바리 찜목록 27개** Playwright 스크래핑 → AI 하이퍼포머(35만/강남/6.28) + 매력적인 결핍(35만/안국/6.14) 픽
