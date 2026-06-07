@@ -938,11 +938,10 @@ async function save() {
     return;
   }
   try {
-    // Strip workout from each day — workout is managed exclusively via /api/workout (atomic)
+    // Include workout in save — in-memory monthData is always up-to-date (toggleWorkout updates it)
     const safeData = { ...monthData, days: {} };
     for (const [k, dd] of Object.entries(monthData.days || {})) {
-      const { workout, ...rest } = dd;
-      safeData.days[k] = rest;
+      safeData.days[k] = { ...dd };
     }
     const res = await fetch(`${API}/api/month`, {
       method: 'POST', headers: AUTH,
