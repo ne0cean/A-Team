@@ -1,9 +1,8 @@
 # CURRENT — A-Team 글로벌 툴킷
 
-## Pre-flight Gate — 2026-06-07 debrief
-- [ ] CLAUDE.md 절대 금지 섹션 읽기 (cortex 파일 삭제는 승인 필수)
-- [ ] Graph API URL regex 수정 시 `.+\/\$value` 패턴 사용 (lesson_onenote_graph_url_regex.md)
-- [ ] 3_Archive 미마이그레이션 451개 (회사 관련) — 필요 시 별도 작업
+## Pre-flight Gate — 2026-06-07
+- [ ] Vision Board / Twilight Mood board 시각 확인 후 전체 재마이그레이션 컨펌 받기
+- [ ] 전체 재마이그레이션 후 Cortex Worker 배포
 - [ ] cortex/2/5-life-xlab/ritual-routine/ 보호 파일 절대 덮어쓰기 금지
 
 
@@ -28,6 +27,8 @@
 | 6 | 운영 (PR/CS/세일즈/재무) | ⏳ |
 
 **최근 완성**:
+- **board-template Vision Board 품질 수정 (2026-06-07, 진행 중)**: 중첩 이미지 추출(Pass2 nested img), 텍스트 개행 정규화(\r\n\t→단일 개행), autoLayout 첫 로드 복원(겹침 방지), Ctrl+Z undo 스택(50 steps, 드래그/리사이즈/삭제/추가/텍스트편집). Vision Board 20/20 이미지 복원. **미완: 사용자 컨펌 후 전체 재마이그레이션 + 배포 필요**
+
 - **OneNote → Cortex HTML 카드보드 전면 재마이그레이션** (2026-06-07): 기존 오염 마이그레이션(1313개 중복) 제거. Archive 원본 1638개 .md → HTML 카드보드 1137개 생성(3525 카드). 이미지 MD5 매핑(707 PNG 100% 자동 복원). 신규 cortex 0–4 디렉토리 구조. Twilight Mood board 포맷 준용. Graph API URL 괄호 regex 버그 수정. `scripts/migrate-onenote-html.mjs` 신규.
 
 - **Phase 2 콘텐츠 완성 — [HUMAN INSERT] 3개 + 품질 검증** (2026-05-03, 2 커밋): PingWatch (Sarah Chen, edge 모니터링 180ms, churn 8%→2.1%), FormSnap (Marcus, 48h 첫 수익 $87 MRR, before/after 아키텍처), ReplyGuard (Jake, edge AI 45ms, margin 62%→91%) 케이스 스터디 추가. Intel 인용 정확성 검증 완료 (Vercel 가격/기능, Edge computing 127 mentions, Indie hackers JTBD/Pain Points 일치). AI smell 제거 ("here's the thing" 삭제). **489 tests PASS** 유지.
@@ -156,6 +157,7 @@
 ## Next Tasks
 
 ### High Priority
+- [ ] **Vision Board / Twilight Mood board 컨펌** → 전체 재마이그레이션 (`node scripts/migrate-onenote-html.mjs --apply`) → Cortex Worker 배포
 - [ ] **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
 - [ ] **Confluence PAT 발급** — VDI에서 프로필 > Personal Access Tokens 확인
 - [ ] **Confluence 역변환기 + daemon** — 안정화 후 구현 재개
