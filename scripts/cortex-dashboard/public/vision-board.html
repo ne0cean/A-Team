@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vision Board</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+
+.board { position: relative; }
+
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img {
+  width: 100%;
+  border-radius: 4px;
+  display: block;
+}
+.card .text {
+  outline: none;
+  min-height: 20px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card .caption {
+  font-size: 11px;
+  color: #888;
+  margin-top: 6px;
+  min-height: 16px;
+  outline: none;
+  border-top: 1px solid #333;
+  padding-top: 4px;
+}
+.card .caption:empty::before { content: '캡션 추가...'; color: #444; }
+
+/* Table styles */
+.card table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 4px 0;
+}
+.card table td, .card table th {
+  border: 1px solid #555;
+  padding: 4px 8px;
+  min-width: 40px;
+  outline: none;
+  vertical-align: top;
+}
+.card table th { background: #333; font-weight: bold; }
+
+.card-actions {
+  position: absolute;
+  top: 4px; right: 4px;
+  display: none;
+  gap: 4px;
+}
+.card:hover .card-actions { display: flex; }
+.card-btn {
+  background: #333;
+  border: 1px solid #555;
+  color: #ccc;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.card-btn:hover { background: #444; color: #fff; }
+
+.resize-handle {
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 16px; height: 16px;
+  cursor: se-resize;
+  opacity: 0;
+}
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  bottom: 3px; right: 3px;
+  width: 8px; height: 8px;
+  border-right: 2px solid #666;
+  border-bottom: 2px solid #666;
+}
+
+/* Formatting toolbar */
+#fmt-toolbar {
+  position: fixed;
+  display: none;
+  z-index: 300;
+  background: #252525;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 4px 8px;
+  gap: 4px;
+  align-items: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  flex-wrap: wrap;
+  max-width: 340px;
+}
+#fmt-toolbar button {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #ccc;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 13px;
+  cursor: pointer;
+  min-width: 28px;
+}
+#fmt-toolbar button:hover { background: #3a3a3a; border-color: #555; color: #fff; }
+#fmt-toolbar .sep { width: 1px; height: 18px; background: #444; margin: 0 2px; }
+#fmt-toolbar input[type=color] {
+  width: 24px; height: 24px; padding: 0; border: 1px solid #555;
+  border-radius: 3px; cursor: pointer; background: transparent;
+}
+#fmt-toolbar select {
+  background: #333; color: #ccc; border: 1px solid #555;
+  border-radius: 4px; padding: 2px 4px; font-size: 12px; cursor: pointer;
+}
+
+/* Link popup */
+#vision-link-popup {
+  position: fixed;
+  display: none;
+  z-index: 400;
+  background: #252525;
+  border: 1px solid #555;
+  border-radius: 8px;
+  padding: 12px;
+  width: 300px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+}
+#vision-link-popup label { font-size: 12px; color: #aaa; display: block; margin-bottom: 4px; }
+#vision-link-popup input {
+  width: 100%; background: #1a1a1a; border: 1px solid #555; color: #e0e0e0;
+  border-radius: 4px; padding: 6px 8px; font-size: 13px; outline: none;
+  margin-bottom: 8px;
+}
+#vision-link-popup input:focus { border-color: #58a6ff; }
+#vision-link-popup .popup-btns { display: flex; gap: 6px; justify-content: flex-end; }
+#vision-link-popup .popup-btns button {
+  background: #333; border: 1px solid #555; color: #ccc;
+  border-radius: 4px; padding: 5px 12px; font-size: 12px; cursor: pointer;
+}
+#vision-link-popup .popup-btns button.primary { background: #1f6feb; border-color: #388bfd; color: #fff; }
+#vision-link-popup .popup-btns button:hover { opacity: 0.85; }
+
+/* Context menu */
+#ctx-menu {
+  position: fixed;
+  display: none;
+  z-index: 500;
+  background: #252525;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 180px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+#ctx-menu .ctx-item {
+  padding: 7px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #ccc;
+}
+#ctx-menu .ctx-item:hover { background: #3a3a3a; color: #fff; }
+#ctx-menu .ctx-sep { height: 1px; background: #3a3a3a; margin: 3px 0; }
+
+.toolbar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: #161b22;
+  border-top: 1px solid #30363d;
+  padding: 8px 20px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  z-index: 200;
+}
+.toolbar button {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #e0e0e0;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+
+<div class="title-bar" contenteditable="true">Vision Board</div>
+<div class="date">2020년 2월 16일 일요일</div>
+
+<div class="board" id="board"></div>
+
+<!-- Formatting toolbar -->
+<div id="fmt-toolbar" style="display:none">
+  <button title="굵게 (Ctrl+B)" onmousedown="e=>e.preventDefault()" onclick="fmt('bold')"><b>B</b></button>
+  <button title="기울기 (Ctrl+I)" onclick="fmt('italic')"><i>I</i></button>
+  <button title="밑줄 (Ctrl+U)" onclick="fmt('underline')"><u>U</u></button>
+  <button title="취소선" onclick="fmt('strikeThrough')"><s>S</s></button>
+  <div class="sep"></div>
+  <select title="글자 크기" onchange="fmt('fontSize', this.value); this.value=''">
+    <option value="">크기</option>
+    <option value="1">작게</option>
+    <option value="3">보통</option>
+    <option value="5">크게</option>
+    <option value="7">매우 크게</option>
+  </select>
+  <div class="sep"></div>
+  <input type="color" id="txt-color" title="글자색" value="#e0e0e0" oninput="fmt('foreColor', this.value)">
+  <input type="color" id="bg-color" title="배경색(형광펜)" value="#ffff00" oninput="fmt('hiliteColor', this.value)">
+  <div class="sep"></div>
+  <button title="표 삽입" onclick="insertTable()">⊞ 표</button>
+  <button title="링크 (Ctrl+K)" onclick="openLinkPopupFmt()">🔗</button>
+</div>
+
+<!-- Link popup -->
+<div id="vision-link-popup">
+  <label>URL</label>
+  <input id="vision-link-url" type="url" placeholder="https://" autocomplete="off">
+  <div class="popup-btns">
+    <button onclick="visionRemoveLink()">제거</button>
+    <button onclick="closeVisionLinkPopup()">취소</button>
+    <button class="primary" onclick="visionSaveLink()">저장</button>
+  </div>
+</div>
+
+<!-- Context menu -->
+<div id="ctx-menu">
+  <div class="ctx-item" onclick="tableAddRowAbove()">위에 행 추가</div>
+  <div class="ctx-item" onclick="tableAddRowBelow()">아래에 행 추가</div>
+  <div class="ctx-item" onclick="tableAddColLeft()">왼쪽에 열 추가</div>
+  <div class="ctx-item" onclick="tableAddColRight()">오른쪽에 열 추가</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="tableDeleteRow()">행 삭제</div>
+  <div class="ctx-item" onclick="tableDeleteCol()">열 삭제</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="tableToggleHeader()">헤더 행 토글</div>
+  <div class="ctx-item" onclick="tableCellBgColor()">셀 배경색</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" style="color:#ff6b6b" onclick="tableDelete()">표 삭제</div>
+</div>
+
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+
+<script>
+const SAVE_KEY = 'board-Vision-Board';
+const IMG_BASE = '../attachments/';
+
+const DEFAULT_CARDS = [
+  { type: 'text', x: 360, y: 19, w: 573, content: `<a href="https://www.instagram.com/reel/C3j55KJPA4H/">부의 갓길 차선</a>\n<a href="https://www.instagram.com/reel/C8Y71lZRuvF/">샘알트먼</a>\n\n태도가, 서사다.` },
+  { type: 'text', x: 504, y: 19, w: 325, content: `필생의 사랑을 할 것\n필생의 업을 가질 것\n이미 다 이룬 것으로 느끼고, 행동 하라.\n뇌는 믿는 것을 실행한다. 사이보그가 되자.\nCEO로 아침을 시작해, 살아.\n회사일 이외의 모든 것이,\n게임이고 스포츠여야해. flow` },
+  { type: 'text', x: 768, y: 19, w: 600, content: `<a href="https://www.instagram.com/reel/C8Y71lZRuvF/">Emergency</a>/ Fake it till you make it → <span class="highlight-gold">Fearless.peerless</span>\n나는 매일 모든면에서 더 나이지고 있다.\n아쉬울 것 없는, 내일이 없어도 되는, 그리하여 명랑한 어른\n이제부터는 관계가 성과다. 다른 사람이 너를 만나서 느끼는 느낌/감정. 여유, 그게 전부야. 친절은 힘보다 강하다.\n사실인가, 필요한가, 친절한가, 나만 할 수 있는 말인가?\n스트레스를 운영해라, 그래야 게임에 낄 수 있다.\n외로움을 길들일 수 있다면, 이 자유가 모두 네 거야.` },
+  { type: 'text', x: 48, y: 115, w: 298, content: `결과가 아닌,\n과정의 시각화` },
+  { type: 'image', x: 48, y: 163, w: 480, src: '817eb4addf.png' },
+  { type: 'image', x: 355, y: 163, w: 299, src: 'e2616d2d10.png' },
+  { type: 'image', x: 938, y: 163, w: 437, src: '73de572bd8.png' },
+  { type: 'image', x: 960, y: 163, w: 352, src: '83b35c72a5.png' },
+  { type: 'image', x: 48, y: 363, w: 480, src: '69ae405ecb.png' },
+  { type: 'image', x: 536, y: 363, w: 480, src: '833d5ef569.png' },
+  { type: 'image', x: 702, y: 363, w: 319, src: '5f8af77fbe.png' },
+  { type: 'image', x: 963, y: 391, w: 331, src: 'be65e8dc82.png' },
+  { type: 'image', x: 48, y: 563, w: 480, src: '1acbe2a226.png' },
+  { type: 'image', x: 536, y: 563, w: 480, src: '4f961d6b9e.png' },
+  { type: 'image', x: 1024, y: 563, w: 480, src: 'f406b950f9.png' },
+  { type: 'image', x: 48, y: 763, w: 480, src: '6bd76e9213.png' },
+  { type: 'image', x: 468, y: 763, w: 202, src: '236e5e9b7c.png' },
+  { type: 'image', x: 536, y: 763, w: 480, src: 'd1502d2bfa.png' },
+  { type: 'text', x: 960, y: 960, w: 600, content: `<a href="https://www.instagram.com/reels/DT0NzO_iRIz/">https://www.instagram.com/reels/DT0NzO_iRIz/</a>` },
+  { type: 'image', x: 48, y: 963, w: 480, src: '01462e280b.png' },
+  { type: 'image', x: 536, y: 963, w: 480, src: 'ba6c8b0a1b.png' },
+  { type: 'image', x: 1024, y: 963, w: 480, src: '1f3316a2d2.png' },
+  { type: 'image', x: 48, y: 1163, w: 480, src: '61172e5eff.png' },
+  { type: 'image', x: 536, y: 1163, w: 480, src: '4ffa85e98f.png' },
+  { type: 'text', x: 48, y: 1363, w: 1500, content: `<table style="border-collapse:collapse;width:100%;border:1px solid #444"><thead><tr><th style="border:1px solid #555;padding:8px 12px;background:#333;text-align:left;width:25%">Family — 존경 받는 명가</th><th style="border:1px solid #555;padding:8px 12px;background:#333;text-align:left;width:40%">Interstellar</th><th style="border:1px solid #555;padding:8px 12px;background:#333;text-align:left;width:35%">Community=Peer</th></tr></thead><tbody><tr><td style="border:1px solid #555;padding:8px 12px;vertical-align:top">금가람/ 황세연/ 이수림<br><br>케이트블란챗/ 제니퍼로렌스/ 레이첼 맥아담스<br>백선영/ 문지원/ 신민정/ 장소라/ 가영?<br>황혜진/ 아주라/ 정소민/ 박은빈/ 서메리<br>전지현 / 이유영/ 엄지원/<br>강지영/ 키릴<br>성격 - 촘미, 김원희, <a href="https://www.instagram.com/peitakagin?igsh=MWphbzlscWRreHgzcA==" target="_blank">뚯밖의 이상형</a><br>장도연, 김원희, 원지안, 최수연, 이은규</td><td style="border:1px solid #555;padding:8px 12px;vertical-align:top"><table style="border-collapse:collapse;width:100%;margin-bottom:12px"><tr><th style="border:1px solid #666;padding:4px 8px;background:#2a2a2a">Goal</th><th style="border:1px solid #666;padding:4px 8px;background:#2a2a2a">Deadline</th></tr><tr><td style="border:1px solid #666;padding:4px 8px">올해 하고 싶은 실패는, 이런거야. 제품을 런칭했는데 MAU, 매출이 내가 생각한 수준(이게 있어겠지)에 못 미치는 것. 그래서 피봇을 5번 이상 하는 것.</td><td style="border:1px solid #666;padding:4px 8px"></td></tr><tr><td style="border:1px solid #666;padding:4px 8px">Geo connetome 글로벌런칭 - MAU 500만, 매출 ##달러</td><td style="border:1px solid #666;padding:4px 8px">Market cap. 1B의 기업가</td></tr><tr><td style="border:1px solid #666;padding:4px 8px">뉴욕/실리콘밸리 에서 일하고 살고 싶다.</td><td style="border:1px solid #666;padding:4px 8px"></td></tr></table><a href="https://www.youtube.com/watch?v=WrZLUx7B5gQ" target="_blank">New York City 🗽 [4K] - Manhattan at Night! Experience the City!</a><br>New York Street view<br><br>빌게이츠 세상의 문제를 해결하는 어른<br>세상의 문제를 해결하면. 그런 사람이 되는거지.<br><br><a href="https://www.instagram.com/reel/DALwszQSIZ2/" target="_blank">instagram reel</a><br>1원칙 사고, 기계적으로 시도하고 실패하고, 다시 시도해<br>매몰비용과 감정의 Bais에 매몰되지 마. Don think, Just Do.</td><td style="border:1px solid #555;padding:8px 12px;vertical-align:top">Serendipity<br>Character - 어떤 기분, 성과, 사람으로 하루를 살 것인가<br>Zeroing 기분 좋아지는, 만나고 싶은 어른, 따듯한 Pro<br>사람들이 너와 함께 할 때 느끼는 기분이, 곧 너다.<br>타인과 세상에 대한 호기심/호감 + 친절함 + 바라는 것 없어 아쉬울 것 없고, 그래서 두려움이 없고, 명랑한 사람<br><br>호의를 반복해서 둘리가 되자.<br>친절만큼 보편적이면서도 절대적이고, 또한 즉각적인 효과를 보이는 마법은 없다.<br><br>소리내어 하는 인사는 가장 효과적인 브랜딩이다.<br>나라면, 지금의 나라면</td></tr></tbody></table>` },
+  { type: 'image', x: 552, y: 2323, w: 203, src: '835d9195db.png' },
+];
+
+let cards = [];
+let moving = null;
+let resizing = null;
+
+// ── Undo stack ──────────────────────────────────────────
+const undoStack = [];
+function pushUndo() {
+  syncText();
+  undoStack.push(JSON.stringify(cards));
+  if (undoStack.length > 50) undoStack.shift();
+}
+
+// ── Load / Save ─────────────────────────────────────────
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  if (saved) {
+    cards = JSON.parse(saved);
+    renderCards();
+  } else {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    renderCards();
+  }
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 260));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) {
+        if (colHeights[c] < colHeights[minCol]) minCol = c;
+      }
+      const x = minCol * (colW + GAP);
+      const y = colHeights[minCol];
+      card.x = x; card.y = y; card.w = w;
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      el.style.width = w + 'px';
+      void el.offsetWidth; // force reflow for accurate height
+      colHeights[minCol] = y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colHeights) + 100) + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) { requestAnimationFrame(place); }
+  else {
+    images.forEach(img => {
+      if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+      else { img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); }; }
+    });
+  }
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+    if (cards[idx]?.type === 'image') {
+      const cap = el.querySelector('.caption');
+      if (cap) cards[idx].caption = cap.textContent;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+// ── Render ──────────────────────────────────────────────
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    // Drag (exclude text, links, buttons, resize, caption, table cells)
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, .caption, td, th')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => {
+      e.stopPropagation();
+      if (confirm('삭제?')) { pushUndo(); cards.splice(i, 1); renderCards(); saveBoard(); }
+    };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    // Content
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+
+      // #1 — link click in contenteditable
+      text.addEventListener('click', e => {
+        const a = e.target.closest('a');
+        if (a && a.href) { e.preventDefault(); window.open(a.href, '_blank'); }
+      });
+
+      // #6 — show formatting toolbar on focus
+      text.addEventListener('focus', () => showFmtToolbar(text));
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); hideFmtToolbarDelayed(); });
+
+      // #8 — Ctrl+K
+      text.addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault(); e.stopPropagation();
+          openVisionLinkPopup();
+        }
+      });
+
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      const src = card.src;
+      img.src = src.startsWith('http') || src.startsWith('data:') ? src : IMG_BASE + src;
+      img.alt = card.caption || card.src.replace(/\.\w+$/, '');
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+
+      // #4 — caption
+      const caption = document.createElement('div');
+      caption.className = 'caption';
+      caption.contentEditable = true;
+      caption.textContent = card.caption || '';
+      caption.addEventListener('blur', () => {
+        card.caption = caption.textContent;
+        img.alt = card.caption || card.src;
+        saveBoard();
+      });
+      caption.addEventListener('mousedown', e => e.stopPropagation()); // prevent drag
+      el.appendChild(caption);
+    }
+
+    // Resize
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      pushUndo();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+
+    board.appendChild(el);
+  });
+
+  // Update board height
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+// ── Drag / Resize ───────────────────────────────────────
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  cards.map((c, i) => ({ c, i, el: document.querySelector(`.card[data-idx="${i}"]`) }))
+    .filter(o => o.i !== movedIdx && o.el)
+    .forEach(o => {
+      const oh = o.el.offsetHeight;
+      const ox = o.c.x, ow = o.c.w || 200;
+      const overlapX = moved.x < (ox + ow) && (moved.x + (moved.w || 200)) > ox;
+      const overlapY = moved.y < (o.c.y + oh) && (moved.y + mh) > o.c.y;
+      if (overlapX && overlapY) { o.c.y = moved.y + mh + GAP; o.el.style.top = o.c.y + 'px'; }
+    });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX;
+    let ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+    el.style.outline = e.shiftKey ? '1px dashed rgba(240,192,64,0.3)' : '';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    let nw = resizing.startW + e.clientX - resizing.startX;
+    if (e.shiftKey) nw = snap(nw);
+    card.w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    pushUndo();
+    const card = cards[moving.idx];
+    let nx = moving.origX + e.clientX - moving.startX;
+    let ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    card.x = Math.max(0, nx); card.y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+// ── Add cards ────────────────────────────────────────────
+function addTextCard() {
+  pushUndo();
+  const sy = window.scrollY;
+  cards.push({ type: 'text', content: '', x: 50, y: sy + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      pushUndo();
+      cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 });
+      renderCards(); saveBoard();
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+// #5 — Ctrl+V paste image
+document.addEventListener('paste', e => {
+  // Skip if pasting inside text card (let contenteditable handle)
+  if (e.target.closest && e.target.closest('.text')) return;
+  for (const item of e.clipboardData?.items || []) {
+    if (item.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        pushUndo();
+        cards.push({ type: 'image', src: reader.result, x: 80, y: window.scrollY + 80, w: 300 });
+        renderCards(); saveBoard();
+      };
+      reader.readAsDataURL(item.getAsFile());
+      e.preventDefault(); break;
+    }
+  }
+});
+
+// ── Export / Reset ───────────────────────────────────────
+function exportBoard() {
+  syncText();
+  const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'twilight-mood-board.json';
+  a.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  pushUndo();
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+// ── Global keyboard ──────────────────────────────────────
+document.addEventListener('keydown', e => {
+  // #2 — Ctrl+Z undo (only when not editing text)
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    const active = document.activeElement;
+    const inText = active && active.closest && active.closest('.text');
+    if (!inText && undoStack.length) {
+      e.preventDefault();
+      cards = JSON.parse(undoStack.pop());
+      renderCards();
+      document.getElementById('status').textContent = '되돌림';
+    }
+  }
+});
+
+// ── #6 Formatting toolbar ─────────────────────────────────
+let fmtHideTimer = null;
+let _savedRange = null;
+
+function showFmtToolbar(el) {
+  clearTimeout(fmtHideTimer);
+  const tb = document.getElementById('fmt-toolbar');
+  const rect = el.getBoundingClientRect();
+  tb.style.left = rect.left + 'px';
+  tb.style.top = Math.max(4, rect.top - 44) + 'px';
+  tb.style.display = 'flex';
+}
+
+function hideFmtToolbarDelayed() {
+  fmtHideTimer = setTimeout(() => {
+    document.getElementById('fmt-toolbar').style.display = 'none';
+  }, 200);
+}
+
+function fmt(cmd, val) {
+  // Restore saved selection if any
+  if (_savedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_savedRange);
+  }
+  document.execCommand(cmd, false, val || null);
+  _savedRange = null;
+  saveBoard();
+}
+
+// Save selection before toolbar button click steals focus
+document.getElementById('fmt-toolbar').addEventListener('mousedown', e => {
+  e.preventDefault(); // prevent blur on text div
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) _savedRange = sel.getRangeAt(0).cloneRange();
+});
+
+// ── #7 Table insert ───────────────────────────────────────
+let ctxCell = null;
+
+function insertTable() {
+  const rows = parseInt(prompt('행 수:', '3'), 10); if (!rows || rows < 1) return;
+  const cols = parseInt(prompt('열 수:', '3'), 10); if (!cols || cols < 1) return;
+
+  let html = '<table style="border-collapse:collapse;width:100%;margin:4px 0">';
+  for (let r = 0; r < rows; r++) {
+    html += '<tr>';
+    for (let c = 0; c < cols; c++) {
+      const tag = r === 0 ? 'th' : 'td';
+      html += `<${tag} contenteditable="true" style="border:1px solid #555;padding:4px 8px;min-width:40px;"></${tag}>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+
+  if (_savedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_savedRange);
+  }
+  document.execCommand('insertHTML', false, html);
+  _savedRange = null;
+  saveBoard();
+}
+
+// Table context menu
+document.addEventListener('contextmenu', e => {
+  const cell = e.target.closest('td, th');
+  if (!cell) return;
+  e.preventDefault();
+  ctxCell = cell;
+  const menu = document.getElementById('ctx-menu');
+  menu.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
+  menu.style.top = Math.min(e.clientY, window.innerHeight - 240) + 'px';
+  menu.style.display = 'block';
+});
+
+document.addEventListener('click', () => {
+  document.getElementById('ctx-menu').style.display = 'none';
+});
+
+function tableAddRowBelow() {
+  if (!ctxCell) return;
+  const tr = ctxCell.closest('tr');
+  const cols = tr.querySelectorAll('td,th').length;
+  const newTr = document.createElement('tr');
+  for (let c = 0; c < cols; c++) {
+    const td = document.createElement('td');
+    td.contentEditable = true;
+    td.style.cssText = 'border:1px solid #555;padding:4px 8px;min-width:40px;';
+    newTr.appendChild(td);
+  }
+  tr.after(newTr); saveBoard();
+}
+
+function tableAddRowAbove() {
+  if (!ctxCell) return;
+  const tr = ctxCell.closest('tr');
+  const cols = tr.querySelectorAll('td,th').length;
+  const newTr = document.createElement('tr');
+  for (let c = 0; c < cols; c++) {
+    const td = document.createElement('td');
+    td.contentEditable = true;
+    td.style.cssText = 'border:1px solid #555;padding:4px 8px;min-width:40px;';
+    newTr.appendChild(td);
+  }
+  tr.before(newTr); saveBoard();
+}
+
+function tableAddColRight() {
+  if (!ctxCell) return;
+  const table = ctxCell.closest('table');
+  const colIdx = [...ctxCell.parentElement.children].indexOf(ctxCell);
+  table.querySelectorAll('tr').forEach(tr => {
+    const cells = tr.querySelectorAll('td,th');
+    const ref = cells[colIdx];
+    const tag = ref.tagName.toLowerCase();
+    const newCell = document.createElement(tag);
+    newCell.contentEditable = true;
+    newCell.style.cssText = 'border:1px solid #555;padding:4px 8px;min-width:40px;';
+    ref.after(newCell);
+  });
+  saveBoard();
+}
+
+function tableAddColLeft() {
+  if (!ctxCell) return;
+  const table = ctxCell.closest('table');
+  const colIdx = [...ctxCell.parentElement.children].indexOf(ctxCell);
+  table.querySelectorAll('tr').forEach(tr => {
+    const cells = tr.querySelectorAll('td,th');
+    const ref = cells[colIdx];
+    const tag = ref.tagName.toLowerCase();
+    const newCell = document.createElement(tag);
+    newCell.contentEditable = true;
+    newCell.style.cssText = 'border:1px solid #555;padding:4px 8px;min-width:40px;';
+    ref.before(newCell);
+  });
+  saveBoard();
+}
+
+function tableDeleteRow() {
+  if (!ctxCell) return;
+  const tr = ctxCell.closest('tr');
+  const table = tr.closest('table');
+  if (table.querySelectorAll('tr').length <= 1) { tableDelete(); return; }
+  tr.remove(); saveBoard();
+}
+
+function tableDeleteCol() {
+  if (!ctxCell) return;
+  const table = ctxCell.closest('table');
+  const colIdx = [...ctxCell.parentElement.children].indexOf(ctxCell);
+  table.querySelectorAll('tr').forEach(tr => {
+    const cells = tr.querySelectorAll('td,th');
+    if (cells.length <= 1) return;
+    cells[colIdx]?.remove();
+  });
+  saveBoard();
+}
+
+function tableToggleHeader() {
+  if (!ctxCell) return;
+  const table = ctxCell.closest('table');
+  const firstRow = table.querySelector('tr');
+  if (!firstRow) return;
+  firstRow.querySelectorAll('td,th').forEach(cell => {
+    const newTag = cell.tagName === 'TD' ? 'TH' : 'TD';
+    const newCell = document.createElement(newTag);
+    newCell.contentEditable = true;
+    newCell.style.cssText = cell.style.cssText;
+    newCell.innerHTML = cell.innerHTML;
+    cell.replaceWith(newCell);
+  });
+  saveBoard();
+}
+
+function tableCellBgColor() {
+  if (!ctxCell) return;
+  const color = prompt('셀 배경색 (예: #1a1a3a 또는 red):', ctxCell.style.background || '');
+  if (color !== null) { ctxCell.style.background = color; saveBoard(); }
+}
+
+function tableDelete() {
+  if (!ctxCell) return;
+  const table = ctxCell.closest('table');
+  if (confirm('표를 삭제하시겠습니까?')) { pushUndo(); table.remove(); saveBoard(); }
+}
+
+// ── #8 Ctrl+K link popup ──────────────────────────────────
+let _linkSavedRange = null;
+
+function openVisionLinkPopup() {
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) _linkSavedRange = sel.getRangeAt(0).cloneRange();
+
+  // Prefill if cursor is on a link
+  let existingUrl = '';
+  if (sel && sel.anchorNode) {
+    const a = sel.anchorNode.parentElement?.closest('a');
+    if (a) existingUrl = a.href;
+  }
+
+  const popup = document.getElementById('vision-link-popup');
+  document.getElementById('vision-link-url').value = existingUrl;
+  const focusedEl = document.activeElement;
+  const rect = focusedEl?.getBoundingClientRect?.() || { left: 100, bottom: 100 };
+  popup.style.left = Math.min(rect.left, window.innerWidth - 320) + 'px';
+  popup.style.top = Math.min(rect.bottom + 4, window.innerHeight - 130) + 'px';
+  popup.style.display = 'block';
+  setTimeout(() => document.getElementById('vision-link-url').focus(), 50);
+}
+
+function openLinkPopupFmt() {
+  openVisionLinkPopup();
+}
+
+function closeVisionLinkPopup() {
+  document.getElementById('vision-link-popup').style.display = 'none';
+  _linkSavedRange = null;
+}
+
+function visionSaveLink() {
+  const url = document.getElementById('vision-link-url').value.trim();
+  if (!url) { closeVisionLinkPopup(); return; }
+
+  if (_linkSavedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_linkSavedRange);
+  }
+
+  // If selection is collapsed, wrap current word; otherwise wrap selection
+  const sel = window.getSelection();
+  if (sel && !sel.isCollapsed) {
+    document.execCommand('createLink', false, url);
+    // Ensure target=_blank
+    if (sel.anchorNode) {
+      const a = sel.anchorNode.parentElement?.closest('a') || sel.focusNode?.parentElement?.closest('a');
+      if (a) a.target = '_blank';
+    }
+  } else {
+    // No selection — insert as new link
+    const a = `<a href="${url}" target="_blank">${url}</a>`;
+    document.execCommand('insertHTML', false, a);
+  }
+
+  _linkSavedRange = null;
+  closeVisionLinkPopup();
+  saveBoard();
+}
+
+function visionRemoveLink() {
+  if (_linkSavedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_linkSavedRange);
+  }
+  document.execCommand('unlink');
+  _linkSavedRange = null;
+  closeVisionLinkPopup();
+  saveBoard();
+}
+
+// Close link popup on Enter
+document.getElementById('vision-link-url').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); visionSaveLink(); }
+  if (e.key === 'Escape') closeVisionLinkPopup();
+});
+
+// ── Init ─────────────────────────────────────────────────
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>
+
