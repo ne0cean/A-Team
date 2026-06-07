@@ -1765,7 +1765,7 @@ async function doSearch() {
         const highlighted = esc(m.text).replace(new RegExp(escRegex(q), 'gi'), '<mark>$&</mark>');
         return `<div class="sr-match"><span class="sr-cat">${m.field}</span> ${highlighted}</div>`;
       }).join('');
-      return `<div class="search-result" onclick="goToResult('${r.ym}',${r.day})">
+      return `<div class="search-result" role="button" tabindex="0" onclick="goToResult('${r.ym}',${r.day})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToResult('${r.ym}',${r.day})}">
         <div class="sr-date">${r.ym} / ${r.day}일</div>${matchHtml}</div>`;
     }).join('');
   }
@@ -1776,7 +1776,7 @@ async function doSearch() {
     html += data.notes.map(r => {
       const icon = r.type === 'dir' ? '&#128193;' : '&#128196;';
       const onclick = r.type === 'dir' ? `closeSearch();loadSidebarTree('${r.path}')` : `closeSearch();openNote('${r.path}')`;
-      return `<div class="search-result" onclick="${onclick}">
+      return `<div class="search-result" role="button" tabindex="0" onclick="${onclick}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
         <span>${icon}</span> <span>${esc(r.name)}</span>
         <span style="font-size:9px;color:#484f58;margin-left:8px">${esc(r.path)}</span></div>`;
     }).join('');
