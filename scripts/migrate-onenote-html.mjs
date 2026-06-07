@@ -373,14 +373,16 @@ body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-syst
 .toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; }
 .toolbar button:hover { background: #30363d; color: #fff; }
 ${isAbsolute
-  ? `.onenote-body { overflow: auto; }
-.onenote-body > * { position: relative; min-width: ${pageW}px; min-height: ${pageH}px; }`
+  ? `.onenote-body { position: relative; overflow: auto; min-width: ${pageW}px; min-height: ${pageH}px; }`
   : `.onenote-body { padding: 20px 24px 80px; }`
 }
 .onenote-body * { color: #e0e0e0 !important; background-color: transparent !important; }
 .onenote-body table { border-collapse: collapse; margin-bottom: 12px; }
 .onenote-body td, .onenote-body th { border: 1px solid #444 !important; padding: 6px 10px !important; vertical-align: top; }
-.onenote-body img { max-width: 100%; height: auto; border-radius: 4px; display: block; }
+${isAbsolute
+  ? `/* absolute layout: 원본 img 크기 유지 */`
+  : `.onenote-body img { max-width: 100%; height: auto; border-radius: 4px; display: block; }`
+}
 .onenote-body a { color: #6cb0f6 !important; text-decoration: none; }
 .onenote-body a:hover { text-decoration: underline; }
 </style>
