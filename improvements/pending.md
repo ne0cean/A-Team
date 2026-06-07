@@ -104,3 +104,53 @@
 
 ### P2 장기
 - [ ] **커밋 타입 규칙 강제** — Pre-commit hook으로 타입 없는 커밋 차단 (30분)
+
+### IMP-20260607-01 — NEW command ga-ingest.md (from Trading)
+- **날짜**: 2026-06-07
+- **출처**: /absorb 스캔 (Trading)
+- **타입**: NEW
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/Trading/.claude/commands/ga-ingest.md
+- **설명**: ga-ingest — 해외 트레이딩 소스 수집 + 지식 추출 원스탑
+- **액션**: [ ] GLOBAL 확정 시 복사 | [ ] 일반화 후 추가 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260607-02 — DIFF command consolidate.md (from connectome)
+- **날짜**: 2026-06-07
+- **출처**: /absorb 스캔 (connectome)
+- **타입**: DIFF (116 diff lines)
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/connectome/.claude/commands/consolidate.md
+- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/consolidate.md
+- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260607-03 — DIFF command idea.md (from connectome)
+- **날짜**: 2026-06-07
+- **출처**: /absorb 스캔 (connectome)
+- **타입**: DIFF (126 diff lines)
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/connectome/.claude/commands/idea.md
+- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/idea.md
+- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260607-04 — DIFF command inbox.md (from connectome)
+- **날짜**: 2026-06-07
+- **출처**: /absorb 스캔 (connectome)
+- **타입**: DIFF (37 diff lines)
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/connectome/.claude/commands/inbox.md
+- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/inbox.md
+- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260607-05 — DIFF command recall.md (from connectome)
+- **날짜**: 2026-06-07
+- **출처**: /absorb 스캔 (connectome)
+- **타입**: DIFF (68 diff lines)
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/connectome/.claude/commands/recall.md
+- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/recall.md
+- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
+- **상태**: ⏳ pending
