@@ -195,7 +195,7 @@ function cardWidth(block) {
 function generateHtml(title, date, blocks, imgBase) {
   const bodyHtml = blocks.map((card, i) => {
     if (card.type === 'image') {
-      const src = card.filename ? (imgBase + '/' + card.filename) : (card.src || '');
+      const src = card.filename ? (imgBase + card.filename) : (card.src || '');
       const imgTag = `<img src="${escHtml(src)}" alt="${escHtml(card.alt || '')}" loading="lazy" onerror="this.style.display='none'">`;
       const inner = card.link ? `<a href="${escHtml(card.link)}" target="_blank" rel="noopener noreferrer">${imgTag}</a>` : imgTag;
       return `<div class="block block-image" data-idx="${i}">${inner}${card.caption ? `<div class="caption">${escHtml(card.caption)}</div>` : ''}</div>`;
@@ -322,12 +322,102 @@ function formatDate(iso) {
   } catch { return iso || ''; }
 }
 
+// ── Process .onenote.html (Graph API raw HTML) → Cortex HTML ─────────────────
+async function processOnenoteHtmlSource(onenoteHtmlPath, dstDir, dstSection, title, date) {
+  const rawHtml = await readFile(onenoteHtmlPath, 'utf8');
+  const base = imgBase(dstSection);
+
+  // Extract body content
+  const bodyMatch = rawHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  let bodyContent = bodyMatch ? bodyMatch[1] : rawHtml;
+
+  // Replace __ATTACHMENT__filename placeholder with correct relative path
+  bodyContent = bodyContent.replace(/__ATTACHMENT__([a-f0-9]+\.png)/g, (_, f) => base + f);
+
+  // Fix any remaining Graph API image URLs (fallback)
+  bodyContent = bodyContent.replace(
+    /src="(https:\/\/graph\.microsoft\.com[^"]+\/\$value)"/g,
+    (_, url) => {
+      const filename = graphUrlToFilename(url);
+      if (!filename) return `src="missing.png"`;
+      return `src="${base}${filename}"`;
+    }
+  );
+
+  // Add dark theme override + make images responsive
+  const darkOverride = `
+<style>
+html, body { background: #1e1e1e !important; color: #e0e0e0 !important; font-family: 'Segoe UI', -apple-system, sans-serif !important; }
+* { color: inherit !important; background-color: transparent !important; border-color: #444 !important; }
+a { color: #6cb0f6 !important; }
+table { border-collapse: collapse; width: 100%; }
+td, th { border: 1px solid #444; padding: 6px 10px; vertical-align: top; }
+img { max-width: 100%; height: auto; border-radius: 4px; }
+</style>`;
+
+  const pageHtml = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escHtml(title)}</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 14px; line-height: 1.6; }
+.toolbar { position: sticky; top: 0; z-index: 100; background: #161b22; border-bottom: 1px solid #30363d; padding: 8px 24px; display: flex; gap: 10px; align-items: center; }
+.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; }
+.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+.toolbar button:hover { background: #30363d; color: #fff; }
+.onenote-body { padding: 20px 24px 80px; }
+.onenote-body * { color: #e0e0e0 !important; background-color: transparent !important; }
+.onenote-body table { border-collapse: collapse; width: 100%; margin-bottom: 12px; }
+.onenote-body td, .onenote-body th { border: 1px solid #444 !important; padding: 6px 10px !important; vertical-align: top; }
+.onenote-body img { max-width: 100%; height: auto; border-radius: 4px; display: block; }
+.onenote-body a { color: #6cb0f6 !important; text-decoration: none; }
+.onenote-body a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <span class="t-title">${escHtml(title)}</span>
+  <span class="t-date">${escHtml(date)}</span>
+  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
+</div>
+<div class="onenote-body">
+${bodyContent}
+</div>
+<script>
+function copyPath() {
+  navigator.clipboard.writeText(location.pathname).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ 복사됨';
+    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+  });
+}
+</script>
+</body>
+</html>`;
+
+  return pageHtml;
+}
+
 // ── Process a single .md file → .html ────────────────────────────────────────
 async function processFile(srcPath, dstDir, dstSection) {
   const content = await readFile(srcPath, 'utf8');
   const { meta, body } = parseFrontmatter(content);
   const title = meta.title || basename(srcPath, '.md');
   const date = formatDate(meta.modified || meta.created);
+  const outName = basename(srcPath, '.md') + '.html';
+  const outPath = join(dstDir, outName);
+
+  // Prefer .onenote.html (Graph API HTML source) when available — preserves tables/images
+  const onenoteHtmlPath = srcPath.replace(/\.md$/, '.onenote.html');
+  const hasOnenoteHtml = await access(onenoteHtmlPath).then(() => true).catch(() => false);
+  if (hasOnenoteHtml) {
+    const html = await processOnenoteHtmlSource(onenoteHtmlPath, dstDir, dstSection, title, date);
+    return { outPath, html, title, cardCount: -1, source: 'onenote-html' };
+  }
 
   const blocks = extractBlocks(body, title);
   if (blocks.length === 0) return null;
@@ -349,8 +439,6 @@ async function processFile(srcPath, dstDir, dstSection) {
 
   const base = imgBase(dstSection);
   const html = generateHtml(title, date, cards, base);
-  const outName = basename(srcPath, '.md') + '.html';
-  const outPath = join(dstDir, outName);
   return { outPath, html, title, cardCount: cards.length };
 }
 
