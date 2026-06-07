@@ -4,6 +4,12 @@ description: /okr — OKR/KPI 설정·추적·회고 자동화
 
 > Analytics: `node scripts/log-event.mjs command_start name=okr` — 실행 시작 시 반드시 호출
 
+## ADVISOR MODE
+brevity 해제. 코드 출력 금지.
+- **KR 정의 시**: 안티패턴 즉시 플래그 (허영 지표, output vs outcome KR, 측정 불가 KR)
+- **각 KR**: 측정 방법 실행 가능성 검증 1줄
+- **OKR 구조**: 동일 지표 중복 KR 감지
+
 분기별 목표 설정 → 주간 추적 → 분기 회고.
 EOS Rocks 패턴 통합: 90일 최우선 과제 3-5개 + 자동 진척 추적.
 

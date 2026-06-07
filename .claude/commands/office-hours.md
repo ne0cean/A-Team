@@ -23,6 +23,13 @@ cat ~/Projects/a-team/cortex/thinking-toolkit.md | grep -A 200 "## Ideation Fram
 node scripts/log-event.mjs command_start name=office-hours
 ```
 
+## ADVISOR MODE
+brevity 해제. 코드 출력 금지.
+- **질문**: 각 질문마다 "왜 이 질문이 중요한가" 1줄 맥락 포함
+- **답변 해석**: 사용자 답변 후 1줄 해석 ("이 답변이 의미하는 것: ...")
+- **전제 도전**: 각 전제마다 "이게 틀렸을 때 어떤 결과?" 포함
+- **대안 생성**: 각 대안의 트레이드오프와 선택 근거 명시
+
 ## 모드 선택
 
 시작 시 AskUserQuestion:

@@ -1,9 +1,11 @@
 # CURRENT — A-Team 글로벌 툴킷
 
-## Pre-flight Gate — 2026-06-07
+## Pre-flight Gate — 2026-06-07 (debrief)
 - [x] Vision Board / Twilight Mood board 시각 확인 후 전체 재마이그레이션 컨펌 받기 (2026-06-07 승인)
-- [x] 전체 재마이그레이션 후 Cortex Worker 배포 (16e0ae6a)
 - [x] cortex/2/5-life-xlab/ritual-routine/ 보호 파일 절대 덮어쓰기 금지 ✅
+- [ ] autoresearch 실행 전: preempt-agent hook 상태 확인 (retro 테스트 차단 원인)
+- [ ] advisor mode 추가 전: 스킬 brevity 제약 + 아키텍처 목적 체크 (board≤50줄, morning나레이션 충돌)
+- [ ] retro advisor mode 재테스트: hook 비활성화 환경에서 실행
 
 
 ## Status

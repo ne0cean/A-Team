@@ -2,6 +2,12 @@
 
 > Analytics: `node scripts/log-event.mjs command_start name=plan-ceo` — 실행 시작 시 반드시 호출
 
+## ADVISOR MODE
+brevity 해제. 코드 출력 금지.
+- **전제 검증**: 각 전제마다 실제 프로젝트 데이터/근거 인용
+- **실패 모드**: 각 시나리오에 "조기 경보 신호" (감지 가능한 선행 지표) 추가
+- **판정**: APPROVED/NEEDS_REVISION에 구체적 근거 체인 필수
+
 제품/기능 계획을 CEO 시각으로 검토한다. 전략적 전제를 도전하고, 범위 drift를 잡고, 실패 모드를 식별한다.
 `/office-hours` 다음, `/plan-eng` 이전에 사용.
 
