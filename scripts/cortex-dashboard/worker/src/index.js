@@ -458,7 +458,23 @@ export default {
         return new Response(JSON.stringify({ error: 'backup data corrupted' }), { status: 500, headers });
       }
 
-      // --- Workout ---
+      // --- Workout Log (isolated, date-keyed, independent of month data) ---
+      if (path === '/api/workout-log' && method === 'GET') {
+        const data = await getKey('workout-log') || {};
+        return new Response(JSON.stringify(data), { headers });
+      }
+      if (path === '/api/workout-log' && method === 'POST') {
+        const { date, workout } = await request.json();
+        if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Array.isArray(workout)) {
+          return new Response(JSON.stringify({ error: 'invalid payload' }), { status: 400, headers });
+        }
+        const data = await getKey('workout-log') || {};
+        data[date] = workout;
+        await setKey('workout-log', data);
+        return new Response(JSON.stringify({ ok: true }), { headers });
+      }
+
+      // --- Workout (legacy, month-embedded) ---
       if (path === '/api/workout' && method === 'GET') {
         return new Response('Method Not Allowed', { status: 405, headers: { ...headers, 'Allow': 'POST' } });
       }

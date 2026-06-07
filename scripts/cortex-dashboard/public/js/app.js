@@ -8,6 +8,7 @@ const TYPES = ['block','flow'];
 
 let currentYear, currentMonth, currentWeekStart, monthData, standingData, recurringData;
 let todayMonthData = null; // 오늘 날짜 월 캐시 (월 탐색 시에도 유지)
+let workoutLog = {}; // 독립 workout 저장소 — 월 데이터와 완전 분리
 let viewMode = 'month'; // 'month' (default) or 'week'
 let _weekScrolledToToday = false; // only scroll today into view on mode switch, not every render
 let _pendingCarrySave = false; // carry logic sets this; render() saves once at the end
@@ -58,6 +59,7 @@ function init() {
   loadStandingOrders();
   loadRecurringTemplates();
   loadFrames();
+  loadWorkoutLog();
   // loadVision(); // replaced by Twilight Mood board iframe
   loadSidebarTree('cortex');
   registerSW();
@@ -938,10 +940,11 @@ async function save() {
     return;
   }
   try {
-    // Include workout in save — in-memory monthData is always up-to-date (toggleWorkout updates it)
+    // workout은 workout-log 독립 저장소에서 관리 — month 데이터에서 제거
     const safeData = { ...monthData, days: {} };
     for (const [k, dd] of Object.entries(monthData.days || {})) {
-      safeData.days[k] = { ...dd };
+      const { workout, ...rest } = dd;
+      safeData.days[k] = rest;
     }
     const res = await fetch(`${API}/api/month`, {
       method: 'POST', headers: AUTH,
@@ -1561,10 +1564,17 @@ async function saveOneThing(d, text) {
   await save();
 }
 
+async function loadWorkoutLog() {
+  try {
+    const res = await fetch(`${API}/api/workout-log`);
+    workoutLog = await res.json();
+  } catch { workoutLog = {}; }
+  renderWorkoutBar();
+}
+
 function renderWorkoutBar() {
-  const today = new Date().getDate();
-  const dd = (todayMonthData || monthData).days?.[String(today)] || {};
-  const wo = dd.workout || [];
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const wo = workoutLog[todayStr] || [];
   const WORKOUT_GROUPS = [
     { label: '전면', parts: [], color: 'blue' },
     { label: '측면', parts: [], color: 'blue' },
@@ -1592,16 +1602,13 @@ function renderWorkoutBar() {
 }
 
 async function toggleWorkout(part) {
-  const today = String(new Date().getDate());
-  const target = todayMonthData || monthData;
-  if (!target.days[today]) target.days[today] = {};
-  if (!target.days[today].workout) target.days[today].workout = [];
-  const wo = target.days[today].workout;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (!workoutLog[todayStr]) workoutLog[todayStr] = [];
+  const wo = workoutLog[todayStr];
   const idx = wo.indexOf(part);
   if (idx >= 0) {
     wo.splice(idx, 1);
   } else {
-    // Mutual exclusion groups: 전면/측면/후면 XOR, 등/가슴 XOR
     const BLUE_GROUP = ['전면', '측면', '후면'];
     const GREEN_GROUP = ['등', '가슴'];
     const group = BLUE_GROUP.includes(part) ? BLUE_GROUP : GREEN_GROUP.includes(part) ? GREEN_GROUP : null;
@@ -1612,12 +1619,9 @@ async function toggleWorkout(part) {
     }
     wo.push(part);
   }
-  // atomic workout save — dedicated endpoint, never overwritten by full month save
-  const now = new Date();
-  const todayYm = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  await fetch(`${API}/api/workout`, {
+  await fetch(`${API}/api/workout-log`, {
     method: 'POST', headers: AUTH,
-    body: JSON.stringify({ ym: todayYm, day: today, workout: target.days[today].workout })
+    body: JSON.stringify({ date: todayStr, workout: wo })
   });
   renderWorkoutBar();
 }
