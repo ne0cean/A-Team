@@ -379,8 +379,29 @@ function extractBoardCards(bodyContent) {
       if (depth > 0) j++;
     }
     const inner = bodyContent.slice(dm.index + dm[0].length, j);
+
+    // Extract nested images (e.g. inside table cells) as individual image cards
+    const nestedImgs = [...inner.matchAll(/<img\b([\s\S]*?)(?:\/>|>)/gi)];
+    let imgIdx = 0;
+    for (const im of nestedImgs) {
+      const tag = im[1];
+      const srcM = tag.match(/data-fullres-src="__ATTACHMENT__([a-f0-9]+\.png)"|src="__ATTACHMENT__([a-f0-9]+\.png)"/);
+      if (!srcM) continue;
+      const src = srcM[1] || srcM[2];
+      // Skip if already captured as standalone absolute img
+      if (cards.some(c => c.type === 'image' && c.src === src)) continue;
+      const wM = tag.match(/width="(\d+(?:\.\d+)?)"/);
+      const imgW = wM ? Math.min(Math.round(parseFloat(wM[1])), 480) : 220;
+      // Lay out images in a grid within the div's footprint
+      const col = imgIdx % 3;
+      const row = Math.floor(imgIdx / 3);
+      cards.push({ type: 'image', x: x + col * (imgW + 8), y: y + row * 200, w: imgW, src });
+      imgIdx++;
+    }
+
+    // Also emit text card if there's readable text content
     const content = cleanCardText(inner);
-    if (content.trim()) cards.push({ type: 'text', x, y, w, content });
+    if (content.trim()) cards.push({ type: 'text', x, y: y + Math.ceil(imgIdx / 3) * 200, w, content });
   }
 
   return cards.sort((a, b) => (a.y - b.y) || (a.x - b.x));
