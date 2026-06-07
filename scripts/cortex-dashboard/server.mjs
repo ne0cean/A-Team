@@ -76,6 +76,12 @@ function saveMonth(ym, data) {
       console.warn(`saveMonth(${ym}) BLOCKED: would erase ${existingItems} items with empty data`);
       return;
     }
+    // Preserve workout — client strips it before POSTing (managed via /api/workout)
+    for (const [day, dd] of Object.entries(existing.days || {})) {
+      if (dd.workout?.length && data.days[day] && !data.days[day].workout) {
+        data.days[day].workout = dd.workout;
+      }
+    }
   }
   backup(p);
   writeFileSync(p, JSON.stringify(data, null, 2), 'utf-8');
@@ -615,13 +621,30 @@ const server = createServer(async (req, res) => {
     }
 
     if (path === '/api/workout' && req.method === 'POST') {
-      const { ym, day, part } = JSON.parse(await readBody(req));
+      const { ym, day, workout, part } = JSON.parse(await readBody(req));
       const data = loadMonth(ym);
       const dd = ensureDay(data, day);
-      if (!dd.workout) dd.workout = [];
-      const idx = dd.workout.indexOf(part);
-      if (idx >= 0) dd.workout.splice(idx, 1);
-      else dd.workout.push(part);
+      if (Array.isArray(workout)) {
+        // Array format: enforce XOR server-side (전면/측면/후면 XOR, 등/가슴 XOR)
+        const BLUE = ['전면', '측면', '후면'];
+        const GREEN = ['등', '가슴'];
+        const xorResult = [];
+        for (const p of workout) {
+          const grp = BLUE.includes(p) ? BLUE : GREEN.includes(p) ? GREEN : null;
+          if (grp) {
+            for (let i = xorResult.length - 1; i >= 0; i--) {
+              if (grp.includes(xorResult[i])) xorResult.splice(i, 1);
+            }
+          }
+          if (!xorResult.includes(p)) xorResult.push(p);
+        }
+        dd.workout = xorResult;
+      } else if (typeof part === 'string') {
+        if (!dd.workout) dd.workout = [];
+        const idx = dd.workout.indexOf(part);
+        if (idx >= 0) dd.workout.splice(idx, 1);
+        else dd.workout.push(part);
+      }
       saveMonth(ym, data);
       return jsonRes(res, 200, { ok: true, workout: dd.workout });
     }
