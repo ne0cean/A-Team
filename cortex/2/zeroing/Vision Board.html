@@ -40,6 +40,7 @@ a:hover { text-decoration: underline; }
 <div class="date">2020년 2월 16일 일요일</div>
 <div class="board" id="board"></div>
 <div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
   <button onclick="addTextCard()">+ 텍스트</button>
   <button onclick="addImageCard()">+ 이미지</button>
   <button onclick="addImageUrl()">+ 이미지 URL</button>
@@ -241,6 +242,36 @@ let moving = null, resizing = null;
 const GRID = 20, GAP = 14;
 function snap(v) { return Math.round(v / GRID) * GRID; }
 
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (document.activeElement?.contentEditable === 'true') return; // let browser handle text undo
+    e.preventDefault();
+    undo();
+  }
+});
+
 function pushCards(movedIdx) {
   const moved = cards[movedIdx];
   const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
@@ -301,7 +332,7 @@ function syncText() {
     if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
   });
 }
-function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString(); }
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
 
 function renderCards() {
   const board = document.getElementById('board');
@@ -315,16 +346,18 @@ function renderCards() {
     el.addEventListener('mousedown', e => {
       if (e.target.closest('.text, a, .card-btn, .resize-handle')) return;
       e.preventDefault();
+      snapshot();
       moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
       el.classList.add('moving');
     });
     const actions = document.createElement('div'); actions.className = 'card-actions';
     const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
-    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { cards.splice(i,1); renderCards(); saveBoard(); } };
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
     actions.appendChild(delBtn); el.appendChild(actions);
     if (card.type === 'text') {
       const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
       text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
       text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
       el.appendChild(text);
     } else if (card.type === 'image') {
@@ -335,7 +368,7 @@ function renderCards() {
       else { el.appendChild(img); }
     }
     const rh = document.createElement('div'); rh.className = 'resize-handle';
-    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
     el.appendChild(rh);
     board.appendChild(el);
   });
@@ -372,9 +405,9 @@ document.addEventListener('mouseup', e => {
   if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
 });
 
-function addTextCard() { cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
-function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
-function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
 function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
 function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
 setInterval(saveBoard, 30000);
