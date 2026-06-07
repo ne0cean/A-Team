@@ -1438,13 +1438,29 @@ async function delItem(d, cat, idx, refocus) {
   }
   // Track deleted item text in rejection list so it won't be re-carried from prev day
   const deletedItem = dayData[cat]?.[idx];
+  const normText = t => (t || '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
   if (deletedItem && !deletedItem.type) {
     const rejectKey = `_carry_rejects_${cat}`;
-    if (!dayData[rejectKey]) dayData[rejectKey] = [];
-    const normText = t => (t || '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
     const normalized = normText(deletedItem.text);
-    if (normalized && !dayData[rejectKey].map(t => normText(t)).includes(normalized)) {
-      dayData[rejectKey].push(deletedItem.text);
+    // Add to NEXT day's reject list (carry logic reads target day's rejects)
+    const nextDayData = monthData.days?.[String(d + 1)];
+    if (nextDayData && normalized) {
+      if (!nextDayData[rejectKey]) nextDayData[rejectKey] = [];
+      if (!nextDayData[rejectKey].map(t => normText(t)).includes(normalized)) {
+        nextDayData[rejectKey].push(deletedItem.text);
+      }
+      // Also remove already-saved _carried copies from future days
+      for (let fd = d + 1; fd <= 31; fd++) {
+        const fdd = monthData.days?.[String(fd)];
+        if (!fdd || !fdd[cat]) continue;
+        const before = fdd[cat].length;
+        fdd[cat] = fdd[cat].filter(i => !(i._carried && normText(i.text) === normalized));
+        if (fdd[cat].length !== before) {
+          const frk = `_carry_rejects_${cat}`;
+          if (!fdd[frk]) fdd[frk] = [];
+          if (!fdd[frk].map(t => normText(t)).includes(normalized)) fdd[frk].push(deletedItem.text);
+        }
+      }
     }
   }
   dayData[cat].splice(idx, 1);
