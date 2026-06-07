@@ -11,324 +11,1002 @@ body {
   color: #e0e0e0;
   font-family: 'Segoe UI', -apple-system, sans-serif;
   font-size: 15px;
-  line-height: 1.6;
-  padding: 20px 30px 60px;
-  overflow-x: hidden;
+  line-height: 1.7;
+  padding: 0 0 80px;
 }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.title-bar {
-  background: #3a3a5c;
-  display: inline-block;
-  padding: 6px 16px;
-  font-size: 22px;
-  font-weight: bold;
-  color: #fff;
-  margin-bottom: 4px;
+.toolbar {
+  position: sticky; top: 0; z-index: 100;
+  background: #161b22; border-bottom: 1px solid #30363d;
+  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
 }
-.date { color: #999; font-size: 13px; margin-bottom: 20px; }
-.board { position: relative; }
-.card {
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
-  border-radius: 8px;
-  padding: 12px;
-  position: absolute;
-  cursor: grab;
-  transition: box-shadow 0.15s;
-  overflow: hidden;
+.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
+.toolbar button:hover { background: #30363d; color: #fff; }
+.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
+.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
+.block { margin-bottom: 10px; }
+.block-text {
+  outline: none;
+  padding: 5px 8px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 1.5em;
 }
-.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
-.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
-.card img { width: 100%; border-radius: 4px; display: block; }
-.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
-.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
-.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
-.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
-.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
-.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
-.card table th { background: #333; color: #ccc; }
-.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
-.card:hover .card-actions { display: flex; }
-.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
-.card-btn:hover { background: #444; color: #fff; }
-.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
-.card:hover .resize-handle { opacity: 0.6; }
-.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
-.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-.toolbar button:hover { background: #30363d; }
-.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
-.highlight-red { color: #ff6b6b; }
-.highlight-blue { color: #6cb0f6; }
+.block-text:focus { background: rgba(255,255,255,0.04); }
+.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
+.block-image img { max-width: 100%; border-radius: 6px; display: block; }
+.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
+.block-table .table-wrap { overflow-x: auto; }
+.block-table table { border-collapse: collapse; font-size: 13px; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table th { background: #2a2a3a; color: #ccc; }
 </style>
 </head>
 <body>
-<div class="title-bar">2026-06</div>
-<div class="date">Invalid Date</div>
-<div class="board" id="board"></div>
 <div class="toolbar">
-  <button onclick="addTextCard()">+ 텍스트</button>
-  <button onclick="addImageCard()">+ 이미지</button>
-  <button onclick="saveBoard()">💾 저장</button>
-  <button onclick="resetLayout()">↺ 재배치</button>
-  <span class="status" id="status">Ready</span>
+  <span class="t-title">2026-06</span>
+  <span class="t-date">Invalid Date</span>
+  <button onclick="save()">저장</button>
+  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
+  <span class="t-status" id="status"></span>
+</div>
+<div class="doc" id="doc">
+<div class="block block-text" data-idx="0" contenteditable="true"><style><br>table { border-collapse: collapse; width: 100%; font-size: 13px; }<br>th, td { border: 1px solid #444; padding: 6px 8px; vertical-align: top; }<br>th { background: #1a1a2e; color: #e0e0e0; text-align: center; min-width: 80px; }<br>td:first-child { font-weight: bold; min-width: 90px; background: #16213e; color: #e0e0e0; text-align: center; }<br>.goal { background: #0d1117; padding: 12px; margin-bottom: 16px; border-left: 3px solid #f0c040; }<br></style><br><br># June 2026<br><br><div class="goal"><br><br><b>Palette</b>: Ritual & Routine / Stratum / Baklava / Crepe Cake<br><br><b>Goal</b>: 일정 관리가 아닌, 집중력 배분. 로봇이 되자, 두려워 말라. 태도가 시사처.<br><br><b>Don't think, just do</b> | H & A | One note refresh / Traffic & Banking<br><br></div><br><br>---<br><br>## Week 23 (06/1 - 06/6)</div>
+<div class="block block-table" data-idx="1"><div class="table-wrap"><table>
+<tr>
+  <th>날짜</th>
+  <th>Ritual & Routine</th>
+  <th>출근전 - Input/R&D</th>
+  <th>Work - 1H Blocks</th>
+  <th>퇴근후 - Outcome, Mode Severance</th>
+</tr>
+
+<tr><td>
+
+**1 (월)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**2 (화)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**3 (수)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**4 (목)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**5 (금)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**6 (토)**
+
+</td><td>
+
+- [ ] Zone2 1H + 스픽&보카
+- [ ] 10분 묵상 챌린지
+- [ ] 4H Flow Block
+- [ ] Vision Board
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+</table></div></div>
+<div class="block block-text" data-idx="2" contenteditable="true">---<br><br>## Week 24 (06/7 - 06/13)</div>
+<div class="block block-table" data-idx="3"><div class="table-wrap"><table>
+<tr>
+  <th>날짜</th>
+  <th>Ritual & Routine</th>
+  <th>출근전 - Input/R&D</th>
+  <th>Work - 1H Blocks</th>
+  <th>퇴근후 - Outcome, Mode Severance</th>
+</tr>
+
+<tr><td>
+
+**7 (일)**
+
+</td><td>
+
+- [ ] Zone2 1H + 스픽&보카
+- [ ] 10분 묵상 챌린지
+- [ ] 4H Flow Block
+- [ ] Vision Board
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**8 (월)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**9 (화)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**10 (수)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**11 (목)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**12 (금)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**13 (토)**
+
+</td><td>
+
+- [ ] Zone2 1H + 스픽&보카
+- [ ] 10분 묵상 챌린지
+- [ ] 4H Flow Block
+- [ ] Vision Board
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+</table></div></div>
+<div class="block block-text" data-idx="4" contenteditable="true">---<br><br>## Week 25 (06/14 - 06/20)</div>
+<div class="block block-table" data-idx="5"><div class="table-wrap"><table>
+<tr>
+  <th>날짜</th>
+  <th>Ritual & Routine</th>
+  <th>출근전 - Input/R&D</th>
+  <th>Work - 1H Blocks</th>
+  <th>퇴근후 - Outcome, Mode Severance</th>
+</tr>
+
+<tr><td>
+
+**14 (일)**
+
+</td><td>
+
+- [ ] Zone2 1H + 스픽&보카
+- [ ] 10분 묵상 챌린지
+- [ ] 4H Flow Block
+- [ ] Vision Board
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**15 (월)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**16 (화)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**17 (수)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**18 (목)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**19 (금)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**20 (토)**
+
+</td><td>
+
+- [ ] Zone2 1H + 스픽&보카
+- [ ] 10분 묵상 챌린지
+- [ ] 4H Flow Block
+- [ ] Vision Board
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+</table></div></div>
+<div class="block block-text" data-idx="6" contenteditable="true">---<br><br>## Week 26 (06/21 - 06/27)</div>
+<div class="block block-table" data-idx="7"><div class="table-wrap"><table>
+<tr>
+  <th>날짜</th>
+  <th>Ritual & Routine</th>
+  <th>출근전 - Input/R&D</th>
+  <th>Work - 1H Blocks</th>
+  <th>퇴근후 - Outcome, Mode Severance</th>
+</tr>
+
+<tr><td>
+
+**21 (일)**
+
+</td><td>
+
+- [ ] Zone2 1H + 스픽&보카
+- [ ] 10분 묵상 챌린지
+- [ ] 4H Flow Block
+- [ ] Vision Board
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**22 (월)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**23 (화)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**24 (수)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**25 (목)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**26 (금)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**27 (토)**
+
+</td><td>
+
+- [ ] Zone2 1H + 스픽&보카
+- [ ] 10분 묵상 챌린지
+- [ ] 4H Flow Block
+- [ ] Vision Board
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+</table></div></div>
+<div class="block block-text" data-idx="8" contenteditable="true">---<br><br>## Week 27 (06/28 - 06/30)</div>
+<div class="block block-table" data-idx="9"><div class="table-wrap"><table>
+<tr>
+  <th>날짜</th>
+  <th>Ritual & Routine</th>
+  <th>출근전 - Input/R&D</th>
+  <th>Work - 1H Blocks</th>
+  <th>퇴근후 - Outcome, Mode Severance</th>
+</tr>
+
+<tr><td>
+
+**28 (일)**
+
+</td><td>
+
+- [ ] Zone2 1H + 스픽&보카
+- [ ] 10분 묵상 챌린지
+- [ ] 4H Flow Block
+- [ ] Vision Board
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**29 (월)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+
+<tr><td>
+
+**30 (화)**
+
+</td><td>
+
+- [ ] Zone2 40min/HIIT+스픽
+- [ ] 10분 묵상
+- [ ] Commit
+
+</td><td>
+
+- [ ] Python
+- [ ] figma
+- [ ] Transcription
+- [ ] Speaking
+
+</td><td>
+
+- [ ] AX/SCM
+- [ ] 통계 Dashboard
+
+</td><td>
+
+- [ ] 임장 매물 검색
+- [ ] 8:30 취침 w/Podcast
+
+</td></tr>
+</table></div></div>
+<div class="block block-text" data-idx="10" contenteditable="true">---<br><br>## 상시 업무<br><br>- Swimming/ Golf / 테니스/ Surfing/ 스키&보드?<br>- 리더의 서재(금) · 해프랑 맞으면?<br>- Small Question, BIG TALK<br><br>## Monthly<br><br>- (이달 목표 및 이벤트 기입)</div>
 </div>
 <script>
-const SAVE_KEY = 'board-2026-06';
-const IMG_BASE = '../../attachments/';
-const DEFAULT_CARDS = [
-  {
-    "type": "text",
-    "content": "<style><br>table { border-collapse: collapse; width: 100%; font-size: 13px; }<br>th, td { border: 1px solid #444; padding: 6px 8px; vertical-align: top; }<br>th { background: #1a1a2e; color: #e0e0e0; text-align: center; min-width: 80px; }<br>td:first-child { font-weight: bold; min-width: 90px; background: #16213e; color: #e0e0e0; text-align: center; }<br>.goal { background: #0d1117; padding: 12px; margin-bottom: 16px; border-left: 3px solid #f0c040; }<br></style><br><br># June 2026<br><br><div class=\"goal\"><br><br><b>Palette</b>: Ritual & Routine / Stratum / Baklava / Crepe Cake<br><br><b>Goal</b>: 일정 관리가 아닌, 집중력 배분. 로봇이 되자, 두려워 말라. 태도가 시사처.<br><br><b>Don't think, just do</b> | H & A | One note refresh / Traffic & Banking<br><br></div><br><br>---<br><br>## Week 23 (06/1 - 06/6)",
-    "w": 400
-  },
-  {
-    "type": "table",
-    "html": "<table>\n<tr>\n  <th>날짜</th>\n  <th>Ritual & Routine</th>\n  <th>출근전 - Input/R&D</th>\n  <th>Work - 1H Blocks</th>\n  <th>퇴근후 - Outcome, Mode Severance</th>\n</tr>\n\n<tr><td>\n\n**1 (월)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**2 (화)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**3 (수)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**4 (목)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**5 (금)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**6 (토)**\n\n</td><td>\n\n- [ ] Zone2 1H + 스픽&보카\n- [ ] 10분 묵상 챌린지\n- [ ] 4H Flow Block\n- [ ] Vision Board\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n</table>",
-    "w": 480
-  },
-  {
-    "type": "text",
-    "content": "---<br><br>## Week 24 (06/7 - 06/13)",
-    "w": 260
-  },
-  {
-    "type": "table",
-    "html": "<table>\n<tr>\n  <th>날짜</th>\n  <th>Ritual & Routine</th>\n  <th>출근전 - Input/R&D</th>\n  <th>Work - 1H Blocks</th>\n  <th>퇴근후 - Outcome, Mode Severance</th>\n</tr>\n\n<tr><td>\n\n**7 (일)**\n\n</td><td>\n\n- [ ] Zone2 1H + 스픽&보카\n- [ ] 10분 묵상 챌린지\n- [ ] 4H Flow Block\n- [ ] Vision Board\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**8 (월)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**9 (화)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**10 (수)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**11 (목)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**12 (금)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**13 (토)**\n\n</td><td>\n\n- [ ] Zone2 1H + 스픽&보카\n- [ ] 10분 묵상 챌린지\n- [ ] 4H Flow Block\n- [ ] Vision Board\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n</table>",
-    "w": 480
-  },
-  {
-    "type": "text",
-    "content": "---<br><br>## Week 25 (06/14 - 06/20)",
-    "w": 260
-  },
-  {
-    "type": "table",
-    "html": "<table>\n<tr>\n  <th>날짜</th>\n  <th>Ritual & Routine</th>\n  <th>출근전 - Input/R&D</th>\n  <th>Work - 1H Blocks</th>\n  <th>퇴근후 - Outcome, Mode Severance</th>\n</tr>\n\n<tr><td>\n\n**14 (일)**\n\n</td><td>\n\n- [ ] Zone2 1H + 스픽&보카\n- [ ] 10분 묵상 챌린지\n- [ ] 4H Flow Block\n- [ ] Vision Board\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**15 (월)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**16 (화)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**17 (수)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**18 (목)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**19 (금)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**20 (토)**\n\n</td><td>\n\n- [ ] Zone2 1H + 스픽&보카\n- [ ] 10분 묵상 챌린지\n- [ ] 4H Flow Block\n- [ ] Vision Board\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n</table>",
-    "w": 480
-  },
-  {
-    "type": "text",
-    "content": "---<br><br>## Week 26 (06/21 - 06/27)",
-    "w": 260
-  },
-  {
-    "type": "table",
-    "html": "<table>\n<tr>\n  <th>날짜</th>\n  <th>Ritual & Routine</th>\n  <th>출근전 - Input/R&D</th>\n  <th>Work - 1H Blocks</th>\n  <th>퇴근후 - Outcome, Mode Severance</th>\n</tr>\n\n<tr><td>\n\n**21 (일)**\n\n</td><td>\n\n- [ ] Zone2 1H + 스픽&보카\n- [ ] 10분 묵상 챌린지\n- [ ] 4H Flow Block\n- [ ] Vision Board\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**22 (월)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**23 (화)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**24 (수)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**25 (목)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**26 (금)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**27 (토)**\n\n</td><td>\n\n- [ ] Zone2 1H + 스픽&보카\n- [ ] 10분 묵상 챌린지\n- [ ] 4H Flow Block\n- [ ] Vision Board\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n</table>",
-    "w": 480
-  },
-  {
-    "type": "text",
-    "content": "---<br><br>## Week 27 (06/28 - 06/30)",
-    "w": 260
-  },
-  {
-    "type": "table",
-    "html": "<table>\n<tr>\n  <th>날짜</th>\n  <th>Ritual & Routine</th>\n  <th>출근전 - Input/R&D</th>\n  <th>Work - 1H Blocks</th>\n  <th>퇴근후 - Outcome, Mode Severance</th>\n</tr>\n\n<tr><td>\n\n**28 (일)**\n\n</td><td>\n\n- [ ] Zone2 1H + 스픽&보카\n- [ ] 10분 묵상 챌린지\n- [ ] 4H Flow Block\n- [ ] Vision Board\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**29 (월)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n\n<tr><td>\n\n**30 (화)**\n\n</td><td>\n\n- [ ] Zone2 40min/HIIT+스픽\n- [ ] 10분 묵상\n- [ ] Commit\n\n</td><td>\n\n- [ ] Python\n- [ ] figma\n- [ ] Transcription\n- [ ] Speaking\n\n</td><td>\n\n- [ ] AX/SCM\n- [ ] 통계 Dashboard\n\n</td><td>\n\n- [ ] 임장 매물 검색\n- [ ] 8:30 취침 w/Podcast\n\n</td></tr>\n</table>",
-    "w": 480
-  },
-  {
-    "type": "text",
-    "content": "---<br><br>## 상시 업무<br><br>- Swimming/ Golf / 테니스/ Surfing/ 스키&보드?<br>- 리더의 서재(금) · 해프랑 맞으면?<br>- Small Question, BIG TALK<br><br>## Monthly<br><br>- (이달 목표 및 이벤트 기입)",
-    "w": 320
-  }
-];
+const SAVE_KEY = 'note-2026-06';
 
-let cards = [];
-let moving = null, resizing = null;
-
-function loadBoard() {
-  const saved = localStorage.getItem(SAVE_KEY);
-  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
-  renderCards();
-  if (!saved) autoLayout();
+function save() {
+  const data = {};
+  document.querySelectorAll('.block-text').forEach(el => {
+    data[el.dataset.idx] = el.innerHTML;
+  });
+  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  const s = document.getElementById('status');
+  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
+  setTimeout(() => { s.textContent = ''; }, 2000);
 }
 
-function autoLayout() {
-  const GAP = 14;
-  const boardW = document.getElementById('board').offsetWidth;
-  const cols = Math.max(1, Math.floor(boardW / 280));
-  const colW = (boardW - GAP * (cols - 1)) / cols;
-  const colHeights = new Array(cols).fill(0);
-  const allCards = document.querySelectorAll('.card');
-  const images = document.querySelectorAll('.card img');
-  let loaded = 0;
-  const total = images.length;
-
-  function place() {
-    allCards.forEach((el, i) => {
-      const card = cards[i];
-      const w = Math.min(card.w || colW, colW);
-      let minCol = 0;
-      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
-      card.x = minCol * (colW + GAP);
-      card.y = colHeights[minCol];
-      card.w = w;
-      el.style.left = card.x + 'px';
-      el.style.top = card.y + 'px';
-      el.style.width = w + 'px';
-      colHeights[minCol] = card.y + el.offsetHeight + GAP;
-    });
-    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
-    saveBoard();
-  }
-
-  if (total === 0) requestAnimationFrame(place);
-  else images.forEach(img => {
-    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
-    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+function copyPath() {
+  navigator.clipboard.writeText(location.pathname).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ 복사됨';
+    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
   });
 }
 
-function syncText() {
-  document.querySelectorAll('.card').forEach(el => {
-    const idx = +el.dataset.idx;
-    if (cards[idx]?.type === 'text') {
-      const t = el.querySelector('.text');
-      if (t) cards[idx].content = t.innerHTML;
-    }
-  });
+// Restore saved edits
+const saved = localStorage.getItem(SAVE_KEY);
+if (saved) {
+  try {
+    const data = JSON.parse(saved);
+    document.querySelectorAll('.block-text').forEach(el => {
+      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
+    });
+  } catch(e) {}
 }
 
-function saveBoard() {
-  syncText();
-  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
-  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
-}
-
-function renderCards() {
-  const board = document.getElementById('board');
-  board.innerHTML = '';
-  cards.forEach((card, i) => {
-    const el = document.createElement('div');
-    el.className = 'card';
-    el.dataset.idx = i;
-    if (card.x !== undefined) el.style.left = card.x + 'px';
-    if (card.y !== undefined) el.style.top = card.y + 'px';
-    if (card.w) el.style.width = card.w + 'px';
-
-    el.addEventListener('mousedown', e => {
-      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
-      e.preventDefault();
-      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
-      el.classList.add('moving');
-    });
-
-    const actions = document.createElement('div');
-    actions.className = 'card-actions';
-    const delBtn = document.createElement('button');
-    delBtn.className = 'card-btn'; delBtn.textContent = '×';
-    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
-    actions.appendChild(delBtn);
-    el.appendChild(actions);
-
-    if (card.type === 'text') {
-      const text = document.createElement('div');
-      text.className = 'text';
-      text.contentEditable = true;
-      text.innerHTML = card.content || '';
-      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
-      el.appendChild(text);
-    } else if (card.type === 'image') {
-      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = card.alt || '';
-      img.loading = 'lazy';
-      img.onerror = () => img.style.display = 'none';
-      if (card.link) {
-        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
-        a.appendChild(img); el.appendChild(a);
-      } else { el.appendChild(img); }
-      if (card.caption) {
-        const cap = document.createElement('div');
-        cap.className = 'caption';
-        cap.textContent = card.caption;
-        el.appendChild(cap);
-      }
-    } else if (card.type === 'table') {
-      const wrapper = document.createElement('div');
-      wrapper.style.overflowX = 'auto';
-      wrapper.innerHTML = card.html || '';
-      el.appendChild(wrapper);
-    }
-
-    const rh = document.createElement('div');
-    rh.className = 'resize-handle';
-    rh.addEventListener('mousedown', e => {
-      e.preventDefault(); e.stopPropagation();
-      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
-    });
-    el.appendChild(rh);
-    board.appendChild(el);
-  });
-
-  requestAnimationFrame(() => {
-    let maxBottom = 0;
-    document.querySelectorAll('.card').forEach(el => {
-      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
-      if (b > maxBottom) maxBottom = b;
-    });
-    board.style.minHeight = (maxBottom + 100) + 'px';
-  });
-}
-
-document.addEventListener('mousemove', e => {
-  if (moving) {
-    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
-    if (!el) return;
-    const nx = moving.origX + e.clientX - moving.startX;
-    const ny = moving.origY + e.clientY - moving.startY;
-    el.style.left = nx + 'px';
-    el.style.top = ny + 'px';
-  }
-  if (resizing) {
-    const card = cards[resizing.idx];
-    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
-    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
-    if (el) el.style.width = card.w + 'px';
-  }
+document.querySelectorAll('.block-text').forEach(el => {
+  el.addEventListener('blur', save);
 });
 
-document.addEventListener('mouseup', e => {
-  if (moving) {
-    const card = cards[moving.idx];
-    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
-    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
-    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
-    if (el) { el.classList.remove('moving'); }
-    moving = null; saveBoard();
-  }
-  if (resizing) { resizing = null; saveBoard(); }
-});
-
-function addTextCard() {
-  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
-  renderCards();
-  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
-}
-
-function addImageCard() {
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*';
-  input.onchange = e => {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
-    reader.readAsDataURL(file);
-  };
-  input.click();
-}
-
-function resetLayout() {
-  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
-  cards.forEach(c => { delete c.x; delete c.y; });
-  renderCards(); autoLayout();
-}
-
-setInterval(saveBoard, 30000);
-loadBoard();
+setInterval(save, 30000);
 </script>
 </body>
 </html>

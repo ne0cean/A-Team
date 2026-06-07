@@ -11,274 +11,90 @@ body {
   color: #e0e0e0;
   font-family: 'Segoe UI', -apple-system, sans-serif;
   font-size: 15px;
-  line-height: 1.6;
-  padding: 20px 30px 60px;
-  overflow-x: hidden;
+  line-height: 1.7;
+  padding: 0 0 80px;
 }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.title-bar {
-  background: #3a3a5c;
-  display: inline-block;
-  padding: 6px 16px;
-  font-size: 22px;
-  font-weight: bold;
-  color: #fff;
-  margin-bottom: 4px;
+.toolbar {
+  position: sticky; top: 0; z-index: 100;
+  background: #161b22; border-bottom: 1px solid #30363d;
+  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
 }
-.date { color: #999; font-size: 13px; margin-bottom: 20px; }
-.board { position: relative; }
-.card {
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
-  border-radius: 8px;
-  padding: 12px;
-  position: absolute;
-  cursor: grab;
-  transition: box-shadow 0.15s;
-  overflow: hidden;
+.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
+.toolbar button:hover { background: #30363d; color: #fff; }
+.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
+.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
+.block { margin-bottom: 10px; }
+.block-text {
+  outline: none;
+  padding: 5px 8px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 1.5em;
 }
-.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
-.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
-.card img { width: 100%; border-radius: 4px; display: block; }
-.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
-.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
-.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
-.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
-.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
-.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
-.card table th { background: #333; color: #ccc; }
-.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
-.card:hover .card-actions { display: flex; }
-.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
-.card-btn:hover { background: #444; color: #fff; }
-.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
-.card:hover .resize-handle { opacity: 0.6; }
-.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
-.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-.toolbar button:hover { background: #30363d; }
-.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
-.highlight-red { color: #ff6b6b; }
-.highlight-blue { color: #6cb0f6; }
+.block-text:focus { background: rgba(255,255,255,0.04); }
+.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
+.block-image img { max-width: 100%; border-radius: 6px; display: block; }
+.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
+.block-table .table-wrap { overflow-x: auto; }
+.block-table table { border-collapse: collapse; font-size: 13px; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table th { background: #2a2a3a; color: #ccc; }
 </style>
 </head>
 <body>
-<div class="title-bar">Fundraising</div>
-<div class="date">Invalid Date</div>
-<div class="board" id="board"></div>
 <div class="toolbar">
-  <button onclick="addTextCard()">+ 텍스트</button>
-  <button onclick="addImageCard()">+ 이미지</button>
-  <button onclick="saveBoard()">💾 저장</button>
-  <button onclick="resetLayout()">↺ 재배치</button>
-  <span class="status" id="status">Ready</span>
+  <span class="t-title">Fundraising</span>
+  <span class="t-date">Invalid Date</span>
+  <button onclick="save()">저장</button>
+  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
+  <span class="t-status" id="status"></span>
+</div>
+<div class="doc" id="doc">
+<div class="block block-text" data-idx="0" contenteditable="true">Fundraising<br>		<br>		<br>	<br>	<br>		<br>			<br>			<br><br>			<br>			<br><br>			<br>			<br><br>			<br>			<br>조사 결과 요약<br>			<br>				<br>- <br>스타트업 창업자의 생각<br>				<br>					<br>- 최근 스타트업 생태계 분위기는 작년 대비 7.2점 감소한 46.5점<br>					<br>- 대부분의 창업자(76.5%)들은 벤처캐피탈의 미온적 투자/지원, 민간부문 지원사업 약화 등에서 시장 상황의 부정적 변화를 체감<br>					<br>- 경제위기 가능성/경제상황 악화 전망으로 2024년에도 지금의 상황이 나아지지 않을 것으로 예상<br>					<br>- 창업자 10명 중 6명은 작년 대비 투자 유치가 어렵다고 체감 (63%)<br>					<br>- 벤처투자 시장 혹한기 리스크 대비책으로 매출 다각화 전략 마련, 흑자 사업 집중, 비용 절감, 정부지원사업 추진 등을 고려<br>					<br>- 스타트업 생태계 활성화에 대한 정부 역할 평가는 52.5점으로 생태계 기반 자금 확보 및 투자활성화, 각종 규제 완화에 대한 니즈가 높은 가운데, 특히 ‘규제 완화’ 필요성 인식이 증가<br>					<br>- 평균적으로 스타트업 중 약 30%가 해외 시장에 진출하거나 진행 중<br>					<br>- 대부분은 북미와 동남아시아를 주요 진출지로 선택하며, 그 뒤로는 일본, 유럽, 중국 등의 국가가 따름<br>					<br>- 해외 진출 시, 비즈니스 네트워크와 파트너십 구축, 현지 시장 정보 획득, 유통 및 판로 개척이 가장 중요하다고 생각. 반면 언어 능력과 글로벌 인재 확보는 상대적으로 중요성이 낮음<br>				<br>				<br>				<br>- <br>스타트업 재직자의 생각<br>				<br>					<br>- 42.0%만이 스타트업 생활에 만족하며, 이는 작년 대비 7.2%p 감소한 수치<br>					<br>- 자율적이고 수평적인 조직 문화, 워라밸 보장, 유연하고 빠른 의사결정 구조는 만족스러우나, 낮은 재정적 보상, 불안정한 조직 비전/전략은 주요한 불만족 요인<br>					<br>- 10명 중 3명이 스타트업 근무를 추천하며, 추천하는 경우 어느 정도 성장 가능성이 증명된 시리즈 A~B 투자 단계의 스타트업을 주로 추천<br>					<br>- 추천하지 않는 주요 사유는 리스크/불안정성/불확실성 및 체계 미흡<br>					<br>- 향후 이직 시 높은 재정적 보상 및 복리/복지 혜택이 좋은 대기업을 가장 선호<br>					<br>- 스타트업으로 이직을 고려하는 경우, 주로 소프트웨어/솔루션, 딥테크 분야를 희망하며, 4명 중 1명은 글로벌/국제화 역량을 키울 수 있는 해외 진출 스타트업을 선호<br>					<br>- 스타트업 재직자가 빠른 성장세를 체감하고, 일하는 방식을 알고 싶은 국내 기업은 토스, 당근마켓, 배달의민족<br>					<br>- 스타트업 재직자의 53.6%가 작년 대비 스타트업 투자 시장이 위축되었다고 평가하나, 지속 근무 및 창업 의향에 미치는 영향은 크지 않음<br>				<br>				<br>				<br>- <br>대기업 재직자의 생각<br>				<br>					<br>- 대기업 재직자 4명 중 1명은 평소 포털사이트, 직장인 전용 커뮤니티 앱, 뉴스/기사 등을 통해 스타트업 관련 정보를 접한 경험이 있음<br>					<br>- 대기업 직장인의 1년 내 스타트업 이직 고려율은 18.8%로, 작년 대비 6.0%p 감소<br>					<br>- 이직을 고려한 경우, 주로 높은 재정적 보상, 유연/빠른 의사결정 구조, 조직 성장으로 인한 성취감을 기대하며, 금융/핀테크/블록체인, 딥테크, 소프트웨어/솔루션 분야 선호도가 상대적으로 높음<br>					<br>- 절반 이상인 52.8%가 최근 1년 내 직접 창업을 고려한 경험이 있으며, 이는 작년과 유사/소폭 감소한 수치<br>					<br>- 이커머스/유통, 농식품, 교육, 여행/레저 분야 창업 고려 비율이 타 분야 대비 상대적으로 높게 나타남<br>					<br>- 그러나, 대부분의 직장인은 스타트업의 조직 비전/전략 불안정성, 워라밸 비보장, 낮은 재정적 보상 예상으로 스타트업으로의 이직을 고려하지 않았음<br>					<br>- 대기업 재직자는 빠른 성장/일하는 방식을 알고 싶은 국내 스타트업으로 토스, 배달의민족, 당근마켓을 Top3로 응답<br>				<br>				<br>				<br>- <br>취업 준비생의 생각<br>				<br>					<br>- 취업준비생에게 스타트업은 ‘젊은/새로운’ 이미지이며, 작년 대비 ‘혁신적/창의적인’ 이미지가 증가<br>					<br>- 과반수가 스타트업에 대해 잘 모르지만, 당근마켓, 배달의민족, 토스는 타 스타트업 대비 빠른 성장 인식 및 관심도가 높은 편<br>					<br>- 5명 중 1명은 평소 스타트업 정보를 탐색하며, 주로 채용/기업정보 앱/사이트, 포털 사이트, 유튜브를 통해 정보를 접함<br>					<br>- 대부분 국내 대기업, 중견기업, 공공기관/정부/공기업 취업을 선호하며, 벤처/스타트업 취업을 가장 희망하는 취업준비생은 1%에 불과<br>					<br>- 그러나, 44.5%는 최근 1년 내 스타트업으로의 취업을 생각해 본 적이 있음<br>					<br>- 취업준비생에게 스타트업은 유연/빠른 의사결정 구조, 업무 및 커리어 개발 가능, 워라밸 보장, 조직 성장으로 인한 성취감이 주요 매력 요소<br>					<br>- 스타트업으로의 취업을 고려하는 취업준비생 10명 중 6명은 스타트업의 해외 진출 여부가 취업에 영향을 주지 않는다고 답하였으며, 25.8%는 해외에 진출한 스타트업을 선호<br>					<br>- 취업준비생의 45.5%가 지난 1년 동안 창업을 고려한 경험이 있으며, 이는 작년 대비 5.5%p 감소한 수치<br>					<br>- 창업을 고려한 경우, 패션/뷰티, 콘텐츠/미디어, 농식품 업종을 주로 염두에 두고 있으며, 특히 패션/뷰티 업종 고려율이 작년 대비 6.9%p 증가<br>				<br>				<br>			<br>			<br><br>			<br>팁스 <a href="http://www.jointips.or.kr/about.php" target="_blank">http://www.jointips.or.kr/about.php</a></div>
 </div>
 <script>
-const SAVE_KEY = 'board-Fundraising';
-const IMG_BASE = '../../attachments/';
-const DEFAULT_CARDS = [
-  {
-    "type": "text",
-    "content": "Fundraising<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br>조사 결과 요약<br>\t\t\t<br>\t\t\t\t<br>- <br>스타트업 창업자의 생각<br>\t\t\t\t<br>\t\t\t\t\t<br>- 최근 스타트업 생태계 분위기는 작년 대비 7.2점 감소한 46.5점<br>\t\t\t\t\t<br>- 대부분의 창업자(76.5%)들은 벤처캐피탈의 미온적 투자/지원, 민간부문 지원사업 약화 등에서 시장 상황의 부정적 변화를 체감<br>\t\t\t\t\t<br>- 경제위기 가능성/경제상황 악화 전망으로 2024년에도 지금의 상황이 나아지지 않을 것으로 예상<br>\t\t\t\t\t<br>- 창업자 10명 중 6명은 작년 대비 투자 유치가 어렵다고 체감 (63%)<br>\t\t\t\t\t<br>- 벤처투자 시장 혹한기 리스크 대비책으로 매출 다각화 전략 마련, 흑자 사업 집중, 비용 절감, 정부지원사업 추진 등을 고려<br>\t\t\t\t\t<br>- 스타트업 생태계 활성화에 대한 정부 역할 평가는 52.5점으로 생태계 기반 자금 확보 및 투자활성화, 각종 규제 완화에 대한 니즈가 높은 가운데, 특히 ‘규제 완화’ 필요성 인식이 증가<br>\t\t\t\t\t<br>- 평균적으로 스타트업 중 약 30%가 해외 시장에 진출하거나 진행 중<br>\t\t\t\t\t<br>- 대부분은 북미와 동남아시아를 주요 진출지로 선택하며, 그 뒤로는 일본, 유럽, 중국 등의 국가가 따름<br>\t\t\t\t\t<br>- 해외 진출 시, 비즈니스 네트워크와 파트너십 구축, 현지 시장 정보 획득, 유통 및 판로 개척이 가장 중요하다고 생각. 반면 언어 능력과 글로벌 인재 확보는 상대적으로 중요성이 낮음<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>- <br>스타트업 재직자의 생각<br>\t\t\t\t<br>\t\t\t\t\t<br>- 42.0%만이 스타트업 생활에 만족하며, 이는 작년 대비 7.2%p 감소한 수치<br>\t\t\t\t\t<br>- 자율적이고 수평적인 조직 문화, 워라밸 보장, 유연하고 빠른 의사결정 구조는 만족스러우나, 낮은 재정적 보상, 불안정한 조직 비전/전략은 주요한 불만족 요인<br>\t\t\t\t\t<br>- 10명 중 3명이 스타트업 근무를 추천하며, 추천하는 경우 어느 정도 성장 가능성이 증명된 시리즈 A~B 투자 단계의 스타트업을 주로 추천<br>\t\t\t\t\t<br>- 추천하지 않는 주요 사유는 리스크/불안정성/불확실성 및 체계 미흡<br>\t\t\t\t\t<br>- 향후 이직 시 높은 재정적 보상 및 복리/복지 혜택이 좋은 대기업을 가장 선호<br>\t\t\t\t\t<br>- 스타트업으로 이직을 고려하는 경우, 주로 소프트웨어/솔루션, 딥테크 분야를 희망하며, 4명 중 1명은 글로벌/국제화 역량을 키울 수 있는 해외 진출 스타트업을 선호<br>\t\t\t\t\t<br>- 스타트업 재직자가 빠른 성장세를 체감하고, 일하는 방식을 알고 싶은 국내 기업은 토스, 당근마켓, 배달의민족<br>\t\t\t\t\t<br>- 스타트업 재직자의 53.6%가 작년 대비 스타트업 투자 시장이 위축되었다고 평가하나, 지속 근무 및 창업 의향에 미치는 영향은 크지 않음<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>- <br>대기업 재직자의 생각<br>\t\t\t\t<br>\t\t\t\t\t<br>- 대기업 재직자 4명 중 1명은 평소 포털사이트, 직장인 전용 커뮤니티 앱, 뉴스/기사 등을 통해 스타트업 관련 정보를 접한 경험이 있음<br>\t\t\t\t\t<br>- 대기업 직장인의 1년 내 스타트업 이직 고려율은 18.8%로, 작년 대비 6.0%p 감소<br>\t\t\t\t\t<br>- 이직을 고려한 경우, 주로 높은 재정적 보상, 유연/빠른 의사결정 구조, 조직 성장으로 인한 성취감을 기대하며, 금융/핀테크/블록체인, 딥테크, 소프트웨어/솔루션 분야 선호도가 상대적으로 높음<br>\t\t\t\t\t<br>- 절반 이상인 52.8%가 최근 1년 내 직접 창업을 고려한 경험이 있으며, 이는 작년과 유사/소폭 감소한 수치<br>\t\t\t\t\t<br>- 이커머스/유통, 농식품, 교육, 여행/레저 분야 창업 고려 비율이 타 분야 대비 상대적으로 높게 나타남<br>\t\t\t\t\t<br>- 그러나, 대부분의 직장인은 스타트업의 조직 비전/전략 불안정성, 워라밸 비보장, 낮은 재정적 보상 예상으로 스타트업으로의 이직을 고려하지 않았음<br>\t\t\t\t\t<br>- 대기업 재직자는 빠른 성장/일하는 방식을 알고 싶은 국내 스타트업으로 토스, 배달의민족, 당근마켓을 Top3로 응답<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>- <br>취업 준비생의 생각<br>\t\t\t\t<br>\t\t\t\t\t<br>- 취업준비생에게 스타트업은 ‘젊은/새로운’ 이미지이며, 작년 대비 ‘혁신적/창의적인’ 이미지가 증가<br>\t\t\t\t\t<br>- 과반수가 스타트업에 대해 잘 모르지만, 당근마켓, 배달의민족, 토스는 타 스타트업 대비 빠른 성장 인식 및 관심도가 높은 편<br>\t\t\t\t\t<br>- 5명 중 1명은 평소 스타트업 정보를 탐색하며, 주로 채용/기업정보 앱/사이트, 포털 사이트, 유튜브를 통해 정보를 접함<br>\t\t\t\t\t<br>- 대부분 국내 대기업, 중견기업, 공공기관/정부/공기업 취업을 선호하며, 벤처/스타트업 취업을 가장 희망하는 취업준비생은 1%에 불과<br>\t\t\t\t\t<br>- 그러나, 44.5%는 최근 1년 내 스타트업으로의 취업을 생각해 본 적이 있음<br>\t\t\t\t\t<br>- 취업준비생에게 스타트업은 유연/빠른 의사결정 구조, 업무 및 커리어 개발 가능, 워라밸 보장, 조직 성장으로 인한 성취감이 주요 매력 요소<br>\t\t\t\t\t<br>- 스타트업으로의 취업을 고려하는 취업준비생 10명 중 6명은 스타트업의 해외 진출 여부가 취업에 영향을 주지 않는다고 답하였으며, 25.8%는 해외에 진출한 스타트업을 선호<br>\t\t\t\t\t<br>- 취업준비생의 45.5%가 지난 1년 동안 창업을 고려한 경험이 있으며, 이는 작년 대비 5.5%p 감소한 수치<br>\t\t\t\t\t<br>- 창업을 고려한 경우, 패션/뷰티, 콘텐츠/미디어, 농식품 업종을 주로 염두에 두고 있으며, 특히 패션/뷰티 업종 고려율이 작년 대비 6.9%p 증가<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>팁스 <a href=\"http://www.jointips.or.kr/about.php\" target=\"_blank\">http://www.jointips.or.kr/about.php</a>",
-    "w": 400
-  }
-];
+const SAVE_KEY = 'note-Fundraising';
 
-let cards = [];
-let moving = null, resizing = null;
-
-function loadBoard() {
-  const saved = localStorage.getItem(SAVE_KEY);
-  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
-  renderCards();
-  if (!saved) autoLayout();
+function save() {
+  const data = {};
+  document.querySelectorAll('.block-text').forEach(el => {
+    data[el.dataset.idx] = el.innerHTML;
+  });
+  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  const s = document.getElementById('status');
+  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
+  setTimeout(() => { s.textContent = ''; }, 2000);
 }
 
-function autoLayout() {
-  const GAP = 14;
-  const boardW = document.getElementById('board').offsetWidth;
-  const cols = Math.max(1, Math.floor(boardW / 280));
-  const colW = (boardW - GAP * (cols - 1)) / cols;
-  const colHeights = new Array(cols).fill(0);
-  const allCards = document.querySelectorAll('.card');
-  const images = document.querySelectorAll('.card img');
-  let loaded = 0;
-  const total = images.length;
-
-  function place() {
-    allCards.forEach((el, i) => {
-      const card = cards[i];
-      const w = Math.min(card.w || colW, colW);
-      let minCol = 0;
-      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
-      card.x = minCol * (colW + GAP);
-      card.y = colHeights[minCol];
-      card.w = w;
-      el.style.left = card.x + 'px';
-      el.style.top = card.y + 'px';
-      el.style.width = w + 'px';
-      colHeights[minCol] = card.y + el.offsetHeight + GAP;
-    });
-    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
-    saveBoard();
-  }
-
-  if (total === 0) requestAnimationFrame(place);
-  else images.forEach(img => {
-    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
-    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+function copyPath() {
+  navigator.clipboard.writeText(location.pathname).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ 복사됨';
+    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
   });
 }
 
-function syncText() {
-  document.querySelectorAll('.card').forEach(el => {
-    const idx = +el.dataset.idx;
-    if (cards[idx]?.type === 'text') {
-      const t = el.querySelector('.text');
-      if (t) cards[idx].content = t.innerHTML;
-    }
-  });
+// Restore saved edits
+const saved = localStorage.getItem(SAVE_KEY);
+if (saved) {
+  try {
+    const data = JSON.parse(saved);
+    document.querySelectorAll('.block-text').forEach(el => {
+      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
+    });
+  } catch(e) {}
 }
 
-function saveBoard() {
-  syncText();
-  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
-  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
-}
-
-function renderCards() {
-  const board = document.getElementById('board');
-  board.innerHTML = '';
-  cards.forEach((card, i) => {
-    const el = document.createElement('div');
-    el.className = 'card';
-    el.dataset.idx = i;
-    if (card.x !== undefined) el.style.left = card.x + 'px';
-    if (card.y !== undefined) el.style.top = card.y + 'px';
-    if (card.w) el.style.width = card.w + 'px';
-
-    el.addEventListener('mousedown', e => {
-      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
-      e.preventDefault();
-      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
-      el.classList.add('moving');
-    });
-
-    const actions = document.createElement('div');
-    actions.className = 'card-actions';
-    const delBtn = document.createElement('button');
-    delBtn.className = 'card-btn'; delBtn.textContent = '×';
-    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
-    actions.appendChild(delBtn);
-    el.appendChild(actions);
-
-    if (card.type === 'text') {
-      const text = document.createElement('div');
-      text.className = 'text';
-      text.contentEditable = true;
-      text.innerHTML = card.content || '';
-      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
-      el.appendChild(text);
-    } else if (card.type === 'image') {
-      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = card.alt || '';
-      img.loading = 'lazy';
-      img.onerror = () => img.style.display = 'none';
-      if (card.link) {
-        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
-        a.appendChild(img); el.appendChild(a);
-      } else { el.appendChild(img); }
-      if (card.caption) {
-        const cap = document.createElement('div');
-        cap.className = 'caption';
-        cap.textContent = card.caption;
-        el.appendChild(cap);
-      }
-    } else if (card.type === 'table') {
-      const wrapper = document.createElement('div');
-      wrapper.style.overflowX = 'auto';
-      wrapper.innerHTML = card.html || '';
-      el.appendChild(wrapper);
-    }
-
-    const rh = document.createElement('div');
-    rh.className = 'resize-handle';
-    rh.addEventListener('mousedown', e => {
-      e.preventDefault(); e.stopPropagation();
-      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
-    });
-    el.appendChild(rh);
-    board.appendChild(el);
-  });
-
-  requestAnimationFrame(() => {
-    let maxBottom = 0;
-    document.querySelectorAll('.card').forEach(el => {
-      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
-      if (b > maxBottom) maxBottom = b;
-    });
-    board.style.minHeight = (maxBottom + 100) + 'px';
-  });
-}
-
-document.addEventListener('mousemove', e => {
-  if (moving) {
-    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
-    if (!el) return;
-    const nx = moving.origX + e.clientX - moving.startX;
-    const ny = moving.origY + e.clientY - moving.startY;
-    el.style.left = nx + 'px';
-    el.style.top = ny + 'px';
-  }
-  if (resizing) {
-    const card = cards[resizing.idx];
-    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
-    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
-    if (el) el.style.width = card.w + 'px';
-  }
+document.querySelectorAll('.block-text').forEach(el => {
+  el.addEventListener('blur', save);
 });
 
-document.addEventListener('mouseup', e => {
-  if (moving) {
-    const card = cards[moving.idx];
-    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
-    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
-    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
-    if (el) { el.classList.remove('moving'); }
-    moving = null; saveBoard();
-  }
-  if (resizing) { resizing = null; saveBoard(); }
-});
-
-function addTextCard() {
-  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
-  renderCards();
-  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
-}
-
-function addImageCard() {
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*';
-  input.onchange = e => {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
-    reader.readAsDataURL(file);
-  };
-  input.click();
-}
-
-function resetLayout() {
-  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
-  cards.forEach(c => { delete c.x; delete c.y; });
-  renderCards(); autoLayout();
-}
-
-setInterval(saveBoard, 30000);
-loadBoard();
+setInterval(save, 30000);
 </script>
 </body>
 </html>

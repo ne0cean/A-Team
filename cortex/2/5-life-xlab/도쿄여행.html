@@ -11,500 +11,131 @@ body {
   color: #e0e0e0;
   font-family: 'Segoe UI', -apple-system, sans-serif;
   font-size: 15px;
-  line-height: 1.6;
-  padding: 20px 30px 60px;
-  overflow-x: hidden;
+  line-height: 1.7;
+  padding: 0 0 80px;
 }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.title-bar {
-  background: #3a3a5c;
-  display: inline-block;
-  padding: 6px 16px;
-  font-size: 22px;
-  font-weight: bold;
-  color: #fff;
-  margin-bottom: 4px;
+.toolbar {
+  position: sticky; top: 0; z-index: 100;
+  background: #161b22; border-bottom: 1px solid #30363d;
+  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
 }
-.date { color: #999; font-size: 13px; margin-bottom: 20px; }
-.board { position: relative; }
-.card {
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
-  border-radius: 8px;
-  padding: 12px;
-  position: absolute;
-  cursor: grab;
-  transition: box-shadow 0.15s;
-  overflow: hidden;
+.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
+.toolbar button:hover { background: #30363d; color: #fff; }
+.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
+.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
+.block { margin-bottom: 10px; }
+.block-text {
+  outline: none;
+  padding: 5px 8px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 1.5em;
 }
-.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
-.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
-.card img { width: 100%; border-radius: 4px; display: block; }
-.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
-.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
-.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
-.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
-.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
-.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
-.card table th { background: #333; color: #ccc; }
-.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
-.card:hover .card-actions { display: flex; }
-.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
-.card-btn:hover { background: #444; color: #fff; }
-.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
-.card:hover .resize-handle { opacity: 0.6; }
-.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
-.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-.toolbar button:hover { background: #30363d; }
-.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
-.highlight-red { color: #ff6b6b; }
-.highlight-blue { color: #6cb0f6; }
+.block-text:focus { background: rgba(255,255,255,0.04); }
+.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
+.block-image img { max-width: 100%; border-radius: 6px; display: block; }
+.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
+.block-table .table-wrap { overflow-x: auto; }
+.block-table table { border-collapse: collapse; font-size: 13px; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table th { background: #2a2a3a; color: #ccc; }
 </style>
 </head>
 <body>
-<div class="title-bar">도쿄여행</div>
-<div class="date">2019년 2월 4일 월요일</div>
-<div class="board" id="board"></div>
 <div class="toolbar">
-  <button onclick="addTextCard()">+ 텍스트</button>
-  <button onclick="addImageCard()">+ 이미지</button>
-  <button onclick="saveBoard()">💾 저장</button>
-  <button onclick="resetLayout()">↺ 재배치</button>
-  <span class="status" id="status">Ready</span>
+  <span class="t-title">도쿄여행</span>
+  <span class="t-date">2019년 2월 4일 월요일</span>
+  <button onclick="save()">저장</button>
+  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
+  <span class="t-status" id="status"></span>
+</div>
+<div class="doc" id="doc">
+<div class="block block-text" data-idx="0" contenteditable="true">도쿄여행<br>		<br>		<br>	<br>	<br>		<br>			<br>				<br>					기간<br>					3.29~4/2<br>				<br>				<br>					지역<br>					도쿄, <br>				<br>				<br>					멤버<br>					최현경, 강보미, 김태우, 나<br>				<br>				<br>					방문 지역<br>					<br><br>					<br>				<br>			<br>			<br>&#160;Fwd: KIM/JUNYOUNG님 제주항공 예약/발권 확인서입니다.&#160;<br>			<br>2019-01-27 (일) 17:07<br>			<br>보낸사람<br>			<br><a href="http://mail.naver.com/?n=1553493768932&v=f#" target="_blank">Hyunkyung Choi<erinchk@gmail.com></a><br>			<br>받는사람<br>			<br><a href="http://mail.naver.com/?n=1553493768932&v=f#" target="_blank"><realpage@naver.com></a><br>			<br>---------- Forwarded message ---------<br>			<br>From:&#160;JEJU AIR&#160;<[reservation@jejuair.net](mailto:reservation@jejuair.net)><br>			<br><br>			<br>				<br>										<br>						<br>							예약발권확인서/e-티켓 확인증<br>							[</div>
+<div class="block block-image" data-idx="1"><img src="9b20b46fd6.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="2" contenteditable="true">](<a href="http://www.jejuair.net/jejuair/main.jsp?utm_source=email_system&utm_medium=header_kr&utm_campaign=dm_confirmINT_kr_190127&utm_term=logo&utm_content=)" target="_blank">http://www.jejuair.net/jejuair/main.jsp?utm_source=email_system&utm_medium=header_kr&utm_campaign=dm_confirmINT_kr_190127&utm_term=logo&utm_content=)</a></div>
+<div class="block block-image" data-idx="3"><img src="1029ed1662.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-image" data-idx="4"><img src="74195c30f3.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="5" contenteditable="true">승객명 Passenger Name<br>													KIM/JUNYOUNG MR<br>												<br>												<br>													예약번호 Booking Reference<br>													49509300(YN90P)<br>												<br>												<br>													항공권번호 Ticket Number<br>													2459485226</div>
+<div class="block block-image" data-idx="6"><img src="9a11763be7.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="7" contenteditable="true">항공 일정 Itinerary<br>											<br>												<br>													편명 Flight7C 1102<br>													<br><br>													<br>													<br><br>													<br>													<br><br>													<br>													<br><br>													<br>												<br>												<br>													출발 Departure<br>													서울(인천)(ICN)<br>													2019년3월29일<br>													08:10 Local Time<br>													Terminal No : 1<br>												<br>												<br>													도착 Arrival<br>													도쿄(나리타)(NRT)<br>													2019년3월29일<br>													10:35 Local Time<br>													Terminal No : 3<br>												<br>											<br>											<br>												<br>													항공권 유효기간 Not Valid Before<br>													2019년3월29일<br>													예약등급 Booking Class<br>													U (??할인운임)<br>												<br>												<br>													항공권 유효기간 Not Valid After<br>													2019년3월29일<br>													예약상태 Booking Status<br>													OK (확약)<br>												<br>												<br>													수하물 Baggage<br>													15KG<br>													&#160;<br>													&#160;<br>												<br>											<br>											<br>&#160;<br>											<br>												<br>													편명 Flight7C 1107<br>													<br><br>													<br>													<br><br>													<br>													<br><br>													<br>													<br><br>													<br>												<br>												<br>													출발 Departure<br>													도쿄(나리타)(NRT)<br>													2019년4월01일<br>													19:25 Local Time<br>													Terminal No : 3<br>												<br>												<br>													도착 Arrival<br>													서울(인천)(ICN)<br>													2019년4월01일<br>													22:00 Local Time<br>													Terminal No : 1<br>												<br>											<br>											<br>												<br>													항공권 유효기간 Not Valid Before<br>													2019년4월01일<br>													예약등급 Booking Class<br>													U (??할인운임)<br>												<br>												<br>													항공권 유효기간 Not Valid After<br>													2019년4월01일<br>													예약상태 Booking Status<br>													OK (확약)<br>												<br>												<br>													수하물 Baggage<br>													15KG<br>													&#160;<br>													&#160;<br>												<br>											<br>											<br>&#160;</div>
+<div class="block block-image" data-idx="8"><img src="9a11763be7.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="9" contenteditable="true">항공권 운임정보 Ticket & Fare Information<br>											<br>												<br>													발행일 Date of Issue<br>													2019년1월27일<br>												<br>												<br>													운임계산 Fare Calculation<br>													SEL 7C TYO0.00 7C SEL0.00 NUC0.00END ROE1116.283752<br>												<br>												<br>													운임 Fare Amount<br>													240,000P<br>												<br>												<br>													세금 Tax/Fee/Charge<br>													<br>YQ 18,200 KRW / BP 28,000 KRW / OI 5,400 KRW / SW 10,600 KRW / TK 10,400 KRW<br>													<br>한국 출발 세금(BP)에는 국제 여객공항이용료(인천/김포공항 17,000원, 기타 12,000원), 출국납부금 10,000, 국제 빈곤퇴치기여금 1,000원이 포함되어 있습니다.<br>													<br>												<br>												<br>													항공운임 등 총액 Total Amount<br>													72,600 KRW<br>												<br>												<br>													지불금액 Total Paid Amount<br>													72,600 KRW<br>												<br>												<br>													지불수단 Form of Payment<br>													CCAX***********3727 / Refresh Point<br>												<br>											<br>											<br>										<br>										<br>																						<br>												<br>													항공권의 변경 및 취소는 최초 구입처로 문의하십시오.<br>													<br><br>													<br>												<br>												<br>													탑승수속은 해당 항공편 출발시간 60분 전에 마감되오니, 여유있는 탑승수속을 위해 출발 2시간 전까지 공항에 도착하시기 바랍니다.<br>													<br><br>													<br>												<br>												<br>													국제선 왕복 항공권의 경우 항공권상에 명시된 순서대로만 사용하여야 합니다. 순서대로 사용되지 않을 시 항공권은 운송을 위해 사용할 수 없습니다.<br>													<br><br>													<br>												<br>												<br>													미주 노선: 수하물 1 개 단위=23KG<br>													<br><br>													<br>												<br>												<br>													본 항공권 구매상의 여객 및 수하물의 운송은 제주항공 국제여객운송약관이 적용됩니다.<br>													<br><br>													<br>												<br>												<br>													안전상의 이유로 위험물은 특별히 허가 받지 않는 이상 위탁 또는 기내 반입 수하물로 지참하실 수 없습니다.<br>													<br><br>													<br>												<br>												<br>													위험물에는 폭발물, 압축 가스, 부식성 물질, 가연성 액체 및 고체, 방사성 물질, 산화성 물질, 유독성 물질, 전염성 물질 및 기타 위해성 물질과 경보 장치가 부착된 서류 가방 등이 있습니다. 보안상의 이유로 다른 제한 사항이 적용될 수도 있습니다. 귀하의 운송인에게 문의하시기 바랍니다.</div>
+<div class="block block-image" data-idx="10"><img src="8ad6f274a7.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="11" contenteditable="true">보조배터리/전자담배/라이터등은 휴대수하물로만 반입이 가능하오니 여행전 확인해 주십시오.&#160;<br>													<br>(국토부 위험물 상세페이지 URL:&#160;<a href="https://avsec.ts2020.kr/avsc/main.do?refererPara=JJA" target="_blank">https://avsec.ts2020.kr/avsc/main.do?refererPara=JJA</a>)<br>													<br>													<br><br>													<br>												<br>												<br>													안전한 해외여행을 위하여 여행 목적지의 여행경보단계 및 안전여행공지를&#160;<a href="https://www.0404.go.kr/" target="_blank">해외안전여행 홈페이지</a>에서 확인하세요.<br>													<br><br>													<br>												<br>												<br>													[</div>
+<div class="block block-image" data-idx="12"><img src="37ed10257e.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="13" contenteditable="true">](<a href="https://www.jejuair.net/jejuair/kr/login/agreement/transportbottom.do)" target="_blank">https://www.jejuair.net/jejuair/kr/login/agreement/transportbottom.do)</a><br>													<br><br>													<br>												<br>											<br>											<br><br>											<br>										<br>									<br>									[</div>
+<div class="block block-image" data-idx="14"><img src="7945da21a9.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="15" contenteditable="true">](<a href="https://www.jejuair.net/jejuair/kr/com/jeju/ibe/news/event/event_detail.do?page=1&event_id=4953)[" target="_blank">https://www.jejuair.net/jejuair/kr/com/jeju/ibe/news/event/event_detail.do?page=1&event_id=4953)[</a></div>
+<div class="block block-image" data-idx="16"><img src="22c107fa0f.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="17" contenteditable="true">](<a href="https://cardapplication.ibk.co.kr/card/index.jsp?card_prdc_id=756529)[" target="_blank">https://cardapplication.ibk.co.kr/card/index.jsp?card_prdc_id=756529)[</a></div>
+<div class="block block-image" data-idx="18"><img src="a97a574c35.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="19" contenteditable="true">](<a href="https://www.jejuair.net/jejuair/kr/com/jeju/ibe/news/event/event_detail.do?event_id=5091)[" target="_blank">https://www.jejuair.net/jejuair/kr/com/jeju/ibe/news/event/event_detail.do?event_id=5091)[</a></div>
+<div class="block block-image" data-idx="20"><img src="84a221cf11.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="21" contenteditable="true">](<a href="https://travel.jejuair.net/main/index)[" target="_blank">https://travel.jejuair.net/main/index)[</a></div>
+<div class="block block-image" data-idx="22"><img src="aed94521dc.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="23" contenteditable="true">](<a href="http://jejuair.granddfs.com/)[" target="_blank">http://jejuair.granddfs.com/)[</a></div>
+<div class="block block-image" data-idx="24"><img src="d33f9a0ae4.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="25" contenteditable="true">](<a href="https://www.jejuair.net/jejuair/kr/serviceinfo/additional/additional.do)[" target="_blank">https://www.jejuair.net/jejuair/kr/serviceinfo/additional/additional.do)[</a></div>
+<div class="block block-image" data-idx="26"><img src="d95560a70f.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="27" contenteditable="true">](<a href="https://www.jejuair.net/jejuair/mypage/onOffReservationList.do)[" target="_blank">https://www.jejuair.net/jejuair/mypage/onOffReservationList.do)[</a></div>
+<div class="block block-image" data-idx="28"><img src="5f6274aae1.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="29" contenteditable="true">](<a href="https://www.jejuair.net/jejuair/kr/product/rentcar/rentcar.do)[" target="_blank">https://www.jejuair.net/jejuair/kr/product/rentcar/rentcar.do)[</a></div>
+<div class="block block-image" data-idx="30"><img src="654fc12952.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="31" contenteditable="true">](<a href="https://www.jejuair.net/jejuair/kr/product/hotel/oversea.do)[" target="_blank">https://www.jejuair.net/jejuair/kr/product/hotel/oversea.do)[</a></div>
+<div class="block block-image" data-idx="32"><img src="1a54a924bb.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="33" contenteditable="true">](<a href="http://www.jejuair.net/jejuair/kr/com/jeju/ibe/news/event/event_detail.do?event_id=1809)" target="_blank">http://www.jejuair.net/jejuair/kr/com/jeju/ibe/news/event/event_detail.do?event_id=1809)</a><br>									<br><br>									<br>								<br>							<br>							<br>							<br><br>							<br>						<br>						<br>							본 메일은 발신전용이므로 회신하실 수 없습니다.</div>
+<div class="block block-image" data-idx="34"><img src="cd6166fe57.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="35" contenteditable="true">사업자등록번호 616-81-50527&#160;</div>
+<div class="block block-image" data-idx="36"><img src="5b6ae60671.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="37" contenteditable="true">통신판매업신고 제주 2006-125호&#160;</div>
+<div class="block block-image" data-idx="38"><img src="5b6ae60671.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="39" contenteditable="true">대표이사 이석주<br>									<br>								<br>								<br>									<br>제주특별자치도 제주시 신대로 64 3층(연동, 건설공제회관)&#160;</div>
+<div class="block block-image" data-idx="40"><img src="5b6ae60671.png" alt="도쿄여행" loading="lazy" onerror="this.style.display='none'"></div>
+<div class="block block-text" data-idx="41" contenteditable="true">서울지사 : 서울특별시 강서구 하늘길 210 (국제화물청사) 366호 제주항공<br>									<br>								<br>								<br>									제주항공 예약센터 : 1599-1500<br>								<br>								<br>									Copyright ⓒ 2015 by JEJUAIR, CO., LTD. All rights reserved.<br>								<br>							<br>							<br>							<br><br>							<br>						<br>					<br>					<br>				<br>			<br>			<br><br>			<br><br>			<br>[제주항공 모바일 탑승권 발급 안내]<br>			<br><br>			<br>▶ 항공권 예약번호 : YN90P<br>			<br>▶ 구간 :  ICN -> NRT<br>			<br>▶ 출발시간 : 2019년 03월 29일 08시 10분  출발 (현지시간)<br>			<br>▶ 편명 : 7C1102<br>			<br>▶ 탑승객 : KIM/JUNYOUNG<br>			<br>▶ 수하물 : 무료수하물  : 15kg  위탁 가능합니다.기내 수하물은 1개, 10kg까지 반입 가능합니다.<br>			<br>▶ 모바일 탑승권 발급하기 : <a href="https://wck.jejuair.net/jejuair/sd/EJmPV0tpj.do" target="_blank">https://wck.jejuair.net/jejuair/sd/EJmPV0tpj.do</a><br>			<br><br>			<br>★★ 모바일 탑승권 전용 수하물 위탁 카운터 <br>			<br>  - 수하물이 있는 고객은 공항 현장의 모바일 탑승권 전용 수하물 위탁 카운터에서 빠르게 수속이 가능합니다. (인천,김포,제주,김해 공항)<br>			<br><br>			<br>▶ 유의사항 <br>			<br>   - 해외 공항 출발편은 탑승권 발급이 제한됩니다. (예: 인천 출발 왕복 노선 이용 승객은 가는편만 모바일 탑승권 이용 가능)<br>			<br>   - 모바일 탑승권은 항공기 출발 24시간 전부터 1시간30분 전까지 발급받으실 수 있습니다. <br>			<br>   - 카운터가 혼잡할 수 있으니 출발 1시간50분 전까지 모든 수속을 마쳐주시기 바랍니다.<br>			<br><br>			<br>▶ 이용제한 고객<br>			<br>   - 유아 동반 승객<br>			<br>   - 국제선 일부 노선 탑승 승객 (괌, 사이판 노선 등)<br>			<br>   - 예약 변경이 필요한 항공권 소지 승객<br>			<br>   - 할인 항공권 구매 승객 (개인운임 할인 대상)<br>			<br>   - 직원 확인이 필요한 서비스를 신청한 승객 (혼자 여행하는 어린이, 애완동물 동반, 휠체어 신청, 비상구석 사전구매 등)<br>			<br><br>			<br><br>		<br>		<br>			오다이바 <br>오다이바 <br>오다이바 <br>오다이바->긴자 <br>간자 <br>간자 <br>길자 <br>간자 <br>간자 <br>아사쿠사->다이칸야口卜 <br>나카에구로 <br>나카에구로 <br>다이칸야口卜 <br>다이칸야口卜 <br>다이칸야口卜 vs. 시부야 중 <br>요요기공원 0<a href="https://m.post.naver.com/viewer/postView.nhn?volumeNo=16584417&memberNo=36630195" target="_blank"> 시주쿠교엔 <br>오모테산도/시부야 <br>록본 기 즈 <br>도쿄 시티뷰&스카이덱 <br>후쿠 야기토리 <br>아사쿠사 <br>아사쿠사 <br>다치카와시 <br>조후 시 <br>가와구치코 근저 <br>Eh누기 호수 <br>미토노 마즈바라 <br>도조 궁, Ll혼다이라(정상) <br>시즈오카 숙소, 저녁식사, 온전 <br>숙소에서 출발 <br>Tofuya bakery, & Table <br>아카오 허브&로즈 가든/ 코레다 하우스 <br>아Eh口l 해변 드라이브 <br>Moa 미술관 <br>하코Lil 시사 <br>조각의 숲 미술관 & Pola Museum of Aft <br>상세 <br>도작 후 일국심사/짐찾기 <br>11시24분(27분)-12시 27분, 게이세이나리Eh 스카이익세스 기준 <br>아사쿠사역에 짐 할김 <br>점심 식사(40분) <br>아사쿠사 전통 거리,시장, 센소지 구경 <br>지나가며 군것질 아사쿠사 멘치카즈, Eh이야끼, 빙수, 떡 등 <br>스미다 공원 산책, 스미다강 근저 카터(도쿄스카이트리 배경 벚꽃) <br>체크인 및 기|인춭 재정비 시간(가급적 흰색옷 일을것!) <br>무터로 이동(우버쿠폰 씀), 15분 소요 <br>팀 보더리스 전시 <br>오다이바 해변공원: 강가 일몰 구경(자유의 여신상 등) <br>팀럩 보더리스 >긴자식스(유리카모데 라인 탑승(32분 소요)) <br>긴자식스 구경(+구경 및 군것질: 나카무라 토기치 등) <br>긴자식스 근저 저녁식사(후보지 중 사전에 골라야 함) <br>길자 ZEh야 서점 구경, 궁내정 근저 벚꽃 라이트얼 구경 <br>아이언 터어리스 길자 <br>숙소복귀(지하철 20분 소요) <br>지 하大닄 40-50분 소요 <br>나카에구로 벚꽃길 구경 <br>오니버스 거피(9시 오픈) <br>다이칸야口卜 구경 <br>다이칸야口卜 ZEh야, 각종 숍들 <br>벚꽃공원 산” <br>거리 구경, 백화점 <br>벚꽃야경, 록본기 힐즈 구경 <br>야경감상(도쿄Eh우」 포함) <br>자 렌트(렌트회사까지는 8시반까지 갈것) <br>숙소에서 출발(아침 픽업) <br>국영 쇼와 국팉공원 <br>Tegamisha Tsutsujigaoka, 本 그 - - tegamisha(아점) <br>oishi Park 혹은 오시노 핫카이 중 선택 <br>Eh누기 호수(가와구치코에서 45분 소요) <br>(Eh누기호수에서 1시간 14분 소요), 일몰구경 <br>I-I혼다이라에서 20분 소요 <br>유경한 족탕 카터, 빵맛짙, 아침식사(우동, 가능) <br>정원 내 건축으로 유경한 코레다 하우스 카터, 바다 부 <br>내부는 안들어가고 지나가다 외부 조각+뷰 구경만 <br>(Moa口l술관에서 30분 소요) 물 위의 시사 <br>공항까지는 두시간 소요 <br>가는 루트 중 식사(도쿄) <br>렌터카 반납 <br>비고 <br>Yakko(장어) 혹은 아사쿠사규카즈 한금촡제만 가능 <br>;戔草 甘呀- -no, :•戔草) •之 주, 0,큼門驚」회l燒本좋甬 ;戔覃新f中 見世通 0 店 <br>m하10 cafe yøre, from afar 倉庫01, Sunshine State Espresso 중 1곳 <br>4 Chome-14-8 Kotobuki Taitö-ku, Tö하6-to 111 0042 <br>대중교통 이동시 1시간 소요 <br>라E(Mugi to Olive 깔끔한 닭+해물 육수의 라멘), <br>오뎅바(二 t」` 5 銀座店.konakara.com/, 수」• h, 1墮Ott L,GINZA KOSO <br>질판구이(Teppanyaki Ten,銀座和糲), 샤브샤브/人기야기•Zakuro Ginza <br>Kisoji Ginza 5 Chöme <br>각테일,술 <br>아침: 근저 오니기리 카터(선택) <br>루I-I 후르즈(후르즈산도 맞질, 테이크아웃) <br>야기토리 장인 질 <br>일본5대 벚꽃 명소 <br>최근 도쿄에서 유경한 근교 편질샬/카더 <br>예약 <br>예약교요 <br>이 부 예 0 교 요 <br>예약교요 <br>예약교요 " width="480" height="320" src="<a href="https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ac556cb999df4443811c404df5384ad0!1-733661839CC53BA5!7918/$value" target="_blank">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ac556cb999df4443811c404df5384ad0!1-733661839CC53BA5!7918/$value</a>" data-src-type="image/png" data-fullres-src="<a href="https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1cf2d63a88f14fffa7e8a43430fca72b!1-733661839CC53BA5!7918/$value" target="_blank">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1cf2d63a88f14fffa7e8a43430fca72b!1-733661839CC53BA5!7918/$value</a>" data-fullres-src-type="image/png" /><br>			<br><br>			<br>[GINJA SONY PARK</a> <a href="https://m.post.naver.com/viewer/postView.nhn?volumeNo=16584417&memberNo=36630195" target="_blank">https://m.post.naver.com/viewer/postView.nhn?volumeNo=16584417&memberNo=36630195</a><br>			<br>츠타야 - 다이칸야마, 시부야<br>			<br>신주쿠 디즈니 매장<br>			<br>일몰 Spot - 오바이바, 도쿄 도청사<br>			<br>나이키랩 @오모테산도 <a href="http://blog.naver.com/aimarjb/220877037410" target="_blank">http://blog.naver.com/aimarjb/220877037410</a><br>			<br>슈프림 - @하라주쿠, 시부야, 다이칸야마<br>			<br>갤럭시 브랜드쇼케이스 ＠하라주쿠 <br>			<br><a href="http://news.kmib.co.kr/article/view.asp?sid1=all&arcid=0924066844&code=11151400" target="_blank">http://news.kmib.co.kr/article/view.asp?sid1=all&arcid=0924066844&code=11151400</a><br>			<br><br>			<br><a href="https://www.google.com/search?ei=T-FaXMGAF4_M8wWV64O4BA&q=%EB%8F%84%EC%BF%84+%ED%8E%B8%EC%A7%91%EC%83%B5&oq=%EB%8F%84%EC%BF%84+%ED%8E%B8%EC%A7%91%EC%83%B5&gs_l=psy-ab.3..0j0i8i30l2j0i5i30.57095.59453..59627...1.0..1.201.2829.0j16j1......0....1..gws-wiz.......35i39j0i67j0i131i67j0i131j0i30j0i13j0i8i13i30j0i13i5i30.GVlnyqPj2ac" target="_blank">편집샵</a><br>			<br><a href="https://www.google.com/search?ei=nOFaXPPOEsL88gX_jIfADw&q=%EB%8F%84%EC%BF%84+%EA%B1%B4%EC%B6%95%EB%AC%BC&oq=%EB%8F%84%EC%BF%84+%EA%B1%B4%EC%B6%95%EB%AC%BC&gs_l=psy-ab.3..0i67j0l6j0i30l3.10247.12581..12700...2.0..0.200.2030.0j11j1......0....1..gws-wiz.......35i39j0i131i67j0i131j0i13j0i13i30j0i13i5i30.JAG-CoFNXmY" target="_blank">도쿄</a> 건축물<br>			<br><br>			<br><a href="https://livejapan.com/ko/in-tokyo/in-pref-tokyo/in-shinjuku/article-a0000118/" target="_blank">https://livejapan.com/ko/in-tokyo/in-pref-tokyo/in-shinjuku/article-a0000118/</a><br>			<br><a href="https://blog.naver.com/travelgilbut/220656373829" target="_blank">https://blog.naver.com/travelgilbut/220656373829</a><br>			<br><br>			<br>살거<br>			<br>피치콜라<br>			<br>비오레 썬크림<br>			<br>팀장/대표님 선물<br>			<br>편지지</div>
 </div>
 <script>
-const SAVE_KEY = 'board-도쿄여행';
-const IMG_BASE = '../../attachments/';
-const DEFAULT_CARDS = [
-  {
-    "type": "text",
-    "content": "도쿄여행<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t기간<br>\t\t\t\t\t3.29~4/2<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t지역<br>\t\t\t\t\t도쿄, <br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t멤버<br>\t\t\t\t\t최현경, 강보미, 김태우, 나<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t방문 지역<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>&#160;Fwd: KIM/JUNYOUNG님 제주항공 예약/발권 확인서입니다.&#160;<br>\t\t\t<br>2019-01-27 (일) 17:07<br>\t\t\t<br>보낸사람<br>\t\t\t<br><a href=\"http://mail.naver.com/?n=1553493768932&v=f#\" target=\"_blank\">Hyunkyung Choi<erinchk@gmail.com></a><br>\t\t\t<br>받는사람<br>\t\t\t<br><a href=\"http://mail.naver.com/?n=1553493768932&v=f#\" target=\"_blank\"><realpage@naver.com></a><br>\t\t\t<br>---------- Forwarded message ---------<br>\t\t\t<br>From:&#160;JEJU AIR&#160;<[reservation@jejuair.net](mailto:reservation@jejuair.net)><br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t예약발권확인서/e-티켓 확인증<br>\t\t\t\t\t\t\t[",
-    "w": 400
-  },
-  {
-    "type": "image",
-    "src": "9b20b46fd6.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "](<a href=\"http://www.jejuair.net/jejuair/main.jsp?utm_source=email_system&utm_medium=header_kr&utm_campaign=dm_confirmINT_kr_190127&utm_term=logo&utm_content=)\" target=\"_blank\">http://www.jejuair.net/jejuair/main.jsp?utm_source=email_system&utm_medium=header_kr&utm_campaign=dm_confirmINT_kr_190127&utm_term=logo&utm_content=)</a>",
-    "w": 320
-  },
-  {
-    "type": "image",
-    "src": "1029ed1662.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "image",
-    "src": "74195c30f3.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "승객명 Passenger Name<br>\t\t\t\t\t\t\t\t\t\t\t\t\tKIM/JUNYOUNG MR<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t예약번호 Booking Reference<br>\t\t\t\t\t\t\t\t\t\t\t\t\t49509300(YN90P)<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t항공권번호 Ticket Number<br>\t\t\t\t\t\t\t\t\t\t\t\t\t2459485226",
-    "w": 320
-  },
-  {
-    "type": "image",
-    "src": "9a11763be7.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "항공 일정 Itinerary<br>\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t편명 Flight7C 1102<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t출발 Departure<br>\t\t\t\t\t\t\t\t\t\t\t\t\t서울(인천)(ICN)<br>\t\t\t\t\t\t\t\t\t\t\t\t\t2019년3월29일<br>\t\t\t\t\t\t\t\t\t\t\t\t\t08:10 Local Time<br>\t\t\t\t\t\t\t\t\t\t\t\t\tTerminal No : 1<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t도착 Arrival<br>\t\t\t\t\t\t\t\t\t\t\t\t\t도쿄(나리타)(NRT)<br>\t\t\t\t\t\t\t\t\t\t\t\t\t2019년3월29일<br>\t\t\t\t\t\t\t\t\t\t\t\t\t10:35 Local Time<br>\t\t\t\t\t\t\t\t\t\t\t\t\tTerminal No : 3<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t항공권 유효기간 Not Valid Before<br>\t\t\t\t\t\t\t\t\t\t\t\t\t2019년3월29일<br>\t\t\t\t\t\t\t\t\t\t\t\t\t예약등급 Booking Class<br>\t\t\t\t\t\t\t\t\t\t\t\t\tU (??할인운임)<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t항공권 유효기간 Not Valid After<br>\t\t\t\t\t\t\t\t\t\t\t\t\t2019년3월29일<br>\t\t\t\t\t\t\t\t\t\t\t\t\t예약상태 Booking Status<br>\t\t\t\t\t\t\t\t\t\t\t\t\tOK (확약)<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t수하물 Baggage<br>\t\t\t\t\t\t\t\t\t\t\t\t\t15KG<br>\t\t\t\t\t\t\t\t\t\t\t\t\t&#160;<br>\t\t\t\t\t\t\t\t\t\t\t\t\t&#160;<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t<br>&#160;<br>\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t편명 Flight7C 1107<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t출발 Departure<br>\t\t\t\t\t\t\t\t\t\t\t\t\t도쿄(나리타)(NRT)<br>\t\t\t\t\t\t\t\t\t\t\t\t\t2019년4월01일<br>\t\t\t\t\t\t\t\t\t\t\t\t\t19:25 Local Time<br>\t\t\t\t\t\t\t\t\t\t\t\t\tTerminal No : 3<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t도착 Arrival<br>\t\t\t\t\t\t\t\t\t\t\t\t\t서울(인천)(ICN)<br>\t\t\t\t\t\t\t\t\t\t\t\t\t2019년4월01일<br>\t\t\t\t\t\t\t\t\t\t\t\t\t22:00 Local Time<br>\t\t\t\t\t\t\t\t\t\t\t\t\tTerminal No : 1<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t항공권 유효기간 Not Valid Before<br>\t\t\t\t\t\t\t\t\t\t\t\t\t2019년4월01일<br>\t\t\t\t\t\t\t\t\t\t\t\t\t예약등급 Booking Class<br>\t\t\t\t\t\t\t\t\t\t\t\t\tU (??할인운임)<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t항공권 유효기간 Not Valid After<br>\t\t\t\t\t\t\t\t\t\t\t\t\t2019년4월01일<br>\t\t\t\t\t\t\t\t\t\t\t\t\t예약상태 Booking Status<br>\t\t\t\t\t\t\t\t\t\t\t\t\tOK (확약)<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t수하물 Baggage<br>\t\t\t\t\t\t\t\t\t\t\t\t\t15KG<br>\t\t\t\t\t\t\t\t\t\t\t\t\t&#160;<br>\t\t\t\t\t\t\t\t\t\t\t\t\t&#160;<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t<br>&#160;",
-    "w": 400
-  },
-  {
-    "type": "image",
-    "src": "9a11763be7.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "항공권 운임정보 Ticket & Fare Information<br>\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t발행일 Date of Issue<br>\t\t\t\t\t\t\t\t\t\t\t\t\t2019년1월27일<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t운임계산 Fare Calculation<br>\t\t\t\t\t\t\t\t\t\t\t\t\tSEL 7C TYO0.00 7C SEL0.00 NUC0.00END ROE1116.283752<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t운임 Fare Amount<br>\t\t\t\t\t\t\t\t\t\t\t\t\t240,000P<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t세금 Tax/Fee/Charge<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>YQ 18,200 KRW / BP 28,000 KRW / OI 5,400 KRW / SW 10,600 KRW / TK 10,400 KRW<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>한국 출발 세금(BP)에는 국제 여객공항이용료(인천/김포공항 17,000원, 기타 12,000원), 출국납부금 10,000, 국제 빈곤퇴치기여금 1,000원이 포함되어 있습니다.<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t항공운임 등 총액 Total Amount<br>\t\t\t\t\t\t\t\t\t\t\t\t\t72,600 KRW<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t지불금액 Total Paid Amount<br>\t\t\t\t\t\t\t\t\t\t\t\t\t72,600 KRW<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t지불수단 Form of Payment<br>\t\t\t\t\t\t\t\t\t\t\t\t\tCCAX***********3727 / Refresh Point<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t항공권의 변경 및 취소는 최초 구입처로 문의하십시오.<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t탑승수속은 해당 항공편 출발시간 60분 전에 마감되오니, 여유있는 탑승수속을 위해 출발 2시간 전까지 공항에 도착하시기 바랍니다.<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t국제선 왕복 항공권의 경우 항공권상에 명시된 순서대로만 사용하여야 합니다. 순서대로 사용되지 않을 시 항공권은 운송을 위해 사용할 수 없습니다.<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t미주 노선: 수하물 1 개 단위=23KG<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t본 항공권 구매상의 여객 및 수하물의 운송은 제주항공 국제여객운송약관이 적용됩니다.<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t안전상의 이유로 위험물은 특별히 허가 받지 않는 이상 위탁 또는 기내 반입 수하물로 지참하실 수 없습니다.<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t위험물에는 폭발물, 압축 가스, 부식성 물질, 가연성 액체 및 고체, 방사성 물질, 산화성 물질, 유독성 물질, 전염성 물질 및 기타 위해성 물질과 경보 장치가 부착된 서류 가방 등이 있습니다. 보안상의 이유로 다른 제한 사항이 적용될 수도 있습니다. 귀하의 운송인에게 문의하시기 바랍니다.",
-    "w": 400
-  },
-  {
-    "type": "image",
-    "src": "8ad6f274a7.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "보조배터리/전자담배/라이터등은 휴대수하물로만 반입이 가능하오니 여행전 확인해 주십시오.&#160;<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>(국토부 위험물 상세페이지 URL:&#160;<a href=\"https://avsec.ts2020.kr/avsc/main.do?refererPara=JJA\" target=\"_blank\">https://avsec.ts2020.kr/avsc/main.do?refererPara=JJA</a>)<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t안전한 해외여행을 위하여 여행 목적지의 여행경보단계 및 안전여행공지를&#160;<a href=\"https://www.0404.go.kr/\" target=\"_blank\">해외안전여행 홈페이지</a>에서 확인하세요.<br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t\t[",
-    "w": 400
-  },
-  {
-    "type": "image",
-    "src": "37ed10257e.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "](<a href=\"https://www.jejuair.net/jejuair/kr/login/agreement/transportbottom.do)\" target=\"_blank\">https://www.jejuair.net/jejuair/kr/login/agreement/transportbottom.do)</a><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t[",
-    "w": 320
-  },
-  {
-    "type": "image",
-    "src": "7945da21a9.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "](<a href=\"https://www.jejuair.net/jejuair/kr/com/jeju/ibe/news/event/event_detail.do?page=1&event_id=4953)[\" target=\"_blank\">https://www.jejuair.net/jejuair/kr/com/jeju/ibe/news/event/event_detail.do?page=1&event_id=4953)[</a>",
-    "w": 320
-  },
-  {
-    "type": "image",
-    "src": "22c107fa0f.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "](<a href=\"https://cardapplication.ibk.co.kr/card/index.jsp?card_prdc_id=756529)[\" target=\"_blank\">https://cardapplication.ibk.co.kr/card/index.jsp?card_prdc_id=756529)[</a>",
-    "w": 260
-  },
-  {
-    "type": "image",
-    "src": "a97a574c35.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "](<a href=\"https://www.jejuair.net/jejuair/kr/com/jeju/ibe/news/event/event_detail.do?event_id=5091)[\" target=\"_blank\">https://www.jejuair.net/jejuair/kr/com/jeju/ibe/news/event/event_detail.do?event_id=5091)[</a>",
-    "w": 260
-  },
-  {
-    "type": "image",
-    "src": "84a221cf11.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "](<a href=\"https://travel.jejuair.net/main/index)[\" target=\"_blank\">https://travel.jejuair.net/main/index)[</a>",
-    "w": 260
-  },
-  {
-    "type": "image",
-    "src": "aed94521dc.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "](<a href=\"http://jejuair.granddfs.com/)[\" target=\"_blank\">http://jejuair.granddfs.com/)[</a>",
-    "w": 260
-  },
-  {
-    "type": "image",
-    "src": "d33f9a0ae4.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "](<a href=\"https://www.jejuair.net/jejuair/kr/serviceinfo/additional/additional.do)[\" target=\"_blank\">https://www.jejuair.net/jejuair/kr/serviceinfo/additional/additional.do)[</a>",
-    "w": 260
-  },
-  {
-    "type": "image",
-    "src": "d95560a70f.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "](<a href=\"https://www.jejuair.net/jejuair/mypage/onOffReservationList.do)[\" target=\"_blank\">https://www.jejuair.net/jejuair/mypage/onOffReservationList.do)[</a>",
-    "w": 260
-  },
-  {
-    "type": "image",
-    "src": "5f6274aae1.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "](<a href=\"https://www.jejuair.net/jejuair/kr/product/rentcar/rentcar.do)[\" target=\"_blank\">https://www.jejuair.net/jejuair/kr/product/rentcar/rentcar.do)[</a>",
-    "w": 260
-  },
-  {
-    "type": "image",
-    "src": "654fc12952.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "](<a href=\"https://www.jejuair.net/jejuair/kr/product/hotel/oversea.do)[\" target=\"_blank\">https://www.jejuair.net/jejuair/kr/product/hotel/oversea.do)[</a>",
-    "w": 260
-  },
-  {
-    "type": "image",
-    "src": "1a54a924bb.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "](<a href=\"http://www.jejuair.net/jejuair/kr/com/jeju/ibe/news/event/event_detail.do?event_id=1809)\" target=\"_blank\">http://www.jejuair.net/jejuair/kr/com/jeju/ibe/news/event/event_detail.do?event_id=1809)</a><br>\t\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t본 메일은 발신전용이므로 회신하실 수 없습니다.",
-    "w": 320
-  },
-  {
-    "type": "image",
-    "src": "cd6166fe57.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "사업자등록번호 616-81-50527&#160;",
-    "w": 260
-  },
-  {
-    "type": "image",
-    "src": "5b6ae60671.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "통신판매업신고 제주 2006-125호&#160;",
-    "w": 260
-  },
-  {
-    "type": "image",
-    "src": "5b6ae60671.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "대표이사 이석주<br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t<br>제주특별자치도 제주시 신대로 64 3층(연동, 건설공제회관)&#160;",
-    "w": 260
-  },
-  {
-    "type": "image",
-    "src": "5b6ae60671.png",
-    "alt": "도쿄여행",
-    "w": 220
-  },
-  {
-    "type": "text",
-    "content": "서울지사 : 서울특별시 강서구 하늘길 210 (국제화물청사) 366호 제주항공<br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t제주항공 예약센터 : 1599-1500<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\tCopyright ⓒ 2015 by JEJUAIR, CO., LTD. All rights reserved.<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>[제주항공 모바일 탑승권 발급 안내]<br>\t\t\t<br><br>\t\t\t<br>▶ 항공권 예약번호 : YN90P<br>\t\t\t<br>▶ 구간 :  ICN -> NRT<br>\t\t\t<br>▶ 출발시간 : 2019년 03월 29일 08시 10분  출발 (현지시간)<br>\t\t\t<br>▶ 편명 : 7C1102<br>\t\t\t<br>▶ 탑승객 : KIM/JUNYOUNG<br>\t\t\t<br>▶ 수하물 : 무료수하물  : 15kg  위탁 가능합니다.기내 수하물은 1개, 10kg까지 반입 가능합니다.<br>\t\t\t<br>▶ 모바일 탑승권 발급하기 : <a href=\"https://wck.jejuair.net/jejuair/sd/EJmPV0tpj.do\" target=\"_blank\">https://wck.jejuair.net/jejuair/sd/EJmPV0tpj.do</a><br>\t\t\t<br><br>\t\t\t<br>★★ 모바일 탑승권 전용 수하물 위탁 카운터 <br>\t\t\t<br>  - 수하물이 있는 고객은 공항 현장의 모바일 탑승권 전용 수하물 위탁 카운터에서 빠르게 수속이 가능합니다. (인천,김포,제주,김해 공항)<br>\t\t\t<br><br>\t\t\t<br>▶ 유의사항 <br>\t\t\t<br>   - 해외 공항 출발편은 탑승권 발급이 제한됩니다. (예: 인천 출발 왕복 노선 이용 승객은 가는편만 모바일 탑승권 이용 가능)<br>\t\t\t<br>   - 모바일 탑승권은 항공기 출발 24시간 전부터 1시간30분 전까지 발급받으실 수 있습니다. <br>\t\t\t<br>   - 카운터가 혼잡할 수 있으니 출발 1시간50분 전까지 모든 수속을 마쳐주시기 바랍니다.<br>\t\t\t<br><br>\t\t\t<br>▶ 이용제한 고객<br>\t\t\t<br>   - 유아 동반 승객<br>\t\t\t<br>   - 국제선 일부 노선 탑승 승객 (괌, 사이판 노선 등)<br>\t\t\t<br>   - 예약 변경이 필요한 항공권 소지 승객<br>\t\t\t<br>   - 할인 항공권 구매 승객 (개인운임 할인 대상)<br>\t\t\t<br>   - 직원 확인이 필요한 서비스를 신청한 승객 (혼자 여행하는 어린이, 애완동물 동반, 휠체어 신청, 비상구석 사전구매 등)<br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t오다이바 <br>오다이바 <br>오다이바 <br>오다이바->긴자 <br>간자 <br>간자 <br>길자 <br>간자 <br>간자 <br>아사쿠사->다이칸야口卜 <br>나카에구로 <br>나카에구로 <br>다이칸야口卜 <br>다이칸야口卜 <br>다이칸야口卜 vs. 시부야 중 <br>요요기공원 0<a href=\"https://m.post.naver.com/viewer/postView.nhn?volumeNo=16584417&memberNo=36630195\" target=\"_blank\"> 시주쿠교엔 <br>오모테산도/시부야 <br>록본 기 즈 <br>도쿄 시티뷰&스카이덱 <br>후쿠 야기토리 <br>아사쿠사 <br>아사쿠사 <br>다치카와시 <br>조후 시 <br>가와구치코 근저 <br>Eh누기 호수 <br>미토노 마즈바라 <br>도조 궁, Ll혼다이라(정상) <br>시즈오카 숙소, 저녁식사, 온전 <br>숙소에서 출발 <br>Tofuya bakery, & Table <br>아카오 허브&로즈 가든/ 코레다 하우스 <br>아Eh口l 해변 드라이브 <br>Moa 미술관 <br>하코Lil 시사 <br>조각의 숲 미술관 & Pola Museum of Aft <br>상세 <br>도작 후 일국심사/짐찾기 <br>11시24분(27분)-12시 27분, 게이세이나리Eh 스카이익세스 기준 <br>아사쿠사역에 짐 할김 <br>점심 식사(40분) <br>아사쿠사 전통 거리,시장, 센소지 구경 <br>지나가며 군것질 아사쿠사 멘치카즈, Eh이야끼, 빙수, 떡 등 <br>스미다 공원 산책, 스미다강 근저 카터(도쿄스카이트리 배경 벚꽃) <br>체크인 및 기|인춭 재정비 시간(가급적 흰색옷 일을것!) <br>무터로 이동(우버쿠폰 씀), 15분 소요 <br>팀 보더리스 전시 <br>오다이바 해변공원: 강가 일몰 구경(자유의 여신상 등) <br>팀럩 보더리스 >긴자식스(유리카모데 라인 탑승(32분 소요)) <br>긴자식스 구경(+구경 및 군것질: 나카무라 토기치 등) <br>긴자식스 근저 저녁식사(후보지 중 사전에 골라야 함) <br>길자 ZEh야 서점 구경, 궁내정 근저 벚꽃 라이트얼 구경 <br>아이언 터어리스 길자 <br>숙소복귀(지하철 20분 소요) <br>지 하大닄 40-50분 소요 <br>나카에구로 벚꽃길 구경 <br>오니버스 거피(9시 오픈) <br>다이칸야口卜 구경 <br>다이칸야口卜 ZEh야, 각종 숍들 <br>벚꽃공원 산” <br>거리 구경, 백화점 <br>벚꽃야경, 록본기 힐즈 구경 <br>야경감상(도쿄Eh우」 포함) <br>자 렌트(렌트회사까지는 8시반까지 갈것) <br>숙소에서 출발(아침 픽업) <br>국영 쇼와 국팉공원 <br>Tegamisha Tsutsujigaoka, 本 그 - - tegamisha(아점) <br>oishi Park 혹은 오시노 핫카이 중 선택 <br>Eh누기 호수(가와구치코에서 45분 소요) <br>(Eh누기호수에서 1시간 14분 소요), 일몰구경 <br>I-I혼다이라에서 20분 소요 <br>유경한 족탕 카터, 빵맛짙, 아침식사(우동, 가능) <br>정원 내 건축으로 유경한 코레다 하우스 카터, 바다 부 <br>내부는 안들어가고 지나가다 외부 조각+뷰 구경만 <br>(Moa口l술관에서 30분 소요) 물 위의 시사 <br>공항까지는 두시간 소요 <br>가는 루트 중 식사(도쿄) <br>렌터카 반납 <br>비고 <br>Yakko(장어) 혹은 아사쿠사규카즈 한금촡제만 가능 <br>;戔草 甘呀- -no, :•戔草) •之 주, 0,큼門驚」회l燒本좋甬 ;戔覃新f中 見世通 0 店 <br>m하10 cafe yøre, from afar 倉庫01, Sunshine State Espresso 중 1곳 <br>4 Chome-14-8 Kotobuki Taitö-ku, Tö하6-to 111 0042 <br>대중교통 이동시 1시간 소요 <br>라E(Mugi to Olive 깔끔한 닭+해물 육수의 라멘), <br>오뎅바(二 t」` 5 銀座店.konakara.com/, 수」• h, 1墮Ott L,GINZA KOSO <br>질판구이(Teppanyaki Ten,銀座和糲), 샤브샤브/人기야기•Zakuro Ginza <br>Kisoji Ginza 5 Chöme <br>각테일,술 <br>아침: 근저 오니기리 카터(선택) <br>루I-I 후르즈(후르즈산도 맞질, 테이크아웃) <br>야기토리 장인 질 <br>일본5대 벚꽃 명소 <br>최근 도쿄에서 유경한 근교 편질샬/카더 <br>예약 <br>예약교요 <br>이 부 예 0 교 요 <br>예약교요 <br>예약교요 \" width=\"480\" height=\"320\" src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ac556cb999df4443811c404df5384ad0!1-733661839CC53BA5!7918/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ac556cb999df4443811c404df5384ad0!1-733661839CC53BA5!7918/$value</a>\" data-src-type=\"image/png\" data-fullres-src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1cf2d63a88f14fffa7e8a43430fca72b!1-733661839CC53BA5!7918/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1cf2d63a88f14fffa7e8a43430fca72b!1-733661839CC53BA5!7918/$value</a>\" data-fullres-src-type=\"image/png\" /><br>\t\t\t<br><br>\t\t\t<br>[GINJA SONY PARK</a> <a href=\"https://m.post.naver.com/viewer/postView.nhn?volumeNo=16584417&memberNo=36630195\" target=\"_blank\">https://m.post.naver.com/viewer/postView.nhn?volumeNo=16584417&memberNo=36630195</a><br>\t\t\t<br>츠타야 - 다이칸야마, 시부야<br>\t\t\t<br>신주쿠 디즈니 매장<br>\t\t\t<br>일몰 Spot - 오바이바, 도쿄 도청사<br>\t\t\t<br>나이키랩 @오모테산도 <a href=\"http://blog.naver.com/aimarjb/220877037410\" target=\"_blank\">http://blog.naver.com/aimarjb/220877037410</a><br>\t\t\t<br>슈프림 - @하라주쿠, 시부야, 다이칸야마<br>\t\t\t<br>갤럭시 브랜드쇼케이스 ＠하라주쿠 <br>\t\t\t<br><a href=\"http://news.kmib.co.kr/article/view.asp?sid1=all&arcid=0924066844&code=11151400\" target=\"_blank\">http://news.kmib.co.kr/article/view.asp?sid1=all&arcid=0924066844&code=11151400</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.google.com/search?ei=T-FaXMGAF4_M8wWV64O4BA&q=%EB%8F%84%EC%BF%84+%ED%8E%B8%EC%A7%91%EC%83%B5&oq=%EB%8F%84%EC%BF%84+%ED%8E%B8%EC%A7%91%EC%83%B5&gs_l=psy-ab.3..0j0i8i30l2j0i5i30.57095.59453..59627...1.0..1.201.2829.0j16j1......0....1..gws-wiz.......35i39j0i67j0i131i67j0i131j0i30j0i13j0i8i13i30j0i13i5i30.GVlnyqPj2ac\" target=\"_blank\">편집샵</a><br>\t\t\t<br><a href=\"https://www.google.com/search?ei=nOFaXPPOEsL88gX_jIfADw&q=%EB%8F%84%EC%BF%84+%EA%B1%B4%EC%B6%95%EB%AC%BC&oq=%EB%8F%84%EC%BF%84+%EA%B1%B4%EC%B6%95%EB%AC%BC&gs_l=psy-ab.3..0i67j0l6j0i30l3.10247.12581..12700...2.0..0.200.2030.0j11j1......0....1..gws-wiz.......35i39j0i131i67j0i131j0i13j0i13i30j0i13i5i30.JAG-CoFNXmY\" target=\"_blank\">도쿄</a> 건축물<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://livejapan.com/ko/in-tokyo/in-pref-tokyo/in-shinjuku/article-a0000118/\" target=\"_blank\">https://livejapan.com/ko/in-tokyo/in-pref-tokyo/in-shinjuku/article-a0000118/</a><br>\t\t\t<br><a href=\"https://blog.naver.com/travelgilbut/220656373829\" target=\"_blank\">https://blog.naver.com/travelgilbut/220656373829</a><br>\t\t\t<br><br>\t\t\t<br>살거<br>\t\t\t<br>피치콜라<br>\t\t\t<br>비오레 썬크림<br>\t\t\t<br>팀장/대표님 선물<br>\t\t\t<br>편지지",
-    "w": 400
-  }
-];
+const SAVE_KEY = 'note-도쿄여행';
 
-let cards = [];
-let moving = null, resizing = null;
-
-function loadBoard() {
-  const saved = localStorage.getItem(SAVE_KEY);
-  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
-  renderCards();
-  if (!saved) autoLayout();
+function save() {
+  const data = {};
+  document.querySelectorAll('.block-text').forEach(el => {
+    data[el.dataset.idx] = el.innerHTML;
+  });
+  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  const s = document.getElementById('status');
+  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
+  setTimeout(() => { s.textContent = ''; }, 2000);
 }
 
-function autoLayout() {
-  const GAP = 14;
-  const boardW = document.getElementById('board').offsetWidth;
-  const cols = Math.max(1, Math.floor(boardW / 280));
-  const colW = (boardW - GAP * (cols - 1)) / cols;
-  const colHeights = new Array(cols).fill(0);
-  const allCards = document.querySelectorAll('.card');
-  const images = document.querySelectorAll('.card img');
-  let loaded = 0;
-  const total = images.length;
-
-  function place() {
-    allCards.forEach((el, i) => {
-      const card = cards[i];
-      const w = Math.min(card.w || colW, colW);
-      let minCol = 0;
-      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
-      card.x = minCol * (colW + GAP);
-      card.y = colHeights[minCol];
-      card.w = w;
-      el.style.left = card.x + 'px';
-      el.style.top = card.y + 'px';
-      el.style.width = w + 'px';
-      colHeights[minCol] = card.y + el.offsetHeight + GAP;
-    });
-    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
-    saveBoard();
-  }
-
-  if (total === 0) requestAnimationFrame(place);
-  else images.forEach(img => {
-    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
-    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+function copyPath() {
+  navigator.clipboard.writeText(location.pathname).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ 복사됨';
+    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
   });
 }
 
-function syncText() {
-  document.querySelectorAll('.card').forEach(el => {
-    const idx = +el.dataset.idx;
-    if (cards[idx]?.type === 'text') {
-      const t = el.querySelector('.text');
-      if (t) cards[idx].content = t.innerHTML;
-    }
-  });
+// Restore saved edits
+const saved = localStorage.getItem(SAVE_KEY);
+if (saved) {
+  try {
+    const data = JSON.parse(saved);
+    document.querySelectorAll('.block-text').forEach(el => {
+      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
+    });
+  } catch(e) {}
 }
 
-function saveBoard() {
-  syncText();
-  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
-  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
-}
-
-function renderCards() {
-  const board = document.getElementById('board');
-  board.innerHTML = '';
-  cards.forEach((card, i) => {
-    const el = document.createElement('div');
-    el.className = 'card';
-    el.dataset.idx = i;
-    if (card.x !== undefined) el.style.left = card.x + 'px';
-    if (card.y !== undefined) el.style.top = card.y + 'px';
-    if (card.w) el.style.width = card.w + 'px';
-
-    el.addEventListener('mousedown', e => {
-      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
-      e.preventDefault();
-      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
-      el.classList.add('moving');
-    });
-
-    const actions = document.createElement('div');
-    actions.className = 'card-actions';
-    const delBtn = document.createElement('button');
-    delBtn.className = 'card-btn'; delBtn.textContent = '×';
-    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
-    actions.appendChild(delBtn);
-    el.appendChild(actions);
-
-    if (card.type === 'text') {
-      const text = document.createElement('div');
-      text.className = 'text';
-      text.contentEditable = true;
-      text.innerHTML = card.content || '';
-      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
-      el.appendChild(text);
-    } else if (card.type === 'image') {
-      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = card.alt || '';
-      img.loading = 'lazy';
-      img.onerror = () => img.style.display = 'none';
-      if (card.link) {
-        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
-        a.appendChild(img); el.appendChild(a);
-      } else { el.appendChild(img); }
-      if (card.caption) {
-        const cap = document.createElement('div');
-        cap.className = 'caption';
-        cap.textContent = card.caption;
-        el.appendChild(cap);
-      }
-    } else if (card.type === 'table') {
-      const wrapper = document.createElement('div');
-      wrapper.style.overflowX = 'auto';
-      wrapper.innerHTML = card.html || '';
-      el.appendChild(wrapper);
-    }
-
-    const rh = document.createElement('div');
-    rh.className = 'resize-handle';
-    rh.addEventListener('mousedown', e => {
-      e.preventDefault(); e.stopPropagation();
-      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
-    });
-    el.appendChild(rh);
-    board.appendChild(el);
-  });
-
-  requestAnimationFrame(() => {
-    let maxBottom = 0;
-    document.querySelectorAll('.card').forEach(el => {
-      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
-      if (b > maxBottom) maxBottom = b;
-    });
-    board.style.minHeight = (maxBottom + 100) + 'px';
-  });
-}
-
-document.addEventListener('mousemove', e => {
-  if (moving) {
-    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
-    if (!el) return;
-    const nx = moving.origX + e.clientX - moving.startX;
-    const ny = moving.origY + e.clientY - moving.startY;
-    el.style.left = nx + 'px';
-    el.style.top = ny + 'px';
-  }
-  if (resizing) {
-    const card = cards[resizing.idx];
-    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
-    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
-    if (el) el.style.width = card.w + 'px';
-  }
+document.querySelectorAll('.block-text').forEach(el => {
+  el.addEventListener('blur', save);
 });
 
-document.addEventListener('mouseup', e => {
-  if (moving) {
-    const card = cards[moving.idx];
-    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
-    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
-    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
-    if (el) { el.classList.remove('moving'); }
-    moving = null; saveBoard();
-  }
-  if (resizing) { resizing = null; saveBoard(); }
-});
-
-function addTextCard() {
-  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
-  renderCards();
-  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
-}
-
-function addImageCard() {
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*';
-  input.onchange = e => {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
-    reader.readAsDataURL(file);
-  };
-  input.click();
-}
-
-function resetLayout() {
-  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
-  cards.forEach(c => { delete c.x; delete c.y; });
-  renderCards(); autoLayout();
-}
-
-setInterval(saveBoard, 30000);
-loadBoard();
+setInterval(save, 30000);
 </script>
 </body>
 </html>

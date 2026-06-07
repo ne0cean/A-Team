@@ -11,274 +11,90 @@ body {
   color: #e0e0e0;
   font-family: 'Segoe UI', -apple-system, sans-serif;
   font-size: 15px;
-  line-height: 1.6;
-  padding: 20px 30px 60px;
-  overflow-x: hidden;
+  line-height: 1.7;
+  padding: 0 0 80px;
 }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.title-bar {
-  background: #3a3a5c;
-  display: inline-block;
-  padding: 6px 16px;
-  font-size: 22px;
-  font-weight: bold;
-  color: #fff;
-  margin-bottom: 4px;
+.toolbar {
+  position: sticky; top: 0; z-index: 100;
+  background: #161b22; border-bottom: 1px solid #30363d;
+  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
 }
-.date { color: #999; font-size: 13px; margin-bottom: 20px; }
-.board { position: relative; }
-.card {
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
-  border-radius: 8px;
-  padding: 12px;
-  position: absolute;
-  cursor: grab;
-  transition: box-shadow 0.15s;
-  overflow: hidden;
+.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
+.toolbar button:hover { background: #30363d; color: #fff; }
+.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
+.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
+.block { margin-bottom: 10px; }
+.block-text {
+  outline: none;
+  padding: 5px 8px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 1.5em;
 }
-.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
-.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
-.card img { width: 100%; border-radius: 4px; display: block; }
-.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
-.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
-.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
-.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
-.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
-.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
-.card table th { background: #333; color: #ccc; }
-.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
-.card:hover .card-actions { display: flex; }
-.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
-.card-btn:hover { background: #444; color: #fff; }
-.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
-.card:hover .resize-handle { opacity: 0.6; }
-.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
-.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-.toolbar button:hover { background: #30363d; }
-.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
-.highlight-red { color: #ff6b6b; }
-.highlight-blue { color: #6cb0f6; }
+.block-text:focus { background: rgba(255,255,255,0.04); }
+.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
+.block-image img { max-width: 100%; border-radius: 6px; display: block; }
+.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
+.block-table .table-wrap { overflow-x: auto; }
+.block-table table { border-collapse: collapse; font-size: 13px; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table th { background: #2a2a3a; color: #ccc; }
 </style>
 </head>
 <body>
-<div class="title-bar">시황 분석</div>
-<div class="date">2024년 8월 6일 화요일</div>
-<div class="board" id="board"></div>
 <div class="toolbar">
-  <button onclick="addTextCard()">+ 텍스트</button>
-  <button onclick="addImageCard()">+ 이미지</button>
-  <button onclick="saveBoard()">💾 저장</button>
-  <button onclick="resetLayout()">↺ 재배치</button>
-  <span class="status" id="status">Ready</span>
+  <span class="t-title">시황 분석</span>
+  <span class="t-date">2024년 8월 6일 화요일</span>
+  <button onclick="save()">저장</button>
+  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
+  <span class="t-status" id="status"></span>
+</div>
+<div class="doc" id="doc">
+<div class="block block-text" data-idx="0" contenteditable="true">시황 분석<br>		<br>		<br>	<br>	<br>		<br>			<br>				<br><a href="https://obank.kbstar.com/quics?page=C019175" target="_blank">미국 시황 확인하는 다섯 가지 방법</a><br>				<br><br>				<br><a href="https://contents.premium.naver.com/x10/123/contents/240501091202513da?from=news_arp_global" target="_blank">대세를 확인하는 방법(시황분석 프로세스 3단계)</a><br>				<br><br>				<br><a href="https://obank.kbstar.com/quics?page=C019175" target="_blank">KB주간투자정보 - 시황분석자료</a><br>				<br><br>				<br>코스피 고점지표: 삼전/하닉, 고객 예택금 상승 추세<br>				<br><br>				<br>거시환경 상으로는 금리 피크아웃 기대감이 나오고 있어 향후 유동성 개선 가능성<br>				<br>특히 국내 증시에서는 정책적 모멘텀(주주환원, 자사주 매입 등이 포함됨)도 거론<br>				<br>즉,&#160;지수 레벨상 과열 국면이지만 완전한 하락 전환 이전, 단기 트레이딩 기회는 여전히 존재하는 구간<br>				<br>단기적으로는&#160;반도체(AI 메모리),&#160;2차전지,&#160;조선/에너지&#160;섹터가 주도하며 외국인 자금이 지속 유입 중<br>				<br>하나증권은&#160;2026년 상반기까지 상승세 지속 후 하반기 피크 가능성을 제시<br>				<br><br>				<br>즉, 반도체&#183;IT 중심의 급등 흐름은 어느 정도 선에서 멈추거나 조정 받을 가능성이 있고,<br>				<br>대신 실적 기반이 탄탄하거나 정책 수혜가 명확한 업종이 상대적으로 유리<br>				<br>- 다만,&#160;물가 재상승 및 금리 불확실성이 연말 이후 경계 요인으로 작용할 가능성이 높습니다.<br>				<br><br>				<br>- <br>추천 업종/종목:<br>				<br>					<br>- 증권주 – 증시 거래대금 증가, 브로커리지 수혜 기대됨.<br>					<br>- 자사주매입 확대 기업 또는 주주환원 기대 기업.<br>					<br>- 모멘텀 있는 반도체 장비&#183;부품 기업 (다만 반도체 업황 피크 논란 있어 위험도 존재)<br>				<br>				<br>				<br>- <br>예시 종목:<br>				<br>					<br>- 한미반도체(이미 매도하셨으니 제외)<br>					<br>- 삼성증권 혹은 그 외 증권사 (거래대금 증가 수혜)<br>					<br>- 자사주매입 기대감 있는 중견기업 하나<br>				<br>				<br>				<br>- <br>추천 업종/종목:<br>				<br>					<br>- 내수 소비주 또는 정책 수혜 업종 (예 : 인바운드 관련, 화장품&#183;여행&#183;레저)<br>					<br>- IT 중소형주 중 성장성이 있으나 밸류 부담 적은 종목<br>				<br>				<br>				<br>- <br>예시 종목:<br>				<br>					<br>- LG 생활건강 (내수+인바운드 기대)<br>					<br>- 카카오 혹은 플랫폼/소프트웨어 기업 (AI 투자 흐름 반영)<br>				<br>				<br>				<br><br>				<br>					<br>						종목명<br>						전략 유형<br>						진입 타이밍<br>						목표 수익률<br>						손절 기준<br>						리스크<br>					<br>					<br>						삼성증권 (증권사)<br>						단기 모멘텀 집중형<br>						증시 거래대금 증가 국면<br>						+ 25~35%<br>						-12%<br>						증시 거래 감소 시 수혜 축소<br>					<br>					<br>						카카오 (플랫폼/AI)<br>						중단기 성장형<br>						플랫폼/AI 테마 지속 시<br>						+ 20~30%<br>						-10%<br>						규제 리스크, 성장 기대 선반영 가능성<br>					<br>					<br>						LG 생활건강 (내수/인바운드)<br>						중단기 성장형<br>						인바운드 회복 흐름 반영 시<br>						+ 15~25%<br>						-10%<br>						내부 실적 둔화, 환율 리스크<br>					<br>				<br>				<br><br>				<br>					<br>						구분<br>						종목<br>						비중<br>						투자기간<br>						시나리오 및 목표<br>						리스크 요인<br>					<br>					<br>						코스피<br>						SK하이닉스<br>						35% (1,575만원)<br>						3주~2개월<br>						HBM&#183;AI 반도체 수요 지속. 외국인 매수세 중심 추가 모멘텀 기대.목표 20% 내외 단기 수익<br>						글로벌 반도체 재고 증가 기류<br>					<br>					<br>						코스피<br>						삼성전자<br>						25% (1,125만원)<br>						1~2개월<br>						시스템 반도체 업황 회복, 외국인 매수 유입.상단 90,000원 내외<br>						환율 급락 및 메모리 단가 조정<br>					<br>					<br>						코스피<br>						LG에너지솔루션<br>						20% (900만원)<br>						1개월 내외<br>						IRA 수혜 지속, 북미 배터리 공급망 안정화 모멘텀.단기 탄력 기대<br>						전기차 수요 둔화<br>					<br>					<br>						코스닥<br>						퓨릿<br>						10% (450만원)<br>						3~4주<br>						에너지 저장(ESS) 수혜, 신재생 정책 모멘텀.단기 15% 목표<br>						유가 반등&#183;정책 변수<br>					<br>					<br>						코스닥<br>						싸이닉솔루션<br>						10% (450만원)<br>						2~3주<br>						OLED&#183;반도체 소재 확장. 중소형 모멘텀플레이 적합.단기 수익형 종목<br>						거래량 감소&#183;조정 리스크<br>					<br>				<br>				<br><br>				<br><br>				<br>1. 공격적 반도체 (40% - 18백만원)<br>				<br>   - SK하이닉스: 10백만원<br>				<br>   - 삼성전자: 8백만원<br>				<br>   <br>				<br>2. 방산/조선 모멘텀 (30% - 13.5백만원)<br>				<br>   - HD한국조선해양: 7백만원<br>				<br>   - 한화에어로스페이스: 6.5백만원<br>				<br><br>				<br>3. 엔터/게임 신작 모멘텀 (15% - 6.75백만원)<br>				<br>   - 엔씨소프트: 6.75백만원<br>				<br><br>				<br><br>				<br>4. 현금 보유 (15% - 6.75백만원)<br>				<br>   - 급락 시 저점 매수용<br>				<br><br>				<br>					<br>- 브로드컴 실적 발표와 중국 CXMT의 DDR4 생산 종료로 메모리 사업 실적 개선 기대 <a href="https://www.myasset.com/myasset/research/rs_list/RS_0702001_P1.cmd?section=01" target="_blank">Daily 추천종목 - 유안타증권</a><br>					<br>- HBM 수요 폭발적 증가<br>					<br>- 목표: 23주 내 +1520%<br>				<br>				<br>					<br>- 아이온2 출시 일정 확정(11/19), 사전예약 긍정적 반응으로 흥행 가능성 <a href="https://www.myasset.com/myasset/research/rs_list/RS_0702001_P1.cmd?section=01" target="_blank">Daily 추천종목 - 유안타증권</a><br>					<br>- 신작 모멘텀으로 단기 급등 가능<br>					<br>- 목표: 34주 내 +2030%<br>				<br>				<br>					<br>- 대미 조선업 투자의 주체로서 지주사 할인율 적용으로 하방 제한적 <a href="https://www.myasset.com/myasset/research/rs_list/RS_0702001_P1.cmd?section=01" target="_blank">Daily 추천종목 - 유안타증권</a><br>					<br>- 수주 잔고 사상 최대<br>					<br>- 목표: 46주 내 +1525%<br>				<br>				<br>전략적 주식 (10% - 4.5백만원) │ │ • SK하이닉스: 2.25백만원 │ │ • 엔씨소프트: 2.25백만원 │ │ - 단기 모멘텀 포착 (2-4주) <br>				<br><br>				<br><br>				<br><br>				<br>					<br>- 현금 보유 (Cash is King): 한미반도체를 매도한 자금(4,500만원)을 MMF, CMA, 단기 채권 ETF 등 안전자산에 보관합니다. 그리고 피크아웃(조정)이 실제로 발생하여 주가가 충분히 하락했을 때, 다시 HPSP와 같은 우량주를 저가에 매수하는 것입니다.<br>					<br>- 인버스(Inverse) 투자: 코스피 지수 하락에 베팅하는 ETF (예: KODEX 200 선물 인버스)를 분할 매수하는 전략입니다. 이는 피크아웃 시나리오에 가장 직접적으로 부합하는 전략입니다. (단, 곱버스(2X)는 변동성으로 인해 장기 보유 시 손실이 누적되므로 신중해야 합니다.)<br>				<br>				<br>					<br>- <br>현금성 자산 (CMA/MMF/초단기채권 ETF): 2,500만원 (약 55%)<br>					<br>						<br>- 역할: 즉각적인 유동성 확보, 안정적인 이자 수익, '폭락장' 발생 시 주식(혹은 비트코인)을 살 수 있는 실탄(Dry powder).<br>					<br>					<br>					<br>- <br>중/장기 국채 (미국채 또는 국고채 ETF): 2,000만원 (약 45%)<br>					<br>						<br>- 역할: 피크아웃(경기 침체)으로 인해 금리가 인하될 경우, 채권 가격 상승으로 인한 자본 차익 추구.<br>					<br>					<br>				<br>				<br><br>			<br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br>1. SK하이닉스 (최우선 추천)<br>			<br>2. 엔씨소프트<br>			<br>3. HD한국조선해양<br>			<br><br>			<br><br>			<br><br>			<br>오히려 현명한 투자자는 다음과 같은 전략을 고려합니다.<br>			<br>포트폴리오 예시 (4,500만원):</div>
 </div>
 <script>
-const SAVE_KEY = 'board-시황-분석';
-const IMG_BASE = '../../attachments/';
-const DEFAULT_CARDS = [
-  {
-    "type": "text",
-    "content": "시황 분석<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br><a href=\"https://obank.kbstar.com/quics?page=C019175\" target=\"_blank\">미국 시황 확인하는 다섯 가지 방법</a><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://contents.premium.naver.com/x10/123/contents/240501091202513da?from=news_arp_global\" target=\"_blank\">대세를 확인하는 방법(시황분석 프로세스 3단계)</a><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://obank.kbstar.com/quics?page=C019175\" target=\"_blank\">KB주간투자정보 - 시황분석자료</a><br>\t\t\t\t<br><br>\t\t\t\t<br>코스피 고점지표: 삼전/하닉, 고객 예택금 상승 추세<br>\t\t\t\t<br><br>\t\t\t\t<br>거시환경 상으로는 금리 피크아웃 기대감이 나오고 있어 향후 유동성 개선 가능성<br>\t\t\t\t<br>특히 국내 증시에서는 정책적 모멘텀(주주환원, 자사주 매입 등이 포함됨)도 거론<br>\t\t\t\t<br>즉,&#160;지수 레벨상 과열 국면이지만 완전한 하락 전환 이전, 단기 트레이딩 기회는 여전히 존재하는 구간<br>\t\t\t\t<br>단기적으로는&#160;반도체(AI 메모리),&#160;2차전지,&#160;조선/에너지&#160;섹터가 주도하며 외국인 자금이 지속 유입 중<br>\t\t\t\t<br>하나증권은&#160;2026년 상반기까지 상승세 지속 후 하반기 피크 가능성을 제시<br>\t\t\t\t<br><br>\t\t\t\t<br>즉, 반도체&#183;IT 중심의 급등 흐름은 어느 정도 선에서 멈추거나 조정 받을 가능성이 있고,<br>\t\t\t\t<br>대신 실적 기반이 탄탄하거나 정책 수혜가 명확한 업종이 상대적으로 유리<br>\t\t\t\t<br>- 다만,&#160;물가 재상승 및 금리 불확실성이 연말 이후 경계 요인으로 작용할 가능성이 높습니다.<br>\t\t\t\t<br><br>\t\t\t\t<br>- <br>추천 업종/종목:<br>\t\t\t\t<br>\t\t\t\t\t<br>- 증권주 – 증시 거래대금 증가, 브로커리지 수혜 기대됨.<br>\t\t\t\t\t<br>- 자사주매입 확대 기업 또는 주주환원 기대 기업.<br>\t\t\t\t\t<br>- 모멘텀 있는 반도체 장비&#183;부품 기업 (다만 반도체 업황 피크 논란 있어 위험도 존재)<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>- <br>예시 종목:<br>\t\t\t\t<br>\t\t\t\t\t<br>- 한미반도체(이미 매도하셨으니 제외)<br>\t\t\t\t\t<br>- 삼성증권 혹은 그 외 증권사 (거래대금 증가 수혜)<br>\t\t\t\t\t<br>- 자사주매입 기대감 있는 중견기업 하나<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>- <br>추천 업종/종목:<br>\t\t\t\t<br>\t\t\t\t\t<br>- 내수 소비주 또는 정책 수혜 업종 (예 : 인바운드 관련, 화장품&#183;여행&#183;레저)<br>\t\t\t\t\t<br>- IT 중소형주 중 성장성이 있으나 밸류 부담 적은 종목<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>- <br>예시 종목:<br>\t\t\t\t<br>\t\t\t\t\t<br>- LG 생활건강 (내수+인바운드 기대)<br>\t\t\t\t\t<br>- 카카오 혹은 플랫폼/소프트웨어 기업 (AI 투자 흐름 반영)<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t종목명<br>\t\t\t\t\t\t전략 유형<br>\t\t\t\t\t\t진입 타이밍<br>\t\t\t\t\t\t목표 수익률<br>\t\t\t\t\t\t손절 기준<br>\t\t\t\t\t\t리스크<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t삼성증권 (증권사)<br>\t\t\t\t\t\t단기 모멘텀 집중형<br>\t\t\t\t\t\t증시 거래대금 증가 국면<br>\t\t\t\t\t\t+ 25~35%<br>\t\t\t\t\t\t-12%<br>\t\t\t\t\t\t증시 거래 감소 시 수혜 축소<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t카카오 (플랫폼/AI)<br>\t\t\t\t\t\t중단기 성장형<br>\t\t\t\t\t\t플랫폼/AI 테마 지속 시<br>\t\t\t\t\t\t+ 20~30%<br>\t\t\t\t\t\t-10%<br>\t\t\t\t\t\t규제 리스크, 성장 기대 선반영 가능성<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tLG 생활건강 (내수/인바운드)<br>\t\t\t\t\t\t중단기 성장형<br>\t\t\t\t\t\t인바운드 회복 흐름 반영 시<br>\t\t\t\t\t\t+ 15~25%<br>\t\t\t\t\t\t-10%<br>\t\t\t\t\t\t내부 실적 둔화, 환율 리스크<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t구분<br>\t\t\t\t\t\t종목<br>\t\t\t\t\t\t비중<br>\t\t\t\t\t\t투자기간<br>\t\t\t\t\t\t시나리오 및 목표<br>\t\t\t\t\t\t리스크 요인<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t코스피<br>\t\t\t\t\t\tSK하이닉스<br>\t\t\t\t\t\t35% (1,575만원)<br>\t\t\t\t\t\t3주~2개월<br>\t\t\t\t\t\tHBM&#183;AI 반도체 수요 지속. 외국인 매수세 중심 추가 모멘텀 기대.목표 20% 내외 단기 수익<br>\t\t\t\t\t\t글로벌 반도체 재고 증가 기류<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t코스피<br>\t\t\t\t\t\t삼성전자<br>\t\t\t\t\t\t25% (1,125만원)<br>\t\t\t\t\t\t1~2개월<br>\t\t\t\t\t\t시스템 반도체 업황 회복, 외국인 매수 유입.상단 90,000원 내외<br>\t\t\t\t\t\t환율 급락 및 메모리 단가 조정<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t코스피<br>\t\t\t\t\t\tLG에너지솔루션<br>\t\t\t\t\t\t20% (900만원)<br>\t\t\t\t\t\t1개월 내외<br>\t\t\t\t\t\tIRA 수혜 지속, 북미 배터리 공급망 안정화 모멘텀.단기 탄력 기대<br>\t\t\t\t\t\t전기차 수요 둔화<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t코스닥<br>\t\t\t\t\t\t퓨릿<br>\t\t\t\t\t\t10% (450만원)<br>\t\t\t\t\t\t3~4주<br>\t\t\t\t\t\t에너지 저장(ESS) 수혜, 신재생 정책 모멘텀.단기 15% 목표<br>\t\t\t\t\t\t유가 반등&#183;정책 변수<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t코스닥<br>\t\t\t\t\t\t싸이닉솔루션<br>\t\t\t\t\t\t10% (450만원)<br>\t\t\t\t\t\t2~3주<br>\t\t\t\t\t\tOLED&#183;반도체 소재 확장. 중소형 모멘텀플레이 적합.단기 수익형 종목<br>\t\t\t\t\t\t거래량 감소&#183;조정 리스크<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>1. 공격적 반도체 (40% - 18백만원)<br>\t\t\t\t<br>   - SK하이닉스: 10백만원<br>\t\t\t\t<br>   - 삼성전자: 8백만원<br>\t\t\t\t<br>   <br>\t\t\t\t<br>2. 방산/조선 모멘텀 (30% - 13.5백만원)<br>\t\t\t\t<br>   - HD한국조선해양: 7백만원<br>\t\t\t\t<br>   - 한화에어로스페이스: 6.5백만원<br>\t\t\t\t<br><br>\t\t\t\t<br>3. 엔터/게임 신작 모멘텀 (15% - 6.75백만원)<br>\t\t\t\t<br>   - 엔씨소프트: 6.75백만원<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>4. 현금 보유 (15% - 6.75백만원)<br>\t\t\t\t<br>   - 급락 시 저점 매수용<br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>- 브로드컴 실적 발표와 중국 CXMT의 DDR4 생산 종료로 메모리 사업 실적 개선 기대 <a href=\"https://www.myasset.com/myasset/research/rs_list/RS_0702001_P1.cmd?section=01\" target=\"_blank\">Daily 추천종목 - 유안타증권</a><br>\t\t\t\t\t<br>- HBM 수요 폭발적 증가<br>\t\t\t\t\t<br>- 목표: 23주 내 +1520%<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>- 아이온2 출시 일정 확정(11/19), 사전예약 긍정적 반응으로 흥행 가능성 <a href=\"https://www.myasset.com/myasset/research/rs_list/RS_0702001_P1.cmd?section=01\" target=\"_blank\">Daily 추천종목 - 유안타증권</a><br>\t\t\t\t\t<br>- 신작 모멘텀으로 단기 급등 가능<br>\t\t\t\t\t<br>- 목표: 34주 내 +2030%<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>- 대미 조선업 투자의 주체로서 지주사 할인율 적용으로 하방 제한적 <a href=\"https://www.myasset.com/myasset/research/rs_list/RS_0702001_P1.cmd?section=01\" target=\"_blank\">Daily 추천종목 - 유안타증권</a><br>\t\t\t\t\t<br>- 수주 잔고 사상 최대<br>\t\t\t\t\t<br>- 목표: 46주 내 +1525%<br>\t\t\t\t<br>\t\t\t\t<br>전략적 주식 (10% - 4.5백만원) │ │ • SK하이닉스: 2.25백만원 │ │ • 엔씨소프트: 2.25백만원 │ │ - 단기 모멘텀 포착 (2-4주) <br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>- 현금 보유 (Cash is King): 한미반도체를 매도한 자금(4,500만원)을 MMF, CMA, 단기 채권 ETF 등 안전자산에 보관합니다. 그리고 피크아웃(조정)이 실제로 발생하여 주가가 충분히 하락했을 때, 다시 HPSP와 같은 우량주를 저가에 매수하는 것입니다.<br>\t\t\t\t\t<br>- 인버스(Inverse) 투자: 코스피 지수 하락에 베팅하는 ETF (예: KODEX 200 선물 인버스)를 분할 매수하는 전략입니다. 이는 피크아웃 시나리오에 가장 직접적으로 부합하는 전략입니다. (단, 곱버스(2X)는 변동성으로 인해 장기 보유 시 손실이 누적되므로 신중해야 합니다.)<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>- <br>현금성 자산 (CMA/MMF/초단기채권 ETF): 2,500만원 (약 55%)<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>- 역할: 즉각적인 유동성 확보, 안정적인 이자 수익, '폭락장' 발생 시 주식(혹은 비트코인)을 살 수 있는 실탄(Dry powder).<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>- <br>중/장기 국채 (미국채 또는 국고채 ETF): 2,000만원 (약 45%)<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>- 역할: 피크아웃(경기 침체)으로 인해 금리가 인하될 경우, 채권 가격 상승으로 인한 자본 차익 추구.<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>1. SK하이닉스 (최우선 추천)<br>\t\t\t<br>2. 엔씨소프트<br>\t\t\t<br>3. HD한국조선해양<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>오히려 현명한 투자자는 다음과 같은 전략을 고려합니다.<br>\t\t\t<br>포트폴리오 예시 (4,500만원):",
-    "w": 400
-  }
-];
+const SAVE_KEY = 'note-시황-분석';
 
-let cards = [];
-let moving = null, resizing = null;
-
-function loadBoard() {
-  const saved = localStorage.getItem(SAVE_KEY);
-  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
-  renderCards();
-  if (!saved) autoLayout();
+function save() {
+  const data = {};
+  document.querySelectorAll('.block-text').forEach(el => {
+    data[el.dataset.idx] = el.innerHTML;
+  });
+  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  const s = document.getElementById('status');
+  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
+  setTimeout(() => { s.textContent = ''; }, 2000);
 }
 
-function autoLayout() {
-  const GAP = 14;
-  const boardW = document.getElementById('board').offsetWidth;
-  const cols = Math.max(1, Math.floor(boardW / 280));
-  const colW = (boardW - GAP * (cols - 1)) / cols;
-  const colHeights = new Array(cols).fill(0);
-  const allCards = document.querySelectorAll('.card');
-  const images = document.querySelectorAll('.card img');
-  let loaded = 0;
-  const total = images.length;
-
-  function place() {
-    allCards.forEach((el, i) => {
-      const card = cards[i];
-      const w = Math.min(card.w || colW, colW);
-      let minCol = 0;
-      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
-      card.x = minCol * (colW + GAP);
-      card.y = colHeights[minCol];
-      card.w = w;
-      el.style.left = card.x + 'px';
-      el.style.top = card.y + 'px';
-      el.style.width = w + 'px';
-      colHeights[minCol] = card.y + el.offsetHeight + GAP;
-    });
-    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
-    saveBoard();
-  }
-
-  if (total === 0) requestAnimationFrame(place);
-  else images.forEach(img => {
-    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
-    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+function copyPath() {
+  navigator.clipboard.writeText(location.pathname).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ 복사됨';
+    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
   });
 }
 
-function syncText() {
-  document.querySelectorAll('.card').forEach(el => {
-    const idx = +el.dataset.idx;
-    if (cards[idx]?.type === 'text') {
-      const t = el.querySelector('.text');
-      if (t) cards[idx].content = t.innerHTML;
-    }
-  });
+// Restore saved edits
+const saved = localStorage.getItem(SAVE_KEY);
+if (saved) {
+  try {
+    const data = JSON.parse(saved);
+    document.querySelectorAll('.block-text').forEach(el => {
+      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
+    });
+  } catch(e) {}
 }
 
-function saveBoard() {
-  syncText();
-  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
-  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
-}
-
-function renderCards() {
-  const board = document.getElementById('board');
-  board.innerHTML = '';
-  cards.forEach((card, i) => {
-    const el = document.createElement('div');
-    el.className = 'card';
-    el.dataset.idx = i;
-    if (card.x !== undefined) el.style.left = card.x + 'px';
-    if (card.y !== undefined) el.style.top = card.y + 'px';
-    if (card.w) el.style.width = card.w + 'px';
-
-    el.addEventListener('mousedown', e => {
-      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
-      e.preventDefault();
-      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
-      el.classList.add('moving');
-    });
-
-    const actions = document.createElement('div');
-    actions.className = 'card-actions';
-    const delBtn = document.createElement('button');
-    delBtn.className = 'card-btn'; delBtn.textContent = '×';
-    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
-    actions.appendChild(delBtn);
-    el.appendChild(actions);
-
-    if (card.type === 'text') {
-      const text = document.createElement('div');
-      text.className = 'text';
-      text.contentEditable = true;
-      text.innerHTML = card.content || '';
-      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
-      el.appendChild(text);
-    } else if (card.type === 'image') {
-      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = card.alt || '';
-      img.loading = 'lazy';
-      img.onerror = () => img.style.display = 'none';
-      if (card.link) {
-        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
-        a.appendChild(img); el.appendChild(a);
-      } else { el.appendChild(img); }
-      if (card.caption) {
-        const cap = document.createElement('div');
-        cap.className = 'caption';
-        cap.textContent = card.caption;
-        el.appendChild(cap);
-      }
-    } else if (card.type === 'table') {
-      const wrapper = document.createElement('div');
-      wrapper.style.overflowX = 'auto';
-      wrapper.innerHTML = card.html || '';
-      el.appendChild(wrapper);
-    }
-
-    const rh = document.createElement('div');
-    rh.className = 'resize-handle';
-    rh.addEventListener('mousedown', e => {
-      e.preventDefault(); e.stopPropagation();
-      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
-    });
-    el.appendChild(rh);
-    board.appendChild(el);
-  });
-
-  requestAnimationFrame(() => {
-    let maxBottom = 0;
-    document.querySelectorAll('.card').forEach(el => {
-      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
-      if (b > maxBottom) maxBottom = b;
-    });
-    board.style.minHeight = (maxBottom + 100) + 'px';
-  });
-}
-
-document.addEventListener('mousemove', e => {
-  if (moving) {
-    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
-    if (!el) return;
-    const nx = moving.origX + e.clientX - moving.startX;
-    const ny = moving.origY + e.clientY - moving.startY;
-    el.style.left = nx + 'px';
-    el.style.top = ny + 'px';
-  }
-  if (resizing) {
-    const card = cards[resizing.idx];
-    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
-    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
-    if (el) el.style.width = card.w + 'px';
-  }
+document.querySelectorAll('.block-text').forEach(el => {
+  el.addEventListener('blur', save);
 });
 
-document.addEventListener('mouseup', e => {
-  if (moving) {
-    const card = cards[moving.idx];
-    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
-    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
-    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
-    if (el) { el.classList.remove('moving'); }
-    moving = null; saveBoard();
-  }
-  if (resizing) { resizing = null; saveBoard(); }
-});
-
-function addTextCard() {
-  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
-  renderCards();
-  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
-}
-
-function addImageCard() {
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*';
-  input.onchange = e => {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
-    reader.readAsDataURL(file);
-  };
-  input.click();
-}
-
-function resetLayout() {
-  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
-  cards.forEach(c => { delete c.x; delete c.y; });
-  renderCards(); autoLayout();
-}
-
-setInterval(saveBoard, 30000);
-loadBoard();
+setInterval(save, 30000);
 </script>
 </body>
 </html>
