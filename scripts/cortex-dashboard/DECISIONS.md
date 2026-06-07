@@ -107,6 +107,24 @@ grep -n "saveStandingData\|_version" public/js/app.js      # 409 충돌 처리
 
 ---
 
+## 재발 금지 패턴 (2026-06-08 등록)
+
+### [D-WEEKFIX] This Week 버튼은 항상 오늘 주로 이동
+`toggleView()`에서 `viewMode='week'` 전환 시 반드시 `currentWeekStart = getWeekStart(new Date())` 리셋.
+navigate 후 남은 currentWeekStart를 그대로 쓰면 14일 버그 재발.
+
+### [D-MONTHLYINJECT] standingData.monthly[ym] 아이템은 사이드바 전용
+날짜 prefix 있는 monthly 텍스트(e.g. "11일(목) 코딩...")를 `getMonthlyRecurring()`에서 파싱해
+day cell에 주입 금지. 사이드바 스케줄러 전용.
+`monthly_recurring` 구조화 데이터({day, text})만 day cell에 허용.
+
+### [D-WORKOUT-ATOMIC] workout 저장은 반드시 atomic /api/workout
+`save()`에서 workout strip 확인: `grep -n "Strip workout" public/js/app.js`
+worker에서 Preserve workout 확인: `grep -n "Preserve workout" worker/src/index.js`
+배포 시 반드시: `cd worker && npx wrangler deploy --config wrangler.toml`
+
+---
+
 ## INTENTIONALLY REMOVED (복원 금지 목록)
 
 | 항목 | 제거 날짜 | 이유 | 복원 금지 |

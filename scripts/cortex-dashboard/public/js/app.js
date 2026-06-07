@@ -191,6 +191,13 @@ async function loadRecurringTemplates() {
 function toggleView() {
   viewMode = viewMode === 'week' ? 'month' : 'week';
   _weekScrolledToToday = false; // allow scrollIntoView on next week render
+  // [D-WEEKFIX] "This Week" = 항상 오늘 주로 이동 (navigate 후 남은 currentWeekStart 무시)
+  if (viewMode === 'week') {
+    const now = new Date();
+    currentYear = now.getFullYear();
+    currentMonth = now.getMonth() + 1;
+    currentWeekStart = getWeekStart(now);
+  }
   document.getElementById('viewToggle').textContent = viewMode === 'week' ? 'Full Month' : 'This Week';
   document.getElementById('monthLabel').textContent = viewMode === 'month'
     ? `${currentYear}. ${currentMonth}` : formatWeekLabel();
@@ -493,22 +500,7 @@ function getMonthlyRecurring(d) {
       if (m.day === d || (m.day === 0 && d === daysInMonth)) results.push(m);
     });
   }
-  // monthly[ym]: plain text strings with embedded day ranges e.g. "1~2일 PO교육", "11일(목) 코딩..."
-  const ymKey = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
-  const monthlyTexts = standingData?.monthly?.[ymKey] || [];
-  monthlyTexts.forEach(text => {
-    if (typeof text !== 'string') return; // skip object-format items
-    // Parse "N일" or "N~M일" or "N,M일" from beginning of string
-    const m = text.match(/^(\d+)(?:[~,～](\d+))?일/);
-    if (!m) return;
-    const from = parseInt(m[1]);
-    const to = m[2] ? parseInt(m[2]) : from;
-    if (d >= from && d <= to) {
-      // Strip the day prefix from display text
-      const name = text.replace(/^\d+[~,～]?\d*일\([^)]*\)\s*/, '').replace(/^\d+[~,～]?\d*일\s*/, '');
-      results.push({ text: name || text, url: '' });
-    }
-  });
+  // [D-MONTHLYINJECT] monthly[ym] 텍스트 아이템은 사이드바 스케줄러 전용 — day cell 주입 금지
   return results;
 }
 
