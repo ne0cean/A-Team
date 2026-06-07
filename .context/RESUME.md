@@ -1,31 +1,21 @@
 ---
-mode: zzz
-entered_at: 2026-06-06T00:00:00+0900
-status: needs_input
-session_goal: "T33A USB 분리 복구 시간 150s→35s 수정 완료. 복귀 후 위젯 탭 1회로 적용."
-zzz_check: "2026-06-06 — Next Tasks 전부 외부 승인/설계 결정 필요. 자율 실행 불가. 대기 중."
+mode: normal
+status: active
+created: 2026-06-07T19:21:05+0900
+task: **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
 ---
 
-## In Progress
-- (없음)
+# RESUME — 세션 자동 저장 (auto-save-on-stop)
 
-## Completed This Session
-- [x] T33A 실패 근본 원인 분석 → POSTMORTEM-2026-06-06.md
-- [x] 테스트 2건 수정: scheduled-reviews.json 복구, benchmark-corpus.mjs 중복 import 제거
-- [x] Cortex Dashboard a11y 수정: aria-label 14개 추가, SW v26 bump, 라이브 배포 완료
-- [x] T33A "USB 빼면 안됨" 진짜 원인 파악 + 수정 배포
-  - 원인: 구 watchdog tick=60 + threshold=90s = 최대 150s 복구 지연
-  - 수정: boot.sh tick=15 + relay_hb(1s) + "already alive" 스킵 → max 35s
-  - 수정: start.sh 위젯 탭 시 구 watchdog 종료 → 새 watchdog 즉시 교체
-  - 폰에 15:40 auto_pull 배포 완료 (commit 92abcd6)
-  - Shizuku 미설치 확인 → USB-independent는 여전히 불가
+## 재개 포인트
+- CURRENT.md Next Tasks 확인 후 최우선 항목부터 시작
 
-## Next Immediate Step (복귀 후 딱 1가지)
-**T33A 위젯 탭 1회** (USB 연결 중)
-→ 구 watchdog(PID 18015, tick=60) 종료 + 새 watchdog(tick=15) 시작
-→ 이후 USB 제거 → 35초 내 자동 복구 확인
+## 미완료 Next Tasks (High Priority)
+- [ ] **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
+- [ ] **Confluence PAT 발급** — VDI에서 프로필 > Personal Access Tokens 확인
+- [ ] **Confluence 역변환기 + daemon** — 안정화 후 구현 재개
+- [ ] **제품 빌드 시작** — Connectome MVP
+- [ ] **Dashboard a11y 수정** — design audit score 65→70+
 
-## Files Touched
-- /Users/noir/Projects/t33a-remapper/scripts/t33a_boot.sh
-- /Users/noir/Projects/t33a-remapper/scripts/t33a_start.sh
-- /Users/noir/Projects/t33a-remapper/.context/POSTMORTEM-2026-06-06.md
+## 메모
+세션이 /end 없이 종료됨. 위 태스크부터 이어서 진행.
