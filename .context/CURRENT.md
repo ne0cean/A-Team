@@ -29,6 +29,8 @@
 | 6 | 운영 (PR/CS/세일즈/재무) | ⏳ |
 
 **최근 완성**:
+- **Advisor Mode autoresearch 완료 (2026-06-07)**: 9개 스킬 테스트. KEEP 5개(brainstorm/office-hours/plan-ceo/cold-review/okr) ADVISOR MODE 적용. SKIP 4개(thinking-partner=이미 advisory, board=≤50줄 제약, morning=나레이션 최소화, retro=Groq hook 차단). 슬래시 커맨드 워크플로우 가이드 생성.
+
 - **board-template Vision Board 품질 수정 (2026-06-07, 진행 중)**: 중첩 이미지 추출(Pass2 nested img), 텍스트 개행 정규화(\r\n\t→단일 개행), autoLayout 첫 로드 복원(겹침 방지), Ctrl+Z undo 스택(50 steps, 드래그/리사이즈/삭제/추가/텍스트편집). Vision Board 20/20 이미지 복원. **미완: 사용자 컨펌 후 전체 재마이그레이션 + 배포 필요**
 
 - **OneNote → Cortex HTML 카드보드 전면 재마이그레이션** (2026-06-07): 기존 오염 마이그레이션(1313개 중복) 제거. Archive 원본 1638개 .md → HTML 카드보드 1137개 생성(3525 카드). 이미지 MD5 매핑(707 PNG 100% 자동 복원). 신규 cortex 0–4 디렉토리 구조. Twilight Mood board 포맷 준용. Graph API URL 괄호 regex 버그 수정. `scripts/migrate-onenote-html.mjs` 신규.

@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-07] Advisor Mode 스킬 최적화 (autoresearch 9개 스킬)
+
+**완료**: brainstorm/office-hours/plan-ceo/cold-review/okr — ADVISOR MODE 블록 추가 (5개). thinking-partner/board/morning SKIP (구조적 이유). retro SKIP (Groq hook 차단). 슬래시 커맨드 워크플로우 가이드 생성 (`~/.claude/commands/slash-command-workflow.md`). 레슨 2개 저장 (Groq preempt, Advisor Mode 적합성).
+**이슈**: Groq preempt-agent hook이 retro autoresearch 에이전트 차단 → 테스트 무효
+**빌드**: N/A (커맨드 파일만 수정)
+
 ## [2026-06-07] Vision Board 재마이그레이션 + Cortex 배포
 
 **완료**: 사용자 승인 후 `--apply` 실행(1137 HTML, 3452 카드). Worker 배포(16e0ae6a). 보호 파일 무결성 ✅
