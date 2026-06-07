@@ -336,7 +336,7 @@ async function processFile(srcPath, dstDir, dstSection) {
     if (b.type === 'text') {
       return { type: 'text', content: textToHtml(b.raw), w: cardWidth(b) };
     } else if (b.type === 'image') {
-      const card = { type: 'image', src: b.filename || 'missing.png', alt: b.alt, w: 220 };
+      const card = { type: 'image', filename: b.filename, src: b.filename || 'missing.png', alt: b.alt, w: 220 };
       if (b.link) card.link = b.link;
       if (b.caption) card.caption = b.caption;
       return card;
