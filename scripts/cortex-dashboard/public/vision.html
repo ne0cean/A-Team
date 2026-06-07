@@ -136,6 +136,7 @@ a:hover { text-decoration: underline; }
 
 <script>
 const SAVE_KEY = 'twilight-mood-board-v3';
+const BOARDW_KEY = 'twilight-mood-board-v3-w';
 const IMG_BASE = '../../attachments/onenote/';
 
 const DEFAULT_CARDS = [
@@ -182,11 +183,16 @@ function loadBoard() {
   const saved = localStorage.getItem(SAVE_KEY);
   if (saved) {
     cards = JSON.parse(saved);
+    const savedW = +localStorage.getItem(BOARDW_KEY) || 0;
+    const currentW = document.getElementById('board').offsetWidth;
     renderCards();
+    // 뷰포트 폭이 40px 이상 바뀌었거나 위치 없는 카드가 있으면 재배치
+    if (Math.abs(savedW - currentW) > 40 || cards.some(c => c.x === undefined)) {
+      autoLayout();
+    }
   } else {
     cards = DEFAULT_CARDS.map(c => ({...c}));
     renderCards();
-    // Auto-layout after images load
     autoLayout();
   }
 }
@@ -223,6 +229,7 @@ function autoLayout() {
       el.style.left = x + 'px';
       el.style.top = y + 'px';
       el.style.width = w + 'px';
+      void el.offsetWidth; // 동기 리플로우 강제 — 정확한 높이 읽기
       colHeights[minCol] = y + el.offsetHeight + GAP;
     });
     const maxH = Math.max(...colHeights);
@@ -255,6 +262,7 @@ function syncText() {
 function saveBoard() {
   syncText();
   localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  localStorage.setItem(BOARDW_KEY, document.getElementById('board').offsetWidth);
   document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
 }
 
@@ -445,6 +453,13 @@ function resetLayout() {
 }
 
 setInterval(saveBoard, 30000);
+
+let _rzTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_rzTimer);
+  _rzTimer = setTimeout(autoLayout, 400);
+});
+
 loadBoard();
 </script>
 </body>
