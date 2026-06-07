@@ -179,6 +179,6 @@
 - [ ] **제품 빌드 시작** — Connectome MVP
 
 ### Medium Priority
-- [ ] **Dashboard a11y 수정** — design audit score 65→70+
+- [x] **Dashboard a11y 수정** — design audit score 65→70+ (dcbb6c99)
 - [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정
 - [ ] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진
