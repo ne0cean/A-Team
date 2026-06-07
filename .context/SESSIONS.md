@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-07] Cortex 노트 뷰어 HTML 렌더링 + copy 버튼
+
+**완료**: HTML 노트 뷰어 iframe srcdoc 렌더링(기존 escape→코드 출력 수정). copy 버튼(⎘) 신규 추가. OneNote HTML 카드보드→문서 편집기 형태 전환(1137개 재생성). Cortex Worker 배포(3e3d53de).
+**이슈**: Svelte 프로토타입 NoteViewer.svelte에만 copy 버튼 있었고 실제 vanilla JS app.js에 누락.
+**빌드**: ✅ 582 pass
+
 ## [2026-06-07] OneNote → Cortex HTML 카드보드 전면 재마이그레이션
 
 **완료**: 기존 오염 마이그레이션(1313개 중복) 제거. `scripts/migrate-onenote-html.mjs` 신규 — Archive 1638개 .md → HTML 카드보드 1137개(3525 카드). MD5 이미지 매핑 707 PNG 100% 복원. 신규 cortex 0–4 디렉토리 구조. Twilight Mood board 포맷 준용. MEMORY.md 레슨 추가(OneNote Graph API URL 괄호 regex 함정). debrief 완료.

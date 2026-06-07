@@ -69,6 +69,13 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-07) — Cortex 노트 뷰어 HTML 렌더링 + copy 버튼
+
+- **HTML 노트 뷰어 수정** — `.html` 파일을 `renderMarkdown()`(HTML escape) 대신 `<iframe srcdoc>`으로 렌더링. 기존: 코드 그대로 출력. 수정: 스타일/스크립트 포함 완전 렌더링
+- **copy 버튼(⎘) 추가** — `renderNoteViewer()`에 `copyNotePath()` + 버튼 신규 추가 (Svelte 프로토타입에만 있었고 실제 배포 코드 누락)
+- **OneNote HTML 문서 편집기 전환** — 카드보드(floating 카드) → 선형 문서 편집기. 텍스트 `contenteditable` + 상단 sticky 툴바(저장/주소복사). 1137개 파일 재생성
+- **Cortex 대시보드 배포** — `3e3d53de` (cortex.feat-breeze.workers.dev)
+
 ## Last Completions (2026-06-07) — Goal Cascade + Obsidian 연결 + Cortex Vision 교체
 
 - **Goal Cascade 구조** — `cortex/areas/life/vision/annual-2026.md` + `monthly-2026-06.md` 생성. vision-roadmap.json 2026 데이터 기반. `/vibe` 시 `🎯 올해: Start美` 표시 (vibe-init.sh Step 0.68)
