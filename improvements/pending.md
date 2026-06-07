@@ -105,52 +105,45 @@
 ### P2 장기
 - [ ] **커밋 타입 규칙 강제** — Pre-commit hook으로 타입 없는 커밋 차단 (30분)
 
-### IMP-20260607-01 — NEW command ga-ingest.md (from Trading)
-- **날짜**: 2026-06-07
-- **출처**: /absorb 스캔 (Trading)
+---
+
+## /absorb 스캔 — 2026-06-08
+
+스캔: 3 프로젝트 (kb-real-estate, trading, Dev Projects)
+발견: NEW 4 / DIFF 6
+분류: GLOBAL 1 / UNCLEAR 1 / LOCAL 4 (스킵)
+등록: 2건
+
+### IMP-20260608-01 — research-prompts.mjs (from kb-real-estate)
+- **날짜**: 2026-06-08
+- **출처**: `/absorb` 스캔 (kb-real-estate 프로젝트)
+- **타입**: DIFF
+- **분류**: GLOBAL
+- **경로**: `~/Documents/kb-real-estate/scripts/research-prompts.mjs`
+- **자동 판정**: GLOBAL — 프로젝트명 하드코딩 없음, 일반 패턴
+- **내용 요약**: `loadProjectConfig()` 함수 추가 — `.research/project.json` → CLAUDE.md → CURRENT.md 순서로 프로젝트 컨텍스트를 자동 감지해 카테고리 프롬프트를 프로젝트에 맞게 적응. A-Team 버전은 daemon-utils.mjs 의존 구조, kb-real-estate 버전은 standalone 자동 적응.
+- **액션 후보**:
+  - [ ] `loadProjectConfig` 패턴을 A-Team `research-prompts.mjs`에 머지 (project.json 우선, CLAUDE.md fallback)
+  - [ ] A-Team 버전의 daemon-utils 의존성 유지하면서 config auto-detect만 이식
+  - [ ] 거부 (daemon-utils 모듈화 방향이 더 나음)
+- **상태**: ⏳ pending
+
+### IMP-20260608-02 — setup.sh (from kb-real-estate)
+- **날짜**: 2026-06-08
+- **출처**: `/absorb` 스캔 (kb-real-estate 프로젝트)
 - **타입**: NEW
 - **분류**: UNCLEAR
-- **경로**: /Users/noir/Projects/Trading/.claude/commands/ga-ingest.md
-- **설명**: ga-ingest — 해외 트레이딩 소스 수집 + 지식 추출 원스탑
-- **액션**: [ ] GLOBAL 확정 시 복사 | [ ] 일반화 후 추가 | [ ] 거부
+- **경로**: `~/Documents/kb-real-estate/scripts/setup.sh`
+- **자동 판정**: UNCLEAR — A-Team install.sh와 역할 중복 가능성
+- **내용 요약**: PreCompact/Stop/PostToolUse 훅을 settings.json에 자동 등록하는 installer. 핵심 패턴: PostToolUse 훅으로 `${CLAUDE_PROJECT_DIR}/.research/last-activity.txt` 타임스탬프 갱신 (Research Mode 유휴 감지). A-Team install.sh와 비교 필요.
+- **액션 후보**:
+  - [ ] A-Team `install.sh`에 PostToolUse Research Mode 활동 추적 훅 패턴 이식
+  - [ ] 독립 스크립트로 `scripts/setup-hooks.sh` 신규 추가
+  - [ ] 거부 (A-Team은 Research Mode 미사용)
 - **상태**: ⏳ pending
 
-### IMP-20260607-02 — DIFF command consolidate.md (from connectome)
-- **날짜**: 2026-06-07
-- **출처**: /absorb 스캔 (connectome)
-- **타입**: DIFF (116 diff lines)
-- **분류**: UNCLEAR
-- **경로**: /Users/noir/Projects/connectome/.claude/commands/consolidate.md
-- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/consolidate.md
-- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
-- **상태**: ⏳ pending
-
-### IMP-20260607-03 — DIFF command idea.md (from connectome)
-- **날짜**: 2026-06-07
-- **출처**: /absorb 스캔 (connectome)
-- **타입**: DIFF (126 diff lines)
-- **분류**: UNCLEAR
-- **경로**: /Users/noir/Projects/connectome/.claude/commands/idea.md
-- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/idea.md
-- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
-- **상태**: ⏳ pending
-
-### IMP-20260607-04 — DIFF command inbox.md (from connectome)
-- **날짜**: 2026-06-07
-- **출처**: /absorb 스캔 (connectome)
-- **타입**: DIFF (37 diff lines)
-- **분류**: UNCLEAR
-- **경로**: /Users/noir/Projects/connectome/.claude/commands/inbox.md
-- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/inbox.md
-- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
-- **상태**: ⏳ pending
-
-### IMP-20260607-05 — DIFF command recall.md (from connectome)
-- **날짜**: 2026-06-07
-- **출처**: /absorb 스캔 (connectome)
-- **타입**: DIFF (68 diff lines)
-- **분류**: UNCLEAR
-- **경로**: /Users/noir/Projects/connectome/.claude/commands/recall.md
-- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/recall.md
-- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
-- **상태**: ⏳ pending
+### LOCAL 스킵 목록 (pending 미등록)
+- `commands/remo.md` — `/remote-control` 래퍼 1줄. 범용성 없음.
+- `commands/research.md` — `re.md` 구버전. A-Team master가 이미 상위 버전.
+- `commands/session-end.md` — `end.md` 경량 버전. 프로젝트 특화 (`.context/` 구조 하드코딩).
+- `scripts/vibe-init.sh` (DIFF) — kb-real-estate 버전은 옛 vibe-toolkit initializer. A-Team master가 상위.
