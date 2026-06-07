@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crape Cake</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">Crape Cake</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Crape-Cake';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "Crape Cake<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>Output to outcome<br>\t\t\t<br>19층회의실  예약<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t구분<br>\t\t\t\t\t평일<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t6-7<br>\t\t\t\t\t운동 + VOCA + 코어<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t7-8<br>\t\t\t\t\tIELTS <br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t8-9<br>\t\t\t\t\tIELTS<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t오전 업무<br>\t\t\t\t\tNY필사<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t점심<br>\t\t\t\t\tIELTS Writing<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t오후 업무<br>\t\t\t\t\tNY필사<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t18-19<br>\t\t\t\t\t운동 + 깨봉1 + 코어<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t19-20<br>\t\t\t\t\tIELTS Writing<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t20-21<br>\t\t\t\t\tIELTS Listening <br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t21-22<br>\t\t\t\t\tIELTS Speaking<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t22-23<br>\t\t\t\t\tVOCA 복습 + 영화/인강 보다가 수면<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>Love & Thunder: 골드스푼<br>\t\t\t<br><a href=\"https://onedrive.live.com/?id=733661839CC53BA5%216953&cid=733661839CC53BA5\" target=\"_blank\">경브_썬</a><br>\t\t\t<br><a href=\"https://thehfk.org/calendar\" target=\"_blank\">https://thehfk.org/calendar</a><br>\t\t\t<br>하루 최소 4시간 IELTS 공부시간 확보<br>\t\t\t<br>IELTS 7.0  > AICPA 따기 > OJD 준비 > 코딩<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>자투리 영어<br>\t\t\t<br>VOCA 줄리정불법, 해커스보카<br>\t\t\t<br>R 유튜브<br>\t\t\t<br>L 팟캐스트, 유튜브 아이엘츠 테스트<br>\t\t\t<br>W 줄리정불법<br>\t\t\t<br>S 유튜브<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>Project Pi<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t상단<br>\t\t\t\t\t<br>독서<br>\t\t\t\t\t<br>코딩 - 정보처리기사<br>\t\t\t\t\t<br>블록체인<br>\t\t\t\t\t<br>AI<br>\t\t\t\t\t<br>TEXTBOOK<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tLeft leg<br>\t\t\t\t\t<br>재무<br>\t\t\t\t\t<br>깨봉<br>\t\t\t\t\t<br>마이써니<br>\t\t\t\t\t<br><a href=\"https://www.oppadu.com/%EC%97%91%EC%85%80-%ED%8C%8C%EC%9B%8C%EC%BF%BC%EB%A6%AC-%EA%B8%B0%EC%B4%88-%EC%B4%9D%EC%A0%95%EB%A6%AC/\" target=\"_blank\">엑셀</a> 파워쿼리<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tRight leg<br>\t\t\t\t\t<br>코어영어<br>\t\t\t\t\t<br>NY Times 필사<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t8-9<br>\t\t\t\t\tIELTS<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t9-10<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t10-11<br>\t\t\t\t\t운동 + 깨봉2 + 코어 <br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t11-12<br>\t\t\t\t\tIELTS<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t12-13<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t13-14<br>\t\t\t\t\t점심 & 오침<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t14-15<br>\t\t\t\t\t깨봉2 + 코어<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t15-16<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t16-17<br>\t\t\t\t\tIELTS<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t17-18<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t19-20<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t20-21<br>\t\t\t\t\t코어영어<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t21-22<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t22-23<br>\t\t\t\t\t취침<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t23-24<br>\t\t\t\t\t영화/인강 보다가 수면<br>\t\t\t\t<br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br>Pastry - Baklava<br>\t\t\t<br>패스트캠퍼스, mysuni<br>\t\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t스포츠<br>\t\t\t\t\t골프, 테니스, 수영, 국궁/양궁/사격<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t예술<br>\t\t\t\t\t건축, 음악, 미술<br>\t\t\t\t<br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"https://www.youtube.com/watch?v=m8Gh36lAnW4\" target=\"_blank\">All 87 mins of</a> Marvel & MCU bloopers, gag reel and funny outtakes 「4K」<br>\t\t\t<br><br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t 성장 Routine<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t친절, 유머, 극기, 여유<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>일, 사랑, 놀이, 연대<br>\t\t\t\t\t<br>인풋의 아웃풋화<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>영어<br>\t\t\t\t\t<br>운동<br>\t\t\t\t\t<br>깨봉<br>\t\t\t\t\t<br>[자경문](onenote:Direction.one#자경문&section-id={01F613CD-B039-46DF-AF2A-717746B81363}&page-id={C7C2E532-C07E-491B-B20E-2FB1BD31064A}&end&base-path=<a href=\"https://d.docs.live.net/733661839cc53ba5/문서/이상海_)\" target=\"_blank\">https://d.docs.live.net/733661839cc53ba5/문서/이상海_)</a><br>\t\t\t\t\t<br>비전보드<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>재무관리<br>\t\t\t\t\t<br>텍스트북<br>\t\t\t\t\t<br>프로젝트 파이<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><a href=\"https://m.post.naver.com/my/series/detail.nhn?seriesNo=489323&memberNo=3000356&prevVolumeNo=27252782\" target=\"_blank\">경제단신</a><br>\t\t\t\t\t<br>1 <a href=\"http://blog.naver.com/PostView.nhn?blogId=phoonie&logNo=220258130918&redirect=Dlog&widgetTypeCall=true&directAccess=false\" target=\"_blank\">Valuation</a><br>\t\t\t\t\t<br>뉴스클립&동향<br>\t\t\t\t\t<br>FN Guide/ BM<br>\t\t\t\t\t<br>퍼플리&아웃스탠딩<br>\t\t\t\t\t<br><a href=\"https://docs.google.com/spreadsheets/d/1DBxuxvveXrqtqBtJhTwaK2x3RxSz8jK494pN2ycUXy0/edit#gid=0\" target=\"_blank\">String</a><br>\t\t\t\t\t<br>[일신우일신](onenote:#일신우일신&section-id={20AF4667-F983-49B5-BC14-EA4920950D6B}&page-id={E5BC2ADA-5C49-4D98-93B7-EDA18322137C}&object-id={0AE9D042-9FB7-0E45-2CEA-E769F074B6A6}&12&base-path=<a href=\"https://d.docs.live.net/733661839cc53ba5/문서/이상海_/Dashboard.one)\" target=\"_blank\">https://d.docs.live.net/733661839cc53ba5/문서/이상海_/Dashboard.one)</a><br>\t\t\t\t\t<br>[골프](onenote:5.%20Life%20X-lab.one#Golf%20Note&section-id={A1358BBF-6A89-420D-87B8-A657A8842C48}&page-id={5563B739-CBA4-4989-8AF0-644133ECBDA8}&object-id={2FA9F9A0-2896-4758-9615-EC08895DB2A8}&7C&base-path=<a href=\"https://d.docs.live.net/733661839cc53ba5/문서/이상)\" target=\"_blank\">https://d.docs.live.net/733661839cc53ba5/문서/이상)</a><br>\t\t\t\t\t<br>W 메일 필사<br>\t\t\t\t\t<br>문장/단어<br>\t\t\t\t\t<br>[Pilot Biz](onenote:#Pilot%20Biz%20요건&section-id={20AF4667-F983-49B5-BC14-EA4920950D6B}&page-id={12490A00-E92D-4A6A-9037-85387C7CA180}&end&base-path=<a href=\"https://d.docs.live.net/733661839cc53ba5/문서/이상/Dashboard.one)\" target=\"_blank\">https://d.docs.live.net/733661839cc53ba5/문서/이상/Dashboard.one)</a><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>운동<br>\t\t\t\t\t<br>청약홈<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t점: 산책<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t저: <br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tAI/ 블록체인/ 메타버스/ 게임￼바이오<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tRun to Learn<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>쉐도잉<br>\t\t\t\t\t<br>샤워<br>\t\t\t\t\t<br><a href=\"https://www.google.com/amp/s/ko.m.wikihow.com/%25EB%25AA%2585%25EC%2583%2581%25ED%2595%2598%25EB%258A%2594-%25EB%25B2%2595%3famp=1\" target=\"_blank\">명상</a><br>\t\t\t\t\t<br>[목표설정](onenote:Direction.one#목표설정&section-id={01F613CD-B039-46DF-AF2A-717746B81363}&page-id={24D8666D-A96A-485C-833B-E435E8E3CDEC}&end&base-path=<a href=\"https://d.docs.live.net/733661839cc53ba5/문서/이상海_),\" target=\"_blank\">https://d.docs.live.net/733661839cc53ba5/문서/이상海_),</a> 비전보드 - 뉴욕?<br>\t\t\t\t\t<br>[책상 습관](onenote:Direction.one#동기부여%20영상&section-id={B7CA9680-7AC9-4C64-8978-6E313399B595}&page-id={F3F635C0-1178-4BA3-831D-F208AAE9B439}&object-id={54086544-F281-48DF-9B0D-7E984AF931D7}&B8&base-path=<a href=\"https://d.docs.live.net/733661839cc53ba5/문서/이상)\" target=\"_blank\">https://d.docs.live.net/733661839cc53ba5/문서/이상)</a><br>\t\t\t\t\t<br>휴식-독서<br>\t\t\t\t\t<br>브런치/SNS<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br>PM, 퍼포먼스 마케팅, 재무/회계<br>\t\t\t<br>&#160;협업 툴(Jira, Notion, Slack 등) 및 작업 툴(MS Office, Figma, XD 등)&#160;<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t1tier<br>\t\t\t\t\t2tier<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>PT - JJ<br>\t\t\t\t\t<br>Inc - 상훈, 상봉<br>\t\t\t\t\t<br>혁신사업추진팀(토니)<br>\t\t\t\t\t<br>\t\t\t\t\t<br>마전 - 승찬, 윤행<br>\t\t\t\t\t<br>경전 - 성현<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>동기 - 이동호, 유광희, 최현경<br>\t\t\t<br>선배 - 이우석, 장봉근, 김광태, 배민경, 김덕진, 안현민, 써니<br>\t\t\t<br>배정민 19기 - 이우석, 라병호, 김인성, 배재근<br>\t\t\t<br>혁신사업 - 김상우 팀장 - 김광태/이우석<br>\t\t\t<br><br>\t\t\t<br>마전을 간다고 일단 말해두고, 합격하면 그린 ㄱㄱ<br>\t\t\t<br>1/ 그린투자센터 면접 준비<br>\t\t\t<br>\t\t\t\t<br>- 새 그룹장은 누구?<br>\t\t\t\t<br>- 면접 보게 되면 상봉이형님 한테도 연락<br>\t\t\t<br>\t\t\t<br>2/ 마전팀 킵<br>\t\t\t<br>3/ 스테이 조건으로 A밴드 가능성 태핑<br>\t\t\t<br>\t\t\t\t<br>- 남는다면 이 조직에 배통하는게 아냐, 나에게 배팅하는 거지",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

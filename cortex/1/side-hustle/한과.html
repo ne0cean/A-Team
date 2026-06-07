@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한과</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">한과</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-한과';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "한과<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>ㅇ 목표 : 전주 다녀오면 사오는 과자 ▶ 한국 갔다오면 사오는 과자<br>\t\t\t<br>  한식 디저트의 재해석, 세계화<br>\t\t\t<br>  e.g. 대만의 펑리수, 땅콩 아이스크림, 땅콩 과자, 스위스 초콜릿<br>\t\t\t<br>  - 종합 한과 플랫폼이 되는 것 : 메인(유과)이외의 한과는 OEM 방식으로 유통<br>\t\t\t<br>  Phase 1. 한과 상품 팔기<br>\t\t\t<br>  Phase 2. 한과 디저트/캔디샵<br>\t\t\t<br>  Phase 3. 한식 디저트 카페<br>\t\t\t<br>  + 한과 클래스. 만들어서 가져가게.<br>\t\t\t<br>명절에만 먹어야 할 이유가 있는가?<br>\t\t\t<br>ㅇ 재정적 목표 : <br>\t\t\t<br>  1차 : 준일이 행시 비용<br>\t\t\t<br>  2차 : 엄빠 노후자금 확보<br>\t\t\t<br>ㅇTarget <br>\t\t\t<br>  1차 : 중국인 관광객<br>\t\t\t<br>  2차 : 국내 관광객<br>\t\t\t<br>ㅇ 유통<br>\t\t\t<br>  - 중국인 접점에서 먹어보게 하고, 선물 사는 접점에서 판매<br>\t\t\t<br>  - 최종적으로 롯데백화점 등 입점<br>\t\t\t<br>ㅇ 마케팅<br>\t\t\t<br>  - 헝거마케팅, 체험 마케팅, <br>\t\t\t<br>  - 채널 : 중국인 대상 위챗, 블로그 마케팅, 인스타<br>\t\t\t<br>  - Insane : ??? 한방에 터질만한 운. 타이밍.<br>\t\t\t<br>ㅇ Orignality : 차별화가 아니라 독보적이어야<br>\t\t\t<br>  - 고급진 선물용 과자로 포지셔닝 But, 가격은 합리적일 것.<br>\t\t\t<br>  - 콩으로 만든 유과? 살안찌는 유과 : 내수용<br>\t\t\t<br>  - 전주, 한옥마을이라는 타이틀을 가져와야 한다. 하지만 꼭 전주에서만 팔기 시작할 필요는 없지.<br>\t\t\t<br>ㅇ Story<br>\t\t\t<br>  - 전통 한과이긴 한데 이게 꼭 중요한가?<br>\t\t\t<br>  - 몸짱 할아버지가 만드는 한과<br>\t\t\t<br>  - 누에고치, 동충하초 처럼 생겨서, 천수를 누리기를 기대하면서 먹었다는 날조.<br>\t\t\t<br>ㅇ MENU 개발<br>\t\t\t<br>  - 런칭전에 : 각종 디저트 벤치마킹한 메뉴들 만들어두기<br>\t\t\t<br>  - 음료메뉴도 구성 : 수정과, 식혜가 메인. 오미자차. 아메리카노 <br>\t\t\t<br>   e.g. 크리스피크림, 쥬씨<br>\t\t\t<br>  - 망가진 한과가 더 맛있다.<br>\t\t\t<br>ㅇ 최대한 저비용으로 작게 시작 <br>\t\t\t<br>  - 한 여행사만 먹는다던가 하는 식으로<br>\t\t\t<br>ㅇ 네이밍/상표권 등록<br>\t\t\t<br>  - 전주 풍년 한과/유과 <br>\t\t\t<br>  - 오설록같이 고급진?<br>\t\t\t<br>  - 영어로 바꿔도 무리 없는 순한글이름. 솜사탕을 한글로? 구름과자.(설운과원?)<br>\t\t\t<br>ㅇ <br>\t\t\t<br>단짠단짠, 지방+설탕,<br>\t\t\t<br><br>\t\t\t<br>ㅇ 경쟁의 외연<br>\t\t\t<br>  1. 해외여행 선물용 : 모든 먹거리가 아니라 모든 선물 중에서 가장 매력적/합리적이어야 한다.<br>\t\t\t<br>   - 고급진 한국식 디저트로 포지셔닝. 가능?<br>\t\t\t<br>  2. 내국인 : 결국 맛이지.<br>\t\t\t<br><br>\t\t\t<br>ㅇ 진입장벽은 어떻게 만들 것인가?<br>\t\t\t<br>  - 유통이 어렵거나<br>\t\t\t<br>  - 카피가 어렵거나<br>\t\t\t<br>  - 오리지널리티나 스토리가 없거나<br>\t\t\t<br><br>\t\t\t<br>======================================<br>\t\t\t<br>ㅇ Study 요소<br>\t\t\t<br>  - 타겟 분석<br>\t\t\t<br>  - 상권 분석<br>\t\t\t<br>  - 펑리수, 공차 등 다른나라 과자 및 유통, 마케팅 분석<br>\t\t\t<br>  - 중국인들이 선물용 과자를 가장 많이 사는 곳은 어딜까?<br>\t\t\t<br>  - 한과, 수정과, 식혜 만드는법 배우기<br>\t\t\t<br>  - 오픈마켓에서 내국인 대상으로 어떻게 많이 팔 수 있을까? - 평소에 먹는 다른 과자를 대체 할 수 있어야.<br>\t\t\t<br>  - 해외여행 시 선물용으로 히트친 과자들의 공통적 성공요인은 무얼까?<br>\t\t\t<br>    1. 입소문 2. 맛-달콤  3. 합리적 가격  4. 운반이 용이  5.<br>\t\t\t<br>    초코파이를 대체하고 싶다. <br>\t\t\t<br>  - 한과의 역사<br>\t\t\t<br>  <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>===========================<br>\t\t\t<br>한과 클래스 <br>\t\t\t<br><br>\t\t\t<br><a href=\"http://www.yfa.co.kr/shop/item.php?it_id=1422251863\" target=\"_blank\">http://www.yfa.co.kr/shop/item.php?it_id=1422251863</a> <br>\t\t\t<br><br>\t\t\t<br><a href=\"http://cafe.naver.com/chamsiroo?n_media=27758&n_query=%ED%95%9C%EA%B3%BC%EA%B0%95%EC%A2%8C&n_rank=1&n_ad_group=grp-m001-01-000001679112914&n_ad=nad-m001-01-000001679112914&n_keyword_id=nkw-m001-01-000001679112965&n_keyword=%ED%95%9C%EA%B3%BC%EA%B0%95%EC%A2%8C&n_campaign_type=1\" target=\"_blank\">http://cafe.naver.com/chamsiroo?n_media=27758&n_query=%ED%95%9C%EA%B3%BC%EA%B0%95%EC%A2%8C&n_rank=1&n_ad_group=grp-m001-01-000001679112914&n_ad=nad-m001-01-000001679112914&n_keyword_id=nkw-m001-01-000001679112965&n_keyword=%ED%95%9C%EA%B3%BC%EA%B0%95%EC%A2%8C&n_campaign_type=1</a><br>\t\t\t<br><br>\t\t\t<br>(사)궁중병과연구원 <a href=\"http://www.koreandessert.co.kr/\" target=\"_blank\">http://www.koreandessert.co.kr/</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://www.choisunja.com/product/sub01.php\" target=\"_blank\">http://www.choisunja.com/product/sub01.php</a><br>\t\t\t<br>=============================<br>\t\t\t<br>한과문화박물관 한가원 <a href=\"http://www.hangaone.com/default/\" target=\"_blank\">http://www.hangaone.com/default/</a><br>\t\t\t<br><a href=\"http://korean.visitkorea.or.kr/kor/bz15/travel/theme/recom_content/cms_view_1898850.jsp?gotoPage=6&year=\" target=\"_blank\">http://korean.visitkorea.or.kr/kor/bz15/travel/theme/recom_content/cms_view_1898850.jsp?gotoPage=6&year=</a><br>\t\t\t<br><br>\t\t\t<br>Originality <br>\t\t\t<br>전체 식품명인 중 한과명인은 경기도에 약과 명인(신궁한과 김규흔씨), 강원도에 산자명인(최봉석씨), 전라도에 엿강정 명인(담양한과 박순애씨), 경상도에서 찹쌀유과 명인으로 김현의씨가 선정됐다. 한과 부문에서 4번째로 지정되었지만 찹쌀유과 부분에서는 김씨가 첫 명인인 셈이다.<br>\t\t\t<br><a href=\"http://www.newsgn.com/sub_read.html?uid=83247\" target=\"_blank\">http://www.newsgn.com/sub_read.html?uid=83247</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://shinkung.co.kr/shop/board/view.php?id=broad&page=3&no=28\" target=\"_blank\">http://shinkung.co.kr/shop/board/view.php?id=broad&page=3&no=28</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://www.pressian.com/news/article.html?no=3477\" target=\"_blank\">http://www.pressian.com/news/article.html?no=3477</a><br>\t\t\t<br><br>\t\t\t<br>======================================<br>\t\t\t<br><a href=\"http://www.gusanhangwa.com/c3\" target=\"_blank\">http://www.gusanhangwa.com/c3</a><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>ㅇ 아이디어(두 문장)<br>\t\t\t<br>  - 외국인 대상 선물용 한과와 수정과를 파는 플랫폼을 만들겠다.<br>\t\t\t<br>ㅇ 팀 빌딩 : 엄빠<br>\t\t\t<br>ㅇ 자금<br>\t\t\t<br>ㅇ 실행<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>홍삼캔디가 인기래<br>\t\t\t<br>한과 <a href=\"https://namu.wiki/w/%ED%95%9C%EA%B3%BC\" target=\"_blank\">https://namu.wiki/w/%ED%95%9C%EA%B3%BC</a>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

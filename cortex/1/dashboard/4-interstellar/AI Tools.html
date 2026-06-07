@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Tools</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">AI Tools</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-AI-Tools';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "AI Tools<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br><a href=\"https://ph-club.notion.site/AI-8ded985f71754dd58aae2b639b70173c\" target=\"_blank\">AI 툴</a><br>\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t<a href=\"https://mapify.so/ko\" target=\"_blank\">https://mapify.so/ko</a> <br>\t\t\t\t\t\t유튜브나 PDF의 내용을 요약하고 타임코드도(!) 정리<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t<a href=\"https://felo.ai/search\" target=\"_blank\">https://felo.ai/search</a><br>\t\t\t\t\t\t검색 AI, Presentation 생성<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t<a href=\"https://www.napkin.ai/\" target=\"_blank\">https://www.napkin.ai/</a><br>\t\t\t\t\t\tAI 도식화<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t<a href=\"https://caret.so/ko\" target=\"_blank\">https://caret.so/ko</a><br>\t\t\t\t\t\t영어 미팅<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t<a href=\"https://aistudio.google.com/prompts/new_chat?gad_source=1&gclid=CjwKCAiAlPu9BhAjEiwA5NDSA_oAR-7yIA7hRh7lBbvAq5rwkgo7WMBvgyTgCowOGfy0Zm-pkIYI-hoCXykQAvD_BwE\" target=\"_blank\">Google AI Studio</a><br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>- Replit&#160;- 에이전트 모드(전체 빌드를 자동화)와 어시스턴트 모드(작은 수정 지원)를 사용하는 이중 모드 AI 어시스턴트를 제공<br>\t\t\t\t\t\t\t<br>- Cursor&#160;- AI 채팅과 실행을 결합하여 탐색적 대화와 직접적인 코딩 지원을 전환할 수 있게 함<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t출처: <<a href=\"https://news.hada.io/topic?id=19539&utm_source=discord&utm_medium=bot&utm_campaign=280\" target=\"_blank\">https://news.hada.io/topic?id=19539&utm_source=discord&utm_medium=bot&utm_campaign=280</a>> <br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t출처: <<a href=\"https://news.hada.io/topic?id=19539&utm_source=discord&utm_medium=bot&utm_campaign=280\" target=\"_blank\">https://news.hada.io/topic?id=19539&utm_source=discord&utm_medium=bot&utm_campaign=280</a>> <br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://news.hada.io/topic?id=19543&utm_source=discord&utm_medium=bot&utm_campaign=280\" target=\"_blank\">https://news.hada.io/topic?id=19543&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://www.threads.net/@irum_hahn/post/DFERhwjTLij?xmt=AQGzWDT3abjUXrRy8GCf2kJi5iXVZG-zixuNlf9u92vC3w\" target=\"_blank\">https://www.threads.net/@irum_hahn/post/DFERhwjTLij?xmt=AQGzWDT3abjUXrRy8GCf2kJi5iXVZG-zixuNlf9u92vC3w</a><br>\t\t\t\t<br><br>\t\t\t\t<br>이거 진짜 대단하네요!<br>\t\t\t\t<br><br>\t\t\t\t<br>이제 웹 크롤링 코드를 직접 작성하는 시대는 끝난 것 같습니다.<br>\t\t\t\t<br><br>\t\t\t\t<br>\"Firecrawl Extract\"라는 도구는 간단한 텍스트 프롬프트만으로 원하는 모든 웹 데이터를 쉽게 크롤링할 수 있도록 도와줍니다.<br>\t\t\t\t<br><br>\t\t\t\t<br>자연어로 간단한 프롬프트를 입력하면, 웹사이트 전체를 구조화된 데이터로 변환할 수 있으며, 별도로 스크립트를 작성할 필요가 없다는 점이 큰 장점입니다.<br>\t\t\t\t<br><br>\t\t\t\t<br>페이지 하나의 내용이든 전체 웹사이트 정보든 간단히 수집이 가능하며, 복잡한 데이터 추출도 지원합니다.<br>\t\t\t\t<br><br>\t\t\t\t<br>예를 들어, 웹페이지에서 연락처 정보, 작업 설명, 동적 가격 같은 데이터를 추출할 수도 있습니다.<br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://www.threads.net/@book_ta_ku/post/DFE1HsvzJmy?xmt=AQGzfUz9f_khYjPjJfmft4TnbmNBuCzOR6bgtYgswfKaHw\" target=\"_blank\">https://www.threads.net/@book_ta_ku/post/DFE1HsvzJmy?xmt=AQGzfUz9f_khYjPjJfmft4TnbmNBuCzOR6bgtYgswfKaHw</a><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>- Chatbots:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#chatgpt\" target=\"_blank\">ChatGPT</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#claude\" target=\"_blank\">Claude</a><br>\t\t\t\t<br>- Video Generation and Editing:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#synthesia\" target=\"_blank\">Synthesia</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#runway\" target=\"_blank\">Runway</a><br>\t\t\t\t<br>- Writing:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#rytr\" target=\"_blank\">Rytr</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#sudowrite\" target=\"_blank\">Sudowrite</a><br>\t\t\t\t<br>- Grammar and Writing Improvement:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#grammarly\" target=\"_blank\">Grammarly</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#wordtune\" target=\"_blank\">Wordtune</a><br>\t\t\t\t<br>- Search Engines:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#perplexity\" target=\"_blank\">Perplexity</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#chatgpt-search\" target=\"_blank\">ChatGPT search</a><br>\t\t\t\t<br>- Social Media Management:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#vista-social\" target=\"_blank\">Vista Social</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#feedhive\" target=\"_blank\">FeedHive</a><br>\t\t\t\t<br>- Image Generation:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#midjourney\" target=\"_blank\">Midjourney</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#dalle3\" target=\"_blank\">DALL&#183;E 3</a><br>\t\t\t\t<br>- Graphic Design:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#canva-magic-design\" target=\"_blank\">Canva Magic Studio</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#looka\" target=\"_blank\">Looka</a><br>\t\t\t\t<br>- App Builders:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#bubble\" target=\"_blank\">Bubble</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#bolt\" target=\"_blank\">Bolt</a><br>\t\t\t\t<br>- Project Management:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#asana\" target=\"_blank\">Asana</a>, ‎<a href=\"https://www.synthesia.io/post/ai-tools#clickup\" target=\"_blank\">ClickUp</a><br>\t\t\t\t<br>- Transcription and Meeting Assistants:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#tl-dv\" target=\"_blank\">tl;dv</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#nyota\" target=\"_blank\">Nyota</a><br>\t\t\t\t<br>- Scheduling:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#reclaim\" target=\"_blank\">Reclaim</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#clockwise\" target=\"_blank\">Clockwise</a><br>\t\t\t\t<br>- Customer Service:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#tidio\" target=\"_blank\">Tidio AI</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#hiver\" target=\"_blank\">Hiver</a><br>\t\t\t\t<br>- Recruitment:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#textio\" target=\"_blank\">Textio</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#cvviz\" target=\"_blank\">CVViZ</a><br>\t\t\t\t<br>- Knowledge Management:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#notion-ai-qa\" target=\"_blank\">Notion AI Q&A</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#guru\" target=\"_blank\">Guru</a><br>\t\t\t\t<br>- Email:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#hubspot-ai-email-writer\" target=\"_blank\">Hubspot Email Writer</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#sanebox\" target=\"_blank\">SaneBox</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#shortwave\" target=\"_blank\">Shortwave</a><br>\t\t\t\t<br>- Presentations:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#gamma\" target=\"_blank\">Gamma</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#presentationsai\" target=\"_blank\">Presentations.ai</a><br>\t\t\t\t<br>- Resume Builders:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#teal\" target=\"_blank\">Teal</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#kickresume\" target=\"_blank\">Kickresume</a><br>\t\t\t\t<br>- Voice Generation:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#elevenlabs\" target=\"_blank\">ElevenLabs</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#murf\" target=\"_blank\">Murf</a><br>\t\t\t\t<br>- Music Generation:&#160;<a href=\"https://www.synthesia.io/post/ai-tools#suno\" target=\"_blank\">Suno</a>,&#160;<a href=\"https://www.synthesia.io/post/ai-tools#udio\" target=\"_blank\">Udio</a><br>\t\t\t\t<br><br>\t\t\t\t출처: <<a href=\"https://www.synthesia.io/post/ai-tools\" target=\"_blank\">https://www.synthesia.io/post/ai-tools</a>> <br>\t\t\t\t<br><br>\t\t\t\t<br>- Chatbots (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#chatgpt\" target=\"_blank\">ChatGPT</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#claude\" target=\"_blank\">Claude</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#meta\" target=\"_blank\">Meta AI</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#zapier-central\" target=\"_blank\">Zapier Agents</a>)<br>\t\t\t\t<br>- Search engines (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#perplexity\" target=\"_blank\">Perplexity</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#google-aio\" target=\"_blank\">Google AI Overviews</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#arc\" target=\"_blank\">Arc Search</a>)<br>\t\t\t\t<br>- Content creation (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#jasper\" target=\"_blank\">Jasper</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#anyword\" target=\"_blank\">Anyword</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#writer\" target=\"_blank\">Writer</a>)<br>\t\t\t\t<br>- Grammar checkers and rewording tools (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#grammarly\" target=\"_blank\">Grammarly</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#wordtune\" target=\"_blank\">Wordtune</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#prowritingaid\" target=\"_blank\">ProWritingAid</a>)<br>\t\t\t\t<br>- Video creation and editing (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#runway\" target=\"_blank\">Runway</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#descript\" target=\"_blank\">Descript</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#wondershare-filmora\" target=\"_blank\">Wondershare Filmora</a>)<br>\t\t\t\t<br>- Image generation (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#dalle2\" target=\"_blank\">DALL&#183;E 3</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#midjourney\" target=\"_blank\">Midjourney</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#ideogram\" target=\"_blank\">Ideogram</a>)<br>\t\t\t\t<br>- Social media management (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#feedhive\" target=\"_blank\">FeedHive</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#vista-social\" target=\"_blank\">Vista Social</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#buffer\" target=\"_blank\">Buffer</a>)<br>\t\t\t\t<br>- Voice and music generation (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#elevenlabs\" target=\"_blank\">ElevenLabs</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#suno\" target=\"_blank\">Suno</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#aiva\" target=\"_blank\">AIVA</a>)<br>\t\t\t\t<br>- Knowledge management and AI grounding (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#mem\" target=\"_blank\">Mem</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#notion\" target=\"_blank\">Notion AI Q&A</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#personal\" target=\"_blank\">Personal AI</a>)<br>\t\t\t\t<br>- Task and project management (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#asana\" target=\"_blank\">Asana</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#anydo\" target=\"_blank\">Any.do</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#beedone\" target=\"_blank\">BeeDone</a>)<br>\t\t\t\t<br>- Transcription and meeting assistants (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#fireflies\" target=\"_blank\">Fireflies</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#avoma\" target=\"_blank\">Avoma</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#tldv\" target=\"_blank\">tl;dv</a>)<br>\t\t\t\t<br>- Scheduling (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#reclaim\" target=\"_blank\">Reclaim</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#clockwise\" target=\"_blank\">Clockwise</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#motion\" target=\"_blank\">Motion</a>)<br>\t\t\t\t<br>- Email (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#shortwave\" target=\"_blank\">Shortwave</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#microsoft-copilot-outlook\" target=\"_blank\">Microsoft Copilot Pro for Outlook</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#gemini-gmail\" target=\"_blank\">Gemini for Gmail</a>)<br>\t\t\t\t<br>- Slide decks and presentations (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#tome\" target=\"_blank\">Tome</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#beautifulai\" target=\"_blank\">Beautiful.ai</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#slidesgo\" target=\"_blank\">Slidesgo</a>)<br>\t\t\t\t<br>- Resume builders (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#teal\" target=\"_blank\">Teal</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#enhancv\" target=\"_blank\">Enhancv</a>,&#160;<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#kickresume\" target=\"_blank\">Kickresume</a>)<br>\t\t\t\t<br>- Automation (<a href=\"https://zapier.com/blog/best-ai-productivity-tools/#zapier\" target=\"_blank\">Zapier</a>)<br>\t\t\t\t<br>- <a href=\"https://zapier.com/blog/best-ai-productivity-tools/#other\" target=\"_blank\">Other AI productivity tools</a><br>\t\t\t\t<br><br>\t\t\t\t출처: <<a href=\"https://zapier.com/blog/best-ai-productivity-tools/\" target=\"_blank\">https://zapier.com/blog/best-ai-productivity-tools/</a>> <br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>주요 무료 AI TTS 서비스<br>\t\t\t\t<br>Natural Reader<br>\t\t\t\t<br>- 사용하기 쉬운 인터페이스와 뛰어난 결과물 제공<br>\t\t\t\t<br>- 온라인 및 데스크톱 버전 모두 이용 가능<br>\t\t\t\t<br>- 다양한 파일 형식 지원 및 OCR 기능 포함￼<a href=\"https://www.techradar.com/news/the-best-free-text-to-speech-software\" target=\"_blank\">1</a><br>\t\t\t\t<br>Luvvoice<br>\t\t\t\t<br>- 200개 이상의 AI 음성과 70개 이상의 언어 지원<br>\t\t\t\t<br>- 상업적 사용 가능<br>\t\t\t\t<br>- 단어 수 제한 없이 무료로 이용 가능￼<a href=\"https://luvvoice.com/\" target=\"_blank\">4</a><br>\t\t\t\t<br>ElevenLabs<br>\t\t\t\t<br>- 매우 자연스러운 AI 음성 생성<br>\t\t\t\t<br>- 간단한 인터페이스와 사용자 친화적 디자인<br>\t\t\t\t<br>- 모든 언어 지원￼<a href=\"https://www.semantix.com/resources/blog/free-ai-text-to-speech\" target=\"_blank\">7</a><br>\t\t\t\t<br>FreeTTS<br>\t\t\t\t<br>- Google 머신 러닝 기반의 고품질 음성 변환<br>\t\t\t\t<br>- 영어, 프랑스어, 이탈리아어, 일본어 등 다국어 지원<br>\t\t\t\t<br>- 주당 10,000자까지 무료 이용 가능￼<a href=\"https://www.elegantthemes.com/blog/business/best-text-to-speech-tools\" target=\"_blank\">8</a><br>\t\t\t\t<br>Murf AI<br>\t\t\t\t<br>- 20개 이상의 언어로 200개 이상의 실제 같은 AI 음성 제공<br>\t\t\t\t<br>- 음조, 운율, 강도 등 세밀한 조정 가능<br>\t\t\t\t<br>- 44.1kHz 샘플링 레이트로 고품질 음성 생성￼<a href=\"https://murf.ai/text-to-speech\" target=\"_blank\">9</a><br>\t\t\t\t<br>특징 및 장점<br>\t\t\t\t<br>- 다국어 지원: 대부분의 서비스가 다양한 언어와 액센트를 제공합니다.<br>\t\t\t\t<br>- 사용자 정의: 음성의 속도, 음높이, 볼륨 등을 조절할 수 있는 옵션 제공.<br>\t\t\t\t<br>- 파일 형식: 다양한 입력 파일 형식을 지원하며, MP3나 WAV 등으로 출력 가능.<br>\t\t\t\t<br>- 접근성: 복잡한 장비 없이도 고품질의 음성을 쉽게 생성할 수 있습니다.<br>\t\t\t\t<br>이러한 무료 AI TTS 서비스들은 콘텐츠 제작, 교육, 접근성 향상 등 다양한 분야에서 활용될 수 있으며, 사용자의 필요에 따라 적합한 서비스를 선택할 수 있습니다.<br>\t\t\t\t<br><br>\t\t\t\t출처: <<a href=\"https://www.perplexity.ai/search/tegseuteureul-eumseongeuro-ilg-uGI3cxXVToeBuZ5RHYYqiQ\" target=\"_blank\">https://www.perplexity.ai/search/tegseuteureul-eumseongeuro-ilg-uGI3cxXVToeBuZ5RHYYqiQ</a>> <br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://www.synthesia.io/post/ai-tools\" target=\"_blank\">https://www.synthesia.io/post/ai-tools</a>> <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://zapier.com/blog/best-ai-productivity-tools/\" target=\"_blank\">https://zapier.com/blog/best-ai-productivity-tools/</a>> <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://www.perplexity.ai/search/tegseuteureul-eumseongeuro-ilg-uGI3cxXVToeBuZ5RHYYqiQ\" target=\"_blank\">https://www.perplexity.ai/search/tegseuteureul-eumseongeuro-ilg-uGI3cxXVToeBuZ5RHYYqiQ</a>> <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"https://www.youtube.com/watch?v=3aZLN-y8n-Y\" target=\"_blank\">늦게 알면 폭풍 오열할 'AI툴' BEST3</a><br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"https://www.aixploria.com/en/ultimate-list-ai/\" target=\"_blank\">https://www.aixploria.com/en/ultimate-list-ai/</a>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

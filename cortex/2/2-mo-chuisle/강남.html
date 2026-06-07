@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>강남</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">강남</div>
+<div class="date">2017년 2월 16일 목요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-강남';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "강남<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br><br>\t\t\t<br>A<br>\t\t\t<br>1. 블루밍가든 6시 30분 <br>\t\t\t<br>2. 이자카야: 청담이상 7시 30분<br>\t\t\t<br>   맥주: 더치 맥앤펍, 맥쓰, 크롬바커 하우스<br>\t\t\t<br>   카페: 라뜰리에 역삼점<br>\t\t\t<br>   <br>\t\t\t<br>B<br>\t\t\t<br>1. 에비뉴로즈 6시 30분. 일찍 갈수록 좋은자리<br>\t\t\t<br>2. 카페: 건너편으로 걸어올라가기<br>\t\t\t<br>   이자카야: 7시 30분. 료마, 코타차야<br>\t\t\t<br>   맥주: 더블린, 뮈렌<br>\t\t\t<br><br>\t\t\t<br>사랑하기 위해 물어야 할 36가지 질문 - <a href=\"http://newspeppermint.com/2015/01/13/36-questions/\" target=\"_blank\">http://newspeppermint.com/2015/01/13/36-questions/</a><br>\t\t<br>\t\t<br>\t\t\t<br>ㅇ 영화 보기<br>\t\t\t<br>ㅇ 전시회/공연? 연극?<br>\t\t\t<br>ㅇ 노을보기 - 한강 or 이태원 루프탑<br>\t\t\t<br>ㅇ 가볍게 맥주?<br>\t\t\t<br><br>\t\t\t<br>(삼프터)<br>\t\t\t<br>ㅇ 방탈출 카페<br>\t\t\t<br>ㅇ 자동차 드라이브<br>\t\t\t<br><br>\t\t\t<br>ᄋ 분당 : 서현역, 수내역<br>\t\t\t<br>점심먹고 - 카페챠오바(율동)<br>\t\t\t<br>액티비티 - 영화, 높숲, 율동공원/중앙공원 산책, <br>\t\t\t<br>카페<br>\t\t\t<br>저녁<br>\t\t\t<br>\t\t\t\t<br>- 개나리교 <br>\t\t\t\t<br>판교역 1번출구에서 테크노밸리 방향으로 도보 500미터<br>\t\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>정자동/ 백현동 카페커리<br>\t\t\t<br>아브뉴프랑<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>경기도 성남시 정자동은 신분당선 영향으로 분당 내에서도 유동 인구가 가장 많은 구역이다. 강남이나 광교에서도 지하철로 15~30분 정도면 갈 수 있어 분당의 라이프 스타일을 경험하기 원하는 많은 사람들이 찾고 있는 곳이다. 이번 주말 데이트 약속은 각종 맛집과 분위기 있는 카페 천국인 정자역 근처로 잡아보는 것은 어떨까?<br>\t\t\t<br><br>\t\t\t<br>미식을 위한 데이트라면 우선 정자동 카페거리와 엠코헤리츠 거리를 방문해 보자. 요즘 한창 뜨고 있는 더치커피를 비롯해 세계 각국의 드립커피와 독특한 음료를 제공하는 커피 전문점부터 달콤한 케익과 다양한 디저트류를 취급하는 디저트 카페가 즐비하다. 아기자기한 편집숍이나 트렌드를 살린 패션숍부터 레스토랑의 테라스석에서 여유를 즐기는 모습까지 산책하며 볼거리가 많다.<br>\t\t\t<br><br>\t\t\t<br>가볍게 산책하며 분당의 녹지 공간을 느껴보려면 우선 드라마에 많이 나왔던 신기교를 건너 정자동 물놀이장으로 향해보자. 저녁 때 지나가면 좀더 분위기가 난다. 정자동 물놀이장에서 신나게 어울려 노는 아이들의 모습을 바라보며 탄천 산책길을 따라 수내역 방면으로 가다 보면 반려견 놀이 공간이 나온다. 강아지들이 자유롭게 뛰노는 모습을 보면 잠시 외국에 온 느낌이 들 정도다.",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "d3af585c62.png",
+    "alt": "강남",
+    "w": 220
+  },
+  {
+    "type": "image",
+    "src": "56ec5ded76.png",
+    "alt": "강남",
+    "w": 220
+  },
+  {
+    "type": "image",
+    "src": "13683f34f2.png",
+    "alt": "강남",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "40bfcacabe.png",
+    "alt": "강남",
+    "w": 220
+  },
+  {
+    "type": "image",
+    "src": "3b2bc4d7e6.png",
+    "alt": "강남",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;<br>\t\t\t<br>&#160;<br>\t\t\t<br>&#160;<br>\t\t\t<br>'지앤아트스페이스'에 한번 가보세요!<br>\t\t\t<br>분당은 아니지만 가까운 거리에 있답니다.<br>\t\t\t<br>버스로 30분이면 충분하고 자가용이면 15분이면 금방 가요~<br>\t\t\t<br>&#160;<br>\t\t\t<br>백남준 미술관 새로 생긴거 아시죠?<br>\t\t\t<br>바로 그 옆이랍니다.<br>\t\t\t<br>작품관람도 하고 이벤트도 즐기고 쇼핑도 할수있는 공간이에요.<br>\t\t\t<br>&#160;<br>\t\t\t<br>지앤 아트 스페이스에서는 도자 제작 체험도 할 수 있고요<br>\t\t\t<br>지금은 백남준 페스티벌을 같이 진행중이기도 합니다.<br>\t\t\t<br>그리고 멋진 리빙숍에서는 국내에선 접하기 힘든<br>\t\t\t<br>멋진 도자 제품들과 테이블웨어를 판매하고 있어요.<br>\t\t\t<br>&#160;<br>\t\t\t<br>&#160;<br>\t\t\t<br>그리고 카페겸 레스토랑인 '하이드 파크'가 굉장히 멋진데요<br>\t\t\t<br>야외 테라스도 많고 음식 맛도 휼륭합니다.<br>\t\t\t<br>조용하고 세련되고 아늑한 분위기가 사람을 편안하게 만들어주더라구요<br>\t\t\t<br>파스타와 피자, 코스메뉴와 와인등이 있어요~ 모두 추천해요.<br>\t\t\t<br>카페도 참 아늑하고 좋답니다.<br>\t\t\t<br>&#160;<br>\t\t\t<br>&#160;<br>\t\t\t<br>문의하셔서 도자 제작 체험도 해보시고~ 애인과 물레를 돌리며~<br>\t\t\t<br>아트샵에서 예쁜 물건도 구경하시고, 여유가 된다면 선물이라도? ^^<br>\t\t\t<br>그리고 근처에있는 백남준 미술관과 경기도 미술관을 관람하고 산책하는것도 좋을것 같아요<br>\t\t\t<br>저녁엔 근사하게 식사하고 커피 한잔까지 하시면 더욱 좋겠죠.<br>\t\t\t<br>야경도 참 예쁘더라구요!<br>\t\t\t<br>&#160;<br>\t\t\t<br>&#160;<br>\t\t\t<br>건물이 너무 멋지다 했더니<br>\t\t\t<br>건축가 조성룡씨가 설계한 건물이라고 하네요.<br>\t\t\t<br>선유도공원 등을 설계하신 유명한 분이라고..^^<br>\t\t\t<br>&#160;<br>\t\t\t<br>&#160;<br>\t\t\t<br>&#160;<br>\t\t\t<br>서울에선 1560, 5500-1, 5001-1, 7007-1, 5003, 5000, 5001 번등이 지나가구요<br>\t\t\t<br>분당에선 116-1, 1116, 51,<br>\t\t\t<br>수원에선 58번 등이 지나다녀요<br>\t\t\t<br>'신갈오거리' '경기도 박물관' '신갈경찰서'등의 정류장에 가는 버스라면 오케이 입니다.<br>\t\t\t<br>검색해보니 카페랑 홈페이지도 있네요~ 참고해보세요~<br>\t\t\t<br><a href=\"http://cafe.naver.com/zienart\" target=\"_blank\">http://cafe.naver.com/zienart</a><br>\t\t\t<br><a href=\"http://www.zienart.com/\" target=\"_blank\">http://www.zienart.com/</a><br>\t\t\t<br><br>\t\t\t<br>수내역에서 서현역 사이 걸어가는 그 길있는데 길에서 음악도나오고 벤치도 많고<br>\t\t\t<br>처음온분들 좋아하시더라구요 ^^<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"http://kin.naver.com/qna/detail.nhn?d1id=12&dirId=1209150111&docId=100205813&qb=67aE64u5IOuNsOydtO2KuCDsvZTsiqQ=&enc=utf8&section=kin&rank=2&sort=0&spq=0&pid=fGat/loi5UKsstv%2BCQlsss--450188&sid=S4Ez3Z72gEsAAF@buKU\" target=\"_blank\">http://kin.naver.com/qna/detail.nhn?d1id=12&dirId=1209150111&docId=100205813&qb=67aE64u5IOuNsOydtO2KuCDsvZTsiqQ=&enc=utf8&section=kin&rank=2&sort=0&spq=0&pid=fGat/loi5UKsstv%2BCQlsss--450188&sid=S4Ez3Z72gEsAAF@buKU</a>>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

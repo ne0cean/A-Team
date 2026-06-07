@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soul pl</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">Soul pl</div>
+<div class="date">2017년 9월 6일 수요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Soul-pl';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "Soul pl<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>언제 어디서든 누구든 - 번호 - 커피/밥/술 - ㄱㄱ<br>\t\t\t<br><br>\t\t\t<br>구장 : 신천, 장안동, 독산동 국빈관/ 신림 그랑프리/ 신촌 보스/ 영등포 명화/ <br>\t\t\t<br>클럽아이/ 연신내 키스/ 수유 샴푸/ 상봉 한국관<br>\t\t\t<br>요약 -&#160; 총알이 여유있다면 클럽아이 가는게 제일좋음....<br>\t\t\t<br>평일에 가는거라면 클럽아이나 독산동 국빈관<br>\t\t\t<br>주말에 가는거라면 1.클럽아이 2.독산동 국빈관 3.수유 샴푸 4.신림 그랑<br>\t\t\t<br><br>\t\t\t<br>후기 <a href=\"https://ggobbo.com/u1\" target=\"_blank\">https://ggobbo.com/u1</a><br>\t\t\t<br><a href=\"https://www.opgirls54.info/rg4_board/view.php?&bbs_code=meetpart1&bd_num=742332\" target=\"_blank\">https://www.opgirls54.info/rg4_board/view.php?&bbs_code=meetpart1&bd_num=742332</a><br>\t\t\t<br><br>\t\t\t<br>혼자 나이트 가기 - Google 검색 - <a href=\"https://www.google.co.kr/search?client=ms-android-skt-kr&biw=360&bih=276&ei=cCOvWbj9J4at0gSSl7uwBg&q=%ED%98%BC%EC%9E%90+%EB%82%98%EC%9D%B4%ED%8A%B8+%EA%B0%80%EA%B8%B0&oq=%ED%98%BC%EC%9E%90+%EB%82%98%EC%9D%B4%ED%8A%B8&gs_l=mobile-gws-serp.1.1.0l2j0i30k1l2j0i5i30k1.1716117.1722048.0.1723346.30.24.5.0.0.0.242.4103.0j19j4.23.0....0...1.1j4.64.mobile-gws-serp..13.16.2370.3..35i39k1j0i131k1j0i3k1j30i10k1.gUMKot2jvv4\" target=\"_blank\">https://www.google.co.kr/search?client=ms-android-skt-kr&biw=360&bih=276&ei=cCOvWbj9J4at0gSSl7uwBg&q=%ED%98%BC%EC%9E%90+%EB%82%98%EC%9D%B4%ED%8A%B8+%EA%B0%80%EA%B8%B0&oq=%ED%98%BC%EC%9E%90+%EB%82%98%EC%9D%B4%ED%8A%B8&gs_l=mobile-gws-serp.1.1.0l2j0i30k1l2j0i5i30k1.1716117.1722048.0.1723346.30.24.5.0.0.0.242.4103.0j19j4.23.0....0...1.1j4.64.mobile-gws-serp..13.16.2370.3..35i39k1j0i131k1j0i3k1j30i10k1.gUMKot2jvv4</a><br>\t\t\t<br><br>\t\t\t<br>(정보)서울권나이트 정리해봅니다. - <a href=\"https://892bam.com/bbs/board.php?bo_table=bamw1&wr_id=84\" target=\"_blank\">https://892bam.com/bbs/board.php?bo_table=bamw1&wr_id=84</a><br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>- 장소+지명 웨이터 : <br>\t\t\t\t<br>- 요일 : 월,화(서비스직) 목,일/ 주말 ss\t<br>\t\t\t\t<br>- 시간 : 입장은 12시~1시<br>\t\t\t\t<br>        성사율은 2시~3시 - 마지막으로 카톡 돌리고<br>\t\t\t\t<br>        3시까지 답 안나오면 귀가<br>\t\t\t\t<br>- TIP - 2만 주고 부킹 3~4회 수 1만 추가 + 성공보수 약속<br>\t\t\t\t<br>- 시나리오<br>\t\t\t\t<br>- 예산<br>\t\t\t\t<br>- 받은 번호는 2일 이내에 메이드<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>독산동 국빈관30, 신림 일번지/르네상스/그랑프리30, 잠실새내역 국빈관30, 수유 샴푸나이트, 연신내/시흥동 한국관<br>\t\t\t<br>구로-영등포(오류 한국관, 영등포 명화)<br>\t\t\t<br><br>\t\t\t<br>국빈관 위치는 2호선 신천역 3번 출구로 나오면 한 50m 거리에 adidas매장과 맥도날드 매장이 있는데요 그 골목으로 들어가면 바로 국빈관이 있습니다.<br>\t\t\t<br><br>\t\t\t<br>M2, nb2, 코쿤, 이태원 - 골드바<br>\t\t\t<br>강남역 인근 - 토토가요, 클럽 매스<br>\t\t\t<br><br>\t\t\t<br><a href=\"http://opera77.tistory.com/158\" target=\"_blank\">http://opera77.tistory.com/158</a><br>\t\t\t<br><br>\t\t\t<br>준코는 술집이라고 생각을 안합니다 여자들이 ㅋㅋ그냥 노래방정도?ㅋㅋ<br>\t\t\t<br><br>\t\t\t<br>럽음악, 힙합, DidYouKnow? - <a href=\"https://m.vingle.net/posts/1486431-%25ED%2598%25BC%25EC%259E%2590%25EC%2584%259C-%25EA%25B0%2588%25EB%25A7%258C%25ED%2595%259C-%25EC%2584%259C%25EC%259A%25B8-%25ED%2581%25B4%25EB%259F%25BD%25EB%2593%25A4\" target=\"_blank\">https://m.vingle.net/posts/1486431-%25ED%2598%25BC%25EC%259E%2590%25EC%2584%259C-%25EA%25B0%2588%25EB%25A7%258C%25ED%2595%259C-%25EC%2584%259C%25EC%259A%25B8-%25ED%2581%25B4%25EB%259F%25BD%25EB%2593%25A4</a><br>\t\t\t<br><br>\t\t\t<br>전주 나이트 동선짜기<br>\t\t\t<br><br>\t\t\t<br>10시쯤 입장<br>\t\t\t<br>부스나 테이블<br>\t\t\t<br>팁 2만 나갈때 성공보수 3약속<br>\t\t\t<br>자존심 안상할정도 약속<br>\t\t\t<br>친구 먼저 나간걸로<br>\t\t\t<br>번호따고 방생. 둘러보고 연락하라고<br>\t\t\t<br>2시에는 여튼 마지막 연락돌리고 나와야함<br>\t\t\t<br>\"질문: 밖에서 오뎅먹으러 갈까여? 아니면 노래방 갈까요?\" \"대답: 노래방\"<br>\t\t\t<br>인근 텔+해장국집 알아두고<br>\t\t\t<br>편의점 맥주랑 주전부리사서 자연스럽게 진입<br>\t\t\t<br>계산은 여자에게 지갑주고 하도록 시키기<br>\t\t\t<br>들어가서 소지품 간수 잘하기<br>\t\t\t<br><br>\t\t\t<br>총 예산<br>\t\t\t<br>팁5 + 테이블5 + 해장국 + 텔비<br>\t\t\t<br>20만<br>\t\t<br>\t\t<br>\t\t\t<br>이태원<br>\t\t\t<br><a href=\"https://m.blog.naver.com/PostView.nhn?blogId=heavyduty777&logNo=220152311128&proxyReferer=https%3A%2F%2Fwww.google.co.kr%2F\" target=\"_blank\">https://m.blog.naver.com/PostView.nhn?blogId=heavyduty777&logNo=220152311128&proxyReferer=https%3A%2F%2Fwww.google.co.kr%2F</a><br>\t\t\t<br><br>\t\t\t<br>글램, 골드바, UN, 케잌샾<br>\t\t\t<br><br>\t\t\t<br>강남 옥타곤 매스 이태원 비원<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.google.co.kr/search?q=%EA%B3%A8%EB%93%9C%EB%B0%94+%EC%9B%90%EB%82%98%EC%9E%87&oq=%EA%B3%A8%EB%93%9C%EB%B0%94+%EC%9B%90%EB%82%98%EC%9E%87&gs_l=psy-ab.3...1804.3875.0.3973.13.10.1.0.0.0.262.1095.0j6j1.7.0....0...1.1j4.64.psy-ab..8.5.515...0j35i39k1j0i30k1.WAeuO4c2h0c\" target=\"_blank\">https://www.google.co.kr/search?q=%EA%B3%A8%EB%93%9C%EB%B0%94+%EC%9B%90%EB%82%98%EC%9E%87&oq=%EA%B3%A8%EB%93%9C%EB%B0%94+%EC%9B%90%EB%82%98%EC%9E%87&gs_l=psy-ab.3...1804.3875.0.3973.13.10.1.0.0.0.262.1095.0j6j1.7.0....0...1.1j4.64.psy-ab..8.5.515...0j35i39k1j0i30k1.WAeuO4c2h0c</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://www.sacer.co.kr/board_JjxX49/96054\" target=\"_blank\">http://www.sacer.co.kr/board_JjxX49/96054</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://reviewrepublic.net/p/%EA%B0%95%EB%82%A8-%ED%81%B4%EB%9F%BD%EC%9D%84-%EC%86%94%EC%A7%81%ED%95%98%EA%B2%8C-%EA%B9%8C%EB%B0%9C%EB%A0%A4%EB%B3%B4%EC%9E%90-1-%ED%81%B4%EB%9F%BD%EC%9D%80-%ED%99%8D%EB%8C%80-%EC%95%84%EB%8B%88%EC%95%BC-BkShvC9Xx\" target=\"_blank\">https://reviewrepublic.net/p/%EA%B0%95%EB%82%A8-%ED%81%B4%EB%9F%BD%EC%9D%84-%EC%86%94%EC%A7%81%ED%95%98%EA%B2%8C-%EA%B9%8C%EB%B0%9C%EB%A0%A4%EB%B3%B4%EC%9E%90-1-%ED%81%B4%EB%9F%BD%EC%9D%80-%ED%99%8D%EB%8C%80-%EC%95%84%EB%8B%88%EC%95%BC-BkShvC9Xx</a>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

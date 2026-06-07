@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 롱폼 애니메이션</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">AI 롱폼 애니메이션</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-AI-롱폼-애니메이션';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "AI 롱폼 애니메이션<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br><a href=\"https://claude.ai/chat/1d2e50d2-051f-4985-8538-4da55d1c6324\" target=\"_blank\">리버스</a> 엔지니어링<br>\t\t\t<br>어떤 롱폼/장르가 가장 돈이 되는가? 그걸 어디서 어떻게 스크리닝?<br>\t\t\t<br>광고/구독자 두 가지 측면 모두<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>GPT API Key<br>\t\t\t\t\t<br>(feat.breeze)<br>\t\t\t\t\t<br>\t\t\t\t\t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<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><a href=\"https://console.groq.com/keys\" target=\"_blank\">Groq</a><br>\t\t\t\t\t<br>(feat.breeze) longform<br>\t\t\t\t\t<br>\t\t\t\t\t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<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><a href=\"https://aistudio.google.com/app/api-keys\" target=\"_blank\">Google AI studio</a><br>\t\t\t\t\t<br>(feat.breeze)<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\tAIzaSyAlp2fMigsV92fWJzDyE_T41iYVXEQlj4s<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<a href=\"https://openrouter.ai/settings/keys\" target=\"_blank\">OpenRouter</a><br>\t\t\t\t\t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<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<a href=\"https://ollama.com/download\" target=\"_blank\">ollama</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<a href=\"https://elevenlabs.io/app/developers/api-keys\" target=\"_blank\">일레븐랩스</a><br>\t\t\t\t\tsk_614470a469e25dcaff78308609652ec8b6357b37bd811a6e<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tGrok<br>\t\t\t\t\txai-8ve7MPqsIvV6AvbWhrWlopgk74XBnp3petKAaoR6wbmmxPESUWUh5et35wL82CNWmJx2nOAstiet6pqH<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>__________________________________________________<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.youtube.com/live/dfE8EQ1X1vo\" target=\"_blank\">AI </a>롱폼 애니메이션 월 300 AI 유튜브 연금<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>AI 콘텐츠가 아니라 저품질 콘텐츠 제한<br>\t\t\t<br>저품질의 기준은?<br>\t\t\t<br>거짓 허위 컨텐츠<br>\t\t\t<br>​​구매력 없는 라디오 컨텐츠 아웃!<br>\t\t\t<br>이미지 찍어내는 것 = 양산형컨텐츠<br>\t\t\t<br><br>\t\t\t<br>정보성 콘텐츠 보다 중독성 있는/재미있는 스토리<br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>1/ 스크립트 제작<br>\t\t\t\t\t<br>클로드/제미나이 활용<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>2/ 이미지 제작<br>\t\t\t\t\t<br>구글labs flow<br>\t\t\t\t\t<br>\t\t\t\t\t스크립트를 라인바인라인으로 긁어 넣어서￼이미지 제작하고 좌상단 영상변환￼\"생동감있게 변환해줘\"<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t3/ 음성 만들기￼일레븐랩스 TTS<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>4/ 영상+음성 조합<br>\t\t\t\t\t<br>캡컷<br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><br>\t\t\t> <br>그 모 든 북 마 <br>※ 셀 팜 스 튜 디 오 <br>스 토 리 대 본 생 성 <br>장 르 별 스 토 리 대 본 을 생 성 합 니 다 . <br>☑ 대 본 생 성 <br>■■ 스 토 리 대 본 <br>1. 대 본 생 성 <br>2. 캐 릭 터 시 트 <br>3. 이 미 지 프 롬 프 트 <br>:+ 제 목 / 내 용 생 성 <br>원 은 영 상 제 작 <br>Step 1. 대 본 생 성 ( 한 국 어 ) <br>■ 썸 네 일 제 작 <br>AI 모 델 <br>Claude Sonnet 4.5 (Anthropic) <br>※ 비 주 얼 프 롬 프 트 <br>Claude: 기 본 키 제 공 (IP 당 하 루 1 회 ) / DeepSeek: 무 제 한 <br>장 르 카 테 고 리 <br>√ 장 르 를 선 택 하 세 요 <br>직 접 입 력 <br>SF ( 공 상 과 학 ) <br>로 맨 스 <br>早 현 <br>스 릴 러 : 미 스 터 리 <br>역 사 : 사 극 <br>일 상 : 힐 링 <br>코 미 디 <br>판 타 지 <br>호 라 <br>교 새 창 열 기 <br>하 설 정 <br>브 라 우 저 로 열 기 \" width=\"480\" height=\"249.5\" src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f82714a06153c4030d9e5b5d574fab45!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f82714a06153c4030d9e5b5d574fab45!1-733661839CC53BA5!7913/$value</a>\" data-src-type=\"image/png\" data-fullres-src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f82714a06153c4030d9e5b5d574fab45!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f82714a06153c4030d9e5b5d574fab45!1-733661839CC53BA5!7913/$value</a>\" data-fullres-src-type=\"image/png\" /><br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>이미지 프롬프트<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>영상제작<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t <br>\" 비 주 얼 프 롬 프 트 <br>영 상 스 타 일 <br>애 니 메 이 션 <br>애 니 메 이 션 2 <br>애 니 메 이 션 3 <br>실 사 화 <br>실 사 화 2 <br>커 스 텀 <br>나 만 의 스 타 일 프 롬 프 트 <br>예 : A vibrant 2D cartoon style .. . <br>목 소 리 미 리 듣 기 용 문 장 입 력 <br>. 미 리 듣 기 <br>표 새 창 열 기 <br>이 미 지 생 성 <br>3 단 계 : 영 상 생 성 <br>ㅇ 설 정 <br>☑ 영 상 에 자 막 포 함 하 기 <br>( 을 ) 브 라 우 저 로 열 기 <br>내 오 디 오 파 일 사 용 (TTS 대 신 ) <br>v1.2.1 <br>일 괄 영 상 변 환 완 료 : 10 개 성 공 , 0 개 실 패 \" width=\"480\" height=\"309.5\" src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-9cf1c074ca22d7080e44ba369bdc0863!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-9cf1c074ca22d7080e44ba369bdc0863!1-733661839CC53BA5!7913/$value</a>\" data-src-type=\"image/png\" data-fullres-src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-9cf1c074ca22d7080e44ba369bdc0863!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-9cf1c074ca22d7080e44ba369bdc0863!1-733661839CC53BA5!7913/$value</a>\" data-fullres-src-type=\"image/png\" /><br>\t\t\t<br><br>\t\t\t <br>:+ 제 목 / 내 용 생 성 <br>Eleven v3 (Alpha) <br>√ <br>※ 영 상 제 작 <br>영 상 스 타 일 <br>■ 썸 네 일 제 작 <br>애 니 메 이 션 <br>애 니 메 이 션 <br>스 덤 <br>작 업 진 행 상 태 <br>에 비 주 얼 프 롬 프 트 <br>나 만 의 스 타 일 프 롬 프 트 <br>[ 청 크 1] 8 번 씬 TTS 생 성 중 ... <br>oil: A vibrant 2D ca <br>0% <br>1. 자 산 생 성 <br>2. 타 임 스 탬 프 계 산 <br>목 소 리 미 리 듣 기 용 문 장 입 력 <br>3. 영 상 합 성 <br>. 미 리 듣 기 <br>미 미 시 생 성 <br>생 성 중 ... <br>✔ 영 상 에 자 막 포 함 하 기 <br>내 오 디 오 파 일 사 용 (TTS 대 신 ) <br>• 새 창 열 기 <br>영 상 생 성 이 시 작 되 었 습 니 다 . 진 행 도 를 확 인 하 세 요 . <br>ㅇ 설 정 <br>( 을 ) 브 라 우 저 로 열 기 <br>v1.2.1 <br>자 언 허 화 \" width=\"480\" height=\"331.5\" src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-c1213caf08fcc70732b27f48518137f2!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-c1213caf08fcc70732b27f48518137f2!1-733661839CC53BA5!7913/$value</a>\" data-src-type=\"image/png\" data-fullres-src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-c1213caf08fcc70732b27f48518137f2!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-c1213caf08fcc70732b27f48518137f2!1-733661839CC53BA5!7913/$value</a>\" data-fullres-src-type=\"image/png\" /><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t> <br>그 모 든 북 마 크 <br>▶ 셀 팜 AI 컨 트 롤 러 <br>of <br>x <br>Flow > <br>Feb 22 - 20:42 <br>> 장 면 빌 더 <br>E <br>ULTRA <br>셀 팜 AI <br>0 <br>■ 동 영 상 <br>▼ 이 미 지 <br>클 린 검 색 <br>O <br>00 <br>Veo3 <br>Grok <br>학 업 공 간 <br>설 정 <br>텍 스 트 <br>프 레 임 <br>동 영 상 변 환 <br>동 영 상 변 환 <br>대 셋 으 로 <br>동 영 상 만 들 기 <br>연 기 <br>각 이 미 지 를 시 작 프 레 임 으 로 사 용 하 여 비 디 오 를 생 성 합 니 다 . <br>Single <br>Start-End <br>시 작 하 려 면 프 롬 프 트 상 자 에 입 력 하 세 요 . <br>이 미 지 추 가 <br>Prompt <br>■ 모 든 이 미 지 에 동 일 한 프 롬 프 트 적 용 <br>적 미 미 지 대 대 한 프 를 프 트 : <br>P1: A cat walking on the beach <br>P2: A dog running In the park <br>큐 <br>완 료 5/5 <br>/ 001 Korean manhwa martial arts style webtoon panel, explosive d .. <br>002 Korean manhwa martial arts style webtoon panel, dramatic ae ... <br>003 Korean manhwa martial arts style webtoon panel, powerful qi ... <br>이 미 지 만 들 기 ▼ <br>& Nano Banana Pro <br>口 冰 冰 <br>004 Korean manhwa martial arts style webtoon panel, intense atm ... <br>텍 스 트 및 소 재 를 기 반 으 로 이 미 지 생 성 <br>005 Korean manhwa martial arts style webtoon panel, dramatic cl ... <br>시 작 <br>전 체 비 디 오 다 운 로 드 <br>+ <br>Flow 는 실 수 를 할 수 있 으 니 다 시 한 번 확 인 하 세 요 . \" width=\"480\" height=\"254.5\" src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d4a84211eb6c2e0012cc922809ade4ac!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d4a84211eb6c2e0012cc922809ade4ac!1-733661839CC53BA5!7913/$value</a>\" data-src-type=\"image/png\" data-fullres-src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d4a84211eb6c2e0012cc922809ade4ac!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-d4a84211eb6c2e0012cc922809ade4ac!1-733661839CC53BA5!7913/$value</a>\" data-fullres-src-type=\"image/png\" /><br>\t\t\t<br>그록 게정당 20개 이미지/영상 생성 가능<br>\t\t\t<br>그록은 계정당 100개<br>\t\t\t<br>제미나이 유료는 하루 1천장<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>8분 넘어가야 광고가 여러개 붙을 수 있음.<br>\t\t<br>\t\t<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>1/ 광고: 광고 시장의 공백을 찾아야함<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>2/ 멤버십<br>\t\t\t<br>8부작 중 9화 이상은 멤버십만 공개 <br>\t\t\t<br>혹은 멤버십 전용 콘텐츠<br>\t\t<br>\t\t<br>\t\t\t <br>← 이 제 는 <br>이 미 지 프 롬 프 트 생 성 <br>영 상 프 롬 프 트 생 성 <br>이 미 지 프 롬 프 트 <br>영 상 프 롬 프 트 <br>생 성 된 이 미 지 프 롬 프 트 <br>19,018 자 <br>brightness, smooth luminous city lights with silky hair catching wind and emotional darkness texture enveloping her and gentle city-light bokeh <br>■ 새 창 열 기 <br>particles unable to reach her, contrasting color palette featuring vibrant warm amber and honey gold city lights with cool desaturated navy and <br>shadow-black consuming her world, dreamy gradient background splitting between glowing romantic cityscape and encroaching psychological <br>하 설 정 <br>darkness, large expressive emotional eyes empty and lost despite beautiful view, devastating isolation atmosphere with beauty unreachable due to <br>internal darkness and cinematic tragic contrast beauty, no text no words no letters no numbers no captions no titles no subtitles no watermarks no <br>() 브 라 우 저 로 열 기 <br>signatures no writing of any kind, no double eyelids, no blue eyes, no light colored eyes, no blonde hair, no curly hair, no smile, no bright expression, <br>no jewelry, no connection to beautiful scenery. <br>v1.2.1 \" width=\"480\" height=\"234\" src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-607820d15c2adb0d0b5d2ccb113699b2!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-607820d15c2adb0d0b5d2ccb113699b2!1-733661839CC53BA5!7913/$value</a>\" data-src-type=\"image/png\" data-fullres-src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-607820d15c2adb0d0b5d2ccb113699b2!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-607820d15c2adb0d0b5d2ccb113699b2!1-733661839CC53BA5!7913/$value</a>\" data-fullres-src-type=\"image/png\" /><br>\t\t\t<br><br>\t\t\t <br>3,000 자 <br>주 제 / 키 워 드 <br>예 : 용 사 가 마 왕 을 물 리 치 는 여 정 , 천 재 해 커 의 복 수 극 <br>해 커 의 사 랑 <br>대 본 생 성 <br>직 접 첨 부 <br>파 이 어 벳 의 탄 생 <br>만 두 가 게 사 장 , 무 공 비 급 을 얻 고 ... <br>■ 새 창 열 기 <br>해 커 의 사 랑 이 야 기 <br>용 사 가 마 왕 을 물 리 치 다 <br>하 설 정 <br>엘 레 베 이 터 에 서 일 어 난 끔 찍 한 사 건 <br>● 브 라 우 저 로 열 기 <br>V1.2.1 \" width=\"480\" height=\"227.5\" src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-cf996c7bba77f90222ba60764db9d912!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-cf996c7bba77f90222ba60764db9d912!1-733661839CC53BA5!7913/$value</a>\" data-src-type=\"image/png\" data-fullres-src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-cf996c7bba77f90222ba60764db9d912!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-cf996c7bba77f90222ba60764db9d912!1-733661839CC53BA5!7913/$value</a>\" data-fullres-src-type=\"image/png\" /><br>\t\t\t<br><br>\t\t\t <br>Claude: 기 본 키 제 공 (IP 당 하 루 1 회 ) / DeepSeek: 무 제 한 <br>☑ 대 본 생 성 <br>장 르 카 테 고 리 <br>> <br>■ 스 토 리 대 본 <br>판 타 지 <br>:+ 제 목 / 내 용 생 성 <br>생 성 길 이 <br>> <br>3,000 자 <br># 영 상 제 작 <br>주 제 / 키 워 드 <br>■ 썸 네 일 제 작 <br>우 리 아 빠 가 사 실 마 법 사 <br>비 주 얼 프 롬 프 트 <br>생 성 중 ... <br>직 접 첨 부 <br>생 성 된 대 본 <br>194X <br>● 생 성 중 .. <br># 우 리 아 빠 가 사 실 마 법 사 <br>## 프 롤 로 그 <br>거 실 의 공 기 가 일 그 러 지 기 시 작 했 다 . <br>■ 새 창 열 기 <br>열 두 살 민 준 의 눈 앞 에 서 , 평 범 한 회 사 원 이 었 던 아 빠 의 손 끝 에 서 푸 른 빛 마 나 가 소 용 돌 이 치 며 솟 아 올 랐 다 . 깨 진 꽃 병 조 각 들 이 중 력 을 거 스 르 며 허 공 에 떠 올 랐 고 , 시 간 을 되 감 듯 하 나 씩 제 자 리 <br>를 찾 아 가 며 완 벽 한 형 태 로 복 원 되 기 시 작 했 다 . 마 치 세 상 의 물 리 법 칙 이 이 순 간 만 <br>하 설 정 <br>대 본 복 사 <br>증 다 <br>●) 브 라 우 저 로 열 기 <br>v1.2.1 \" width=\"480\" height=\"232\" src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-bd3b28f9361a280d137d287ec46f10f1!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-bd3b28f9361a280d137d287ec46f10f1!1-733661839CC53BA5!7913/$value</a>\" data-src-type=\"image/png\" data-fullres-src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-bd3b28f9361a280d137d287ec46f10f1!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-bd3b28f9361a280d137d287ec46f10f1!1-733661839CC53BA5!7913/$value</a>\" data-fullres-src-type=\"image/png\" /><br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>*이미지 생성에 아이가 나오면 좋지 않음<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t <br>1 문 장 = 1 프 롬 프 트 <br>← 이 전 <br>생 성 중 ... <br>영 상 프 롬 프 트 생 성 <br>이 미 지 프 롬 프 트 <br>영 상 프 롬 프 트 <br>생 성 된 이 미 지 프 롬 프 트 <br>0 자 <br>생 성 중 ... ( 배 치 1/3: 1~10 번 장 면 ) <br>효 새 창 열 기 <br>향 설 정 <br>중 단 <br>전 체 복 사 <br>영 상 제 작 으 로 보 내 기 <br>®) 브 라 우 저 로 열 기 <br>v1.2.1 \" width=\"480\" height=\"232\" src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-49a9fe5841d4b80c302d509a76521177!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-49a9fe5841d4b80c302d509a76521177!1-733661839CC53BA5!7913/$value</a>\" data-src-type=\"image/png\" data-fullres-src=\"<a href=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-49a9fe5841d4b80c302d509a76521177!1-733661839CC53BA5!7913/$value\" target=\"_blank\">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-49a9fe5841d4b80c302d509a76521177!1-733661839CC53BA5!7913/$value</a>\" data-fullres-src-type=\"image/png\" /><br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>오팔 활용 자동화",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

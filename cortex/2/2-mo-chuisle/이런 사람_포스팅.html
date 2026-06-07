@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이런 사람_포스팅</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">이런 사람_포스팅</div>
+<div class="date">2017년 4월 11일 화요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-이런-사람-포스팅';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "이런 사람_포스팅<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>근 반년간 소개팅을 끊었고, 소개팅 시장 완전 철수를 선언하며 그간의 레슨을 공유한다.&#160;<br>\t\t\t<br><br>\t\t\t<br>숱한 선배들에게 주워들은 이야기와 내 단견을 버무렸고, 공감가는 글을 인용했다.<br>\t\t\t<br><br>\t\t\t<br>주요 타겟 독자는 결혼 적령기의 남자 솔로다. 토론하자고 쓰는 글이 아니니 참고만 하시라. 피드백은 사양한다. (아, 소개팅을 접은 이유는 내가 금사빠가 아니란걸 서른번 정도 소개팅을 하고 나서 배운 까닭이다. 자연스런 술자리는 대환영)<br>\t\t\t<br>\"insanity is doing the same thing over and over and expecting a different result\" _ Albert Einstein<br>\t\t\t<br><br>\t\t\t<br>[소개팅]<br>\t\t\t<br>기본적으로 카드게임 같은 거다. 자신이 지금 까지 살아오면서 쌓아온 카드들을 늘어 놓는 것이다. 가끔 자신의 카드가 아닌 부모의 카드를 꽃놀이 패마냥 들먹거리는 여자가 있다면, ㅎㅎ 마이너리그에 온걸 환영한다.<br>\t\t\t<br><br>\t\t\t<br>[블러핑]<br>\t\t\t<br>내 친구 범석이가 내게 축구를 가르칠 때 항상 하던 말이 있다. \"사람 말고 공을 봐\" 그렇다 페이크는 어디에나 있다. 나이가 찬 여자가 가치관의 영역에서 남자의 성향이나 관점에 컨센서스를 맞춰 대화를 드리블하는 건 정말 1도 아니다.<br>\t\t\t<br><br>\t\t\t<br>[쇼윈도]<br>\t\t\t<br>자기자신도 온전히 모르는 '나라는 우주'를 서로에게 설명하는 일이 얼마나 큰 간극을 자아내는 일이겠나. 심지어 보여주고 싶은 면만을 노출하는데. 소개팅의 한계다.<br>\t\t\t<br><br>\t\t\t<br>[덫]<br>\t\t\t<br>허세는 허영의 좋은 먹잇감이다. 자승자박이니 감당할 수 없는 너를 보여주진 말아라.<br>\t\t\t<br><br>\t\t\t<br>[호기심]<br>\t\t\t<br>서로에 대해 잘 알게 되었다고 생각한 순간부터, 서로에 대해 잘 모르기 시작한다. 호기심이 끝나면 관계도 끝난다. 오늘 하루는 무슨일이 있었는지, 밥, 하루에 무려 세 번이나 먹는. 그 밥이란 것을 먹었는지조차 궁금한것. 그런 관심이 시작이다.<br>\t\t\t<br><br>\t\t\t<br>[밀당]<br>\t\t\t<br>성격은 배울 수 있는게 아니더라 있는 마음껏 당길테고 밀면 그냥 밀려나갈 밖에<br>\t\t\t<br><br>\t\t\t<br>[영역]<br>\t\t\t<br>나의 세계에 누군가 방문하는 것은 기쁜일이나, 그 누군가가 내 세계의 끝이자 전부여서는 안된다. 관계가 새장이 되어선 안된다. 그러니 신비와 비밀은 미덕은 아니나, 필요한 여백이다.<br>\t\t\t<br><br>\t\t\t<br>[무소식]<br>\t\t\t<br>남자가 연락을 안하는 이유는 그냥 지금은 연락을 안하고 싶으니까. 사랑하지 않아서 그런게 아니다. 그게 의무가 된다고, 달라질건 없다. 옥중, 상중, (한시적)아웃오브안중.<br>\t\t\t<br><br>\t\t\t<br>그 남자가 남자들의 남자이길 바란다면, 늑대가 무리안에 있을 때는 놓아두자.<br>\t\t\t<br><br>\t\t\t<br>[결단]<br>\t\t\t<br>함께 지난온 시간과 추억 때문에 뻔한 파국을 확인할 필요는 없다. 우리가 매몰비용으로 여기는 그 시간보다 중요한 것은 기회비용이다.<br>\t\t\t<br><br>\t\t\t<br>[인스타그램]<br>\t\t\t<br>그 사람을 좀 더 알고 싶다면, 인터넷 즐겨찾기, 스마트폰 어플리케이션을 봐라 무엇에 관심이 있고, 어떤 곳에 시간과 돈을 쏟는지 참고할 수 있다. SNS에서 팔로우한 계정, 서가에 꽂혀있는 책도 훌륭한 레퍼런스가 된다.<br>\t\t\t<br><br>\t\t\t<br>특히 인스타그램을 봐라 그곳에 가득한 것이 여행 풍경이든, 화장품이든, 음식이든, 얼굴이든 무엇으로 점철 되어있건 간에 앞으로 네 돈이 투입될 것들이니 잘 보아두어라. 셀카가 많다고? ㅎㅎ 미모는 공짜가 아니다.<br>\t\t\t<br><br>\t\t\t<br>[자신감]<br>\t\t\t<br>어릴 때는 잘 나가는 형들이 예쁜 여자친구 자랑하면 '트로피 와이프'로 치부했다. 그러나 이제 좀 이해가 된다. 자기가 경제력이 있는 남자는 되려 본능에 충실해진다. 그래도 되니까. 여자의 경제력이나 스펙 등 '도구적/기능적 특성'보단 이성으로써의 매력에 더 가중치를 둘 수 있다.<br>\t\t\t<br><br>\t\t\t<br>[건강]<br>\t\t\t<br>아직 우린 건강하니 거의 고려하지 못하는 요소인데, 건강과 체력은 정말로 정말로 정말로 중요하다. 체력이 약하면 짜증을 많이 부리고 성격이 좋을 수가 없다. 내 몸이 피곤하면 짜증이 잘 나는 법이다. 당연한거다. 내가 일단 불편한데 남을 배려하고 아껴주기 쉽지 않다. 또 아이를 낳지 못하는 경우도 있다. 어릴 적에 병약했는지를 봐라.<br>\t\t\t<br><br>\t\t\t<br>[직업]<br>\t\t\t<br>대부분 이성의 직업을 판단할 때, 얼마만큼의 소득을 얼마나 장기적으로 벌어들일 수 있을지를 본다. 하지만 직업은 경제적인 안정도 있지만 정서적 안정 측면에서도 봐야 한다. 서비스 직군은 대체로 빼어난 미모와 자부심을 자랑하는 직군이지만, 대인 서비스는 본질적으로 감정노동이다. 거기에서 쌓인 스트레스를 네게 풀 가능성이 있고, 그 스트레스를 네가 함께 감내할 수 있을지 너 자신을 냉정히 봐야한다. 그게 아니라면 차라리 고정적으로 꼰대 한두명에게 스트레스받는 회사원이 나을 수 있다.<br>\t\t\t<br><br>\t\t\t<br>[뒷담화]<br>\t\t\t<br>그 여자가 자신의 주변에 대해 이야기하는 걸 잘 들어봐라, 그 주어가 너의 주변인이나 가족으로 치환되어도 위화감이 없는지 생각해봐라.<br>\t\t\t<br><br>\t\t\t<br>[집안]<br>\t\t\t<br>잘살고 잘나가는 여자. 마다할 이유가 없다. 단, 부모가 잘 사는거랑, 내가 잘 사는건 다른 문제다. 그걸 분간치 못하거나, 부모가 살면서 달아준 보조바퀴를 인지하지 못하는 여자라면, 생각해봐라. 니가 감당할 수 있을지.<br>\t\t\t<br><br>\t\t\t<br>\"부잣집 딸들은 대부분, 험난한 세상을 헤쳐 나가는데 전혀 도움 안되는 바이올린, 무용, 등을 전공하는 경우가 많지. 이러한 여자들은 되도록 만나지 말게. 왜냐하면 그 부류의 사람들이 대부분 자기만 알고 이기적인 경우가 많기도 하고 또 막상 그렇지 않다 하더라도 현실감각이 많이 떨어지는 경우가 많거든.<br>\t\t\t<br><br>\t\t\t<br>부인이 결혼할 때 몇 억 가지고 올지도 모른다고?? 인생을 길게 보면 그러한 돈이 큰 건 아닐세. 물론 수십억을 주는 경우도 있지만 그런 건 매우 드무니까 논외로 하겠네. 또한 돈을 가지고 온 부인은 이유 없이 당당하고 자존심이 세고 남편이 굽히기를 원하기도 하고 장인 장모 얼굴을 볼 때도, 긴 인생을 봤을 때에는 크지 않은 그 1-2억 때문에 참으로 평생 동안 껄끄럽게 느껴진다네.\"<br>\t\t\t<br><br>\t\t\t<br>[자존감]<br>\t\t\t<br>남과 비교하거나 주변의 시선을 너무 의식하는 사람은 걸러라. 너 말고 네 가족도 그 비교의 대상이 된다. 그리고 네 아이도 다른 아이와의 비교의 대상이 될거라는게 가장 끔찍한거다. 네 아이에게 그런 엄마를 준건 네 잘못이다.<br>\t\t\t<br><br>\t\t\t<br>[가족]<br>\t\t\t<br>그 여자의 부모가 서로를 대하는 것을 보라. 그게 너와 그녀의 관계가 될 가능성이 높다. 부모는 결혼생활에 있어선 우리의 거의 유일무이한 스승이자 롤모델이다. 여자는 자신의 어머니를 따라간다. 어머니에 대해 하는 이야기를 주의 깊게 들어라.<br>\t\t\t<br><br>\t\t\t<br>[소비패턴]<br>\t\t\t<br>사치. 자신의 경제력 능력을 상회하는 소비를 '저지르'는 것이 사치다. 패리스 힐튼이 한달에 벤츠 한대씩 사는건 사치가 아니라 검약이다. 그러나 자신의 경제력의 원천을 어디까지 잡아야 하는지 그 경계를 분명히 할 줄 알아야 한다.<br>\t\t\t<br>부모덕에 돈 걱정 한번 해본 적 없는 여자가 돈 없이도 행복하게 살면 되네 어쩌네 한다면, 그건 좀 생각 해봐야한다. 그녀는 모르는 거다, 가난이 뭔지. 경험한적 없는 것에 대해 단정하고 있는 거다. 자신과 네가 감내할 수 없을지도 모를 것을 선택할 수 있다고 말하는거니까.<br>\t\t\t<br><br>\t\t\t<br>[머리빈 여자?]<br>\t\t\t<br>과거에는 고학력 여성 비율이 지금보다 상대적으로 낮았으니 그 시절부터 '머리빈 남자' 이야긴 몰라도 '머리빈 여자'이야기를 하는 아해들이 있었고. 그럴 여험 발언은 관용어구가 되어 지금까지 계승되고 있다. 흔히 예쁜 여자에게 버림받은 아해들의 정신승리를 위한 방어기제에 활용된다. 들어라, 상대방의 지적 수준을 가늠할 수 있는 한계치는 어디 까지나 너의 지적 수준 이내이다.<br>\t\t\t<br><br>\t\t\t<br>요컨대, 여자가 별로 생각이 없어 보인다면. 그건 여자가 멍청한게 아니라, 네가 멍청한 것일 수 있다. 능력이나, 상대의 지적 깊이는 네가 가진 깊이를 기준으로 밖에는 헤아릴 수 없는 거니까. 상대로부터 충분한 지적 대화를 이끌어내는 능력이 네게 결핍되어 있을 수 있단 말이다. 아님 그냥 너한테 관심이 없거나.<br>\t\t\t<br><br>\t\t\t<br>[변화]<br>\t\t\t<br>사람은 안바뀐다. 너도 그렇고 그녀도 그렇다. 그러니 나아질거라 희망고문 말고, 나중에는 감내할 수 있게 될거라 착각말자. 사람이 사람에게 희망을 품는건 훌륭한 일이다. 하지만, 사람이 사람을 바꿀 수 있을거라는 생각은 오만이다.<br>\t\t\t<br><br>\t\t\t<br>[결단]<br>\t\t\t<br>둘 중 하나가 결혼을 원하고, 둘의 생각이 같지 않다면 착해지고 싶은 욕심은 꾸욱 참고 방아쇠를 당겨라. 몇 십년 후에 지금의 너를 증오하고 싶지 않다면. 네 아이의 엄마. (운이 좋다면)네 평생의 가장 절친한 벗. 그래서 일생을 통틀어 가장 중요한 의사결정이다.<br>\t\t\t<br><br>\t\t\t<br>[가꿔라]<br>\t\t\t<br>여성들의 학벌과 경제력이 상향되면서, 여자들도 남자의 외모에 대한 가중치가 높아졌다. 가꿔라. 네가 과거에 성취한 것들에 매몰되지 말고. 왜 잘 나가는 여자들이 굳이 남자 능력에 빌붙어야 하나, 내가 여자라도 외모 보겠다.<br>\t\t\t<br><br>\t\t\t<br>[눈이 높다고?]<br>\t\t\t<br>이런 말 조심해야 된다. 자신의 처지에 비해 눈이 높다는 건데, 이건 아무리 좋게 해석해도 유쾌한 뜻은 아니다. 되물어라, 아니 이건 내 인생이고, 내가 사랑할 사람 만나는 건데. 눈 높으면 안됨? 그리고 어짜피 눈 안낮춰진다 ㅋㅋㅋ<br>\t\t\t<br><br>\t\t\t<br>[따뜻한 사람]<br>\t\t\t<br>똑똑하지만 왠지 둔하고, 이성적이지만 따뜻한 여자를 찾아라. 다른 사람에게 베푸는 정, 애정, 보살핌, 걱정, 아끼는 마음, 특히 모성애, 주변 사람을 어떻게 대하고, 가족과의 관계가 어떠한지를 보면 답 나온다. 네가 집에 돌아갔을 때 냉랭함을 느껴야 될 날이 많다면 너의 결혼생활은 실패한거다. 결혼은 결국 생활, 모든 사소한 것들의 총합이다. 너의 사소한 것들에 관심이 없다면, 또한 말로만 걱정하고 챙김이 없다면. 문제가 있다.<br>\t\t\t<br><br>\t\t\t<br>\"여자를 선택할 때에는 좋은 시절이 아니라 어렵고 힘든 시절을 함께 보낼 수 있을 지를 먼저 생각하게 좋은시절을 함께 즐겁게 보내는 것은 세상 어떤 여자라도 함께 할 수 있다네. 풍족하고 편안한 삶 속에서 인상 찌푸리고 짜증내는 여자는<br>\t\t\t<br>이세상에 없다네. 하지만 세상에 늘 좋은 시절만 있는 게 아니네. 인생이란, 높은 봉우리가 있다면 골짜기가 존재하는 것 처럼, 반드시 반드시 굴곡이 있게 마련이네. 남자에게 있어서 가족과 집이란, 모든 것을 다 실패한 후에도 돌아갈 수 있는 따뜻한 어머니의 품과 같은 것이라네. 설사 자네에게 큰 일이 터지더라도 그것을 보듬어주고 자네편에서서 끝없이 지지해주는, 그러한 것이 바로 부인이며 가족이며 집이라네. 지금 그 여자를 보게, 과연 그런 여자의 기품이 보이는가?\"<br>\t\t\t<br><br>\t\t\t<br>[모은 돈이 없는 사람]<br>\t\t\t<br>부모의 경제력에 의존해왔던 여타의 이유가 있었던 간에, 모아놓은 돈이 없다는 건. 현 시점의 경제력이나, 당장 신혼 살림에 보탤 돈이 모자라서 아쉽다.이상의 의미를 지닌다. 가족이라는건 이 사회에서 가장 작은 경제조직이 된다는 의미이다. 그런데 모은 돈이 없다는 건 본인의 재정 상태 조차 정상적으로 운영해본 경험과 능력이 없다는 의미이고, 당장 가계를 운영할 능력이 결여되어있다는 의미이다. 니가 관리하면 된다고? 네게 엄청 많은 용돈을 줘야하는 장성한 자녀가 하나 생긴다는 의미이다. 물론 네가 감내 할 수 있으면 괜찮다.<br>\t\t\t<br><br>\t\t\t<br>[생활습관]<br>\t\t\t<br>연애는 가장 달달한 시간만을 함께하는 낭만의 영역, 결혼은 모든 것을 함께 하는 생활의 영역이다. 그러니, 생활습관을 봐야한다. 동거를 해보면 베스트다.라는게 그런 맥락인 것 같다.<br>\t\t\t<br><br>\t\t\t<br>연애는 새하얀 눈길을 함께 걷는 낭만의 시간이다. 그리고 결혼은 그 눈이 녹은 거리를 걷는 일이다. 질척이는 발걸음, 눈에 덮혀있던 쓰레기와 오물, 토사물. 전단지... 그럼에도 그럼에도 불구하고 함께 걸을 수 있거나. 그게 문제되지 않아야 한다.<br>\t\t\t<br><br>\t\t\t<br>.<br>\t\t\t<br><br>\t\t\t<br>.<br>\t\t\t<br><br>\t\t\t<br>.<br>\t\t\t<br><br>\t\t\t<br>단언컨대, 배우자를 만날 때 앞에서 열거한 조건을 모두 충족시키거나 피해갈 수는 없다. 어디까지나 내가 감내할 수 있는 결정을 하는 거다. 절대적으로 크리티컬한 단 한가지만은 피하겠다고 기준점을 잡는게 현실적이다.라는 조언을 받았다.&#160;<br>\t\t\t<br><br>\t\t\t<br>어짜피 결혼을 하는 경우는,<br>\t\t\t<br>1. 넘나 사랑해서 - 부럽다...<br>\t\t\t<br>2. 러시안 룰렛 - 결혼 적령기인데 하필 네가 옆에 있어서<br>\t\t\t<br>3. 건강해서 - 신호위반<br>\t\t\t<br>4. 조건 만남 - 결혼에 비즈니스적 요소가 전혀 없다고 말한다면 니가 순진한거다.<br>\t\t\t<br>5. 정략 결혼 - 우리 서민들 사이에서는 좀처럼 볼 수 없는 경우이지만...<br>\t\t\t<br>이 다섯 가지 케이스 중 하나 이거나 대부분 복합적이다. (이를 벗어나는 경우는 보지 못했다.)<br>\t\t\t<br><br>\t\t\t<br>난 앞으로도 철이 없을 예정이니까, 여전히 1번에 배팅한다. 이상형? 그런거 안중요하다. 교통사고 같은거다. 정신차려보니 그 사람만보면 가슴이 지끈거리고 머리가 안돌아가는 그 상사의 병증, 언제 어디서 누구한테 왜때문에 빠져버릴지는 정말 알 수 없다.<br>\t\t\t<br><br>\t\t\t<br>+<br>\t\t\t<br>그리고 남녀 불문하고 마음 없으면 스킨십 하면서 끼부리지 마라. 죽는다 진짜. 취한척 팔짱 안되고, 웃을때 팔 때리는거 안되고, 어깨에 기대는거 안되고, 술 따르는척 손잡는거, 자꾸 슬쩍슬쩍 발로 쓰다듬는거 안된다. 다 안된다. 뚝배기 깬다 진짜. 꼬실려고 맘먹었으면 해라.<br>\t\t\t<br><br>\t\t\t<br>끗.<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.facebook.com/hashtag/%ED%8E%91%EC%98%88?source=feed_text\" target=\"_blank\">#펑예</a>&#160;<a href=\"https://www.facebook.com/hashtag/%EB%AA%A8%EB%A3%A8%EA%B2%8C%EC%92%80%EC%9A%94?source=feed_text\" target=\"_blank\">#</a>모루게쒀요&#160;<a href=\"https://www.facebook.com/hashtag/%EC%A7%AC%EC%97%90%EC%84%9C%EB%82%98%EC%98%A4%EB%8A%94%EB%B0%94%EC%9D%B4%EB%B8%8C?source=feed_text\" target=\"_blank\">#</a>짬에서나오는바이브<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://www.facebook.com/pure0cean/allactivity\" target=\"_blank\">https://www.facebook.com/pure0cean/allactivity</a>>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

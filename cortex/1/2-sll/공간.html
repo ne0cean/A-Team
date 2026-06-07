@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공간</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">공간</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-공간';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "공간<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>노들섬<br>\t\t\t<br>더 피아노 카페 평창동, 카페폭포, 콘하스 한남, <a href=\"https://blog.naver.com/mye__mye/223520724810\" target=\"_blank\">1</a>, <a href=\"https://m.blog.naver.com/kjw5313/223152810581\" target=\"_blank\">2</a>, <a href=\"https://www.facebook.com/photo/?fbid=7933457396728242&set=pcb.7933458913394757\" target=\"_blank\">3</a>, <a href=\"https://v.daum.net/v/9OccpqQ06u\" target=\"_blank\">4</a>, <a href=\"https://www.instagram.com/p/C854o46PsTL/?img_index=10\" target=\"_blank\">5</a><br>\t\t\t<br>국립중앙박물관, <br>\t\t\t<br>서점 데이트<br>\t\t\t<br><br>\t\t\t<br>성수 LCDC, 모나미 등<br>\t\t\t<br>맨메이드 도산<br>\t\t\t<br><a href=\"https://eyesmag.com/posts/143164/korea-Cherry-Blossom-place\" target=\"_blank\">https://eyesmag.com/posts/143164/korea-Cherry-Blossom-place</a><br>\t\t\t<br>성수동 서울숲길에 있는 팝업 스토어 플랫폼 프로젝트 렌트Project Rent예요. 마침 지난 주말엔 보마켓BO MARKET이 메리어트 호텔과 함께 팝업<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://www.longblack.co/note/229?ticket=NTbd27bd0ae46e8f2e43277d2d2c966b35ae36876d\" target=\"_blank\">https://www.longblack.co/note/229?ticket=NTbd27bd0ae46e8f2e43277d2d2c966b35ae36876d</a>> <br>\t\t\t<br><br>\t\t\t<br>어른이들을 위한 놀이터 'Place 1' <br>\t\t\t<br>서울시 강남구 삼성동 169-8, 24 / 169-9<br>\t\t\t<br><a href=\"https://www.ohseoul.org/2017/programs/place-1/event/62\" target=\"_blank\">https://www.ohseoul.org/2017/programs/place-1/event/62</a><br>\t\t\t<br><br>\t\t\t<br>북촌<br>\t\t\t<br>리를버틀러 카페 <a href=\"https://www.instagram.com/cafe.littlebutler/\" target=\"_blank\">https://www.instagram.com/cafe.littlebutler/</a><br>\t\t\t<br>런던 베이글 뮤지엄 <a href=\"https://www.instagram.com/london.bagel.museum/\" target=\"_blank\">https://www.instagram.com/london.bagel.museum/</a><br>\t\t\t<br><br>\t\t\t<br>파주 - 콩치노 콩크리트<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://daelimmuseum.org/?utm_source=instagram&utm_medium=profile&utm_campaign=linktree_ticket&utm_id=romancticdays\" target=\"_blank\">https://daelimmuseum.org/?utm_source=instagram&utm_medium=profile&utm_campaign=linktree_ticket&utm_id=romancticdays</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://onemoreweekend.co.kr/16/?bmode=view&idx=10651494&back_url=&t=board&page=1\" target=\"_blank\">https://onemoreweekend.co.kr/16/?bmode=view&idx=10651494&back_url=&t=board&page=1</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>덕수궁<br>\t\t\t<br><a href=\"http://www.deoksugung.go.kr/schedule/list?scheduleid=SB\" target=\"_blank\">http://www.deoksugung.go.kr/schedule/list?scheduleid=SB</a><br>\t\t\t<br><br>\t\t\t<br>청운문학도서관 & 윤동주 문학관<br>\t\t\t<br><br>\t\t\t<br>서울한방진흥센터<br>\t\t\t<br><br>\t\t\t<br>월곡산<br>\t\t\t<br><br>\t\t\t<br>어쨌든 사랑<br>\t\t\t<br><a href=\"https://www.daelimmuseum.org/exhibition/current/PRG202202230001\" target=\"_blank\">https://www.daelimmuseum.org/exhibition/current/PRG202202230001</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>성수<br>\t\t\t<br>코스메틱 브랜드 '레미유'<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://newsis.com/view/?id=NISX20220324_0001806795&cID=13001&pID=13000\" target=\"_blank\">https://newsis.com/view/?id=NISX20220324_0001806795&cID=13001&pID=13000</a>> <br>\t\t<br>\t\t<br>\t\t\t<br>[서울 홍대]&#160;햇살 맛집 벚꽃 비 실컷 맞을 수 있는&#160;<a href=\"https://event.stibee.com/v2/click/NzgxODMvOTA1MDk0LzQyMjc5Lw/aHR0cHM6Ly93d3cuaW5zdGFncmFtLmNvbS9leHBsb3JlL3RhZ3MvJUVBJUI3JUI4JUVCJUEwJTg4JUVDJTlEJUI0JUVCJTlFJUE5Lz9obD1rbw\" target=\"_blank\">#그레이랩</a><br>\t\t\t<br>[서울 홍대]&#160;흰 프레임으로 보는 꽃 액자&#160;<a href=\"https://event.stibee.com/v2/click/NzgxODMvOTA1MDk0LzQyMjc5Lw/aHR0cHM6Ly93d3cuaW5zdGFncmFtLmNvbS9leHBsb3JlL3RhZ3MvJUVCJTk0JTk0JUVDJTk2JUI0JUVCJUFBJUE4JUVCJUE4JUJDJUVEJThBJUI4Lz9obD1rbw\" target=\"_blank\">#디어모먼트</a><br>\t\t\t<br>[서울 마포]&#160;고즈넉한 주택에 가득 핀 벚꽃&#160;<a href=\"https://event.stibee.com/v2/click/NzgxODMvOTA1MDk0LzQyMjc5Lw/aHR0cHM6Ly93d3cuaW5zdGFncmFtLmNvbS9leHBsb3JlL3RhZ3MvJUVDJTk3JUIwJUVCJTgyJUE4JUVCJThGJTk5JUVCJUIyJTlBJUVBJUJEJTgzJUVDJUE3JTkxLz9obD1rbw\" target=\"_blank\">#연남동벚꽃집</a><br>\t\t\t<br>[서울 종로]&#160;한옥 뷰를 만끽할 수 있는&#160;<a href=\"https://event.stibee.com/v2/click/NzgxODMvOTA1MDk0LzQyMjc5Lw/aHR0cHM6Ly93d3cuaW5zdGFncmFtLmNvbS9wL0NNX2c5RmNCRDlOLw\" target=\"_blank\">#카페아르크</a><br>\t\t<br>\t\t<br>\t\t\t<br>용산<br>\t\t\t<br>구복만두<br>\t\t\t<br>마포구 무대륙<br>\t\t\t<br>TAC<br>\t\t\t<br><br>\t\t\t<br>호텔<br>\t\t\t<br>롯데호텔 무궁화/모모야마<br>\t\t\t<br>조선호텔 홍연<br>\t\t\t<br>플라자 도원<br>\t\t\t<br><br>\t\t\t<br>묘미<br>\t\t\t<br>서울다이닝<br>\t\t\t<br><br>\t\t\t<br>우정초밥 - 매주 토요일 12시 예약 오픈",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

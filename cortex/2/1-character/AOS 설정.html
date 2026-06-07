@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AOS 설정</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">AOS 설정</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-AOS-설정';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "AOS 설정<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>폰 어플 백업<br>\t\t\t<br>사진, 영상 백업은?<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://apps.samsung.com/appquery/appDetail.as?appId=com.samsung.android.qstuner\" target=\"_blank\">QuickStar-</a>상태표시줄 날짜 표시 갤럭시 스토어에서 굿럭 다운후 설치<br>\t\t\t<br>크롬 다크모드 실험실 <a href=\"http://www.chrome://flags/\" target=\"_blank\">www.</a>chrome://flags/<br>\t\t\t<br>▶ 검색: Auto Dark Mode for Web Contents<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://revancedextended.com/\" target=\"_blank\">https://revancedextended.com/</a> 유튜브리밴스드 익스텐디드<br>\t\t\t<br><br>\t\t\t<br>DP 얼터네이트 모드?<br>\t\t\t<br><br>\t\t\t<br>Trouble shooting<br>\t\t\t<br><a href=\"https://blog.naver.com/PostView.naver?blogId=fox0871&logNo=222661283595&parentCategoryNo=&categoryNo=59&viewDate=&isShowPopularPosts=true&from=search\" target=\"_blank\">한영전환</a> 문제<br>\t\t\t<br><a href=\"https://support.microsoft.com/ko-kr/windows/windows%EC%97%90%EC%84%9C-usb-c-%EB%AC%B8%EC%A0%9C-%ED%95%B4%EA%B2%B0-f4e0e529-74f5-cdae-3194-43743f30eed2#bkmk_usbpower_11\" target=\"_blank\">서피스독</a>2 전력 문제 오류 메세지<br>\t\t\t<br>보안폴더<br>\t\t\t<br>유튜브 설치<br>\t\t\t<br>모드 및 루틴<br>\t\t\t<br>집 와이파이<br>\t\t\t<br>오른쪽 핸들 넓이<br>\t\t\t<br>폰 전체 설정<br>\t\t\t<br>금융인증<br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>스마트홈 허브 설정<br>\t\t\t<br>사용하시는 공유기는 AX 설정이 포함된 6세대 공유기로 확인됩니다.<br>\t\t\t<br>사용하시는 6세대 공유기의 경우 2.4Ghz 와이파이의 설정 변경이 필요합니다.<br>\t\t\t<br><br>\t\t\t<br>IPTIME 공유기 설정 페이지에 접속하여 설정 확인이 가능합니다.<br>\t\t\t<br>IPTIME 2.4Ghz 와이파이를 핸드폰에 연결한 상태에서, 인터넷 새 창을 열어 아래 주소를 입력 후 이동해 주세요.<br>\t\t\t<br><a href=\"http://192.168.0.1/\" target=\"_blank\">http://192.168.0.1</a><br>\t\t\t<br>또는 핸드폰에서 [ipTIME Mobile Manager] 어플을 다운 후 확인 가능합니다.<br>\t\t\t<br>ID : admin<br>\t\t\t<br>PW : admin<br>\t\t\t<br>기존에 관리자 페이지 아이디와 비밀번호를 변경하지 않으셨다면, 위 초기 아이디와 비번으로 접속 가능합니다.<br>\t\t\t<br>로그인 후 [무선 네트워크 설정 - 2.4Ghz 기본 무선 네트워크 고급설정]에서 우측 화살표를 눌러 들어가주시면 됩니다.<br>\t\t\t<br><br>\t\t\t<br>[변경할 모드]<br>\t\t\t<br>기존 설정 : b/g/n/ax >> 변경 설정 : g 로 변경하여 적용 부탁드립니다.<br>\t\t\t<br>※ 적용 시 와이파이가 1~2분 정도 끊길 수 있습니다.<br>\t\t\t<br>이후, 처음 핸드폰에 연결되어 있던 2.4GHz 와이파이를 자동연결 해제 후 삭제하셨다가<br>\t\t\t<br>비밀번호를 넣어 재 연결해 주시고, 제품을 리셋하여 어플에 재 연결 부탁드립니다.<br>\t\t\t<br>[[고정형 리셋 및 재연결 방법]](<a href=\"https://www.notion.so/543b4e0378394185bdb6b0f75c8e65b8)\" target=\"_blank\">https://www.notion.so/543b4e0378394185bdb6b0f75c8e65b8)</a><br>\t\t\t<br>[[Pro/Pro+ 리셋 및 재연결 방법]](<a href=\"https://www.notion.so/c92b7d599d9d4e0ca0d09e07788e14f9)\" target=\"_blank\">https://www.notion.so/c92b7d599d9d4e0ca0d09e07788e14f9)</a><br>\t\t\t<br>※ SD카드를 사용 중이거나, 앨범에 영상, 캡쳐본이 있을 경우 데이터가 삭제될 수 있습니다.<br>\t\t\t<br>백업이 필요하시다면 SD카드를 분리하여 PC에 백업 후 진행 부탁드립니다.<br>\t\t\t<br><br>\t\t\t<br>추가적으로,<br>\t\t\t<br>로그인 후 [무선 네트워크 설정 - 2.4Ghz 기본 무선 네트워크]에서 우측 화살표를 눌러 들어가주셨을 때,<br>\t\t\t<br>인증 및 암호화 탭이 WPA2PSK + AES(권장) 로 설정되어 있다면, WPAPSK/WPA2PSK + AES으로 변경 부탁드립니다.<br>\t\t\t<br><br>\t\t\t<br>제품 리셋/연결 방법이 자세히 안내 된 링크 함께 전달 드립니다.<br>\t\t\t<br>참고 부탁 드려요.<br>\t\t\t<br>링크 : <a href=\"https://www.notion.so/goqual/5b0cfdda77d94bb3a7b7f8cf43f16b16\" target=\"_blank\">https://www.notion.so/goqual/5b0cfdda77d94bb3a7b7f8cf43f16b16</a><br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>이전 버전 앱 안내드리겠습니다. 이전 버전 앱을 설치하신 후에 동일 증상이 있는지 확인 부탁드립니다.<br>\t\t\t<br>사용하시는 태블릿에 현재 깔려있는 헤이홈 어플은 삭제하시고 아래 링크에서 파일을 다운 부탁드립니다.<br>\t\t\t<br>어플 자동 업데이트가 되어 있다면 다시 업데이트 될 수 있어 자동 업데이트 설정은 꺼주시고 설치 부탁드립니다.<br>\t\t\t<br>전달 드리는 파일은, 이전 1.2.5 버전이며 정식 버전입니다.<br>\t\t\t<br>현재 구글 플레이스토어에 업로드 된 것이 아니기 때문에 출처를 알 수 없는 파일이라고 뜰 수 있습니다.<br>\t\t\t<br>정식 버전이기 때문에 확인 하시고 다운 받아주시면 됩니다.<br>\t\t\t<br><a href=\"https://drive.google.com/file/d/1bXgzDlP5EySc9KaAUGkw-F9tWzckuoJq/view?usp=sharing\" target=\"_blank\">https://drive.google.com/file/d/1bXgzDlP5EySc9KaAUGkw-F9tWzckuoJq/view?usp=sharing</a><br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://hej.life/\" target=\"_blank\">https://hej.life/</a>>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

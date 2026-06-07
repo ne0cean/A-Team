@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Idea generation AI 제작</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">Idea generation AI 제작</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Idea-generation-AI-제작';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "Idea generation AI 제작<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>샘알트먼, VC, 텍스트북, 투스 브러쉬 테스트 등 결합<br>\t\t\t<br><br>\t\t\t<br>쳇지피티에게 그냥 ‘이 사업 해도 될까?’라고 하지 마❌대부분 사람들은 “이거 괜찮을까?”, “망하지는 않겠지?” 같은 질문을 던진다. 하지만 이렇게 물으면 결국 애매한 분석만 받고 끝난다. 대신 아래처럼 프롬프트를 바꿔보자.<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach\" target=\"_blank\">place_coach</a><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach/post/DL4bC8cTmpJ\" target=\"_blank\">2025-07-09</a><br>\t\t\t<br>&#183;작성자<br>\t\t\t<br>1/ 문제부터 먼저 꺼내기 \"이거 해도 될까?\"라고 하면 안돼! → 이렇게 바꿔 써: “내가 하려는 사업은 [사업 아이템 요약]인데, 지금 시장에서 고객이 겪고 있는 구체적인 불편이나 해결되지 않은 문제는 뭐야? 수요 근거 중심으로 진단해줘.”<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach\" target=\"_blank\">place_coach</a><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach/post/DL4bDZnTTgk\" target=\"_blank\">2025-07-09</a><br>\t\t\t<br>&#183;작성자<br>\t\t\t<br>2/ 고객 기준으로 검증받기 \"이거 잘 될까?\"라고 하면 안돼! → 이렇게 바꿔 써: “이 사업 아이디어가 [타겟: 30대 직장인 여성 등] 입장에서 매력적으로 느껴질까? 그들이 지갑을 열 이유와 망설일 이유를 둘 다 구체적으로 정리해줘.”<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach\" target=\"_blank\">place_coach</a><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach/post/DL4bD1XzpzO\" target=\"_blank\">2025-07-09</a><br>\t\t\t<br>&#183;작성자<br>\t\t\t<br>3/ 유사 사례 비교하기 \"이거 누가 이미 하고 있지 않을까?\"라고 하면 안돼! → 이렇게 바꿔 써: “이 아이템과 비슷한 사업을 이미 하고 있는 브랜드나 개인 사례 3개만 찾아줘. 그들의 포지셔닝, 차별점, 수익 구조를 요약해서 비교해줘.”<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach\" target=\"_blank\">place_coach</a><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach/post/DL4bEiwz-Kr\" target=\"_blank\">2025-07-09</a><br>\t\t\t<br>&#183;작성자<br>\t\t\t<br>4/ 시작 조건 점검받기 \"그냥 한번 해볼까?\"라고 하면 안돼! → 이렇게 바꿔 써: “지금 내 상황은 [시간, 자본, 역량 요약]이야. 이 조건에서 이 사업을 시작할 수 있는 최소 실행 단계를 3단계로 나눠서 설계해줘.”<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach\" target=\"_blank\">place_coach</a><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach/post/DL4bFF_T5L1\" target=\"_blank\">2025-07-09</a><br>\t\t\t<br>&#183;작성자<br>\t\t\t<br>5/ 시간 대비 수익 구조 보기 \"수익은 나겠지?\"라고 하면 안돼! → 이렇게 바꿔 써: “이 모델이 월 100만 원, 300만 원, 500만 원을 벌기까지 각각 어떤 구조로 운영돼야 하고, 어느 시점에 어떤 리소스가 더 들어가는지 단계별로 보여줘.”<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach\" target=\"_blank\">place_coach</a><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach/post/DL4bFgbTivb\" target=\"_blank\">2025-07-09</a><br>\t\t\t<br>&#183;작성자<br>\t\t\t<br>6/ 리스크 중심으로 검토하기 \"망하진 않겠지?\"라고 하면 안돼! → 이렇게 바꿔 써: “이 사업의 잠재적 리스크를 ①시장 리스크 ②운영 리스크 ③고객 리스크로 나눠서 평가해줘. 각 항목마다 내가 지금 어떤 준비가 필요한지도 같이 정리해줘.”<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach\" target=\"_blank\">place_coach</a><br>\t\t\t<br><a href=\"https://www.threads.com/@place_coach/post/DL4bF5PTMYM\" target=\"_blank\">2025-07-09</a><br>\t\t\t<br>&#183;작성자<br>\t\t\t<br>7/ 다음 실행까지 연결하기 \"일단 해볼까?\"라고 하면 안돼! → 이렇게 바꿔 써: “이 사업 아이디어를 실제 고객 반응으로 검증하려면, MVP로 뭘 만들고 어떤 채널에서 테스트해보는 게 가장 빠를까? 비용 최소로 검증 가능한 경로를 짜줘.”<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://www.threads.com/@place_coach/post/DL4bCnkT8eq?xmt=AQF0nmVymQ1Nhunf74hqIQ5r9Uu8uWLDX6-RnkJiN2d-JA\" target=\"_blank\">https://www.threads.com/@place_coach/post/DL4bCnkT8eq?xmt=AQF0nmVymQ1Nhunf74hqIQ5r9Uu8uWLDX6-RnkJiN2d-JA</a>>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>재테크/투자</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">재테크/투자</div>
+<div class="date">2011년 5월 24일 화요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-재테크-투자';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "재테크/투자<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br><a href=\"http://blog.naver.com/ttree79?Redirect=Log&logNo=70105515993\" target=\"_blank\">http://blog.naver.com/ttree79?Redirect=Log&logNo=70105515993</a> 서적<br>\t\t\t<br><a href=\"http://cafe.naver.com/jobtong.cafe?iframe_url=/ArticleRead.nhn%3Farticleid=330737&social=1\" target=\"_blank\">http://cafe.naver.com/jobtong.cafe?iframe_url=/ArticleRead.nhn%3Farticleid=330737&social=1</a> 통장<br>\t\t\t<br><a href=\"http://blog.naver.com/lockplant?Redirect=Log&logNo=120122210960\" target=\"_blank\">http://blog.naver.com/lockplant?Redirect=Log&logNo=120122210960</a> 통장 쪼개기<br>\t\t\t<br><a href=\"http://elle3558.blog.me/140124322946\" target=\"_blank\">http://elle3558.blog.me/140124322946</a> 통장 쪼개기<br>\t\t\t<br><a href=\"http://cafe.naver.com/stocknjoy/\" target=\"_blank\">http://cafe.naver.com/stocknjoy/</a> 딸기아빠<br>\t\t\t<br><a href=\"http://blog.daum.net/21cgoldenlife\" target=\"_blank\">http://blog.daum.net/21cgoldenlife</a> 재테크 전문 블로그<br>\t\t\t<br><a href=\"http://unsoundsociety.tistory.com/\" target=\"_blank\">http://unsoundsociety.tistory.com/</a><br>\t\t\t<br><a href=\"http://blog.hankyung.com/\" target=\"_blank\">http://blog.hankyung.com/</a><br>\t\t\t<br><a href=\"http://eco.idouble.co.kr/\" target=\"_blank\">http://eco.idouble.co.kr/</a><br>\t\t\t<br><a href=\"http://blog.naver.com/rins78/\" target=\"_blank\">http://blog.naver.com/rins78/</a><br>\t\t\t<br><a href=\"http://blog.naver.com/donodonsu/\" target=\"_blank\">http://blog.naver.com/donodonsu/</a><br>\t\t\t<br><a href=\"http://blog.naver.com/nwind27?Redirect=Log&logNo=40074853759\" target=\"_blank\">http://blog.naver.com/nwind27?Redirect=Log&logNo=40074853759</a><br>\t\t\t<br><a href=\"http://finance.naver.com/news/issuenews_read.nhn?type=tech&no=22249\" target=\"_blank\">http://finance.naver.com/news/issuenews_read.nhn?type=tech&no=22249</a> 부자<br>\t\t\t<br><a href=\"http://biz.chosun.com/site/data/html_dir/2011/05/26/2011052601297.html\" target=\"_blank\">http://biz.chosun.com/site/data/html_dir/2011/05/26/2011052601297.html</a> <br>\t\t\t<br><a href=\"http://finance.naver.com/news/issuenews_read.nhn?type=tech&no=22582\" target=\"_blank\">http://finance.naver.com/news/issuenews_read.nhn?type=tech&no=22582</a><br>\t\t\t<br><a href=\"http://elle3558.blog.me/140131747662\" target=\"_blank\">http://elle3558.blog.me/140131747662</a><br>\t\t\t<br><a href=\"http://book.interpark.com/meet/webZineDiary.do?_method=columnDetail&sc.page=1&sc.row=10&listPage=1&listRow=10&sc.order=&sc.webzNo=11845&sc.cond=&currentPageNo=1&opencast\" target=\"_blank\">http://book.interpark.com/meet/webZineDiary.do?_method=columnDetail&sc.page=1&sc.row=10&listPage=1&listRow=10&sc.order=&sc.webzNo=11845&sc.cond=&currentPageNo=1&opencast</a><br>\t\t\t<br><a href=\"http://hupuru.blog.me/140130033910\" target=\"_blank\">http://hupuru.blog.me/140130033910</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://json1007.tistory.com/m/542\" target=\"_blank\">http://json1007.tistory.com/m/542</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>재테크 <a href=\"http://opencast.naver.com/casthome/list.nhn?page=2&castId=BB451&volumeSeq=7\" target=\"_blank\">http://opencast.naver.com/casthome/list.nhn?page=2&castId=BB451&volumeSeq=7</a> ￼제일은행 직장인 통장 <a href=\"http://lady.khan.co.kr/khlady.html?mode=view&code=5&artid=201107291638551\" target=\"_blank\">http://lady.khan.co.kr/khlady.html?mode=view&code=5&artid=201107291638551</a>￼신용카드 순위 <a href=\"http://blog.naver.com/smrheejun?Redirect=Log&logNo=150112071764\" target=\"_blank\">http://blog.naver.com/smrheejun?Redirect=Log&logNo=150112071764</a>￼카드고릴라 <a href=\"http://www.card-gorilla.com/\" target=\"_blank\">http://www.card-gorilla.com/</a><br>\t\t\t<br><a href=\"http://opencast.naver.com/casthome/list.nhn?castId=BB451&volumeSeq=7&action=&from=\" target=\"_blank\">http://opencast.naver.com/casthome/list.nhn?castId=BB451&volumeSeq=7&action=&from=</a><br>\t\t\t<br>제일은행 직장인 통장<br>\t\t\t<br><a href=\"http://lady.khan.co.kr/khlady.html?mode=view&code=5&artid=201107291638551\" target=\"_blank\">http://lady.khan.co.kr/khlady.html?mode=view&code=5&artid=201107291638551</a> <br>\t\t\t<br>신용카드 순위 <a href=\"http://blog.naver.com/smrheejun?Redirect=Log&logNo=150112071764\" target=\"_blank\">http://blog.naver.com/smrheejun?Redirect=Log&logNo=150112071764</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>급여통장 - <br>\t\t\t<br>적금통장 - 우리은행<br>\t\t\t<br>장기주택마련(만능형) 10만원<br>\t\t\t<br>소비통장 - 기업은행<br>\t\t\t<br><br>\t\t\t<br>동장종금, 현대스위스<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://biz.heraldm.com/common/Detail.jsp?newsMLId=20110601000651\" target=\"_blank\">http://biz.heraldm.com/common/Detail.jsp?newsMLId=20110601000651</a><br>\t\t\t<br><a href=\"http://finance.naver.com/news/issuenews_read.nhn?type=tech&no=22728\" target=\"_blank\">http://finance.naver.com/news/issuenews_read.nhn?type=tech&no=22728</a> <br>\t\t\t<br>제테크 상담 <a href=\"http://readersrich.com/object/object02.asp\" target=\"_blank\">http://readersrich.com/object/object02.asp</a><br>\t\t\t<br>제테크 뉴스 <a href=\"http://www.asiae.co.kr/news/view.htm?idxno=2011061514570710998\" target=\"_blank\">http://www.asiae.co.kr/news/view.htm?idxno=2011061514570710998</a><br>\t\t\t<br>신용카드가 더 <a href=\"http://blog.naver.com/buhm?Redirect=Log&logNo=60132682784\" target=\"_blank\">http://blog.naver.com/buhm?Redirect=Log&logNo=60132682784</a> <br>\t\t\t<br>\t\t\t\t<br>- <br>통장 쪼개기 <br>\t\t\t\t<br>\t\t\t\t\t<br>- 월급통장 - CMA<br>\t\t\t\t\t<br>- 생활비통장 - <br>\t\t\t\t\t<br>- 투자통장 - <br>\t\t\t\t\t<br>- 예비비통장 - CMA￼<a href=\"http://desilian.blog.me/20125072038\" target=\"_blank\">http://desilian.blog.me/20125072038</a> <br>\t\t\t\t\t<br>- <a href=\"http://speralist.blog.me/120112520744\" target=\"_blank\">http://speralist.blog.me/120112520744</a><br>\t\t\t\t\t<br>- <a href=\"http://graceli.blog.me/60123107936\" target=\"_blank\">http://graceli.blog.me/60123107936</a><br>\t\t\t\t\t<br>- <a href=\"http://blog.naver.com/happybloggi?Redirect=Log&logNo=100129077389\" target=\"_blank\">http://blog.naver.com/happybloggi?Redirect=Log&logNo=100129077389</a><br>\t\t\t\t\t<br>- <a href=\"http://cafeblog.search.naver.com/search.naver?sm=tab_hty&where=post&query=%C5%EB%C0%E5+%C2%C9%B0%B3%B1%E2&x=0&y=0\" target=\"_blank\">http://cafeblog.search.naver.com/search.naver?sm=tab_hty&where=post&query=%C5%EB%C0%E5+%C2%C9%B0%B3%B1%E2&x=0&y=0</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>- 통장 쪼개기 - 월급 / 생활비 / 적금 / 예비비<br>\t\t\t\t<br>- 월급통장 CMA <a href=\"http://search.naver.com/search.naver?where=nexearch&query=%BF%F9%B1%DE%C5%EB%C0%E5+CMA&sm=top_hty&fbm=1&x=0&y=0\" target=\"_blank\">http://search.naver.com/search.naver?where=nexearch&query=%BF%F9%B1%DE%C5%EB%C0%E5+CMA&sm=top_hty&fbm=1&x=0&y=0</a> <br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br>사고 싶은 회사<br>\t\t\t<br>\t\t\t\t<br>- ABC 마트 (비 상장)<br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"http://www.sleepmoney\" target=\"_blank\">www.sleepmoney</a>. or.kr<br>\t\t\t<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>대학생 수준의 소비를 유지한다.<br>\t\t<br>\t\t<br>\t\t\t<br>통장 쪼개기<br>\t\t\t<br>\t\t\t\t<br>- 급여<br>\t\t\t\t<br>- 저축/비상금<br>\t\t\t\t<br>- 커플통장<br>\t\t\t\t<br>- 자기계발비<br>\t\t\t\t<br>- 선물/네트워킹/용돈<br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br>월급의 10%는 네트웍관리에",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

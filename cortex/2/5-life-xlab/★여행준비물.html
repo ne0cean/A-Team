@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>★여행준비물</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">★여행준비물</div>
+<div class="date">2015년 3월 21일 토요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board--여행준비물';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "★여행준비물<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>전주 갈때 - 노트북, 책, 엄마 간식, 약품, 썬그리, 속옷/양말, 충전기<br>\t\t\t<br>호캉스 - 노트북, 책, 술, 약품/알디콤, 썬그리, 화장품, 칫솔/치약, 속옷/양말, 잠옷, 충전기, 공청기, (겨울) 가습기<br>\t\t\t<br><br>\t\t\t<br>[여행 필수] 여권, 비자카드 & <a href=\"https://blog.naver.com/waltlee/223438567936\" target=\"_blank\">트래블카드</a> - 충전, 지갑, 작은 가방, 현금, 여권사본, 여행책자, PP패스, 전자티켓 출력본, 캐리어, 자물쇠,  여권용 사진, 필기도구, 면세점 쇼핑리스트, 여행자보험<br>\t\t\t<br>[비행용] 기내용 바람막이, 수면베개, 안대, 귀마개, 마스크, 공항칫솔, 장거리 비행용 멜라토닌<br>\t\t\t<br>[옷] 상/하의, 신발, 모자, 썬글래스, 썬그리 목걸이, 팔찌, 속옷, 양말, 잠옷, 슬리퍼, 수영복, 조리, 조깅용 운동화, 운동복<br>\t\t\t<br>[세면도구] 화장품(썬크림, 썬크림 샘플, 로션, 트러블케어), 약품, 칫솔, 면도기, 면도크림, 폼클렌저, 물티슈, 수건, 세탁물용 비닐<br>\t\t\t<br>[전자기기] 충전기, 가민 충전기, 배터리팩, 핸드폰(여행어플), 셀카봉, 카메라, 사진앱, 어댑터, 가이드용 이어폰, 노트북 , 폰, 유심 교체 핀, 롤러블 키보드<br>\t\t\t<br>[면세점 쇼핑]<br>\t\t\t<br>와인/와인 오프너<br>\t\t\t<br>호텔 연락해서 와인잔<br>\t\t\t<br>CD<br>\t\t\t<br><br>\t\t\t<br>[골프 투어]?<br>\t\t\t<br>캐디피 봉투, <br>\t\t\t<br><br>\t\t\t<br>[시즌]  <br>\t\t\t<br>  - 여름: 예방접종, 모기퇴치기, 모기기피제, 핸디선풍기, 우산/우비, 눈 마사지기(모기 물린데)<br>\t\t\t<br>수영: 비치타월, 비닐팩, 방수팩, 수경<br>\t\t\t<br>  - 겨울: 핫팩<br>\t\t\t<br><br>\t\t\t<br>[골프]<br>\t\t\t<br>썬그리, 모자<br>\t\t\t<br><br>\t\t\t<br>TO-DO<br>\t\t\t<br>로밍/표준요금제로 변경 + 국제전화발신제한 해제<br>\t\t\t<br>귀국후 9시 이전까진 와이파이만 사용!<br>\t\t\t<br>사전좌석 지정 발권 48시간 이전까지<br>\t\t\t<br>인천공항 Smart pass App<br>\t\t\t<br>프린트: 여권 사본, 항공권, VISA, 호텔 바우처, 여행자보험 프린트<br>\t\t\t<br>넷플릭스 콘텐츠, 유튜브 음악 다운로드<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://skt.assistcard.co.kr/main/app/app_wrt.php\" target=\"_blank\">여행자보험</a> 가입<br>\t\t\t<br>국제운전면허 발급<br>\t\t\t<br>VISA: VISA발급 or ESTA 등 비자면제<br>\t\t\t<br>현지 셔틀 예약<br>\t\t\t<br>공항 리무진 예약<br>\t\t\t<br><br>\t\t\t<br><a href=\"http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query=%ED%95%B4%EC%99%B8%EC%97%AC%ED%96%89+%EC%A4%80%EB%B9%84%EB%AC%BC\" target=\"_blank\">http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query=%ED%95%B4%EC%99%B8%EC%97%AC%ED%96%89+%EC%A4%80%EB%B9%84%EB%AC%BC</a><br>\t\t\t<br><br>\t\t\t<br>ㅇ 해당국 비자 필요여부 확인<br>\t\t\t<br><a href=\"http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query=%ED%95%B4%EC%99%B8%EC%97%AC%ED%96%89+%EC%A4%80%EB%B9%84%EB%AC%BC\" target=\"_blank\">http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query=%ED%95%B4%EC%99%B8%EC%97%AC%ED%96%89+%EC%A4%80%EB%B9%84%EB%AC%BC</a><br>\t\t\t<br>ㅇ 여행짐싸는법 : <a href=\"https://www.facebook.com/dingo.officialpage.kr/videos/969792319805674/\" target=\"_blank\">https://www.facebook.com/dingo.officialpage.kr/videos/969792319805674/</a><br>\t\t\t<br>ㅇ 인천공항 꿀팁 : <a href=\"http://m.post.naver.com/viewer/postView.nhn?volumeNo=4511990&memberNo=4767100\" target=\"_blank\">http://m.post.naver.com/viewer/postView.nhn?volumeNo=4511990&memberNo=4767100</a><br>\t\t\t<br>ㅇ 티셔츠 접는법 : <a href=\"http://www.huffingtonpost.kr/2016/05/23/story_n_10101556.html?ncid=fcbklnkkrhpmg00000001\" target=\"_blank\">http://www.huffingtonpost.kr/2016/05/23/story_n_10101556.html?ncid=fcbklnkkrhpmg00000001</a><br>\t\t\t<br><a href=\"http://m.post.naver.com/viewer/postView.nhn?volumeNo=4483455&memberNo=4767100\" target=\"_blank\">http://m.post.naver.com/viewer/postView.nhn?volumeNo=4483455&memberNo=4767100</a><br>\t\t\t<br><br>\t\t\t<br>ㅇ 환전 : 사이버 환전, 서울역 환전센터, <a href=\"https://www.wishbeen.co.kr/plan/0406d8ad3890d866?utm_source=fb_myh&utm_medium=post&utm_campaign=mkt_p&utm_content=160629_12\" target=\"_blank\">https://www.wishbeen.co.kr/plan/0406d8ad3890d866?utm_source=fb_myh&utm_medium=post&utm_campaign=mkt_p&utm_content=160629_12</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://brunch.co.kr/@nick-carraway/1\" target=\"_blank\">https://brunch.co.kr/@nick-carraway/1</a><br>\t\t\t<br>에어비앤비<br>\t\t\t<br>액션캠(고프로 & 손목마운트?)<br>\t\t\t<br><br>\t\t\t<br>간단한 현지언어 인삿말<br>\t\t\t<br><br>\t\t\t<br>ㅇ 여행용품점 : 트레블메이트 <a href=\"http://travelmate.co.kr/\" target=\"_blank\">http://travelmate.co.kr/</a>, 신대방본점, 현백 신촌 브라이튼몰 <a href=\"http://www.brightonmall.co.kr/\" target=\"_blank\">http://www.brightonmall.co.kr/</a><br>\t\t\t<br><br>\t\t\t<br>ㅇ 유심구입 : <a href=\"http://cafe.naver.com/firenze/2971855\" target=\"_blank\">http://cafe.naver.com/firenze/2971855</a>",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "fbd889672e.png",
+    "alt": "★여행준비물",
+    "w": 220
+  },
+  {
+    "type": "image",
+    "src": "2ee602ff9d.png",
+    "alt": "★여행준비물",
+    "w": 220
+  },
+  {
+    "type": "image",
+    "src": "2aa4d48f56.png",
+    "alt": "★여행준비물",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "360도 사진찍는 법<br>\t\t\t<br><a href=\"http://www.bloter.net/archives/244464\" target=\"_blank\">http://www.bloter.net/archives/244464</a><br>\t\t\t<br><a href=\"http://www.bloter.net/archives/245007\" target=\"_blank\">http://www.bloter.net/archives/245007</a><br>\t\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>[여행 준비 TDL]<br>\t\t\t\t<br>- 국가 및 지역 정하기<br>\t\t\t\t<br>- 하루에 여행책자 100page & 인터넷 서칭 1시간씩<br>\t\t\t\t<br>- <br>여행 동선 짜기 : <a href=\"https://wishbeen.co.kr/plan/389470e62efc88f6\" target=\"_blank\">https://wishbeen.co.kr/plan/389470e62efc88f6</a> <br>\t\t\t\t<br>\t\t\t\t\t<br>- 가보고 싶은 곳, 하고 싶은 것 짜기<br>\t\t\t\t\t<br>- 숙소 및 내륙 이동 교통편 점검<br>\t\t\t\t\t<br>- Activity : 유로자전거나라 <a href=\"http://romabike.eurobike.kr/main.php\" target=\"_blank\">http://romabike.eurobike.kr/main.php</a>/ 유랑 <a href=\"http://cafe.naver.com/firenze/\" target=\"_blank\">http://cafe.naver.com/firenze/</a><br>\t\t\t\t\t<br>- 방문지역 해당일자 지역축제 알아보기 : 북부 베로나 오페라 축제 (thhps://ticket.arena.it)<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>- 회신 : airbnb replay.￼Thnx, I will give you my phone number after purchasing new USIM in your country. My phone number is +82+10+4950+9232 in korea.<br>\t\t\t\t<br>- 준비물 챙기기 : 날씨 초여름 - 얇은 옷 + 외투<br>\t\t\t\t<br>- <br>선물 or 구매리스트 이탈리아 가서사면 좋은거 : 엄마, 아빠, 준일이, 팀원들<br>\t\t\t\t<br>\t\t\t\t\t<br>- 포켓커피/ 까마돌리크림/ 크루치아니/ 산타마리아노벨라/ <br>\t\t\t\t\t<br>- <a href=\"http://cafeblog.search.naver.com/search.naver?where=post&query=%EC%9D%B4%ED%83%88%EB%A6%AC%EC%95%84+%EA%BC%AD+%EC%82%AC%EC%95%BC%ED%95%A0&ie=utf8&sm=tab_nmr&nso=\" target=\"_blank\">http://cafeblog.search.naver.com/search.naver?where=post&query=%EC%9D%B4%ED%83%88%EB%A6%AC%EC%95%84+%EA%BC%AD+%EC%82%AC%EC%95%BC%ED%95%A0&ie=utf8&sm=tab_nmr&nso=</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>- 여행 공동경비 예산 책정 - 식사, 숙박, 교통, 입장료 (1일, 1인 기준 60~70유로)<br>\t\t\t\t<br>- 면세점 쇼핑 : 출국 예정자로 항공편이 확정된 후부터 출국 5시간 전까지 면세점 이용가능, 여권과 비행기번호, 출발날짜, 신분증 지참 내국인은 2,000달러까지 구입가능. 반드시 영수증과 교환권을 받아야 하며, 출국일 공항 면세점에서 수령한다.<br>\t\t\t\t<br>ㅇ 인터넷 면세점<br>\t\t\t\t<br>- 워커힐 : <a href=\"http://www.skdutyfree.com/\" target=\"_blank\">http://www.skdutyfree.com/</a><br>\t\t\t\t<br>- 신라 : <a href=\"http://www.shilladfs.com/\" target=\"_blank\">http://www.shilladfs.com/</a><br>\t\t\t\t<br>- 동화 : <a href=\"http://www.dutyfree24.com/\" target=\"_blank\">http://www.dutyfree24.com/</a><br>\t\t\t\t<br>- 신세계 : <a href=\"http://www.ssgdfs.com/\" target=\"_blank\">http://www.ssgdfs.com/</a><br>\t\t\t\t<br>- 롯데 : <a href=\"http://www.lottedfs.com/\" target=\"_blank\">http://www.lottedfs.com/</a> <br>\t\t\t\t<br><a href=\"https://brunch.co.kr/@seunghoon82/272\" target=\"_blank\">https://brunch.co.kr/@seunghoon82/272</a>",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "57bd5060bb.png",
+    "alt": "★여행준비물",
+    "w": 220
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

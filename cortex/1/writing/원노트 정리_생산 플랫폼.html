@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>원노트 정리/생산 플랫폼</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">원노트 정리/생산 플랫폼</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-원노트-정리-생산-플랫폼';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "원노트 정리/생산 플랫폼<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>원노트 정리<br>\t\t\t\t<br>사진첩, 인스타, 유튜브, 텔레그램 등 모든 플렛폼 구조를 para화<br>\t\t\t\t<br>Target으로 구성된, Story, Sinarios<br>\t\t\t\t<br>아카이브도 6개 pilars로 구분, 6개 영역으로 글쓰기를 할까?<br>\t\t\t\t<br>PARA 기법으로 노트정리-Project 폴더 안에 리스트를 6개 pillars로 압축<br>\t\t\t\t<br>장기 - 연간, 분기, 월간 목표와 due가 정해지고<br>\t\t\t\t<br>그게 이 페이지에 일단위로 쪼개져서 보여져야해. 백캐스팅backcasting<br>\t\t\t\t<br>Zeroing은 결국 대쉬보드에 통합되어야함.<br>\t\t\t\t<br>방향을 조정하는 Helm<br>\t\t\t\t<br>steering wheel<br>\t\t\t\t<br>목표를 명중시키는<br>\t\t\t\t<br>Approach, Aming, Targeting, <br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>글/콘텐트 생산 프레임웤<br>\t\t\t\t<br><a href=\"https://chatgpt.com/\" target=\"_blank\">https://chatgpt.com/</a> + 영문으로 동시 작성<br>\t\t\t\t<br>글의 목표와 요약 앞에 작성<br>\t\t\t\t<br>글과 사진이 분리되기볻, 최대한 비쥬얼라이즈된  글         <br>\t\t\t\t<br>인스타/쇼츠 계정 어떻게 만들고 운영할지, 목적-스타트업 크루/투자자 어필.Notedog, paperhound<br>\t\t\t\t<br>모든걸 실시간 콘텐츠화, 만난 사람, 읽은 책, 본 유튜브 등 모든 것을 각 채널에 적합하게 업로드. 티스토리, 브런치에 미러링 한다고 생각해. 모든 콘텐츠 영어로도 작성 with AI<br>\t\t\t\t<br>글감 선정 및 최종 퇴고 기준 정리<br>\t\t\t\t<br>흥미로운가<br>\t\t\t\t<br>에고가 지나치게 투영되지 않았는가<br>\t\t\t\t<br>시니컬하지 않은가<br>\t\t\t\t<br>정말하면서도 명확한가<br>\t\t\t\t<br>문제해결을 돕는가?<br>\t\t\t\t<br>솔루션/액션을 잘려하는가?<br>\t\t\t\t<br>공유될만한 글인가?<br>\t\t\t\t<br>+좋은 글의 요건 찾아보기<br>\t\t\t\t<br>앞뒤에 세줄 요약<br>\t\t\t\t<br>맨 앞에 글의 목표와 타겟 독자 명시<br>\t\t\t\t<br><a href=\"https://eopla.net/magazines/19039#\" target=\"_blank\">경브</a> 아티클 테스트로 인스타, 틱톡 업로드<br>\t\t\t\t<br>글그램 어플이나 칸바, 피그마 등 <a href=\"https://eopla.net/magazines/19039#\" target=\"_blank\">활용</a><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>목표: 팬덤, 내 생각을 토대로 크루들을 레버리지<br>\t\t\t\t<br>0/ 블로그 벤치마킹- 조성문, 전종현, 비즈카페, 더레이저 작가<br>\t\t\t\t<br>1/ 쓰고싶은 글의 카테고리 정하기<br>\t\t\t\t<br>- 업무,문서공학, 메모, 6개 필러, HBR, 10분운동, 독서, 관계, 일방혁, 컬쳐덱(NFLX같은), 좋은기분 같은책, 신입사원 온보딩을 위한 스킬들, <a href=\"https://publy.co/content/6899?fr=guide&g_id=78&id=1958\" target=\"_blank\">TIL</a><br>\t\t\t\t<br>저자로서의 나의 아이덴티티 확립 - 브랜딩<br>\t\t\t\t<br>2/ 일단 모든 플랫폼 순차적으로 써보기<br>\t\t\t\t<br>3/ 원소스 멀티유즈 프레임웤 만들어서 생산성 극대화하기<br>\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t인스타<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t스레드<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t트위터<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t브런치<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>브런치스토리 (카카오)<br>\t\t\t\t\t\t\t<br>- 진중하고 에세이 형태의 글이 많음<br>\t\t\t\t\t\t\t<br>- 책 출간 및 강연 기회 제공<br>\t\t\t\t\t\t\t<br>- 직접적인 광고 수익은 없음<br>\t\t\t\t\t\t\t<br>- 작가-독자 간 소통에 중점<br>\t\t\t\t\t\t\t<br>- 브런치는 '글이 작품이 되는 공간'이란 캐치프레이즈에 맞게 글쓰기에 방해되는 부산물을 과감히 치우고 여백의 에디터만 남겼다. 브런치에서 부여한 작가라는 타이틀은 여기에 기름을 붓는다. 무엇이든 쓸 수 있을 것 같은 욕망이 올라온다. 많은 블로그의 단점인 구독 시스템 부재도 독자들이 별도의 앱으로 알림을 받을 수 있도록 만들어 두었다. 잘만하면 책도 낼 수 있을 것 같은 생각도 든다. 그동안 작성했던 대부분의 글을 브런치로 옮기며 글을 쓰기 시작했다. 하지만 여러 장점에도 불구하고 브런치를 그만 두기로 했다. 1천 명이 넘는 구독자를 포기하면서. 왜 그랬을까. 나는 브런치의 수익 시스템이 마음에 들지 않았다.&#160;나는 내 글이 무료로 소비되는 게 싫었다.&#160;\"너만 잘하면 돼, 기회는 열려있어\"라는 희망 역시 바닥을 드러냈다. 브런치는 작가들을 존중했지만 나는 내 글이 하찮게 소비된다고 생각했다. 더 이상 남의 시스템을 돌리는 콘텐츠 제공자가 되고 싶지 않았<br>\t\t\t\t\t\t\t<br>- 다. 그래서 모든 글을 내리기로 결정했다. 그럼에도 불구하고 구독자는 매일 늘었다. 글이 없는데 구독자가 늘고 있다니. 이런 현상을 보면서 브런치에 대한 미련도 사라졌다. 그리고 돌아가고 싶다는 생각을 단 한 번도 하지 않았다.<br>\t\t\t\t\t\t\t<br>- <br><br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>- 장점<br>\t\t\t\t\t\t\t<br>- 한국의 미디엄(Medium)<br>\t\t\t\t\t\t\t<br>- 유려한 디자인, UI, 이쁘고 또 이쁘다.<br>\t\t\t\t\t\t\t<br>- 뛰어난 컨텐츠, 필력 좋은 작가가 많다.<br>\t\t\t\t\t\t\t<br>- 단점<br>\t\t\t\t\t\t\t<br>- 마크다운 미지원<br>\t\t\t\t\t\t\t<br>- 아직은 이쁜 것 말고 또 다른 장점을 찾기가 어렵다.<br>\t\t\t\t\t\t\t<br>- 블로그 이전 등을 위한 데이터 내보내기 기능 미지원<br>\t\t\t\t\t\t\t<br>- 구글 외 검색엔진으로부터의 유입이 상대적으로 적은 느낌<br>\t\t\t\t\t\t\t<br>- 출시 당시부터 출판의 목적이 많은 작가의 유입과 방향성이 진입을 어렵게 하는 요인<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t티스토리<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>티스토리 (카카오)<br>\t\t\t\t\t\t\t<br>- 블로그 플랫폼<br>\t\t\t\t\t\t\t<br>- 커스터마이징 자유도가 높음<br>\t\t\t\t\t\t\t<br>- 광고 수익 창출 가능<br>\t\t\t\t\t\t\t<br>- 티스토리는 블로그 광고로&#160;몇 백원부터 시작해 수익이 커가는 모습을 보면서 글을 써보고 싶은 경우&#160;추천하고 싶다. 얼마 전까지만 해도 티스토리 에디터는 보고 있는 것만으로도 글쓰기 욕구가 사라질 정도로 최악이었지만 지금(2020년 1월 현재) 완전히 바뀌었다. 깔끔한 브런치 에디터를 이제는 부러워하지 않아도 된다. HTML/CSS를 아는 사람은 원하는 모양으로 블로그를 바꿀 수 있는 장점도 있다. 네이버의 트래픽이 사실 상 없다고 보면 되기 때문에 열심히 쓴 글이 초반에는 조회 수가 한자리를 넘어가는 것이 어려울 수 있는 것은 단점이다.<br>\t\t\t\t\t\t\t<br>- 장점<br>\t\t\t\t\t\t\t<br>- (이전에 사용했던 플랫폼으로 익숙하다)<br>\t\t\t\t\t\t\t<br>- 관련 모든 코드를 직접 수정할 수 있어 커스터마이징에 대한 자유도가 높다.<br>\t\t\t\t\t\t\t<br>- 테마, 플러그인 등등 지원하는 기능이 많다.<br>\t\t\t\t\t\t\t<br>- 팀 블로그로 운영할 수 있다.<br>\t\t\t\t\t\t\t<br>- 구글 애드센스 적용 가능<br>\t\t\t\t\t\t\t<br>- 마크다운 지원<br>\t\t\t\t\t\t\t<br>- 단점<br>\t\t\t\t\t\t\t<br>- 초대장을 받아야 한다.<br>\t\t\t\t\t\t\t<br>- 마크다운 미지원<br>\t\t\t\t\t\t\t<br>- 개발자가 아니면 조금 어렵고 복잡하게 느껴질 수 있다.<br>\t\t\t\t\t\t\t<br>- 너무 높은 자유도가 오히려 단점일 수 있다?<br>\t\t\t\t\t\t\t<br>- 정형화된 레이아웃과 테마, 따로 노는듯한 수많은 배너와 광고<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t미디엄<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>- 장점<br>\t\t\t\t\t\t\t<br>- 마크다운 지원<br>\t\t\t\t\t\t\t<br>- 유려한 디자인과 UI, 역시 이쁘다.<br>\t\t\t\t\t\t\t<br>- 디지털 출판이라는 목적에 최적화<br>\t\t\t\t\t\t\t<br>- 문단에 댓글을 달 수 있는 방식이 굉장히 직관적<br>\t\t\t\t\t\t\t<br>- 다른 블로그에서 가져오기 기능 제공(?)<br>\t\t\t\t\t\t\t<br>- 단점<br>\t\t\t\t\t\t\t<br>- 국내 검색엔진에서의 접근이 어려운 것 같은 느낌<br>\t\t\t\t\t\t\t<br>- 생각보다(?) 커스터마이징에 제한적<br>\t\t\t\t\t\t\t<br>- 한글 서식이 생각보다 별로(?)<br>\t\t\t\t\t\t\t<br>- 애드센스 불가능<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t깃허브<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>깃허브는 개발자들이 코드를 공유하고 협업할 수 있는 온라인 코드 저장소인데 기본적으로 마크다운(Markdown)을 이용해 정적 페이지를 호스팅 할 수 있게 되어 있다. 하지만 이렇게 할 경우 지속적으로 온라인에 글을 게시하는데 불편이 있다. 추가로 지킬(Jekyll)이라는 서비스를 붙이면 마크다운으로 작성한 글을 호스팅 비용 없이 서비스할 수 있다. 구글 애드센스도 붙일 수 있기 때문에&#160;개발자라면 적극적으로 고려해볼만 하다. 마크다운으로 작성한 다음 git add/commit/push 하면 터미널에서도 글을 포스팅할 수 있다. 이미지를 직접 호스팅 할 수 없고 글쓰기에 온전히 시간을 쓰는 것이 아니라 초기 환경을 직접 만들어야 한다는 것은 단점이다. 개발을 전혀 모르고 흥미가 없는 사람은 고려 대상이 아니다.<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t<br>- 장점<br>\t\t\t\t\t\t\t<br>- 마크다운 지원<br>\t\t\t\t\t\t\t<br>- 지킬(Jekyll) 등의 정적 웹사이트 빌더 지원<br>\t\t\t\t\t\t\t<br>- 커스터마이징, 다양한 플러그인 지원<br>\t\t\t\t\t\t\t<br>- 애드센스 가능<br>\t\t\t\t\t\t\t<br>- 단점<br>\t\t\t\t\t\t\t<br>- 진입장벽이 생각보다 높음 (Git에 대한 이해 필요, 약간의 프론트엔드 관련 지식 등)<br>\t\t\t\t\t\t\t<br>- 생각보다 더 불편한 글쓰기 및 이미지 첨부<br>\t\t\t\t\t\t\t<br>- 관리자모드가 없어, 블로그의 다양한 통계정보 확인 불가능<br>\t\t\t\t\t\t\t<br>- 댓글 등의 기능도 없어, 별도의 플러그인 설치 필요<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t틱톡<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t네이버 블로그<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>네이버 블로그<br>\t\t\t\t\t\t\t<br>- 국내 최대 규모의 플랫폼<br>\t\t\t\t\t\t\t<br>- 다양한 주제의 글 게시 가능<br>\t\t\t\t\t\t\t<br>- 광고 수익 창출 가능<br>\t\t\t\t\t\t\t<br>- SEO에 유리<br>\t\t\t\t\t\t\t<br>글을 써서 사람들을 유입시키고 다른 목적을 달성하고 싶다면&#160;네이버 블로그가 적당하다. 네이버 블로그는 과반을 차지하고 있는 네이버 검색 유입이 압도적이기 때문에 쇼핑몰에서 뭘 팔아보고 싶어 글을 쓴다던지, 업체를 홍보하고 싶다면 가장 높은 성능을 보여준다. 자체적으로 애드포스트라는 광고를 블로그에 달 수 있지만 의미 있는 수익을 기대하기는 상대적으로 어려운 편이다. 네이버 블로그는 서로 친구 맺어주고 소통하는 것을 좋아하고, 어떤 글을 써도 괜찮은 조회수를 원하는 경우 추천하고 싶다. 사람들의 유입을 돈으로 만들고 싶은 사람은 굳이 다른 선택지를 고민할 필요가 없다고 생각한다.&#160;개인의 아이디가 블로그 주소가 되기 때문에&#160;내 아이디를 아는 다른 사람이 '<a href=\"https://blog.naver.com/아이디\" target=\"_blank\">https://blog.naver.com/</a>아이디' 와 같이 접속해보면 내 블로그가 나온다.&#160;이게 싫다면 새로운 네이버 아이디를 하나 더 만들어 개설하면 된다.<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t<br>&#160;<br>\t\t\t\t\t\t\t<br><a href=\"https://blog.naver.com/\" target=\"_blank\">네이버</a> 블로그<br>\t\t\t\t\t\t\t<br>- 장점<br>\t\t\t\t\t\t\t<br>- (이전에 사용했던 플랫폼으로 익숙하다)<br>\t\t\t\t\t\t\t<br>- 한국에서 가장 대중적이며, 검색 유입량이 많다.<br>\t\t\t\t\t\t\t<br>- UI가 편리하고 포스트 작성이 쉽다.<br>\t\t\t\t\t\t\t<br>- 단점<br>\t\t\t\t\t\t\t<br>- 마크다운 미지원<br>\t\t\t\t\t\t\t<br>- 구문강조 코드 블록 미지원<br>\t\t\t\t\t\t\t<br>- 블로그 이전 등을 위한 데이터 내보내기 기능 미지원<br>\t\t\t\t\t\t\t<br>- 제한적인 커스터마이징<br>\t\t\t\t\t\t\t<br>- 애드센스 대신 애드포스트(?)<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t틱톡<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t텔레그램<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t오카방<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t링크드인<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>이버 오디오클립, 팟빵 같은 팟캐스트 플랫폼<br>\t\t\t\t<br><a href=\"https://velog.io/\" target=\"_blank\">벨로그</a>(velog)&#160;- 추가<br>\t\t\t\t<br>- 장점<br>\t\t\t\t<br>- 마크다운 지원<br>\t\t\t\t<br>- TIL (Today I Learned) 작성 용이<br>\t\t\t\t<br>- 쉬운 가입 절차<br>\t\t\t\t<br>- 깔끔한 디자인<br>\t\t\t\t<br>- 단점<br>\t\t\t\t<br>- 애드센스 등 광고 플랫폼 미지원<br>\t\t\t\t<br>- 마크다운으로만 작성 가능<br>\t\t\t\t<br><br>\t\t\t\t<br>벨로그(Velog) - 추가<br>\t\t\t\t<br>TIL (Today I Learned) 를 작성할 플랫폼이 필요했고, 마크다운이 제대로 지원되며 깔끔한 디자인이 마음에 들었다. 사실 최근에 발견하게 된 서비스이고, GitHub을 통해 블로그를 관리, 포스트 작성 등이 여간 불편한 게 아니어서 마음이 떠난 이유도 있다. 이제 GitHub에서는 TIL (Today I Learned) 작성을, 벨로그에서는 해당 내용을 공유하는 방향으로 진행할 예정이다.<br>\t\t\t\t<br>￼1<br>\t\t\t\t<br> <br>\t\t\t\t<br>플랫폼 선택 시 고려사항<br>\t\t\t\t<br>- 목적: 취미, 수익창출, 작가 데뷔 등 목적에 맞는 플랫폼 선택<br>\t\t\t\t<br>- 장르: 에세이, 정보성 글, 소설 등 작성하고자 하는 글의 장르<br>\t\t\t\t<br>- 독자층: 각 플랫폼의 주 이용자 특성 파악<br>\t\t\t\t<br>- 기능: 글쓰기 툴, 통계, 소통 기능 등 필요한 기능 확인<br>\t\t\t\t<br>- 수익모델: 광고, 유료화, 출판 기회 등 원하는 수익 모델 고려<br>\t\t\t\t<br>- 성장 가능성: 신규 플랫폼의 경우 향후 성장 가능성 검토<br>\t\t\t\t<br>글로벌 블로그 플랫폼 TOP 10<br>\t\t\t\t<br>- WordPress (워드프레스) - 시장 점유율 60%<br>\t\t\t\t<br>- 오픈소스 플랫폼으로 커스터마이징 자유도가 높음<br>\t\t\t\t<br>- 개인부터 전문가까지 다양한 사용자에게 적합￼<br>\t\t\t\t<br>- Blogger (블로거) - 시장 점유율 20%<br>\t\t\t\t<br>- Google 소유의 무료 플랫폼<br>\t\t\t\t<br>- 사용이 간편하고 개인 블로그에 적합￼<br>\t\t\t\t<br>- Wix (윅스) - 시장 점유율 5%<br>\t\t\t\t<br>- 웹사이트 빌더 기능 제공<br>\t\t\t\t<br>- 소기업, 개인 블로그, 포트폴리오에 적합￼<br>\t\t\t\t<br>- Weebly (위블리) - 시장 점유율 5%<br>\t\t\t\t<br>- Wix와 유사한 웹사이트 빌더<br>\t\t\t\t<br>- 소기업, 개인 블로그에 적합￼<br>\t\t\t\t<br>- Squarespace<br>\t\t\t\t<br>- Tumblr (텀블러)<br>\t\t\t\t<br>- 자동 확산 기능과 많은 사용자 보유<br>\t\t\t\t<br>- 미국에서 인지도가 높음￼<br>\t\t\t\t<br>- Medium<br>\t\t\t\t<br>- Ghost<br>\t\t\t\t<br>- TypePad<br>\t\t\t\t<br>- LiveJournal (라이브저널)<br>\t\t\t\t<br>- 개발자, 단체 등 다양한 사용자 지원<br>\t\t\t\t<br>- 일본에서 인기가 높음￼<br>\t\t\t\t<br>주요 특징<br>\t\t\t\t<br>- WordPress가 압도적인 점유율로 1위를 차지<br>\t\t\t\t<br>- 대부분 무료 요금제와 유료 요금제를 함께 제공<br>\t\t\t\t<br>- 사용 편의성, 커스터마이징, SEO 최적화 등이 중요한 요소<br>\t\t\t\t<br>- 광고 수익화(예: Google AdSense) 지원 여부도 중요한 고려사항<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>나는 나의 기분에 지지 않는다. 나의 기분을 컨트롤 할 수 있다는 기분, 나의 기분으로 인해 누군가를 힘들게 하지 않겠다는 다짐. 걷기는 내가 나 자신과 타인에게 하는 약속이다.<br>\t\t\t<br><br>\t\t\t<br>-걷는 사람 하정우",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IELTS</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">IELTS</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-IELTS';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "IELTS<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t시험과목<br>\t\t\t\t\t시험시간<br>\t\t\t\t\t구성<br>\t\t\t\t\t문제수<br>\t\t\t\t\t내용<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tListening<br>\t\t\t\t\t<br>30분 + 10분<br>\t\t\t\t\t<br>(답 옮겨 적는 시간)<br>\t\t\t\t\t<br>\t\t\t\t\t4 Sections<br>\t\t\t\t\t40문제<br>\t\t\t\t\t<br>Section 1,3 - 대화<br>\t\t\t\t\t<br>Section 2,3 - 독백<br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t딕테이션?<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tReading<br>\t\t\t\t\t60분<br>\t\t\t\t\t3 passages<br>\t\t\t\t\t40문제<br>\t\t\t\t\t셋 중 하나는 좀 더 어려울 수도 있음.<br>\t\t\t\t\t<br>&#160;리딩은 연습하실때 첫번째 지문에서 15분, 두번째 지문에서 18분, 세번째 지문에서 18분 꼭 시간분배 해놓고 문제풀었습니다.<br>\t\t\t\t\t<br>&#160; 되도록이면 첫번째 지문에서 15분만에 다 풀 생각으로&#160;했고,&#160; 답안 체크시간 제외&#160;5분정도 여유시간을 어려운 지문에 추가로 사용할<br>\t\t\t\t\t<br>&#160;&#160;수 있었습니다. (지문 두개 풀면 답안 먼저 작성해놓고 세번째 지문 풀었습니다)<br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tWriting<br>\t\t\t\t\t60분<br>\t\t\t\t\t2 tasks<br>\t\t\t\t\t2개의 토픽<br>\t\t\t\t\t<br>Task1 - report(150자)<br>\t\t\t\t\t<br>Task2 - essay(250자)<br>\t\t\t\t\t<br>\t\t\t\t\t<br>문법적 오류를 최대한 줄이고, 주어진 주제와 얼마나 연관성 있게 논리적으로 써내느냐가<br>\t\t\t\t\t<br>&#160; 관건<br>\t\t\t\t\t<br>시간이 되시면 학원을 다녀서 개인적으로 자주하는 오류를 찾아내는게 중요<br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tSpeaking<br>\t\t\t\t\t11분 ~ 14분<br>\t\t\t\t\t3 parts<br>\t\t\t\t\t다양<br>\t\t\t\t\t<br>Part 1 - 개인적인 질문 주고 받기(문제개수가 가장많음)<br>\t\t\t\t\t<br>Part 2 - 카드에 질문보고 1분 생각한 다음, 1~2분 스피치, follow up 질문<br>\t\t\t\t\t<br>Part 3 - part2의 주제에 대한 추상적 질문<br>\t\t\t\t\t<br>\t\t\t\t\tSection1에서 나와 관련된 이야기하는 것은 스크립트를 다 써서 외워￼유튜브 레벨별 컨텐츠 참고<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>캠브리지 아이엘츠 교재 다운로드<br>\t\t\t<br><a href=\"https://www.dol.vn/luyen-thi-ielts/ielts-online-test\" target=\"_blank\">https://www.dol.vn/luyen-thi-ielts/ielts-online-test</a><br>\t\t\t<br><a href=\"https://9ielts.com/cambridge-ielts-academic-17\" target=\"_blank\">https://9ielts.com/cambridge-ielts-academic-17</a><br>\t\t\t<br><a href=\"https://testieltsonline.com/cambridge-ielts-general-students-book-with-answers-ebook-with-audio/\" target=\"_blank\">https://testieltsonline.com/cambridge-ielts-general-students-book-with-answers-ebook-with-audio/</a><br>\t\t\t<br><a href=\"https://testieltsonline.com/cambridge-ielts-series-01-16-pdf-audio-cd/\" target=\"_blank\">https://testieltsonline.com/cambridge-ielts-series-01-16-pdf-audio-cd/</a><br>\t\t\t<br><a href=\"https://ieltsgame.com/cambridge-ielts-books-series-2022/\" target=\"_blank\">https://ieltsgame.com/cambridge-ielts-books-series-2022/</a><br>\t\t\t<br><br>\t\t\t<br>IELTS practice test free pdf&#160;<br>\t\t\t<br>IELTS reading practice test with answers&#160;<br>\t\t\t<br>Free online IELTS practice tests<br>\t\t\t<br><br>\t\t\t<br>[VOCA 구글 키워드]<br>\t\t\t<br>IELTS synonyms&#160;list pdf&#160;<br>\t\t\t<br>IELTS vocabulary pdf<br>\t\t\t<br>IELTS idioms pdf<br>\t\t\t<br>등등<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.youtube.com/playlist?app=desktop&list=PLjsQCg5XoJgyFoe6P2fPJYtf8lbE4WUB-\" target=\"_blank\">[캠브리지아이엘츠 모음</a>&#128193;] 국내 최초 오픈 CambridgeIELTS 무료강의 공개&#128080;<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br>=================================<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.ielts.co.kr/\" target=\"_blank\">https://www.ielts.co.kr/</a><br>\t\t\t<br>Sharon 샤론 김 강사 - 아카데믹 저녁7반 <br>\t\t\t<br>11월18일 ~ 01월10일 (8주)   45만원<br>\t\t\t<br>수강기간&목표2~4개월 완성, 기출문제 강의, 6.5 이상 목표<br>\t\t\t<br><br>\t\t\t<br>Cambridge Guide to IELTS + 매시간 프린트 교재(총 5권 이상 분량) <br>\t\t\t<br>매 강의시간 프린트로 IELTS 최신 기출문제풀이와 모법답안 제공<br>\t\t\t<br><br>\t\t\t<br>첫달 : Listening/ Writing > 다음달 Speaking/ Reading<br>\t\t\t<br>개강일 홈페이지 학습자료실 접근가능 - MP3 등 학습자료 DL가능<br>\t\t\t<br><br>\t\t\t<br>캠브리지 아이엘츠 아카데믹 Cambridge ILETS Academic 교재<br>\t\t\t<br>아이엘츠 주최사에서 제공하는 연습문제<br>\t\t\t<br>책 살필요 없고 구글에 Cambridge ielts 15 pdf 검색하면 사본을 구할 수있다<br>\t\t\t<br><br>\t\t\t<br> 미니 아이엘츠 실제 기출문제 컴퓨터로 풀기<br>\t\t\t<br><a href=\"https://mini-ielts.com/reading?c=recent-actual-tests\" target=\"_blank\">https://mini-ielts.com/reading?c=recent-actual-tests</a><br>\t\t\t<br><br>\t\t\t<br>시험 직전 1주 전부터는 컴퓨터로 푸는 연습을 돌입했다.<br>\t\t\t<br>이 사이트에서 매일 1세트를 20분 내에 풀려고 했다.<br>\t\t\t<br>캠브릿지에 나와있는 모범답안은 실제 시험장에서? 수험생이 쓴 글을 보여주는데 이게 7.0+ 이상이 아니고 6.0 score 답안지를 보여주는데..내 목표는 6.0 맞는게 아니였어서 좀 헷갈렸고 실제로 이 모범답안에서 틀린표현도 있을텐데 어디가 정확히 잘못되었는지를 알기 힘들었다.<br>\t\t\t<br><br>\t\t\t<br>유튜브<br>\t\t\t<br>&#160;<br>\t\t\t<br>아이엘츠 라이팅에 아짜도 모르던 초기에 백지에 글을 어떻게 써야되나? 라는 막막함을 그나마 해소해준 유튜브 강의<br>\t\t\t<br>&#160;<br>\t\t\t<br>Task 1 그래프<br>\t\t\t<br><a href=\"https://www.youtube.com/watch?v=O5eb1uWsLrU\" target=\"_blank\">https://www.youtube.com/watch?v=O5eb1uWsLrU</a><br>\t\t\t<br>출처: <a href=\"https://12chn03.tistory.com/136\" target=\"_blank\">https://12chn03.tistory.com/136</a> [안나스 기억저장함:티스토리]<br>\t\t\t<br><br>\t\t\t<br>Task 2 에세이<br>\t\t\t<br><a href=\"https://www.youtube.com/watch?v=Md6qCsl3Yds&list=PLdawRnR9ilZDbeQ7SnUmbYJ0UojhGpAMx&index=18\" target=\"_blank\">https://www.youtube.com/watch?v=Md6qCsl3Yds&list=PLdawRnR9ilZDbeQ7SnUmbYJ0UojhGpAMx&index=18</a><br>\t\t\t<br>출처: <a href=\"https://12chn03.tistory.com/136\" target=\"_blank\">https://12chn03.tistory.com/136</a> [안나스 기억저장함:티스토리]<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://blog.naver.com/thatsnothing/222153280881\" target=\"_blank\">https://blog.naver.com/thatsnothing/222153280881</a><br>\t\t\t<br><br>\t\t\t<br>블로그<br>\t\t\t<br><br>\t\t\t<br>출처: <a href=\"https://12chn03.tistory.com/136\" target=\"_blank\">https://12chn03.tistory.com/136</a> [안나스 기억저장함:티스토리]<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>무료첨삭<br>\t\t\t<br>&#160;<br>\t\t\t<br><a href=\"https://www.gohackers.com/?c=ielts/ielts_info2/ielts_writing&keywd=gohac_middle+contents_ielts_essay+editing&logger_kw=gohac_middle+contents_ielts_essay+editing&source=logger_kw\" target=\"_blank\">https://www.gohackers.com/?c=ielts/ielts_info2/ielts_writing&keywd=gohac_middle+contents_ielts_essay+editing&logger_kw=gohac_middle+contents_ielts_essay+editing&source=logger_kw</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>스피킹<br>\t\t\t<br>&#160;<br>\t\t\t<br>1) 아이엘츠 브로<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://12chn03.tistory.com/136\" target=\"_blank\">https://12chn03.tistory.com/136</a>> <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>스코어 팩토리<br>\t\t\t<br>&#160;<br>\t\t\t<br><a href=\"https://scorefactory.io/factory2ielts\" target=\"_blank\">https://scorefactory.io/factory2ielts</a><br>\t\t\t<br><br>\t\t\t<br>&#160;<br>\t\t\t<br><a href=\"https://scorefactory.io/factory2ielts\" target=\"_blank\">리얼프랙티스: IELTS 스피킹 - 스코어팩토리</a><br>\t\t\t<br><a href=\"https://scorefactory.io/factory2ielts\" target=\"_blank\">스코어팩토리 리얼프랙티스 아이엘츠 스피킹. 실제 시험과 같이 말하고 녹음하고 모범답안 까지 찾아보세요.</a><br>\t\t\t<br><a href=\"https://scorefactory.io/factory2ielts\" target=\"_blank\">scorefactory.io</a><br>\t\t\t<br>&#160;<br>\t\t\t<br>여기도 마찬가지로 모답이 올라와있는데 아이엘츠 브로에서 찾을수 없는 주제는 여기서 찾아서 모답을 들을 수 있다. 근데 느낌상 잘짜여진 스크립트를 기계음이 읽어주는거라.. 확실히 표현을 습득하기엔 사람이 말한거 보다는 좀 덜 효과적인 느낌이었다.<br>\t\t\t<br>출처: <a href=\"https://12chn03.tistory.com/136\" target=\"_blank\">https://12chn03.tistory.com/136</a> [안나스 기억저장함:티스토리]<br>\t\t\t<br><br>\t\t\t<br>리스닝<br>\t\t\t<br>>> 추천 웹사이트&#160;<br>\t\t\t<br><br>\t\t\t<br>&#160; &#160; ** All Ears English<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://m.blog.naver.com/sumishere4u/221149352323\" target=\"_blank\">https://m.blog.naver.com/sumishere4u/221149352323</a>> <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>Reading/Listeing<br>\t\t\t<br>- The Best Preparation for IELTS for Reading, Listening 교재들을 한 달 동안 두 번씩 푼다.<br>\t\t\t<br>출처: <a href=\"https://prohannah.tistory.com/46\" target=\"_blank\">https://prohannah.tistory.com/46</a> [Hello, Hannah!:티스토리]<br>\t\t\t<br><br>\t\t\t<br>Speaking<br>\t\t\t<br>- The Best Preparation for IELTS for Speaking 입문 교재 활용<br>\t\t\t<br>- 주제별로 나누어져 있고 파트 1~3으로 모법 답안으로 구성되어 있는 책들이 있는데,<br>\t\t\t<br>나만의 생각으로 답변을 만들어놓고 달달 외우기.<br>\t\t\t<br>출처: <a href=\"https://prohannah.tistory.com/46\" target=\"_blank\">https://prohannah.tistory.com/46</a> [Hello, Hannah!:티스토리]<br>\t\t\t<br><br>\t\t\t<br>Writing<br>\t\t\t<br>- task 1 : 그래프/표해석 150자 - 20분 소요<br>\t\t\t<br>-&#160;task 2 : 논술 250자 - 40분 소요<br>\t\t\t<br>- The Best Preparation for IELTS for Writing 내 task1, task2에 나오는 모든 유형을 익히기<br>\t\t\t<br>- 문법, 논리적으로 전개, 아이디어 순서로 중요하다.<br>\t\t\t<br>- 글의 구조는 서론-본론-결론 구성이 나도록 연습한다.<br>\t\t\t<br>출처: <a href=\"https://prohannah.tistory.com/46\" target=\"_blank\">https://prohannah.tistory.com/46</a> [Hello, Hannah!:티스토리]<br>\t\t\t<br><br>\t\t\t<br>아이엘츠 파일<br>\t\t\t<br><a href=\"https://mega.nz/folder/vGA2ASQK#nHRm6ZOxmYXSpUDHaW1w2w\" target=\"_blank\">https://mega.nz/folder/vGA2ASQK#nHRm6ZOxmYXSpUDHaW1w2w</a><br>\t\t\t<br><br>\t\t\t<br>* IELTS 독학 자료의 정석으로 알려진 Simon￼<br>\t\t\t<br>&#160;<br>\t\t\t<br>해외에서도 해당 사이트를 많이 이용한다고 한다.<br>\t\t\t<br>각 파트별&#160;시험에 대한&#160;팁들과 공부하기 위한&#160;샘플과 자료들을 얻을 수 있다.<br>\t\t\t<br>유투브에서 강의도 한다고 하심!<br>\t\t\t<br><a href=\"http://ielts-simon.com/\" target=\"_blank\">http://ielts-simon.com/</a><br>\t\t\t<br>출처: <a href=\"https://prohannah.tistory.com/46\" target=\"_blank\">https://prohannah.tistory.com/46</a> [Hello, Hannah!:티스토리]<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>* IELTS 온라인 가상 시험￼<br>\t\t\t<br>&#160;<br>\t\t\t<br>문제를 풀면&#160;점수도 알려주어 어느 정도의 밴드 점수가 나올 지 예상해볼 수 있다.<br>\t\t\t<br><a href=\"https://ieltsonlinetests.com/\" target=\"_blank\">https://ieltsonlinetests.com/</a><br>\t\t\t<br>출처: <a href=\"https://prohannah.tistory.com/46\" target=\"_blank\">https://prohannah.tistory.com/46</a> [Hello, Hannah!:티스토리]<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"https://m.blog.naver.com/PostView.nhn?blogId=sky9522&logNo=221200553531&proxyReferer=https%3A%2F%2Fwww.google.com%2F\" target=\"_blank\">https://m.blog.naver.com/PostView.nhn?blogId=sky9522&logNo=221200553531&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://brunch.co.kr/@reading15m/116\" target=\"_blank\">https://brunch.co.kr/@reading15m/116</a><br>\t\t\t<br><br>\t\t\t<br>후기 <a href=\"https://m.gohackers.com/?c=ielts/ielts_info2/ielts_method&type=url\" target=\"_blank\">https://m.gohackers.com/?c=ielts/ielts_info2/ielts_method&type=url</a><br>\t\t\t<br><a href=\"https://www.gohackers.com/?c=ielts/ielts_info2/ielts_method&uid=371943\" target=\"_blank\">https://www.gohackers.com/?c=ielts/ielts_info2/ielts_method&uid=371943</a><br>\t\t\t<br><a href=\"https://www.gohackers.com/?c=ielts/ielts_info2/ielts_method&uid=347946\" target=\"_blank\">https://www.gohackers.com/?c=ielts/ielts_info2/ielts_method&uid=347946</a>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[Item 3] T-asking</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">[Item 3] T-asking</div>
+<div class="date">2015년 12월 1일 화요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board--Item-3-T-asking';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "[Item 3] T-asking<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>1. 검토 배경(Pain point)<br>\t\t\t\t<br> 1) 기존의 이동통신으로는 회선번호를 모르는 상대와는, 소통 자체가 불가능함.<br>\t\t\t\t<br>   → 일상 생활에서의 대화와는 다른 한계 존재.<br>\t\t\t\t<br> 2) ① 내가 있는 곳에서 멀리 떨어진 곳의 실시간 현황/현지 상황 파악이 필요할 때,<br>\t\t\t\t<br>     ② 특정 장소에 있는 사람이 나를 대신해서 무언가를 해줄 필요가 있을 때, <br>\t\t\t\t<br>     기존의 이동통신(회선번호/지인 기반의 Comm.) 방식으로는 해결 할 수 없음.  <br>\t\t\t\t<br><br>\t\t\t\t<br> ㅇ 나를 '대신'해서 파악하기 위한 커뮤니케이션  <br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>6. 유통 및 마케팅 방안<br>\t\t\t\t<br> ㅇ 프로필 도입을 통한 호기심 자극<br>\t\t\t\t<br>  - 사실이 아니더라도 자신이 원하는 정보 업로드 : Facebook 처럼<br>\t\t\t\t<br><br>\t\t\t\t<br>- Background : Core Needs 발굴<br>\t\t\t\t<br>- 기존의 어떤 문제/ 불편을 해결하고자 하는가?<br>\t\t\t\t<br>① 내가 있는 곳에서 멀리 떨어진 곳의 실시간 현황/현지 상황 파악이 필요할 때,<br>\t\t\t\t<br>② 특정 장소에 있는 사람이 나를 대신해서 무언가를 해줄 필요가 있을 때, <br>\t\t\t\t<br>기존의 이동통신(주소록에 등록된 회선번호/지인 기반의 Comm.) 방식으로는 해결 할 수 없음.  <br>\t\t\t\t<br><br>\t\t\t\t<br>- 그 문제/ 불편을 해결하는 것의 가치, 시장에 대한 파급력, 사회적 의미는 무엇인가?<br>\t\t\t\t<br>커뮤니케이션의 대상과 방식 혁신 → 새로운 통신가치 창출<br>\t\t\t\t<br>P2P 기반의 서비스이므로 '막대한 가입자 기반'이라는 당사의 경쟁우위 극대화 가능<br>\t\t\t\t<br>보편 타당한(불가능하기 때문에 불편으로 인지하고 있지 못한)<br>\t\t\t\t<br><br>\t\t\t\t<br>- 기존 해결책은 무엇이며 어떻게 문제를 해결하고 있는가?<br>\t\t\t\t<br>뉴스를 통해 나중에 접함<br>\t\t\t\t<br>인터넷 검색을 통해 제한적인 정보를 구함<br>\t\t\t\t<br>그 지역에 아는 사람이나, 연락할 사람이 없으면 그냥 포기<br>\t\t\t\t<br><br>\t\t\t\t<br>- 기존 해결책의 한계는 무엇인가?<br>\t\t\t\t<br>시의성이 떨어지는 정보, 내가 정확히 원하는 맞춤형 정보를 찾기 어려움.<br>\t\t\t\t<br>사람이 정보다. Know-how -> Know-where<br>\t\t\t\t<br><br>\t\t\t\t<br>- Solution : Core Value 정의<br>\t\t\t\t<br>- 어떤 대안/ 서비스 인가? 집중적으로 개발 할 제품, 서비스, 기술, 혹은 응용분야가 무엇인가?<br>\t\t\t\t<br>Comm. 방식 : 게시판, 타임라인, 댓글, 사진으로만?<br>\t\t\t\t<br>- 경쟁 차별화 요소 : 기존의 해결책(상품/ 서비스)과 어떻게 다른가?<br>\t\t\t\t<br>- MNO 전략 방향성 (OTT대비 경쟁 차별화 요소) : Telco 사업자로서 단말/요금/Network 기반 Legacy 활용 가능여부<br>\t\t\t\t<br>e.g. 기지국, 매장 활용 등<br>\t\t\t\t<br> 1) SK고객이기만 하면 번호를 몰라도 (상호 합의하에) 대화 가능<br>\t\t\t\t<br> 2) 원거리의 실시간 현황이나 정보를 다른 사람을 통해 파악 가능<br>\t\t\t\t<br>     나를 대신해서 원거리에 있는 사람이 무언가를 대신 해줄 수 있음. ￼<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>[특파원] - 텍스트, 사진, 영상으로 현황 파악<br>\t\t\t<br>오감을 통해 무언가의 상태/현황을 파악<br>\t\t\t<br>나의 눈과 귀가 되어주는 천리안 같은<br>\t\t\t<br>언제 어디에나 내가 존재하는 것과 같은<br>\t\t\t<br><br>\t\t\t<br>ㅇ 단순 확인 : 현재 그 위치에 무언가가 있는지<br>\t\t\t<br>  - 내 자전거 잘 있는지 봐주세요<br>\t\t\t<br>  - 도서관에 자리 있는지 봐주세요<br>\t\t\t<br>  - 식당에 줄 긴지 봐주세요<br>\t\t\t<br>ㅇ 콘서트 현황 중계<br>\t\t\t<br>ㅇ 사고 현장 중계<br>\t\t\t<br>ㅇ 현재 날씨 - 비와요? 추워요?<br>\t\t\t<br>ㅇ 교통 정체/ 사람이 얼마나 붐비는지<br>\t\t\t<br>ㅇ 식당에 줄을 얼마나 오래 기다려야 하는지<br>\t\t\t<br>ㅇ <br>\t\t\t<br><br>\t\t\t<br>[대행] 자리 맡기 대행<br>\t\t\t<br>        줄 서기 대행<br>\t\t\t<br>        심부름<br>\t\t\t<br>[정보] 이성의 번호 딸 때, 어디가 있어야, 뭐하고 노는지<br>\t\t\t<br>         불금에 나는 노는데 남은 뭐하는지 궁금할 때<br>\t\t\t<br>[모임] 동호회<br>\t\t\t<br><br>\t\t\t<br>Lo-call + 세상의 모든 자리<br>\t\t\t<br>\t\t\t\t<br>- 자리 맡기 : 음식점, 놀이공원, 버스줄<br>\t\t\t\t<br>- 줄서기 : <br>\t\t\t\t<br>- 배달 : <br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>Naming idea<br>\t\t\t<br>\t\t\t\t<br>- 대리인<br>\t\t\t\t<br>- 해주세요<br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br>가장 사용 빈도가 높고, 매력적인 서비스<br>\t\t\t<br>ㅇ [매력도] 위치기반 데이팅 앱<br>\t\t\t<br>ㅇ [빈도] 거기 사람 많아요? 밀려요?<br>\t\t\t<br>ㅇ <br>\t\t\t<br><br>\t\t\t<br>ㅇ 프로필 - 사용자 프로필을 통해 개인을 드러낼 수 있도록 하는 기능<br>\t\t\t<br>         - 노출을 원하는 정보만 open하도록 설정<br>\t\t\t<br>         - Reputation 도입 : 랭킹 혹은 등급제 시행<br>\t\t\t<br><br>\t\t\t<br>ㅇ 그룹talk - 지도상에 말풍선 형식 or 단체 채팅방 형태로 구현<br>\t\t\t<br><br>\t\t\t<br>개인간 안전 이슈<br>\t\t\t<br>1) 같은 성별끼리만 매칭<br>\t\t\t<br>2) 프로필 고도화<br>\t\t\t<br><br>\t\t\t<br>1대1 채팅이나 통화. 영상통화 - 게임처럼 미션받고<br>\t\t\t<br>카톡택시처럼 간단한 미션으로 시작. 청소년 세그 공략<br>\t\t\t<br><br>\t\t\t<br>택시나 우버링 가능한 것들 미션을 정형화하여<br>\t\t\t<br>두달에 하나씩 오픈<br>\t\t\t<br>반대급부로 데이터 받기 - 데이타 모네티제이션<br>\t\t\t<br>GAME ON WORLD<br>\t\t\t<br><br>\t\t\t<br>개인간. 재화나 용역을 위치기반으로<br>\t\t\t<br>교환 가능한 P2P<br>\t\t\t<br><br>\t\t\t<br>게임요소로. 랭킹을 넣고<br>\t\t\t<br>생계를 꾸릴수도 있도록<br>\t\t\t<br><br>\t\t\t<br>매일 미션목록 작성하기<br>\t\t\t<br>하루를 잘게 쪼개서 기록해보자<br>\t\t\t<br>기상 1인가구 전화 알람<br>\t\t\t<br>이동 카풀<br>\t\t\t<br>그리드 아일랜드처럼 미션 클리어 하고<br>\t\t\t<br>카드받기. 증강현실 게임.<br>\t\t\t<br><br>\t\t\t<br>야마카시나 달리기 미션.<br>\t\t\t<br>길거리 농구팀 토너먼트.<br>\t\t\t<br>라이딩<br>\t\t\t<br><br>\t\t\t<br>내 신원을 오픈하고 요청을 전송하고<br>\t\t\t<br>상대방이 요청을 수락한 경우에만 프로필 오픈<br>\t\t\t<br>2. 인근 로컬기반 그룹 질문방<br>\t\t\t<br>인스타나 스냅챗같은<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>이게 뭐다라는 이야기를 30초 이내에<br>\t\t\t<br><br>\t\t\t<br>그래서 어떻게?<br>\t\t\t<br>어떻게 구현하느냐?<br>\t\t\t<br><br>\t\t\t<br>심심풀이로 주변에 일어나고 있는일<br>\t\t\t<br><br>\t\t\t<br>개인별 특성 빅데이터 분석을 통한<br>\t\t\t<br>추천 섹션<br>\t\t\t<br><br>\t\t\t<br>특정 지역마다 스피커 설치해두고<br>\t\t\t<br>내가 들려주고 싶은 노래를 서비스로 전송하면<br>\t\t\t<br>재생해주기<br>\t\t<br>\t\t<br>\t\t\t<br>원거리에 있는 사람들에게<br>\t\t\t<br>[특파원] 특정 위치의 실시간 상황 피드백 (텍스트, 사진, 영상)<br>\t\t\t<br>[아바타] 대신<br>\t\t\t<br>사진 찍어어 보내주기<br>\t\t\t<br>뉴질랜드 사진 찍어서 보내줘<br>\t\t\t<br><br>\t\t\t<br>인근에 있는 사람들에게<br>\t\t\t<br>[공유] 1인가구 닭 한마리 반반<br>\t\t\t<br>         집밥 나눠줄 사람 없나?<br>\t\t<br>\t\t<br>\t\t\t<br>속삭임/귓속말<br>\t\t\t<br>샤우팅<br>\t\t\t<br><br>\t\t\t<br>프로필과 유기적으로 연관이 있고, <br>\t\t\t<br>SNS 스러운 것 (자기 과시적/ 타인에 대한 호기심) 동시 충족하는 테마<br>\t\t\t<br>사람들이 욕심내는 테마<br>\t\t\t<br><br>\t\t\t<br>지역 태그<br>\t\t<br>\t\t<br>\t\t\t<br>ㅇ 가까운 시/공간으로 Sorting하여 조회<br>\t\t\t<br>ㅇ 공감의 정도(좋아요 획득 수)에 따라 인지도 점수 제공<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>ㅇ Core Value<br>\t\t\t<br><br>\t\t\t<br>ㅇ Pain point<br>\t\t\t<br>  특정지역의 상황이나 현황 궁금할 때/알리고 싶을 때<br>\t\t\t<br>  원거리 - 내가 가볼수도 없고..나를 대신해서 즉시성<br>\t\t\t<br>  내주변 - 소리쳐 외치고 다닐수도 없고.., 아무나 붙잡고 물어볼수도 없고<br>\t\t\t<br>              누군가 알고있을텐데 누군지 알방법이 없을 때.<br>\t\t\t<br>  <br>\t\t\t<br>  지역에서 생성된 정보임에도 지역에 모을 수 없어<br>\t\t\t<br>  지식인, 블로그, 카페, SNS등으로 파편화되어있어,<br>\t\t\t<br>  이를 다시 검색하고 원하는 정보를 식별해내야함<br>\t\t\t<br>  <br>\t\t\t<br> <br>\t\t\t<br>ㅇ 네이밍<br>\t\t\t<br>  위치 장소 히얼 데얼. 천리안. 손에 눈이달린 아바타. 유비쿼터스. 배트맨에 나오는술<br>\t\t\t<br>  공간제약 초월 사실주의 팩트 시민 저널리즘 로톡<br>\t\t\t<br>  로컬라인. 시계열 태그. 시간대별 실검 펜듀럼 외침 샤우팅<br>\t\t\t<br><br>\t\t\t<br>ㅇ 마케팅 방안<br>\t\t\t<br>  베타테스트 : 특정지역 대학생 기자단, 기자, 유통망 직원<br>\t\t\t<br>  초기 사용자  <br>\t\t\t<br>  튜토리얼 - 제갈량의화살<br>\t\t\t<br>  제휴 방안 : 언론사<br>\t\t\t<br>  이야기될 꺼리를 만들어라. 질소보트 처럼, 텔레그램 처럼<br>\t\t\t<br>  특정속성을 극대화한다. 그걸 보여줄 수 있는 테마와 연결한다.<br>\t\t\t<br>  질소 - 질소질소 - ?물보다 가볍다<br>\t\t\t<br>  - 질소보트<br>\t\t\t<br>  위치컴 - 엄청난포스팅을 다른 SNS로 연결 <br>\t\t\t<br><br>\t\t\t<br>ㅇ 기술적 피져빌리티<br>\t\t\t<br>  GPS A<br>\t\t\t<br>  UWS<br>\t\t\t<br><br>\t\t\t<br>ㅇ 플랫폼 비즈니스의 교훈 <a href=\"http://ppss.kr/archives/60757\" target=\"_blank\">http://ppss.kr/archives/60757</a><br>\t\t\t<br>\t\t\t\t<br>- 하루 3번 이상 사용<br>\t\t\t\t<br>- 이 서비스로만 할 수 있는 것<br>\t\t\t\t<br>- 네트워크 효과를 통한 모객이 가능할 것<br>\t\t\t\t<br>- 타겟은 2030 여성,이 남자에게 부탁할수 있는<br>\t\t\t\t<br>- P2P 가능할것. 누구나 해줄 수 있을것<br>\t\t\t\t<br>-  겨주세요. 에스코트해주세요. 지하철 자리 맡아주세요<br>\t\t\t\t<br>- 태워주세요 깨워주세요 내가살게 골라주세요 맡아주세요<br>\t\t\t\t<br>- 다른 영역으로 확장가능한것<br>\t\t\t\t<br>- 직접가서 확인해주세요<br>\t\t\t\t<br>- 원거리에서 나 대신 어떤 액션을 해줄 수 있는 성격의 것<br>\t\t\t\t<br><br>\t\t\t\t<br>- 이상형월드컵처럼 폭발적 모객 바이럴 요소<br>\t\t\t\t<br>단, 서비스의 성격과 용례를 담아내야함.<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>ㅇ 별도의 요금제를 만들기보다 고ARPU 요금제 사용 고객에게 무료로 제공하는 서비스로 구성하는 것이 좋을 듯<br>\t\t\t<br>ㅇ 어떤 아이덴티티, <br>\t\t\t<br><br>\t\t\t<br>0) 사용 예시를 풍부하게<br>\t\t\t<br> - 구조화<br>\t\t\t<br>  지역/장소, <br>\t\t\t<br>1) 가입자 모집 방법<br>\t\t\t<br>  - Btv모바일 처럼 신청서로 가입 시키는 방법<br>\t\t\t<br>2) 테마를 무엇으로 잡고 갈 것인가<br>\t\t\t<br> - 누구에게, 무엇이라고 말하며 팔 것인가?<br>\t\t\t<br> 직방, 우버 처럼...<br>\t\t\t<br>결제 방식<br>\t\t\t<br>ㅇ 소액결제로 돌려치기<br>\t\t\t<br>ㅇ 스퀘어 보급<br>\t\t\t<br>ㅇ 포인트 충전 방식<br>\t\t\t<br>ㅇ 시럽 페이<br>\t\t\t<br><br>\t\t\t<br>자리 맡아주는건 <br>\t\t\t<br>주차 요금 처럼 결제해주기<br>\t\t\t<br>기본요금 + 시간당 추가 요금발생<br>\t\t<br>\t\t<br>\t\t\t<br>ㅇ <a href=\"http://rctown.tistory.com/352\" target=\"_blank\">http://rctown.tistory.com/352</a><br>\t\t\t<br>    씨온 서비스 개요",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

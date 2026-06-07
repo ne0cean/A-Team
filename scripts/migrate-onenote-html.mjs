@@ -47,6 +47,13 @@ const SECTION_MAP = [
   { src: '1_Projects/MKT_FB',      dst: '1/mkt-fb' },
   { src: '1_Projects/Side hutle',  dst: '1/side-hustle' },
   { src: '1_Projects/Writing',     dst: '1/writing' },
+  // Dashbaord subdirectories (kept separate to avoid hexagonal pillar duplication)
+  { src: '1_Projects/Dashbaord/1. Character',  dst: '1/dashboard/1-character' },
+  { src: '1_Projects/Dashbaord/3. String',     dst: '1/dashboard/3-string' },
+  { src: '1_Projects/Dashbaord/4. Interstellar', dst: '1/dashboard/4-interstellar' },
+  { src: '1_Projects/Dashbaord/5. Life Xlab',  dst: '1/dashboard/5-life-xlab' },
+  { src: '1_Projects/Dashbaord/6. Snowball',   dst: '1/dashboard/6-snowball' },
+  { src: '1_Projects/Dashbaord/2. Block chain', dst: '1/dashboard/2-blockchain' },
 ];
 
 // ── Image mapping: Graph API URL → local PNG filename ────────────────────────
@@ -95,8 +102,8 @@ function extractBlocks(body, title) {
   while (i < lines.length) {
     const line = lines[i];
 
-    // Image line: ![image](url)
-    const imgMatch = line.match(/!\[image\]\((https:\/\/graph\.microsoft\.com[^)]+)\)/);
+    // Image line: ![image](url)  — URL contains () in users('...'), match to last ) on line
+    const imgMatch = line.match(/!\[image\]\((https:\/\/graph\.microsoft\.com.+\/\$value)\)\s*$/);
     if (imgMatch) {
       flushText();
       const filename = graphUrlToFilename(imgMatch[1]);
@@ -119,8 +126,8 @@ function extractBlocks(body, title) {
       continue;
     }
 
-    // Linked image: [![image](url)](link)
-    const linkedImg = line.match(/\[!\[image\]\((https:\/\/graph[^)]+)\)\]\((https?:[^)]+)\)/);
+    // Linked image: [![image](url)](link) — extract link from trailing ](url)
+    const linkedImg = line.match(/\[!\[image\]\((https:\/\/graph.+\/\$value)\)\]\((https?:[^)]+)\)\s*$/);
     if (linkedImg) {
       flushText();
       const filename = graphUrlToFilename(linkedImg[1]);

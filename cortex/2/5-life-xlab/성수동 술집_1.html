@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>성수동 술집</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">성수동 술집</div>
+<div class="date">2019년 11월 4일 월요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-성수동-술집';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "성수동 술집<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>1.&#160;이태리타올&#160;포차<br>\t\t\t<br>요새&#160;제&#160;최애집입니다.&#160;가게&#160;이름은&#160;이태리와&#160;'이태리타월'-&#160;네,&#160;맞습니다.&#160;그&#160;때&#160;수건-&#160;에서&#160;이름을&#160;따온&#160;듯&#160;합니다.&#160;테이블&#160;의자&#160;커버로&#160;커다란&#160;이태리&#160;타월이&#160;씌여져&#160;있고요.&#160;사장님은&#160;조금&#160;무뚝뚝하시지만,&#160;은근&#160;손님들을&#160;잘&#160;기억하시고&#160;챙기십니다.&#160;무엇보다&#160;음식&#160;맛이&#160;좋습니다.&#160;대표&#160;메뉴는&#160;감바스와&#160;이태리&#160;술국입니다.&#160;한동안&#160;사흘에&#160;한&#160;번은&#160;다녀온&#160;것&#160;같아요.&#160;바지락&#160;술찜도&#160;추천하는&#160;메뉴입니다.&#160;그런데,&#160;아래&#160;링크를&#160;보니&#160;가게&#160;설명에&#160;나와&#160;있는&#160;대표&#160;메뉴는&#160;다른&#160;것이군요&#160;ㅎㅎ&#160;여튼&#160;감바스는&#160;최고,&#160;추천합니다.&#160;감바스&#160;기름에&#160;빵&#160;찍어&#160;먹으면&#160;꿀맛입니다.<br>\t\t\t<br><br>\t\t\t<br>(관련&#160;정보:&#160;<a href=\"https://network.us18.list-manage.com/track/click?u=bedb3ad13e513e25afa719b73&id=be09b2e855&e=ac0ddbad9a\" target=\"_blank\">https://store.naver.com/restaurants/detail?id=1012184575</a>)<br>\t\t\t<br><br>\t\t\t<br>2.&#160;강포차<br>\t\t\t<br>강포차는&#160;제가&#160;알게&#160;된&#160;역사가&#160;오래됐죠.&#160;원래는&#160;홍대&#160;주차장&#160;골목&#160;끝에&#160;진짜로&#160;포장마차로&#160;운영되던&#160;곳이었습니다. 10년&#160;전&#160;쯤에요.&#160;그때도&#160;몇번&#160;가본적&#160;있는데&#160;이사오고&#160;나니&#160;상수역&#160;앞에&#160;가게로&#160;생겼더라고요.&#160;사장님은&#160;절&#160;기억&#160;못하시지만,&#160;전&#160;기억합니다.&#160;ㅋㅋ&#160;최근에&#160;아는&#160;작가님&#160;모시고&#160;이&#160;곳에&#160;갔었는데&#160;\"난&#160;이런&#160;곳에&#160;한&#160;20년&#160;만에&#160;온다\"고&#160;하시더라고요. 20대&#160;초반의&#160;정취가&#160;물씬합니다.&#160;일단&#160;옛날&#160;'가맥(가게맥주)'&#160;집에서나&#160;볼&#160;수&#160;있을&#160;것&#160;같은&#160;플라스틱&#160;테이블과&#160;의자가&#160;준비되어&#160;있습니다.&#160;사람&#160;수에&#160;따라&#160;테이블이&#160;늘어나기도&#160;줄어들기도&#160;합니다.&#160;머리&#160;위에는&#160;손님이&#160;쉽게&#160;뜯어&#160;쓸&#160;수&#160;있도록&#160;두루마리&#160;휴지가&#160;달려&#160;있습니다.&#160;대표&#160;메뉴는&#160;스팸과&#160;계란&#160;후라이입니다.&#160;저는&#160;이&#160;메뉴를&#160;제일&#160;좋아했는데요,&#160;최근엔&#160;비빔만두에도&#160;맛을&#160;들이고&#160;있습니다.&#160;강포차에&#160;사람이&#160;가득하다면&#160;바로&#160;옆을&#160;살펴보세요,&#160;강포차&#160;2호점이&#160;붙어&#160;있습니다.<br>\t\t\t<br><br>\t\t\t<br>(관련&#160;정보:&#160;<a href=\"https://network.us18.list-manage.com/track/click?u=bedb3ad13e513e25afa719b73&id=fafa310f91&e=ac0ddbad9a\" target=\"_blank\">https://store.naver.com/restaurants/detail?id=38521652</a>)<br>\t\t\t<br><br>\t\t\t<br>3.&#160;유즈<br>\t\t\t<br>일단,&#160;실내가&#160;넓습니다.&#160;그래서&#160;10명&#160;이상&#160;단체로&#160;가기에도&#160;괜찮습니다.&#160;상수동&#160;가게들은&#160;대체로&#160;건물&#160;1층을&#160;개조한&#160;작고&#160;아담한&#160;곳이&#160;많아서,&#160;단체&#160;손님이&#160;갈만한&#160;곳이&#160;드문데&#160;그런&#160;면에서&#160;유즈가&#160;딱입니다.&#160;이사오고&#160;나서&#160;가장&#160;먼저&#160;알게&#160;된&#160;곳이기도&#160;해서,&#160;개인적으로는&#160;애정이&#160;갑니다.&#160;분위기도&#160;괜찮고,&#160;가격도&#160;저렴한&#160;편입니다.&#160;여러&#160;음식을&#160;값싸게&#160;맛볼&#160;수&#160;있어요.&#160;<br>\t\t\t<br><br>\t\t\t<br>(관련&#160;정보:&#160;<a href=\"https://network.us18.list-manage.com/track/click?u=bedb3ad13e513e25afa719b73&id=d00490ea92&e=ac0ddbad9a\" target=\"_blank\">https://store.naver.com/restaurants/detail?id=1062005180</a>)<br>\t\t\t<br><br>\t\t\t<br>4.&#160;&#160;명성관<br>\t\t\t<br>아마,&#160;명성관은&#160;아시는&#160;분도&#160;많을&#160;것&#160;같습니다.&#160;간판은&#160;'명성&#160;이발관'으로&#160;되어&#160;있어요.&#160;이발소&#160;외부&#160;디자인을&#160;그대로&#160;유지하면서&#160;안은&#160;중국&#160;음식을&#160;파는&#160;바&#160;형태로&#160;운영합니다.&#160;독특하고&#160;분위기&#160;있는&#160;인테리어로&#160;잘&#160;알려져&#160;있는데요,&#160;맛은&#160;호불호가&#160;갈립니다.&#160;마라가&#160;주종목인데,&#160;저는&#160;유린기를&#160;추천합니다.&#160;이집&#160;유린기&#160;맛집입니다.&#160;그리고,&#160;술도&#160;독특합니다.&#160;중국&#160;술을&#160;베이스로&#160;한&#160;칵테일들을&#160;파는데요&#160;어디서&#160;많이&#160;먹어본&#160;맛에&#160;독특함이&#160;조금&#160;섞였습니다.&#160;잔도&#160;예쁘고요.&#160;자리가&#160;많지&#160;않고&#160;인기가&#160;있어&#160;자리가&#160;빨리&#160;찹니다.&#160;저는&#160;다섯번쯤&#160;가봤는데,&#160;한&#160;번에&#160;입장한&#160;게&#160;딱&#160;한&#160;번이예요.&#160;웨이팅을&#160;걸어놓고&#160;다른데서&#160;1차를&#160;하시다가&#160;전화가&#160;오면&#160;2차로&#160;넘어가시면&#160;괜찮을&#160;듯&#160;해요.<br>\t\t\t<br><br>\t\t\t<br>(관련&#160;정보:&#160;<a href=\"https://network.us18.list-manage.com/track/click?u=bedb3ad13e513e25afa719b73&id=970ade474c&e=ac0ddbad9a\" target=\"_blank\">https://store.naver.com/restaurants/detail?id=76183600</a>)&#160;<br>\t\t\t<br><br>\t\t\t<br>5.&#160;바라던&#160;바<br>\t\t\t<br>여기는&#160;먼저&#160;홍대&#160;인근에서&#160;살던&#160;분께&#160;추천받은&#160;곳입니다.&#160;주종목은&#160;와인과&#160;맥주입니다.&#160;파스타도&#160;팝니다.&#160;개인적으로는&#160;로제&#160;파스타가&#160;맛있었어요.&#160;와인을&#160;파는&#160;곳인데도&#160;가격은&#160;괜춘합니다.&#160;저처럼&#160;뭐가&#160;괜찮은&#160;와인인지&#160;모르는&#160;사람은,&#160;사장님께&#160;물어보면&#160;친절하게&#160;추천해주십니다.&#160;데이트하기에도&#160;좋은&#160;곳이고요,&#160;<br>\t\t\t<br><br>\t\t\t<br>(관련&#160;정보:&#160;<a href=\"https://network.us18.list-manage.com/track/click?u=bedb3ad13e513e25afa719b73&id=c1cc466187&e=ac0ddbad9a\" target=\"_blank\">https://store.naver.com/restaurants/detail?id=619857852</a>)<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://mail.naver.com/#%7B%22fClass%22%3A%22read%22%2C%22oParameter%22%3A%7B%22charset%22%3A%22%22%2C%22prevNextMail%22%3Atrue%2C%22threadMail%22%3Atrue%2C%22listScrollPosition%22%3A0%2C%22mailSN%22%3A%2267682%22%2C%22previewMode%22%3A2%7D%7D\" target=\"_blank\">https://mail.naver.com/#%7B%22fClass%22%3A%22read%22%2C%22oParameter%22%3A%7B%22charset%22%3A%22%22%2C%22prevNextMail%22%3Atrue%2C%22threadMail%22%3Atrue%2C%22listScrollPosition%22%3A0%2C%22mailSN%22%3A%2267682%22%2C%22previewMode%22%3A2%7D%7D</a>>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

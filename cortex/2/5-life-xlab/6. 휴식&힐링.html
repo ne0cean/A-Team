@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>6. 휴식&amp;힐링</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">6. 휴식&amp;힐링</div>
+<div class="date">2014년 10월 21일 화요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-6-휴식-힐링';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "6. 휴식&힐링<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>호기심으로 방향을 찾고, 행복해지는 것들로 채우며, 가능한 채워야 할 것들로 행복하라.<br>\t\t\t<br>과정과 결과가 나뉘어 있다는 환상을 버려라, 매 순간이 곧 결과임을 이해하고 받아들여라.<br>\t\t\t<br>결국 매 순간에서 즐기고 몰입할 요소를 발견해내는 훈련을 하라. 삶은 효율이나 효과에 관한 것이 아니다.<br>\t\t\t<br><br>\t\t\t<br>깊은 심호홉, 노을 보기, 졸릴 때 자는거, 따뜻한 차, 적당히 취할만큼 마시기, <br>\t\t\t<br>노래 흥얼거리기, 따뜻한 샤워, 커피, 콧노래, 따스하거나 부드러운 커피, 설거지, 조깅, 노래, 전화, 독서, 자전거, 산책, 포옹, 생각멈추기, 몰입, 막춤, 조깅, 신나는 음악, 글쓰기, 햇살, 치맥, 농담농담만담, 공감, 후련한 울음<br>\t\t\t<br><br>\t\t\t<br>자전거<br>\t\t\t<br>글쓰기<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t시각<br>\t\t\t\t\t만화<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t미각<br>\t\t\t\t\t사케<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>코난 오브라이안 쇼<br>\t\t\t<br>글쓰기<br>\t\t\t<br>노을. 일출<br>\t\t\t<br>새로운 장소와 건축물<br>\t\t\t<br>샌들<br>\t\t\t<br>각탕 + 따뜻한 차 + 독서<br>\t\t\t<br>오감<br>\t\t\t<br>시각: 노을, 눈 내리는거, 야경, 탁 트인 하늘, 건축물<br>\t\t\t<br>촉각: 육덕<br>\t\t\t<br>후각: 향수, 아로마<br>\t\t\t<br>미각: 다 ㅋㅋㅋㅋ<br>\t\t\t<br>청각:  이적, 성시경 [[4K][Killing Voice] ](<a href=\"https://www.youtube.com/watch?v=6RQ-bBdASvk)성시경(Sungsikyung)의\" target=\"_blank\">https://www.youtube.com/watch?v=6RQ-bBdASvk)성시경(Sungsikyung)의</a> 킬링보이스 - 너의 모든 순간, 좋을텐데, 넌 감동이었어, 희재, 두사람, 미소천사, 거리에서, 태양계ㅣ딩고뮤직<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>가족/친구와의 통화, 노래 흥얼거리기, 따뜻한 샤워, 잠, 커피, 콧노래, 노을, 따스하거나 부드러운 커피, 설거지, 조깅, 노래, 전화, 독서, 자전거, 산책, 포옹, 생각멈추기, 몰입, 막춤, 클러빙, 조깅, 신나는 음악, 글쓰기, 햇살, 치맥, 농담농담만담, 공감, 후련한 울음, 글쓰기<br>\t\t\t<br><br>\t\t\t<br>코난 오브라이언 영상<br>\t\t\t<br><br>\t\t\t<br>스트레스를 해소하는 100가지 방법<br>\t\t\t<br><br>\t\t\t<br>1. 걱정거리를 노트에 직접 적어보라.<br>\t\t\t<br>2. 오렌지 껍질을 벗겨보라. 시트러스 향은 스트레스를 줄이는 데 도움된다.<br>\t\t\t<br>3. 약 <a href=\"http://www.telegraph.co.uk/health/healthnews/5070874/Reading-can-help-reduce-stress.html\" target=\"_blank\">6분간 책</a>을 읽어라.<br>\t\t\t<br>4. 아보카도를 먹자. 슈퍼푸드인 아보카도에는 <a href=\"http://www.marieclaire.com/health-fitness/advice/reduce-stress-foods\" target=\"_blank\">혈압을 낮추는 불포화 지방산과 칼륨</a>이 풍부하다.<br>\t\t\t<br>5. 공원이나 초록색을 볼 수 있는 곳에서 산책하라. <br>\t\t\t<br>6. 친한 친구와 외출하라.<br>\t\t\t<br>7. 자신의 숨소리에 잠시 귀 기울여보라.<br>\t\t\t<br>8. 짧은 시간이라도 <a href=\"http://www.marieclaire.com/health-fitness/advice/reduce-stress-foods\" target=\"_blank\">낮잠</a>을 자며 휴식을 취하라.<br>\t\t\t<br>9. 애완견을 일하는 공간으로 데려가라. 실제 애완견을 사무실에 데려갔더니 스트레스 지수가 낮아졌다는 연구 결과가 있다.<br>\t\t\t<br>10. 모차르트의 음악을 감상하라.<br>\t\t\t<br>11. 아로마 향을 맡는다. 2009년 사춘기 학생들에게 <a href=\"http://www.ncbi.nlm.nih.gov/pubmed/19571632\" target=\"_blank\">실험</a>해 본 결과 스트레스를 줄이는 효과적인 방법이었다.<br>\t\t\t<br>12. 크게 웃어라.<br>\t\t\t<br>13. 마사지를 받아라.<br>\t\t\t<br>14. 다른 이를 포옹하라.<br>\t\t\t<br>15. 노래방에서 신나게 노래를 부른다.<br>\t\t\t<br>16. 혹은 교회의 성가대에서 찬송가를 부른다.<br>\t\t\t<br>17. 수공예 작업에 도전한다.<br>\t\t\t<br>18. 뜨개질한다. 뜨개질하면 생각이 정리되고 두뇌 회전에 도움된다는 <a href=\"http://www.ncbi.nlm.nih.gov/pubmed/19571632\" target=\"_blank\">연구 결과</a>도 있다.<br>\t\t\t<br>19. 마음을 가다듬는 명상을 잠깐씩이라도 하라.<br>\t\t\t<br>20. 섹스한다.<br>\t\t\t<br>21. 쓸데없은 이메일을 <a href=\"http://scopeblog.stanford.edu/2014/10/01/what-email-does-to-your-brain/\" target=\"_blank\">수신 거부</a>한다.<br>\t\t\t<br>22. 사랑하는 이와 키스를 해라.<br>\t\t\t<br>23. 엄마와 통화를 한다.<br>\t\t\t<br>24. 스트레칭한다.<br>\t\t\t<br>25. <a href=\"http://www.psychologytoday.com/blog/mindfulness-in-frantic-world/201109/the-chocolate-meditation\" target=\"_blank\">초콜릿 명상</a>에 도전해보라. 초콜릿 상자를 열고 향을 음미한다. 예쁜 초콜릿 조각을 하나하나 감상한다. 초콜릿을 입에 넣고 맛을 천천히 음미한다. 초콜릿은 300가지 이상의 다양한 맛이 들어 있다. <br>\t\t\t[",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "df92e94b9e.png",
+    "alt": "6. 휴식&힐링",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "](<a href=\"http://www.pinterest.com/pin/create/button/?url=http%3A%2F%2Fwww.huffingtonpost.kr%2F2014%2F11%2F06%2Fstory_n_6112032.html%3Fncid%3Dfcbklnkkrhpmg00000001&media=http://i.huffpost.com/gen/2249502/thumbs/o-CHOCOLATE-BOX-900.jpg&description=스트레스를%20해소하는%20100가지%20방법)\" target=\"_blank\">http://www.pinterest.com/pin/create/button/?url=http%3A%2F%2Fwww.huffingtonpost.kr%2F2014%2F11%2F06%2Fstory_n_6112032.html%3Fncid%3Dfcbklnkkrhpmg00000001&media=http://i.huffpost.com/gen/2249502/thumbs/o-CHOCOLATE-BOX-900.jpg&description=스트레스를%20해소하는%20100가지%20방법)</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "43baa3f018.png",
+    "alt": "6. 휴식&힐링",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "26. 이메일을 잠시 중단하라.<br>\t\t\t<br>27. 당신에게 실수한 누군가를 용서해보라.<br>\t\t\t<br>28. 감사할 일을 찾아보라.<br>\t\t\t<br>29. 운동하라. 운동하면 스트레스를 해소하는 힘이 상승한다는 연구 결과도 있다.<br>\t\t\t<br>30. 성질 내고 화낸 후에 얼마나 후회스러울지 생각해보라. <br>\t\t\t<br>31. 홍차를 마셔라.<br>\t\t\t<br>32. 스마트폰 사용을 잠시 중단하라.<br>\t\t\t<br>33. <a href=\"http://nymag.com/scienceofus/2014/10/walk-like-a-happy-person-be-a-happier-person.html?utm_source=cheetah&utm_medium=email&om_rid=AAEMg8&om_mid=_BUR-73B89GTJzJ\" target=\"_blank\">실제 행동으로 보여줘라.</a><br>\t\t\t<br>34. 오렌지 주스를 마신다.<br>\t\t\t<br>35. 껌을 씹는다.<br>\t\t\t<br>36. 살면서 가장 중요한 것이 무엇인지 상기한다.<br>\t\t\t<br>37. 오메가 3 가 풍부한 음식을 먹는다.<br>\t\t\t<br>38. 종교가 있다면 신앙에 의존한다.<br>\t\t\t<br>39. 스트레스가 적은 직업을 한번 찾아본다.<br>\t\t\t<br>40. 솔트레이크(Salt Lake)를 방문하면 어떨까? 솔트레이크는 <a href=\"http://money.cnn.com/gallery/pf/2014/06/25/least-stressed-out-cities/\" target=\"_blank\">2014년 가장 스트레스 없이 살 수 있는 도시</a>로 선정됐다.<br>\t\t\t<br>41. 도보 혹은 자전거로 출근한다.<br>\t\t\t<br>42. 자연의 소리를 듣는다.<br>\t\t\t<br>43. 오트밀을 먹는다.<br>\t\t\t<br>44. 침을 맞는다. <br>\t\t\t<br>45. 다른 이에게 미소를 지어라.<br>\t\t\t<br>46. 차분하게 <a href=\"http://www.huffingtonpost.com/2013/09/09/stress-relief-that-works_n_3842511.html\" target=\"_blank\">이미지 트레이닝(거울 운동)</a>을 해보라.<br>\t\t\t<br>47. 사무실과 집에 식물을 키워라.<br>\t\t\t[",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "df92e94b9e.png",
+    "alt": "6. 휴식&힐링",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "](<a href=\"http://www.pinterest.com/pin/create/button/?url=http%3A%2F%2Fwww.huffingtonpost.kr%2F2014%2F11%2F06%2Fstory_n_6112032.html%3Fncid%3Dfcbklnkkrhpmg00000001&media=http://i.huffpost.com/gen/2249512/thumbs/o-PLANT-900.jpg&description=스트레스를%20해소하는%20100가지%20방법)\" target=\"_blank\">http://www.pinterest.com/pin/create/button/?url=http%3A%2F%2Fwww.huffingtonpost.kr%2F2014%2F11%2F06%2Fstory_n_6112032.html%3Fncid%3Dfcbklnkkrhpmg00000001&media=http://i.huffpost.com/gen/2249512/thumbs/o-PLANT-900.jpg&description=스트레스를%20해소하는%20100가지%20방법)</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "2fc978f45b.png",
+    "alt": "6. 휴식&힐링",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "48. 필요하다면 <a href=\"http://www.academia.edu/457235/When_is_crying_cathartic_An_international_study\" target=\"_blank\">울어라</a>.<br>\t\t\t<br>49. 다크초콜릿을 먹어라.<br>\t\t\t<br>50. 분노를 해소하는 <a href=\"http://www.huffingtonpost.kr/2014/09/04/story_n_5763566.html\" target=\"_blank\">요가 자세</a>를 따라 해보라. <br>\t\t\t<br>51. 필요한 경우 \"노(No)\"라고 말한다.<br>\t\t\t<br>52. 오르가즘을 느끼는 것도 중요하다.<br>\t\t\t<br>53. <a href=\"http://www.ncbi.nlm.nih.gov/pubmed/22894892\" target=\"_blank\">웃는 요가</a> 수업에 참가한다.<br>\t\t\t<br>54. 긍정적인 생각을 떠올린다.<br>\t\t\t<br>55. 신 나게 춤을 추라.<br>\t\t\t<br>56. 따듯한 물에 몸을 담그라.<br>\t\t\t<br>57. 소나무 숲을 걷는다.<br>\t\t\t<br>58. 또는 <a href=\"http://www.huffingtonpost.kr/2014/05/01/story_n_5245055.html\" target=\"_blank\">바닐라 향</a>을 맡는다.<br>\t\t\t<br>59. 수영장 수면 위에 떠 있기.",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "b5300d46d2.png",
+    "alt": "6. 휴식&힐링",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "60. 숙면을 취한다. 행복한 하루는 잠으로 좌우된다.<br>\t\t\t<br>61. 책상과 집안을 정리해보라.<br>\t\t\t<br>62. 아침에 일찍 일어나보라.<br>\t\t\t<br>63. 말을 탄다.<br>\t\t\t<br>64. 한 번에 한 가지 일만 한다. <br>\t\t\t<br>65. 당신의 주변에 집중하라.<br>\t\t\t<br>66. 애연가라면 담배를 끊어보라.<br>\t\t\t<br>67. <a href=\"http://news.illinois.edu/news/14/1021nature_WilliamSullivan_BinJiang.html\" target=\"_blank\">3-D 동영상</a>으로 숲 속의 정경을 감상해 보라.<br>\t\t\t<br>68. 해변으로 가라.<br>\t\t\t[",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "df92e94b9e.png",
+    "alt": "6. 휴식&힐링",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "](<a href=\"http://www.pinterest.com/pin/create/button/?url=http%3A%2F%2Fwww.huffingtonpost.kr%2F2014%2F11%2F06%2Fstory_n_6112032.html%3Fncid%3Dfcbklnkkrhpmg00000001&media=http://i.huffpost.com/gen/2249520/thumbs/o-BEACH-900.jpg&description=스트레스를%20해소하는%20100가지%20방법)\" target=\"_blank\">http://www.pinterest.com/pin/create/button/?url=http%3A%2F%2Fwww.huffingtonpost.kr%2F2014%2F11%2F06%2Fstory_n_6112032.html%3Fncid%3Dfcbklnkkrhpmg00000001&media=http://i.huffpost.com/gen/2249520/thumbs/o-BEACH-900.jpg&description=스트레스를%20해소하는%20100가지%20방법)</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "f859c5a991.png",
+    "alt": "6. 휴식&힐링",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "69. 스트레스의 원인이 되는 사람이 있다면 잠시 거리를 두라.<br>\t\t\t<br>70. 긍정적인 생각을 스스로 되새긴다.<br>\t\t\t<br>71. 줄에 서서 기다리는 짓은 하지 마라.<br>\t\t\t<br>72. 사랑하는 사람과 시간을 보낸다.<br>\t\t\t<br>73. 녹차를 마셔라.<br>\t\t\t<br>74. 휴가 중이라면 상사에게 연락이 와도 신경을 쓰지 마라.<br>\t\t\t<br>75. <a href=\"http://www.huffingtonpost.kr/2014/03/27/story_n_5033022.html\" target=\"_blank\">나이 들어가는 것</a>을 자연스럽게 받아들여라.<br>\t\t\t<br>76. '무드 모니터링(Mood Monitoring)'을 시도해 보라. 자신을 괴롭히는 스트레스 원인을 종이에 적고 2분 후 다시 적으면서 감정적인 부분을 정제하는 훈련이다.<br>\t\t\t<br>77. SNS를 잠시 중단한다.<br>\t\t\t<br>78. 가벼운 욕을 한다. (회사에서는 제외)<br>\t\t\t<br>79. 친구와 음식을 만들어 먹는다.<br>\t\t\t<br>80. 숨을 깊게 내쉰다.<br>\t\t\t<br>81. 아님 소리라도 지른다.<br>\t\t\t[",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "df92e94b9e.png",
+    "alt": "6. 휴식&힐링",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "](<a href=\"http://www.pinterest.com/pin/create/button/?url=http%3A%2F%2Fwww.huffingtonpost.kr%2F2014%2F11%2F06%2Fstory_n_6112032.html%3Fncid%3Dfcbklnkkrhpmg00000001&media=http://i.huffpost.com/gen/2249526/thumbs/o-SCREAMING-900.jpg&description=스트레스를%20해소하는%20100가지%20방법)\" target=\"_blank\">http://www.pinterest.com/pin/create/button/?url=http%3A%2F%2Fwww.huffingtonpost.kr%2F2014%2F11%2F06%2Fstory_n_6112032.html%3Fncid%3Dfcbklnkkrhpmg00000001&media=http://i.huffpost.com/gen/2249526/thumbs/o-SCREAMING-900.jpg&description=스트레스를%20해소하는%20100가지%20방법)</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "2bcf00b6dc.png",
+    "alt": "6. 휴식&힐링",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "82. 웃기는 표정을 짓는다.<br>\t\t\t<br>83. 잠시 눈을 감고 휴식을 취한다.<br>\t\t\t<br>84. 머리를 빗는다.<br>\t\t\t<br>85. 다른 이에게 선행을 베푼다. 남에게 좋을 일을 하면 자신에게 돌아오게 마련이다.<br>\t\t\t<br>86. 가끔 침묵을 즐긴다.<br>\t\t\t<br>87. 종이에 솔직한 심정을 적고 구겨서 버린다.<br>\t\t\t<br>88. <a href=\"http://www.sciencedaily.com/releases/2012/10/121022112847.htm\" target=\"_blank\">파란색</a> 물건을 바라본다.<br>\t\t\t<br>89. 옛날 사진을 본다.<br>\t\t\t<br>90. 스스로 스트레스받는 요소를 정리해본다. 스트레스의 원인이 생길 것 같으면 미리 피한다.<br>\t\t\t<br>91. 밖에 나가 달린다.<br>\t\t\t<br>92. 색칠 공부를 한다. 이것이 아이들한테만 유익한 것은 아니다.<br>\t\t\t<br>93. 고양이나 강아지를 키워라.<br>\t\t\t[",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "df92e94b9e.png",
+    "alt": "6. 휴식&힐링",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "](<a href=\"http://www.pinterest.com/pin/create/button/?url=http%3A%2F%2Fwww.huffingtonpost.kr%2F2014%2F11%2F06%2Fstory_n_6112032.html%3Fncid%3Dfcbklnkkrhpmg00000001&media=http://i.huffpost.com/gen/2249544/thumbs/o-KITTEN-900.jpg&description=스트레스를%20해소하는%20100가지%20방법)\" target=\"_blank\">http://www.pinterest.com/pin/create/button/?url=http%3A%2F%2Fwww.huffingtonpost.kr%2F2014%2F11%2F06%2Fstory_n_6112032.html%3Fncid%3Dfcbklnkkrhpmg00000001&media=http://i.huffpost.com/gen/2249544/thumbs/o-KITTEN-900.jpg&description=스트레스를%20해소하는%20100가지%20방법)</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "ce7cb12c5b.png",
+    "alt": "6. 휴식&힐링",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "94. 창밖을 바라보라.<br>\t\t\t<br>95. 스트레스를 줄이는 전문 <a href=\"http://www.huffingtonpost.com/2013/11/02/wellness-apps_n_4192236.html\" target=\"_blank\">앱</a>이나 <a href=\"https://itunes.apple.com/us/app/gps-for-the-soul/id586099254?mt=8\" target=\"_blank\">프로그램</a>을 활용하라.<br>\t\t\t<br>96. 상상하라. 마치 영화 속 주인공이 된 듯한 상상을 펼쳐보라.<br>\t\t\t<br>97. 1부터 10까지 세라. 그리고 다시 거꾸로 세보라.<br>\t\t\t<br>98. 햇빛을 만끽하라. 단, 선 블록 크림은 바르고 외출하라.<br>\t\t\t<br>99. 점심시간을 충분히 활용하라.<br>\t\t\t<br>100. 스트레스가 심하다고 느끼면 전문 상담가를 반드시 만나보길 권한다.",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

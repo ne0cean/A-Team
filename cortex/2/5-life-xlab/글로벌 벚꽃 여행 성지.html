@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>글로벌 벚꽃 여행 성지</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">글로벌 벚꽃 여행 성지</div>
+<div class="date">2024년 3월 15일 금요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-글로벌-벚꽃-여행-성지';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "글로벌 벚꽃 여행 성지",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "49908e171c.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "스웨덴 스톡홀름<br>\t\t\t\t\t<br>&#127800;쿵스트레드고르덴&#127800;",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "ab12b68e5d.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#127800;개화 시기 ㅣ 4월 말<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>모두가 봄을 기다리지만, 스웨덴에선 특히 오랜 기다림 끝에 찾아오는 계절이라 더욱 특별해. 이 특별한 계절을 핑크빛으로 축하하는 벚꽃의 향연이 쿵스트레드고르덴(Kungstr&#228;dg&#229;rden)에서 펼쳐져. 스톡홀름 중심부에 위치한 공원으로 만개한 벚꽃이 터널을 이뤄.<br>\t\t\t\t\t<br>&#128205; Jussi Bj&#246;rlings All&#233; 5, Stockholm 111 47 Sweden<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>&#128123;빈둥이 Tip<br>\t\t\t\t\t<br>매년&#160;<a href=\"https://event.stibee.com/v2/click/MjU0MDg1LzIwNjUwNzMvNjc3Lw/aHR0cHM6Ly93d3cudmlzaXRzdG9ja2hvbG0uY29tL2V2ZW50cy9jaGVycnktYmxvc3NvbS1kYXkvMjAyNC0wNC0yOC8xMzAwLzE3MDAv\" target=\"_blank\">체리 블라썸 데이(클릭)</a>를 진행하는데 올해는 4월 28일(일)이야. 이날엔 일본 관련 단체나 커뮤니티들이 일본 문화와 관련된 워크숍과 공연 등을 진행해.<br>\t\t\t\t\t<br>imageⓒ 비짓스톡홀름 공식 홈페이지",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "7ce2dc19a8.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "중국 상하이<br>\t\t\t\t\t<br>&#127800;구춘공원&#127800;",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "298be221f6.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#127800;개화 시기 ㅣ 3월~4월 중순<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>벚나무 종류만 100개, 심어진 나무만 총 1만 3천 그루? 상하이에서 가장 많은 벚꽃을 볼 수 있어. 개화 시기가 다 달라서 다채로운 벚꽃을 오래 즐길 수 있는 게 특징이야. 120만 평에 이르는 광활한 공원에서 벚꽃을 따라 걸으면 길 잃을 걱정은 없을걸.<br>\t\t\t\t\t<br>&#128205;No. 4788, Hutai Road, Shanghai, China<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>&#128123;빈둥이 Tip<br>\t\t\t\t\t<br>올해 &#160;벚꽃 축제는 4월 15일(월)까지 열려. 공원이 워낙 넓은 편이라, 벚꽃을 가장 빨리 만나고 싶다면, 지하철 구춘공원역 5번 출구에서 이어지는&#160;<a href=\"https://event.stibee.com/v2/click/MjU0MDg1LzIwNjUwNzMvNjc3Lw/aHR0cHM6Ly9tcC53ZWl4aW4ucXEuY29tL3MvUHdUdTVOQmxHN3RDU0lCT1pqSGFLUQ\" target=\"_blank\">벚꽃 노선(클릭)</a>을 따라와 봐. 분홍색 관람차 인증샷도 놓치지 말라구!<br>\t\t\t\t\t<br>imageⓒ 구춘공원 공식 홈페이지",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "7ce2dc19a8.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "헝가리 부다페스트<br>\t\t\t\t\t<br>&#127800;T&#243;th &#193;rp&#225;d 산책로&#127800;",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "34cd4ed5dd.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "f5e99b825e.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#127800;개화 시기 ㅣ 4월 중순<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>부다페스트 원픽 산책로를 꼽으라면, 여기야. 도심의 파노라마를 감상하며 성곽을 따라 걷다 보면 한쪽엔 분홍색, 한쪽엔 초록색 옷을 입고 줄지은 나무들의 행렬이 이어져. 하늘하늘 바람이 불어 꽃비가 내리면, 고풍스러운 성채 덕인지 마치 고전 작품 속에 들어와 있는 기분이 든다니까?<br>\t\t\t\t\t<br>&#128205;Budapest, T&#243;th &#193;rp&#225;d stny., 1014 Hungary<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>&#128123;빈둥이 Tip<br>\t\t\t\t\t<br>부다 성 지구 안에 있어서 부다 성, 어부의 요새와 함께 다녀오기 좋아. 특히 어부의 요새는 다뉴브강을 한눈에 내려다보는 전망 명소로 유명!<br>\t\t\t\t\t<br>imageⓒ&#160;비짓헝가리 및 부다바르 공식 인스타그램&#160;",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "7ce2dc19a8.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "네덜란드 암스텔베인<br>\t\t\t\t\t<br>&#127800;체리블로젬파크&#127800;",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "5e4660315c.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#127800;개화 시기 ㅣ 3월 말<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>400그루의 벚나무가 동그란 원을 그리며 수놓인 모습이 장관이야. 위에서 바라보면 원형 벚꽃길이 한눈에 들어온다는! 빽빽한 벚꽃 아래 풍경도 얼마나 아름답고 평화로운지 몰라. 피크닉 매트에 누워 봄바람에 흩날리는 벚꽃 아래서 저마다의 봄날을 즐겨 봐. &#160;<br>\t\t\t\t\t<br>&#128205; Doorweg 32, 1182 DB Amstelveen, Netherlands<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>&#128123;빈둥이 Tip<br>\t\t\t\t\t<br>공원 내에 화장실이 없으니 하루 종일 있긴(?) 쉽지 않아. 한편 암스텔베인은 암스테르담에서 1시간 떨어진 도시로 트램 5번, 25번, 버스 347번 등 두 도시를 오가는 대중교통이 많아.<br>\t\t\t\t\t<br>imageⓒ&#160;암스텔베인 공식 인스타그램&#160;",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "7ce2dc19a8.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "독일 본<br>\t\t\t\t\t<br>&#127800;알트슈타트 벚꽃거리&#127800;",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "122235b72c.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#127800;개화 시기 ㅣ 4월 초&#160;<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>중세 시대의 동상과 대리석 골목, 그리고 오래된 건물들 사이. 무채색의 구시가지 골목은 벚꽃 필 무렵에만 분홍빛을 가진 것처럼 보여. 특히 가로등 불빛을 받으며 환하게 빛나는 겹벚꽃 야경을 본다면 로맨스 영화 한 편 뚝딱이야.<br>\t\t\t\t\t<br>&#128205; Breite Str. 50, 53111 Bonn, Germany<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>&#128123;빈둥이 Tip<br>\t\t\t\t\t<br>4월 1일(월)부터 열리는&#160;<a href=\"https://event.stibee.com/v2/click/MjU0MDg1LzIwNjUwNzMvNjc3Lw/aHR0cHM6Ly93d3cuYm9ubi5kZS9taWNyb3NpdGUvZW4vcHJlc3MtcmVsZWFzZXMvbWFyY2gtMjAyNC9jaGVycnktYmxvc3NvbS0yMDI0LWluLWJvbm5zLW9sZC10b3duLnBocA\" target=\"_blank\">벚꽃 축제(클릭)</a>에서는 벚꽃 비누, 벚꽃 엽서, 1000 피스 퍼즐까지 다양한 굿즈들도 만나볼 수 있어. 인포메이션 오피스에서는 벚꽃 포토스폿을 소개하는 가이드 투어도 준비했다는!<br>\t\t\t\t\t<br>imageⓒ&#160;독일 본 관광청 페이스북",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "7ce2dc19a8.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "태국 방콕<br>\t\t\t\t\t<br>&#127800;왓치라벤차탓 공원&#127800;",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "339ceb6cb1.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "5a91b4d883.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#127800;개화 시기 ㅣ 3월 초&#160;<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>벚꽃같아 보이지만 사실 핑크 트럼펫 나무의 꽃으로, 꽃 색깔은 물론, 트럼펫 나팔처럼 활짝핀 모습이 벚꽃과 비슷해 태국 벚꽃이라 불려. 울창한 초록 녹음과 찐분홍 꽃의 조화가 진한 여운을 남길 거야.<br>\t\t\t\t\t<br>&#128205; RH73+4RR, Kamphaeng Phet 3 Rd, Lat Yao Subdistrict, Chatuchak, Bangkok 10900, Thailand<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>&#128123;빈둥이 Tip<br>\t\t\t\t\t<br>과거 골프장으로 사용한 곳이라 녹지공간이 어마어마해. 공원을 거닐다가 나비 정원도 들려 봐. 방콕 유일의 돔형태 곤충관인데, 세상 신기한 나비들을 다 만나볼 수 있어.&#160;<br>\t\t\t\t\t<br>imageⓒ&#160;어메이징태국 공식 홈페이지",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "7ce2dc19a8.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "미국 워싱턴<br>\t\t\t\t\t<br>&#127800;내셔널 몰&#127800;",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "79b9abb992.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#127800;개화 시기 ㅣ 3월 말&#160;<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>눈길 닿는 곳 어디든 워싱턴 랜드마크가 보이는 내셔널 몰! 4월 중순까지는 벚꽃을 보기 위해 찾는 사람들이 더 많아. 포토맥 강가 산책로에 있는 3천 그루 벚나무를 따라 걷다 보면 워싱턴 랜드마크도 잠시 잊힐 만큼 황홀한 경험을 할 거야.<br>\t\t\t\t\t<br>&#128205;1540 Maine Ave SW, Washington, DC 20004, United States<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>&#128123;빈둥이 Tip<br>\t\t\t\t\t<br>미국 최대&#160;<a href=\"https://event.stibee.com/v2/click/MjU0MDg1LzIwNjUwNzMvNjc3Lw/aHR0cHM6Ly9uYXRpb25hbGNoZXJyeWJsb3Nzb21mZXN0aXZhbC5vcmcvZXZlbnQvMjAyNC1uYXRpb25hbC1jaGVycnktYmxvc3NvbS1mZXN0aXZhbC1kYXRlcy8\" target=\"_blank\">벚꽃 축제(클릭)</a>가 4월 14일(일)까지 내셔널 몰을 중심으로 열려. 벚꽃 배경으로 연날리기, 퍼레이드 등 다양한 체험을 즐길 수 있어. 벚꽃 길을 따라 걷다 보면 2차 세계 대전 기념비, 워싱턴 기념탑, 링컨기념관 등 워싱턴 랜드마크 투어 순삭이라는.<br>\t\t\t\t\t<br>imageⓒ 워싱턴DC 관광청 공식 홈페이지",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "7ce2dc19a8.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "일본 도쿄<br>\t\t\t\t\t<br>&#127800;메구로가와&#127800;",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "d5bd4ddce1.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#127800;개화 시기 ㅣ 3월 20일 경&#160;&#160;<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>도쿄 벚꽃 여행의 스테디셀러라고나 할까. 메구로 강을 사이에 두고 양옆으로 줄지어 선 800여 그루의 벚나무가 산책로와 강은 물론, 사람들의 마음마저 핑크빛으로 물들여. 강 안쪽으로 깊이 굽은 벚나무 가지 덕에 수면에 비쳐 일렁이는 벚꽃잎도 볼 수 있지.<br>\t\t\t\t\t<br>&#128205;1 Chome-13-8 Kamimeguro, Meguro City, Tokyo 153-0051 Japan<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>&#128123;빈둥이 Tip<br>\t\t\t\t\t<br>3월 23일(토), 24일(일) 이틀간&#160;<a href=\"https://event.stibee.com/v2/click/MjU0MDg1LzIwNjUwNzMvNjc3Lw/aHR0cHM6Ly93d3cubmFrYW1lZ3UuY29tL2FyY2hpdmVzLzIxMzA\" target=\"_blank\">나카메구로 벚꽃 축제(클릭)</a>가 열려. 공연과 퍼레이드도 즐기고, 길거리 음식도 즐기고! 핑크핑크한 분위기를 연출하는 사쿠라 하이볼과 스트로베리 샴페인이 인기야.<br>\t\t\t\t\t<br>imageⓒ 일본정부관광국 및 도쿄 관광 공식 홈페이지",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "7ce2dc19a8.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#127800;개화 시기는 나라별 기후와 환경에 따라 달라질 수 있음둥!",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "8bed9f705f.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#128123; 나만의 국내 벚꽃 명소는? &#128123;",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "7cff61d189.png",
+    "alt": "글로벌 벚꽃 여행 성지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "30년 차 경기도민 Pick 벚꽃 스팟은 여기, 탄천이야. 특히 오리공원 옆 탄천변을 따라 구미공원까지 걷는 코스를 좋아하는데, 여느 유명 벚꽃 명소처럼 붐비지 않아서 좋아&#128525; 동네 주민이 찾는 숨은 벚꽃 명소랄까? 초록색 들판에 노란색 개나리, 분홍색 벚꽃까지~ 꽃동산이 따로 없다니까!&#160;by 메릴린먼로&#128081;<br>\t\t\t\t\t<br>수원 동우여고 & 동원고의 자랑, 바로 이 벚꽃길임! 수원에서도 기슭(?)에 자리 잡고 있는 데다 꽤 언덕이 가파른 편이지만, 이 벚꽃길 하나로 모든 단점이 녹아내려. 봄이 오면 언덕길 따라 벚꽃이 쫙 피는데, 동우여고와 동원고 학생들만의 프라이빗한 벚꽃놀이가 펼쳐진다는. 고등학교 졸업 후 지금도 매년 친구들과 &#128247;사진 찍으러 가는 것도 빼놓을 수 없는 자랑~&#160;by 따따블후르츠&#129475;<br>\t\t\t\t\t<br>겨울에 &#127939;달릴 땐 미처 몰랐어, 이게 다 벚나무일 줄은. 남양주 시민이라면 누구나 아는 왕숙천이야. 특히 다산 수변공원을 지나 진관산업단지까지 이어지는 벚꽃 길 아래를 걷기만 해도 벚꽃 샤워 쌉가능! 관광지도 아니고, 자전거를 타거나 운동을 하는 사람들이 더 많은 곳이지만 그래서 오히려 벚꽃 직관이 가능한 곳이야.&#160;by 처르미온느&#129529;",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>취향의 탄생</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">취향의 탄생</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-취향의-탄생';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "취향의 탄생<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>ㅇ 목표: 취향의 탄생 테마를 매력적으로 소개하기<br>\t\t\t<br>ㅇ 시간: 10분/ Slide 10~12개.<br>\t\t\t<br>경화님 강의자료 다운로드<br>\t\t\t<br><br>\t\t\t<br>제가 관심을 가지는 영역, 시간/공간/관계<br>\t\t\t<br>공간에 관심이 많다.<br>\t\t\t<br><br>\t\t\t<br>1/ Title: 취향의 탄생_겨울시즌 신규테마<br>\t\t\t<br>‘취향의 탄생’ 테마의 파트너콘텐츠는  디자인과 디자이너에 관련된 다큐멘터리, 영화 그리고 각 주제에 관련된 아티클과 책을 다뤄 나갑니다. <br>\t\t\t<br>넷플릭스 다큐멘터리 ‘Abstract’, ‘Way of Seeing’ / 도서 ‘건축은 왜 중요한가’, ‘명품 가구의 비밀’, ‘안목’ / 영화 ‘이타미 준의 바다’, ‘디터람스’를 함께 보고 읽으며 타인의 시각으로 발견한 가치와 나의 안목을 더해갑니다. <br>\t\t\t<br><br>\t\t\t<br>총 6회 모임 중 5회는 사전 미션(공간 방문, 영화 보기, 아티클 읽기 등 세션 진행 전 공지됩니다.)에 대한 스몰토크와 파트너의 큐레이션이 진행됩니다. 나머지 1회는 세션을 진행하며 인상깊었던 건축물 또는 장소를 함께 찾아가 감상합니다.<br>\t\t\t<br><br>\t\t\t<br>최경화 파트너<br>\t\t\t<br>공간에 대한 관심과 남다른 애정으로 건축 전공 후 현업에서 13년간 직장 생활을 했습니다.<br>\t\t\t<br>현재는 디자인을 통해 가치를 실현하는 사업을 준비중이에요.<br>\t\t\t<br><br>\t\t\t<br>건축을 통해서 세상을 바라보는 방식을 좋아하고 미술, 인테리어, 영화, 가구, 전시 등<br>\t\t\t<br>디자인의 전반적인 영역에 관심이 많습니다. 혼자 잔잔하게 덕질을 즐기는 편입니다.<br>\t\t\t<br><br>\t\t\t<br>10명의 멤버가 함께하고 있습니다. 사진 넣기<br>\t\t\t<br><br>\t\t\t<br>건축과 공간에 대해 애정과 호기심을 가진 분<br>\t\t\t<br>타인의 취향을 존중하며 서로의 안목을 나누고 싶은 분<br>\t\t\t<br>일상을 여행하듯 새로운 시선으로 바라보고 삶의 안목도 키우고 싶은 분<br>\t\t\t<br><br>\t\t\t<br>2/ Intro. 취향이란?<br>\t\t\t<br>보통 이런 질문을 던지고 나면<br>\t\t\t<br>다음 장표는 네이버 백과사전 캡쳐라던지 이런 상투적인 장면이 연출됩니다.<br>\t\t\t<br><br>\t\t\t<br>하지만 저는 나름 밀레니얼의 첫 세대이자 밀레니얼 탑골공원에 속해있는 사람이기 때문에.<br>\t\t\t<br>제 맘대로 딱 정해보겠습니다.<br>\t\t\t<br><br>\t\t\t<br>3/ 취향 = 편향<br>\t\t\t<br>제 짧은 생각으로는 취향은 어쨌든 편향입니다.<br>\t\t\t<br>천착하고 집착하고, 빠져들게 만드는<br>\t\t\t<br>그것이 아무리 매력적이고, 섹시하고 가치가 있던 간에<br>\t\t\t<br>그것은 치우침.<br>\t\t\t<br><br>\t\t\t<br>4/ 치우침<br>\t\t\t<br>사람은 본디 생경한 것에 대한 두려움을 가지고, 익숙한 것에 천착하게 되지 않습니까?<br>\t\t\t<br>그래서 편향은 때때로, 왜곡된 시선을 고수하게 하거나 시나브로 우리를 고립시키고, 다름을 배척하게 만들기도 합니다.<br>\t\t\t<br><br>\t\t\t<br>5/ 그래서 취향의 탄생입니다. 취향의 탄생 멤버사진<br>\t\t\t<br>나만의 취향은 편향에 그칠지 모르지만, 우리의 취향은 균형이 되지 않을까요?<br>\t\t\t<br>균형, 취향의 외연이 확장되고, 깊이가 깊어진다.<br>\t\t\t<br><br>\t\t\t<br>취향 권하는 사회, 어쩌면 그래서 더욱 지금의 우리에게 필요한 덕목이 타인의 취향에 대한 호기심과 공감능력이 아닌가 싶습니다. 취향의 좋은 점은 나눌 때 더 넓고 깊어진다는 점이기도 하구요.<br>\t\t\t<br><br>\t\t\t<br>6/ 그래서 나의, 우리의 취향이 다시 태어나는 하는 곳.<br>\t\t\t<br>취향의 탄생입니다.<br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>- “사랑하면 알게 되고 알게 되면 보이나니, 그때 보이는 것은 전과 같지 않으리라.”<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>- 타인의 시선과 안목을 공유한다.<br>\t\t\t<br>\t\t\t<br>다른 것을 서로 권할 수 있고,<br>\t\t\t<br>같은 것을 보고 다른 것을 발견 할 수 있는<br>\t\t\t<br>타인이 내게 발휘하는 흡인력.<br>\t\t\t<br>서로가 서로의 취향에 새로운 색감과, 향기를 덧입혀 줍니다.<br>\t\t\t<br><br>\t\t\t<br>9/ 우리는 이런 것을 나눠요<br>\t\t\t<br>\t\t\t\t<br>- 파트너님의 리드로 건축, 디자인, <br>\t\t\t\t<br>- 쇼핑정보 ㅋㅋㅋㅋ <br>\t\t\t\t<br>- 대망님 가구제작<br>\t\t\t\t<br>- 번개 <br>\t\t\t\t<br>+ 핀란드 디자인에 관심 있으신 분? 국립중앙박물관에서 전시 중이에요. 4번째 모임(2월 2일) 전에 도슨트(10:10분 or 11:10분) 듣고 간단히 점심 후 모임 참석하실 분 3명 이상이면 같이 가요! ㅎㅎ <br>\t\t\t\t<br><a href=\"https://www.museum.go.kr/site/main/exhiSpecialTheme/view/specialGallery?exhiSpThemId=514903\" target=\"_blank\">https://www.museum.go.kr/site/main/exhiSpecialTheme/view/specialGallery?exhiSpThemId=514903</a><br>\t\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>이 리스트는 취향의 테마에 오시면 공유해드립니다. ㅋㅋㅋㅋ<br>\t\t\t<br><br>\t\t\t<br>10/ 이렇게 달라졌어요. 이런걸 느꼈고, 이런걸 배웠어요.<br>\t\t\t<br>결국, 우리는 무엇을 얻게 되는가<br>\t\t\t<br>의자만 보아도 어떤 가치가 숨어있는지 알아차릴 수 있는 안목을 가집니다. <br>\t\t\t<br>새로운 안목을 가지게 되며 일하는 방식이 달라집니다.<br>\t\t\t<br>크리에이티브 업무에 도움이 되는 영감을 얻을 수 있습니다.<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>11/ Outro: 취향은 탄생은,<br>\t\t\t<br>타인의 취향을 탐험하는 만화경이다.<br>\t\t\t<br><br>\t\t\t<br>“사랑하면 알게 되고 알게 되면 보이나니, 그때 보이는 것은 전과 같지 않으리라.”<br>\t\t\t<br><br>\t\t\t<br>이 말은 조선 정조 때의 문장가 유한준이 남긴 명언을 토대로 유홍준 교수가 구절을 좀 고쳐서,<br>\t\t\t<br>문화유산을 보는 자세에 대하여 말한 것입니다. 그러므로 유홍준 교수의 말이라 해도 좋을 것입니다.<br>\t\t\t<br>&#160;<br>\t\t\t<br>&#160;<br>\t\t\t<br>아는 만큼 보인다는 이 말은 유홍준 교수의 《나의 문화유산답사기》제1권의 머리말 일부입니다. 이로부터 \"아는 만큼 <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://m.blog.naver.com/vjcathy/221755544630\" target=\"_blank\">https://m.blog.naver.com/vjcathy/221755544630</a><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>바우하우스 사상으로 유명한 브라운 디자이너였던 디터람스 큐레이션은 양재동에 4560디자인하우스 추천!! <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://instagram.com/4560designhaus?igshid=1ow9fbjexx44d\" target=\"_blank\">https://instagram.com/4560designhaus?igshid=1ow9fbjexx44d</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>믿음문고<br>\t\t\t<br><a href=\"https://m.blog.naver.com/PostView.nhn?blogId=ynssong03&logNo=221293171216&proxyReferer=https%3A%2F%2Fwww.google.com%2F\" target=\"_blank\">https://m.blog.naver.com/PostView.nhn?blogId=ynssong03&logNo=221293171216&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>아까 봤던거 같은 의자 ㅋㅋㅋ 160만원이래요. 남산 피크닉에서 전시판매하는거 같은데 모더니즘 관심 있으신 분들 저희 피크닉 벙개 함 하면 어떨까해요 ㅋㅋㅋ 또 실물로 봐야 좀 더 감각이 살아나니 ㅎㅎㅎ<br>\t\t\t<br><br>\t\t\t<br>Bjarke Ingels : Architecture <br>\t\t\t<br>S1 : E4 <br>\t\t\t<br><br>\t\t\t<br>Ilse Crawford : Interior Design <br>\t\t\t<br>S1 : E8 <br>\t\t\t<br><br>\t\t\t<br>Olafur Eliasson : The design of Arr <br>\t\t\t<br>S2: E1<br>\t\t\t<br><br>\t\t\t<br>내가 사랑한 공간들 <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>“사랑하면 알게 되고 알게 되면 보이나니, 그때 보이는 것은 전과 같지 않으리라.”<br>\t\t\t<br>&#160;<br>\t\t\t<br>이 말은 조선 정조 때의 문장가 유한준이 남긴 명언을 토대로 유홍준 교수가 구절을 좀 고쳐서, 문화유산을 보는 자세에 대하여 말한 것입니다. 그러므로 유홍준 교수의 말이라 해도 좋을 것입니다.<br>\t\t\t<br>&#160;<br>\t\t\t<br>&#160;<br>\t\t\t<br>아는 만큼 보인다는 이 말은 유홍준 교수의 《나의 문화유산답사기》제1권의 머리말 일부입니다. 이로부터 \"아는 만큼 보인다\"라는 말이 널리 알려지게 되었는데, 유 교수가 《나의 문화유산답사기》제2권에서 정정하고 보완한 대로, 이 구절의 원문은 \"知則爲眞愛 愛則爲眞看 看則畜之而非徒畜也\" 입니다. 이는 정조 때의 문장가인 유한준(兪漢雋, 1732 - 1811)이 당대의 수장가였던 김광국(金光國)의 화첩 《석농화원(石農畵苑)》에 부친 발문에서 따온 것입니다.<br>\t\t\t<br>&#160;<br>\t\t\t<br>\"知則爲眞愛 愛則爲眞看 看則畜之而非徒畜也\"<br>\t\t\t<br>&#160;지즉위진애 애즉위진간 간즉축지이비도축야<br>\t\t\t<br>&#160;<br>\t\t\t<br>이를 옮기면&#160;\"알면 곧 참으로 사랑하게 되고, 사랑하면 참으로 보게 되고, 볼 줄 알게 되면 모으게 되니 그것은 한갓 모으는 것은 아니다\"&#160;입니다.<br>\t\t\t<br>&#160;<br>\t\t\t<br>이 문장으로 \"아는 만큼 보인다\" 즉, \"알아야 참으로 보게 된다\"라는 뜻의 한문을 만들면, \"지즉위진간(知則爲眞看)\"이 됩니다.<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://web.facebook.com/notes/lee-young-chun/%EC%82%AC%EB%9E%91%ED%95%98%EB%A9%B4-%EC%95%8C%EA%B2%8C-%EB%90%98%EA%B3%A0-%EC%95%8C%EA%B2%8C-%EB%90%98%EB%A9%B4-%EB%B3%B4%EC%9D%B4%EB%82%98%EB%8B%88-%EA%B7%B8%EB%95%8C-%EB%B3%B4%EC%9D%B4%EB%8A%94-%EA%B2%83%EC%9D%80-%EC%A0%84%EA%B3%BC-%EA%B0%99%EC%A7%80-%EC%95%8A%EC%9C%BC%EB%A6%AC%EB%9D%BC/448479765188274/?_rdc=1&_rdr\" target=\"_blank\">https://web.facebook.com/notes/lee-young-chun/%EC%82%AC%EB%9E%91%ED%95%98%EB%A9%B4-%EC%95%8C%EA%B2%8C-%EB%90%98%EA%B3%A0-%EC%95%8C%EA%B2%8C-%EB%90%98%EB%A9%B4-%EB%B3%B4%EC%9D%B4%EB%82%98%EB%8B%88-%EA%B7%B8%EB%95%8C-%EB%B3%B4%EC%9D%B4%EB%8A%94-%EA%B2%83%EC%9D%80-%EC%A0%84%EA%B3%BC-%EA%B0%99%EC%A7%80-%EC%95%8A%EC%9C%BC%EB%A6%AC%EB%9D%BC/448479765188274/?_rdc=1&_rdr</a>> <br>\t\t\t<br><br>\t\t\t<br>책: 건축은 왜 중요한가<br>\t\t\t<br><br>\t\t\t<br>아미타준의 바다 <a href=\"https://m.post.naver.com/viewer/postView.nhn?volumeNo=23450270&memberNo=35413298&vType=VERTICAL\" target=\"_blank\">https://m.post.naver.com/viewer/postView.nhn?volumeNo=23450270&memberNo=35413298&vType=VERTICAL</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://m.blog.naver.com/120seoulcall/221720826458\" target=\"_blank\">https://m.blog.naver.com/120seoulcall/221720826458</a><br>\t\t\t<br><a href=\"https://images.app.goo.gl/rU7y7jqgznqW9mMk7\" target=\"_blank\">https://images.app.goo.gl/rU7y7jqgznqW9mMk7</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://www.youtube.com/watch?v=GhjtRvanFas&feature=youtu.be\" target=\"_blank\">최백호 (Choi Baek Ho) - 바다 끝 (End of the Sea) MV</a><br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"https://brunch.co.kr/@soulstory/50\" target=\"_blank\">https://brunch.co.kr/@soulstory/50</a><br>\t\t\t<br><a href=\"http://www.vogue.co.kr/2016/04/18/%EC%B7%A8%ED%96%A5%EC%9C%BC%EB%A1%9C-%EA%B3%84%EA%B8%89%EC%9D%84-%EB%82%98%EB%88%84%EB%8A%94-%EC%82%AC%ED%9A%8C/\" target=\"_blank\">http://www.vogue.co.kr/2016/04/18/%EC%B7%A8%ED%96%A5%EC%9C%BC%EB%A1%9C-%EA%B3%84%EA%B8%89%EC%9D%84-%EB%82%98%EB%88%84%EB%8A%94-%EC%82%AC%ED%9A%8C/</a>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

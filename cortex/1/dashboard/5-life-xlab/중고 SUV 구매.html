@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>중고 SUV 구매</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">중고 SUV 구매</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-중고-SUV-구매';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "중고 SUV 구매<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>기아 EV6 롱레인지가 아이오닉5보다 나은 대안입니다. <br>\t\t\t\t<br><br>\t\t\t\t<br>기아 EV6 / 아이오닉5<br>\t\t\t\t<br>현대&#160;코나 일렉트릭(구형 OS)<br>\t\t\t\t<br>기아&#160;니로 EV(1세대)<br>\t\t\t\t<br>투싼 하이브리드 / 스포티지 하이브리드<br>\t\t\t\t<br>가솔린 SUV(투싼/스포티지/셀토스급)<br>\t\t\t\t<br>코나EV(19~20년식) <br>\t\t\t\t<br>니로EV<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>더 긴 주행거리&#183;스포티한 주행감&#183;최신 페이스리프트 모델 중고 가성비<br>\t\t\t\t<br><br>\t\t\t\t<br>추천 TOP 3 (2~3천 중고 SUV 기준)<br>\t\t\t\t<br>1) 1순위:&#160;니로 EV(1세대) + 윈터타이어 + 루프랙<br>\t\t\t\t<br>- 2인 위주 + 보드 루프랙 + 주말 레저에 가장 “무난하게 딱 맞는” 패키지.<br>\t\t\t\t<br>- 코나EV보다 적재/공간 체감이 낫고, 운영 스트레스가 적어요.<br>\t\t\t\t<br>- 추천 세팅<br>\t\t\t\t<br>- 윈터타이어는 필수(강원 스키면 거의 보험)<br>\t\t\t\t<br>- 급속 충전만 고집하지 말고(배터리 컨디션 측면), 가능하면 “회사/근처에서 완속 혼합” 루틴<br>\t\t\t\t<br>2) 2순위:&#160;코나 일렉트릭(구형) + 윈터타이어 + 루프랙<br>\t\t\t\t<br>- 같은 예산에서&#160;“상태 좋은 개체”&#160;찾기 제일 쉬운 편.<br>\t\t\t\t<br>- 단점은 니로EV 대비 공간/승차감이 조금 더 “컴팩트”함.<br>\t\t\t\t<br>- 추천 세팅<br>\t\t\t\t<br>- 보드 길이/루프하중 체크(루프랙 장착 가능 차종/트림 확인)<br>\t\t\t\t<br>- 겨울엔 체인/스노우삭을 트렁크에 상시 비치<br>\t\t\t\t<br>3) 3순위(“AWD 욕구 충족”):&#160;EV6 롱레인지 AWD<br>\t\t\t\t<br>- 강원 눈길에서 심리적 만족감은 확실히 커요(특히 경사/눈 쌓인 주차장).<br>\t\t\t\t<br>- 다만 2~3천 예산에서 AWD는 보통&#160;주행거리 많은 매물&#160;비중이 높아서,<br>\t\t\t\t<br>- <b>“검수 자신 있음 + 고주행 감수”</b>일 때만 추천.<br>\t\t\t\t<br><br>\t\t\t\t<br>- 고주행/리스크(예상치 못한 수리&#183;감가)가 싫다￼→&#160;니로EV/코나EV(FWD) + 윈터타이어가 정답<br>\t\t\t\t<br>- 눈길에서 ‘출발 스트레스’가 싫다 / AWD 심리 안정이 필요하다￼→&#160;EV6 AWD로 가고, 대신 “매물 검수”에 비용/시간을 쓰기<br>\t\t\t\t<br><br>\t\t\t\t<br>&#127942; 최종 추천<br>\t\t\t\t<br>\t\t\t\t\t<br>- 3,0003,500만원대 2223년식 저주행 매물 다수<br>\t\t\t\t\t<br>- 디자인 좋고, 적재공간 충분, 루프레일 기본<br>\t\t\t\t\t<br>- 연비 16~17km/L 실화<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>- 스포티지보다 약간 저렴하게 가능<br>\t\t\t\t\t<br>- 실내 공간 동급<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>- 3,200~3,500만원대 진입 가능<br>\t\t\t\t\t<br>- 배터리 SOH 85% 이상 확인 필수<br>\t\t\t\t\t<br>- V2L로 캠핑/서핑 시 전원 활용 가능 (이건 장점)<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>2. 예산(2,500~3,500만 원)별 추천 모델 분석<br>\t\t\t\t<br>2026년 초 기준, 21~22년식 전기차들의 감가가 꽤 진행되어 아이오닉5와 EV6가 가이드라인 안으로 들어왔습니다.<br>\t\t\t\t<br>\t\t\t\t\t<br>- 이유: 3,000mm의 긴 휠베이스와 슬라이딩 콘솔 덕분에 1열 사이 공간이 비어 있습니다. 롱보드를 조수석부터 대각선으로 찌르듯 넣을 때 가장 유리한 구조입니다.<br>\t\t\t\t\t<br>- 장점: V2L 기본 탑재, 압도적인 실내 개방감.<br>\t\t\t\t\t<br>- 시세: 3,100~3,400만 원대 (주행거리 4~6만km 기준)<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>- 이유: 아이오닉 5보다 스포티한 주행감. 장거리(양양/곤지암) 고속도로 주행 시 피로도가 적습니다.<br>\t\t\t\t\t<br>- 단점: 천장이 낮아 롱보드를 실내에 실으면 답답할 수 있습니다.<br>\t\t\t\t\t<br>- 시세: 3,200~3,500만 원대<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>- 이유: 구형(1세대)보다는 2세대를 추천합니다. 실내가 훨씬 넓어지고 V2L도 지원합니다. 3,000만 원 언더로 상태 좋은 매물 확보가 가능합니다.<br>\t\t\t\t\t<br>- 시세: 2,600~2,900만 원대<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br>3. \"롱보드 + 2인 + 장비\" 적재 현실 조언<br>\t\t\t\t<br>\t\t\t\t\t<br>- 해결책: 2인 이상 탑승 + 롱보드 적재라면 '루프 캐리어(가로바)' 장착이 필수입니다.<br>\t\t\t\t\t<br>- 추천 조합: 아이오닉 5 + 순정 루프랙 매물. * 신촌 하나로마트 충전기가 급속인지 완속인지 확인해 보세요. 완속이라면 금요일 밤에 꽂아두고 토요일 새벽에 나가는 '풀충전' 루틴이 완벽해집니다.<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>- 코나 EV / 니로 EV (구형): 롱보드와 스키 장비를 넣기엔 폭과 길이가 좁아 레포츠용으로는 금방 기변증이 오실 겁니다.<br>\t\t\t\t\t<br>- 셀토스 가솔린: 주말 장거리 주행 시 연비 효율이 낮고, 2026년 시점에선 전기차 대비 기술적 메리트가 떨어집니다.<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>- 거주지 주차: 신촌 쪽은 기계식 주차장이 많습니다. 아이오닉 5나 EV6는 전폭이 넓고 무게가 무거워 기계식 주차 가능 여부를 반드시 확인해야 합니다. (이게 안 된다면 니로 EV가 유일한 대안일 수 있습니다.)<br>\t\t\t\t\t<br>- 롱보드 길이: 정확히 몇 피트인가요? 9.6피트 이상이면 아이오닉 5 실내도 버겁습니다.<br>\t\t\t\t\t<br>- V2L 활용 계획: 스키장이나 서핑 스팟에서 전자기기(커피머신, 드라이기, 히터 등)를 쓸 의사가 있으신가요?<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>지프 레니게이드 > 랜드로버 디스커버리 스포츠 > BMW X1/X3 순입니다. 이 순위는 렌터카 업체의 수입 SUV 중고 인기 TOP5(지프 5위, 랜드로버 4위)와 최근 판매 추이를 반영하며, 아우디 Q5와 벤츠 GLK/GLA는 상대적으로 낮은 편<br>\t\t\t\t<br><br>\t\t\t\t<br>SUV/패밀리카 쪽에서는 쏘렌토, 카니발, 셀토스 같은 국산 차종이 ‘지속적인 대여 수요’와 ‘수익률’ 관점에서 대표 인기 차종<br>\t\t\t\t<br><br>\t\t\t\t<br>2~3천만 원 예산으로 중고 수입 SUV를 찾는다면, 주행거리 10만 km 이내의 2018~2021년식 모델 위주로 가성비 좋은 옵션을 고려하세요. 이 가격대에서는 소형~중형 SUV가 주를 이루며, 유지비와 오프로드 성능을 중점으로 검토하는 게 유리합니다.​<br>\t\t\t\t<br><br>\t\t\t\t<br>추천 모델<br>\t\t\t\t<br>- BMW X1 또는 X3 (E84/F25 전기형): 2천만 원 초반~중반에 2018년식 매물 다수. 주행 성능과 옵션이 우수하나, 변속기 오일 교환 등 기본 점검이 필수입니다.​<br>\t\t\t\t<br>- 벤츠 GLK 클래스 또는 GLA: 2천만 원대 초반, 컴팩트 SUV로 안정적 주행감. 신차 대비 할인 폭이 커 가성비 높으나 센터 수리비 확인하세요.​​<br>\t\t\t\t<br>- 아우디 Q5 (8R): 2천만 원 중반, 2010년대 후반 모델로 고급감 있음. 안전성과 핸들링 강점이나 연비와 부품비 주의.​<br>\t\t\t\t<br>- 랜드로버 디스커버리 스포츠: 2천만 원 초반대, 차박&#183;레저용으로 적합. 풀타임 4WD지만 엔진&#183;미션 상태 꼼꼼히 점검 필수.​<br>\t\t\t\t<br>- 지프 레니게이드 또는 그랜드 체로키: 2천만 원 미만 판매 1위 모델, 오프로드 성능 뛰어나며 연비 준수. 패밀리카로 공간 활용 좋음.​<br>\t\t\t\t<br>구매 팁<br>\t\t\t\t<br>- 엔진&#183;변속기 오일 교환, 사고 이력 확인 후 구매. 수입차 유지비(연 100~200만 원 예상) 대비 국산 SUV(쏘렌토 등)도 비교 검토하세요.<br>\t\t\t\t<br>- KB차차차나 엔카 같은 사이트에서 실매물 검색 추천.​​<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>3천만 원에서 4천만 원대 예산으로 구입 가능한 중고 수입 SUV 차량 추천은 다음과 같습니다.<br>\t\t\t\t<br>추천 SUV 모델<br>\t\t\t\t<br>- BMW X4 (F26) : 3천만 원대 초반에 구입 가능. 디자인 선호도에 차이가 있으나 주행 성능과 감성이 뛰어나 인기가 높습니다.<br>\t\t\t\t<br>- 벤츠 GLC 220d : 중고 시장에서 인기 있는 차종으로, 신차 가격 대비 약 700만 원 저렴하여 좋은 가성비를 자랑합니다.<br>\t\t\t\t<br>- 랜드로버 디스커버리 5 : 차박용으로 인기가 많은 SUV이며 엔진과 미션 상태를 꼼꼼히 점검해야 하는 특성이 있습니다.<br>\t\t\t\t<br>- BMW X3 (G01) : 4천만 원대 중반으로 상태 좋은 매물을 찾기 가능하며, 옵션과 주행성능이 우수합니다.<br>\t\t\t\t<br>- 아우디 Q7 (4M) : X3보다 한 급 위로 대형 SUV를 원한다면 4천만 원대 중고로 선택할 수 있으나 안전 평가 부분은 확인이 필요합니다.'<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://chatgpt.com/c/692911d9-b168-8324-a131-2143ab28a287\" target=\"_blank\">GPT 추천 매물</a><br>\t\t\t\t<br><a href=\"https://chatgpt.com/c/692911d9-b168-8324-a131-2143ab28a287\" target=\"_blank\">Perplexity </a>추천<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>1순위:&#160;스포티지 하이브리드 (NQ5, 2022~)<br>\t\t\t<br>2순위:&#160;투싼 하이브리드 (NX4, 2021~)<br>\t\t\t<br>만약 EV 가고 싶다면:&#160;아이오닉5 롱레인지 (2021~22년식)<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>최우선 추천: 현대 아이오닉 5 (21~22년식 롱레인지)<br>\t\t\t<br>스타일 중시: 기아 EV6 (21~22년식)<br>\t\t\t<br>가성비 실속파: 기아 니로 EV (2세대 SG2 / 22~23년식)<br>\t\t\t<br><br>\t\t\t<br>9피트 롱보드는 준중형 SUV(투싼/스포티지/아이오닉5) 실내에 넣으면 조수석을 완전히 눕혀야 하며, 사실상 2인이 앞뒤로 앉기 힘든 구조가 됩니다.<br>\t\t\t<br><br>\t\t\t<br>4. 고려하셨던 모델 중 \"비추천\" 리스트<br>\t\t\t<br><br>\t\t\t<br>추가 확인이 필요한 사항<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>구매 후 타운카에 내놓기. 근데 주중에 렌트 빈도가 낮으면 소용 없는데.",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

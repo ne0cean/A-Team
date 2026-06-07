@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICO</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">ICO</div>
+<div class="date">2018년 1월 24일 수요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-ICO';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "ICO<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>Abyss<br>\t\t\t<br>TON<br>\t\t\t<br><br>\t\t\t<br>대박 ICO 특징분석 + 환경변화<br>\t\t\t<br><br>\t\t\t<br>※ ICO관련<br>\t\t\t<br>1.&#160;<a href=\"http://ico-korea.com/\" target=\"_blank\">ico-korea.com</a><br>\t\t\t<br>한국어로 ico모음 된 사이트. ico토큰이 많고, 한국사람들이 보기에 최상의 사이트.<br>\t\t\t<br>2.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Ficorating.com%2F&h=ATPQPchCBtxbYu9s2Np96elaioj5Sqci9zlLqMUWq2t_1prz1_d0fd3VTBJ5rrxBavKNDy1uoYeRXzo_u4DjWB5DjaAtpF9Z7E0wtf7hZ0L47Mf2Web5XeSWcXMN_mA_Az50iHZRLrEhIP274uq5aAEQAv-13dr46BfHvMAP2b5hoy1Tcu6kivCQ26yfJRXMx6kxuznD5x8fBJol5GDkJ5yqrEsCTwYNKIypoFuMeRwvgXVrko21QNuY85oEO5UGXSFI8pHt0XITMNiPWw\" target=\"_blank\">icorating.com</a><br>\t\t\t<br>영어로 되어 있지만, ICO관련해서 정리가 굉장히 잘 되어 있음. ico마다 점수를 부여하고 어느정도 참고가능<br>\t\t\t<br>3.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Fcoinschedule.com%2F&h=ATNDfY-qfGtQP0AFLpzJgBJVG2nyBHmO3XTYoHJiR9YcbX5RZgf67NmXlpN-iM7yERmO7ML5ynG8bXi9iYUxheu8uKPf_C8fnPHsCwnHbPtgjFbGCFrWY8qzEGUFINWkujJOvRREuVbhyoBxIuLe5yfXoShH1tmlEXrPU5pMTg8QGUbZjZj2UtVjxhgrMnYx0pKJ4xgBHrlit7rjQU-MwnWLtrt1VWSbf4ELXEsWzCQO0ILAwvy7urbkqsS-lTargyTmKaOaxTWbVRNycg\" target=\"_blank\">coinschedule.com</a><br>\t\t\t<br>ico 코인들 전체적인 스케쥴을 한 눈에 볼 수 있음.<br>\t\t\t<br>※ 거래소 코인 종합차트<br>\t\t\t<br>1. cryptowat.ch/<br>\t\t\t<br>2.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Fwww.worldcoinindex.com%2F&h=ATNSjrDTK3RTfCr6vHTU73VljA0IDCzPcmqDb7_UmVkV5Iq5sgR6G9ap8Pp7xhAcJ1P7zrURulW7604npA0xUV8qmY3uEz6RH_-F4TcX2tWJHnwGWWMKFJLOtW2VGh7RXoCNRhalSRFAqwyyaDnPkW9HLw1Ek_bFZYP7ykBg_m9MGq1wlZpgS2WI-Rf2XlP8j_QdF6HzsMOPTjF31LlHmOGH85z93lT7C6K8m2OyN2tk7CZrAlXKmYr-K9bNWJDenmvmxlNfLldZuAg43g\" target=\"_blank\">www.worldcoinindex.com/</a><br>\t\t\t<br>3.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Fwww.coinhills.com%2Fko%2Fmarket%2Fexchange%2F&h=ATO3PdOn0v6TLeMD7wNmzolgwQWcj7fjHxvrycKWLSGDW6ArshSetMe-2C9hoRJArzlxWumiCP3lzQG2dIoeoP3txGAX3h0kxvEGRkB-qq5SWPZT5l_h-ILmCb0UojZs6ajBAkVg72_eczdYx8CmZWc64zGjlYpolAxO1rfM9qMprpFHkBpOPsidOiRHX2ReEeHrmAEAHe2rBVS3ISLuT3BR0hTxGRZSjxZG84t2FUY3VPG5BNtNSXXcY62LR0OKmCSHWEoaypNtP08Obw\" target=\"_blank\">www.coinhills.com/ko/market/exchange/</a>&#160;(거래소별 거래량 비교)<br>\t\t\t<br>4.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Foinsum.io%2Findex.html&h=ATPVVFL00ePtt47w1td98vrtlLNrMGnppdBJoqLC-vgtQdWRWGHvjbJEeRXIb8RicFVbL-qsm4XfN16xT8utdSQjIDf_zrQ-ej6Ac1BRjjC4didBcJ0cp_0oS1Gvrp34U4ERQNN221bgA9ZBbUM0wgWqC-N5PqpTepIf4EBWvv1zF7O_l52hD_CAlHLLDy82caP_BSLZDHOkzk7OJSt6i3j-K2phgoSDvVSlrIZWwecD529njo6PeUx-9h4RL0M7HL5vuIm03OWoH6hZTA\" target=\"_blank\">oinsum.io/index.html</a><br>\t\t\t<br>5.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Fcoinbine.com%2Fexchange%2Fpoloniex&h=ATOkXvQL9HpkO2xHr82WgQwLRclxuruPbTf0Q1GDc5KXu9UHuoEMj_5Aww5gUV_lobwdu1BElhuUqtwQus20CqdTHSdWHh03GOUM2Wuh18tWEUBM9qbsqqk6Vej0ABtxuKLA94CvvrQMi1VcZ6a03rAk1LAD2a33U3SLD4qmbgsEjmUoAhTtVA_WLkkT1OwzOjpHPNDzRlwdwDWbKYYhdxa69OItvhjpYZxMY3vpl__g1YHDlbE8eurzkcPcG8pw_d4WiMvXKkQkmucrBg\" target=\"_blank\">coinbine.com/exchange/poloniex</a>&#160;(거래소별 원화기준으로 볼 수 있는 시세 사이트)<br>\t\t\t<br>※ 트레이딩 분석<br>\t\t\t<br>1.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Fkr.tradingview.com%2F&h=ATPxB6zavdfqGG9KbdQzSW-yNf8v4U1ntLJw99HBFyV-tVj3DRCYx17MQw5QPaGu0hJI9_JGdxwx9N2FqBe-dccScdw1WU0T8xeYWBjpaj3lATrVev2qdvi2gfntDrw4Bcy8r8mcrKmZGm9mLGtOgxflqVOOSUdFDulU_4GER6EzT7mN5C-2mWQMzkIEVbuvFDGCsBX_d5QryVAlX-zsFdcq61NhUCm6u078rOTfw1TnMxh-wtz77IOUsANSt7k1Dx070daWaa2J2KVmIQ\" target=\"_blank\">kr.tradingview.com/</a><br>\t\t\t<br>2.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Fcoin.soran.io%2Feth&h=ATOxQor40MY7TiqURYx8N4Kxk_G_LmRSzs4UfJpERZRLDamqiBznSN2dwMfGi4NBjiy2OikqPLniZmtZuTH6OlFtw-GRcr-x-y_JoYN4l1qEsnhLBkqoneZRQhsgrJktdfascyCxiu_n5JVJKLjsiE6QXmXcbXtaH4xrPLFXhov6Z6Dh12FeV7pSPdw2j6jFqXS2LZyR5Nl7TLvvW_ERwBc6AFjX5Jj3hH4dYr831JjOLnmIQN53q1vaOa8gqg6qjZ2ip26t8jt-s-Ki4A\" target=\"_blank\">coin.soran.io/eth</a>&#160;코인별로 (한화) 매도벽 매수벽을 막대그래프로 보여주는 사이트입니다.<br>\t\t\t<br>※ 암호화폐 뉴스사이트<br>\t\t\t<br>1.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Fwww.coindesk.com%2F&h=ATMiNgb47jhzmNxHNdZnbJ0uoufjtQy_u0gNacsS3h7q__PRa2t_RSUPhLM-4iLKCSvCDv5my7pgANoG9Z-6bBe7v0Qsvz-7ZlLIGKanliTQ3XJ-wlydTOSiPnyDdKLHsrv0hyd7yFwv3Ss5Ez-OdK95DYt28VJnr7__oRLk1dEemQU_n4KSWqVNEcfUn_H7xojEMiXOoMmW56Nfeog7fqFMmOtG3aw3hpeiXq8taZNVyak1MHGnMV9TkJZEY6l_3UEUA40AXNmXLrr_cQ\" target=\"_blank\">www.coindesk.com/</a><br>\t\t\t<br>2.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Fwww.newsbtc.com%2F&h=ATPhIsnEDNBmDgTKbg56RE13c4Atnj_DZNqVlPr211AsVSwJpK9g4uhAGRozOpcJTGlnbxZRe2U_zYvb5IJqoX6ytZV7Iz3dXub7px3_kIhRGrN47bFX5tww60PI40Tw7raJDZ23yqFa_2yLWTBnOf_6X887VpmoitZ8J_C3kRM_szwgggaBErZ3M5yz7elLLHcxV9NhqsSTkifxY_HoMrNpDMcBFBRdVvv-t0pcH7xnQXqA0beI7xwv_dXl7PfxESoi-jjScTtT6upF7Q\" target=\"_blank\">www.newsbtc.com/</a><br>\t\t\t<br>3.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Fwww.ethnews.com%2F&h=ATPcMPM-JMAC5LkN-jErMeg19ZK8Mgh938Hwgi7ibQy-va-qjIdgEmMfNq1G2n3l3wY35L7NNlpQZkN-t8qo4-spoXhhjYsfOdqUu2z_WzwYbv1Yd7BA2Fkh8NjhdEBHyhuqse3qQSh3kuqd6GFq9_0WqY_saQjUAQf_cX5HEXbR7p0n7YjJdge8PauY4SrQvqv0kiggeZL0JBHw5Gt14UybDeC84Tlly0y-P-mTrEXkCsOHwiXdMSturyWBCcDbB46DLr2EOas1vWFjlw\" target=\"_blank\">www.ethnews.com/</a><br>\t\t\t<br>4.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Fwww.cnbc.com%2Ftech-transformers&h=ATN7BV5XZKKsJfFX_vSbABxNnFxihSDY5hdkZeCVl4zujK5JqxQdb-ZzxjDoKDTDeoG9NLJy8oYRCJnleyoymI1lF-cvcdUmO8zxFHUB_I-DJp9Tz5aAdlPWWraIE9KISrldYW5GrH2Alv_1t5MCj28cgoxSvPqRTo0NUjTFVAwAwvnXXIJ0K2ZBjQ7Wzyxn5qbVpMaT2RkyxsvyBIceZg-ILAj_09zcp6ljOtREp8PR3epD3SljHW0RRLPp7ZdML7_99WxbxzkhhqsKUw\" target=\"_blank\">www.cnbc.com/tech-transformers</a><br>\t\t\t<br>※ 이더리움 관련<br>\t\t\t<br>1.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Ftimesofethereum.com%2F&h=ATMKyWGgXMhGD69lmgmxb5kGcXkm8SUMjE8rQ0BDTpkv60zroOSkv2_rJs7vZrTskRuFlED5QMy2VNxqcIHlWSXFU3aZZ0V3MVtuW-xS-rCGgld0YLRptPp1WIuRyvWa481EMq2vsDx7szQFAqwA7Y_XWwUonrsfYBz8RTigvV238UxZMC6A_vbqQT0vfQ_UKc4pnbgupZVxqF4WB_30ApKQmhWDN_m39w5IW_6Wdlzfykf-E3C9P3BLkGirj1Tpb5KlmiR6BJJw-s2tMw\" target=\"_blank\">timesofethereum.com/</a><br>\t\t\t<br>2. news.codetract.io/<br>\t\t\t<br>※ 리플관련<br>\t\t\t<br>1.&#160;<a href=\"https://l.facebook.com/l.php?u=https%3A%2F%2Fripple.com%2Finsights%2F&h=ATOL0Z1E4tukmjiWTyalhabz8s-P6TpujS0aggR7OIP7Gbj-I2zvLv9W05TXkHu2BOz0vUOSxWCNVIB-jgDiMZANWnN95m2cOYBss0QMdoW2M_WszRBm1nHpcECJRrnYwrK_k3PInPVnvlL8Y3T5tBOJPrF7FEKsoM23Ymt2q3QGqh2dlM4Vo8wZOdL2276bS5Uy6QoyYBvHdzI0NsU6q1bcO2hssu4f6ZhGGllZi8k7vo9KY-nB28TiiecywfvoZNQad1jr25pXFlSpSA\" target=\"_blank\">ripple.com/insights/</a><br>\t\t\t<br>2.&#160;<a href=\"https://l.facebook.com/l.php?u=https%3A%2F%2Fxrpcharts.ripple.com%2F%23%2F&h=ATN7vC7Y1Hy8agzmWm0QUov6QRmNW_KDRiJl-9rebcwRYVrf8qvEj54Wxulfd8vdW036uTEzpTxdBYJ8Si81bs4lhWYiGPS31h97GiQ-hxaby3FetFEicSC4bMQhe-i8Pj_VEKOktiw1gUkGWxOFSHmW94jS8QSh2kITFSiKs1xBfrifdk7fUi_O0HTpjN_lxTGtQZ_BkEa9ORIfiE5UNy4RK4NDK8RGS1UTs4XXsiDpQ5H4H8pZyLvOkmrWeWmK_53G4p8cm2n9j-Ez6g\" target=\"_blank\">xrpcharts.ripple.com/#/</a><br>\t\t\t<br><a href=\"http://3.xrpchat.com/calendar/\" target=\"_blank\">3.xrpchat.com/calendar/</a><br>\t\t\t<br>※ 김프 한프 비교 프로그램<br>\t\t\t<br>1.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Fluka7.net%2F&h=ATPe5W7Xa0GML2a67TTFhJzmxiWcyQDvPvG4eqFcZrldWnfJwPqipCowCHgb2FRCdF_wYsme61X2dbMUxTMQJR6GZjIdBSKuL58YJITtYMeuStot6ivozxF137IsnGDWoS9cj5zMcA69wI52FPM5NvXP9tmlKDAYs4gxDmOeD2EAeIGdT_L8Q5phZLJVoQUS36ITHlGEAaF756Tceyj6I8yej9K-Q0KEmIFQeB8Ip4Y3dWZyR8gPESRMCEhKDgDp4p3cE79L6UfEBwEJ1g\" target=\"_blank\">luka7.net</a><br>\t\t\t<br>※ 비트코인 마진비율 확인<br>\t\t\t<br>1.&#160;<a href=\"https://l.facebook.com/l.php?u=http%3A%2F%2Fmargin.ml%2Fbtc.php&h=ATPwgYOLjzkFVMpubEABatNVXEZOhm838okqcfLCey7yljFsHKm4tH-QBnqJzvmPDJK6JSNNhXPuzsi1ebvamx2u-DyiSS3MolI-Ot2YvQYUQykqjcsQgvjKuILHTLumNXGjCUA8RacCpg6SKQeLTF5IaQ34rJQyoa6OjdkzQ-v3wX1LsPUX26dx2T2Pwhl2t4F47drnB9fG_51iqncUvpRh-mp5tfeNhzPgNyCJhs9k_2iY6Nhn23ljDVIWiVEtL3hHD5PYB1fuA6Fm8A\" target=\"_blank\">margin.ml/btc.php</a><br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://www.facebook.com/pure0cean\" target=\"_blank\">https://www.facebook.com/pure0cean</a>>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

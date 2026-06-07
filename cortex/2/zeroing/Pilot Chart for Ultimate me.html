@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pilot Chart for Ultimate me</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">Pilot Chart for Ultimate me</div>
+<div class="date">2011년 4월 6일 수요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Pilot-Chart-for-Ultimate-me';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "Pilot Chart for Ultimate me<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>Vision (어떤 사람으로 죽고 싶은가) - 한 분야의 궁극, 명장.<br>\t\t\t\t<br><br>\t\t\t\t<br>VC가, MAKER가 된다. 죽기전에 세 가지 영역에서 세 가지 혁신을 일으킨다.<br>\t\t\t\t<br>시간과 공간 그리고 관계(연결). 세상을 바꾸는게 아니라, 사람들이 세상을 인식하는 방식을 혁신한다.<br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>- 서울에 내집 마련 및 결혼 : 2억 5천<br>\t\t\t\t\t<br>- 사내에서 기술적 이해도가 가장 높은 Junior Marketer<br>\t\t\t\t\t<br>- <br>회사 돈으로 MBA 가기<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>- 토플iBT 110 / GMAT<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>- Human Network Building - 목적과 방향성 수립 / 모임을 만들고 총무가 된다<br>\t\t\t\t\t<br>- 주말 스터디 조직만들기(서울)<br>\t\t\t\t\t<br>- 사내 혁신사례 3개 창출 (2012년)<br>\t\t\t\t\t<br>- 대학생 수준의 소비를 유지 / 2억 모으기<br>\t\t\t\t<br>\t\t\t\t<br>- Hipo / Expert<br>\t\t\t\t<br>- 팀과 모임을 만들고 이끈다. ex)책 쓰는 모임<br>\t\t\t\t<br><br>\t\t\t\t<br>2014년 목표<br>\t\t\t\t<br>\t\t\t\t\t<br>- 사내 Expert 목표 설정 - 사내 특정분야에서는 사장보다 많이 알아야 한다. positioning spot 설정<br>\t\t\t\t\t<br>- 사외 세미나 및 교육 신청<br>\t\t\t\t\t<br>- 사내 혁신사례 2가지 이상 창출<br>\t\t\t\t<br>\t\t\t\t<br>사내 특정분야 전문가로 포지셔닝 - 기획자 BM<br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>- 내 업무에 대한 글로벌 스탠더드 파악<br>\t\t\t\t\t<br>- 다양성을 인정하고 이해하기<br>\t\t\t\t\t<br>- 국내외 정세와 트렌드에 대해 끊임 없이 스터디<br>\t\t\t\t\t<br>- 회사의 진행 중/진행 예정 글로벌 프로젝트 이해<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>장기 목표 (5년)<br>\t\t\t<br><br>\t\t\t<br>중기 목표 (3년)<br>\t\t\t<br><br>\t\t\t<br>내 경쟁자들은 구글, 애플의 천재들.<br>\t\t\t<br><br>\t\t\t<br>내 경쟁자는 뉴욕에 있다.<br>\t\t<br>\t\t<br>\t\t\t<br>궁국의 나에 대한 호기심<br>\t\t\t<br>Journey to ultima Thule,<br>\t\t\t<br>Curious about ultimate me<br>\t\t\t<br>나만이 살아낼 수 있는 최고의 나.<br>\t\t<br>\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>목표설정<br>\t\t\t\t\t<br>Big Hairy Audacious Goal<br>\t\t\t\t\t<br>Moonshot, <br>\t\t\t\t\t<br>insanity is doing the same thing over and over again but expecting different results<br>\t\t\t\t\t<br>OLD WAYS won't OPEN NEW DOORS<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>specific : 구체적으로 명확하게<br>\t\t\t\t\t<br>measurable : 측정가능하도록<br>\t\t\t\t\t<br>action - oriented : 행동중심적으로<br>\t\t\t\t\t<br>realistic : 현실적으로<br>\t\t\t\t\t<br>timely : 시간의 제약<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>Specific: 구체적이고<br>\t\t\t\t\t<br>Measurable: 측정 가능하며<br>\t\t\t\t\t<br>Attainable/Action-oriented: 달성 가능한 수준의 / 행중심적으로<br>\t\t\t\t\t<br>Realistic: 현실적인 목표를<br>\t\t\t\t\t<br>Time based: 시간 제한을 두고 설정하라&#160;<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>Collaborative: 한 팀이 되어 협력적으로 일할 수 있도록 구성원을&#160;독려하는<br>\t\t\t\t\t<br>Limited: 범위와 기한을 한정한<br>\t\t\t\t\t<br>Emotional: 구성원들의 에너지와 열정을 모을 수 있도록 정서적으로 연결된<br>\t\t\t\t\t<br>Appreciable: 보다 빠르고 쉽게 달성할 수 있도록 큰 목표를 작은 목표로 쪼개어<br>\t\t\t\t\t<br>Refinable: 확고부동하되, 상황 변동에 따라 적절히 수정할 수 있는 권한을 명시한<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>'GOSPA 모델'<br>\t\t\t\t\t<br>목적(Goal) - 장기적으로 성취하고픈 구체적이고 측정가능하며 시간제한이 있는 결과.<br>\t\t\t\t\t<br>목표(Objectives) - 목적에 도달하기 위해 달성해야 할 중간 단계. 계단<br>\t\t\t\t\t<br>전략(Strategies) - 각각의 목표를 성취할 다양한 방법들. 판매량 달성 등<br>\t\t\t\t\t<br>우선순위(Priorities) - 목적/목표 달성을 위해 상대적으로 중요한 활동들. 파레토 법칙<br>\t\t\t\t\t<br>행동(Action) - 전략 실행, 목표 달성, 목적 성취를 위해 취해야 할 구체적이고 측정가능하며 시간제한이 있는 활동<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br>내 행복은<br>\t\t\t<br>뭔가를 극한으로 만들어 내는거야.<br>\t\t\t<br>내 성공은<br>\t\t\t<br>그것으로 세상을 바꾸는 것<br>\t\t\t<br>돈은 성공을 재는 정량적 지표일 뿐<br>\t\t\t<br><br>\t\t\t<br>어디에 살고 싶은가?",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "139ec2e2d7.png",
+    "alt": "Pilot Chart for Ultimate me",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "매 분기 스포츠1개 악기/음악 1개장르 마스터<br>\t\t<br>\t\t<br>\t\t\t<br>ㅇ 전략 설정에 앞서 해야 할 질문<br>\t\t\t<br>무엇이 변화하고 있는가? <br>\t\t\t<br>그리고 오래도록 변하지 않을 것은 무엇인가?<br>\t\t\t<br><br>\t\t\t<br>-> 변하지 않을 영역에서 핵심 경쟁력을 세우고<br>\t\t\t<br>과거와 달라진 것에서 기회를 찾아라.<br>\t\t\t<br>지금은 할 수 있는 것이 반드시 있을 것이다.<br>\t\t\t<br>아바타의 제임스 캐메론 감독이 기술적 진보를 기다렸듯이 <br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"http://ppss.kr/archives/38711\" target=\"_blank\">http://ppss.kr/archives/38711</a>",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "719bd09589.png",
+    "alt": "Pilot Chart for Ultimate me",
+    "w": 220
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사이드 프로젝트</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">사이드 프로젝트</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-사이드-프로젝트';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "사이드 프로젝트<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>창업가, 기업가<br>\t\t\t<br>사내: 상품 만드는 팀에서 기획자/ 경전/ 인공지능<br>\t\t\t<br>사외: <br>\t\t\t<br><br>\t\t\t<br>아마존  플라이휠로 성장 루틴 만들기-운동/ 공부<br>\t\t\t<br>인풋의 아웃풋화, 아웃풋의 인풋화<br>\t\t\t<br><a href=\"https://brunch.co.kr/@moneyfire/264\" target=\"_blank\">https://brunch.co.kr/@moneyfire/264</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t기본기<br>\t\t\t\t\t<br>MS office<br>\t\t\t\t\t<br>리서치<br>\t\t\t\t\t<br>영어<br>\t\t\t\t\t<br>수학<br>\t\t\t\t\t<br>포토샵/프리미어/일러스트레이터, 제플린/피그마/스케치/<br>\t\t\t\t\t<br>노션<br>\t\t\t\t\t<br>생활코딩<br>\t\t\t\t\t<br>과학, 예슐, 역사, 문학, 그림<br>\t\t\t\t\t<br>야구, 농구, 배구, 테니스, 골프, 서핑/수영<br>\t\t\t\t\t<br>\t\t\t\t\t<br>영어-마이써니(해커스)<br>\t\t\t\t\t<br><a href=\"https://mysuni.sk.com/suni-main/\" target=\"_blank\">집</a><a href=\"https://mysuni.sk.com/suni-main/lecture/college/CLG00006/channels\" target=\"_blank\">글로벌 칼리지</a><br>\t\t\t\t\t<br>어학(영어) 채널<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t응용기<br>\t\t\t\t\t<br>인공지능/머신러닝 - 코딩, 데이터 분석,<br>\t\t\t\t\t<br>UX, 퍼포먼스 마케팅<br>\t\t\t\t\t<br>AI CPA, 재무, 회계<br>\t\t\t\t\t<br>\t\t\t\t\t<br>인공지능-마이써니<br>\t\t\t\t\t<br>파이낸셜-그룹 강의<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t필살기<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>데이터 리터러시 - <a href=\"https://www.youtube.com/channel/UCgs9OUuELtT94lDnucLeZIA/videos?app=desktop\" target=\"_blank\">https://www.youtube.com/channel/UCgs9OUuELtT94lDnucLeZIA/videos?app=desktop</a><br>\t\t\t<br>■ Start-up CSO/CMO로써 필요한 능력 배양 <br>\t\t\t<br>ㅇ 분석능력: 머신러닝, R, G/A, Growth hacker<br>\t\t\t<br>ㅇ 운영능력: 마케팅, 재무/회계<br>\t\t\t<br>ㅇ 라면 & 소시지(안전판): 특허 출원, 브런치<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>집단면역이라는 집단최면,<br>\t\t\t<br><br>\t\t\t<br>남은 시나리오는 세 가지.<br>\t\t\t<br>1/ 스페인 독감과 같은 자연소멸<br>\t\t\t<br>2/ COVID-19와의 공존<br>\t\t\t<br>3/ 백신에 의존한 집단면역<br>\t\t\t<br><br>\t\t\t<br>3의 시나리오를 보자.<br>\t\t\t<br>정부가 제시하는 70%라는 수치는 1명의 감염자가 3명에게 전파한다는, COVID-19 창궐 초기 데이터에 기반한 감염 재생산 지수 3에 근거한다. 3명 중 2명에게 항체를 형성시켜 1이하로 억제한다는 수치적 목표인 2/3=66.6%를 70%로 넉넉하게 올림 한 수치다. <br>\t\t\t<br><br>\t\t\t<br>문제는, 이 재생산지수 자체가 다분히 가변적이라는데 있다.<br>\t\t\t<br>집계에 따르면 COVID-19 재생산 지수는 0.7~6.3의 넓은 폭을 가진다.<br>\t\t\t<br>슈퍼 전파자를 떠올려 보면 이 수치가 얼마나 연약한 근거에 기반한 것인지 알 수 있다.<br>\t\t\t<br>국가와 기관에 따라 집단멱역을 위한 항체 보유 인구를 90%까지 상정하고 있다.<br>\t\t\t<br><br>\t\t\t<br>70%가 맞다고 치고, 몇 가지 공개된 수치를 보자.<br>\t\t\t<br>_ 영유아와 고위험군을 제외한 접종 가능한 성인의 90%에 접종할 경우의 커버리지는 인구의 76.5%<br>\t\t\t<br>_ 접종 시, 항체 형성률은 1차 96%, 2차 99%<br>\t\t\t<br>_ 감염 예방 효과가 95%를 상회하는 백신은 현재 존재 하지 않으며, 발병 예방을 95% 보장 할 뿐, 타인 전파를 95% 예방하는 것은 아니다.<br>\t\t\t<br>_ 보고된 항체 유지 기간은 6개월~8개월<br>\t\t\t<br>_ 현재 접종 완료율은 19% 이하로 세계에서 91번째<br>\t\t\t<br>이 모든 건, 돌파 감염을 유발하는 변이 바이러스를 고려하지 않고, 타국에서 유입되는 바이러스가 없는 배타적인 환경을 가정했을 때 유효함.<br>\t\t\t<br><br>\t\t\t<br>결국, COVID-19를 독감과 같은 지위로 상정하고, 열심히 백신을 맞고 일상으로 돌아가야 한다. 문제는 시점인데, 지금의 접종률로는 어림 없다.<br>\t\t\t<br><br>\t\t\t<br>기본권을 침해하는 차단방역의 장기화는 바이러스보다 무해한가. <br>\t\t\t<br>우리를 앓게 하는 것은 바이러스 그 자체인가, 과잉면역반응과도 같은 방역인가.<br>\t\t\t<br><br>\t\t\t<br>허지웅의 인스타 글을 보고 느낀 건,<br>\t\t\t<br>우리 나라 사람들처럼 말 잘 듣는 사람들이 없다는 것.<br>\t\t\t<br>선만 그어주면, 서로가 서로를 감시하고 힐난하는데 주저하지 않는다.<br>\t\t\t<br>우리는 자성이 강해서 뭉치기도 잘 뭉치지만, 조금만 극성이 다르면 맹렬하게 분극화 되니까.<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>1/ 집단면역, 인구의 70%가 항체를 보유하는 일은 가능한가. <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>2/<br>\t\t\t<br>인구의 70%가 항체를 보유하게 되면 집단면역을 달성할 수 있나?<br>\t\t\t<br>70%의 근거는 1사람의 감염자가 3명에게 전파한다는 코로나 재생산 지수 3<br>\t\t\t<br>3명 가운데 2명이 면역을 확보하면 더 이상 감염자가 증가하지 않는다는 가정에서 출발함<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>37.10%(+0.96)<br>\t\t\t<br>1차 접종률<br>\t\t\t<br><br>\t\t\t<br>13.76%(+0.11)<br>\t\t\t<br>접종 완료율<br>\t\t\t<br><br>\t\t\t<br>백신은 2가지 기능을 수행한다,<br>\t\t\t<br>1/ 감염자의 발병 예방 및 중증도 전이 예방 효과<br>\t\t\t<br>2/ 타인에 대한 전파 예방 효과<br>\t\t\t<br>그런데 전파 예방효과는 발병 예방 효과를 하회하고 있다.<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>백신은 확실한 효과가 있다.<br>\t\t\t<br>단, 중증으로 , 2차 감염<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>1년 전에는 코로나는 토착화 될 것이다.라는 말을<br>\t\t\t<br>반신반의했다. <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>돈, 성장, 인터스텔라 연결<br>\t\t\t<br><br>\t\t\t<br>콘텐츠 판매/크리에이터<br>\t\t\t<br>\t\t\t\t<br>- 수익형 블로그<br>\t\t\t\t<br>- PPT 템플릿, 원노트 사용법<br>\t\t\t\t<br>- 인터뷰이<br>\t\t\t<br>\t\t\t<br>물건 판매/오픈 마켓<br>\t\t\t<br>재능 판매<br>\t\t\t<br>모임 운영<br>\t\t\t<br><br>\t\t\t<br><컨텐츠 사업> <br>\t\t\t<br>전자책 만들기<br>\t\t\t<br>웹소설<br>\t\t\t<br>웹툰<br>\t\t\t<br>이모티콘 만들기<br>\t\t\t<br>스톡사진 판매<br>\t\t\t<br>모바일 앱 개발<br>\t\t\t<br>네이버 카페 운영<br>\t\t\t<br>유튜브 채널 운영<br>\t\t\t<br>블로그 포스팅 알바<br>\t\t\t<br>블로그 체험단<br>\t\t\t<br><br>\t\t\t<br><제휴 마케팅> <br>\t\t\t<br>CPA 마케팅<br>\t\t\t<br>쿠팡 파트너스<br>\t\t\t<br>네이버 애드포스트<br>\t\t\t<br>구글 애드센스<br>\t\t\t<br>다음 애드핏<br>\t\t\t<br>아마존 익스프레스 어필리에이트<br>\t\t\t<br>아이허브 어필리에이트<br>\t\t\t<br><br>\t\t\t<br><유통 사업><br>\t\t\t<br>해외 구매대행<br>\t\t\t<br>코스트코 구매대행<br>\t\t\t<br>빈티지 중고 판매<br>\t\t\t<br>1인 소자본 무역<br>\t\t\t<br><br>\t\t\t<br><상담 사업><br>\t\t\t<br>온라인 타로 상담<br>\t\t\t<br>온라인 역술 상담<br>\t\t\t<br>심리 상담업<br>\t\t\t<br>연애 컨설팅<br>\t\t\t<br>사업 컨설팅<br>\t\t\t<br><br>\t\t\t<br><대행 사업><br>\t\t\t<br>전단지 배포대행업<br>\t\t\t<br>분양 대행<br>\t\t\t<br>온라인 광고 대행<br>\t\t\t<br>언론사 홍보 대행<br>\t\t\t<br>골프장 예약 대행<br>\t\t\t<br><br>\t\t\t<br><임대 사업><br>\t\t\t<br>에어비엔비<br>\t\t\t<br>자동차 빌려주기<br>\t\t\t<br>자전거 빌려주기<br>\t\t\t<br>고가장비 빌려주기<br>\t\t\t<br>명품의류 및 악세사리 대여<br>\t\t\t<br>면접 정장 대여<br>\t\t\t<br>컨테이너 창고 임대<br>\t\t\t<br><br>\t\t\t<br><중개 사업><br>\t\t\t<br>광고주, 마케터 중개업<br>\t\t\t<br>장기 렌트 딜러<br>\t\t\t<br>1인 대출 중개업<br>\t\t\t<br>1인 휴대폰 판매 딜러<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>노션, 포토샵, 프리미어 프로<br>\t\t<br>\t\t<br>\t\t\t<br>퍼포먼스 마케팅<br>\t\t\t<br>상품만드는 역량<br>\t\t\t<br>hr 데이터분석 기반 서비스 어프로치<br>\t\t\t<br>와이어프레임<br>\t\t\t<br><br>\t\t\t<br>동네 사람 연결- 넥스트도어<br>\t\t\t<br>디지털 전환, 데이터, 소개팅 어플 후<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>모 비공개 커뮤니티에서 스타트업 창업자들이 추천한 서비스들<br>\t\t\t<br>Canva, Datawrapper, Buffer, Semrush, Ahrefs, Integromat, Zapier, Cartfuel, Clickup, Descript, Katra, Snov, Missive, Shipstation, iiitent, miro, paperform <br>\t\t\t<br><br>\t\t\t<br>1) <a href=\"https://www.canva.com/\" target=\"_blank\">https://www.canva.com/</a> - 협업 디자인 도구 <br>\t\t\t<br>2) <a href=\"https://www.datawrapper.de/\" target=\"_blank\">https://www.datawrapper.de/</a> - 시각화용 차트/테이블 그리기 <br>\t\t\t<br>3) <a href=\"https://buffer.com/\" target=\"_blank\">https://buffer.com/</a> - 소셜 미디어 도구 <br>\t\t\t<br>4) <a href=\"https://ko.semrush.com/\" target=\"_blank\">https://ko.semrush.com/</a> - SEO & 콘텐츠 마케팅 <br>\t\t\t<br>5) <a href=\"https://ahrefs.com/\" target=\"_blank\">https://ahrefs.com/</a> - SEO 도구 <br>\t\t\t<br>6) <a href=\"https://www.integromat.com/\" target=\"_blank\">https://www.integromat.com/</a> - 워크플로우 자동화 <br>\t\t\t<br>7) <a href=\"https://zapier.com/\" target=\"_blank\">https://zapier.com/</a> - 워크플로우 자동화 <br>\t\t\t<br>8 ) <a href=\"https://www.cartfuel.io/\" target=\"_blank\">https://www.cartfuel.io/</a> - 인바운드 마케팅 도구인 HubSpot 에 쉽 게 결제 붙여주는 도구 <br>\t\t\t<br>9) <a href=\"https://clickup.com/\" target=\"_blank\">https://clickup.com/</a> - 프로젝트 플래닝 도구  <br>\t\t\t<br>10) <a href=\"https://www.descript.com/\" target=\"_blank\">https://www.descript.com/</a> - 오디오 / 비디오 에디팅 협업 도구  <br>\t\t\t<br>11) <a href=\"https://kartra.com/\" target=\"_blank\">https://kartra.com/</a> - 마케팅 플랫폼<br>\t\t\t<br>12) <a href=\"https://snov.io/\" target=\"_blank\">https://snov.io/</a> - 세일즈 자동화 도구 <br>\t\t\t<br>13) <a href=\"https://missiveapp.com/\" target=\"_blank\">https://missiveapp.com/</a> - 팀이 공유하는 이메일 인박스 / 채팅 도구 <br>\t\t\t<br>14) <a href=\"https://www.shipstation.com/\" target=\"_blank\">https://www.shipstation.com/</a> - 이커머스 판매자들을 위한 배송 소프트웨어 <br>\t\t\t<br>15) <a href=\"https://www.iiintent.io/\" target=\"_blank\">https://www.iiintent.io/</a> - 매출 성장을 돕는 마케팅 도구  <br>\t\t\t<br>16) <a href=\"https://miro.com/\" target=\"_blank\">https://miro.com/</a> - 온라인 화이트 보드 협업 도구  <br>\t\t\t<br>17) <a href=\"https://paperform.co/\" target=\"_blank\">https://paperform.co/</a> - 온라인 폼 작성 도구<br>\t\t<br>\t\t<br>\t\t\t<br>로얄승마클럽은 연간 회원제(400만원)와 함께 10회 강습권(60만원), 당일권(5만원) 프로그램도 운영 중이다. 나파밸리승마클럽은 월회원 레슨비 포함해 60만원을 내면 화~일요일 매일 강습을 받을 수 있다. 쿠폰은 레슨비를 포함해 1회 6만원.<br>\t\t\t<br><br>\t\t\t<br>신갈승마클럽은 10회 이용 쿠폰이 50만원이다. 1일 회원은 5만원. 야간승마도 가능하다. 이 밖에 마구간, 용인승마클럽, 김포승마클럽, 양지승마클럽 등이 수도권 주변에서 많이 알려진 승마클럽이다.<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://www.mk.co.kr/news/business/view/2008/05/311478/\" target=\"_blank\">https://www.mk.co.kr/news/business/view/2008/05/311478/</a>>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

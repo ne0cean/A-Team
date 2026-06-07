@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>bit</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">bit</div>
+<div class="date">2017년 12월 4일 월요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-bit';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "bit<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.cmegroup.com/\" target=\"_blank\">시카고</a> 선물 거래소<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<a href=\"https://www.cmegroup.com/apps/cmegroup/widgets/productLibs/esignal-charts.html?code=BTC&monthYear=G8&year=2018&venue=0&title=FEB_2018_Bitcoin_&type=p&exchangeCode=XCME&dataWidget=true&chartMode=dynamic\" target=\"_blank\">Bitcoin</a> 선물 차트<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<a href=\"https://www.timeanddate.com/countdown/generic?iso=20180126T16&p0=136&msg=CME%20Bitcoin%20Futures%20expire%20date%20(%20Dude%20Signals\" target=\"_blank\">선물 만기 Countdown Timer</a>&font=cursive)",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "32938f3fcc.png",
+    "alt": "bit",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "코인 순위 <a href=\"http://finance.weissratings.com/crypto/\" target=\"_blank\">http://finance.weissratings.com/crypto/</a><br>\t\t\t<br><br>\t\t\t<br>이오스 <a href=\"https://steemit.com/kr/@ganzi/2-19\" target=\"_blank\">https://steemit.com/kr/@ganzi/2-19</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://steemit.com/@granturismo\" target=\"_blank\">https://steemit.com/@granturismo</a><br>\t\t\t<br><a href=\"https://steemit.com/@noctisk\" target=\"_blank\">https://steemit.com/@noctisk</a><br>\t\t\t<br><a href=\"https://steemit.com/@r-shin\" target=\"_blank\">https://steemit.com/@r-shin</a><br>\t\t\t<br><a href=\"https://steemit.com/@sidonyia\" target=\"_blank\">https://steemit.com/@sidonyia</a><br>\t\t\t<br><a href=\"https://steemit.com/@junesteemit\" target=\"_blank\">https://steemit.com/@junesteemit</a><br>\t\t\t<br><a href=\"https://mspsteem.com/kr/@supermi41\" target=\"_blank\">https://mspsteem.com/kr/@supermi41</a><br>\t\t\t<br><a href=\"https://steemit.com/trending/kr-coin\" target=\"_blank\">https://steemit.com/trending/kr-coin</a><br>\t\t\t<br><a href=\"https://steemit.com/hot/kr-coin\" target=\"_blank\">https://steemit.com/hot/kr-coin</a><br>\t\t\t<br>채윤남편 <a href=\"https://coinpan.com/index.php?mid=coin_info&search_target=nick_name&search_keyword=%EC%B1%84%EC%9C%A4%EB%82%A8%ED%8E%B8\" target=\"_blank\">https://coinpan.com/index.php?mid=coin_info&search_target=nick_name&search_keyword=%EC%B1%84%EC%9C%A4%EB%82%A8%ED%8E%B8</a><br>\t\t\t<br><a href=\"https://coinpan.com/index.php?mid=forum_all&page=1&document_srl=9041005\" target=\"_blank\">https://coinpan.com/index.php?mid=forum_all&page=1&document_srl=9041005</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>비트코인골드??<br>\t\t\t<br><a href=\"https://www.ddengle.com/board_free_voted/3772760\" target=\"_blank\">https://www.ddengle.com/board_free_voted/3772760</a><br>\t\t\t<br>네오<br>\t\t\t<br><a href=\"https://steemit.com/coinkorea/@superdreamer/neo\" target=\"_blank\">https://steemit.com/coinkorea/@superdreamer/neo</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://steemit.com/@beajinsu\" target=\"_blank\">https://steemit.com/@beajinsu</a><br>\t\t\t<br><br>\t\t\t<br>HECT님의 투자 지론<br>\t\t\t출처: <<a href=\"https://steemit.com/coinkorea/@granturismo/20\" target=\"_blank\">https://steemit.com/coinkorea/@granturismo/20</a>> <br>\t\t\t<br><br>\t\t\t<br><a href=\"https://brunch.co.kr/@nsung/11\" target=\"_blank\">https://brunch.co.kr/@nsung/11</a><br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t구분<br>\t\t\t\t\t비트<br>\t\t\t\t\t반비트<br>\t\t\t\t\tAlt 1<br>\t\t\t\t\tAlt 2<br>\t\t\t\t\t별동대<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t1월<br>\t\t\t\t\t비캐<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t에이다<br>\t\t\t\t\t스텔라루멘<br>\t\t\t\t\t아인스타이늄(원복 시 매도)<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>▶ 추가 투입자금 없이 수익나면 1천단위로 메인 3개, 알트 3개 총 1억 2천 운영, Alt 별동대 2천<br>\t\t\t<br>Main : 대쉬 │이더, 모네로, 퀀텀, 아이오타, EOS<br>\t\t\t<br>Alt : 오미세고, 넥스트, 카르다노 │ 스트라티스(회복력), 스토리지, 머큐리, 네오, 뉴이코노미, 아더<br>\t\t\t<br><a href=\"https://www.the4thwave.co.kr/index.php/2017/12/31/alt12311/\" target=\"_blank\">https://www.the4thwave.co.kr/index.php/2017/12/31/alt12311/</a><br>\t\t\t<br><br>\t\t\t<br>총액 8천 : 고수익률 중심으로<br>\t\t\t<br>메인 진영 4천 BTC, LTC / BCH, Dash<br>\t\t\t<br>다크 진영 4천 에이다, 버트코인<br>\t\t\t<br><br>\t\t\t<br>주요 코인 <br>\t\t\t<br>비캐 GDX풀 서포트<br>\t\t\t<br> - 하락장 기다렸다가 포트폴리오 재구성 8천? <a href=\"https://steemit.com/coinkorea/@noctisk/how-to-make-successful-portfolio\" target=\"_blank\">https://steemit.com/coinkorea/@noctisk/how-to-make-successful-portfolio</a><br>\t\t\t<br>그럼 두 그룹으로 나눌 수 있겠습니다. (BTC, LTC, ZEC, REP) / (BCH, Dash) 이렇게요. 1BTC를 산다고 가정하면, 우리는 BTC + LTC + ZEC + REP와 BCH + Dash 그룹의 가치를 1:1로 우선 비슷하게 만든 뒤, 전체적 상승이 기대되는 쪽으로 포트폴리오를 조절하면 된다는 것을 알 수 있습니다.&#160;<br>\t\t\t<br><br>\t\t\t<br> - 비캐는 1월 1일까지는 들고 있기 <br>\t\t\t<br><br>\t\t\t<br>어거, 네오<br>\t\t\t<br><br>\t\t\t<br>일정<br>\t\t\t<br><a href=\"https://calendar.google.com/calendar/embed?src=ethereumlab%40gmail.com&ctz=Asia/Seoul\" target=\"_blank\">https://calendar.google.com/calendar/embed?src=ethereumlab%40gmail.com&ctz=Asia/Seoul</a><br>\t\t\t<br><a href=\"http://coinmarketcal.com/\" target=\"_blank\">http://coinmarketcal.com/</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://www.fmkorea.com/872390309\" target=\"_blank\">http://www.fmkorea.com/872390309</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>비트코인캐시 <br>\t\t\t<br><a href=\"https://steemit.com/trending/bch\" target=\"_blank\">https://steemit.com/trending/bch</a><br>\t\t\t<br><a href=\"https://steemit.com/blockchain/@sidonyia/2pthvv\" target=\"_blank\">https://steemit.com/blockchain/@sidonyia/2pthvv</a><br>\t\t\t<br><a href=\"https://coinpan.com/free/17739744\" target=\"_blank\">https://coinpan.com/free/17739744</a><br>\t\t\t<br><br>\t\t\t<br>포트폴리오<br>\t\t\t<br><a href=\"https://steemit.com/coinkorea/@noctisk/how-to-make-successful-portfolio\" target=\"_blank\">https://steemit.com/coinkorea/@noctisk/how-to-make-successful-portfolio</a><br>\t\t\t<br><br>\t\t\t<br>호재정보 <a href=\"https://steemit.com/coinkorea/@haedal/2017-12-15\" target=\"_blank\">https://steemit.com/coinkorea/@haedal/2017-12-15</a><br>\t\t\t<br><br>\t\t\t<br>포트폴리오 조정후 폭락장 저점매수 시작<br>\t\t\t<br><br>\t\t\t<br>12월까지는 전코인 보유<br>\t\t\t<br>지캐시 청산<br>\t\t\t<br>비트 비중 증대<br>\t\t\t<br>1월 최종. 비트 이더 라이트 대시 버트코인<br>\t\t\t<br><br>\t\t\t<br>ADA, EMC(아인슈타이늄), GRS<br>\t\t\t<br><br>\t\t\t<br>아인슈타이늄<br>\t\t\t<br><a href=\"http://orderby.tistory.com/entry/%EC%95%84%EC%9D%B8%EC%8A%88%ED%83%80%EC%9D%B4%EB%8A%84%EC%95%84%EC%9D%B8%EC%8A%A4%ED%83%80%EC%9D%B4%EB%8A%84-EMC2-%ED%98%B8%EC%9E%AC-3%EA%B0%80%EC%A7%80%EC%99%80-%EC%8B%9C%EC%A0%90-%EC%B4%9D%EC%A0%95%EB%A6%AC\" target=\"_blank\">http://orderby.tistory.com/entry/%EC%95%84%EC%9D%B8%EC%8A%88%ED%83%80%EC%9D%B4%EB%8A%84%EC%95%84%EC%9D%B8%EC%8A%A4%ED%83%80%EC%9D%B4%EB%8A%84-EMC2-%ED%98%B8%EC%9E%AC-3%EA%B0%80%EC%A7%80%EC%99%80-%EC%8B%9C%EC%A0%90-%EC%B4%9D%EC%A0%95%EB%A6%AC</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://twitter.com/einsteiniumcoin\" target=\"_blank\">https://twitter.com/einsteiniumcoin</a><br>\t\t\t<br><br>\t\t\t<br>버트코인<br>\t\t\t<br>Vertcoin은,<br>\t\t\t<br>(1) Bitcoin이 가지고 있는 최대의 단점, 즉 대단히 느리고 높은 비용을 라이트코인과 같은 방식으로 개선하였습니다.<br>\t\t\t<br>(2) Bitcoin의 또다른 단점인 Asic 중앙화에 반하여 철저히 탈중앙화된 알고리즘을 사용합니다. BTG의 슬로건과 비슷합니다.<br>\t\t\t<br>(3) BTG와 다르게 단 하나의 사전 마이닝도 해두지 않았습니다. BTG는 해보다가 잘 안되면 문 닫고 텨텨 해도 이상하지 않을 정도의 사전 마이닝이 이루어졌습니다.<br>\t\t\t<br>(4) 최근의 추세와 다르게 ICO를 통한 자금 조달을 하지 않았습니다. 저는 ICO의 50% 이상이 한탕을 위한 사기라고 생각하고 있습니다.<br>\t\t\t<br>(5) 2년 이상의 경험이 있으며 개발자들의 활동이 활발합니다.<br>\t\t\t<br>(6) 미구현이긴 하지만 라이트닝 네트워크, 아토믹 스왑, 비밀 거래를 지원할 예정입니다.<br>\t\t\t<br>(7) 결론적으로 BTC+LTC가 금+현금 체제로 시장에 받아 들여지면 이들과의 라이트닝 네트워크 호환성을 무기로 Vertcoin이 낮은 수수료의 소액 결제 솔루션이 될 수 있다고 봤습니다.<br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"https://www.finda.co.kr/blog/saving/12095?utm_source=facebook&utm_medium=blog&utm_campaign=coinsite_171227\" target=\"_blank\">https://www.finda.co.kr/blog/saving/12095?utm_source=facebook&utm_medium=blog&utm_campaign=coinsite_171227</a><br>\t\t\t<br><br>\t\t\t<br>‘<a href=\"http://luka7.net/\" target=\"_blank\">Luka7</a>’에서는 아주 깔끔하게 정리된 테이블로 여러 코인의 시세와 시세차 등을 보여주고, 전 세계 거래소의 볼륨과 가격이 계산된 가중평균 값을 유저들에게 제공해준다.&#160; <br>\t\t\t<br><br>\t\t\t<br>‘<a href=\"https://coinpan.com/\" target=\"_blank\">코인판</a>’이라는 사이트에선 한국의 빗썸, 코인원, 업비트, 미국의 폴로닉스, 비트파이넥스 등 대표적인 국내 및 해외 거래소별 가상화폐 가격을 비교할 수 있다.&#160; <br>\t\t\t<br><br>\t\t\t<br>같은 화폐의 국가별 시세를 비교하고 싶다면 ‘<a href=\"https://cryptowat.ch/\" target=\"_blank\">크립토와치</a>’를 <br>\t\t\t<br><br>\t\t\t<br>‘호재’ 캘린더: 가주아 &#160; <br>\t\t\t<br>“코인 시세는 호재로 움직인다”라고 할 정도로 ‘호재’는 코인의 미래가치와 직결되는 문제다. ‘<a href=\"http://gazuah.com/#event\" target=\"_blank\">가주아</a>’에서는 호재별로 카운트다운까지 해주며 최근 호재부터 볼 수 있다.<br>\t\t\t<br>4. 내가 투자한 코인 지금까지 얼마나 올랐나: ICO스태츠 &#160;&#160; <br>\t\t\t<br>‘<a href=\"https://icostats.com/\" target=\"_blank\">ICO스태츠</a>’에서는 알트코인들의 ICO 가격 대비 현재 가격의 ‘ROI’, 즉 특정 코인이 얼마에 상장됐고, 상장됐을 때부터 지금까지 얼마나 올랐나를 볼 수 있다. <br>\t\t\t<br><br>\t\t\t<br><a href=\"https://steemit.com/steemit/@won1541/66tqza\" target=\"_blank\">https://steemit.com/steemit/@won1541/66tqza</a>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

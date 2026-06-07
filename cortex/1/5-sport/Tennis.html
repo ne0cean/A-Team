@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tennis</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">Tennis</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Tennis';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "Tennis<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>(교정사항) <br>\t\t\t<br>백핸드 포핸드 전환은?<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t포핸드<br>\t\t\t\t\t<br>박자. 점프 후 왼발부터 타다닥. 왼발뒤꿈치를 오른발과 라켓 하나 간격 벌리고<br>\t\t\t\t\t<br>오른발 무게와 라켓을 동시에 끌고 앞의 타점으로 가져오면서 타격<br>\t\t\t\t\t<br>오른손 엄지손가락이 왼쪽 뺨으로 들어오도록 11시 방향으로 타격<br>\t\t\t\t\t<br>왼쪽 팔꿈치를 돌리면서 상체 전체를 회전하면서 타격<br>\t\t\t\t\t<br>에프로치샷 - 일단 자리잡고 어느정도 내려왔을때 타격<br>\t\t\t\t\t<br>타점이 중요함, 내려올 때 타격. + 타점 앞에두고 발 내딛으며 타격.<br>\t\t\t\t\t<br>오른발을 왼발보다 더 빼면서 회전, 오른발 가져오면서 오른발 앞에서 타격<br>\t\t\t\t\t<br>사선으로 8자를 빼면서 뒤로 빼고, 최대한 아래서 위로 올리며 타격<br>\t\t\t\t\t<br>오른 발 무게 실어서 멀리 던지듯이 앞으로 밀면기 <br>\t\t\t\t\t<br>최종적으로 손등이 왼쪽 귀 옆에 오도록 상향 타격<br>\t\t\t\t\t<br>수평으로 뒤로 빼고, 팔목을 이용해서 아래로 내리면서, 아래로 위로 공을 올려치기.<br>\t\t\t\t\t<br>공이 올라갔다가 내려오기 직전에 아래에서 1/3 지점을 타격.<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t백핸드<br>\t\t\t\t\t<br>타격 지점으로 이동해서 자리잡고 라켓 돌리면서 타격<br>\t\t\t\t\t<br>왼쪽으로 평행하게 돌리고, 타격 전에 아래로 내리면서 타격<br>\t\t\t\t\t<br>포핸드 반대로 잡고, 왼손과 오른손 이격 없이 잡는 그립<br>\t\t\t\t\t<br>너무 크게 들어서 빼지 말고 라켓이 얼굴 옆으로 수평으로 오도록, 주먹을 몸가까이로 빼기￼왼발 무게로 타격한다고 생각하고 치기<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>무게중심을 앞으로, 스텝 밟을 때도 타격 할 때도.<br>\t\t\t<br>뒤로 넘기다 멈추지 말고, 어깨 위로 크게 접어 올리기<br>\t\t\t<br>팔/어깨를 당기지말고, 멀리 큰 궤적을 그리면서 왼쪽 어깨위로 넘어오기<br>\t\t\t<br>테이크백하면서 아래로 크게 떨구면서 스윙<br>\t\t\t<br>공이 내려가는 타이밍에 2/3 지점 타격 - 타점에서 크게 위로 스핀 먹이듯이 올리기<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://m.blog.naver.com/lotto828282/222524163778\" target=\"_blank\">실내테니스장</a><br>\t\t\t<br><br>\t\t\t<br>집근처 스텔라 테니스 010 6303 8622<br>\t\t\t<br>평일06시~21시20분까지 하며 <br>\t\t\t<br>토요일 09~17시<br>\t\t\t<br>일요일 09~12시 까지 운영중입니다.<br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br>토/일 - 8시 30, 오전 9시 30분, 9시  일요일 10:30<br>\t\t\t<br><br>\t\t\t<br>레슨비: 평일 4주 기준 1주일 1회 15만, 2회 27만원, 한달 4회 혹은 8회 <br>\t\t\t<br>레슨 시간: 30분 단위 잔여 : 월6시 화요일 9시<br>\t\t\t<br>운영시간: 6~10시<br>\t\t\t<br>주말/공휴일: 토 5시 6시, 일 오후 4시 <br>\t\t\t<br>운동복 운동화<br>\t\t\t<br><br>\t\t\t<br>레슨 구성: 개인 레슨/ 쿠폰 레슨 차이?<br>\t\t\t<br>레슨비: 주 1회 16만, 주 3회 38만<br>\t\t\t<br>평일/주말 레슨 시간은 6시~10시<br>\t\t\t<br>일시 중단하거나 주말-평일 바꿀 수 있나?<br>\t\t\t<br>시설 이용료 X<br>\t\t\t<br>시설 운영 시간/휴무일: X<br>\t\t\t<br>당장 구입이 필요한 장비: 라켓, 복장, 신발<br>\t\t\t<br>볼머신기 대여료 30분에 2만원<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://autotennis24.co.kr/\" target=\"_blank\">오토테니스</a> (autotennis24.co.kr)<br>\t\t\t<br>논현 코인테니스 <a href=\"https://lanalin.tistory.com/176\" target=\"_blank\">https://lanalin.tistory.com/176</a><br>\t\t\t<br>성수 테니스포레 <a href=\"https://map.naver.com/v5/search/%EB%B3%BC%EB%A8%B8%EC%8B%A0%20%ED%85%8C%EB%8B%88%EC%8A%A4/place/1387105876?c=14127886.7501840,4515604.2731534,12,0,0,0,dh\" target=\"_blank\">https://map.naver.com/v5/search/%EB%B3%BC%EB%A8%B8%EC%8B%A0%20%ED%85%8C%EB%8B%88%EC%8A%A4/place/1387105876?c=14127886.7501840,4515604.2731534,12,0,0,0,dh</a><br>\t\t\t<br>효창공원 하나테니스파크 <a href=\"https://map.naver.com/v5/search/%EC%8A%A4%ED%81%AC%EB%A6%B0%ED%85%8C%EB%8B%88%EC%8A%A4/place/1914677609?c=14132943.7720118,4514304.2478922,13,0,0,0,dh&placePath=%3Fentry%253Dbmp\" target=\"_blank\">https://map.naver.com/v5/search/%EC%8A%A4%ED%81%AC%EB%A6%B0%ED%85%8C%EB%8B%88%EC%8A%A4/place/1914677609?c=14132943.7720118,4514304.2478922,13,0,0,0,dh&placePath=%3Fentry%253Dbmp</a><br>\t\t\t<br>락테니스 연희점<br>\t\t\t<br>락테니스 여의도점<br>\t\t\t<br>Y테니스 연희점 <a href=\"https://map.naver.com/v5/search/%EB%AC%B4%EC%9D%B8%ED%85%8C%EB%8B%88%EC%8A%A4/place/1005354644?c=14128882.8258557,4518723.8524276,14,0,0,0,dh\" target=\"_blank\">https://map.naver.com/v5/search/%EB%AC%B4%EC%9D%B8%ED%85%8C%EB%8B%88%EC%8A%A4/place/1005354644?c=14128882.8258557,4518723.8524276,14,0,0,0,dh</a><br>\t\t\t<br>(8월 오픈) 다이나믹 테니스 <a href=\"https://map.naver.com/v5/search/%EB%AC%B4%EC%9D%B8%ED%85%8C%EB%8B%88%EC%8A%A4/place/1157592839?c=14128882.8258557,4518723.8524276,14,0,0,0,dh\" target=\"_blank\">https://map.naver.com/v5/search/%EB%AC%B4%EC%9D%B8%ED%85%8C%EB%8B%88%EC%8A%A4/place/1157592839?c=14128882.8258557,4518723.8524276,14,0,0,0,dh</a><br>\t\t\t<br><br>\t\t\t<br>[테니스 만화]<br>\t\t\t<br>프레너미<br>\t\t\t<br>티니스의 왕자<br>\t\t\t<br>자이언트 스텝<br>\t\t\t<br>베이비 스텝<br>\t\t\t<br>해피<br>\t\t\t<br>윔블던<br>\t\t\t<br><a href=\"http://m.tennispeople.kr/news/articleView.html?idxno=11097\" target=\"_blank\">http://m.tennispeople.kr/news/articleView.html?idxno=11097</a><br>\t\t\t<br><br>\t\t\t<br>[스텝]<br>\t\t\t<br><a href=\"https://m.blog.naver.com/PostView.naver?isHttpsRedirect=true&blogId=yum_47&logNo=220587262763\" target=\"_blank\">https://m.blog.naver.com/PostView.naver?isHttpsRedirect=true&blogId=yum_47&logNo=220587262763</a><br>\t\t\t<br>잔발 스텝 - 사이드 스텝 - Split Step<br>\t\t<br>\t\t<br>\t\t\t<br>Rule & Eticket_________________________<br>\t\t\t<br><a href=\"https://laktc.com/tutorials/271\" target=\"_blank\">https://laktc.com/tutorials/271</a><br>\t\t\t<br><br>\t\t\t<br>Community_________________________<br>\t\t\t<br>바미<br>\t\t\t<br><a href=\"https://blog.naver.com/tennisparkmagazine/223993316598\" target=\"_blank\">테니스파크</a> 모집 <br>\t\t\t<br>초보 랠리 가능한 곳?<br>\t\t\t<br><a href=\"https://autotennis24.co.kr/\" target=\"_blank\">오토테니스</a> (autotennis24.co.kr)<br>\t\t\t<br><br>\t\t\t<br>창고형 & 대형 실내 테니스장<br>\t\t\t<br><a href=\"https://www.instagram.com/cut_tennis11/\" target=\"_blank\">컷테니스</a>-상수역￼<a href=\"https://www.instagram.com/tennis__village/\" target=\"_blank\">테니스빌리지</a>(창고형)<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t테니스UP24<br>\t\t\t\t\t<a href=\"http://www.tennisup24.com\" target=\"_blank\">www.tennisup24.com</a><br>\t\t\t\t\t6500원<br>\t\t\t\t\t30분<br>\t\t\t\t\t서울특별시 광진구 아차산로76길 19 지하1층<br>\t\t\t\t\t \t010-7243-0018<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t더에이스테니스아카데미<br>\t\t\t\t\t\t<a href=\"https://blog.naver.com/blacksky1228/222364108863\" target=\"_blank\">https://blog.naver.com/blacksky1228/222364108863</a>\t<br>\t\t\t\t\t2000원\t<br>\t\t\t\t\t50개<br>\t\t\t\t\t<br>서울특별시 강서구 마곡중앙4로 22 A동 지하1층<br>\t\t\t\t\t<br><a href=\"https://blog.naver.com/blacksky1228\" target=\"_blank\">https://blog.naver.com/blacksky1228</a><br>\t\t\t\t\t<br>\t\t\t\t\t010-8336-9289<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t나혼자테니스랩<br>\t\t\t\t\t나혼자테니스연습장<br>\t\t\t\t\t2000원<br>\t\t\t\t\t 50개<br>\t\t\t\t\t서울 서초구 서초동 1344 동국빌딩 1<br>\t\t\t\t\t\t <br>\t\t\t\t<br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br>가방<a href=\"https://www.musinsa.com/app/goods/1562421\" target=\"_blank\">https://www.musinsa.com/app/goods/1562421</a>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

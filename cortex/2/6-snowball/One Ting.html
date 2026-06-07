@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One Ting</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">One Ting</div>
+<div class="date">2018년 4월 30일 월요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-One-Ting';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "One Ting<br>\t\t\t\t\t일<br>\t\t\t\t\t월<br>\t\t\t\t\t화<br>\t\t\t\t\t수<br>\t\t\t\t\t목<br>\t\t\t\t\t금<br>\t\t\t\t\t토<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t1<br>\t\t\t\t\t2<br>\t\t\t\t\t3<br>\t\t\t\t\t4<br>\t\t\t\t\t5<br>\t\t\t\t\t6<br>\t\t\t\t\t7<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>귀국<br>\t\t\t\t\t<br>HBR<br>\t\t\t\t\t<br><a href=\"https://publy.co/\" target=\"_blank\">퍼블리</a><br>\t\t\t\t\t<br>페북/카톡정리<br>\t\t\t\t\t<br><a href=\"https://springutd.modoo.at/?link=6mtrb9x2\" target=\"_blank\">교회</a><br>\t\t\t\t\t<br><a href=\"http://www.hbrkorea.com/magazine/article/view/7_1/page/1/article_no/1124\" target=\"_blank\">HBR </a>큐레이션 준비<br>\t\t\t\t\t<br>\t\t\t\t\t<br>서류심사 투입<br>\t\t\t\t\t<br>동호회 가입 신청<br>\t\t\t\t\t<br>트레바리 회신<br>\t\t\t\t\t<br>\t\t\t\t\t<br>아미율 예약<br>\t\t\t\t\t<br>정산<br>\t\t\t\t\t<br>사진 업로드<br>\t\t\t\t\t<br>운동 루틴 바꾸기<br>\t\t\t\t\t<br>\t\t\t\t\t<br>점: 원혁, 승현<br>\t\t\t\t\t<br>트레바리 책 구입: 켄지 요시노/ 커버링<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>점: 셩, 송희<br>\t\t\t\t\t<br>스타트앳 이관<br>\t\t\t\t\t<br>서부 환영회@석산정<br>\t\t\t\t\t<br><a href=\"https://dsschool.co.kr/\" target=\"_blank\">DS Shool</a> 등록<br>\t\t\t\t\t<br>스타트앳 후속 [2. Deep chang](onenote:<a href=\"https://d.docs.live.net/733661839cc53ba5/문서/Archive/'17_CVM.one#2.%20Deep%20change&section-id={4EF95011-C8FC-417B-9756-26C0EF9AAB6A}&page-id={A1A06C2A-F1AE-4430-8E50-CE3C95CC9F71}&end)\" target=\"_blank\">https://d.docs.live.net/733661839cc53ba5/문서/Archive/'17_CVM.one#2.%20Deep%20change&section-id={4EF95011-C8FC-417B-9756-26C0EF9AAB6A}&page-id={A1A06C2A-F1AE-4430-8E50-CE3C95CC9F71}&end)</a> 진짜 해보고 싶은 프로젝트 띄우기<br>\t\t\t\t\t<br>카드연체 금액<br>\t\t\t\t\t<br>과정 정하기<br>\t\t\t\t\t<br>영어/ 컴퓨터 사이언스/ 영상편집<br>\t\t\t\t\t<br>CDC<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>점: SD신입 이현우<br>\t\t\t\t\t<br>14:30 대회의실A 지만고<br>\t\t\t\t\t<br>독후감 마감<br>\t\t\t\t\t<br>발제 준비<br>\t\t\t\t\t<br>cdc마감<br>\t\t\t\t\t<br>5시 꽃놀이<br>\t\t\t\t\t<br>\t\t\t\t\t<br>아미율 10시<br>\t\t\t\t\t<br>운동<br>\t\t\t\t\t<br>은록이 결혼식 14시30 발산역<br>\t\t\t\t\t<br>아티클 발제 준비<br>\t\t\t\t\t<br>Start@<br>\t\t\t\t\t<br>바르셀로나 여행 계획<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t8<br>\t\t\t\t\t9<br>\t\t\t\t\t10<br>\t\t\t\t\t11<br>\t\t\t\t\t12<br>\t\t\t\t\t13<br>\t\t\t\t\t14<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>DS School 10시~3시 강남 토즈<br>\t\t\t\t\t<br>트레바리 14시~18시<br>\t\t\t\t\t<br>아티클 준비 최종본 제작<br>\t\t\t\t\t<br>-------------<br>\t\t\t\t\t<br>\t\t\t\t\t이틀 원정대 뒷풀이 6:30<br>\t\t\t\t\tHBR 아티클 발표<br>\t\t\t\t\t<br>점 : 환영회<br>\t\t\t\t\t<br>입소전 숙제 제출 @장현경<br>\t\t\t\t\t<br>종호 정산<br>\t\t\t\t\t<br>쵠 정산<br>\t\t\t\t\t<br>입소 짐싸기<br>\t\t\t\t\t<br>관내분실 대여<br>\t\t\t\t\t<br>약 구입<br>\t\t\t\t\t<br>스타트앳 유니콘 작업<br>\t\t\t\t\t<br>집청소<br>\t\t\t\t\t<br>파이썬 설치 및 예습<br>\t\t\t\t\t<br>영어학원<br>\t\t\t\t\t<br>\t\t\t\t\t<br>고객 가치 Camp<br>\t\t\t\t\t<br>점/저녁 약속잡기<br>\t\t\t\t\t<br>영어 학원/인강?<br>\t\t\t\t\t<br>SID 이야기 해보기<br>\t\t\t\t\t<br>보이스필터 등등 아이디어 정리해서 스타트앳 3차<br>\t\t\t\t\t<br>\t\t\t\t\t<br>고객 가치 Camp<br>\t\t\t\t\t<br>점/저녁 약속잡기<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>운동<br>\t\t\t\t\t<br>트레바리 두시<br>\t\t\t\t\t<br>부동산 스터디 16:00~19:00<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t15<br>\t\t\t\t\t16<br>\t\t\t\t\t17<br>\t\t\t\t\t18<br>\t\t\t\t\t19<br>\t\t\t\t\t20<br>\t\t\t\t\t21<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>DS School 10시~3시 강남 토즈<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>멘티들이랑 모일 장소 예약<br>\t\t\t\t\t<br>- 느린마을 양조장<br>\t\t\t\t\t<br>토요일 미용실 예약<br>\t\t\t\t\t<br>520일 트레바리 시간에 맞춰서 항공권 일정 변경<br>\t\t\t\t\t<br>경력 자소서 평가 및 태우, 덕연 부탁 체크<br>\t\t\t\t\t<br>SID 논의<br>\t\t\t\t\t<br>-----------<br>\t\t\t\t\t<br>숙소결제<br>\t\t\t\t\t<br>아미율 7시 30분<br>\t\t\t\t\t<br>\t\t\t\t\t<br>점: 강보미<br>\t\t\t\t\t<br>저: 송별회 6시 20분<br>\t\t\t\t\t<br>가우디 등 스페인 관련 책 읽기-행복의 건축<br>\t\t\t\t\t<br>항공권 메일인쇄<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>11시~30분 문욱님 미팅<br>\t\t\t\t\t<br>공연예약 12시<br>\t\t\t\t\t<br>점: 제훈이형<br>\t\t\t\t\t<br>저: 그룹멘토모임 7시 30분<br>\t\t\t\t\t<br>-----------<br>\t\t\t\t\t<br>\t\t\t\t\t<br>경력 인터뷰<br>\t\t\t\t\t<br>숙소결제<br>\t\t\t\t\t<br>모임공지<br>\t\t\t\t\t<br>여행결제<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>점 : 현우형@강남면옥<br>\t\t\t\t\t<br>경력 인터뷰<br>\t\t\t\t\t<br>저 : 그룹연수 47팀 모임 7시 30분 느린마을양조장<br>\t\t\t\t\t<br>-----<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>운동 10시<br>\t\t\t\t\t<br>머리 1시<br>\t\t\t\t\t<br>파이썬 예습<br>\t\t\t\t\t<br>신양기 청첩장<br>\t\t\t\t\t<br>개인명의 전환?<br>\t\t\t\t\t<br>스타트앳 후속 아이디어 발굴<br>\t\t\t\t\t<br>샘스미스 공연 예약<br>\t\t\t\t\t<br>토플 학원 등록<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t22<br>\t\t\t\t\t23<br>\t\t\t\t\t24<br>\t\t\t\t\t25<br>\t\t\t\t\t26<br>\t\t\t\t\t27<br>\t\t\t\t\t28<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>DS School 10시~3시 강남 토즈<br>\t\t\t\t\t<br>3시~6시 근무하고 데이트<br>\t\t\t\t\t<br>\t\t\t\t\t<br>금요일 근무시간 변경 7시 30분까지<br>\t\t\t\t\t<br>점 : 조민, 덕연<br>\t\t\t\t\t<br>저: 그룹장 만찬<br>\t\t\t\t\t<br>저: 동호 승환<br>\t\t\t\t\t<br>\t\t\t\t\t<br>점: 이미연<br>\t\t\t\t\t<br>---------<br>\t\t\t\t\t<br>옷 찾기<br>\t\t\t\t\t<br>\t\t\t\t\t<br>10시 면접<br>\t\t\t\t\t<br>저: 박상현우쵠<br>\t\t\t\t\t<br>\t\t\t\t\t<br>점 : 민지님<br>\t\t\t\t\t<br>엘리펀트 스페이스 8시<br>\t\t\t\t\t<br>근무시간 조정<br>\t\t\t\t\t<br>SID논의<br>\t\t\t\t\t<br>\t\t\t\t\t<br>조퇴 후 운동<br>\t\t\t\t\t<br>점 : 조재혁, 김현경<br>\t\t\t\t\t<br>코인 스터디<br>\t\t\t\t\t<br>파이썬 예습<br>\t\t\t\t\t<br>네트워크 작성 및 약속잡기<br>\t\t\t\t\t<br>동현이 축의금 부탁<br>\t\t\t\t\t<br>---------<br>\t\t\t\t\t<br>안경찾기<br>\t\t\t\t\t<br>관내분실 구입<br>\t\t\t\t\t<br>영어학원 등록<br>\t\t\t\t\t<br>펍 트라이브<br>\t\t\t\t\t<br>하루 1개 공간 정리<br>\t\t\t\t\t<br>구몬 수학? <br>\t\t\t\t\t<br>취향관?<br>\t\t\t\t\t<br>인증서, 주민등록상 주소확인<br>\t\t\t\t\t<br>코봉이<br>\t\t\t\t\t<br>기본기 One Thing 30~60분: 만드는 것 뭐? 미쳐봐. 좀. 매일 훈련 할 나의 테마<br>\t\t\t\t\t<br>파이썬 복습<br>\t\t\t\t\t<br>강점X미지의 영역<br>\t\t\t\t\t<br>대학원(M&A, VC), 코세라, 유다시티<br>\t\t\t\t\t<br>폰 바탕화면<br>\t\t\t\t\t<br>\t\t\t\t\t<br>커피<br>\t\t\t\t\t<br>운동<br>\t\t\t\t\t<br>부동산 스터디 16:00~19:00<br>\t\t\t\t\t<br>동현이 결혼식 2시<br>\t\t\t\t\t<br>어머님 선물+꽃 차세트.<br>\t\t\t\t\t<br>서점가서 여행책<br>\t\t\t\t\t<br>캐리어 수리<br>\t\t\t\t\t<br>대북경협 스터디<br>\t\t\t\t\t<br>코인 스터디<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t29<br>\t\t\t\t\t30<br>\t\t\t\t\t1<br>\t\t\t\t\t2<br>\t\t\t\t\t3<br>\t\t\t\t\t4<br>\t\t\t\t\t5<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>DS School 10시~3시 강남 토즈<br>\t\t\t\t\t<br>어머님 꽃<br>\t\t\t\t\t<br>어머님 뵙기 5시<br>\t\t\t\t\t<br>USB챙기기-청약<br>\t\t\t\t\t<br>트레바리발제문<br>\t\t\t\t\t<br>Alli 구매<br>\t\t\t\t\t<br>자전거나라 결제<br>\t\t\t\t\t<br>놀러갈거 짐싸기<br>\t\t\t\t\t<br>\t\t\t\t\t<br>점: 부토니에 봉사<br>\t\t\t\t\t<br>장성호님 약속잡기<br>\t\t\t\t\t<br>SID 지원서 공유<br>\t\t\t\t\t<br>호영님 약속잡기<br>\t\t\t\t\t<br>재성이형 약속잡기<br>\t\t\t\t\t<br>여행책 읽기<br>\t\t\t\t\t<br>트레바리발제문<br>\t\t\t\t\t<br>유로환전<br>\t\t\t\t\t<br>부부생활 환불<br>\t\t\t\t\t<br>SQL 인강<br>\t\t\t\t\t<br>스냅 잔금 입금 15만원<br>\t\t\t\t\t<br>속초행 티켓 발권<br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>MOOC 9:30 수강신청<br>\t\t\t\t\t<br>점:<br>\t\t\t\t\t<br>저: 공동 생파 @L7<br>\t\t\t\t\t<br>\t\t\t\t\t<br><a href=\"https://www.apt2you.com/\" target=\"_blank\">전주 청약</a><br>\t\t\t\t\t<br>11시 경력 임원면접<br>\t\t\t\t\t<br>점 : 허재석/남주영<br>\t\t\t\t\t<br>저: 마케터들의 수다 @덕수궁 7:30<br>\t\t\t\t\t<br>\t\t\t\t\t<br>점: <br>\t\t\t\t\t<br>속초여행<br>\t\t\t\t\t<br>\t\t\t\t\t속초여행",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

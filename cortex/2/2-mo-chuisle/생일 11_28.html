@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>생일 11/28</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">생일 11/28</div>
+<div class="date">2020년 11월 20일 금요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-생일-11-28';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "생일 11/28<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>1/ 선물<br>\t\t\t<br>편지<br>\t\t\t<br>케잌 주문 - 크림필즈 케이크 미니 크라운 @서울특별시 서대문구 연희맛로 33, 2층<br>\t\t\t<br>에어팟 선물포장 @현백<br>\t\t\t<br>작은 와인<br>\t\t\t<br><br>\t\t\t<br>2/ 일정<br>\t\t\t<br>스파예약 - 네추럴 타이스파 역삼본점 4시 15분<br>\t\t\t<br>저녁 식당 예약 - 호텔 카푸치노 핫이슈 6시 30분 할인 <a href=\"https://thehfk.org/archives/27768\" target=\"_blank\">https://thehfk.org/archives/27768</a><br>\t\t\t<br>드라이브 코스 - <br>\t\t\t<br>다음날 대실 예약 - <br>\t\t\t<br><br>\t\t\t<br>연민님의 서른 번째 생일, 함께 할 수 있어서 기뻐요.<br>\t\t\t<br>그래서 정말 축하 받아야 할 사람은 나이기도 해요. 축하해줘요 ㅎㅎ<br>\t\t\t<br><br>\t\t\t<br>지금과 같은 믿음과 애정으로, 함께 해나 갈 여정 기대해요.<br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>- 당신만의 준영,<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>금 - 해피셰어카 인수<br>\t\t\t<br>금 - 케익 수령<br>\t\t\t<br>토 - 집에와서 놀다가<br>\t\t\t<br>토 - 케잌 수령<br>\t\t\t<br>토 - 네추럴 타이스파 3시 반<br>\t\t\t<br>토 - 핫이슈 6시<br>\t\t\t<br>드라이브 8시 <br>\t\t\t<br>일 - 대실<br>\t\t\t<br><br>\t\t\t<br>오마카세 ===================================<br>\t\t\t<br>스시산블루 용산 7만<br>\t\t\t<br>스시소라 광화문 5/7만<br>\t\t\t<br>스시소라 서초<br>\t\t\t<br>스시산원경 광화문<br>\t\t\t<br>오가와 광화문<br>\t\t\t<br>뜻한바 (송파)<br>\t\t\t<br>청주한씨 (성수)<br>\t\t\t<br>스시코우지 청담<br>\t\t\t<br><br>\t\t\t<br>기념일 케이크 =====================<br>\t\t\t<br>크림필즈 케이크 48<br>\t\t\t<br>파이홀<br>\t\t\t<br>리히트케이크<br>\t\t\t<br>해이케이크샾<br>\t\t\t<br>스위츠플래닛<br>\t\t\t<br>듀자미<br>\t\t\t<br>키애리 이태원<br>\t\t\t<br><br>\t\t\t<br>커플 스파 ======================<br>\t\t\t<br>강남 아덴스파<br>\t\t\t<br>회복되는 공간 용산<br>\t\t\t<br>네츄럴 타이스파<br>\t\t\t<br>수Soo 피트니스&스파<br>\t\t\t<br>W 서울 워커힐 호텔의 어웨이 스파<br>\t\t\t<br>서울프라자호텔 프라자스파클럽<br>\t\t\t<br>그랜드 하얏트 스파 더스파<br>\t\t\t<br><a href=\"http://mywedding.designhouse.co.kr/in_magazine/sub.html?at=view&info_id=58458\" target=\"_blank\">http://mywedding.designhouse.co.kr/in_magazine/sub.html?at=view&info_id=58458</a><br>\t\t\t<br><a href=\"https://decojournal.co.kr/Design&News/Brand/1823\" target=\"_blank\">https://decojournal.co.kr/Design&News/Brand/1823</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://decojournal.co.kr/Design&News/Brand/1823\" target=\"_blank\">https://decojournal.co.kr/Design&News/Brand/1823</a><br>\t\t\t<br><br>\t\t\t<br>드라이브 ====================<br>\t\t\t<br><br>\t\t\t<br>실내 액티비티 ================<br>\t\t\t<br>- 엔터파크 부평<br>\t\t\t<br>- 레전드히어로즈 <br>\t\t\t<br>- 커플 스파&마사지<br>\t\t\t<br>- 스포츠 몬스터(~9시)+스파(아쿠아필드 고양<br>\t\t\t<br>- 유미의 드레스룸<br>\t\t\t<br><br>\t\t\t<br>뷰 맛집 ==========<br>\t\t\t<br><a href=\"http://www.vogue.co.kr/2016/12/22/%EA%B7%B8-%ED%98%B8%ED%85%94-%EA%B7%B8-%EB%B0%A5/\" target=\"_blank\">http://www.vogue.co.kr/2016/12/22/%EA%B7%B8-%ED%98%B8%ED%85%94-%EA%B7%B8-%EB%B0%A5/</a><br>\t\t<br>\t\t<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"https://post.naver.com/viewer/postView.nhn?volumeNo=17058109&memberNo=25267492\" target=\"_blank\">https://post.naver.com/viewer/postView.nhn?volumeNo=17058109&memberNo=25267492</a><br>\t\t\t<br><br>\t\t\t<br>야간 드라이브 코스 - 아라뱃길&#160;",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "6804cd9765.png",
+    "alt": "생일 11/28",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;<br>\t\t\t<br>부암 청운공원<br>\t\t\t<br>청운공원에서 신교동 버드나무 약수기점을 지나고 사직공원까지 이어지는 드라이브코스 인왕산로-신교동버드나무약수기점-사직공원<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>응봉산 야경의 포인트는<br>\t\t\t<br>응봉산 팔각정입니다<br>\t\t\t<br>팔각정에 올라가시면 서울 도시 야경은 물론<br>\t\t\t<br>아름다운 강의 물줄기와 서울 숲까지<br>\t\t\t<br>야경을 마음껏 즐기실 수 있답니다<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>송도 센트럴파크<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://m.post.naver.com/viewer/postView.nhn?volumeNo=17058109&memberNo=25267492\" target=\"_blank\">https://m.post.naver.com/viewer/postView.nhn?volumeNo=17058109&memberNo=25267492</a><br>\t\t<br>\t\t<br>\t\t\t<br>11월 28일 생일<br>\t\t\t<br>치과보내기<br>\t\t\t<br>건강검진<br>\t\t\t<br><br>\t\t\t<br>저희 엄마는 음력 1월 11일<br>\t\t\t<br><br>\t\t\t<br>WIX or Editor X<br>\t\t\t<br>식스샵<br>\t\t\t<br>크리에이터 링크<br>\t\t\t<br>아임웹<br>\t\t\t<br><br>\t\t\t<br>Lovestory202010<br>\t\t\t<br>Yo20201010!",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

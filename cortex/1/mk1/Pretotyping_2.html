@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pretotyping</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">Pretotyping</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Pretotyping';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "Pretotyping<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br><a href=\"https://mapsly.com/ko/integrations/google-sheets/\" target=\"_blank\">Google </a>스프레드시트용 지도: 지리적 위치, 경로, 지역, 자동화 - Mapsly<br>\t\t\t\t<br><br>\t\t\t\t<br>위치 기반 서비스: 기존의 위치 기반 친구 찾기(예: 위챗 Look Around)는 위치정보를 서버에 전송해야 하므로 개인정보 이슈가 있음.<br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://www.itworld.co.kr/news/76359\" target=\"_blank\">구글</a> 스프레드시트 가젯의 7가지 '깜짝 놀랄' 기능 - ITWorld Korea<br>\t\t\t\t<br>구글 스프레드 시트로 MVP 테스트 - 구글 시트에서 위치 확인, 해당 시트로 이동 후 오픈 채팅방 접속<br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://www.youtube.com/watch?v=MMBwkXMw8rU&ab_channel=ProtoPie\" target=\"_blank\">https://www.youtube.com/watch?v=MMBwkXMw8rU&ab_channel=ProtoPie</a><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://news.hada.io/topic?id=14333&utm_source=discord&utm_medium=bot&utm_campaign=280\" target=\"_blank\">https://news.hada.io/topic?id=14333&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>\t\t\t\t<br><a href=\"https://news.hada.io/topic?id=14332&utm_source=discord&utm_medium=bot&utm_campaign=280\" target=\"_blank\">https://news.hada.io/topic?id=14332&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>\t\t\t\t<br><a href=\"https://news.hada.io/topic?id=14331&utm_source=discord&utm_medium=bot&utm_campaign=280\" target=\"_blank\">https://news.hada.io/topic?id=14331&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>\t\t\t\t<br><br>\t\t\t\t<br>상세페이지 만들기 무료 <a href=\"https://ko.wix.com/blog/post/product-page-examples#viewer-eflvd\" target=\"_blank\">https://ko.wix.com/blog/post/product-page-examples#viewer-eflvd</a><br>\t\t\t\t<br>랜딩페이지 AI로 만들기 <a href=\"https://news.hada.io/topic?id=8549&utm_source=discord&utm_medium=bot&utm_campaign=280\" target=\"_blank\">https://news.hada.io/topic?id=8549&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>\t\t\t\t<br><a href=\"https://yslab.kr/79\" target=\"_blank\">Axure</a> <a href=\"https://yslab.kr/79\" target=\"_blank\">https://yslab.kr/79</a><br>\t\t\t\t<br>프레이머와 프로토파이<br>\t\t\t\t<br><br>\t\t\t\t<br>피그마<br>\t\t\t\t<br>처음 만나는 피그마 예제 파일 <a href=\"https://www.figma.com/community/file/914467259862808757\" target=\"_blank\">https://www.figma.com/community/file/914467259862808757</a><br>\t\t\t\t<br>스무 <a href=\"https://brunch.co.kr/@smu00\" target=\"_blank\">https://brunch.co.kr/@smu00</a><br>\t\t\t\t<br><br>\t\t\t\t<br>Plug-in<br>\t\t\t\t<br>- Content Reel: 예시로 넣을 이름, 연락처 등 필요한 텍스트 채워줌<br>\t\t\t\t<br>- Unsplash: 사진을 찾아줌<br>\t\t\t\t<br>- Arrow Auto: 화면의 flow 확인 가능한 화살표 보여줌<br>\t\t\t\t<br>- <a href=\"https://brunch.co.kr/@83304fb8f28947a/16\" target=\"_blank\">https://brunch.co.kr/@83304fb8f28947a/16</a><br>\t\t\t\t<br>- <a href=\"https://brunch.co.kr/@seungpillee/51\" target=\"_blank\">https://brunch.co.kr/@seungpillee/51</a><br>\t\t\t\t<br><br>\t\t\t\t<br>노코드 툴 찾기<br>\t\t\t\t<br><a href=\"https://nocodecore.com/\" target=\"_blank\">https://nocodecore.com/</a><br>\t\t\t\t<br><a href=\"https://www.nocodeexamples.com/nocode-products?mc_cid=24c2f3ed50&mc_eid=04debf0e6b\" target=\"_blank\">https://www.nocodeexamples.com/nocode-products?mc_cid=24c2f3ed50&mc_eid=04debf0e6b</a><br>\t\t\t\t<br>버블 예시 <a href=\"https://wooden-temple-2b2.notion.site/fcf109d580b344d98103b33da9c15470\" target=\"_blank\">https://wooden-temple-2b2.notion.site/fcf109d580b344d98103b33da9c15470</a><br>\t\t\t\t<br>버블 강의 모음 <br>\t\t\t\t<br><a href=\"https://open-support.tistory.com/entry/%EB%85%B8%EC%BD%94%EB%93%9C-%ED%88%B4-bubble-%EA%B0%95%EC%A2%8C-%EB%A7%81%ED%81%AC-%EA%B3%B5%EC%9C%A0?category=1305452\" target=\"_blank\">https://open-support.tistory.com/entry/%EB%85%B8%EC%BD%94%EB%93%9C-%ED%88%B4-bubble-%EA%B0%95%EC%A2%8C-%EB%A7%81%ED%81%AC-%EA%B3%B5%EC%9C%A0?category=1305452</a><br>\t\t\t\t<br><a href=\"https://brunch.co.kr/@famelee/68\" target=\"_blank\">https://brunch.co.kr/@famelee/68</a><br>\t\t\t\t<br><a href=\"https://brunch.co.kr/@famelee/27\" target=\"_blank\">https://brunch.co.kr/@famelee/27</a><br>\t\t\t\t<br><br>\t\t\t\t<br>==================================================================<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>페이크 도어 (Fake Dooor)<br>\t\t\t\t<br>미개발 제품이나 서비스가 마치 있는 것처럼 속여서 초기 관심 수준을 테스트합니다.<br>\t\t\t\t<br>예) 맥도널드에서 맥스파케티를 만들어 주문량 체크하고 메뉴가 없다면서 무료 버거를 제공합니다. <br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>소규모 지방에서 사전 출시 (Provincial)<br>\t\t\t\t<br>대규모 출시 전 작은 규모로 특정 지역이나 비공식 환경에서 테스트합니다.<br>\t\t\t\t<br>예) 전국 단위 맛집 정보를 만들기 전에 특정 지역 단위 정보 앱으로 테스트하였습니다.<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>원나잇 스탠드 (One-night Stand)<br>\t\t\t\t<br>제한된 시간에 프리토타입을 제공해 장기간 사업 가능성을 테스트합니다. <br>\t\t\t\t<br>예) 에어비앤비는 창업자들이 본인들 아파트를 하루 빌려주는 웹사이트를 만들었습니다.<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>최소 기능 제품 (MVP)<br>\t\t\t\t<br>최소한의 기능을 가진 상품을 만들어 시장에서 테스트합니다. <br>\t\t\t\t<br>예) 아이폰의 최초 버전은 앱 다운로드가 불가능했고, 카피 앤 페이스트도 되지 않았습니다.<br>\t\t\t\t<br>1. 메카니컬 터크 프리토타입<br>\t\t\t\t<br>몇 십년&#160;전,&#160;인터넷&#160;시대가&#160;되기&#160;전에. 그 때는&#160;타자를&#160;잘&#160;치는&#160;사람이&#160;몇&#160;없었습니다.&#160;그래서&#160;기업들은&#160;타자&#160;업무를&#160;맡길&#160;전문&#160;타이피스트를&#160;비싼&#160;임금으로&#160;고용해야&#160;했습니다.<br>\t\t\t\t<br>그 무렵 IBM&#160;은&#160;음성&#160;인식으로&#160;자동&#160;글자&#160;입력이&#160;되는&#160;컴퓨터가 있으면 어떨까? 하는 아이디어를 가지고 있었습니다. 좋은 아이디어 같았지만, 당시에는 아주 개발하기 어려운 기술이었습니다. IBM&#160;은&#160;수십&#160;년간의&#160;R&D&#160;에&#160;투자하기&#160;전에&#160;먼저&#160;사용자들을&#160;모아놓고&#160;재미있는&#160;테스트를&#160;합니다.&#160;<br>\t\t\t\t<br>IBM&#160;조사팀은&#160;잠재&#160;고객&#160;몇&#160;명에게&#160;혁신적인&#160;음성인식&#160;컴퓨터의&#160;시제품이&#160;나왔다고 발표하고, 시제품 테스트 지원자를 모집합니다.&#160;지원자에게 기계에 대해 설명한 뒤, 그들이&#160;마이크에&#160;대고&#160;말하게&#160;했습니다.&#160;그러면&#160;2초&#160;정도&#160;있다가&#160;사용자들이 말한 내용이 그대로&#160;컴퓨터&#160;화면에&#160;떴고, 지원자들은&#160;신기해 했습니다.&#160;<br>\t\t\t\t<br>사실은 진짜 제품을 개발한 것이 아니라&#160;IBM&#160;이&#160;고용한&#160;타이피스트가&#160;사람들이&#160;마이크에&#160;대고&#160;말하는&#160;소리를&#160;듣고&#160;화면에 쳐서 보여주고 있었던 것입니다.&#160;<br>\t\t\t\t<br>\t\t\t\t<br>이미지 출처: <a href=\"https://uxplanet.org/pretotyping-prototyping-5f94d298ec3a\" target=\"_blank\">https://uxplanet.org/pretotyping-prototyping-5f94d298ec3a</a><br>\t\t\t\t<br>\t\t\t\t<br>이미지&#160;출처: <a href=\"https://uxplanet.org/pretotyping-prototyping-5f94d298ec3a\" target=\"_blank\">https://uxplanet.org/pretotyping-prototyping-5f94d298ec3a</a><br>\t\t\t\t<br>&#160;<br>\t\t\t\t<br>실제 기술을 구현하기 전에 같은 기술 효과를 구현하여 테스트합니다. <br>\t\t\t\t<br>예) IBM의 음성을 텍스트로 변환해주는 기계가 있습니다. <br>\t\t\t\t<br>컴퓨터가 아닌, 타이피스트가 직접 입력해서 모니터에 출력<br>\t\t\t\t<br><br>\t\t\t\t<br>이런&#160;간단한&#160;모형을&#160;통해서&#160;IBM&#160;은&#160;엄청난&#160;아이디어일&#160;것만&#160;같았던&#160;그들의&#160;음성&#160;인식&#160;컴퓨터에&#160;대한 사용자 관점 데이터를(시장의 반응을) 모을 수 있었습니다.&#160;<br>\t\t\t\t<br>“2시간&#160;동안&#160;마이크에&#160;대고&#160;말했더니&#160;목이&#160;아파요“<br>\t\t\t\t<br>“보안에 문제가 있을&#160;것&#160;같아요”<br>\t\t\t\t<br>IBM&#160;은&#160;결국&#160;그&#160;사업을&#160;시작하기 전에&#160;접었습니다. 그리고 그 인력과 시간 등을 다른 곳에 더 투자할 수 있었습니다.&#160;<br>\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t\t폴드포유(Fold4U)<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t시장호응가설<br>\t\t\t\t\t\t코인 세탁소는 대부분 세탁기와 건조기를 보유하고 있다. 하지만 건조가 끝나면 뒤죽박죽된 온갖 옷가지를 손으로 정리해서 접고 쌓아야 한다. 옷을 개고 쌓아주는 기계가 있어서 세탁의 마지막 과정을 처리해 준다면 멋지지 않을까?<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tXYZ가설<br>\t\t\t\t\t\t적어도 50%의 코인 세탁소 이용객은 옷을 개고 쌓는 데에 2달러~4달러를 지불할 것이다<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>xyz가설<br>\t\t\t\t\t\t<br>(범위 축소)<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t적어도 50%의 레니즈 코인 세탁소 이용객은 폴드포유의 기계에 옷을 넣고 2달러를 지불하여 옷을 갤 것이다.<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>프리토타입<br>\t\t\t\t\t\t<br>(미캐니컬 터크<br>\t\t\t\t\t\t<br>프리토타입)<br>\t\t\t\t\t\t<br>​<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>▶ A는 B(동네 코인 세탁소 사장)에게 폴드포유의 아이디어를 설명하고 그의 가게에서 프리토타이핑 실험을 하게 해주면 200달러를 내겠다고 한다.<br>\t\t\t\t\t\t<br>▶옛날 건조기를 개량해서 드럼을 빼내고 뒤쪽에 숨겨진 문을 설치한다.<br>\t\t\t\t\t\t<br>▶사람들이 이 기계에 옷을 넣고 돈을 지불하면 A가 뒷문을 열어 옷을 꺼내 접은 다음, 다시 기계 안에 넣는다. 기계 소음까지 녹음해두었다가 옷을 접는 동안 기계 안에 소리를 튼다.<br>\t\t\t\t\t\t<br>▶프리토타입이 워낙 잘 작동해서 이용자 중에 누구도 전혀 의심하지 않는다.<br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t나만의 데이터<br>\t\t\t\t\t\t12%의 레니즈 코인 세탁소 이용객이 2달러를 지불하고 폴드포유로 옷을 갰다.<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t출처: <<a href=\"https://m.blog.naver.com/dreamip/221967725317\" target=\"_blank\">https://m.blog.naver.com/dreamip/221967725317</a>> <br>\t\t\t\t<br><br>\t\t\t\t<br>&#160;<br>\t\t\t\t<br>2. 피노키오 프리토타입<br>\t\t\t\t<br>\t\t\t\t<br>사진 출처: <a href=\"https://www.blender.nz/2017/05/pretotyping-pretending-prototype/\" target=\"_blank\">https://www.blender.nz/2017/05/pretotyping-pretending-prototype/</a><br>\t\t\t\t<br>&#160;<br>\t\t\t\t<br>피노키오 (Pinocchio)<br>\t\t\t\t<br>가짜 제품을 마치 실제 제품인 것처럼 속여서 사용자 경험을 모방합니다.<br>\t\t\t\t<br>예) Palm 창업자인 제프 호킨스는 나무로 된 가짜 PDA를 주머니에 넣고 다니면서 사용하는 척하였습니다. <br>\t\t\t\t<br><br>\t\t\t\t<br>PDA 아이디어를 떠올린 제프 호킨스가 팜팔일럿을 개발할 때 입니다. 그는 이 손바닥만한 기계를 과연 사람들이 사용할지 궁금했습니다.<br>\t\t\t\t<br>그는 먼저&#160;시제품을 만들지 않고, 그저 나무토막에 화면을 인쇄해서 붙이고, 나무젓가락을 깎아 스타일러스를 만들었습니다.&#160;그리고 몇 달 동안 셔츠 주머니에 넣고 다니면서 컴퓨터인 '척' 했습니다.&#160;<br>\t\t\t\t<br>그리고 그것을 사용(?)하면서&#160;자신이 직접 데이터를 모았습니다.<br>\t\t\t\t<br>- 하루 평균 12번 정도 꺼내서 사용했다.<br>\t\t\t\t<br>- 일정 약속 용도 : 55퍼센트<br>\t\t\t\t<br>- 전화번호나 주소 확인 : 25퍼센트<br>\t\t\t\t<br>- 할 일 목록 추가 또는 확인: 15퍼센트<br>\t\t\t\t<br>- 메모: 5퍼센트&#160;<br>\t\t\t\t<br>이런식으로, 자신이 만들 제품의 아이디어를 업그레이드 해서 제품 개발에 적용할 수 있었습니다. 팜파일럿은 엄청난 성공을 거두었을 뿐 아니라, 스마트폰이라는 제품이 나오는 길을 닦았다고 합니다.&#160;<br>\t\t\t\t<br>여기서 볼 수 있는 프로토타입과 프리토타입의 차이점은 이것입니다.&#160;<br>\t\t\t\t<br>일반적인 프로토타입(시제품)의 제 1목적은 이것을 알기 위한 것입니다.&#160;<br>\t\t\t\t<br>- 우리가 이걸 만들 수 있는가?<br>\t\t\t\t<br>- 이게 의도대로 작동할 것인가?<br>\t\t\t\t<br>- 얼마나 작게/크게/싸게/에너지 효율적으로 만들 수 있을까?<br>\t\t\t\t<br>반면&#160;프리토타입의 목적은 이것들을 알기 위한 것입니다.&#160;<br>\t\t\t\t<br>- 내가 이걸 사용할까?<br>\t\t\t\t<br>- 언제 어떻게 얼마나 자주 사용할까?<br>\t\t\t\t<br>- 남들이 사줄까?<br>\t\t\t\t<br>- 사람들은 이 제품에 얼마까지 지불하려고 할까?<br>\t\t\t\t<br>- 사람들은 언제 어떻게 얼마나 자주 이걸 사용할까?<br>\t\t\t\t<br>&#160;<br>\t\t\t\t<br>3. 가짜 문 프리토타입<br>\t\t\t\t<br>실제로는 아무 것도 없는데, 어떤 제품이나 서비스가 실제로 존재하는 것처럼 보일 만한 ‘현관문’(예를들어 광고, 웹사이트, 브로셔, 매장 입구) 를 설치하면, 얼마나 많은 사람이 그 가짜 문을 두드릴지 - 즉, 여러분의 아이디어에 관심을 가질지&#160;데이터를 얻을 수 있습니다.<br>\t\t\t\t<br>[사례: 다람쥐 관찰 가이드]<br>\t\t\t\t<br>샌디는 그녀가 정말 좋아하는 다람쥐 관찰에 관한 책을 써보려고&#160;했습니다. 하지만 그 책이 시장에서 얼마나 반응이 있을지 알 수 없었습니다.&#160;한 권도 팔리지 않을 수도 있는 책을 위해 몇 달간 자료 조사를 하고 책을 써야 할까?<br>\t\t\t\t<br>샌디는 10달러를 내고&#160;<a href=\"http://squirrelwatching.com/\" target=\"_blank\">squirrelwatching.com</a>&#160;도메인을 사고,&#160;<다람쥐 관찰 가이드북> 내용 소개와 작가 소개를 곁들인 웹사이트를 제작했습니다. 그 다음 자연 관찰을 좋아하는 커뮤니티를 타겟으로 책을 홍보하는&#160;광고를 냈습니다.&#160;<br>\t\t\t\t<br>\t\t\t\t<br>&#160;<br>\t\t\t\t<br>만약 60달러를 투자해 광고했는데 구매하기 버튼을 누른 사람들이 20명이라면 샌디는 60달러를 투자해 400달러의 매출(20달러x20명)을 올릴 수 있다는 계산이 나옵니다. 이 책은 집필을 시작해도 좋다! 라는 계산이 나옵니다.&#160;<br>\t\t\t\t<br>그러나 만약 자연 관찰을 좋아하는 사람들 100,000명이 이 광고를 봤는데 구매하기 버튼을 누른 사람이 1, 2명 뿐이라면 샌디는 이 책을 제작하는 일을 다시 생각해볼 수 있을 것입니다.&#160;<br>\t\t\t\t<br>&#160;<br>\t\t\t\t<br>알베르토는 이런 식의 프리토타입으로 모을 수 있는 사용자 데이터가&#160;일반적인 사전 설문조사보다 훨씬 더 현실을 반영하고 믿을 만한 데이터라고 하는데요<br>\t\t\t\t<br>그 이유는,&#160;일반적인 설문조사에는 대답하는 사람들이 아무 대가를 지불하지 않고, 의견만 제시할 뿐이지만&#160;<br>\t\t\t\t<br>이런 프리토타입에서 실제로 구매하기 버튼을 누르는 사람들은&#160;기꺼이 뭔가를 지불할 의사를 보여준다는 점에서&#160;실제 시장의 반응을 보다 명확하게 예측할 수 있다는 것입니다.&#160;<br>\t\t\t\t<br>&#160;<br>\t\t\t\t<br>문제점<br>\t\t\t\t<br>좋은 데이터를 모을 수 있는 방식인지는 모르겠지만 여기에는&#160;약간의 기만이 포함되기 때문에&#160;금융이나 의료 같은 분야에서는 사용하면 안 됩니다.&#160;어쨌든 구매하기 버튼을 누른 사람들은 ‘속았다’는 느낌을 받을 수 있습니다.<br>\t\t\t\t<br>알베르토는 그 부분에 있어 두 가지 해결책을 제시합니다.&#160;<br>\t\t\t\t<br>하나는, 가짜 문에 노크를 하거나 (이 경우 광고 클릭) 구매하기 버튼을 누른 사람들에게 사실을 솔직하게 밝히고 후한 보상을 하는 것입니다. 가령 책 구매하기 버튼을 누른 사람들에게 10달러짜리 도서상품권을 제공해주는 것입니다.&#160;여러분에게 ‘나만의 데이터’를 제공한 사람들에게&#160;수고에 대한 대가로 뭔가 가치 있는 것을 돌려줌으로써 Win-Win 할 수 있게 하는 것입니다.&#160;<br>\t\t\t\t<br>또 다른 방법은 외관 프리토타입을 사용하는 것입니다.&#160;<br>\t\t\t\t<br>4.&#160; 외관 프리토타입<br>\t\t\t\t<br>파사드 (Facade)<br>\t\t\t\t<br>아직 접근성이 떨어지는 제품이나 서비스를 사람들의 관심 수준을 확인하기 위해 테스트합니다.<br>\t\t\t\t<br>예) 1990년대 카스다이렉트라는 온라인 자동차 구매 웹사이를 만들어 테스트하였습니다.<br>\t\t\t\t<br><br>\t\t\t\t<br>외관 프리토타입은 구현하고자 하는 서비스의 일부만 구현해서 일종의 맛보기를 하는 것입니다.&#160;다음은 카즈다이렉트 서비스를 하는 빌 그로스의 사례입니다.&#160;<br>\t\t\t\t<br>빌은 온라인으로 자동차를 팔고 싶은 아이디어가 있었습니다.<br>\t\t\t\t<br>본격적으로 사업에 뛰어들기 전, 일단 간단하게 구현된 온라인 자동차 판매 웹사이트를 만들어 게시했습니다. (작동되는 것처럼 보일 뿐 실제로 제대로 된 사이트는 아니었습니다.)<br>\t\t\t\t<br>웹사이트 오픈 첫날 하룻 밤 사이에 주문이 4건 들어왔습니다.&#160;<br>\t\t\t\t<br>빌은 그 웹사이트를 얼른 닫고 주문한 차량을 보내준 다음, 그 떄부터 진짜 웹사이트와 서비스를 구축하기 시작했습니다.<br>\t\t\t\t<br>&#160;<br>\t\t\t\t<br>한마디로 맛보기 서비스 운영 같은걸 해보고, 가능성이 있겠다 싶으면 그때부터 본격적으로 시작을 하는 방식입니다.<br>\t\t\t\t<br>가짜 문 프리토타입보다 약간&#160;더 투자가 필요하지만 (실제 제품을 배송하는 등), 문을 두드린 사람들을 기만하는 것도 아니고, 하려고 하는 사업의 효과도 검증할 수 있습니다.<br>\t\t\t\t<br>&#160;<br>\t\t\t\t<br>유튜브 영상 프리토타이핑<br>\t\t\t\t<br>실제 상품 없이 가짜 영상을 만들어 소비자의 관심 정도를 확인합니다. <br>\t\t\t\t<br>예) 구글 글라스를 영상으로 먼저 세상에 알린 후 출시 전 툴킷 구매 의향을 확인하였습니다.<br>\t\t\t\t<br>구글 글래스 탐험단 프로그램 참가 신청<br>\t\t\t\t<br>5. 잠입자 프로토타입<br>\t\t\t\t<br><br>\t\t\t\t<br>저스틴 포카노는 기존의 기능을 개선한 편리한 스위치판(조명 스위치 주위를 둘러싼 판) '윌허브'를 발명했습니다.&#160; 그는 자신의 작품이 뛰어나다고 생각했지만, 본격 생산에 돌입하기에 앞서 정말로 팔릴 만한 제품인지 알고 싶었습니다.<br>\t\t\t\t<br><br>\t\t\t\t<br>그래서 그는 중고 거래 사이트에서 중고 이케아 직원 셔츠를 사서 입고, 이케아 제품처럼 보이는 라벨과 가격표를 제작해서 포장한 윌허브에 붙이고, 이케아 매장에 가서 기존의 스위치판 옆에 윌허브를 몇 개 끼워서 진열했습니다. 그리고 근처에 서서 고객들의 반응을 지켜봤습니다.<br>\t\t\t\t<br><br>\t\t\t\t<br>- 몇 사람이나 '윌허브'에 관심이 있을까?<br>\t\t\t\t<br>- 어느 위치에 놓아야 잘 팔릴까?<br>\t\t\t\t<br><br>\t\t\t\t<br>실제로 그 날 몇 명이 그 제품을 장바구니에 넣었고, 그 제품을 집은 사람들은 근 날 윌허브를 무료로 받아갈 수 있었습니다. 이런 식으로 그는 자신만의 데이터를 수집할 수 있었습니다.<br>\t\t\t\t<br><br>\t\t\t\t<br>1. 실험 시간: 1시간<br>\t\t\t\t<br>2. 전시된 제품 옆을 지나간 사람: 240명<br>\t\t\t\t<br>3. 윌허브를 집어 들고 확인한 사람: 12명 (5%)<br>\t\t\t\t<br>4. 윌허브를 사려고 한 사람: 3명 (1.25%)<br>\t\t\t\t<br><br>\t\t\t\t<br>잡입했을 때 찍은 영상을 유튜브에 올려 제품 홍보에도 활용 했습니다.<br>\t\t\t\t<br>솔직히 이케아에 저렇게 잡입하는 것이 좋아보이는 방법은 아니지만, 같은 실험을 다른 방식으로도 할 수 있었을 것입니다. 이런 대형 할인점에 몰래 잠입하는 방식이 아니라 동네 철물점에 실제로 진열을 해보는 방식 등으로요.<br>\t\t\t\t<br>윌허브 실험 영상<br>\t\t\t\t<br><a href=\"https://www.youtube.com/watch?v=XVnqSIVG6WE&t=4s\" target=\"_blank\">https://www.youtube.com/watch?v=XVnqSIVG6WE&t=4s</a><br>\t\t\t\t<br><br>\t\t\t\t출처: <<a href=\"https://ibks-platform.tistory.com/373\" target=\"_blank\">https://ibks-platform.tistory.com/373</a>> <br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://m.blog.naver.com/dreamip/221967725317\" target=\"_blank\">https://m.blog.naver.com/dreamip/221967725317</a>> <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://ibks-platform.tistory.com/373\" target=\"_blank\">https://ibks-platform.tistory.com/373</a>> <br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"https://www.youtube.com/playlist?list=PL1DJtS1Hv1Piv_MQIHgA_CdNsXyDM9UDM\" target=\"_blank\">TOSS INSIGHT | 토스 인사이트</a><br>\t\t\t<br><a href=\"https://brunch.co.kr/@ashashash/186\" target=\"_blank\">토스 PO 세션 정리</a><br>\t\t\t<br><a href=\"https://www.minwookim.kr/carrying-capacity-gaenyeom/\" target=\"_blank\">토스 C.C 이견</a><br>\t\t\t<br><a href=\"https://keithschacht.medium.com/web-and-mobile-products-understanding-your-customers-d8ee1e56b5a3\" target=\"_blank\">https://keithschacht.medium.com/web-and-mobile-products-understanding-your-customers-d8ee1e56b5a3</a><br>\t\t<br>\t\t<br>\t\t\t<br>개발자 매칭 플랫폼 디오 - <br>\t\t\t<br><a href=\"https://www.dio.so/\" target=\"_blank\">https://www.dio.so/</a>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>미 IPO ETF 스윙</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">미 IPO ETF 스윙</div>
+<div class="date">2026년 1월 11일 일요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-미-IPO-ETF-스윙';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "미 IPO ETF 스윙<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>XOVR 거래 가능 이유<br>\t\t\t\t<br>XOVR은 NYSE Arca에 상장된 표준 ETF로, 키움증권의 미국 주식/ETF 거래 목록에 포함되어 자유로운 매매가 가능합니다.​<br>\t\t\t\t<br>비상장 기업(스페이스X 등) 지분을 포함한 구조지만, ETF 형태로 한국 투자자들이 접근할 수 있습니다.​<br>\t\t\t\t<br>ARKVX 부재 이유<br>\t\t\t\t<br>ARKVX는 ARK Invest의 뮤추얼 펀드로, 미국 내 SoFi나 Titan 같은 플랫폼에서 주로 거래되며 한국 증권사 HTS/APP에서 직접 지원되지 않습니다.​<br>\t\t\t\t<br>키움증권은 특정 미국 ETF만 거래 허용하며, 뮤추얼 펀드는 별도 해외 펀드 계좌나 플랫폼이 필요합니다.​<br>\t\t\t\t<br>Fundrise Innovation Fund 부재 이유<br>\t\t\t\t<br>Fundrise Innovation Fund는 미국 거주자 전용 Reg A 펀드로, 비미국인(한국 투자자) 투자 자체가 규제상 불가능합니다.​<br>\t\t\t\t<br>Fundrise 플랫폼 직접 투자만 지원되며, 키움증권 같은 해외 증권사 연동이 없습니다.​<br>\t\t\t\t<br>대안 투자 방법<br>\t\t\t\t<br>- XOVR 유지: 스페이스X 등 비상장 노출을 원할 때 적합.​<br>\t\t\t\t<br>- ARK 관련 ETF: 키움에서 ARKK, ARKQ 등 상장 ETF 거래 가능.​<br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t략<br>\t\t\t\t\t\t구성/운영 방식<br>\t\t\t\t\t\t적합도 (중위험&#183;단기)<br>\t\t\t\t\t\t예상 수익/리스크 (3개월)<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t포트폴리오 구성<br>\t\t\t\t\t\tXOVR 40%, ARKVX 40%, Fundrise 20% 동시 보유<br>\t\t\t\t\t\t중간<br>\t\t\t\t\t\t+12-18% / 변동성 높음 (베타 1.3)&#160;​<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t스윙 트레이딩<br>\t\t\t\t\t\t순환: XOVR 풀백→ARKVX 모멘텀→Fundrise 안정 순환<br>\t\t\t\t\t\t높음<br>\t\t\t\t\t\t+15-25% / 타이밍 리스크 관리<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t하나 장투<br>\t\t\t\t\t\tXOVR 단독 (SpaceX 중심) 6-12개월 보유<br>\t\t\t\t\t\t낮음<br>\t\t\t\t\t\t+10-20% / IPO 지연 위험 큼&#160;​<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br>&#128202;&#160;세 옵션 구조 비교 (2026.1.10 기준)<br>\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t항목<br>\t\t\t\t\t\tXOVR<br>\t\t\t\t\t\tARKVX<br>\t\t\t\t\t\tFundrise Innovation<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t현재가/NAV<br>\t\t\t\t\t\t$19.97<br>\t\t\t\t\t\t$46.31<br>\t\t\t\t\t\tNAV 기준<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t유동성<br>\t\t\t\t\t\t⭐⭐⭐ 일일 거래<br>\t\t\t\t\t\t⭐⭐ 분기별 5% 환매<br>\t\t\t\t\t\t⭐ 분기별 환매 제한<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tAI 비중<br>\t\t\t\t\t\tSpaceX 9.78% (AI 간접)<br>\t\t\t\t\t\tOpenAI 3위, 전체 AI 30%+<br>\t\t\t\t\t\tOpenAI+Anthropic+Databricks 50%<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t비용률<br>\t\t\t\t\t\t0.75%<br>\t\t\t\t\t\t2.90%<br>\t\t\t\t\t\t1.85%<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t최소 투자<br>\t\t\t\t\t\t시장가 (~$20)<br>\t\t\t\t\t\t$500<br>\t\t\t\t\t\t$10<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t변동성<br>\t\t\t\t\t\t베타 1.48 (고변동)<br>\t\t\t\t\t\t연 +53.89% (극고변동)<br>\t\t\t\t\t\t연 +12% (낮은 변동)<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t실제 노출도<br>\t\t\t\t\t\t⚠️ SpaceX 실질 4%로 희석<br>\t\t\t\t\t\t✅ Private 81.9%<br>\t\t\t\t\t\t✅ Private 집중<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tETF/펀드<br>\t\t\t\t\t\t핵심 매력 (Exposure)<br>\t\t\t\t\t\t전문가 한줄평<br>\t\t\t\t\t\t적정가/대응전략<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tXOVR<br>\t\t\t\t\t\tSpaceX 중심 (10%)<br>\t\t\t\t\t\tIPO 모멘텀의 최대 수혜주. 변동성이 크나 확실한 테마.<br>\t\t\t\t\t\t$28-29 지지선 매수 추천<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tARKVX<br>\t\t\t\t\t\tAI 3대장 (OpenAI/Anth) + Ark 특유의 공격성<br>\t\t\t\t\t\t액티브 매니지먼트의 정수. AI 거품 논란 시 가장 먼저 흔들림.<br>\t\t\t\t\t\t$45-47 (NAV 근접) 분할 매수<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tFundrise<br>\t\t\t\t\t\t실물 기반의 안정적 성장 (OpenAI 2026 IPO 타겟)<br>\t\t\t\t\t\t'무거운 엉덩이' 전략. 환매 제한이 방어막이자 족쇄.<br>\t\t\t\t\t\tNAV 기준 장기 적립<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br>&#128202;&#160;세 펀드의 유동성 차이 (매도 가능 여부)<br>\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t펀드<br>\t\t\t\t\t\t구조<br>\t\t\t\t\t\t매도 방법<br>\t\t\t\t\t\t스윙 가능 여부<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tXOVR<br>\t\t\t\t\t\t일반 ETF<br>\t\t\t\t\t\t매일 실시간 매도 가능&#160;(주식처럼)<br>\t\t\t\t\t\t✅&#160;가능<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tARKVX<br>\t\t\t\t\t\tClosed-End Interval Fund<br>\t\t\t\t\t\t분기별로만 환매 신청 가능&#160;+ 분기당 NAV의 5%까지만 환매<br>\t\t\t\t\t\t❌&#160;불가능<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tFundrise<br>\t\t\t\t\t\tInterval Fund<br>\t\t\t\t\t\t분기별로만 환매 신청 가능&#160;+ 펀드 정책에 따라 제한<br>\t\t\t\t\t\t❌&#160;불가능<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>- ARKVX 단독:&#160;2.90% 비용률 + 환매 제한 + 극심한 변동성<br>\t\t\t\t\t<br>- 3개 균등 분산:&#160;관리 복잡도 대비 효율 낮음<br>\t\t\t\t\t<br>- 스윙 트레이딩:&#160;환매 제한으로 실질 불가능<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://www.perplexity.ai/search/seupeiseux-xovr-openai-anthrop-rK0nihOoTsSgebkrh86.yA\" target=\"_blank\">스윙 전략 상세</a><br>\t\t\t\t<br>- 순환 룰: XOVR $28-29 매수 (SpaceX 뉴스 대기) → 10%↑ $31 매도, ARKVX $30-31 전환 (AI 실적 후). Fundrise는 안정 버퍼로 20% 유지.​<br>\t\t\t\t<br>- 리스크 관리: 총 비중 10% 이내, trailing stop 8%, 70% 지지선 손절.<br>\t\t\t\t<br>- 타이밍: 2026 Q1 SpaceX IPO 기대로 XOVR 우선 진입. 포트 다각화(기존 주식과 분리) 유지<br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://chatgpt.com/g/g-p-68d9d84e8b9c8191b88d569a18c2dda4-tuja/c/6962bef5-55d4-8323-bda6-9b26431109fe\" target=\"_blank\">메인 전략</a>: ② 돌아가면서 스윙 (XOVR ↔ ARKVX)<br>\t\t\t\t<br>보조 전략: Fundrise는 장기 옵션으로 분리<br>\t\t\t\t<br>추천 비중 예시<br>\t\t\t\t<br>- XOVR / ARKVX 스윙용 70~80%<br>\t\t\t\t<br>- Fundrise 장기 20~30% <br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://claude.ai/chat/b1b53cf0-13d1-45cd-a13d-4f095a719348\" target=\"_blank\">&#127919;</a> 최종 추천 (귀하 스타일 기반)<br>\t\t\t\t<br>귀하의 투자 원칙을 고려할 때:<br>\t\t\t\t<br>1순위: Fundrise Innovation (50%) + XOVR (50%) 조합<br>\t\t\t\t<br>\t\t\t\t\t<br>- <br>Fundrise (장투 포지션):<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>- 한국 시장 집중하면서 미국 AI pre-IPO 노출도 확보<br>\t\t\t\t\t\t<br>- 일일 시세 확인 불필요 → 감정 제거<br>\t\t\t\t\t\t<br>- OpenAI+Anthropic+Databricks 3개 주요 타겟 동시 보유<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>- <br>XOVR (단기 모멘텀 포지션):<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>- SpaceX IPO 뉴스 발생 시 즉시 청산 가능 (일일 유동성)<br>\t\t\t\t\t\t<br>- 명확한 트리거: $1.5T 밸류에이션 IPO 모멘텀&#160;<a href=\"https://finance.yahoo.com/news/spacex-record-ipo-plan-pushes-201920851.html\" target=\"_blank\">Yahoo Finance</a><br>\t\t\t\t\t\t<br>- 청산 트리거: IPO 공식 발표 후 +25% 도달 시<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://gemini.google.com/gem/5a3a32da76e0/d19c0e9926a7ffcc\" target=\"_blank\">전문가의</a> 최종 조언<br>\t\t\t\t<br>\t\t\t\t\t<br>- 하나만 장투한다면? 단연 Fundrise Innovation입니다. 비상장 주식은 유동성이 공급될 때(상장) 가치가 폭발하는데, 개인투자자는 그전에 팔아버리는 실수를 가장 많이 합니다. 강제적인 폐쇄형 구조가 오히려 큰 수익을 만들어줄 것입니다.<br>\t\t\t\t\t<br>- 스윙을 선호한다면? XOVR만 보십시오. SpaceX는 단순한 기업이 아니라 정치/경제적 심볼이 되었습니다. 기술적 지지선($28) 이탈 시 손절이 명확하여 스윙에 가장 적합합니다.<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>- Fundrise Innovation (50%) - 코어(Core): * 이유: 비상장 투자는 '기다림'이 본질입니다. 환매 제한이 있는 이 펀드를 중심에 두어 시장의 일시적 공포(Panic Sell)로부터 내 자산을 강제로 보호하며 OpenAI/Anthropic의 상장 결실을 끝까지 가져갑니다.<br>\t\t\t\t\t<br>- <br>XOVR (30%) - 공격형 위성:<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>- 이유: SpaceX 상장 소식이 들릴 때마다 가장 탄력적으로 움직일 종목입니다. 2026년 IPO 로드맵에 맞춰 수익 실현을 병행하는 전략이 유효합니다.<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>- <br>ARKVX (20%) - 전술적 보조:<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>- 이유: 캐시 우드의 선별 능력을 믿되, AI 섹터의 고평가 논란이 있을 때 비중을 줄이는 식으로 유연하게 대응합니다.<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>[전략 B] 기간별 순환매(Rotation) 스윙<br>\t\t\t\t<br>\t\t\t\t\t<br>- 상반기: XOVR 집중 (트럼프 정부의 우주 산업 규제 완화 및 SpaceX IPO 가시화 모멘텀 활용).<br>\t\t\t\t\t<br>- 하반기: ARKVX/Fundrise 이동 (OpenAI 상장 임박 시점에 AI 집중형 상품으로 교체).<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://grok.com/project/98df5a97-cad8-431e-9915-f217768a916e?chat=26eff756-185b-4076-9914-b6ff7ab2f53e&rid=483c6682-e040-4ad1-b761-8822e36bbe49\" target=\"_blank\">전략</a> 추천: 세 가지를 담는다면?<br>\t\t\t\t<br>이 세 ETF는 AI/우주 테마 중복(예: OpenAI/Anthropic in ARKVX & Fundrise, SpaceX in XOVR & ARKVX)이 있지만, 위험 분산과 성장 잠재력을 위해 포트폴리오 구성이 최선이다. <br>\t\t\t\t<br>매일 아침처럼 종합 분석: XOVR 40%(우주 모멘텀), ARKVX 40%(AI 성장), Fundrise 20%(장기 안정). 이유는 거시적으로 AI 에너지 수요(123GW by 2035)와 우주 IPO 붐, 미시적으로 각 보유 기업의 매출 성장(Starlink 60%↑). 스윙은 변동성 커서 피하고, <br>\t\t\t\t<br><br>\t\t\t\t<br>하나만 장투라면 XOVR(IPO 촉매 강함). 전체 포트 5-10% 비중 유지, 매수 후 50일 MA 모니터링.<br>\t\t\t\t<br><br>\t\t\t\t<br>&#127919;&#160;수정된 전략 제안<br>\t\t\t\t<br>실질적으로 가능한 전략 2가지:<br>\t\t\t\t<br>전략 A: XOVR 단독 스윙 (Fundrise는 별도 장투)<br>\t\t\t\t<br>포트 구성:￼- XOVR 70%: SpaceX IPO 모멘텀 스윙용￼- Fundrise 30%: 장기 홀딩 (건드리지 않음)￼<br>\t\t\t\t<br>XOVR 스윙 트리거:￼- 진입: SpaceX 상장 신청서 제출 뉴스 + $28-29 지지￼- 청산: IPO 확정 후 +20% 또는 -10% 손절<br>\t\t\t\t<br>전략 B: 순수 장투 (스윙 포기)<br>\t\t\t\t<br>포트 구성:￼- Fundrise 60%: AI pre-IPO 집중 노출￼- XOVR 40%: 유동성 확보용 (급전 필요 시 매도)￼<br>\t\t\t\t<br>전략:￼- 둘 다 3년 홀딩￼- IPO 이벤트만 기다림<br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>- <br>스윙 의향:<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>- \"SpaceX IPO 뉴스 나오면 빠르게 사고팔고 싶다\" → XOVR 중심<br>\t\t\t\t\t\t<br>- \"그냥 사놓고 3년 뒤 IPO 기다린다\" → Fundrise 중심<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>- <br>현금 필요성:<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>- \"1년 내 현금 필요할 수도 있다\" → XOVR 비중 높여야<br>\t\t\t\t\t\t<br>- \"3년은 안 건드려도 된다\" → Fundrise 비중 높여도 OK<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>❌ 피해야 할 전략:<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>이유:<br>\t\t\t<br><br>\t\t\t<br>\"비상장 투자는 <b>'언제 들어가는가'보다 '어떻게 견디는가'</b>의 싸움입니다.\"<br>\t\t\t<br><br>\t\t\t<br>[전략 A] 비중 조절 포트폴리오 (추천)<br>\t\t\t<br>만약 자산이 한정적이라면 <b>'이벤트'</b>를 따라갑니다.<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>❓&#160;질문 드립니다",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

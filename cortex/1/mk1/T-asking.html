@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T-asking</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">T-asking</div>
+<div class="date">2016년 6월 18일 토요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-T-asking';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "T-asking<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>ㅇ 어떠한 불편을 해소하는가? 어떠한 니즈를 충족하는가?<br>\t\t\t<br>ㅇ 고객들이 왜 이 것을 사용해야만 하는가?<br>\t\t\t<br>  - 고객들에게 이것은 무엇인가? 어떤 의미인가? 하루 중 얼마나 자주 사용될 것인가? 10배이상 개선하려면?<br>\t\t\t<br>ㅇ Un-met 니즈는 무엇인가? Insane한 core value는 무엇인가?<br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>- 좋아요/하트 -> 인정욕. 내가 이렇게 유용한 사람이다. 신기한걸 본 사람이다, 내가 바로 이걸 발견했다.<br>\t\t\t\t<br>제 3자(기존에 모르던 사람)의 인정<br>\t\t\t\t<br>- 지금 내 주변사람들과 특정위치에 있는 사람들과 번호 없이도 Comm. 가능<br>\t\t\t\t<br>- 소리쳐 물어볼 수도 없는데 내 주변에 뭔가 팔하거나 궁금한적 없었나?<br>\t\t\t\t<br>- 멀리 있는 곳의 현황이 궁금한적 없었나? 디폴트: 내 위치/ 타spot: 들여다보기<br>\t\t\t\t<br>- 샤우트-라인, 1:1대화<br>\t\t\t\t<br>- ㅇㅇ프로필(자기과시)<br>\t\t\t\t<br><br>\t\t\t\t<br>세상의 순간들을 포착하고 공유한다. - 배트맨의 이동전화 해킹한 모니터<br>\t\t\t\t<br><br>\t\t\t\t<br>- 기존 정보들과의 차이점?<br>\t\t\t\t<br>관계의 확장 = 정보의 확장<br>\t\t\t\t<br>제 3자, 타인의 삶에 대한 호기심<br>\t\t\t\t<br>내 앞의, 혹은 서초구에 있는 사람은?<br>\t\t\t\t<br>친구 맺기x 그냥 흘러가는 인연<br>\t\t\t\t<br>실시간 Issue나 사고 중심 - 지도위에 막 포스트 잇을 붙이듯이 소통하는거야<br>\t\t\t\t<br>- 내가 직접 못가고, 물리적 시공간적 한계가 있는 곳에 맵상에서 내가 지정한 지점으로 가까운 곳에 있는 유저의 list 제공<br>\t\t\t\t<br>- 물어본다. Or 2. 요청한다.<br>\t\t\t\t<br>- 한정된 구역부터 서비스 : 카이스트나 강남구 특정 지역 등<br>\t\t\t\t<br>- \"무슨일이 일어나고 있나요?\" <br>\t\t\t\t<br>- 사람=정보<br>\t\t\t\t<br>- 이슈나 정보에 따라 이합집산 되는거야. 관계가.<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>[위치기반 SNS]<br>\t\t\t<br>\t\t\t\t<br>- 샤우팅라인 - 해당지역만 모아서 보여주는, 노출할 수 있는<br>\t\t\t\t<br>- 프로필 OR 미니홈피 : 제 3자에게 나를 과시/ 알리고 싶다<br>\t\t\t\t<br>- 위치, 실검 태그<br>\t\t\t\t<br><br>\t\t\t\t<br>제공하고자 하는 단 하나의 가치?<br>\t\t\t\t<br>기능1. 기능2. 기능3 -> VALUE<br>\t\t\t\t<br><br>\t\t\t\t<br>- 번호가 아니라 위치정보를 키값으로 Comm. 가능<br>\t\t\t\t<br>- 멀리있는 누군가에게 정보취득/ 부탁<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>지식인은 누군가 물어봐야만 답이 나오는 구조.<br>\t\t\t<br>근데, 정보는 이미 있는거야. 먼저 누군가가 말해줄 수 있는거지 그게 타임라인이되고<br>\t\t\t<br>그걸 길어 올리는 SNS인거야.<br>\t\t\t<br><br>\t\t\t<br>같은 장소/ 같은 시간에 언급한 글을 모야서 보여줄수도 있고. - 시공간의 정보를 편집하는거지<br>\t\t\t<br>1시간 언저리에 그 지역에서 오간 대화나 이슈, 사진, 영상<br>\t\t\t<br><br>\t\t\t<br>지역별 인구분포도<br>\t\t\t<br><br>\t\t\t<br>'위치'라는 특성을 살릴 수 있는 요소 - 정보의 유통방식 - 아카이브<br>\t\t\t<br>LOcall<br>\t\t<br>\t\t<br>\t\t\t<br>폭탄 돌리기처럼<br>\t\t\t<br>질문 돌리기<br>\t\t<br>\t\t<br>\t\t\t<br>셀레브로를 만드는거야<br>\t\t<br>\t\t<br>\t\t\t<br>취미, 세레브로<br>\t\t\t<br>르호보암<br>\t\t\t<br>원격지 메세지 과금, 에스크로 심부름<br>\t\t\t<br>세리브라<br>\t\t\t<br>&#160;<br>\t\t\t<br>파티룸 컨셉<br>\t\t\t<br>뮤턴츠<br>\t\t\t<br>&#160;<br>\t\t\t<br>자신을 노츨해야만 타인탐색가능<br>\t\t\t<br>자기보호 투구 아이템. 투명망토<br>\t\t\t<br>&#160;<br>\t\t\t<br>게임화. 인기도에따른 레벨색깔<br>\t\t\t<br> <br>\t\t\t<br>중고딩들 쪽지처럼?<br>\t\t\t<br>&#160;<br>\t\t\t<br>내가 옆사람과 대화하는지 아무도 모름<br>\t\t\t<br>&#160;<br>\t\t\t<br>텔레패스<br>\t\t\t<br>&#160;<br>\t\t\t<br>초기가입자? 특정지역에서만 집중적으로 가입되고 그들이 바이러스처럼 전파, 아님 턴키로?<br>\t\t\t<br>&#160;<br>\t\t\t<br>경브게이미피케이션 도입. 스피킹칩 도입<br>\t\t\t<br>사전에 읽기 쉽게. 쪼개서 읽어오게.<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>스타로드 vr 같이 남겨야 할 장소?<br>\t\t\t<br>vr 블랙박스",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

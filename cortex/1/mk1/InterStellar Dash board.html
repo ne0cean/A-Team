@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InterStellar Dash board</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">InterStellar Dash board</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-InterStellar-Dash-board';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "InterStellar Dash board<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>Start-업 routine 만들기, 매일 아침 1시간 퇴근 후 2시간 총 3시간, 일 최대 4시간 확보 -> 주말은 flow day & block day<br>\t\t\t\t<br>여기서 중요한 건&#160;창업하기가 아니라, ‘창업 준비 동작’을 자동화한다는 것.<br>\t\t\t\t<br>뇌는 “나는 창업하는 사람이다”로 정체성을 재등록<br>\t\t\t\t<br>- 매일 아침 5:30 ~ 6:30 (또는 너에게 맞는 새벽 시간) → 딱 1시간만 코딩 “오늘은 딱 로그인 화면 하나만 만든다” “오늘은 오픈AI API 키 발급받고 hello world만 찍는다” → 이 정도로 작게 시작해. 5분만 해도 성공으로 쳐.<br>\t\t\t\t<br>- “0일차 → 1일차”를 넘는 순간이 제일 중요해. 연속 3일만 넘기면 그다음부터는 습관이 알아서 굴러감.<br>\t\t\t\t<br><br>\t\t\t\t<br>제일 먼저 만들 제품은 나 자신.<br>\t\t\t\t<br><br>\t\t\t\t<br>매일 아침,<br>\t\t\t\t<br>- 만들고 싶은 기능 1개<br>\t\t\t\t<br>- 내일 만들 기능 1개<br>\t\t\t\t<br>- 아이디어 스케치 5줄<br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tTask<br>\t\t\t\t\t\tDue date<br>\t\t\t\t\t\tTarget <br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t누구의 어떤 문제를 풀 것인가?<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t\t모바일 과잠<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>죽은 인터넷 - <a href=\"https://youtu.be/xuTOnTVrIk4\" target=\"_blank\">인간증명</a>: 시공간 안에 위치해 있는 인간을 복수의 인간이 시각적으로 확인 하여, 증명 보고.<br>\t\t\t\t<br><br>\t\t\t\t<br>망치가 답이 아니라는 것을 알기 위해,<br>\t\t\t\t<br>망치를 만들어야 할 필요는 없다.<br>\t\t\t\t<br><br>\t\t\t\t<br>소셜 디스커버리<br>\t\t\t\t<br><br>\t\t\t\t<br>일단 팔고 만들어라<br>\t\t\t\t<br><br>\t\t\t\t<br>Solo leveling - 회사가 아니라 <a href=\"https://www.youtube.com/watch?v=Lj5fyDX01v8\" target=\"_blank\">에이전트로 된 여단</a>을 만든다.<br>\t\t\t\t<br><br>\t\t\t\t<br>1/ 해외 페스티벌<br>\t\t\t\t<br>2/ 버스킹<br>\t\t\t\t<br><br>\t\t\t\t<br>1/ 게임이어야해, 게이미피케이션이 아니라.<br>\t\t\t\t<br>2/ AI를 어떻게든 활용해서 효율화 해야해.<br>\t\t\t\t<br><br>\t\t\t\t<br>제갈량 메소드 - 뉴스 언론이용, 바이럴<br>\t\t\t\t<br><br>\t\t\t\t<br>Opt1. 돈을 벌 수 있는걸 먼저하고, <br>\t\t\t\t<br>하고 싶은 것을 하느냐,<br>\t\t\t\t<br>Opt2. 하려는 것을 Day 1부터 매출이 나오는 것으로 시작하느냐<br>\t\t\t\t<br><br>\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t능력과 역할<br>\t\t\t\t\t\t 기획 개발, 펀딩, 운영, 마케팅, 영어<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tItem<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tCrew<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\tFunding<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br>저커버그가 그리는 미래가 오긴 온다. 사업적으로 준비해<br>\t\t\t\t<br>GPT와 함께 아이데이션<br>\t\t\t\t<br><br>\t\t\t\t<br>카카오 모빌리티 박송원<br>\t\t\t\t<br>비즈니스 아이디어 추출기 <a href=\"https://founderpal.ai/business-ideas-generator?ref=producthunt\" target=\"_blank\">https://founderpal.ai/business-ideas-generator?ref=producthunt</a><br>\t\t\t\t<br><a href=\"https://brunch.co.kr/@grit-han/27\" target=\"_blank\">https://brunch.co.kr/@grit-han/27</a><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://www.youtube.com/watch?v=WH1psHHF4MQ\" target=\"_blank\">하버드 MBA에서 가장 먼저 가르치는 '이 방법' | 디커플링</a><br>\t\t\t\t<br>창업가가 만드는 것은 <br>\t\t\t\t<br>  ① 비전(제품)   ② 조직과 문화   ③ 연료 - 돈과 비전. <br>\t\t\t\t<br>\t\t\t\t\t<br>- 가설-제품을 만든다.<br>\t\t\t\t\t<br>- 고객/시장 테스트를 한다.<br>\t\t\t\t\t<br>- 팀을 만든다/키운다.<br>\t\t\t\t\t<br>- (매출/투자 유치를 통해)현금 흐름을 만든다. 1~3을 반복한다. <br>\t\t\t\t\t<br>- 세포를 분화한다.<br>\t\t\t\t\t<br>- 목표를 이루고, 사멸한다.<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br>인터넷에 없는 데이터를 획득 가능할 것: 테슬라 처럼<br>\t\t\t\t<br><br>\t\t\t\t<br>지금은 자본금 100만 원으로도&#160;<a href=\"http://www.startbiz.go.kr/\" target=\"_blank\">온라인 법인설립 시스템</a><br>\t\t\t\t<br><br>\t\t\t\t출처: <<a href=\"https://publy.co/content/4628?fr=chapter-bottom-list\" target=\"_blank\">https://publy.co/content/4628?fr=chapter-bottom-list</a>> <br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://eopla.net/magazines/15013#\" target=\"_blank\">https://eopla.net/magazines/15013#</a><br>\t\t\t\t<br><br>\t\t\t\t<br>지오비전 퍼즐 <a href=\"https://puzzle.geovision.co.kr/map?lat=37.56648210&lng=126.98510375&zoom=12&poiId=-1&showFP=N\" target=\"_blank\">https://puzzle.geovision.co.kr/map?lat=37.56648210&lng=126.98510375&zoom=12&poiId=-1&showFP=N</a><br>\t\t\t\t<br><br>\t\t\t\t<br>상권분석 <a href=\"https://golmok.seoul.go.kr/main.do\" target=\"_blank\">https://golmok.seoul.go.kr/main.do</a><br>\t\t\t\t<br>상권분석 <a href=\"https://sg.sbiz.or.kr/godo/index.sg\" target=\"_blank\">https://sg.sbiz.or.kr/godo/index.sg</a><br>\t\t\t\t<br>ㅓ<br>\t\t\t\t<br>내가 생각하는 거랑 되게되게 유사한 서비스 파인애플 <a href=\"http://www.pineappleapp.io/\" target=\"_blank\">http://www.pineappleapp.io/</a><br>\t\t\t\t<br><br>\t\t\t\t<br>불편할때만 불편을 제품화 할 생각을 할 수 있다면, 정말 확실한 pain point를 잡아낼수 없다. 누가 걷는걸 pain point라고 생각하는가?<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>하도훈/지오비전 문의 - 내아이템 ㅋㅋ<br>\t\t\t\t<br><a href=\"https://camen.co.kr/\" target=\"_blank\">https://camen.co.kr/</a> 개발자 매칭 추 │ 디오 - <br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://playbook.lab021.xyz/\" target=\"_blank\">https://playbook.lab021.xyz/</a><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>더미 프로필 대량 생성 - AI 이용 <a href=\"https://www.themiilk.com/articles/a1a6ec346?u=c329880f&t=ae1ad82ec&from=\" target=\"_blank\">https://www.themiilk.com/articles/a1a6ec346?u=c329880f&t=ae1ad82ec&from=</a><br>\t\t\t\t<br><br>\t\t\t\t<br>한 창업자가 어느날 직원에게 전화했더니 불편하다고 끊더랍니다. 얼굴 보이는 줌은 오피셜이지만, 전화는 프라이빗이라는 거죠.<br>\t\t\t\t<br><br>\t\t\t\t출처: <<a href=\"https://n.news.naver.com/mnews/article/366/0000868086?sid=103\" target=\"_blank\">https://n.news.naver.com/mnews/article/366/0000868086?sid=103</a>> <br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://brunch.co.kr/@taewookim/54\" target=\"_blank\">https://brunch.co.kr/@taewookim/54</a><br>\t\t\t\t<br><a href=\"https://brunch.co.kr/@swooparupa/34\" target=\"_blank\">https://brunch.co.kr/@swooparupa/34</a><br>\t\t\t\t<br><a href=\"http://icunow.co.kr/first1k/\" target=\"_blank\">http://icunow.co.kr/first1k/</a><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>초기가입자 모객 <a href=\"https://brunch.co.kr/@taewookim/96\" target=\"_blank\">https://brunch.co.kr/@taewookim/96</a><br>\t\t\t\t<br><br>\t\t\t\t<br>AI <a href=\"https://brunch.co.kr/@taewookim/102'\" target=\"_blank\">https://brunch.co.kr/@taewookim/102</a>'<br>\t\t\t\t<br><br>\t\t\t\t<br>새로운 것은 익숙한 방식으로,<br>\t\t\t\t<br>익숙한 것을 새로운 방식으로.<br>\t\t\t\t<br><br>\t\t\t\t<br>아자르같은 매칠 시스템이면 글로벌로 바로 go 가능?<br>\t\t\t\t<br>근거리부터 꼭 구축해야하나? 아님 동시?<br>\t\t\t\t<br>location based games<br>\t\t\t\t<br><br>\t\t\t\t<br>아스피린, 비타민 모두 아니다.<br>\t\t\t\t<br>메스암페타민을 만드는 것, 중독을 설계하는 일<br>\t\t\t\t<br>\t\t\t\t<br>원자마켓, 근거리에서 서로어떤 니즈를 매개로 COMM. 하게 할 것인지??<br>\t\t\t\t<br>줄서기? 취미? 게임? 데이트? 아니면 각원자마켓마다 다른?<br>\t\t\t\t<br>요건]로컬 + 실시간<br>\t\t\t\t<br><br>\t\t\t\t<br>에어드랍 처럼 실시간공간 안에서의 정보를 주고 받는 커뮤니케이션 앱<br>\t\t\t\t<br>증강 패션/프로필? 최초에 생각한 트래픽 앱 못만드나?<br>\t\t\t\t<br>지역피드? 타임라인? 시공간 담벼락, 종횡 스크롤V<br>\t\t\t\t<br>GPT랑 논의 해보기<br>\t\t\t\t<br><br>\t\t\t\t<br>비즈니스 아이디어 <a href=\"https://www.halfbakedbusinessideas.com/top\" target=\"_blank\">https://www.halfbakedbusinessideas.com/top</a><br>\t\t\t\t<br>AR 모노클 - 게임에 이용가능하지 않을까 <a href=\"https://news.hada.io/topic?id=8446&utm_source=discord&utm_medium=bot&utm_campaign=280\" target=\"_blank\">https://news.hada.io/topic?id=8446&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>TDL_____________________________<br>\t\t\t\t<br>가설검증<br>\t\t\t\t<br>시작할 방법 물어보기: 트레바리에서 만난 사람들 + 이동형 대표, 김미희 대표<br>\t\t\t\t<br><br>\t\t\t\t<br>시장호응가설, XYZ 가설 수립 & 비즈니스 모델 캔버스 그려보기, 블루오션 전략<br>\t\t\t\t<br>MVP, Pretotyping 방법 찾기<br>\t\t\t\t<br>더미 계정 다량으로 만들 방법 찾기<br>\t\t\t\t<br>김미희, 이동영 대표 및 다른 대표들 만나서 피드백 받기 - 피드백 받을 프레임 작성<br>\t\t\t\t<br>서한교, 이새로찬, 홍석희(클럽장)<br>\t\t\t\t<br>마스토돈 활용 가능여부?<br>\t\t\t\t<br>10단계 - 로터스 맵: 세계 최대의 커뮤니케이션 서비스로 - 세레브로 단계로 인류 커뮤니케이션 evolve.<br>\t\t\t\t<br><br>\t\t\t\t<br>함께 실리콘밸리에 갈 사람들이 필요해. 아님 내다 가거나?<br>\t\t\t\t<br><br>\t\t\t\t<br>실리콘밸리 취업?<br>\t\t\t\t<br>기획 -> 투자 -> 개발자?<br>\t\t\t\t<br><a href=\"https://brunch.co.kr/brunchbook/silliconvalley\" target=\"_blank\">https://brunch.co.kr/brunchbook/silliconvalley</a><br>\t\t\t\t<br>디자인, VC, 개발<br>\t\t\t\t<br>실리콘밸리의 한국인<br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://www.youtube.com/watch?v=4YLbOaDqDhQ&ab_channel=%ED%8B%B0%ED%83%80%EC%9E%84%EC%A6%88TV\" target=\"_blank\">한국</a> 문과 출신이 실리콘밸리에서 일하는 법<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"https://www.instagram.com/reel/DH7FjXPTOd4/?igsh=Ymhib3JrZTU5eHhi\" target=\"_blank\">AI </a>부대<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://publy.co/content/4628?fr=chapter-bottom-list\" target=\"_blank\">https://publy.co/content/4628?fr=chapter-bottom-list</a>> <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://n.news.naver.com/mnews/article/366/0000868086?sid=103\" target=\"_blank\">https://n.news.naver.com/mnews/article/366/0000868086?sid=103</a>> <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"https://news.hada.io/topic?id=21474&utm_source=discord&utm_medium=bot&utm_campaign=280\" target=\"_blank\">Andrew Ng: AI </a>에이전트의 현황 [유튜브] (youtube.com)<br>\t\t<br>\t\t<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>아주 작고 표쪽한 '기능', 즉시 돈 낼 만한 기능<br>\t\t\t<br><a href=\"https://launched.lovable.dev/\" target=\"_blank\">Lovable Lunched</a>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

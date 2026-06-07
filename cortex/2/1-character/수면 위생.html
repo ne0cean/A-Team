@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수면 위생</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">수면 위생</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-수면-위생';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "수면 위생<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>잠들기 4시간 전 식사 완료<br>\t\t\t<br>서늘한 온도 유지 + 완전한 어둠(안대) + 이어플러그<br>\t\t\t<br>폰 격리 or 팟캐스트<br>\t\t\t<br><br>\t\t\t<br>숙면____________________________<br>\t\t\t<br>제3장 피곤한데 잠이 오지 않을 때 유용한 취침 솔루션<br>\t\t\t<br>TIPS 18 졸음 신호를 찾는다 75<br>\t\t\t<br>TIPS 19 목욕 후 1시간 뒤에 취침한다 77<br>\t\t\t<br>TIPS 20 욕실 조명을 끄고 목욕한다 79<br>\t\t\t<br>TIPS 21 어둠 속에서 스트레칭을 한다 80<br>\t\t\t<br>TIPS 22 발목을 따뜻하게 하고 잔다 82<br>\t\t\t<br>TIPS 23 뜨거운 수건으로 목을 따뜻하게 한다 83<br>\t\t\t<br>TIPS 24 횡격막을 스트레칭한다 84<br>\t\t\t<br>TIPS 25 3분 양치로 잠들 준비를 한다 85<br>\t\t\t<br>TIPS 26 잠들 때 떠오르는 이미지를 놓치지 않는다 86<br>\t\t\t<br>TIPS 27 윗머리를 식힌다 87<br>\t\t\t<br>TIPS 28 메모로 생각을 정리한다 89<br>\t\t\t<br>TIPS 29 감기가 나으면 수면 환경을 리셋한다 90<br>\t\t\t<br>TIPS 30 수면 유도 영상은 침대 밖에서 본다 92<br>\t\t\t<br>TIPS 31 취침 1시간 전에 에어컨으로 침구를 말린다 93<br>\t\t\t<br>TIPS 32 뜨거운 수건으로 발바닥을 닦는다 94<br>\t\t\t<br>TIPS 33 밤 운동 후에는 취침 시간을 늦춘다 95<br>\t\t\t<br>TIPS 34 수작업을 집중해서 한다 96<br>\t\t\t<br>TIPS 35 늘 읽던 책이나 어려운 책을 읽는다 98<br>\t\t\t<br>TIPS 36 디지털 단말기가 아닌 종이 매체로 읽는다 100<br>\t\t\t<br>TIPS 37 10초 마사지를 한다 102<br>\t\t\t<br>TIPS 38 하지불안증후군에는 철분을 보충한다 103<br>\t\t\t<br>TIPS 39 다리가 움찔거리는 증상이 있다면 잠들기 전 스트레칭을 한다 104<br>\t\t\t<br>TIPS 40 무거운 이불을 덮고 잠든다 106<br>\t\t\t<br>TIPS 41 수면제 복용과 동시에 수면 트레이닝을 실시한다 107<br>\t\t\t<br>TIPS 42 저녁에는 고강도 운동을 피하고 집안일이나 가벼운 산책을 한다 109<br>\t\t\t<br>TIPS 43 밤에 영화를 보면서 실컷 운다 110<br>\t\t\t<br>TIPS 44 꽃가루 알레르기가 심하면 뇌의 온도를 낮춘다 111<br>\t\t\t<br>TIPS 45 숨쉬기 힘들 때는 복식 호흡을 한다 112<br>\t\t\t<br>TIPS 46 통증과 잠은 별개로 생각한다 113<br>\t\t\t<br>TIPS 47 머리까지 이불을 뒤집어쓰지 않는다 114<br>\t\t\t<br>TIPS 48 주변이 시끄러워 잠이 안 올 때는 음악을 튼다 115<br>\t\t\t<br>COLUMN 가위 눌림의 메커니즘은? 116<br>\t\t\t<br><br>\t\t\t<br>제4장 밤중에 갑자기 깨어나지 않는 숙면 솔루션<br>\t\t\t<br>TIPS 49 수면 중에는 시계를 치운다 118<br>\t\t\t<br>TIPS 50 자다가 깼을 때 개운한지 체크한다 119<br>\t\t\t<br>TIPS 51 다시 잠들기까지 30분 이상 걸린다면 침대 밖으로 나간다 120<br>\t\t\t<br>TIPS 52 허리보다 높은 위치에 다리를 올린다 121<br>\t\t\t<br>TIPS 53 취침 전에 천골을 따뜻하게 한다 122<br>\t\t\t<br>TIPS 54 소변은 낮에 자주 본다 123<br>\t\t\t<br>TIPS 55 디지털 디톡스를 한다 124<br>\t\t\t<br>TIPS 56 종아리 운동으로 코골이를 방지한다 125<br>\t\t\t<br>TIPS 57 뒤척일 때 쓰는 근육을 단련한다 126<br>\t\t\t<br>TIPS 58 식은땀의 점도를 확인한다 127<br>\t\t\t<br>TIPS 59 술을 마시기 전에 물 한 컵을 마신다 128<br>\t\t\t<br>TIPS 60 꿈자리를 뒤숭숭하게 만드는 네 가지 행동을 피한다 129<br>\t\t\t<br>TIPS 61 머릿속에서 폭발음이 나는 것을 막는다 130<br>\t\t\t<br>TIPS 62 코골이를 개선하고 싶다면 옆으로 몸을 말고 잔다 131<br>\t\t\t<br>TIPS 63 졸음을 참지 말고 잠들어 몸의 경련을 막는다 133<br>\t\t\t<br>TIPS 64 안주를 꼭꼭 씹어 음주 후 코골이를 막는다 134<br>\t\t\t<br>COLUMN 나이가 들면 수면 시간이 짧아지는 것이 정상이다 135<br>\t\t\t<br><br>\t\t\t<br>제5장 낮에 졸음이 쏟아지지 않게 하는 졸음 퇴치 솔루션<br>\t\t\t<br>TIPS 65 수면량과 질 어느 쪽이 문제인지 판단한다 137<br>\t\t\t<br>TIPS 66 누적 수면량을 늘린다 138<br>\t\t\t<br>TIPS 67 저녁을 30분 일찍 먹는다 139<br>\t\t\t<br>TIPS 68 취침 전에 졸지 않는다 141<br>\t\t\t<br>TIPS 69 머리를 세우고 쪽잠을 잔다 142<br>\t\t\t<br>TIPS 70 너무 피곤할 때는 머리를 수평으로 두고 잔다 143<br>\t\t\t<br>TIPS 71 졸린 시간대를 분석한다 144<br>\t\t\t<br>TIPS 72 디카페인 음료로 이갈이를 막는다 145<br>\t\t\t<br>TIPS 73 식사 중에는 수저를 내려놓는다 148<br>\t\t\t<br>TIPS 74 강의나 회의 자료를 예습해둔다 149<br>\t\t\t<br>TIPS 75 생리가 끝나고 일주일 동안은 수면을 강화한다 150<br>\t\t\t<br>TIPS 76 졸음을 점수화한다 151<br>\t\t\t<br>TIPS 77 수면 테이프를 이용한다 152<br>\t\t\t<br>TIPS 78 이를 꽉 깨무는 버릇이 있는지 확인한다 153<br>\t\t\t<br>TIPS 79 탄수화물을 가장 마지막에 먹는다 154<br>\t\t\t<br>TIPS 80 하품이 나올 때는 의도적으로 다른 사람을 본다 155<br>\t\t\t<br>COLUMN 생생한 꿈의 역할은? 157<br>\t\t\t<br><br>\t\t\t<br>제6장 불규칙한 생활 속에서도 푹 자는 숙면 솔루션<br>\t\t\t<br>TIPS 81 수면을 2회로 나눈다 159<br>\t\t\t<br>TIPS 82 철야는 다상성 수면으로 극복한다 160<br>\t\t\t<br>TIPS 83 앵커 슬립으로 수면 불균형을 최소화한다 161<br>\t\t\t<br>TIPS 84 자는 아기를 안고 창가로 간다 162<br>\t\t\t<br>TIPS 85 4~6세 때는 낮잠을 재우지 않는다 163<br>\t\t\t<br>TIPS 86 입원 중에도 저녁에는 몸을 일으킨다 164<br>\t\t\t<br>TIPS 87 철야 후에는 잠을 자지 않는다 165<br>\t\t\t<br>TIPS 88 아이의 뇌에 수면을 학습시킨다 168<br>\t\t\t<br>TIPS 89 아이에게 짜증내지 않으려면 일정한 시간에 일어난다 169<br>\t\t\t<br>TIPS 90 잠자는 시간을 늘려 야식을 피한다 170<br>\t\t\t<br>TIPS 91 아이의 철분 부족을 보충한다 171<br>\t\t\t<br>TIPS 92 잠잘 때 아이의 움직임을 지켜본다 172<br>\t\t\t<br>TIPS 93 태아 때부터 수면 트레이닝을 한다 173<br>\t\t\t<br>TIPS 94 아이의 몽유병을 제지하지 말고 지켜본다 174<br>\t\t\t<br>TIPS 95 밤에 큰 소리로 우는 아이의 생체리듬을 조절한다 175<br>\t\t\t<br>TIPS 96 아이가 잠들기 전에 칭얼대면 밤에 빛을 피한다 176<br>\t\t\t<br>COLUMN 몸을 통해 마음을 가다듬는다 177<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br> <br>\t\t\t<br><br>\t\t\t<br>제8장 일과 학습, 생활의 능률을 높이는 숙면 솔루션<br>\t\t\t<br>TIPS 103 수면이 부족할 때 얼굴을 만지면 감기에 걸린다 187<br>\t\t\t<br>TIPS 104 잠자는 시간도 공부에 활용한다 188<br>\t\t\t<br>TIPS 105 향으로 학습 세포를 살린다 189<br>\t\t\t<br>TIPS 106 목욕부터 취침까지 1시간 동안 공부하기 190<br>\t\t\t<br>TIPS 107 컴퓨터 화면을 보며 집중력을 체크한다 191<br>\t\t\t<br>TIPS 108 아침 햇살로 다이어트 능률을 높인다 192<br>\t\t\t<br>TIPS 109 취침 30분 전부터는 스마트폰을 끈다 193<br>\t\t\t<br>TIPS 110 걷기보다 근력 운동으로 수면의 질을 높인다 194<br>\t\t\t<br>TIPS 111 일기는 아침에 쓴다 196<br>\t\t\t<br>TIPS 112 행동은 스스로 결정한다 197<br>\t\t\t<br>TIPS 113 야식은 접시에 덜어 먹는다 198<br>\t\t\t<br>TIPS 114 장내 환경을 조절해 수면의 질을 높인다 199<br>\t\t\t<br>TIPS 115 하루 종일 웃는 얼굴을 유지한다 200<br>\t\t\t<br>TIPS 116 식사 시간을 고정해 시차를 예방한다 202<br>\t\t\t<br>TIPS 117 GI 지수가 높은 아침 식사로 무의식적 야식을 끊는다 203<br>\t\t\t<br>TIPS 118 물 흐르듯 업무가 진행되는 '플로 체험'을 만든다 205<br>\t\t\t<br>TIPS 119 운동 후에는 수면 시간의 후반이 중요하다 206<br>\t\t\t<br>TIPS 120 목 통증을 운동으로 해결해 수면의 질을 높인다 207<br>\t\t\t<br>TIPS 121 아침 발기 때문에 너무 일찍 일어나지 않도록 조절한다 210<br>\t\t\t<br>TIPS 122 능률 향상의 키포인트는 쪽잠이다 211<br>\t\t\t<br>TIPS 123 수면량을 늘려 염분 섭취를 줄인다 214<br>\t\t\t<br>COLUMN 수면이 부족하면 돈이 모이지 않는다 215<br>\t\t\t<br><br>\t\t\t<br>제9장 수면을 개선하기 위한 수면 기록 사용법과 팁<br>\t\t\t<br>1 수면 개선에는 기록이 필수 217<br>\t\t\t<br>2 기록 없이는 상담할 수 없다 218<br>\t\t\t<br>3 수면 기록의 기본 방법 219<br>\t\t\t<br>4 기록으로 해결책을 찾을 수 있다 220<br>\t\t\t<br>5 수면 기록 분석 예시 221<br>\t\t\t<br>6 잠이 오는 신호의 예시 222<br>\t\t\t<br>7 자기 전에 체온을 조절한다 223<br>\t\t\t<br>8 피곤할 때는 무리해서 버티지 않는다 224<br>\t\t\t<br>9 수면 패턴을 바꾸는 방법 225<br>\t\t\t<br>10 편안한 수면을 돕는 '따뜻한 타월' 227<br>\t\t\t<br>11 종아리 운동으로 코골이를 개선한다 228<br>\t\t\t<br>12 내장 세포와 뇌 기능의 관계 229<br>\t\t\t<br>13 습관을 통해 수면을 개선한다 230<br>\t\t\t<br>14 강한 졸음을 만든다 231<br>\t\t\t<br>15 계절에 따라 수면 시간이 달라진다 232<br>\t\t\t<br>16 열을 배출해야 숙면이 가능하다 233<br>\t\t\t<br>17 식사와 수면의 연관성 234<br>\t\t\t<br>18 수면 개선은 불면과 과면의 반복 235",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

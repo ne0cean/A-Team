@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>울트라러닝</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">울트라러닝</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-울트라러닝';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "울트라러닝<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>[법칙 1] 메타 학습<br>\t\t\t<br>먼저 인기 있는 블로거나 작가들을 조사했다. 그들의 학습 방식<br>\t\t\t<br>은성공한 작가가 되려면 무엇을 해야 할지 지도를 그릴수 있게<br>\t\t\t<br>해주었다.<br>\t\t\t<br>[법칙 2] 집중하기<br>\t\t\t<br><br>\t\t\t<br>나는 글을 쓰기 시작하면서 거의 전업 작가로 생활했다. 공과금<br>\t\t\t<br>을 벌수 있게 해주는 몇 가지 일감들(이미 계약된 일들이었다)을<br>\t\t\t<br>한옆에 치워두고, 대부분의 시간을 글을읽고쓰는 테 할애했다.<br>\t\t\t<br><br>\t\t\t<br>[법칙3] 직접하기<br>\t\t\t<br>나는 '글을씀으로써'글쓰기를 배웠다. 매주 월요일과 화요일에는<br>\t\t\t<br>새로운기고문을 썼고, 첫2년 동안 130편 이상의기고문을썼다.<br>\t\t\t<br>[법칙4] 특화 학습<br>\t\t\t<br>먼저 기고문을 구성하는 부분들을 체계적으로 잘게 쪼겠다. 헤<br>\t\t\t<br>드라인, 도입부, 전환부, 핵심 이야기 등으로 나누고 각 부분의<br>\t\t\t<br>사례들을 스프레드시트에 모았다. 그런 다음 글을 한 부분씩 쓰<br>\t\t\t<br>편서나의 금쓰기 농부을 시럽하고 개선해나갔다.<br>\t\t\t<br>[법칙 6] 퍼드백<br>\t\t\t<br>개설한 웹사이트의 초기 구독자 1,000명 모두에게 인사말과 함<br>\t\t\t<br>께 내글에 대한피드백을 요청하는 메일을 보냈다. 이는 시작 단<br>\t\t\t<br>계에서 많은 도움이 되었다.<br>\t\t\t<br>이런 식으로 나는 그밖의 울트라러닝 법칙도 따랐다. 내 말은 스곳의<br>\t\t\t<br>방식이 동했다는 것이다. 그가이 책에서 소개한 기법들윤 동해 나는 작<br>\t\t\t<br>가라는 직업의 토대를 닦았고사업에 싱공했으며 <뉴욕타임스> 베스트<br>\t\t\t<br>셀러가 된 책을 썼다. <아주 작은습관의 힘>은 내가몇 년동안 집중적<br>\t\t\t<br>으로 울트라러닝을 행한 결과물이었다.<br>\t\t\t<br>1년 동안 베스트셀러<br>\t\t\t<br>책울 쓴다거나4개 국어를 배운다는 건 절대 쉬<br>\t\t\t<br>맛 일이 아니다.'그런건 그 사랍이나까하는 거자' 하는 생각이)<br>\t\t\t<br>다. 하지만 나는 이 생각에 동의하지 않는다. 가치 있는<br>\t\t\t<br>들것이<br>\t\t\t<br>뭔가를<br>\t\t\t<br>는<br>\t\t\t<br>거 면면 천재들에<br>\t\t\t<br><br>\t\t\t<br>[법칙1] 메타 학습: 면저 지도를 그려라<br>\t\t\t<br>곳게 과고지 하는 주제 후은 기술음 어평게 습득한 짓인지 준사<br>\t\t\t<br>하는 데서 시작하라. 어떻게 하면 조사를 더 잘할지, 과거 어떤<br>\t\t\t<br>식으로 새로운 기술을 잘 배웠는지 생각해보라.<br>\t\t\t<br>[법칙 2] 집중하기: 짧은 시간에 집중도를 높여라<br>\t\t\t<br>집중력을 길러라. 공부에 집중하고, 공부만 할수 있는 시간을덩<br>\t\t\t<br>어리로따로 빼두어라.<br>\t\t\t<br>[법칙3] 직접 하기: 목표를 향해 똑바로 나아가라<br>\t\t\t<br>잘하고자 하는 그 기술을 실행을 통해 배워라. 다른 과제들과 균<br>\t\t\t<br>영유<br>\t\t\t<br>하지 파라. 더든 과제들이 더 편리하거나 원안하게 여<br>\t\t\t<br>겨지기때문이다.<br>\t\t\t<br>[법칙 4] 특화 학습: 취약점을 공략하라<br>\t\t\t<br>취약한 부분을 냉정하게 극복해나가라. 복잡한 기술을 잘게쪼<br>\t\t\t<br>개고, 각부분들을 배우고, 다시 재조함하여 세워라.<br>\t\t\t<br>[법칙5] 인출: 배운 것을 시험하라<br>\t\t\t<br>시험은 단순히 지식을 평가하는 것이 아니라 지식을 만드는방<br>\t\t\t<br>식이기도 하다. 자체적으로 시행하는 시힘은 자신감을 느끼게<br>\t\t\t<br>해주고, 수동적인 복습이 아니라 정보를 적극적으로 기억하게<br>\t\t\t<br>해준다.<br>\t\t\t<br>[법칙6] 피드백: 날아드는 조언을 피하지 마라<br>\t\t\t<br>피드백은 가혹하고 불편하다. 자존심을 치워두고 피드백을 이용<br>\t\t\t<br>할방법을 알아내라. 수많은 모래알 사이에서 진짜 신호를 찾아<br>\t\t\t<br>내면어디에 집중해야할지, 무엇을 무시해야할지 알수 있다.<br>\t\t\t<br>[법칙 7] 유지: 새는 양동이에 물을 채우지 마라<br>\t\t\t<br>무엇을 머릿속에서 내보내야 하는지와 그 이유를 이해하라. 지<br>\t\t\t<br>금당장이 아니라 평생 기억해야 할것을 공부하라.<br>\t\t\t<br>[법칙8] 직관: 뼈대를 세우기 전에 깊이 파라<br>\t\t\t<br>놀이를 통해 배우고, 개념과 기술을 탐구함으로써 직관을 길러<br>\t\t\t<br>라.이해력이 어떻게 작동하는지 깨닫고, 깊이 있는 이해를가로<br>\t\t\t<br>막는 기억의 알팍한 속임수에 넘어가지 마라.<br>\t\t\t<br>[법칙 9] 실험: 자신의 안전지대 밖을 탐험하라<br>\t\t\t<br>앞의 법칙들은 모두 시작의 실마리일 뿐이다. 어떤 주제나 기술<br>\t\t\t<br>에 통달하려면 다른 사람들이 다져놓은길을 따라가기만 해서는<br>\t\t\t<br>안된다. 그들도미처 상상하지 못한 가능성들을 탐색해야 한다.<br>\t\t\t<br><br>\t\t\t<br>1.메타학습<br>\t\t\t<br>이 주체(기송)를 배우는 일반적인 방법이 무였인지 조사물 끝마쳤는<br>\t\t\t<br>가? 이것을 성공적으로 공부한 사람들에게 추천해줄자원이나 재료가<br>\t\t\t<br>무엇인지물어봤는가? 프로젝트에 들어가는 총시간의 10퍼센트를사전<br>\t\t\t<br>준비에들였는가?<br>\t\t\t<br>2.집중하기<br>\t\t\t<br>학습할 때 거기에 집중하고 있는가, 아니면 멀티태스킹을 하거나 주의<br>\t\t\t<br>가산만한가? 학습 일정을 건너뛰거나 꾸물대고 있는가? 공부를 시작<br>\t\t\t<br>할 때 몰입하기까지 시간이 얼마나 걸리는가? 집중력이 얼마나 유지되<br>\t\t\t<br>는가? 어떻게 주의를 날카롭게 세우는가? 더 강도를 높이기 위해 집중<br>\t\t\t<br>해야하는가, 아니면 창조력을 위해 좀 느슨해져야하는가?<br>\t\t\t<br>3.직접하기<br>\t\t\t<br>나중에 그기술을사용할 방식 으로 학습 중인가? 그렇지않다면 현실에<br>\t\t\t<br>서실링하게 될 일에서 어떤 과정을 놓치고 있는가? 책.수업,동영상에<br>\t\t\t<br>서 배웠던 지식을 현실에 적용하기 위해 어떻게연습해야하는가<br>\t\t\t<br>\t\t\t\t<br>- 특화힉습<br>\t\t\t<br>\t\t\t<br>그동안 이문 성과에서 취약한 부분에 집중적으로 시간을들이고 있는<br>\t\t\t<br><br>\t\t\t<br>5인출<br>\t\t\t<br>대부분의 공부 시간율 읽기와 복습에 쓰고 있는가? 아니면 문제 풀이<br>\t\t\t<br>및노트를 보지않고 기억울 끝어올리는 데쓰고 있는가? 자체 시험 방<br>\t\t\t<br>법이있는가? 단순히 내용을 기억하고 있으려 하는가?어제,지난주, 작<br>\t\t\t<br>년에 배있던 것을 지금 잘 설명할수 있는가? 그렇게 할수 있는지 어떻<br>\t\t\t<br>계알수있는가?<br>\t\t\t<br><br>\t\t\t<br>6.피드백<br>\t\t\t<br>입력부터 자신의 성과에 관한 정직한 피드백을 받고 있는가? 비판적인<br>\t\t\t<br>피드백을 피하려고 애쓰고 있지는 않은가 ? 내가 무엇울 잡 습득했고<br>\t\t\t<br>무였을 잘습득하지 못했는지 알고 있는가? 피드백을 올바르게 사용하<br>\t\t\t<br>고있는가? 아니면소음에 과잉 반응하고있는가?<br>\t\t\t<br>7.유지<br>\t\t\t<br>마련되어 있는가? 정보를 충분히접<br>\t\t\t<br>장기간 배었던 것을 기억합계획이<br>\t\t\t<br>함으로써 오래도록 기억할수<br>\t\t\t<br>있는가? 사실적 지식을 내게 필요한 절차<br>\t\t\t<br>있는가? 그 기술에 숙련된 뒤에도 중요한 부분<br>\t\t\t<br>적지식으로바꿔나가고<br>\t\t\t<br>들을게속공부하고있는가?<br>\t\t\t<br><br>\t\t\t<br>8. 직관<br>\t\t\t<br>배운 것을깊이 이해하고 있는가? 아니면 그저<br>\t\t\t<br>암기만 하고있는가 공<br>\t\t\t<br>부한 개념이나 절차를 다른 누군가에게 가르칠 수<br>\t\t\t<br>있는가? 내가 배운<br>\t\t\t<br>것이 왜 참인지 분명히 알고 있는가? 아니면 모두<br>\t\t\t<br>임의적이고관련성이<br>\t\t\t<br>없어보이는가?<br>\t\t\t<br>9A<br>\t\t\t<br>9.실험<br>\t\t\t<br>현재 가지고 있는 자원이나 기술에 간혀 있는가? 뻗어나가서목표를달<br>\t\t\t<br>성하기 위해 새로운 방법을 시도해야 하는가? 기본적인 사항들을다배<br>\t\t\t<br>우는 걸 넘어서 문제를 창조적으로 해결하는 독자적인 양식을 만들고,<br>\t\t\t<br>다른 사람들이 탐색하지 못한 일을 하려면 어떻게 해야하는가?<br>\t\t\t<br>이규칙들은 모두 방향의 역할을 할뿐 목적지가 아니다. 각각의경우<br>\t\t\t<br>자신이 현재 자원들을 어떻게 다루고 있는지를 살펴보고, 어떻게다로<br>\t\t\t<br>게실행할지 알아보자. 자원을 바꿔야 하는가? 계속 같은 자원울사용<br>\t\t\t<br>하되 다른 방식으로 연습해야 하는가? 피드백, 방향, 몰입환경을위해<br>\t\t\t<br>새로운 환경을 찾아야하는가? 이 모든 일을 계속 미세하게 조정해나가<br>\t\t\t<br>야한다.<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"https://youtube.com/shorts/e1diRGidJXY?si=nZSBcoSXZ-DCwZPI\" target=\"_blank\">이</a> 네이비 파일럿 팀이 세계 최고인 이유",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

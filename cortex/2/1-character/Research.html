@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">Research</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Research';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "Research<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>시장조사 참고 사이트<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t전문 DB<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t통계청 광공업<br>\t\t\t\t\t<a href=\"http://www.kostat.go.kr/\" target=\"_blank\">www.kostat.go.kr</a><br>\t\t\t\t\t기계산업진흥회<br>\t\t\t\t\t<a href=\"http://www.koami.or.kr/\" target=\"_blank\">www.koami.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t기업정보<br>\t\t\t\t\t<a href=\"http://www.fnguide.com/\" target=\"_blank\">www.fnguide.com</a><br>\t\t\t\t\t자동차공업협회<br>\t\t\t\t\t<a href=\"http://www.kama.or.kr/\" target=\"_blank\">www.kama.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t한신평 KIS리포트<br>\t\t\t\t\t<a href=\"http://www.kisreport.com/\" target=\"_blank\">www.kisreport.com</a><br>\t\t\t\t\t철강협회<br>\t\t\t\t\t<a href=\"http://www.kosa.or.kr/\" target=\"_blank\">www.kosa.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t화학<br>\t\t\t\t\t<a href=\"http://www.cischem.com/\" target=\"_blank\">www.cischem.com</a><br>\t\t\t\t\t비철금속협회<br>\t\t\t\t\t<a href=\"http://www.nonferrous.or.kr/\" target=\"_blank\">www.nonferrous.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t화학뉴스<br>\t\t\t\t\t<a href=\"http://www.chemlocus.com/\" target=\"_blank\">www.chemlocus.com</a><br>\t\t\t\t\t국가과학기술정보센터<br>\t\t\t\t\t<a href=\"http://www.ndsl.kr/\" target=\"_blank\">www.ndsl.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t플라스틱공업조합<br>\t\t\t\t\t<a href=\"http://www.koreaplastic.or.kr/\" target=\"_blank\">www.koreaplastic.or.kr</a><br>\t\t\t\t\t나노기술정책센터<br>\t\t\t\t\t<a href=\"http://www.nnpc.re.kr/\" target=\"_blank\">www.nnpc.re.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t석유화학공업협회<br>\t\t\t\t\t<a href=\"http://www.kpia.or.kr/\" target=\"_blank\">www.kpia.or.kr</a><br>\t\t\t\t\tKISTI 생물자원정보<br>\t\t\t\t\t<a href=\"http://biodiv.kisti.re.kr/\" target=\"_blank\">biodiv.kisti.re.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t생물학전문연구센터<br>\t\t\t\t\t<a href=\"http://bric.postech.ac.kr/\" target=\"_blank\">bric.postech.ac.kr</a><br>\t\t\t\t\t한민족과학기술자<br>\t\t\t\t\t<a href=\"http://www.kosen21.org/\" target=\"_blank\">www.kosen21.org</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t보건산업<br>\t\t\t\t\t<a href=\"http://www.khidi.or.kr/\" target=\"_blank\">www.khidi.or.kr</a><br>\t\t\t\t\t전자공업협동조합<br>\t\t\t\t\t<a href=\"http://www.keic.org/\" target=\"_blank\">www.keic.org</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t의료용구공업조합<br>\t\t\t\t\t<a href=\"http://www.medinet.or.kr/\" target=\"_blank\">www.medinet.or.kr</a><br>\t\t\t\t\t전파진흥협회<br>\t\t\t\t\t<a href=\"http://www.rapa.or.kr/\" target=\"_blank\">www.rapa.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t의약품생산실적<br>\t\t\t\t\t<a href=\"http://www.kpma.or.kr/\" target=\"_blank\">www.kpma.or.kr</a><br>\t\t\t\t\t전자통신연구원<br>\t\t\t\t\t<a href=\"http://www.etri.re.kr/\" target=\"_blank\">www.etri.re.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t의약품뉴스<br>\t\t\t\t\t<a href=\"http://www.dailypharm.com/\" target=\"_blank\">www.dailypharm.com</a><br>\t\t\t\t\t안전관리<br>\t\t\t\t\t<a href=\"http://www.ksma.com/\" target=\"_blank\">www.ksma.com</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t식품정보<br>\t\t\t\t\t<a href=\"http://www.foodi.com/\" target=\"_blank\">www.foodi.com</a><br>\t\t\t\t\t전력연구<br>\t\t\t\t\t<a href=\"http://www.kepri.re.kr/\" target=\"_blank\">www.kepri.re.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t식품음료신문<br>\t\t\t\t\t<a href=\"http://www.thinkfood.co.kr/\" target=\"_blank\">www.thinkfood.co.kr</a><br>\t\t\t\t\t기계저널<br>\t\t\t\t\t<a href=\"http://www.ksme.or.kr/\" target=\"_blank\">www.ksme.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t건강보조식품<br>\t\t\t\t\t<a href=\"http://www.hfood.or.kr/\" target=\"_blank\">www.hfood.or.kr</a><br>\t\t\t\t\t소음진동<br>\t\t\t\t\t<a href=\"http://www.ksnve.or.kr/\" target=\"_blank\">www.ksnve.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t식품통계자료<br>\t\t\t\t\t<a href=\"http://www.kfia.or.kr/\" target=\"_blank\">www.kfia.or.kr</a><br>\t\t\t\t\t중소기업지원<br>\t\t\t\t\t<a href=\"http://www.sbc.or.kr/\" target=\"_blank\">www.sbc.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t식품과 영양<br>\t\t\t\t\t<a href=\"http://www.rda.go.kr/\" target=\"_blank\">www.rda.go.kr</a><br>\t\t\t\t\t금형기술정보센터<br>\t\t\t\t\t<a href=\"http://mold.kitech.re.kr/\" target=\"_blank\">mold.kitech.re.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t냉동공조<br>\t\t\t\t\t<a href=\"http://www.ref.or.kr/\" target=\"_blank\">www.ref.or.kr</a><br>\t\t\t\t\t섬유기술<br>\t\t\t\t\t<a href=\"http://www.texttile.or.kr/\" target=\"_blank\">www.texttile.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t전자부품연구원<br>\t\t\t\t\t<a href=\"http://www.keti.re.kr/\" target=\"_blank\">www.keti.re.kr</a><br>\t\t\t\t\t염료안료<br>\t\t\t\t\t<a href=\"http://www.kdpic.or.kr/\" target=\"_blank\">www.kdpic.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t전자산업정보망<br>\t\t\t\t\t<a href=\"http://www.eiak.org/\" target=\"_blank\">www.eiak.org</a><br>\t\t\t\t\t페인트&#183;잉크<br>\t\t\t\t\t<a href=\"http://www.kpic.or.kr/\" target=\"_blank\">www.kpic.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t의료기기정보<br>\t\t\t\t\t<a href=\"http://www.medicenter.org/\" target=\"_blank\">www.medicenter.org</a><br>\t\t\t\t\t도금<br>\t\t\t\t\t<a href=\"http://www.plating.or.kr/\" target=\"_blank\">www.plating.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t건강보험자료<br>\t\t\t\t\t<a href=\"http://www.nhis.or.kr/\" target=\"_blank\">www.nhis.or.kr</a><br>\t\t\t\t\t고분자<br>\t\t\t\t\t<a href=\"http://www.polymer.or.kr/\" target=\"_blank\">www.polymer.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t산업기술정보<br>\t\t\t\t\t<a href=\"http://www.itts.or.kr/\" target=\"_blank\">www.itts.or.kr</a><br>\t\t\t\t\t에너지통계<br>\t\t\t\t\t<a href=\"http://www.kesis.net/\" target=\"_blank\">www.kesis.net</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t국가기술표준통계<br>\t\t\t\t\t<a href=\"http://www.kats.go.kr/\" target=\"_blank\">www.kats.go.kr</a><br>\t\t\t\t\t소재부품통계<br>\t\t\t\t\t<a href=\"http://www.mctnet.org/\" target=\"_blank\">www.mctnet.org</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t산업통계<br>\t\t\t\t\t<a href=\"http://service.kiet.re.kr/\" target=\"_blank\">service.kiet.re.kr</a><br>\t\t\t\t\t정보통신통계<br>\t\t\t\t\t<a href=\"http://www.itstat.go.kr/\" target=\"_blank\">www.itstat.go.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t자원정보통계<br>\t\t\t\t\t<a href=\"http://www.kores.net/\" target=\"_blank\">www.kores.net</a><br>\t\t\t\t\t석유종합통계<br>\t\t\t\t\t<a href=\"http://www.petronet.co.kr/\" target=\"_blank\">www.petronet.co.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t전자통계<br>\t\t\t\t\t<a href=\"http://www.gokea.org/\" target=\"_blank\">www.gokea.org</a><br>\t\t\t\t\t자동차통계<br>\t\t\t\t\t<a href=\"http://www.kama.or.kr/\" target=\"_blank\">www.kama.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t섬유통계<br>\t\t\t\t\t<a href=\"http://www.textopia.or.kr/\" target=\"_blank\">www.textopia.or.kr</a><br>\t\t\t\t\t정밀화학통계<br>\t\t\t\t\t<a href=\"http://www.kscia.or.kr/\" target=\"_blank\">www.kscia.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t무역통계<br>\t\t\t\t\t<a href=\"http://www.kita.net/\" target=\"_blank\">www.kita.net</a><br>\t\t\t\t\t산업단지통계<br>\t\t\t\t\t<a href=\"http://www.e-cluster.net/\" target=\"_blank\">www.e-cluster.net</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>한국은행<br>\t\t\t\t\t<br>- 기업경영분석<br>\t\t\t\t\t<br>- 재정통계<br>\t\t\t\t\t<br>- 국민소득계정<br>\t\t\t\t\t<br>- 산업연관표<br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.bok.or.kr/\" target=\"_blank\">www.bok.or.kr</a><br>\t\t\t\t\t<br>전국경제인연합회<br>\t\t\t\t\t<br>- 경제&#183;산업동향<br>\t\t\t\t\t<br>- 기업정보<br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.fki.or.kr/\" target=\"_blank\">www.fki.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>코참비즈<br>\t\t\t\t\t<br>-중소&#183;벤처기업정보<br>\t\t\t\t\t<br>-수출입 기업정보<br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.korchambiz.net/\" target=\"_blank\">www.korchambiz.net</a><br>\t\t\t\t\t<br>건강보험심사평가원<br>\t\t\t\t\t<br>- 약제정보<br>\t\t\t\t\t<br>- 보험정보<br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.hira.or.kr/\" target=\"_blank\">www.hira.or.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t시장조사 업체(해외)<br>\t\t\t\t\t<a href=\"http://www.frost.com/\" target=\"_blank\">www.frost.com</a><br>\t\t\t\t\t시장조사 업체(국내)<br>\t\t\t\t\t<a href=\"http://www.yano.co.kr/\" target=\"_blank\">www.yano.co.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.datamonitor.com/\" target=\"_blank\">www.datamonitor.com</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.mbap.co.kr/\" target=\"_blank\">www.mbap.co.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.bccresearch.com/\" target=\"_blank\">www.bccresearch.com</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.giikorea.co.kr/\" target=\"_blank\">www.giikorea.co.kr</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.freedoniagroup.com/\" target=\"_blank\">www.freedoniagroup.com</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.profound.com/\" target=\"_blank\">www.profound.com</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.dialog.com/\" target=\"_blank\">www.dialog.com</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.gartner.com/\" target=\"_blank\">www.gartner.com</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.marketresearch.com/\" target=\"_blank\">www.marketresearch.com</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.keynote.co.uk/\" target=\"_blank\">www.keynote.co.uk</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.fuji-keizai.co.jp/\" target=\"_blank\">www.fuji-keizai.co.jp</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.fcr.co.jp/\" target=\"_blank\">www.fcr.co.jp</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"http://www.yano.co.jp/\" target=\"_blank\">www.yano.co.jp</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"http://www.valuation.or.kr/assess/reference.php\" target=\"_blank\">http://www.valuation.or.kr/assess/reference.php</a>> <br>\t\t<br>\t\t<br>\t\t\t<br>애드가<br>\t\t\t<br>피치북<br>\t\t\t<br>키스라인<br>\t\t\t<br>블룸버그<br>\t\t\t<br>산업분류<br>\t\t\t<br>거래소<br>\t\t\t<br>Capital IQ<br>\t\t\t<br>ㅇ Peer 조사<br>\t\t\t<br>ㅇ Transaction 조사<br>\t\t\t<br><br>\t\t\t<br>피치북<br>\t\t\t<br>애드가<br>\t\t\t<br>주요 비율과 산업 표준을 제공<br>\t\t\t<br>Dunn & Bradstreet<br>\t\t\t<br>Robert Morris & Associates<br>\t\t\t<br><br>\t\t\t<br>국내외 스타트업 Startup searching<br>\t\t\t<br>크런치베이스",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

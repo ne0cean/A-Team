@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFT</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">NFT</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-NFT';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "NFT<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>NFT가 뭐기에 <a href=\"https://outstanding.kr/nft20211110\" target=\"_blank\">https://outstanding.kr/nft20211110</a><br>\t\t\t<br>민팅 방법 <a href=\"https://blog.naver.com/PostView.naver?blogId=kjcthk&logNo=222539133478\" target=\"_blank\">https://blog.naver.com/PostView.naver?blogId=kjcthk&logNo=222539133478</a><br>\t\t\t<br><a href=\"https://yolofire.tistory.com/entry/NFT-%EB%A7%8C%EB%93%A4%EA%B8%B0\" target=\"_blank\">https://yolofire.tistory.com/entry/NFT-%EB%A7%8C%EB%93%A4%EA%B8%B0</a><br>\t\t\t<br><a href=\"https://academy.binance.com/ko/articles/how-to-make-your-own-nfts\" target=\"_blank\">https://academy.binance.com/ko/articles/how-to-make-your-own-nfts</a><br>\t\t\t<br>코인 = 화폐, 기념주화 = NFT<br>\t\t\t<br>얏시우 인터뷰 특종! 메타버스의 아버지 얏시우 애니모카 회장 인터뷰! (샌드박스 코인 등)<br>\t\t\t<br><br>\t\t\t<br>국내 플랫폼_________<br>\t\t\t<br>카카오 클립<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>해외 플랫폼_________<br>\t\t\t<br><br>\t\t\t<br>MBC NFT 플랫폼 <a href=\"https://archivebymbc.com/\" target=\"_blank\">https://archivebymbc.com/</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>NFT: 대체 불가능한 토큰(Non-fungible token)<br>\t\t\t<br>NFT 스마트 컨트랙트(Smart contract): NFT를 저장할 수 있는 저장소<br>\t\t\t<br>NFT 발행(minting): NFT를 새로 생성(발행)하는 행위<br>\t\t\t<br>NFT 전송(transfer): 이미 생성된 NFT를 사용자 간 주고 받는 행위<br>\t\t\t<br>NFT 소각(burn): 이미 생성된 NFT를 폐기(소각)하는 행위<br>\t\t\t<br><br>\t\t\t<br>Klaytn은 카카오의 자회사, GroundX에서 개발한 블록체인 플랫폼입니다.<br>\t\t\t<br><br>\t\t\t<br>클레이튼 (Klaytn)에서 NFT를 발행하는 방법은<br>\t\t\t<br>Truffle, Caver를, KAS, Klip Partners, KrafterSpace를 이용하여 배포 등 다양<br>\t\t\t<br><br>\t\t\t<br>GroundX에서 누구나 손쉽고 빠르게 Klaytn 기반의 NFT를 발행할 수 있는 서비스인&#160;KrafterSpace를 런칭했습니다.<br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tNTF 호환 블록체인<br>\t\t\t\t\t이더리움, 바이낸스 스마트 체인, 폴카닷, 트론, 테조스<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t지갑<br>\t\t\t\t\t메타마스크, 트러스월렛 // 카이카스<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t민팅/거래소<br>\t\t\t\t\t<br>이더리움 시장을 찾고 계신다면, 가장 잘 알려진 두 시장인 오픈시(OpenSea) 또는 라리블(Rarible)을 확인해보시기 바랍니다. <br>\t\t\t\t\t<br>레어러블, 크립토펑크스&#160;<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>간편한 사용을 원하신다면, 베이커리스왑, 저거월드(Juggerworld), 트레저랜드(Treasureland)를 추천합니다. 이 세 가지 바이낸스 스마트 체인 프로젝트는 모두 간편한 인터페이스를 제공하며 저렴한 수수료로 NFT를 발행할 수 있습니다. 베이커리스왑은 가장 큰 NFT 시장을 보유하고 있으며, 따라서 NFT 발행 이후 판매가 용이합니다. 저거너트에서는 여러분의 NFT를 판매할 때마다 로열티를 책정할 수 있으며, 트레저랜드에서는 무료로 NFT를 발행할 수 있습니다. <br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t프로토콜<br>\t\t\t\t\t<br>바이낸스 스마트 체인 시장과 거래소에서는 대부분 BEP-721과 BEP-1155 토큰을 지원<br>\t\t\t\t\t<br>일반적인 NFT 유형(ERC721, ERC1155, BEP721, BEP1155)의 경우에는 단 한 명의 소유자만 존재할 수 있습니다.<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>분할발행 가능 프로토콜 KIP-37 (ERC-1155)<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t발행 가능 디지털 에셋<br>\t\t\t\t\t사진, GIF, 영상, 음성<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>오픈씨 - 폴리콘 분할 민팅 가능 <br>\t\t\t<br><br>\t\t\t<br>여러분만의 NFT를 발행하기 전에 다음 세 가지가 필요합니다.<br>\t\t\t<br><br>\t\t\t<br>여러분의 노래, 작품, 수집품<br>\t\t\t<br>발행 수수료를 지불할 약간의 가상자산<br>\t\t\t<br>가상자산을 보관할 가상자산 지갑<br>\t\t\t<br><br>\t\t\t<br>민팅할 때 조심해야 할 것들&#160;&#160;<br>\t\t\t<br>판매 가능 수량 정하기 &#160;&#160;<br>\t\t\t<br>가스요금 추세 확인하기 -&#160; <a href=\"https://www.gasnow.org/\" target=\"_blank\">https://www.gasnow.org/</a><br>\t\t\t<br>경매 성공했을 때 지불하는 판매 수수료가 지갑에 있는지 확인하기<br>\t\t\t<br><br>\t\t\t<br>출처: <<a href=\"https://brunch.co.kr/@rumierumie/71>\" target=\"_blank\">https://brunch.co.kr/@rumierumie/71></a> <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>Nft 거래 순위, 수익률<br>\t\t\t<br><a href=\"https://cryptoartpulse.com/\" target=\"_blank\">https://cryptoartpulse.com/</a><br>\t\t\t<br><br>\t\t\t<br>NFT 1세대 아티스트들의 트위터 링크입니다.<br>\t\t\t<br><br>\t\t\t<br>Beeple<br>\t\t\t<br>Lake Kathryn&#160;<br>\t\t\t<br>Giant Swan<br>\t\t\t<br>FEWoCIOUS<br>\t\t\t<br>Trevor Jones<br>\t\t\t<br>Hackatao<br>\t\t\t<br>John Orian Young (JOY)<br>\t\t\t<br><br>\t\t\t<br>출처: <<a href=\"https://brunch.co.kr/@sehi0315/150>\" target=\"_blank\">https://brunch.co.kr/@sehi0315/150></a>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

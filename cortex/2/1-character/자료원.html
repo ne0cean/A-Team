@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자료원</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">자료원</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-자료원';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "자료원<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t국고채 금리<br>\t\t\t\t\t<a href=\"http://www.kofiabond.or.kr/\" target=\"_blank\">http://www.kofiabond.or.kr/</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tDART<br>\t\t\t\t\t<a href=\"http://dart.fss.or.kr/\" target=\"_blank\">http://dart.fss.or.kr/</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tADGAR<br>\t\t\t\t\t<br><a href=\"https://www.sec.gov/\" target=\"_blank\">https://www.sec.gov/</a><br>\t\t\t\t\t<br><a href=\"https://www.sec.gov/edgar/searchedgar/companysearch.html\" target=\"_blank\">https://www.sec.gov/edgar/searchedgar/companysearch.html</a><br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"https://m.blog.naver.com/PostView.nhn?blogId=ahrum405&logNo=221143384482&proxyReferer=https%3A%2F%2Fwww.google.com%2F\" target=\"_blank\">https://m.blog.naver.com/PostView.nhn?blogId=ahrum405&logNo=221143384482&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a><br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tMergermarket<br>\t\t\t\t\t<a href=\"https://www.mergermarket.com/info/\" target=\"_blank\">https://www.mergermarket.com/info/</a><br>\t\t\t\t\t<br>Deal case 볼때 활용<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>ID: esolee<br>\t\t\t\t\t<br>pass: pwcasia<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tCapital IQ<br>\t\t\t\t\t<br><a href=\"https://www.capitaliq.com/CIQDotNet/my/dashboard.aspx\" target=\"_blank\">https://www.capitaliq.com/CIQDotNet/my/dashboard.aspx</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>복수의&#160;회사들의&#160;transaction multiple을&#160;확인하기&#160;위해서는&#160;아래의&#160;과정들을&#160;따라주시길&#160;바랍니다.<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>Transaction Screening<br>\t\t\t\t\t<br>(1) List Management&#160;아래&#160;Add Companies&#160;링크를&#160;클릭하셔서&#160;원하는&#160;회사를&#160;target&#160;또는&#160;buyer로&#160;설정해주신&#160;뒤&#160;add criteria&#160;눌러주세요.<br>\t\t\t\t\t<br>(2) General Transaction Details&#160;아래&#160;types에서&#160;M&A&#160;필터를&#160;선택하신&#160;뒤&#160;add criteria&#160;선택해주세요.<br>\t\t\t\t\t<br>(3) View Criteria&#160;옆&#160;Customize Display Columns로&#160;가셔서&#160;Financial Information&#160;아래&#160;Multiples로&#160;가셔서&#160;원하시는&#160;멀티플을&#160;선택해주시고&#160;add columns&#160;눌러주세요.<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>복수&#160;회사의&#160;복수&#160;딜&#160;데이터를&#160;확인하고&#160;싶으시다면&#160;(어제&#160;보내드린&#160;M&A의&#160;경우가&#160;아니라면)<br>\t\t\t\t\t<br>General transaction details > primary feature를&#160;통해&#160;transaction의&#160;종류를&#160;고르실&#160;수&#160;있습니다.<br>\t\t\t\t\t<br>이&#160;경우에도&#160;마찬가지로&#160;customize display columns에서&#160;보고싶으신&#160;멀티플을&#160;골라주시면&#160;됩니다.<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t<br>ID: u3559088@hku.hk<br>\t\t\t\t\t<br>PW: Popular19!<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>SKT 계정<br>\t\t\t\t\t<br>ID 1)<br>\t\t\t\t\t<br>doeun.kim@sk.com / Sktlib18f!<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>ID 2)<br>\t\t\t\t\t<br>jihwanpark@sk.com / Sktelecom123<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>ID3)<br>\t\t\t\t\t<br>jpjung@sk.com / Valuegrowth1<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>ID4)<br>\t\t\t\t\t<br>seongho.won@sk.com / Tlibrary@18<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>ID5)<br>\t\t\t\t\t<br>seinchoi@sk.com / Tlibrary@27<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>KISLINE<br>\t\t\t\t\t<br>비상장사 정보<br>\t\t\t\t\t<br>\t\t\t\t\t<a href=\"https://www.kisline.com/cm/CM0100M00GE00.nice;jsessionid=CAOHNOM-emcxRMj4a7KC0ZbH.green01\" target=\"_blank\">https://www.kisline.com/cm/CM0100M00GE00.nice;jsessionid=CAOHNOM-emcxRMj4a7KC0ZbH.green01</a><br>\t\t\t\t\t회사인증 후 ￼ID: ne0cean￼PW: wnddyd00!!<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>cbinsight<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br> <br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\tjyhyodi@sk.com/Emg2020!<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tpitchbook<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\tParksunq@sk.com/Emg2020!<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><a href=\"http://kind.krx.co.kr/\" target=\"_blank\">http://kind.krx.co.kr</a>&#160;(기업공시)￼<a href=\"http://consensus.hankyung.com/\" target=\"_blank\">http://consensus.hankyung.com</a>&#160;(한경컨센서스, 기업/산업/시장/파생/경제 등 리포트 열람)￼<a href=\"http://www.fnguide.com/\" target=\"_blank\">http://www.fnguide.com</a>&#160;(FN가이드, 증권사 리퍼치 보고서, 퀀트)￼<a href=\"https://www.wisereport.co.kr/\" target=\"_blank\">https://www.wisereport.co.kr</a>&#160;(와이즈리포트,&#160;증권사 리서치 보고서, 퀀트)&#160;￼<a href=\"http://www.itooza.com/\" target=\"_blank\">http://www.itooza.com</a>&#160;(아이투자,&#160;각종 투자정보 커뮤니티)￼<a href=\"http://kirs.or.kr/\" target=\"_blank\">http://kirs.or.kr</a>&#160;(한국ir협의회)￼<a href=\"https://m.irgo.co.kr/\" target=\"_blank\">https://m.irgo.co.kr</a>&#160;(IRGO, 기업 IR자료 열람)<br>\t\t\t<br>ㅇ&#160;매경&#160;독서클럽&#160;NBS&#160;해외 신간 비즈니스 서적의 핵심만을 요약해서 제공하는 서비스로 매주&#160;2권의 신간을 업데이트하고 있으며 주간지(NBS)&#160;서비스도 함께 제공&#160;&#160;<br>\t\t\t<br>ㅇ&#160;Book Cosmos for Beautiful Leaders (일간)&#160;경제/경영,&#160;문학 등에 관한 도서의 주요 내용을&#160;5%&#160;정도의 분량으로 요약하여 제공하는 인터넷&#160;<a href=\"http://www.bookcosmos.com/main/main.asp\" target=\"_blank\">http://www.bookcosmos.com/main/main.asp</a><br>\t\t\t<br>Seinchoi/ skalib1<br>\t\t\t<br>&#160;<br>\t\t\t<br>ㅇ&#160;MergerMarket-M&A League Merger Market에서 집계하는 전세계 산업별&#160;M&A Deal List&#160;및 분석 자료<br>\t\t\t<br>&#160;<br>\t\t\t<br>ㅇ&#160;STATISTA&#160;<a href=\"https://www.statista.com/\" target=\"_blank\">https://www.statista.com/</a><br>\t\t\t<br>로그인정보<br>\t\t\t<br>ID : seinchoi@sk.com<br>\t\t\t<br>Password : tlibrary17<br>\t\t\t<br>&#160;<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tㅇOvum-Media & Entertainment<br>\t\t\t\t\t<a href=\"https://www.pwc.com/gx/en/industries/entertainment-media/outlook/segment-insights.html\" target=\"_blank\">https://www.pwc.com/gx/en/industries/entertainment-media/outlook/segment-insights.html</a><br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>[seinchoi@sk.com](mailto:seinchoi@sk.com)<br>\t\t\t<br>Tlibrary17<br>\t\t\t<br>&#160;<br>\t\t\t<br>ㅇ&#160;The Numbers &#160;미디어 분야 통계 자료 제공&#160;&#160;<a href=\"https://www.the-numbers.com/\" target=\"_blank\">https://www.the-numbers.com/</a><br>\t\t\t<br>&#160;<br>\t\t\t<br>ㅇ 미디어통계정보시스템 한국언론진흥재단에서&#160;운영하는&#160;각종&#160;언론&#160;매체(신문,인터넷,TV, IPTV등)&#160;관련&#160;통계&#160;<a href=\"http://mediasis.kpf.or.kr/index.aspx\" target=\"_blank\">http://mediasis.kpf.or.kr/index.aspx</a><br>\t\t\t<br>&#160;<br>\t\t\t<br>ㅇ&#160;닐슨코리안클릭(KoreanClick)&#160;<a href=\"http://www.koreanclick.com/\" target=\"_blank\">http://www.koreanclick.com</a><br>\t\t\t<br>Skt/ sktelecom<br>\t\t\t<br>ㅇ&#160;PWC M&A industry insights&#160;산업별&#160;M&A&#160;현황&#160;Forward-looking analysis of the drivers of and barriers to M&A&#160;<a href=\"http://www.pwc.com/gx/en/mergers-acquisitions-industry-trends/index.jhtml\" target=\"_blank\">http://www.pwc.com/gx/en/mergers-acquisitions-industry-trends/index.jhtml</a><br>\t\t\t<br>&#160;<br>\t\t\t<br>ㅇ&#160;FindBM&#160;<a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00001&rschRegTyCd=RDB&pageNo=2&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=CS033\" target=\"_blank\">새로운&#160;BM을 제시하는 스타트업을&#160;5분 동영상으로 제공</a>&#160;<a href=\"https://findbm.com/\" target=\"_blank\">https://findbm.com/</a><br>\t\t\t<br>ㅇ&#160;Betalist&#160;신규 인터넷 스타트업/서비스 소개&#160;<a href=\"http://betalist.com/\" target=\"_blank\">http://betalist.com</a><br>\t\t\t<br>ㅇ&#160;Product Hunt &#160;신규 서비스/제품 소개&#160;<a href=\"https://www.producthunt.com/\" target=\"_blank\">https://www.producthunt.com</a><br>\t\t\t<br>ㅇ&#160;Springwise&#160;&#160;신규 서비스/제품을 소개&#160;<a href=\"http://www.springwise.com/\" target=\"_blank\">http://www.springwise.com</a><br>\t\t\t<br>&#160;<br>\t\t\t<br>ㅇ&#160;Monocle&#160;<a href=\"http://monocle.com/magazine/\" target=\"_blank\">http://monocle.com/magazine/</a><br>\t\t\t<br>[soheechoi@sk.com/](mailto:soheechoi@sk.com/)&#160;password1<br>\t\t\t<br>&#160;<br>\t\t\t<br>ㅇ&#160;IR Insight (舊&#160;ThomsonOne)&#160;<a href=\"http://irinsight.nasdaq.com/\" target=\"_blank\">http://irinsight.nasdaq.com</a><br>\t\t\t<br>**<b>seinchoi@sk.com&#160;비번변경&#160;: SKtelecom@18 /&#160;보안질문 변경&#160;:&#160;질문의 마지막 단어</b>******<br>\t\t\t<br>PW와 보안질문 꼭 확인 바랍니다.&#160;한 분이라도 잘못 입력하시면 다시 설정됩니다.&#160;꼭 확인하시고 로긴하시기 바랍니다.<br>\t\t\t<br>&#160;<br>\t\t\t<br><a href=\"http://irinsight.nasdaq.com\" target=\"_blank\">http://irinsight.nasdaq.com</a><br>\t\t\t<br>&#160;<br>\t\t\t<br>아직 자동로그인은 적용되고 있지 않으니 최초 로그인시 아래 내용 참조 바랍니다.<br>\t\t\t<br>&#160;<br>\t\t\t<br>* IR insight&#160;최초&#160;1회 로그인시&#160;Security question에 답해야만 로그인 가능<br>\t\t\t<br>&#160;<br>\t\t\t<br>1) ID : seinchoi@sk.com PW : SKtelecom@18<br>\t\t\t<br>&#160;<br>\t\t\t<br>Security Question :&#160;질문의 마지막 단어가 답입니다!!!<br>\t\t\t<br>&#160;<br>\t\t\t<br>1.&#160;좋아하는&#160;color : color<br>\t\t\t<br>2.&#160;좋아하는&#160;Dish : dish<br>\t\t\t<br>3.&#160;좋아하는&#160;holiday : holiday<br>\t\t\t<br>4.&#160;좋아하는&#160;restaurant : restaurant<br>\t\t\t<br>&#160;<br>\t\t\t<br>2) ID: jkkwak@sk.com PW: Sktelecom_18<br>\t\t\t<br>&#160;<br>\t\t\t<br>Security Question<br>\t\t\t<br>&#160;<br>\t\t\t<br>1.&#160;아버지 탄생연도: 2017<br>\t\t\t<br>2.&#160;어머니 탄생연도: 2016<br>\t\t\t<br>3.&#160;내가 태어난 도시: seoul<br>\t\t\t<br>4.&#160;휴가가고 싶은 도시&#160;: jeju<br>\t\t\t<br>&#160;<br>\t\t\t<br>&#160;<br>\t\t\t<br>3) ID: sean_h_lee@sk.com PW: Password@3<br>\t\t\t<br>&#160;<br>\t\t\t<br>Q. What is your favorite holiday?<br>\t\t\t<br>A. holiday<br>\t\t\t<br>&#160;<br>\t\t\t<br>Q. What is your favorite color?<br>\t\t\t<br>A. color<br>\t\t\t<br>&#160;<br>\t\t\t<br>Q. Who is your favorite movie star?<br>\t\t\t<br>A. star<br>\t\t\t<br>&#160;<br>\t\t\t<br>Q. What is your favorite dish?<br>\t\t\t<br>A. dish<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>\t\t\t<br>37000<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>6410-5430=980<br>\t\t\t<br>4787-4302=485<br>\t\t\t<br>5430-4787=643<br>\t\t\t<br>6679-5430=1249<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>한국 거래소 업종 분류",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

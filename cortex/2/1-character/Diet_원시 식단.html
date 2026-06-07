@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diet_원시 식단</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">Diet_원시 식단</div>
+<div class="date">2014년 2월 20일 목요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Diet-원시-식단';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "Diet_원시 식단<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tDaily Diet<br>\t\t\t\t\t<br>[Appetizer] 견과류 + CAA + 토마토 + 마늘 + 영양제 <br>\t\t\t\t\t<br>[Main] 보충제/ 마라샹궈/ 고등어/ 닭가슴살/  <a href=\"https://m.dakbro.shop/surl/p/286?utm_source=meta&utm_medium=display&utm_campaign=adv&utm_content=img_special_100_1&fbclid=PAAab3daahZQKuEt6yrWSn9nDb0Uo-xcobRICmuvdUoOyRlHcHVaFn0fWkJqc_aem_AQcXLq4ZOdzVtNwkxS4DUCZbXavjQStn4GZEXciq4MHt2PkW8U5VGtjSN8xq2W7i8DkeCgT3TRyu_eXUUfzTEmTU\" target=\"_blank\">통닭다리살</a><br>\t\t\t\t\t<br>송이/목이 버섯, 버섯 탕수, 샐러리, 샐러드, 두부, <br>\t\t\t\t\t<br>[Dessert] 당근/ 오이/ 영양제/ 바질시드(포만감, 30x)/ 시나몬/ 코코아분말/ 치아시드(슈퍼푸드, 15x), 곤약국수, 레미레미 <a href=\"https://m.remyremy.co.kr/product/%EB%A0%88%EB%AF%B8%EB%A0%88%EB%AF%B8-%EC%A7%9C%EB%A8%B9%EB%8A%94-%EA%B7%B9%EA%B0%95%EC%9D%98-%EB%95%85%EC%BD%A9%EB%B2%84%ED%84%B0-250g-25g-x-10%EA%B0%9C%EC%9E%85/20/category/1/display/3/?fbclid=PAZXh0bgNhZW0BMABhZGlkAasWeshHpuYBplIZxQuAtnDfKU7TiZvqPZpyZPnYPst6UB1ms3IgbwevAj9UKFiOz-tvhQ_aem_Ix1d6qPlFZ8n_eWERccc2Q#none\" target=\"_blank\">땅콩버터</a><br>\t\t\t\t\t<br>[잠자기 진전에 추가로 뭔가 먹어야 한다면] 바나나, 견과류, 카제인 프로틴, 그릭 요거트, 젤리<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t집중력/에너지 필요 할 때<br>\t\t\t\t\t<br>초콜릿 대신 고구마<br>\t\t\t\t\t<br>단백질 강화 두유(매일유업)<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t집에서 단거 너무 땡길 때<br>\t\t\t\t\t젤리, 널담, 마이노멀, 버섯치킨, 샤인머스캣￼<a href=\"https://idea-nutrition.com/product/%EC%9D%B4%EB%8D%B0%EC%95%84%EB%89%B4%ED%8A%B8%EB%A6%AC%EC%85%98-%EC%95%84%EC%9D%B4%EC%A6%88%ED%94%84%EB%A1%9C%ED%8B%B4%EB%B0%94-3%EC%A2%85-1%EB%B0%95%EC%8A%A412%EA%B0%9C%EC%9E%85/15/category/42/display/1/?utm_medium=paid&utm_source=ig&utm_id=120207426561020626&utm_content=120207427644390626&utm_term=120207426561620626&utm_campaign=120207426561020626&fbclid=PAAaaxL69YUZ2Sk5U8RoyDG-Ya9nWm0JmGluR8dKaqSKgWMYzf07YkX04R90A_aem_AZNipsUXoWj8bZV2Nh3vm7GoCisual_1kSw6UnvRJ1N0VJRbPWtS1wBz5TYxZik_dDDNIxD0VmnGYTENfWZMs8tp\" target=\"_blank\">아이즈프로틴바</a>, <a href=\"https://m.nuldam.com/myshop/order/list.html\" target=\"_blank\">널담</a>, <a href=\"https://m.remyremy.co.kr/product/%EB%8B%A8%EB%B0%B1%ED%96%88%EC%8A%88-%EB%8B%A8%EB%B0%B1%EC%BA%90%EC%8A%88-%EB%AC%B4%EA%B0%80%EB%8B%B9-%EC%B4%88%EC%BD%94%EB%B3%BC/18/category/1/display/3/?utm_medium=paid&utm_source=ig&utm_id=120206042063320278&utm_content=120207430949590278&utm_term=120206042063330278&utm_campaign=120206042063320278&fbclid=PAAabQmwYvbI4ImHF-qJC-Ncogr5WoWTbA3FadejpfEnli8bDGsJc4uvkXpeY_aem_AR17vodTS66YeTSAq0LqXmssoW3ul0_033XeyMggMlu55EOipb6f4DFCkDjkpjVcnjmcp3BQiDrV0wdmh6Ns-DnF#none\" target=\"_blank\">레미레미</a>, 마이노벌 초코볼, <a href=\"https://kaligreek.com/product/%EC%B9%BC%EB%A6%AC%EA%B7%B8%EB%A6%AD-%EA%BE%B8%EB%8D%95%ED%95%9C-%EA%B7%B8%EB%A6%AD%EC%9A%94%EA%B1%B0%ED%8A%B8-%EB%8B%A8%EB%B0%B1%EC%A7%88%EB%B0%94-50g-x-20%EA%B0%9C%EC%9E%85-%ED%94%8C%EB%A0%88%EC%9D%B8-%EB%94%B8%EA%B8%B0%EB%A7%9B/12/category/1/display/2/?utm_medium=paid&utm_source=ig&utm_id=120213025374760729&utm_content=120213025419240729&utm_term=120213025374740729&utm_campaign=120213025374760729&fbclid=PAZXh0bgNhZW0BMAABpnH69wQXodizhqu_72ncYHbUG1wGslxLs9Xeo01Pr8sjcxM8iPorQvRZxQ_aem_POQL9C9YUZcZmbj9_ILV0A\" target=\"_blank\">꾸요바</a>￼곤약젤리, 씨드, 탄산수, 수면제, 프로틴<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>당근라페/ 감동란/ 수육<br>\t\t\t<br><br>\t\t\t<br>간수를 뺀 천일염 구매, 융용소금 3g 개별포장, 죽염<br>\t\t\t<br>키토제닉 - 아보카도/코코넛 오일 마요네즈(<a href=\"https://gall.dcinside.com/mgallery/board/view/?id=lchf&no=10207\" target=\"_blank\">설켄싱턴</a>), 오넛티 땅콩버터, 흰자 에그스크럼블 with 베이컨<br>\t\t\t<br>카니보어 <br>\t\t\t<br>브로컬리 with 마요/땅콩버터, 방울토마토 20개 + 블루베리 20개<br>\t\t\t<br><br>\t\t\t<br>간헐적 단식 근손실 방지 영양제<br>\t\t\t<br>1. BCAA (Branch Chain Amino Acids)<br>\t\t\t<br>효과: 류신, 이소류신, 발린으로 구성된 필수 아미노산으로, 단식 상태에서도 근육 분해를 억제하고 단백질 합성을 촉진.<br>\t\t\t<br>추천 제품:<br>\t\t\t<br>마이프로틴 BCAA 4:1:1<br>\t\t\t<br>섭취 시점: 공복 상태에서 운동 전/중에 섭취하면 근손실 방지에 효과적.<br>\t\t\t<br>2. EAA (Essential Amino Acids)<br>\t\t\t<br>효과: 9가지 필수 아미노산을 포함해 단백질 합성과 근육 회복을 지원하며, BCAA보다 더 포괄적인 아미노산 공급 가능.<br>\t\t\t<br>추천 제품:<br>\t\t\t<br>마이프로틴 임팩트 EAA<br>\t\t\t<br>스캇츠 EAA<br>\t\t\t<br>섭취 시점: 공복 상태에서 운동 전&#183;중&#183;후 모두 적합하며, 특히 단백질 섭취가 부족한 날 유용.<br>\t\t\t<br>3. 크레아틴 (Creatine Monohydrate)<br>\t\t\t<br>효과: 근육 내 에너지 저장을 증가시켜 운동 퍼포먼스를 높이고 근육량 증가를 촉진.<br>\t\t\t<br>크레아틴은 칼로리가 없으며 간헐적 단식 중에도 안전하게 사용할 수 있음.<br>\t\t\t<br>추천 제품:<br>\t\t\t<br>옵티멈 뉴트리션 크레아틴<br>\t\t\t<br>마이프로틴 크레아틴 모노하이드레이트<br>\t\t\t<br>섭취 시점: 단식 시간과 관계없이 매일 일정량(3~5g) 섭취.<br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>영양제 + 베리류 + 생강 + 견과류 + 과일 + 현미 + 녹황색 채소<br>\t\t\t\t<br>항산화 음식 <a href=\"http://www.insight.co.kr/view.php?ArtNo=5631&MainCode=006\" target=\"_blank\">http://www.insight.co.kr/view.php?ArtNo=5631&MainCode=006</a><br>\t\t\t\t<br><a href=\"http://m.navercast.naver.com/mobile_contents.nhn?rid=1095&attrId=&contents_id=67345&leafId=1095&isVertical=Y\" target=\"_blank\">http://m.navercast.naver.com/mobile_contents.nhn?rid=1095&attrId=&contents_id=67345&leafId=1095&isVertical=Y</a><br>\t\t\t\t<br>스피룰리나, 오메가, 코큐텐, 토탈소이<br>\t\t\t\t<br>\t\t\t\t\t<br>- 탄수화물 흡수 80%억제<br>\t\t\t\t\t<br>- 하루2회 식사 10-15분전 충분한 물과함께 섭취<br>\t\t\t\t\t<br>(6정 이상 섭취는 금함)<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>- 체지방 감소 및 근육탄력 유지<br>\t\t\t\t\t<br>- 일 3회 1정 식후 충분한 물과 함께 섭취<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>- 항산화 효과, <br>\t\t\t\t\t<br>- 하루 2정<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>- 지방대사 촉진, 운동중 에너지 공급<br>\t\t\t\t\t<br>- 운동 후 근육의 피로회복<br>\t\t\t\t\t<br>- 운동전 공복1알, 식후 1알<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br>프로바이오틱스 유산균<br>\t\t\t\t<br><a href=\"http://www.olive-oilshop.co.kr/src/products/products_detail.php?product_mst_id=0001_00004\" target=\"_blank\">http://www.olive-oilshop.co.kr/src/products/products_detail.php?product_mst_id=0001_00004</a><br>\t\t\t\t<br><br>\t\t\t\t<br>ㅇ 작두콩 - 비염에 효과<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>대체당- 알룰로오스 에리스리톨, 소처리스테비아<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>- <a href=\"http://www.derchaeum.com/index.html\" target=\"_blank\">견과류</a><br>\t\t\t\t<br>스피눌리나<br>\t\t\t\t<br>비타민C<br>\t\t\t\t<br>L-카르니틴<br>\t\t\t\t<br>CoQ10<br>\t\t\t\t<br>아사히베리<br>\t\t\t\t<br>CLA<br>\t\t\t\t<br>비타민D<br>\t\t\t\t<br>Carb 인터셉트 3<br>\t\t\t\t<br>카브인터셉트 2<br>\t\t\t\t<br>alli<br>\t\t\t\t<br>그린티 팻버너<br>\t\t\t\t<br><br>\t\t\t\t<br>- 비타민C<br>\t\t\t\t<br>- 하와이안 스피룰리나 & 대상 클로렐라<br>\t\t\t\t<br>- 코엔자임큐우텐 - 큐텐 or 리코펜(흡연)<br>\t\t\t\t<br>- 아스타산친<br>\t\t\t\t<br>- 라스베라스톨<br>\t\t\t\t<br>- OPC<br>\t\t\t\t<br>- 라이코펜<br>\t\t\t\t<br>- 폴리페놀<br>\t\t\t\t<br>- 핵산<br>\t\t\t\t<br>- 항산화 건조 베리류 믹스 : 메이드 인 네이처 - 아이허브 몰<br>\t\t\t\t<br>- 책 젋음의 습관<br>\t\t\t\t<br>- 호모시스톨 : 치매방지<br>\t\t\t\t<br>- 멸치유 오메가3<br>\t\t\t\t<br>- 프로바이오틱스<br>\t\t\t\t<br>- 마그네슘<br>\t\t\t\t<br>- 셀레늄<br>\t\t\t\t<br>- 프로폴리스<br>\t\t\t\t<br>- 글로우래쉬, 동의모, 윙크에스테<br>\t\t\t\t<br>- 블루베리 등 베리류<br>\t\t\t\t<br>- 생강<br>\t\t\t\t<br>- 튼살크림 : 리메스카 스트래치마크크림 렌슬리튼살크림<br>\t\t\t\t<br>- 견과류 <a href=\"http://www.derchaeum.com/shop/shopdetail.html?branduid=7&xcode=002&mcode=001&scode=&special=5&GfDT=a253UQ%3D%3D\" target=\"_blank\">더채움</a> <a href=\"http://www.dummerce.com/shop/detail.php?hash=ECB93&cno=0&rURL=http%3A%2F%2Fwww.dummerce.com%2Fshop%2Fsearch_result.php%3Fsearch_str%3D%25EA%25B2%25AC%25EA%25B3%25BC%26x%3D0%26y%3D0\" target=\"_blank\">덤앤더머스</a><br>\t\t\t\t<br>- 뉴트리라이트 - 더블엑스<br>\t\t\t\t<br>- <a href=\"http://lizy.kr/220170750137\" target=\"_blank\">http://lizy.kr/220170750137</a> 아이어브 다이어트<br>\t\t\t\t<br><br>\t\t\t\t<br>세계10대 슈퍼푸드<a href=\"http://alswb0808.blog.me/220167420633\" target=\"_blank\">http://alswb0808.blog.me/220167420633</a><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>ㅇ 알리 구입 <a href=\"http://www.goodbuyny.com/main/main.php\" target=\"_blank\">http://www.goodbuyny.com/main/main.php</a><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"http://tokyoslim.kr/product/detail.html?product_no=761&cate_no=7&display_group=1&cafe_mkt=naver_ks&mkt_in=Y&ghost_mall_id=naver&ref=naver_open&Ncisy=v%3D1%7Ct%3De%7Ce%3D1431936778%7Cba%3D0.5%7Caa%3D0.5%7Ch%3D565b83c30d5bbffc4935001e49befd15f8b01160&NaPm=ct%3Di9s6quj4%7Cci%3D690126f3bfee7219b6e9c82a8bdba66dc2507efb%7Ctr%3Dslsl%7Csn%3D212487%7Cet%3Di9tm6p74%7Cba%3D0.5%7Caa%3D0.5%7Chk%3D3d7bb58854e92c0aca8420224b7a38fa0c929f4e\" target=\"_blank\">http://tokyoslim.kr/product/detail.html?product_no=761&cate_no=7&display_group=1&cafe_mkt=naver_ks&mkt_in=Y&ghost_mall_id=naver&ref=naver_open&Ncisy=v%3D1%7Ct%3De%7Ce%3D1431936778%7Cba%3D0.5%7Caa%3D0.5%7Ch%3D565b83c30d5bbffc4935001e49befd15f8b01160&NaPm=ct%3Di9s6quj4%7Cci%3D690126f3bfee7219b6e9c82a8bdba66dc2507efb%7Ctr%3Dslsl%7Csn%3D212487%7Cet%3Di9tm6p74%7Cba%3D0.5%7Caa%3D0.5%7Chk%3D3d7bb58854e92c0aca8420224b7a38fa0c929f4e</a>",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "850359b578.png",
+    "alt": "Diet_원시 식단",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "출처: <<a href=\"http://m.news.naver.com/read.nhn?mode=LSD&mid=sec&sid1=101&oid=024&aid=0000044202\" target=\"_blank\">http://m.news.naver.com/read.nhn?mode=LSD&mid=sec&sid1=101&oid=024&aid=0000044202</a>> <br>\t\t\t\t<br><br>\t\t\t\t<br>- 무가당 베리류 / Quest protein bar <br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"http://kr.m.iherb.com/diet-weight-loss?utm_source=facebookorean&utm_medium=post&utm_campaign=10apr2015\" target=\"_blank\">http://kr.m.iherb.com/diet-weight-loss?utm_source=facebookorean&utm_medium=post&utm_campaign=10apr2015</a><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"http://kr.iherb.com/Resveratrol\" target=\"_blank\">http://kr.iherb.com/Resveratrol</a><br>\t\t\t\t<br>아이허브몰<br>\t\t\t\t<br><br>\t\t\t<br>\t\t\t<br>ㅇ 카브 인터셉트3<br>\t\t\t<br>ㅇ 토날린 CLA<br>\t\t\t<br>ㅇ 아사히 베리 <br>\t\t\t<br>ㅇ L-카르니틴<br>\t\t\t<br>ㅇ 제니칼, 알리 (alli), 칼로리즈 (calorease) <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t출처: <<a href=\"http://m.news.naver.com/read.nhn?mode=LSD&mid=sec&sid1=101&oid=024&aid=0000044202\" target=\"_blank\">http://m.news.naver.com/read.nhn?mode=LSD&mid=sec&sid1=101&oid=024&aid=0000044202</a>> <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br>- <a href=\"http://m.news.naver.com/read.nhn?mode=LSD&mid=sec&sid1=101&oid=024&aid=0000044202\" target=\"_blank\">http://m.news.naver.com/read.nhn?mode=LSD&mid=sec&sid1=101&oid=024&aid=0000044202</a><br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"https://m.blog.naver.com/PostView.nhn?blogId=vitamartusa&logNo=220313511380&proxyReferer=https%3A%2F%2Fm.search.naver.com%2Fsearch.naver%3Fwhere%3Dm%26query%3D%25EB%2588%2584%25EB%25B2%25A1%25EC%2582%25AC%26sm%3Dmtb_org%26qvt%3D0\" target=\"_blank\">https://m.blog.naver.com/PostView.nhn?blogId=vitamartusa&logNo=220313511380&proxyReferer=https%3A%2F%2Fm.search.naver.com%2Fsearch.naver%3Fwhere%3Dm%26query%3D%25EB%2588%2584%25EB%25B2%25A1%25EC%2582%25AC%26sm%3Dmtb_org%26qvt%3D0</a><br>\t\t<br>\t\t<br>\t\t\t<br>Alli 알리<br>\t\t\t<br><a href=\"https://www.ohappytime.com/FrontStore/iCartPayment.phtml?iSaleId=OD5e7f4bfc647ed\" target=\"_blank\">https://www.ohappytime.com/FrontStore/iCartPayment.phtml?iSaleId=OD5e7f4bfc647ed</a>",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "84bbe7ad42.png",
+    "alt": "Diet_원시 식단",
+    "w": 220
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sturdy Source</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">Sturdy Source</div>
+<div class="date">2012년 3월 11일 일요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Sturdy-Source';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "Sturdy Source<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br><a href=\"http://blog.sjstory.com/492\" target=\"_blank\">http://blog.sjstory.com/492</a> 경제 전문가 블로그<br>\t\t\t<br><br>\t\t\t<br><a href=\"http://newwave.blog.qrobo.com/2009/07/02/ceo%EA%B0%80-%EB%86%93%EC%B9%98%EC%A7%80-%EB%A7%90%EC%95%84%EC%95%BC-%ED%95%A0-%ED%8C%8C%EC%9B%8C-%EB%B8%94%EB%A1%9C%EA%B7%B8-20%EC%84%A0/\" target=\"_blank\">http://newwave.blog.qrobo.com/2009/07/02/ceo%EA%B0%80-%EB%86%93%EC%B9%98%EC%A7%80-%EB%A7%90%EC%95%84%EC%95%BC-%ED%95%A0-%ED%8C%8C%EC%9B%8C-%EB%B8%94%EB%A1%9C%EA%B7%B8-20%EC%84%A0/</a> <br>\t\t\t<br><br>\t\t\t<br><a href=\"http://blog.naver.com/stocksos?Redirect=Log&logNo=103860169\" target=\"_blank\">http://blog.naver.com/stocksos?Redirect=Log&logNo=103860169</a> <br>\t\t\t<br><a href=\"http://search.nate.com/search/all.html?&sc=&afc=&q=%BA%CE%C0%DA+%C5%EB%C0%E5+%B9%DA%C1%BE%B1%E2\" target=\"_blank\">http://search.nate.com/search/all.html?&sc=&afc=&q=%BA%CE%C0%DA+%C5%EB%C0%E5+%B9%DA%C1%BE%B1%E2</a> &thr=frf&nq=1<br>\t\t\t<br><br>\t\t\t<br>재테크 증권정보채널(<a href=\"http://cafe.daum.net/highest\" target=\"_blank\">http://cafe.daum.net/highest</a><br>\t\t\t<br><br>\t\t\t<br>분산투자란? - 각 경제상황에 따라 가격의 흐름이 상이하게 나타나는 것들에 투자하는 것이다.<br>\t\t\t<br>단지 다른 상품에 투자하는 것이 아니다.<br>\t\t\t<br><br>\t\t\t<br>주식. 부동산. 원자재. 외환 4가지 과목과 시장의 특성을 공부하고 경제상황에 따라 각각 어떻게 변화하는지, 유기적인 관계를 파악해야 한다.<br>\t\t\t<br><br>\t\t\t<br>거시경제지표 교제 - 경제공부의 바다에 빠져라<br>\t\t\t<br><br>\t\t\t<br> CMA <a href=\"http://olpost.com/v/2513905\" target=\"_blank\">http://olpost.com/v/2513905</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://kin.naver.com/qna/detail.nhn?d1id=4&dirId=40101&docId=119316041&qb=7KCA7LaV7Ya17J6lIOq4iCDsm5DsnKA=&enc=utf8&section=kin&rank=2&search_sort=0&spq=0&pid=gip17loi5UCssucXeyKsss--299325&sid=TZp0ObFNmk0AABKoH4E\" target=\"_blank\">http://kin.naver.com/qna/detail.nhn?d1id=4&dirId=40101&docId=119316041&qb=7KCA7LaV7Ya17J6lIOq4iCDsm5DsnKA=&enc=utf8&section=kin&rank=2&search_sort=0&spq=0&pid=gip17loi5UCssucXeyKsss--299325&sid=TZp0ObFNmk0AABKoH4E</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://v.daum.net/link/15299738\" target=\"_blank\">http://v.daum.net/link/15299738</a>￼<br>\t\t\t<br><a href=\"http://v.daum.net/link/15363585\" target=\"_blank\">http://v.daum.net/link/15363585</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://v.daum.net/link/15451928\" target=\"_blank\">http://v.daum.net/link/15451928</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://v.daum.net/link/15402789\" target=\"_blank\">http://v.daum.net/link/15402789</a><br>\t\t\t<br><br>\t\t\t<br>뉴욕전망대)\"사랑에 빠지지 말라\"<br>\t\t\t<br> 입력 : 2009.10.09 15:30<br>\t\t\t<br> [이데일리 오상용기자] 침팬지를 대상으로 실험 하나가 행해졌다. 땅콩버터와 얼린 주스바(Juice Bar)를 동시에 놓고 고르게 했다. 실험에 참여한 침팬지의 60%는 땅콩버터를, <br>\t\t\t<br>나머지 40%는 얼린 주스바를 택했다. <br>\t\t\t<br><br>\t\t\t<br>다음으로 먼저 땅콩버터를 일괄적으로 손에 쥐어준 뒤 다시 얼린 주스바를 앞에 놔둬 봤다. 땅콩버터를 버리고 주스바를 택한 침팬지는 20%에 불과했다. 애초에 주스바를 선호했던 침팬지(40%) 가운데 절반만이 계속 주스바를 택한 것이다.<br>\t\t\t<br><br>\t\t\t<br>마지막 실험은 좀 더 흥미롭다. 주스바를 침팬지들에게 먼저 준 뒤 다시 땅콩버터를 줘 봤다. 주스바 대신 땅콩버터를 택한 침팬지는 얼마나 됐을까. 앞의 실험 결과와 같은 20%였다. 그럼 첫 실험에서 땅콩버터를 택한 60%의 침팬지는 뭐란 말인가.<br>\t\t\t<br><br>\t\t\t<br>멍청한 침팬지니까 하고 비웃을지 모르겠다. 그러나 이 같은 현상은 사람들 사이에서도 흔히 나타난다. 1980년 시카고대학의 리차드 탈러 교수가 내놓은 `보유 효과(endowment effect)`이론도 사람들의 이같은 행동양태에 착안해 주창된 이론이다. <br>\t\t\t<br><br>\t\t\t<br>탈러 교수는 사람들이 무슨 물건이든 구매해서 자기 것이 되고 나면 구매하기 전보다 그 물건에 더 애착을 갖게 돼 그 가치를 더 높게 평가하는 경향이 있다고 설파했다. 그래서 그 물건을 팔려고 할 때 머뭇거리고 주저하게 된다는 것이다. 쓰지도 않는 물건이지만 남이 달라고 하면 꺼려지게 되는 심리와도 같다.<br>\t\t\t<br><br>\t\t\t<br>이같은 `보유효과`는 주식투자자 사이에서도 종종 나타난다. 자신이 매수한 종목에 대한 애착을 버리지 못해 매도 타이밍을 놓치는 경우다. 특히 그 종목이 지금까지 비교적 양호한 실적을 안겨준 종목이라면 더 그렇다. <br>\t\t\t<br><br>\t\t\t<br>캐봇리서치의 마이클 에볼리니 대표(CEO)는 9일 미국 경제지 포브스에 기고한 글에서 \"심지어 고수라고 일컬어지는 프로 투자자들 역시 이같은 `보유효과`의 오류에 빠지는 경우가 적지 않다\"고 지적했다. <br>\t\t\t<br><br>\t\t\t<br>그는 \"종목과 사랑에 빠져서는 안된다\"며 \"포트폴리오에 포함된 종목들이 당신의 투자전략과 부합하는지 주기적으로 점검해 과감한 물갈이를 해야 한다\"고 조언했다. <br>\t\t\t<br><br>\t\t\t<br>3분기 어닝시즌은 미국 뿐만 아니라 국내투자자에게도 이같은 포트폴리오 재점검의 기회일 것 같다. 에볼리니 대표의 이야기 처럼 스스로에게 물어보자. 혹시 사랑에 빠진 것은 아닌지. <br>\t\t\t<br><br>\t\t\t<br>이날 발표되는 미국 경제 지표중 눈여겨 볼 것은 8월 무역수지다. 전문가들은 330억달러의 적자를 예상하고 있다. 오늘 실적을 발표하는 기업은 인포시스테크놀러지스 정도다<br>\t\t\t<br><br>\t\t\t<br>매몰비용",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

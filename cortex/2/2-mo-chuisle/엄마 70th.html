@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>엄마 70th</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">엄마 70th</div>
+<div class="date">2022년 1월 31일 월요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-엄마-70th';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "엄마 70th<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>14시 얼리체크인 확인, 3층 페어몬트 골드에서 체크인<br>\t\t\t<br>페어몬트 - 스위트룸+1 858천원, 조식4인 포함 957천원(19일), 20일(858천원) 골드라운지<br>\t\t\t<br>Reservation number: LCVHBCQQ<br>\t\t\t<br>| 애프터눈 티 브레이크 14:00 - 16:00<br>\t\t\t<br>| 이브닝 칵테일과 카나페 일-목 17:30 - 19:30<br>\t\t\t<br>| 조식 월-금 06:30 - 10:30<br>\t\t\t<br>페어몬트 골드 라운지 조식, 애프터눈 티 브레이크, 이브닝 칵테일과 카나페 및 사우나 무료<br>\t\t\t<br>수영복, 수영모 준비<br>\t\t\t<br>리솜포레스트<br>\t\t\t<br>콘래드- 디럭스 트윈 조식패키지 퀸베드2개(4인) 47만<br>\t\t\t<br>그랜드 머큐어 앰버서더(용산) <br>\t\t\t<br>오크우드(코엑스) - 2베드 슈페리어 조식포함 킹2퀸2 48만<br>\t\t\t<br>신라호텔 코너스위트<br>\t\t\t<br>영종도 파라다이스 시티<br>\t\t\t<br>파라스파라<br>\t\t\t<br>4인 숙박 가능한 객식 or 2인실 두개 붙여서 커넥팅룸 해줄 수 있는지<br>\t\t\t<br>오크우드(코엑스)나 패어몬트 아님 콘래드(IFC, 더현대) 이런데가 낮에 좀 할일이 있겠다<br>\t\t\t<br>콧바람쐬는건 저 중에 파라다이스시티강 젤낫고<br>\t\t\t<br><br>\t\t\t<br>케이크<br>\t\t\t<br>콘래드 Flames 12시 픽업<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://turtlehip.com/cakelist/4\" target=\"_blank\">https://turtlehip.com/cakelist/4</a><br>\t\t\t<br><a href=\"https://youngeunforever.tistory.com/24\" target=\"_blank\">https://youngeunforever.tistory.com/24</a><br>\t\t\t<br>크림필즈 케이크 <a href=\"http://www.cream-fields.com/\" target=\"_blank\">http://www.cream-fields.com/</a><br>\t\t\t<br>파이홀 <br>\t\t\t<br>리히트케이크 <br>\t\t\t<br>해이케이크샾<br>\t\t\t<br>스위츠플래닛<br>\t\t\t<br>듀자미<br>\t\t\t<br>키애리 이태원<br>\t\t\t<br><br>\t\t\t<br>마리포사 - 확인 번호:W5YF3E<br>\t\t\t<br><br>\t\t\t<br>To-do-LIST<br>\t\t\t<br>\t\t\t\t<br>- 현수막, 케이크, 파티용품<br>\t\t\t\t<br>- 컨셉 정하기<br>\t\t\t\t<br>- 장소 섭외 & 일정 정하기 : 11월 28~29일 - 무주 콘도<br>\t\t\t\t<br>- 참석자들 연락 - 모바일 초대장 발송<br>\t\t\t\t<br>- 친척들 줄 선물 준비<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>2015 아버지 칠순 - 무주나 기지국 콘도신청 해서 친척들 초청<br>\t\t\t<br><a href=\"http://book.naver.com/bookdb/book_detail.nhn?bid=8539664\" target=\"_blank\">http://book.naver.com/bookdb/book_detail.nhn?bid=8539664</a><br>\t\t\t<br>현수막 제작<br>\t\t\t<br>펜션 : 대여<br>\t\t\t<br>초대장 :<br>\t\t\t<br>친척들 차비 :<br>\t\t\t<br>음식 장만은? 출장 뷔페?<br>\t\t\t<br>일시 : 10월 중순<br>\t\t\t<br>Concept : 같이 살아준 엄마한테 감동을.<br>\t\t\t<br><br>\t\t\t<br>ㅇ 공연기획<br>\t\t\t<br>  식순 만들기<br>\t\t\t<br>  초대장 만들기 & 배포<br>\t\t\t<br>  영상제작<br>\t\t\t<br>  프로젝터 대여<br>\t\t\t<br><br>\t\t\t<br>친척들이 참여하는 시간도 만들고<br>\t\t\t<br>미리 영상도 찍어서 보여주기<br>\t\t\t<br>가족사진 모으기<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query=%EC%B9%A0%EC%88%9C+%EC%9E%94%EC%B9%98\" target=\"_blank\">http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query=%EC%B9%A0%EC%88%9C+%EC%9E%94%EC%B9%98</a><br>\t\t\t<br><br>\t\t\t<br>아버지 선물 :  시계<br>\t\t\t<br>친척들 거마비 10만<br>\t\t\t<br><br>\t\t\t<br>칠순의 유래,<br>\t\t\t<br><br>\t\t\t<br>ㅇ 숙소 : 덕유산 리조트 - 로열<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>로얄 Type은 3개의 침실 및 1개의 거실로 구성되어 있는 총 128.93㎡의 가족호텔입니다.<br>\t\t\t\t\t<br>온 가족이 넓은 공간에서 여유롭게 즐기시기에 적합하고 특히 벽난로에 장작불을 피우며 온가족이 둘러앉아 차 한잔 즐기시면 일상의 모든 시름이 다 가실 것입니다.<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\tㆍ<br>\t\t\t\t\t\t\t침실 및 거실 : 더블베트1개가 들어있는 침실1개, 온돌방2개 <br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\tㆍ<br>\t\t\t\t\t\t\t욕실 및 화장실 2개 / 식탁<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\tㆍ<br>\t\t\t\t\t\t\t<br>거실에 운치있는 벽난로가 설치되어 있습니다.<br>\t\t\t\t\t\t\t<br>(민들레, 들국화동 사용불가)<br>\t\t\t\t\t\t\t<br>사용료 30,000원 (청소비 포함) / 외부 유입된 화목은 안전상 사용금지<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\tㆍ<br>\t\t\t\t\t\t\t거실에 소파 2인용 1개, 1인용 1개<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\tㆍ<br>\t\t\t\t\t\t\t주방 : 가스렌지, 전기밥솥, 냉장고 외 각종 식기류가 규정 인원에 맞게 구비 되어 있습니다. (꽃마을은 인덕션으로 구성)<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\tㆍ<br>\t\t\t\t\t\t\t규정인원 : 6인<br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>■ 객실이용시간 <br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t입실시간<br>\t\t\t\t\t\t\t퇴실시간<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t14:00~<br>\t\t\t\t\t\t\t오전 11:00까지<br>\t\t\t\t\t\t\t13:00까지<br>\t\t\t\t\t\t\t15:00까지<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t-<br>\t\t\t\t\t\t\t객실요금(정상요금)의 50%추가<br>\t\t\t\t\t\t\t객실요금(정상요금)의 100%추가<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t비 고 <br>\t\t\t\t\t\t\t<br>회원 상호간의 이용편의를 위하여 규정시간을 준수해 주시기 바라며,<br>\t\t\t\t\t\t\t<br>퇴실 시간 연장은 체크아웃 당일의 객실 상황에 따라 불가할 수도 있습니다.<br>\t\t\t\t\t\t\t<br>(당일 프런트로 확인 바랍니다.) <br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t출처: <<a href=\"http://www.mdysresort.com/resort/hotel_fa.asp\" target=\"_blank\">http://www.mdysresort.com/resort/hotel_fa.asp</a>> <br>\t\t\t\t\t<br><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>ㅇ 생필품 및 세면도구<br>\t\t\t\t\t<br>ㅇ 청소 및 정리 : 행주<br>\t\t\t\t\t<br>ㅇ 음식 및 다과 : <br>\t\t\t\t\t<br>  - 저녁 :  버너, 껌 불판, 돼지고기, 떡, 과일<br>\t\t\t\t\t<br>  *<br>\t\t\t\t\t<br>  - 아침 : 숙취해소제, 헛개수<br>\t\t\t\t\t<br>  @토요일 점심, 일요일 점심 예약<br>\t\t\t\t\t<br>ㅇ 행사용품 : 닭강정, 라벨지, 칠순케잌, 스마트빔, 전지, 사진자료, PPT, 영화, 책, 현수막<br>\t\t\t\t\t<br>ㅇ 놀거리 : 리조트 스키예매<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>- 곤돌라 : <a href=\"http://www.mdysresort.com/gondola/mountain_gondola.asp\" target=\"_blank\">http://www.mdysresort.com/gondola/mountain_gondola.asp</a><br>\t\t\t\t\t\t<br>- 사우나&찜질방 : <a href=\"http://www.mdysresort.com/leisure/spa_intro.asp\" target=\"_blank\">http://www.mdysresort.com/leisure/spa_intro.asp</a><br>\t\t\t\t\t\t<br>- 눈썰매장 : <a href=\"http://www.mdysresort.com/\" target=\"_blank\">http://www.mdysresort.com/</a><br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>케익<br>\t\t\t\t\t<br><a href=\"http://blog.naver.com/blue6001221/220472677550\" target=\"_blank\">http://blog.naver.com/blue6001221/220472677550</a><br>\t\t\t\t\t<br><a href=\"http://blog.naver.com/jini3277/220548367973\" target=\"_blank\">http://blog.naver.com/jini3277/220548367973</a><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t\t<br>- 케잌, 고기, 픽업<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br>다 미리 결제해두기<br>\t\t\t<br>숙소 - 이이스버킷 <br>\t\t\t<br>저녁<br>\t\t\t<br>케이크<br>\t\t\t<br>현수막+파티풍선 <a href=\"https://www.publog.co.kr/sub_placard/detail.asp?book_content=HAH008&page=1&book_type=YB&book_size=rc&book_theme=15&book_style=&book_color=&book_search=#return:false\" target=\"_blank\">https://www.publog.co.kr/sub_placard/detail.asp?book_content=HAH008&page=1&book_type=YB&book_size=rc&book_theme=15&book_style=&book_color=&book_search=#return:false</a>;<br>\t\t\t<br>와인+엄마 마실 음료<br>\t\t\t<br>선물, 편지<br>\t\t\t<br><br>\t\t\t<br>-----------------------------------<br>\t\t\t<br><br>\t\t\t<br>일요일<br>\t\t\t<br>12:30 - 엄빠 출발<br>\t\t\t<br>13:00 - 나도 짐챙겨서 집에서 출발<br>\t\t\t<br>13:30 - 3층 골드라운지 체크인 및 짐 맡기기, 컨디션 좋은 룸으로 얼리체크인 문의<br>\t\t\t<br>14:00 - 콘래드 케이크 수령 & 더 현대 지하1층 와인웍스 안주 구매<br>\t\t\t<br>14:30 - 카운터에 케이크 전달, 골드라운지에서 대기, 레잇체크아웃 문의<br>\t\t\t<br>15:00 - 엄빠 도착: 골드라운지에서 식사<br>\t\t\t<br>          식사 이후 입실<br>\t\t\t<br>          아버지/엄마 사우나, 나 수영장<br>\t\t\t<br>17:30 - 마리포사 방문<br>\t\t\t<br>19:00 - 라운지 방문해서 30분 먹기<br>\t\t\t<br>20:00 - 사진 촬영<br>\t\t\t<br>          방에서 와인&사케 + 안주(배달음식 가능)<br>\t\t\t<br>          더 현대 서울 지하 1층 치즈 플래서 26천원. 와인웍스 <br>\t\t\t<br><br>\t\t\t<br>월요일<br>\t\t\t<br>10:30 - 까지 조식 먹고<br>\t\t\t<br>12:00 - 체크 아웃<br>\t\t\t<br>          더 현대 서울<br>\t\t\t<br>          채그로<br>\t\t\t<br>동두천 나지모리 스튜디오<br>\t\t\t<br>국립중앙박물관<br>\t\t\t<br>뷰티크로서리￼청담동 시몬스 그로서리 스토어<br>\t\t\t<br><br>\t\t\t<br>마리포사 메뉴 미리 골라두기",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">Daily</div>
+<div class="date">2020년 4월 9일 목요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Daily';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "Daily<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>영어 번역도 같이 올리기<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\tSerious Play<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t두산중공업<br>\t\t\t\t\t<br>Spotify<br>\t\t\t\t\t<br>Quibi<br>\t\t\t\t\t<br>배달의 민족<br>\t\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>2차 ???<br>\t\t\t<br>회사 사람들 아닌 사람들 위주로 팔로어 늘려가기<br>\t\t\t<br>채팅방에 공유<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>쿠팡이 전선을 넓히고 있다.<br>\t\t\t<br>쿠팡이 주문액 1만5천원 이상의 신선식품에 대해 당일배송을 시행한다.<br>\t\t\t<br><br>\t\t\t<br>\"배송 경쟁이 가장 치열한 영역은 신선식품 장보기 시장이다. 쿠팡은 오전 10시 전에 신선식품을 주문하면 당일 오후 6시까지 배송해주는 ‘로켓프레시 당일배송’ 서비스를 시작한다고 29일 밝혔다. 당일배송 서비스는 쿠팡 멤버십 프로그램인 로켓와우클럽 회원에게만 제공되며 최소 주문금액은 1만5,000원이다. 대형마트 온라인몰이나 경쟁 이커머스 업체들이 최소 3만~4만원 이상 주문해야 배달을 해주는 점을 고려하면, 최소 주문금액이 경쟁사의 절반 이하 수준이다.<br>\t\t\t<br><br>\t\t\t<br>쿠팡이 전국 단위의 단일배송 서비스를 할 수 있는 것은 축구장 14개 면적에 달하는 물류 인프라와 전국 168곳의 로켓배송센터를 보유하고 있는 덕분이다. 쿠팡에 따르면 로켓배송센터에서 10분 배송 거리 내에 거주하는 ‘로켓배송 생활권’ 소비자는 3,400만명 규모다.\"<br>\t\t\t<br><br>\t\t\t<br>타 업체들도 이 물류 인프라 확대를 위해 물류센터 증축을 모색중이다.<br>\t\t\t<br>롯데는 기존 오프라인 점포를 물류 거점으로 활용하고,<br>\t\t\t<br>네이버도 입점매장들이 당일배송이 가능한 체계를 구축했다.<br>\t\t\t<br>11번가/위메프 등 대규모 물류 시스템이 부재한 업체들은 당일 배송이 가능한 업체들을 입점시키는 방식으로 당일 배송 전쟁에 임하고 있다.<br>\t\t\t<br><br>\t\t\t<br>배송의 지연시간이 점점 짧아지는 시대,<br>\t\t\t<br>공간이 시간을 시간이 공간을 초월하고 있다.<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>비즈카페 뉴스 소스<br>\t\t\t<br><a href=\"https://blog.naver.com/businessnewsdaily/221932781706\" target=\"_blank\">https://blog.naver.com/businessnewsdaily/221932781706</a><br>\t\t\t<br>4월 13일, 내가 보고있는 비즈니스 컨텐츠 정리<br>\t\t\t<br><br>\t\t\t<br>비즈<br>\t\t\t<br>- 뉴스레터-순살 브리핑 Soonsal<br>\t\t\t<br>- 뉴스레터-HWBI<br>\t\t\t<br>- 뉴스레터-Benedict Evans<br>\t\t\t<br>- 페북-유식보이<br>\t\t\t<br>- 페북-생각노트<br>\t\t\t<br>- 페북-비지뉴스<br>\t\t\t<br>- 페북-비즈까페<br>\t\t\t<br>- 페북-청년마케터<br>\t\t\t<br>- 페북-정태영<br>\t\t\t<br>- 브런치-Daniel (<a href=\"https://brunch.co.kr/@curahee\" target=\"_blank\">https://brunch.co.kr/@curahee</a>)<br>\t\t\t<br>- 브런치-Peter(<a href=\"https://brunch.co.kr/@lunarshore)\" target=\"_blank\">https://brunch.co.kr/@lunarshore)</a><br>\t\t\t<br>- 브런치-경욱(<a href=\"https://brunch.co.kr/@kkw119)\" target=\"_blank\">https://brunch.co.kr/@kkw119)</a><br>\t\t\t<br>- 비플라이 연구소의 조간biz (<a href=\"https://blog.naver.com/prologue/PrologueList.nhn?blogId=bflysoft_biz\" target=\"_blank\">https://blog.naver.com/prologue/PrologueList.nhn?blogId=bflysoft_biz</a>)<br>\t\t\t<br>- fol in 폴 인: 폴인트렌드2020 1월호, 테크는 어떻게 F&B 비즈니스를 바꾸나<br>\t\t\t<br>- WEEKLY BIZ<br>\t\t\t<br><br>\t\t\t<br>시사<br>\t\t\t<br>- 뉴닉 (<a href=\"https://newneek.co/\" target=\"_blank\">https://newneek.co/</a>) <br>\t\t\t<br>- 유튜브-슈카월드<br>\t\t\t<br>- 페북-돈테크무비<br>\t\t\t<br><br>\t\t\t<br>투자(퀀트, 주식, PEF)<br>\t\t\t<br>- 브런치-퀀트회사 CEO 권용진의 브런치 (<a href=\"https://brunch.co.kr/@nsung#articles\" target=\"_blank\">https://brunch.co.kr/@nsung#articles</a>)<br>\t\t\t<br>- 더벨<br>\t\t\t<br>- 인베스트조선<br>\t\t\t<br>- 책-원칙, 레이달리오<br>\t\t\t<br>- 책-워렌버핏 바이블<br>\t\t\t<br>- 책-기업경영에 숨겨진 101가지 진실<br>\t\t\t<br>- 책-2019 상장기업 업종지도<br>\t\t\t<br>- 유튜브-소수몽키<br>\t\t\t<br>- 유튜브-삼프로<br>\t\t\t<br>- 유튜브-하나tv<br>\t\t\t<br>- 유튜브-시간여행tv<br>\t\t\t<br>- 바이오-진홍국 애널리스트<br>\t\t\t<br>- 5G-김홍식 애널리스트<br>\t\t\t<br>- 엔터-이기훈 애널리스트<br>\t\t\t<br>- 디스플레이,가전-김동원 애널리스트<br>\t\t\t<br>- 스몰캡-이정기 애널리스트<br>\t\t\t<br><br>\t\t\t<br>경제<br>\t\t\t<br>- 페북-오건영<br>\t\t\t<br>- 아웃스탠딩 오건영님 글<br>\t\t\t<br>- 유튜브에서 오건영님, 김일구님 나오신 영상<br>\t\t\t<br>- 책-환율과 금리로 보는 앞으로 3년 경제전쟁의 미래 by 오건영<br>\t\t\t<br>- 유튜브-신사임당<br>\t\t\t<br><br>\t\t\t<br>IT<br>\t\t\t<br>- 아웃스탠딩 송범근/최용식/최준호/정지혜 님의 글<br>\t\t\t<br>- 브런치-아웃스탠딩 송범근 기자 (<a href=\"https://brunch.co.kr/magazine/itkeyword\" target=\"_blank\">https://brunch.co.kr/magazine/itkeyword</a>)<br>\t\t\t<br>- 바이라인네트워크 남혜현 기자 글<br>\t\t\t<br>- 책-외계어 없이 이해하는 암호화폐<br>\t\t\t<br><br>\t\t\t<br>스타트업, VC<br>\t\t\t<br>- PUBLY- [개정판] 한국 벤처캐피탈리즘-VC가 말하다<br>\t\t\t<br>- 책-2019 상장기업 업종지도<br>\t\t\t<br>- Y 콤비네이터 Paul graham의 블로그(paulgraham.com)<br>\t\t\t<br>- a16z ben horowitz 블로그(a16z.com)<br>\t\t\t<br>- 플래텀<br>\t\t\t<br>- 유튜브-ㅌㅇ<br>\t\t\t<br>- 페북-스뉴 SNEW<br>\t\t\t<br>- 페북-박지웅<br>\t\t\t<br>- 책-스타트업 바이블 by 배기홍<br>\t\t\t<br>- 스타트업 바이블 블로그의 추천글(<a href=\"https://www.thestartupbible.com/about/my-favorite-postings)\" target=\"_blank\">https://www.thestartupbible.com/about/my-favorite-postings)</a><br>\t\t\t<br>- 스누프라이스 창업자의 브런치 (<a href=\"https://brunch.co.kr/@entrepreneur\" target=\"_blank\">https://brunch.co.kr/@entrepreneur</a>)<br>\t\t\t<br>- 스타트업 얼라이언스의 브런치 (<a href=\"https://brunch.co.kr/@startupalliance\" target=\"_blank\">https://brunch.co.kr/@startupalliance</a>)<br>\t\t\t<br><br>\t\t\t<br>유통, 물류<br>\t\t\t<br>- 바이라인 네트워크-엄지용 기자 글<br>\t\t\t<br>- 엄지용님의 브런치 (<a href=\"https://brunch.co.kr/@sclplus\" target=\"_blank\">https://brunch.co.kr/@sclplus</a>)<br>\t\t\t<br><br>\t\t\t<br>마케팅, UX, 브랜딩<br>\t\t\t<br>- 브런치-최재현의 브런치 (<a href=\"https://brunch.co.kr/@dpmarketing\" target=\"_blank\">https://brunch.co.kr/@dpmarketing</a>)<br>\t\t\t<br>- 브런치-UX 기획자(<a href=\"https://brunch.co.kr/@userhabit#works)\" target=\"_blank\">https://brunch.co.kr/@userhabit#works)</a><br>\t\t\t<br>- 브런치-한성국님의 브런치 (<a href=\"https://brunch.co.kr/@univbrand\" target=\"_blank\">https://brunch.co.kr/@univbrand</a>)<br>\t\t\t<br>- 브런치-연간 김용훈 (<a href=\"https://brunch.co.kr/@levikim\" target=\"_blank\">https://brunch.co.kr/@levikim</a>)<br>\t\t\t<br>- 브런치-서비스기획자 도그냥 (<a href=\"https://brunch.co.kr/@windydog\" target=\"_blank\">https://brunch.co.kr/@windydog</a>)<br>\t\t\t<br>- 브런치-박창선님의 브런치 (<a href=\"https://brunch.co.kr/@roysday\" target=\"_blank\">https://brunch.co.kr/@roysday</a>)<br>\t\t\t<br><br>\t\t\t<br>공간,부동산<br>\t\t\t<br>- 브런치-현성운 (<a href=\"https://brunch.co.kr/@sungwunhyun\" target=\"_blank\">https://brunch.co.kr/@sungwunhyun</a>)<br>\t\t\t<br>- 브런치-조성은 (<a href=\"https://brunch.co.kr/@freeoos\" target=\"_blank\">https://brunch.co.kr/@freeoos</a>)<br>\t\t\t<br>- 퍼블리-브랜드가 부동산을 바꾼다<br>\t\t\t<br> <br>\t\t\t<br>조직<br>\t\t\t<br>- PUBLY- 파워풀한 팀은 무엇이 다른가: 기업문화 파헤치기<br>\t\t\t<br>- 브런치- 조직문화 이야기 매거진 (<a href=\"https://brunch.co.kr/magazine/org-culture\" target=\"_blank\">https://brunch.co.kr/magazine/org-culture</a>)<br>\t\t\t<br><br>\t\t\t<br>회계<br>\t\t\t<br>- 책-하마터면 회계도 모르고 일할뻔 했다<br>\t\t\t<br>- 책-이것이 실전회계다<br>\t\t\t<br>- 페북-이재용 회계사<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br><br>\t\t\t<br>기업 개요<br>\t\t\t<br><br>\t\t\t<br>서비스 개요<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>차별화를 위한 차별화<br>\t\t\t<br>콘텐츠 소비의 본질은 변하지 않는다",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

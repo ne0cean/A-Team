@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>시장분석</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">시장분석</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-시장분석';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "시장분석<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br><a href=\"http://www.koreanclick.com/insights/newsletter_view.html?code=topic&id=570&page=1&utm_source=board&utm_medium=board&utm_campaign=topic&utm_content=20200427\" target=\"_blank\">http://www.koreanclick.com/insights/newsletter_view.html?code=topic&id=570&page=1&utm_source=board&utm_medium=board&utm_campaign=topic&utm_content=20200427</a><br>\t\t\t<br><br>\t\t\t<br>April 2020<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t대세는&#160;SNS형 숏폼 플랫폼! , TikTok SWOT&#160;분석<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t1. TikTok:&#160;출시 이후 꾸준한 성장, SNS형 숏폼 플랫폼의 선두주자<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>동영상 이용이 점점 일상에서의 습관적 이용으로 변화하면서,&#160;언제 어디서든 간편하게 즐길 수 있는 숏폼(short-form)&#160;콘텐츠가 주목받고 있습니다.&#160;그 중에서도&#160;1분 이내의 짧은 영상을 이용자들이 직접 촬영하여 공유할 수 있어&#160;SNS형 숏폼 플랫폼의 성격을 지니고 있는&#160;TikTok은&#160;2017년&#160;11월 한국에 공식으로 출시된 이후 꾸준히 성장을 도모하며 숏폼 플랫폼의 선두주자로 꼽히고 있습니다.<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t<br>TikTok은 이용자들이 앱 내의 기능을 이용해 자체적으로 편집하여 영상을 업로드 하고 서로 공유할 수 있다는 강점을 이용하여 다양한 기업,&#160;연예인들과 마케팅을 진행하며 이용자 확보에 성공하였습니다.&#160;특히&#160;2020년&#160;1월&#160;TikTok에서 진행한 ‘#아무노래챌린지’가 큰 주목을 받아 앱의 재도약기를 맞이하여&#160;12월 대비&#160;2월의 이용자수가&#160;11%&#160;증가하며&#160;OTT앱&#160;4위로 성장하는 모습을 보였습니다.&#160;<a href=\"http://www.koreanclick.com/insights/newsletter_view.html?code=topic&id=570&page=1&utm_source=board&utm_medium=board&utm_campaign=topic&utm_content=20200427\" target=\"_blank\">more</a><br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\tTikTok&#160;출시 이후 트렌드 및 전분기 대비 순위 비교<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t<br>&#160;<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t이번 토픽에서는 숏폼 콘텐츠 시장을 선점한&#160;SNS형 숏폼 플랫폼&#160;TikTok에 대해&#160;SWOT분석의 틀을 기반으로 분석해보고자 합니다. SWOT분석을 통해&#160;TikTok앱의 내부적인 요인들에서 기인한 상대적인 강점 및 약점을 분석하고 나아가 외부적인 시장 요인으로 인한 위협요인과 기회요인을 파악해보고자 합니다.&#160;이를 통해&#160;TikTok을 비롯한 시장진입을 앞두고 있는 숏폼 콘텐츠 서비스들은 외부의 위협 요인을 파악하여 이를 타계할 수 있도록 강점을 극대화 및 기회요인을 활용하는 동시에 약점을 보완할 수 있는 전략이 필요할 것입니다.<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>2. TikTok&#160;앱의 강점 및 약점 분석<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>2-1) Strength: Z세대(7~18세)에서의 폭발적 인기&#160;&&#160;짧은 동영상 앱 이용 행태<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>Z세대 모바일 이용자의&#160;39%가&#160;TikTok을 이용한 것으로 나타났습니다.&#160;또한 이용집중도(TikTok이용자 중&#160;10대의 비율을 전체&#160;10대 이용자의 비율로 나눈 지표, 100일 경우 동일 비율로 해석됨)가&#160;565으로 나타나 타 동영상 앱에 비해&#160;Z세대의 집중적 이용이 돋보이는 앱입니다.<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tZ세대의&#160;TikTok&#160;이용 및&#160;OTT&#160;서비스들 실행당 평균 이용시간<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>Z세대는 디지털 네이티브로 불리며 성장시기부터 디지털,&#160;모바일을 이용한 세대로서 향후 모바일 시장의 주력 소비자로 떠오르고 있습니다. Z세대들은 텍스트보다는 동영상에 익숙하며,&#160;동영상으로 소통하는 커뮤니케이션을 선호하는 특성을 보입니다. TikTok은 이러한&#160;Z세대의 취향을 충족시키며&#160;Z세대를 중심으로 앱 성장을 견인한 것으로 파악됩니다.<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>특히 기성 콘텐츠를 제공하는&#160;RMC기반의&#160;OTT&#160;서비스들의&#160;App&#160;실행당 평균 이용시간 또한&#160;10분 내외로 짧게 나타나,&#160;이용자들은 평소 몰아보기와 같은 행태보다는 일과시간 동안 짧게 이용하는 스낵컬처의 행태를 보인다고 파악됩니다.&#160;즉,&#160;이용자들이 평소 선호하는 동영상의 길이는 짧은 시간 내에 이용 가능한 심리적 장벽을 낮추는 숏폼 콘텐츠라고 해석해볼 수 있습니다.&#160;이용자들의 동영상 이용행태가 스낵컬처의 형태로 자리잡으며 향 후&#160;TikTok과 같은 숏폼 콘텐츠 시장이 성장할 것으로 예상됩니다.<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>2-2) Weakness:&#160;이용자 연령대 확장의 미흡<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>TikTok은&#160;Z세대의 비중이 약&#160;61%를 차지하는&#160;10대 위주의 앱 이용행태를 보이고 있습니다. 2020년&#160;1월 ‘아무노래 챌린지’로 이용자가 급성장하는 모습을 보였으나,&#160;이를 견인한 것은&#160;Z세대 이용자였습니다.&#160;동영상/방송카테고리 이용자를 연령별로 살펴보았을 때&#160;10대의 비중이&#160;11%에 불과하다는 것은&#160;20~60대 등 다수의 나머지 연령층 확보를 통한 이용자 확장을 위한 전략이 필요할 것으로 판단됩니다.<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tTikTok&#160;이용자 및 동영상/방송 카테고리 연령별 비중 비교<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>3. TikTok&#160;앱의 외부적 기회요인 및 위협요인 분석<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>3-1) Opportunity: SNS와의 높은 연계 이용, SNS&#160;화제성과 동반성장<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>SNS들의&#160;OTT앱 중복 이용 순위를 살펴본 결과&#160;TikTok앱은 모든&#160;SNS에서&#160;5위내로 나타나&#160;SNS와의 중복이용이 높게 나타나고 있습니다.&#160;타&#160;OTT&#160;앱들 중 이용자수가 높은 유튜브와 넷플릭스를 제외하고&#160;SNS에 따라 순위 변동이 크게 나타나는 것에 반해, TikTok은&#160;SNS와의 고른 중복이용을 보여&#160;TikTok&#160;영상 공유 등&#160;SNS와의 연계 이용이 이루어진다고 해석해볼 수 있습니다.&#160;또한&#160;TikTok&#160;이용자들의&#160;SNS&#160;활동성 또한 미이용자들에 비해 높게 나타나&#160;TikTok&#160;이용자들은&#160;SNS를 통한 소통에도 높은 이용률을 보이는 소셜 활동 집중 이용자라고 해석해 볼 수 있겠습니다.<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t- SNS들의&#160;OTT앱 중복이용 순위<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tTikTok과&#160;SNS의 연계이용에 대해 살펴보기 위해&#160;SNS내의 화제성 추이와 이용자수 추이를 함께 살펴보았습니다. SNS&#160;버즈량이 크게 증가하는&#160;2019년&#160;12월, 2020년&#160;1월에&#160;TikTok의 순이용자수또한 함께 성장하는 것으로 나타났습니다. SNS&#160;내에서 화제성을 보인 ‘#아무노래챌린지’는 인스타그램 내에서&#160;10만 이상의 태그를 발생시켰으며,&#160;해당 음원은 스트리밍 서비스 내에서&#160;1위를 차지하며&#160;TikTok의 홍보효과를 누렸습니다.&#160;해당 챌린지가 진행되며 타&#160;SNS상에서&#160;TikTok계정 공유 또한 활발히 일어나며&#160;TikTok&#160;앱 이용을 이끌었습니다.<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tSNS내&#160;TikTok&#160;화제성과 순이용자 수 추이 비교<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t타&#160;SNS와의 연계이용이 높으며&#160;SNS에서의 활동성이 높은 이용자들을 보유한&#160;TikTok은&#160;SNS를 통한 공유,&#160;확산을 통해 앱의 홍보효과 및 마케팅 효과의 기회 요인을 지니고 있습니다.&#160;또한&#160;SNS형 숏폼 플랫폼으로서 이용자가 직접 참여하여 발생시키는 화제성을 통해 광고효과를 극대화하는 모습은 숏폼 콘텐츠들에 부재한 수익모델을 보완하며,&#160;기존&#160;OTT와 같이 광고 시청을 대가로 영상을 무료 제공하는&#160;AVOD(Advertising VOD)와 다른 형태로 구축되었다고 해석해볼 수 있습니다.<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>3-2) Threatness :&#160;유튜브 등 타 기업들의 숏폼 콘텐츠 서비스 사업 진출로 인한 시장경쟁 심화<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>동영상 이용습관이 변화하면서 기존 동영상 서비스 사업자들 또한 숏폼 콘텐츠에 주목하고 있습니다.&#160;각 서비스들은 서비스 제공 형식과 타겟팅은 다르게 구성될 것으로 예상되나,&#160;국제적으로&#160;TikTok의 개인정보보안 이슈가 제기되는 가운데 유튜브의 경우 올해 연말&#160;TikTok을 겨냥한 ‘쇼츠(Shorts)’ 서비스 출시 예정으로&#160;TikTok의 경쟁자가 될 가능성이 높아보입니다.&#160;유튜브 기존 영상 서비스들과 달리 짧은 영상을 제공하는 서비스로 별개의 앱이 아닌 유튜브 내에서 이용가능하며,&#160;유튜브의 음악 등의 기존 서비스를 이용할 수 있다는 점에서 강점을 지니고 있습니다.<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t타 서비스 숏폼 콘텐츠 서비스 출시 전략 및&#160;TikTok&#160;이용자들의 타&#160;App이용 비교<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>TikTok의 이용자와 미이용자의 앱 이용행태를 살펴본 결과&#160;TikTok&#160;이용자들은 유튜브 및&#160;SNS위주 활동성이 미이용자에 비해 높게 나타났습니다.&#160;특히&#160;TikTok&#160;이용자들이 유튜브에서의 활동성 또한 높게 나타났다는 것은 추후 유튜브의 새로운 서비스가&#160;TikTok을 위협할만한 외부 요인이 될 가능성이 높다고 해석해볼 수 있습니다.<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>반면, TikTok미이용자들은 네이버TV,&#160;티빙,&#160;아프리카&#160;TV, Seezn, Twitch&#160;등 타&#160;OTT서비스들에서의 활동성이 높게 나타났습니다.&#160;이는&#160;TikTok&#160;미이용자들은 기존의&#160;RMC&#160;혹은 게임과 같은 특정 분야의 콘텐츠를 더 선호하는 경향을 보여 미이용자와 이용자 그룹간의 콘텐츠 선호차이를 보이는 것으로 해석될 수 있습니다.<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>4.&#160;맺음말<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>숏폼 콘텐츠가&#160;OTT서비스 시장의 새로운 지형을 구성하며,&#160;그 선두주자에 있는&#160;1위 사업자&#160;TikTok의&#160;SWOT분석을 통해 이용자들의 특성 및 전반적인 이용행태를 살펴보았습니다.<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>TikTok은 동영상 소통을 선호하는&#160;Z세대의 폭발적 관심으로 크게 성장한 강점을 지녔으나,&#160;그 결과 이용자의 연령대 확장이 미흡하다는 약점을 지니고 있습니다. TikTok은&#160;SNS형 숏폼 플랫<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>위챗, 틱톡<br>\t\t\t<br>커뮤니케이션 서비스에 대한 상호 의존적 수요의 원리",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

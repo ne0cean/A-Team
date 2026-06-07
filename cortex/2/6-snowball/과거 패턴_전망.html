@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>과거 패턴/전망</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">과거 패턴/전망</div>
+<div class="date">2020년 4월 26일 일요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-과거-패턴-전망';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "과거 패턴/전망<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>1998년 1년간 전국 집값은 -12.4%, 서울은 -13.2% 급락",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "0c0ab14ce1.png",
+    "alt": "과거 패턴/전망",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "2005년부터 2008년 9월까지 약 4년간 오르던 주요 아파트값들도 20% 이상 급락했다.&#160;통계가 실거래가보다 보수적으로 책정된다는 점을 고려할 때 실제 하락률은 더 컸다.&#160;<br>\t\t\t<br><br>\t\t\t<br>외환위기와 금융위기 이후 정부는 대대적인 규제 완화에 나섰다. 위기 전 집값을 잡기 위한 규제를 대부분 풀었다. 외환위기 후 1998년 한해 14.6% 떨어진 서울 아파트값은 1999년부터 2002년까지 4년간 82.9% 뛰었다. 금융위기로 9000만원 내린 은마 84㎡는 2002년 말까지 4억원 가까이 상승했다. 규제 완화에 이어 저금리가 이어지며 2015년부터 지난해까지 5년간 상승률이 35%였다. 금융위기 이후 2억원 내린 은마는 이 기간 6배가 넘는 13억5000만원 올랐다.<br>\t\t\t<br><br>\t\t\t<br>97년 외환위기 때를 보면 97년 외환위기 터지고 1998년 1분기, 2분기는 대폭락이었습니다.<br>\t\t\t<br><br>\t\t\t<br>30%까지 떨어졌고 98년 전체 서울아파트 가격은 마이너스 15%가 바로 떨어졌거든요.<br>\t\t\t<br><br>\t\t\t<br>그런데 IMF 때는 뭐가 달랐냐.<br>\t\t\t<br><br>\t\t\t<br>바로 1999년부터 급반등을 합니다.<br>\t\t\t<br><br>\t\t\t<br>그래서 2002년까지 거의 70%가 오르는 상황이 패턴이었고요.<br>\t\t\t<br><br>\t\t\t<br>2008년 말 세계금융위기 보면마찬가지로 금융위기 터지고 2009년에 왕창 무너집니다.<br>\t\t\t<br><br>\t\t\t<br>9년, 10년, 11년까지 잔잔하게 약세를 보이다가 13년부터 올라가게 되는 그런 패턴이어서 지금 부동산 시장을 밝게 보는 분들은 IMF 모델, 그러니까 힘들지만 V자로 갈 것이다.<br>\t\t\t<br><br>\t\t\t<br>좀 비관하는 분들은 2008년 말 세계금융위기 보다.<br>\t\t\t<br><br>\t\t\t<br>그러니까 떨어진 상태에서 약세가 정말 지루할 정도로 계속 지속되다가 언젠가 반등한다, 이렇게 예측하는 거죠.<br>\t\t\t<br>글로벌 금융위기 때도 5%내외의 금리 수준이었고요.<br>\t\t\t<br><br>\t\t\t<br>우리가 IMF 때는 10% 이상의, 20%의 금리 수준<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>하락 변수<br>\t\t\t<br>1/ 정부 규제<br>\t\t\t<br>2/ 경기 침체<br>\t\t\t<br>3/ 글로벌 경기 침체<br>\t\t\t<br>금리상승&#183;신용경색 두 조건 충족돼야 집값 폭락, 저금리가 집값 폭락 막아<br>\t\t\t<br>실업자가 다수 발생하는 그때부터는 위험해질 수 있다.<br>\t\t\t<br><br>\t\t\t<br>상승 변수<br>\t\t\t<br>1/ 규제 완화<br>\t\t\t<br>2/ 코로나 진정국면<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>부동산 시장에서는 정부가 오히려 코로나 사태가 심화하고 있는데도 불구하고 규제 완화의 모습은 전혀 보이지 않고 오히려 규제 강화의 수단들을 내놓고있습니다.<br>\t\t\t<br><br>\t\t\t<br>최근에 와서는 재개발 같은 경우도 비율을 20%에서 30% 올린다든지 또 원래 아마 종부세에 대해서 세율강화를 이야기하고 있거든요.<br>\t\t\t<br><br>\t\t\t<br>그래서 그런 측면에서 본다면 정부도이 가격 자체의 하락세가 급격하게 될 것은 아니라는 점.<br>\t\t\t<br><br>\t\t\t<br>정부 자체도 아마 무게를 두고 있지 않나, 이런 추정이 가능할 것같습니다.<br>\t\t\t<br><br>\t\t\t<br>내년부터 급격하게 공급되는 물량 자체가 큰 폭으로 줄어든다는 겁니다.<br>\t\t\t<br><br>\t\t\t<br>서울 지역 같은 경우에는 한 4만3000여 개에 못 미칠 것으로 보여지는데 내년에는 2만5000원 이하로 떨어질 것<br>\t\t\t<br><br>\t\t\t<br>올해까지 예를 들어 약세가 지속될 경우에는 실수요자들은 주택구입에 대해서 좀 더 적극적인 생각을 해보셔도 괜찮을 것 같다.<br>\t\t\t<br>새 주택의경우는 가격 하락에 대한 염려는, 염려랄까요? 가능성은 별도 없다고? <br>\t\t\t<br>상대적으로 적다고 볼 수 있고요.",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "5b3a37946f.png",
+    "alt": "과거 패턴/전망",
+    "w": 220
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

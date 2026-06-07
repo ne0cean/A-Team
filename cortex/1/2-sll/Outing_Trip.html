@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outing/Trip</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">Outing/Trip</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Outing-Trip';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "Outing/Trip<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>에뮤시네마 별빛영화제<br>\t\t\t\t\t<br>아트나인 테라스 시네마 12시 예매<br>\t\t\t\t\t<br>은하수 보러가기<br>\t\t\t\t\t<br>미야코지마 프리다이빙<br>\t\t\t\t\t<br>\t\t\t\t\t<br>브레겐츠 페스티벌<br>\t\t\t\t\t<br>오로라 투어<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br>용산 에다마메<br>\t\t\t<br><a href=\"https://ddp.or.kr/index.html?menuno=240&siteno=2&bbsno=573&boardno=15&bbstopno=573&act=view&subno=1\" target=\"_blank\">DDP</a><br>\t\t\t<br><a href=\"https://www.alloso.co.kr/about/notice/detail?no=142\" target=\"_blank\">소파다방</a><br>\t\t\t<br>에버랜드 나이트사파리<br>\t\t\t<br><a href=\"https://www.instagram.com/p/DOQbVkej3SK/?img_index=6&igsh=dWxneWt4dnd5azQz\" target=\"_blank\">선혜원</a> 전시<br>\t\t\t<br><a href=\"https://www.frieze.com/ko/frieze-house-seoul?utm_source=FRIEZE&utm_campaign=abbced3e2b-FriezeHouseSeoul_Newsletter_02&utm_medium=email&utm_term=0_f0ebe20dcf-abbced3e2b-521046883&mc_cid=abbced3e2b&mc_eid=4d785fa27b\" target=\"_blank\">프리즈하우스</a> 서울<br>\t\t\t<br><a href=\"https://www.seoulphil.or.kr/perf/list\" target=\"_blank\">서울시향공연</a><br>\t\t\t<br><a href=\"https://www.stayfolio.com/\" target=\"_blank\">11월 19일 다니랑 스테이폴리오</a>?<br>\t\t\t<br>어쩌면 해피엔딩 뮤지컬<br>\t\t\t<br> <a href=\"https://m.doosanartcenter.com/ko/performance\" target=\"_blank\">예매</a> 확인 <a href=\"https://m.ticketlink.co.kr/home\" target=\"_blank\">티켓링크</a><br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>#서울_마포 #경험상점<br>\t\t\t\t\t<br>토요일! 토요일은 즐거워 &#127926;&#160;by. 하루<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>ⓒ콘서트홀 나누<br>\t\t\t<br>예전에 유럽 여행을 갔을 때, 거리를 걷다가 음악이 흘러나오는 곳으로 홀린 듯이 들어간 적이 있어. 작고 아늑한 공간을 따뜻한 음악이 메우고 있고 그 음악을 즐기는 현지인들의 모습도 참 단란해 보였지. 때론 으리으리한 공연장보다, 이렇게 소규모로 웃고 즐기는 공간이 더 매력적인 것 같아. 그런데 서울 망원동에서도 이런 곳을 발견했으니! 소규모 공연장,&#160;<a href=\"https://event.stibee.com/v2/click/NzgxODMvMjg0NjkxOC8yOTE1NDUv/aHR0cHM6Ly9iaXQubHkvNGxnZkJadw\" target=\"_blank\">콘서트홀 나누</a>를 소개할게.&#160; &#160;<br>\t\t\t<br>&#127932; 부담 없이 찍먹하는 클래식<br>\t\t\t<br>왜인지 모를 거리감&#128580;이 느껴졌던 클래식이지만, 들으면 평온해지고 마음속 소란이 차분해지는 기분이야. 또 어떨 땐 그 웅장함에 압도돼서 가슴이 벌렁거리기도 하고 말이야. 이곳에서는&#160;3만 원 이하의 티켓으로 토요일마다 부담 없이 클래식을 경험할 수 있어. 특별한 기념일에도 물론 좋지만, 가볍게 공연을 즐기고 나서 그 여운을 이어 근처 망원동에서 술 한잔하며 하루를 마무리하면 보통의 주말도 특별해질 거랭.&#160;<br>\t\t\t<br>&#129294; 분위기는 포근하게, 사운드는 빵빵하게<br>\t\t\t<br>흔히 떠올리는 클래식 공연장과 다르게 아늑한 카페 같은 느낌이 드는 곳이야. 하지만 매달, 매주 달라지는 공연 라인업은 아주 철저하게 엄선해서 기획한다고. 편안한 분위기에서 연주자들이 직접 들려주는 연주와 해설을 듣고, 같이 이야기하고 웃으며 퍼석했던 마음을 음악에 푹 적셔보자랭.&#160;<br>\t\t\t<br>&#127903;️ 클래식 공연을 3만 원 이하로!&#160;<br>\t\t\t<br>&#127931; 매달, 매주 달라지는 공연 라인업<br>\t\t\t<br><br>\t\t\t<a href=\"https://joomaltory.com/experience/cmaxofd880001xb08bx3v8wm3?utm_source=newsletter&utm_medium=snack&utm_campaign=1st\" target=\"_blank\">https://joomaltory.com/experience/cmaxofd880001xb08bx3v8wm3?utm_source=newsletter&utm_medium=snack&utm_campaign=1st</a><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>[전북 고창]&#160;<a href=\"https://event.stibee.com/v2/click/NzgxODMvMjg0NjkxOC8yOTE1NDUv/aHR0cHM6Ly9uYXZlci5tZS81MDJNODNDZw\" target=\"_blank\">파머스빌리지</a><br>\t\t\t<br>매일유업에서&#160;조성한&#160;상하농원의 큰&#160;헛간을&#160;개조해&#160;만든&#160;숙소야.&#160;어떤&#160;방에&#160;묵더라도&#160;창밖으로&#160;목가적인&#160;풍경이&#160;펼쳐진다랭. 파머스빌리지가 있는&#160;상하농원 안에는&#160;여러&#160;테마파크가&#160;있어서, 이곳에서 하루 묵는 동안에도 할 게 정말 많아.&#160;숲속&#160;사우나와&#160;수영장,&#160;제철&#160;농작물&#160;수확&#160;체험,&#160;우유&#183;치즈&#160;공장&#160;견학까지!&#127862;&#160;자녀가&#160;있는&#160;랭랭이라면&#160;더욱&#160;추천하고&#160;싶은&#160;곳. 예약은&#160;<a href=\"https://event.stibee.com/v2/click/NzgxODMvMjg0NjkxOC8yOTE1NDUv/aHR0cHM6Ly93d3cuc2FuZ2hhZmFybS5jby5rci9ob3RlbC9yb29tL3Jlc2VydmF0aW9uL2RhdGUuanNw\" target=\"_blank\">이곳</a>에서 하면 돼.<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://mail.naver.com/v2/read/0/126630\" target=\"_blank\">https://mail.naver.com/v2/read/0/126630</a>> <br>\t\t\t<br><br>\t\t\t<br>[전북 완주]&#160;<a href=\"https://event.stibee.com/v2/click/NzgxODMvMjg4NTM5My8yOTE1NDUv/aHR0cHM6Ly9rb3JlYW4udmlzaXRrb3JlYS5vci5rci9kZXRhaWwvbXNfZGV0YWlsLmRvP2NvdGlkPTdhNWIwMDIzLTU3NGMtNGE0YS1iZDJjLTMxYzkxNmJjOGRhNg\" target=\"_blank\">동상계곡</a><br>\t\t\t<br>완주군 최동단에 자리한 동상계곡은 깊은 오지 계곡이야. '동양의 나이아가라 폭포', ‘한국의 블루라군’이라고 불릴 정도니, 사진도 잘 나오지&#128526;&#160;근처에 평상을 대여할 수 있는 가게가 많으니 예약해서 방문하길 추천해. 포장된 호반길이 굽이굽이 이어져서 드라이브 코스로도 아주 좋다랭!<br>\t\t\t<br><br>\t\t\t<br>[경기 포천]&#160;<a href=\"https://event.stibee.com/v2/click/NzgxODMvMjg4NTM5My8yOTE1NDUv/aHR0cHM6Ly9uYXZlci5tZS9HRzdMSWxVWQ\" target=\"_blank\">지장산계곡</a><br>\t\t\t<br>수도권에서 가볍게 떠나기 좋은 계곡! 지장산에서 흘러내리는 물이 얼음같이 차가워서 한여름에도 온몸이 시원해져.&#160;서울에서 비교적 가까워 당일치기로도 충분히 다녀올 수 있다랭&#128521;&#160;반려동물 동반이 가능하고, 근처에&#160;<a href=\"https://event.stibee.com/v2/click/NzgxODMvMjg4NTM5My8yOTE1NDUv/aHR0cHM6Ly9uYXZlci5tZS9HbWJNWDgweg\" target=\"_blank\">망향비빔국수</a>가 맛있기로 유명하니 물놀이 끝나면 든든히 배 채워주기!<br>\t\t\t<br><br>\t\t\t<br>[경북 울진]&#160;<a href=\"https://event.stibee.com/v2/click/NzgxODMvMjg4NTM5My8yOTE1NDUv/aHR0cHM6Ly9uYXZlci5tZS94czNJWjhSNA\" target=\"_blank\">광품계곡</a><br>\t\t\t<br>광품폭포에서 쏟아지는 물소리만 들어도 더위가 싹 날아가는 느낌일걸? 수심이 얕은 곳부터 깊은 곳까지 다양하게 즐길 수 있어. 물이 정말 맑고 차가워서 한여름에도 얼음물 같다는 점이 특징!&#160;&#129482;&#160;캠핑과 취사도 가능한 계곡이니, 맛있고 시원한 물놀이를 할 수 있을 거다랭~",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

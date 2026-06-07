@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dash board</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">Dash board</div>
+<div class="date">2014년 10월 14일 화요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Dash-board';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "Dash board<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br><a href=\"https://www.sks.co.kr/main/product/fund/fundFind/PD_02001_T01_S02.cmd?menuId=PD_02001&fundId=A033804044&onl_excs_yn=N&nw_by_psbl_yn=Y\" target=\"_blank\">미래에셋고배당포커스증권1</a> 환매<br>\t\t\t<br><br>\t\t\t<br>2017년<br>\t\t\t<br>미래인디아디스커버리1호A<br>\t\t\t<br>8일 기준가 14일 <br>\t\t\t<br><br>\t\t\t<br>아주비대면정기예금(복리) - App : SB톡톡<br>\t\t\t<br>2017.09.05 가입 - 12개월<br>\t\t\t<br>예치금액 2천만원<br>\t\t\t<br>● 출금은행 : 기업<br>\t\t\t<br>● 출금계좌 : 023-08-87-8101016<br>\t\t\t<br>● 입금계좌 : (저축은행)김준영 403-07-15-0001535<br>\t\t\t<br>● 금액 : 20,000,000원<br>\t\t\t<br>● 기한 : 2017-09-09(기한내 미입금시 신청이 취소됩니다.)<br>\t\t\t<br><br>\t\t\t<br>2014년<br>\t\t\t<br>SBI4 : 월 300 ('14.3 ~ '15.3)<br>\t\t\t<br>SK증권 : 월 100 ('14.3 ~<br>\t\t\t<br>준일이 차 : 500 + 400 + 100<br>\t\t\t<br>사택 보증금 : 500<br>\t\t\t<br>주택청약적금 : '14년 월 10<br>\t\t\t<br>현대차 : 175000원 x 30주 ('14.10.14) 매수 <br>\t\t\t<br>SK C&C : 39000원 X 31주 ('14.10.31) 매수<br>\t\t\t<br>김호수 : 120 + 20<br>\t\t\t<br>대우증권 : 74만원<br>\t\t\t<br><br>\t\t\t<br><a href=\"http://insight.co.kr/view.php?ArtNo=6144\" target=\"_blank\">http://insight.co.kr/view.php?ArtNo=6144</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://bizzle.kr/?p=3218\" target=\"_blank\">http://bizzle.kr/?p=3218</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://insight.co.kr/view.php?ArtNo=6533\" target=\"_blank\">http://insight.co.kr/view.php?ArtNo=6533</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://www.moneta.co.kr/\" target=\"_blank\">http://www.moneta.co.kr/</a>",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "648409ed03.png",
+    "alt": "Dash board",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "ㅇ 용돈 쓰고 남는돈은 재테크 통장 - 대우증권에 넣기<br>\t\t\t<br>ㅇ 기업 목적통장(여행비, 시술비)<br>\t\t<br>\t\t<br>\t\t\t<br>SK증권(투자계좌) : <br>\t\t\t<br>대우증권(통신통장) : <br>\t\t\t<br><br>\t\t\t<br>기업은행(급여통장) : <br>\t\t\t<br>기업은행(지출통장) : <br>\t\t\t<br>기업은행(상여금통장) : <br>\t\t\t<br>기업은행(여행[목적]통장) : <br>\t\t\t<br>기업은행(주택청약) : 월10만<br>\t\t\t<br>국민은행(수당통장) : <br>\t\t\t<br>SBI4(적금통장) : 월300<br>\t\t<br>\t\t<br>\t\t<br>\t\t<br>\t\t\t<br>적금 : 3600<br>\t\t\t<br>주식 : 1300<br>\t\t\t<br>펀드환매 + 성과급: 2600 - SK CMA<br>\t\t\t<br>펀드 : 1000 ~<br>\t\t\t<br>준일 + 사택 보증금 : 1000<br>\t\t<br>\t\t<br>\t\t\t<br>2017년 3월 17일 기준<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t잔고좌수<br>\t\t\t\t\t기준가격<br>\t\t\t\t\t평가액(세전)<br>\t\t\t\t\t투자원금<br>\t\t\t\t\t이익금<br>\t\t\t\t\t소득세<br>\t\t\t\t\t지방소득세<br>\t\t\t\t\t환매수수료<br>\t\t\t\t\t세후예상액<br>\t\t\t\t\t단순수익률<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<br>미래에셋고배당포커스증권1<br>\t\t\t\t\t<br>호자A<br>\t\t\t\t\t<br>\t\t\t\t\t11,8555,530<br>\t\t\t\t\t873.84<br>\t\t\t\t\t10,359,833<br>\t\t\t\t\t11,881,194<br>\t\t\t\t\t-1,521,361<br>\t\t\t\t\t13,060<br>\t\t\t\t\t1,300<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t10,345,473<br>\t\t\t\t\t-12.80%<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t미래인디아디스커버리1호A<br>\t\t\t\t\t8,671,033<br>\t\t\t\t\t1,127.52<br>\t\t\t\t\t9,776,846<br>\t\t\t\t\t8,910,894<br>\t\t\t\t\t865,952<br>\t\t\t\t\t108,750<br>\t\t\t\t\t10,870<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t9,657,226<br>\t\t\t\t\t9.7%<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t소 계<br>\t\t\t\t\t20,526,563<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t20,137,874<br>\t\t\t\t\t20,792,088<br>\t\t\t\t\t-655,409<br>\t\t\t\t\t121,810<br>\t\t\t\t\t12,170<br>\t\t\t\t\t<br><br>\t\t\t\t\t<br>\t\t\t\t\t20,003,894<br>\t\t\t\t\t-3.15%<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t종목<br>\t\t\t\t\t수량<br>\t\t\t\t\t매입/대주가<br>\t\t\t\t\t현재가<br>\t\t\t\t\t매입금/대주소요금<br>\t\t\t\t\t평가금/대주매도금<br>\t\t\t\t\t평가손익<br>\t\t\t\t\t손익율<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t현대차<br>\t\t\t\t\t30<br>\t\t\t\t\t175,000<br>\t\t\t\t\t151,500<br>\t\t\t\t\t5,250,000<br>\t\t\t\t\t4,545,000<br>\t\t\t\t\t-705,000<br>\t\t\t\t\t-13.42<br>\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t카카오<br>\t\t\t\t\t67<br>\t\t\t\t\t128,000<br>\t\t\t\t\t83,900<br>\t\t\t\t\t8,576,000<br>\t\t\t\t\t5,621,300<br>\t\t\t\t\t-2,954,700<br>\t\t\t\t\t-34.45<br>\t\t\t\t<br>\t\t\t<br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"http://finance.moneta.co.kr/saving/bestIntCat01List.jsp?cat_cd2=&int_lvng_fg=&add_bft_fg=&join_term=1Y&rgn_sido=&rgn_gugun=&org_grp_cd=SF&saving_amt=10000000\" target=\"_blank\">예금가입</a> 이율 비교",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

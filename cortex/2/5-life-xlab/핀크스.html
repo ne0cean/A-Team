@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>핀크스</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">핀크스</div>
+<div class="date">2024년 11월 15일 금요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-핀크스';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "핀크스<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>4시 반 기상 5시-5:30 회사에서 새벽운동<br>\t\t\t<br><br>\t\t\t<br>22일(금)<br>\t\t\t<br>6시? 1) 몌 : 서울시 종로구 북촌로5나길 95 (삼청동)<br>\t\t\t<br>6:10 2) 용 : 서울시 서대문구 북아현로1가길 20 (신촌e편한세상 1단지 정문)<br>\t\t\t<br>6:30 3) 준영 : 서울시 마포구 신촌로10길 9<br>\t\t\t<br><br>\t\t\t<br>07:15 아임택시 1대로 김포공항 도착 (대한항공 모닝캄이라 빠른 줄 가능)<br>\t\t\t<br>공항이동 (탑승순서대로)<br>\t\t\t<br><br>\t\t\t<br>08:00 김포 - 09:10 제주 KE1027<br>\t\t\t<br>용님은 랜딩하자마자 혼자 곧바로 SK렌터카 픽업하러 출발<br>\t\t\t<br>준영님, 김미혜 수하물 대기 후 챙겨서 용님+K5 (DL3) 가솔린 합류 <br>\t\t\t<br><br>\t\t\t<br>렌터카<br>\t\t\t<br>- 예약번호: 240001283346<br>\t\t\t<br>- 대여일시: 24년 11월 22일 09시 00분<br>\t\t\t<br>- 반납일시: 24년 11월 24일 13시 00분<br>\t\t\t<br>- 대여차량: K5 (DL3) 가솔린<br>\t\t\t<br><br>\t\t\t<br>09:35~10:20 제주공항에서 서귀포시 이동 @K5<br>\t\t\t<br>아점 먹을 시간(장소)이 애매하다<br>\t\t\t<br><br>\t\t\t<br>10:30 비오토피아 C2동 304호 체크인(예약자명 : 박정호 부회장 지인) <br>\t\t\t<br>이른점심 혹은 서귀포 가면서 아점 먹고 체크인 <br>\t\t\t<br><br>\t\t\t<br>11:30 - 골프장 도착 필요, 체크인, 락카 받기<br>\t\t\t<br><br>\t\t\t<br>12:00~16:30 핀크스 서→북 코스<br>\t\t\t<br><br>\t\t\t<br>16:30~17:00 샤워 및 환복 @핀크스 or 비오토피아<br>\t\t\t<br>(핀크스에 아는 얼굴 많으면 숙소에서 씻는 것이 편할 듯요)<br>\t\t\t<br><br>\t\t\t<br>18:00~19:30 - 석식 난드르바당(제주돼지) @서귀포시 하예하동로16번길 11-1<br>\t\t\t<br>난드르바당 가는 길에 테이블링 원격 대기 걸고 대기시간이 길면 마트 들러서 소주, 간식 구입 (대기시간 짧으면 식사 후 숙소 돌아와서 디아넥스 편의점 구입)<br>\t\t\t<br>식사 중 배달의 민족으로 중문회어시장 회 픽업<br>\t\t\t<br><br>\t\t\t<br>대리기사 호출 & 귀가<br>\t\t\t<br><br>\t\t\t<br>11/23(토) <br>\t\t\t<br>아침운동 7시, 수영장<br>\t\t\t<br><br>\t\t\t<br>조식 - 핀크스 2분거리 루체빌 뷔페 <a href=\"https://www.luceville.com/kor/kor_rest.do\" target=\"_blank\">https://www.luceville.com/kor/kor_rest.do</a> (핀크스, 디아넥스엔 회사임원 많음)<br>\t\t\t<br><br>\t\t\t<br>12:00 - 핀크스 북→동 코스  <br>\t\t\t<br><br>\t\t\t<br>19:00 - 석식 : 몽돌 제주 <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>11/24(일)<br>\t\t\t<br>09:00~10:00 <a href=\"https://www.lotteresort.com/artvillas/ko/dining/art-cordelia\" target=\"_blank\">롯데리조트 아침</a> 아트 코델리아 or <a href=\"https://naver.me/GiHY1cHu\" target=\"_blank\">양가네 신화월드</a><br>\t\t\t<br><br>\t\t\t<br>10:00~10:45 - 숙소 돌아와서 짐 챙기기 & 11시 이전 체크아웃<br>\t\t\t<br><br>\t\t\t<br>10:45~11:35 제주시로 이동<br>\t\t\t<br><br>\t\t\t<br>11:35~11:45 렌터카 반납 등<br>\t\t\t<br><br>\t\t\t<br>12:00 공항 도착<br>\t\t\t<br><br>\t\t\t<br>12:50 제주 - 14:00 김포 OZ8940",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "3476427502.png",
+    "alt": "핀크스",
+    "w": 220
+  },
+  {
+    "type": "image",
+    "src": "053dee3055.png",
+    "alt": "핀크스",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "견과류, 테가솝, 알러지약, 헤어밴드, 수영복",
+    "w": 260
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

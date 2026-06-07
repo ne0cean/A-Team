@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고목과 전문가의 문제점.</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">고목과 전문가의 문제점.</div>
+<div class="date">2014년 9월 27일 토요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-고목과-전문가의-문제점-';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "작고 약해도 악할 수 있으며,<br>\t\t\t크고 강해도 선할 수 있는 것 아니겠습니까.<br>\t\t\t크고 강하면 악하고, 약하고 작으면 선할 것이라는<br>\t\t\t오래된 프레임을 벗어버리세요.<br>\t\t\t<br><br>\t\t\t26살,<br>\t\t\t운 좋게 좋은 회사에 좋은 인연으로 입사했다.<br>\t\t\t작은 회사였지만 배움이 깊었고, 보람과 자부심도 강했다.<br>\t\t\t무엇보다 정말 좋은 분들 밑에서 일할 수 있다는 것이 좋았고,<br>\t\t\t여유 있는 월급은 아니었지만, 꿈을 향한 길이라는 말로 자위했다.<br>\t\t\t<br><br>\t\t\t여름의 한복판, 아버지가 수술에 들어가셨습니다.<br>\t\t\t수입산 봉합사가 60만원이랍니다.<br>\t\t\t수중에 그 실하나 살 돈이 없었습니다.<br>\t\t\t\"내가 이 양반 잘못되면 수의 하나 맞춰줄 돈조차 없구나.\"<br>\t\t\t<br><br>\t\t\t그날 이후 회사를 그만두고 (정확히는 배신하고) <br>\t\t\t4개월 간의 취업준비 끝에<br>\t\t\t운 좋게도 몇 개의 회사로부터 꽃다발을 받았다.<br>\t\t\t3년이 지난 지금, 억 소리 나던 집안의 빚을 청산했다.<br>\t\t\t주말인 오늘도 일을 하고 있지만 나는 이걸 행복이라 부르고<br>\t\t\t월급쟁이가 꿈이 될 수 없다고 생각하지 않는다.<br>\t\t\t<br><br>\t\t\t보십쇼, 대기업에도 저 같은 사람새끼들이 삽니다.<br>\t\t\t<br><br>\t\t\t내 항시 주변에서 듣기로 대기업은 개새끼들인데 <br>\t\t\t그런 대기업에 들어오니 박수를 칩디다.<br>\t\t\t<br><br>\t\t\t낮은 곳이든 높은 곳이든<br>\t\t\t약한 자든 강한 자든 모두<br>\t\t\t집단 안에 숨어 자신의 이익을 대변할 뿐.<br>\t\t\t<br><br>\t\t\t이 주장이 옳다라고 할 수 있는 것이 배포인지 논리의 결여인지는 <br>\t\t\t재론의 여지가 있습니다.<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t꼰대란, 그 나이와 깊이를 막론하고<br>\t\t\t어제를 팔아 오늘을 사는, 왕년을 운운하는 모든 이들이다.<br>\t\t\t<br><br>\t\t\t선배, 세상이 바뀌었어요.<br>\t\t\t바로 당신들이 바꾼거죠.<br>\t\t\t<br><br>\t\t\t여기서 구르나 저기서 구르나 다 개판이고<br>\t\t\t여기서 고생하나 저기서 고생하다 다 개고생입니다.<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t왜 월급쟁이는 꿈이 될 수 없다고 생각 하는거죠<br>\t\t\t창업을 해야, 뭔가 원대한, 위험한 무언가를 해야만 <br>\t\t\t그것이 꿈이라 불러줄 가치가 있는 겁니까?<br>\t\t<br>\t\t<br>\t\t\t<br>고목과 전문가의 문제점. <br>\t\t\t<br>-> 내재편향. 대안은 다양한 백그라운드<br>\t\t<br>\t\t<br>\t\t\t<br>다면평가,<br>\t\t\t<br>다면평가 역시 미국에서 도입된 직원 평가방식으로<br>\t\t\t<br>본래 명칭은 \"360-degree review\"이다.<br>\t\t\t<br>그러나 이 다면평가의 약점은<br>\t\t\t<br>'나'라는 한 구성원을 주심으로 했을 때,<br>\t\t\t<br>다른 구성원들이 360도에 걸쳐 포진해 있지는 않다는 현실이다.<br>\t\t\t<br><br>\t\t\t<br>누군가는 병렬적으로 나와 가깝게 붙어서 일하고 나에 대해 호감 혹은<br>\t\t\t<br>긍정적 평가를 하지만, 누군가는 일하는 측면에서 중첩되는 면도 없을 뿐더러<br>\t\t\t<br>교류가 잦지 않고 심지어 나를 평가할만한 정보 수준히 현저히 낮은 가운데도<br>\t\t\t<br>나를 평가한다는 것이다.  <br>\t\t<br>\t\t<br>\t\t\t<br>오답노트는 시험에 매우 유용하다.<br>\t\t\t<br>인생의 오답노트?<br>\t\t\t<br>하지만 인생의 오답노트는 존재할 수 없다.<br>\t\t\t<br>정답이 없는 연유로, 오답 또한 존재할 수 없기 때문이다.<br>\t\t\t<br><br>\t\t\t<br>첫 회사를 퇴사했을 때 그러했고,<br>\t\t\t<br>남들은 가지 않는 곳을 여행지로 선택했을 때도<br>\t\t\t<br>그토록 사랑했던 누군가와 이별을 결심했을 때도 그랬다.<br>\t\t\t<br>그 시점에는 잘못된 선택이고, 오답처럼 보였던 것들이<br>\t\t\t<br>실은, 내 인생에 좋은 한 수가 되어주었던 적이 있지 않은가…<br>\t\t\t<br><br>\t\t\t<br>선택이란 그냥 선물 상자 같은 것이다.<br>\t\t\t<br>그것을 열어보기 전에는 기대와 의심이 들지만,<br>\t\t\t<br>그것을 열어보아야만 진가를 알 수 있는 선물상자.<br>\t\t\t<br><br>\t\t\t<br>선물상자 자체는 큰 가치가 없지만, <br>\t\t\t<br>그 상자에 무엇이 채워져 있는지가<br>\t\t\t<br>결국 그 선물의 가치를 결정하지 않는가.<br>\t\t\t<br><br>\t\t\t<br>결국, 내가 어떤 선물 상자를 골랐는지 보다는<br>\t\t\t<br>그 선택 이후에 무엇을 얼마나 밀도 있고&#183;, 가치 있게<br>\t\t\t<br>그 상자에 채워 넣는지가 그 선택의 가치를 결정 할 수 있는 것이다.<br>\t\t\t<br><br>\t\t\t<br>빛나는 미래는<br>\t\t\t<br>비루/남루했던 과거에 대한 <br>\t\t\t<br>가장 훌륭한 변명이다.<br>\t\t\t<br><br>\t\t\t<br>인생은 선택이란 점들이 무수히 찍혀있는<br>\t\t\t<br>점묘화랄까….<br>\t\t\t<br><br>\t\t\t<br>정글짐.",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

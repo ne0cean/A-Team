@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INPUT</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">INPUT</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-INPUT';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "INPUT<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>브라우저 - 서핏 / 즐겨찾기<br>\t\t\t<br>메일 - 뉴스레터<br>\t\t\t<br>SNS - 텔레그램 / 카카오톡<br>\t\t\t<br>커뮤니티 - HFK<br>\t\t\t<br>책 - T-library<br>\t\t\t<br>잡지 -<br>\t\t\t<br>디지털 - 퍼블리(커리어리) / 아웃스탠딩 <br>\t\t\t<br>신문 - 뉴스클립 / 6DP<br>\t\t\t<br><br>\t\t\t<br>마이 써니 프로그램 북 <a href=\"https://www.notion.so/mySUNI-3c3f732ac8804123936c14a7e143fe5f\" target=\"_blank\">https://www.notion.so/mySUNI-3c3f732ac8804123936c14a7e143fe5f</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://estimastory.com/\" target=\"_blank\">https://estimastory.com/</a><br>\t\t\t<br><a href=\"https://sungmooncho.com/2011/08/29/software-korea/\" target=\"_blank\">https://sungmooncho.com/2011/08/29/software-korea/</a><br>\t\t\t<br>패스트 캠퍼스  <a href=\"https://www.fastcampus.co.kr/dgn_online_uxui?gclid=EAIaIQobChMIltavhov97QIVVZ7CCh28mgf_EAEYASAAEgKMZfD_BwE\" target=\"_blank\">https://www.fastcampus.co.kr/dgn_online_uxui?gclid=EAIaIQobChMIltavhov97QIVVZ7CCh28mgf_EAEYASAAEgKMZfD_BwE</a><br>\t\t\t<br><br>\t\t\t<br>뉴스클립<br>\t\t\t<br>ARRA + 사외<br>\t\t\t<br>퍼블리<br>\t\t\t<br>커리어리<br>\t\t\t<br>마이써니<br>\t\t\t<br>회사강의<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://youtu.be/S6J8texGR0U\" target=\"_blank\">https://youtu.be/S6J8texGR0U</a> 정태영<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://brunch.co.kr/@jjason68/235\" target=\"_blank\">https://brunch.co.kr/@jjason68/235</a><br>\t\t\t<br><br>\t\t\t<br>CDN 전략 <a href=\"https://netmanias.com/ko/post/blog/5719/akamai-cdn-data-center-google-google-global-cache-netflix-ott-transparent-caching-youtube/who-wins-ott-cache-vs-operator-cache\" target=\"_blank\">https://netmanias.com/ko/post/blog/5719/akamai-cdn-data-center-google-google-global-cache-netflix-ott-transparent-caching-youtube/who-wins-ott-cache-vs-operator-cache</a><br>\t\t\t<br><br>\t\t\t<br>매경이코노미&#160;sktelecom1 password1<br>\t\t\t<br>북저널리즘&#160;[soojinvan@sk.com](mailto:soojinvan@sk.com)&#160;tlibrary18<br>\t\t\t<br>시사저널&#160;<a href=\"http://www.sisapress.com/\" target=\"_blank\">http://www.sisapress.com/</a>&#160;&#160;[soheechoi@sk.com](mailto:soheechoi@sk.com)&#160;password1!<br>\t\t\t<br>시사in&#160;<a href=\"http://www.sisain.co.kr/\" target=\"_blank\">http://www.sisain.co.kr/</a>&#160;&#160;[soheechoi@sk.com](mailto:soheechoi@sk.com)&#160;password1!<br>\t\t\t<br>주간경향&#160;<a href=\"http://weekly.khan.co.kr/\" target=\"_blank\">http://weekly.khan.co.kr/</a>&#160;sktelecom22 tlibrary18<br>\t\t\t<br>주간동아&#160;<a href=\"http://weekly.donga.com/\" target=\"_blank\">http://weekly.donga.com</a>&#160;tlibrary password1212<br>\t\t\t<br>한경business&#160;<a href=\"http://www.kbizweek.com/\" target=\"_blank\">http://www.kbizweek.com/</a>&#160;&#160;[soheechoi@sk.com](mailto:soheechoi@sk.com)&#160;password1<br>\t\t\t<br>Apple Machine Learning Journal&#160;<a href=\"https://machinelearning.apple.com/\" target=\"_blank\">https://machinelearning.apple.com/</a><br>\t\t\t<br><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&rschRegTyCd=JNL&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=JC057\" target=\"_blank\">Apple</a>이&#160;직접&#160;운영하는 MAchine Learning&#160;관련&#160;리서치&#160;블로그<br>\t\t\t<br>Automotive News&#160;<a href=\"http://www.autonews.com/\" target=\"_blank\">http://www.autonews.com/</a>&#160;[soheechoi@sk.com](mailto:soheechoi@sk.com)&#160;password1<br>\t\t\t<br><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&rschRegTyCd=JNL&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=JC060\" target=\"_blank\">자동차</a>&#160;산업&#160;관련(브랜드,&#160;모빌리티, Special Report&#160;등)&#160;뉴스&#160;제공<br>\t\t\t<br>Fol:in&#160;<a href=\"https://www.folin.co/\" target=\"_blank\">https://www.folin.co/</a>&#160;[seinchoi@sk.com](mailto:seinchoi@sk.com)&#160;tlibrary17<br>\t\t\t<br>Journal of Consumer Research (JCR)&#160;<a href=\"http://www.jstor.org/action/showPublication?journalCode=jconsrese\" target=\"_blank\">http://www.jstor.org/action/showPublication?journalCode</a><br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&rschRegTyCd=JNL&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=JM018\" target=\"_blank\">(</a>격월간)소비자&#160;행동&#160;연구의&#160;경험적&#160;이론&#160;및&#160;방법론을&#160;다루고&#160;학술&#160;연구를&#160;발행- <a href=\"http://www.technologyreview.com/\" target=\"_blank\">회사아이피로&#160;접속시<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>MIT Technology Review: MIT’s magazine of innovation&#160;[<a href=\"http://www.technologyreview.com/\" target=\"_blank\">http://www.technologyreview.com/</a></a>&#160;[soheechoi@sk.com](mailto:soheechoi@sk.com)&#160;password1<br>\t\t\t<br><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&rschRegTyCd=JNL&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=JT013\" target=\"_blank\">격월</a>) MIT&#160;발간&#160;과학저널,&#160;생명공학,&#160;에너지&#160;및&#160;나노기술&#160;등&#160;정보&#160;제공<br>\t\t\t<br>Nature&#160;<a href=\"http://www.nature.com/\" target=\"_blank\">http://www.nature.com/</a>&#160;skwc04@sktelecom pas<a href=\"https://www.nytimes.com/\" target=\"_blank\">https://www.nytimes.com/</a>&#160;sword1<br>\t\t\t<br>New York Times(뉴욕타임즈)&#160;<a href=\"https://www.nytimes.com/\" target=\"_blank\">https://www.nytimes.com/</a>&#160;[soheechoi@sk.com](mailto:soheechoi@sk.com)&#160;password1<br>\t\t\t<br>[기술/문화] Wired&#160;<a href=\"http://www.wired.com/\" target=\"_blank\">http://www.wired.com&#160;</a>[bhn0508@sk.com](mailto:bhn0508@sk.com)&#160;password1<br>\t\t\t<br>[문화] Monocle&#160;<a href=\"http://monocle.com/magazine/\" target=\"_blank\">http://monocle.com/magazine/</a>&#160;[soheechoi@sk.com](mailto:soheechoi@sk.com)&#160;password1<br>\t\t\t<br>미디어] Media + Future =&#160;미디어미래 &#160;<a href=\"http://www.mfi.re.kr/\" target=\"_blank\">http://www.mfi.re.kr/</a><br>\t\t\t<br>동아비즈니스리뷰(DBR)&#160;<a href=\"https://dbr.donga.com/\" target=\"_blank\">https://dbr.donga.com/</a>&#160;sktelecom password1<br>\t\t\t<br>매경 독서클럽&#160;NBS&#160;<a href=\"http://bookzip.mk.co.kr/\" target=\"_blank\">http://bookzip.mk.co.kr/</a>&#160;sktelecom1 password1 기간만료<br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&rschRegTyCd=JNL&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=JS012\" target=\"_blank\">해외&#160;신간&#160;비즈니스&#160;서적의&#160;핵심만을&#160;요약해서&#160;제공하는&#160;서비스로&#160;매주</a> 2권의&#160;신간을&#160;업데이트하고&#160;있으며&#160;주간지(NBS)&#160;서비스도&#160;함께&#160;제공<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>스마트 디바이스 트렌드 매거진<br>\t\t\t<br><a href=\"http://www.itfind.or.kr/itfind/periodical/periodicalTopList.htm?searClassCode=B_ITA_22&masterCode=publication\" target=\"_blank\">http://www.itfind.or.kr/itfind/periodical/periodicalTopList.htm?searClassCode=B_ITA_22&masterCode=publication</a><br>\t\t\t<br>아웃스탠딩&#160;<a href=\"http://outstanding.kr/\" target=\"_blank\">http://outstanding.kr/</a>&#160;[seinchoi@sk.com](mailto:seinchoi@sk.com)&#160; password1<br>\t\t\t<br>App Story =&#160;앱스토리&#160;<a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&rschRegTyCd=JNL&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=JC035\" target=\"_blank\">(</a>월간)&#160;최신&#160;앱&#160;관련 IT정보&#160;제공&#160;<a href=\"http://www.appstory.co.kr/\" target=\"_blank\">http://www.appstory.co.kr/</a>&#160;sktelecom password1<br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tBeSUCCESS(비썩쎄스)<br>\t\t\t\t\t<a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&rschRegTyCd=JNL&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=JC048\" target=\"_blank\">스타트업&#160;미디어로&#160;오프라인&#160;행사도&#160;개최</a><br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br><a href=\"http://kr.besuccess.com/\" target=\"_blank\">http://kr.besuccess.com</a><br>\t\t\t<br>Betalist&#160;<a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&rschRegTyCd=JNL&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=JC055\" target=\"_blank\">신규</a>&#160;인터넷&#160;스타트업/서비스&#160;소개&#160;<a href=\"http://betalist.com/\" target=\"_blank\">http://betalist.com</a><br>\t\t\t<br>Bloomberg Businessweek&#160;<a href=\"http://www.businessweek.com/Businessweek\" target=\"_blank\">http://www.businessweek.com/Businessweek</a>&#160;&#160;[soheechoi@sk.com](mailto:soheechoi@sk.com)&#160; tlibrary18!<br>\t\t\t<br>Economist&#160;로그인 후&#160;my account에서 구독번호&#160;(00107673)&#160;인증&#160;<a href=\"http://www.economist.com/\" target=\"_blank\">http://www.economist.com/</a>&#160;[soheechoi@sk.com](mailto:soheechoi@sk.com)&#160;tlibrary18<br>\t\t\t<br>Economy Chosun&#160;<a href=\"http://www.economyplus.co.kr/\" target=\"_blank\">http://www.economyplus.co.kr</a>&#160;sktelecom2 password<br>\t\t\t<br>Financial Times&#160;<a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&rschRegTyCd=JNL&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=JS002\" target=\"_blank\">(</a>일간)&#160;영국에서&#160;발행하는&#160;국제경제전문&#160;일간신문으로&#160;가장&#160;뛰어난&#160;비즈니스&#160;일간지&#160;평가받고&#160;있는&#160;<a href=\"http://www.ft.com/home/europe\" target=\"_blank\">http://www.ft.com/home/europe</a><br>\t\t\t<br>[soheechoi@sk.com](mailto:soheechoi@sk.com)&#160;tlibrary18<br>\t\t\t<br>Forbes Korea&#160;<a href=\"http://jmagazine.joins.com/forbes%20sktelecom1%20password1\" target=\"_blank\">http://jmagazine.joins.com/forbes sktelecom1 password1</a><br>\t\t\t<br><a href=\"http://fortune.com/\" target=\"_blank\">http://fortune.com/</a><br>\t\t\t<br>Harvard Business Review (HBR)&#160;<a href=\"http://hbr.org/\" target=\"_blank\">http://hbr.org/</a>&#160;[soheechoi@sk.com](mailto:soheechoi@sk.com)&#160;hy8649<br>\t\t\t<br>Harvard Business Review Korea&#160;<a href=\"http://www.hbrkorea.com/\" target=\"_blank\">http://www.hbrkorea.com/</a>&#160;sktelecom1 password1<br>\t\t\t<br>Mckinsey Insights&#160;<a href=\"https://www.mckinsey.com/featured-insights\" target=\"_blank\">https://www.mckinsey.com/featured-insights</a>&#160;[bhn0508@sk.com](mailto:bhn0508@sk.com)&#160;tlibrary18<br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\t<a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&rschRegTyCd=JNL&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=JM007\" target=\"_blank\">보고서</a>,&#160;비디오, McKinsey Quarterlyee(계간)&#160;등&#160;주요&#160;경영&#160;이슈&#160;연구&#160;발행 App&#160;이용&#160;가능:&#160;로그인&#160;정보&#160;동일<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>MIT Sloan Management Review&#160;<a href=\"http://sloanreview.mit.edu/the-magazine/2009-fall/51108/the-business-of-sustainability-what-it-means-to-managers-now/\" target=\"_blank\">http://sloanreview.mit.edu/the-magazine/2009-fall/</a>&#160;[soheechoi@sk.com](mailto:soheechoi@sk.com)&#160;password1<br>\t\t\t<br><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&rschRegTyCd=JNL&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=JM006\" target=\"_blank\">(</a>계간) MIT&#160;발행&#160;주요&#160;경영&#160;이슈&#160;및&#160;동향/사례분석 MIT SMR app으로&#160;이용&#160;가능<br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tProduct Hunt<br>\t\t\t\t\t<a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&rschRegTyCd=JNL&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=JC053\" target=\"_blank\">신규&#160;서비스</a>/제품&#160;소개<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>&#160;<a href=\"https://www.producthunt.com/\" target=\"_blank\">https://www.producthunt.com</a><br>\t\t\t<br><br>\t\t\t<br>\t\t\t\t<br>\t\t\t\t\tSpringwise<br>\t\t\t\t\t<a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&rschRegTyCd=JNL&searchType=NAMEDESC&searchText=&rschTyCd=&rschDbCd=JC052\" target=\"_blank\">신규&#160;서비스</a>/제품을&#160;소개<br>\t\t\t\t<br>\t\t\t<br>\t\t\t<br>&#160;<a href=\"http://www.springwise.com/\" target=\"_blank\">http://www.springwise.com</a><br>\t\t\t<br>&#160;<br>\t\t\t<br>TIME&#160;<a href=\"http://www.time.com/time/magazine\" target=\"_blank\">http://www.time.com/time/magazine</a>&#160;[rh415@sk.com](mailto:rh415@sk.com)&#160;sktelecom1<br>\t\t\t<br>Wall Street Journal ePaper이용시: ID:seinchoi@sktelecom.com / PW: 12345<br>\t\t\t<br><a href=\"http://asia.wsj.com/home-page\" target=\"_blank\">http://asia.wsj.com/home-page</a>&#160;sktelecom 12345<br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>1/ 기존 시장을 해킹한다.<br>\t\t\t<br>소프트웨어가 세상을 씹어먹고 있다. <br>\t\t\t<br><a href=\"http://scieng.net/sisatoron/59516\" target=\"_blank\">http://scieng.net/sisatoron/59516</a><br>\t\t<br>\t\t<br>\t\t\t<br>철학 <a href=\"http://ephilosophy.kr/han/\" target=\"_blank\">http://ephilosophy.kr/han/</a><br>\t\t\t<br><br>\t\t\t<br>커뮤니티 : DVD프라임, 클리앙<br>\t\t\t<br>디자인 <a href=\"https://www.dezeen.com/,\" target=\"_blank\">https://www.dezeen.com/,</a> <a href=\"https://www.archdaily.com/\" target=\"_blank\">https://www.archdaily.com/</a><br>\t\t\t<br>구찌 디지털 매거진 <a href=\"https://www.gucci.com/kr/ko/st/stories\" target=\"_blank\">https://www.gucci.com/kr/ko/st/stories</a><br>\t\t<br>\t\t<br>\t\t\t<br>디씨<br>\t\t\t<br>뽐뿌<br>\t\t\t<br>오유<br>\t\t\t<br>스레딕<br>\t\t\t<br>루리웹,<br>\t\t\t<br>클리앙<br>\t\t\t<br>MLB<br>\t\t\t<br>인벤<br>\t\t\t<br>롤캎<br>\t\t\t<br>디매<br>\t\t\t<br><br>\t\t\t<br>대한민국 잡지목록 <a href=\"https://ko.wikipedia.org/wiki/%EB%8C%80%ED%95%9C%EB%AF%BC%EA%B5%AD%EC%9D%98_%EC%9E%A1%EC%A7%80_%EB%AA%A9%EB%A1%9D\" target=\"_blank\">https://ko.wikipedia.org/wiki/%EB%8C%80%ED%95%9C%EB%AF%BC%EA%B5%AD%EC%9D%98_%EC%9E%A1%EC%A7%80_%EB%AA%A9%EB%A1%9D</a><br>\t\t\t<br><br>\t\t\t<br>페이퍼, 볼드 저널, DBR구독, 테크m, 네이처, 사이언스, HBR 읽기<br>\t\t\t<br>문학: Littor, Axt  철학: 뉴필로소퍼<br>\t\t\t<br>과학: 스켑틱<br>\t\t\t<br>경제: 이코노미스트 등등<br>\t\t\t<br><br>\t\t\t<br>인문잡지로는 <한편>(아래 오른쪽)과 <매거진 G>를 추천한다. 과학잡지 <스켑틱>과 생활철학 잡지 <뉴필로소퍼><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><a href=\"http://h21.hani.co.kr/arti/culture/culture_general/50190.html\" target=\"_blank\">http://h21.hani.co.kr/arti/culture/culture_general/50190.html</a><br>\t\t<br>\t\t<br>\t\t\t<br>설록현준",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

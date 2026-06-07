@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PB &amp; 自警文 _ 영점조정</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">PB &amp; 自警文 _ 영점조정</div>
+<div class="date">2016년 1월 12일 화요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-PB-영점조정';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "PB & 自警文 _ 영점조정<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>실체의 개선 없는 브랜딩은 쓰레기를<br>\t\t\t<br>티파니 상자에 담는 것과 마찬가지다.<br>\t\t<br>\t\t<br>\t\t\t<br>일생을 통틀어 스스로에게 줄 수 있는 가장 큰 선물은 <br>\t\t\t<br>내가 살고 싶은 나, 내가 되고 싶은 내가 되어주는 것.<br>\t\t\t<br><br>\t\t\t<br>ㅇ 내 삶의 슬로건? 서프라이즈 미, 마인드 마이닝<br>\t\t\t<br><a href=\"http://blog.naver.com/PostView.nhn?blogId=haeundo&logNo=220289411437&redirect=Dlog&widgetTypeCall=true\" target=\"_blank\">http://blog.naver.com/PostView.nhn?blogId=haeundo&logNo=220289411437&redirect=Dlog&widgetTypeCall=true</a>￼",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "58875125fe.png",
+    "alt": "PB & 自警文 _ 영점조정",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "사람들이 어떤 행동을 하는 이유가 궁금하다.<br>\t\t\t<br>무엇을 왜 사고, 어떻게 사는지, <br>\t\t\t<br>어떻게 고통을 덜어내며, 즐거움을 추구하고, <br>\t\t\t<br>사람의 관점에서 IT기술을 어떻게 소비하는지<br>\t\t\t<br>어떻게 친화적으로 만들 수 있을지<br>\t\t\t<br>보평 타당한 불편을 해소 할 것인지<br>\t\t\t<br><br>\t\t\t<br>ㅇ 초컬릿 브랜딩. 포장초콜릿<br>\t\t\t<br><br>\t\t\t<br>ㅇ 컨텐츠 : 이미지 - 리얼리티 <br>\t\t\t<br>ㅇ 유통채널 - 오프라인 / 온라인<br>\t\t\t<br><br>\t\t\t<br>나는 지속가능한 음주생활을 위해 매일 운동하고<br>\t\t\t<br>위대한 장난과, 신선한 농담을 위해 책을 읽고<br>\t\t\t<br><br>\t\t\t<br>지의 심연과, 야성의 최전선<br>\t\t\t<br>테크 인텔리전스, 마켓 셋싱<br>\t\t\t<br>극단의 융합.<br>\t\t\t<br><br>\t\t\t<br>양 극단을 거니는 자.<br>\t\t\t<br>그런 궤적이 내 삶으 음향이고<br>\t\t\t<br>방황과도 같은 흔들림이<br>\t\t\t<br><br>\t\t\t<br>양 극단의 융합에서 나오는 폭발력이 <br>\t\t\t<br><br>\t\t\t<br>살수록 가벼워지는 삶만이<br>\t\t\t<br>내가 무겁게 여기는 삶의 채무외다.<br>\t\t\t<br><br>\t\t\t<br>이미지 롤모델 . 영국 진행자\\<br>\t\t\t<br><br>\t\t\t<br>삶의 항로 점검, 영점조정<br>\t\t\t<br><br>\t\t\t<br>이미지 롤모델. 정우성. 이정재. 로버트 다우니 주니어, 홍정욱<br>\t\t\t<br><br>\t\t\t<br>ㅇ 습관 : 루틴/리추얼 <br>\t\t\t<br>ㅇ 리프레쉬 : 세렌디피티, Life X Lab  <br>\t\t\t<br>ㅇ 성장 : 재조명/재창조/재조정, 교육/성장, 올바른 <br>\t\t\t<br>그의 가장 치명적인 점은,<br>\t\t\t<br>고집이 세고 호전적인데<br>\t\t\t<br>아주 유연하다는 점이에요.<br>\t\t\t<br>뱀처럼 목표를 향해서 돌진하되<br>\t\t\t<br>기다릴줄도, 우회할줄도 알죠.<br>\t\t\t<br>ㅇ 목표<br>\t\t\t<br>데이터, 중국, 테크, 미디어<br>\t\t\t<br>Media & Smart home Expert. 돈 말고, 실력을 버는 거다.<br>\t\t\t<br><br>\t\t\t<br>\"일단 유명해져라. 그렇다면 사람들은 당신이 똥을 싸도 박수를 쳐 줄 것이다.\" - 앤디 워홀&#160;<br>\t\t\t<br>&#160;Be famous, and they will give you tremendous applause even when you are actually pooping<br>\t\t\t<br><br>\t\t\t<br>전문가란<br>\t\t\t<br>\t\t\t\t<br>- 최신 트렌드를 선돠고<br>\t\t\t\t<br>- 분야 전체에 영향력을 가지며<br>\t\t\t\t<br>- 그 자신의 이름이 브랜드가 되는 사람<br>\t\t\t\t<br>구글의 jeff Dean, 애플의 jony ive, MS의 Ronny kohavi <br>\t\t\t<br>\t\t\t<br>전문가가 되기 위한 프로세스<br>\t\t\t<br>Lean > Apply > share<br>\t\t\t<br><br>\t\t\t<br>ㅇ 가장 한국적인 것이 가장 나 다운 것이다.<br>\t\t\t<br><br>\t\t\t<br>내가 삶 속에서 가지고 싶은 단하나<br>\t\t\t<br>그리고 가질 수 있는 단 하나는<br>\t\t\t<br>\"내가 되고고 싶은 나\" 뿐이다.<br>\t\t\t<br>좀 나빠도 좋다. 좀 싸가지 없으면 어때<br>\t\t\t<br>내가 좋고 내가 살기 좋은 된다.<br>\t\t\t<br><br>\t\t\t<br>자신의 영향력을 늘리는 7가지 방법<br>\t\t\t<br><br>\t\t\t<br>1. 사람들과 감정적인 교감을 하라.<br>\t\t\t<br>바네사의 연구에 따르면, 다른 사람의 호기심을 이끌어내고 그들에게 영향을 미치기 위해선 그들의 뇌에 도파민이 분비돼야 한다. 도파민은 보상을 담당하는 뇌의 한 부분에서 분비돼 따뜻함과 몽롱함을 느끼게 한다.<br>\t\t\t<br>그녀는 다른 사람에게 영향력을 행사하려면, 그들의 뇌를 자극해야 한다고 말한다. 가장 좋은 방법은 이 두 가지 질문으로 대화를 시작하는 것이다. “하루 동안 어떤 좋은 일과 나쁜 일이 있었니?”와 “지금 무슨 일을 담당하고 있니?” 등이 있다.<br>\t\t\t<br>2. 다른 사람에게 관심을 가져라.<br>\t\t\t<br>다른 사람이 당신을 중요한 사람이라 생각한다면, 당신의 영향력은 오랫동안 지속된다. 우리는 모두 타인의 관심을 원한다. 그래서 다른 사람에게 관심을 보이면, 그 사람들은 당신을 중요한 사람으로 생각하게 된다.<br>\t\t\t<br>데일 카네기(Dale Carnegie)는 “흥미로운 사람이 되려면, 먼저 흥미를 가져라”라고 말했다. 그러니 다른 사람에게 흥미를 가져라. 다른 사람에게 계속 질문하고, 그들이 그들 자신에 대해 이야기 할 수 있도록 하라.",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "f97fb6d94d.png",
+    "alt": "PB & 自警文 _ 영점조정",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "3. 신뢰감을 주는 몸짓을 활용하라.<br>\t\t\t<br>하버드 경영대학의 연구원들은 사람의 몸짓이 다른 사람의 의견에 영향을 줄 수 있는지를 연구했다. 결과는 ‘그렇다’였다. 고개를 숙인 채 어깨도 축 처진 채로 있으면 부정적인 영향을 준다.<br>\t\t\t<br>신뢰감을 주는 몸짓은 당신이 개방적이라는 사실을 보여준다. 고개는 똑바로 들고, 팔은 내리고, 어깨는 활짝 핀 채 가슴을 내밀어야 한다. 몸짓을 분명하게 하면 자신의 영향력도 커진다. 신뢰감을 주는 몸짓은 자신을 보는 타인의 시선 뿐 아니라 자신의 시선에도 영향을 준다.<br>\t\t\t<br>4. 자신의 이야기를 들려줘라.<br>\t\t\t<br>다른 사람의 이야기를 들으면, 우리의 뇌는 그 이야기에 등장하는 인물들과 같이 있는 것 같은 느낌을 받는다. 심지어는 그 이야기 속에 들어가있는 듯한 느낌까지 받는다.<br>\t\t\t<br>마찬가지로, 당신이 다른 사람에게 이야기를 들려주면 그 사람은 당신과 교감을 한다. 자신의 이야기로 다른 사람의 뇌를 자극한다면, 그 사람을 자신의 편으로 만들 수 있다.<br>\t\t\t<br>바네사는 이야기 보따리를 만들라고 제안한다. 이 보따리 안엔 다른 사람의 생각을 불러일으키는 이야기가 들어있어야 한다.<br>\t\t\t<br>보따리 속 이야기를 들려준 뒤엔, 흥미를 일으킬 만한 질문을 하라. “가장 힘든 시간은 언제였니? 어떻게 극복했니?”나 “상황이 생각한 것과 다르게 흘러간 적이 있었니?”정도가 좋겠다.",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "f406274ed3.png",
+    "alt": "PB & 自警文 _ 영점조정",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "5. 완벽해지려 하지 말라.<br>\t\t\t<br>자신의 감정을 솔직하게 드러내면, 당신의 호감도와 영향력도 상승한다. 당신이 자신의 약점을 말해준다면, 다른 사람들은 당신을 인간적이라 생각할 것이다.<br>\t\t\t<br>흠이 있어야 다른 사람이 당신에게 더 편하게 다가갈 수 있다. 바네사는 자신의 이야기 보따리에서 자신을 약간 깎아먹는 이야기를 꺼내라고 제안한다. 그러면 당신은 훌륭한 이야기와 안좋은 이야기를 같이 해서 당신의 영향력을 두 배로 늘릴 수 있을 것이다.<br>\t\t\t<br>6. ‘부탁 좀 해도 될까?’<br>\t\t\t<br>바네사의 연구에 따르면, 당신이 다른 사람에게 부탁을 할 때 사람들이 당신을 더 긍정적으로 평가한다. 다른 사람에게 도움을 요청하면 자신이 영향력 있는 사람으로 비춰질 수 있다는 것이다.<br>\t\t\t<br>이를 프랭클린 효과(Franklin Effect)라고 한다. 그러니 주저하지 말고 다른 사람의 조언과 의견을 귀담아 들어라. 그리고 그들의 도움을 받아라.<br>\t\t\t<br>7. 카리스마 있게 행동하라.<br>\t\t\t<br>당신이 생각하는 가장 카리스마 있는 사람은 누구인가? 왜 그 사람을 골랐는가? 아마 당신이 그 사람에게 느끼는 인상으로 카리스마 있는 사람을 골랐을 것이다.<br>\t\t\t<br>한 과학적인 연구에 따르면, 대부분의 사람은 다른 사람의 외모나 말을 기억하지 않는다. 그 사람이 자신에게 주는 느낌을 기억한다. 카리스마 있는 사람들은 다른 사람의 기분을 좋게 한다.<br>\t\t\t<br>바네사는 당신의 카리스마를 높이기 위한 3가지 비언어적 행동을 제안한다. 다른 사람에게 말할 때 머리를 약간 기울이고, 몸통과 발끝은 그 사람에게 향해야 한다. 데일 카네기의 말을 기억하자. <br>\t\t\t<br><br>\t\t\t<br>당신이 다른 사람에게 흥미를 가질 때, 당신은 흥미로운 사람이 된다.<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>전방위, 무차별적 경험주의<br>\t\t\t<br>죽이거나 죽는 것 빼고는 <br>\t\t\t<br>다 해볼만한 가치가 있다.<br>\t\t\t<br>삶에 대한 실험적 자세를 견지하라.<br>\t\t\t<br><br>\t\t\t<br>___________________________________________<br>\t\t\t<br><br>\t\t\t<br>내 자신이,<br>\t\t\t<br>어제보다 더 <br>\t\t\t<br>나아졌다는 것이 중요하다.<br>\t\t\t<br><br>\t\t\t<br>슬럼프가 찾아올 때마다.<br>\t\t\t<br>나는 꾸준히 준비 하고 단련해왔으며<br>\t\t\t<br>그것이 꽃피울 시기가<br>\t\t\t<br>내가 원하는 시기가 아닐 수 있다는 점을<br>\t\t\t<br>내가 원하는 시기에 꽃이 피는 것은 아님을<br>\t\t\t<br>상기하려 노력했다.<br>\t\t\t<br><br>\t\t\t<br>______________________<br>\t\t\t<br><br>\t\t\t<br>매일 만나고 싶은 사람이 있다.<br>\t\t\t<br><br>\t\t\t<br>바로,<br>\t\t\t<br>어제보다 더 나아진 나.<br>\t\t\t<br>____<br>\t\t\t<br><br>\t\t\t<br>빛나는 오늘은,<br>\t\t\t<br>비루한 어제에 대한<br>\t\t\t<br>가장 훌륭한 변명이다.<br>\t\t\t<br><br>\t\t\t<br>____<br>\t\t\t<br><br>\t\t\t<br>26. ​뭔가 도움이 되는 것을 읽었다면 작성자에게 글을 쓰라.(생산적 소통)​<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>ㅇ Big shot. 쿨가이스펙/마이크임팩트 강사 참고<br>\t\t\t<br><br>\t\t\t<br>ㅇ 에세이나 책을 쓸 수 있을 정도로 독특한 나만의 커리어 스토리를 만들어야 한다. <br>\t\t\t<br>    회사 밖에서 프로그램을 운영 한다 던지, 아님 일에 관한 걸로 완전 쇼부를 보던지<br>\t\t\t<br>ㅇ 작고 보잘것 없는일도 반복하고 축적되면스토리가된다. <br>\t\t\t<br>    인생을 관통하는 스토리를 만들자<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br>세상은 나 같은 삼류에게<br>\t\t\t\t<br>아무 것도 바라지 않는다<br>\t\t\t\t<br>그러니 정작 중요한 것은<br>\t\t\t\t<br>내가 나에게 바라는 바다<br>\t\t\t\t<br><br>\t\t\t\t<br>나를 선택해선 안될 이유<br>\t\t\t\t<br>나에게는 루틴이 있습니다. 나는 직업인으로서의 나를<br>\t\t\t\t<br>선수로 생각합니다.<br>\t\t\t\t<br>직업적 비전과 사명 -내가 만든 피티와 아이디어들<br>\t\t\t\t<br>O2o, mcn, 액션캠<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>위대한 장난을 위해 살고<br>\t\t\t\t<br>농을 치기 위해 읽고<br>\t\t\t\t<br><br>\t\t\t\t<br>육감 브랜딩<br>\t\t\t\t<br>ㅇ 미각 - 초콜릿 브랜딩<br>\t\t\t\t<br>ㅇ 촉각 - 스킨십<br>\t\t\t\t<br>ㅇ 후각 - 향수<br>\t\t\t\t<br>ㅇ 시각 - 당당하게 웃고, 걷고, 허리를 곧게 펴라<br>\t\t\t\t<br>ㅇ 청각 - 낮고 정갈한 목소리<br>\t\t\t\t<br>ㅇ 육감<br>\t\t\t\t<br><br>\t\t\t\t<br>나만의 유니폼(Clothes) <br>\t\t\t\t<br>ㅇ 옷 입기에 드는 의사결정 최소화<br>\t\t\t\t<br>27. 자신의 패션 유니폼을 정하고 매일 그걸 입어라.<br>\t\t\t\t<br>28. 스마트 패브릭(기능성 소재의 옷)​을 입어라.<br>\t\t\t\t<br>29. 모든 상황에 대처할 수 있는 옷을 가지고 다녀라.​<br>\t\t\t\t<br>30. 입지 않는 옷은 과감히 버려라.​<br>\t\t\t\t<br>​<br>\t\t\t\t<br><br>\t\t\t\t<br>ㅇ 컨셉<br>\t\t\t\t<br>스포티 비즈니스룩<br>\t\t\t\t<br>포멀라이즈드 스포티룩<br>\t\t\t\t<br><br>\t\t\t\t<br>ㅇ 구성<br>\t\t\t\t<br>화이트 셔츠<br>\t\t\t\t<br>검은색 혹은 회색 팬츠, 통큰걸로, <br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"http://storefarm.naver.com/lastoke/products/367823943?NaPm=ct%3Dilqpzwmg%7Cci%3D9e3fbc919e83e342d5f40bd985a283e20f557814%7Ctr%3Dslsl%7Csn%3D230482%7Cic%3D%7Chk%3D6eadf8027cc1b186f302d758b1db1cde02d08f10\" target=\"_blank\">http://storefarm.naver.com/lastoke/products/367823943?NaPm=ct%3Dilqpzwmg%7Cci%3D9e3fbc919e83e342d5f40bd985a283e20f557814%7Ctr%3Dslsl%7Csn%3D230482%7Cic%3D%7Chk%3D6eadf8027cc1b186f302d758b1db1cde02d08f10</a><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"http://storefarm.naver.com/undercage/products/370299963\" target=\"_blank\">http://storefarm.naver.com/undercage/products/370299963</a><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"http://shopping.naver.com/search/all_search.nhn?query=%EB%82%A8%EC%9E%90%20%EC%99%80%EC%9D%B4%EB%93%9C%20%EC%8A%AC%EB%A0%89%EC%8A%A4&frm=NVSCPRO\" target=\"_blank\">http://shopping.naver.com/search/all_search.nhn?query=%EB%82%A8%EC%9E%90%20%EC%99%80%EC%9D%B4%EB%93%9C%20%EC%8A%AC%EB%A0%89%EC%8A%A4&frm=NVSCPRO</a><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"http://undercage.com/\" target=\"_blank\">http://undercage.com/</a><br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"http://www.e-theclass.co.kr/_template/shop/product_view.php?pno=38087D90FE0083A5D17FEF54ED2B3220&cno1=\" target=\"_blank\">http://www.e-theclass.co.kr/_template/shop/product_view.php?pno=38087D90FE0083A5D17FEF54ED2B3220&cno1=</a><br>\t\t\t\t<br>검은색 혹은 회색 링벨트(링버클, 투링 벨트)<br>\t\t\t\t<br>무채색 스니커즈 혹은 러닝화<br>\t\t\t\t<br>아디다스 NMD RUNNER<br>\t\t\t\t<br>로우로우<br>\t\t\t\t<br><a href=\"http://www.29cm.co.kr/shop/shop_detail.asp?idx=71350\" target=\"_blank\">http://www.29cm.co.kr/shop/shop_detail.asp?idx=71350</a><br>\t\t\t\t<br>봄/여름 발목 양말, 겨울 긴 검은. 흰색 양말<br>\t\t\t\t<br>안경<br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"http://store.musinsa.com/app/product/detail/311137/0\" target=\"_blank\">http://store.musinsa.com/app/product/detail/311137/0</a><br>\t\t\t\t<br><br>\t\t\t\t<br>간절기 상의는 맨투맨이나 집업 혹은 가디건, 봄버자켓<br>\t\t\t\t<br>간절기에는 아우터나 가디건 / 니트셔츠<br>\t\t\t\t<br>셔츠 위에 회색이나 검은색 브이넥 니트셔츠<br>\t\t\t\t<br><a href=\"http://www.29cm.co.kr/shop/shop_detail.asp?idx=85724\" target=\"_blank\">http://www.29cm.co.kr/shop/shop_detail.asp?idx=85724</a><br>\t\t\t\t<br><br>\t\t\t\t<br>와이드 롱 팬츠, 흰색 스니커즈, 검은색 부츠,<br>\t\t\t\t<br><br>\t\t\t\t<br>모든 부문에 스토리를 만들어라<br>\t\t\t\t<br>\t\t\t\t\t<br>- 사회에 유익하고<br>\t\t\t\t\t<br>- 재미있고<br>\t\t\t\t\t<br>- 스마트한<br>\t\t\t\t<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>좋은 만남이 좋은 운명을 결정한다.<br>\t\t\t\t<br>좋은 사람을 보는 훈련, 주변 사람을 정리하는 훈련,<br>\t\t\t\t<br>좋은 사람관계 지속을 위한 훈련,<br>\t\t\t\t<br>ㅇ 부정적인 말은 하지 마라.<br>\t\t\t\t<br>왕처럼 말하고, 거지처럼 침묵하라.<br>\t\t\t\t<br>ㅇ 좋은 음악을 들어라, 모차르트, 바하, 헨델<br>\t\t\t\t<br>ㅇ 원하면 먼저 주라.<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>기도문 & 자경문 _ 의식주와 생활 습관<br>\t\t\t\t<br><br>\t\t\t\t<br>주리지 않으면 먹지 말고<br>\t\t\t\t<br>잘 때가 아니면 침상에 들지 말라<br>\t\t\t\t<br>하루에 6시간은 꼭 자둬라, 수면의 질은 <br>\t\t\t\t<br>깨어있는 시간의 질을 좌우한다.<br>\t\t\t\t<br>옷을 사거나 고르는데 많은 시간을 들이지 말라,<br>\t\t\t\t<br>사람들은 너와 네 옷에는 크게 관심이 없다.<br>\t\t\t\t<br>ㅇ 사람들은 나를 신경쓰지 않는다.<br>\t\t\t\t<br><a href=\"http://www.newsquare.kr/issues/1149/stories/4656\" target=\"_blank\">http://www.newsquare.kr/issues/1149/stories/4656</a><br>\t\t\t\t<br><br>\t\t\t\t<br>소비하기 위해 스스로를 소비하는 것을 멈추라.<br>\t\t\t\t<br>차, 시계, 옷 따위로<br>\t\t\t\t<br>수식할 수 있을 정도로 너의 에고가<br>\t\t\t\t<br>값싼 것인지 숙고하라.<br>\t\t\t\t<br>(차, 시계, 옷 따위로 돋보이게 하기엔, 내 에고는 이미 너무 비싸니깐)<br>\t\t\t\t<br>인생에대한 실험적 자세를 견지한다<br>\t\t\t\t<br><br>\t\t\t\t<br>누구나 돈이면 살 수 있는 것을<br>\t\t\t\t<br>굳이 너 까지 욕심낼 필요가 있나?<br>\t\t\t\t<br><br>\t\t\t\t<br>남과 비슷해지기 위해 함부로 돈을 쓰지 마라.<br>\t\t\t\t<br>멍청한 짓이다.<br>\t\t\t\t<br><br>\t\t\t\t<br>돈으로는 살 수 없는 것들에 집중해라.<br>\t\t\t\t<br><br>\t\t\t\t<br>물질보다 사고, 익숙함보다 다름<br>\t\t\t\t<br><br>\t\t\t\t<br>네가 남들보다 나은 사람이라는 것을<br>\t\t\t\t<br>가방이나 차, 시계 따위로 증명할 수 있다고 믿나?<br>\t\t\t\t<br>아니 그 전에 남들보다 나아야 할 이유는 무언가?<br>\t\t\t\t<br><br>\t\t\t\t<br><a href=\"http://m.news.naver.com/read.nhn?mode=LSD&sid1=001&oid=053&aid=0000021514\" target=\"_blank\">http://m.news.naver.com/read.nhn?mode=LSD&sid1=001&oid=053&aid=0000021514</a><br>\t\t\t\t<br><br>\t\t\t\t<br>인사하라, 웃어라, 칭찬하라.<br>\t\t\t\t<br><br>\t\t\t\t<br>착하게 살지 않아도 좋다.<br>\t\t\t\t<br>다만, 나쁘지 않게 살자.<br>\t\t\t\t<br>해치지말고 상처주지 말자.<br>\t\t\t\t<br><br>\t\t\t\t<br>조금 나빠도 괜찮다.<br>\t\t\t\t<br>내가 사는 내 인생이다.<br>\t\t\t\t<br>그저, 내가 살기 좋은 내 삶이면 되는거.<br>\t\t\t\t<br><br>\t\t\t\t<br>살수록 가벼워지는 그런 삶을 살고싶다.<br>\t\t\t\t<br><br>\t\t\t\t<br>마음을 열고, 세상을 사랑하라<br>\t\t\t\t<br>주변에게 애정을<br>\t\t\t\t<br>스스로에게 감동을<br>\t\t\t\t<br><br>\t\t\t\t<br>쿨하되 차갑지 않고<br>\t\t\t\t<br>단 따뜻한<br>\t\t\t\t<br>자신감어린 겸손함<br>\t\t\t\t<br><br>\t\t\t\t<br>아이처럼 경쾌하게<br>\t\t\t\t<br>아이처럼 무리가 없으나 때로 떼를 쓸줄도 알아야 하고<br>\t\t\t\t<br>아이처럼 살수록 가벼워 지는 삶<br>\t\t\t\t<br>주도적으로 세상을 쥐고 흔들 수 있어야 한다<br>\t\t\t\t<br>다만, 나 혼자가 아니라 다른 이들의 힘을 이용해서<br>\t\t\t\t<br><br>\t\t\t\t<br>스스에게 그리고 내 자식에게 자신 있게 리뷰할 수 있는 삶을 살아라.<br>\t\t\t\t<br>내가 나를 납득시킬 수 있는, 내가 살기 좋은 내 삶이어야 한다.<br>\t\t\t\t<br><br>\t\t\t\t<br>행복해라. 감동도 많이 받고, 많은 사람을 만나고. 울고 웃고 흔들리며.<br>\t\t\t\t<br>해가되지 않는 한 최대의 자유를 누려라.<br>\t\t\t\t<br><br>\t\t\t\t<br>무언를 소비하기 위해 스스로를 소비하는 것을 멈춰라<br>\t\t\t\t<br><br>\t\t\t\t<br>- 말이 많으면 쓸 말이 적다.<br>\t\t\t\t<br>- 천천히 스스로의 말을 들으면서 말해라.<br>\t\t\t\t<br>- 항상 주변에 뭘 줄 수 있을지를 고민해라.<br>\t\t\t\t<br>- 쿨하되 겸손 할 것<br>\t\t\t\t<br>- 삶은 네가 가진 것이 아니라. 세상에 뿌려놓은 것의 크기이다<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>오늘을 향한 기도<br>\t\t\t\t<br><br>\t\t\t\t<br>온전히 현재를 살게 하소서<br>\t\t\t\t<br>매양 흐르되 넘치지 않고 머물되 그치지 않으며<br>\t\t\t\t<br>박수칠때 떠나야 함을 잊지 않게 하소서<br>\t\t\t\t<br><br>\t\t\t\t<br>온유한 의지를 품게하소서<br>\t\t\t\t<br>이기기 보다 지지 않는 굳건함을 주시옵고<br>\t\t\t\t<br>모든 두려움 앞에 한발 더 내 딛을 기백을 주소서<br>\t\t\t\t<br><br>\t\t\t\t<br>여백을 허락 하소서<br>\t\t\t\t<br>나눔으로 감싸안으며 다름을 인정할 용기를 주소서  <br>\t\t\t\t<br>버리고, 비우고, 내려놓은 만큼 채워짐을 믿습니다.<br>\t\t\t\t<br><br>\t\t\t\t<br>아이처럼 웃음짓게 하소서<br>\t\t\t\t<br>진중하나 무겁지 않고, 유쾌하나 경박하지 않은 <br>\t\t\t\t<br>담백한 웃음으로 나와 소중한 벗들의 오늘을 빛나게 하소서<br>\t\t\t\t<br><br>\t\t\t\t<br>그리고, 어떤날에도 스스로를 사랑하는 것을 잊지 않게 하소서. <br>\t\t\t\t<br><br>\t\t\t\t<br>2009.6.14 _ 내가 나에게<br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t\t<br>유리하다고 교만하지 말고<br>\t\t\t\t<br>불리하다고 비굴하지 말라<br>\t\t\t\t<br>무엇을 들었다고 쉽게 행동하지 말고<br>\t\t\t\t<br>그것이 사실인지 깊이 생각하여<br>\t\t\t\t<br>이치가 명확할 때 과감히 행동하라<br>\t\t\t\t<br><br>\t\t\t\t<br>벙어리처럼 침묵하고 임금님처럼 말하고<br>\t\t\t\t<br>눈 처럼 냉정하고 불처럼 뜨거워라<br>\t\t\t\t<br>태산같은 자부심을 갖고<br>\t\t\t\t<br>누운 풀처럼 자기를 낮춰라<br>\t\t\t\t<br><br>\t\t\t\t<br>역경을 참아 이겨내고<br>\t\t\t\t<br>형편이 풀릴때를 조심하라<br>\t\t\t\t<br>재물을 오물처럼 볼줄도알고<br>\t\t\t\t<br>터지는 분노를 잘 다스려라<br>\t\t\t\t<br><br>\t\t\t\t<br>때로는 마음껏 풍류를 즐기고<br>\t\t\t\t<br>사슴처럼 두려워 할 줄알고<br>\t\t\t\t<br>호랑이처럼 무섭고 사나워라<br>\t\t\t\t<br><br>\t\t\t\t<br>때와 처지를 살필줄알고<br>\t\t\t\t<br>부귀와 쇠망이 교차함을 알라<br>\t\t\t\t<br>이것이 지혜로운 이의 삶이니라<br>\t\t\t\t<br><br>\t\t\t\t<br>< 잡 보 장 경 > 중에서<br>\t\t\t\t<br><br>\t\t\t\t<br>웃어라.<br>\t\t\t\t<br>온 세상 이 너와 함께 웃을 것이다.<br>\t\t\t\t<br>울어라.<br>\t\t\t\t<br>너 혼자만 울게 될 것이다.<br>\t\t\t\t<br><br>\t\t\t\t<br>Solitude by Ella Wheeler Wilcox <br>\t\t\t<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>회자될만한 스토리<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>ㅇ 브랜드 속성<br>\t\t\t<br>호기심<br>\t\t\t<br>학구열<br>\t\t\t<br>판단력<br>\t\t\t<br>비판적 사고<br>\t\t\t<br>창의성<br>\t\t\t<br>독창성<br>\t\t\t<br>사회성<br>\t\t\t<br>대인관계<br>\t\t\t<br>예견력<br>\t\t\t<br>통찰력<br>\t\t\t<br>끈기, 성실, 근면<br>\t\t\t<br>지조, 진실, 정직<br>\t\t\t<br>친절, 아량<br>\t\t\t<br>사랑하고 받을줄 아는 능력<br>\t\t\t<br>시민정신<br>\t\t\t<br>의무감<br>\t\t\t<br>협동정신<br>\t\t\t<br>충성심<br>\t\t\t<br>공정성, 평등정신<br>\t\t\t<br>지도력<br>\t\t\t<br>자기통제력<br>\t\t\t<br>사려, 신중함, 조심성<br>\t\t\t<br>겸손, 겸양<br>\t\t\t<br>감상력<br>\t\t\t<br>감사<br>\t\t\t<br>희망, 낙관주의, 미래지향성<br>\t\t\t<br>영성, 목적의식, 신념, 신앙심,<br>\t\t\t<br>용서, 연민<br>\t\t\t<br>명랑함, 유머감각,<br>\t\t\t<br>신명, 열정, 열광",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

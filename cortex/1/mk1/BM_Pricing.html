@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BM/Pricing</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">BM/Pricing</div>
+<div class="date">Invalid Date</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-BM-Pricing';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "BM/Pricing<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>Q. 수익 모델은 어떻게 되나요?<br>\t\t\t<br><br>\t\t\t<br>처음에는 무료로 제공하다가 일정 사용량 이후에는 주당 7달러의 구독료를 받는 모델을 채택했어요.&#160;이 모델이 꽤 효과적이었죠. 사용자들이 먼저 앱을 무료로 사용해볼 수 있게 해서 가치를 직접 경험하게 한 다음, 계속 사용하고 싶은 사람들에게만 구독료를 받는 거예요.<br>\t\t\t<br>덕분에 누구나 부담 없이 앱을 체험해볼 수 있고, 정말 필요한 사용자들만 구독을 하니 고객 이탈률도 낮아졌어요. 실제로 이 모델 덕분에 안정적인 수익을 올릴 수 있었습니다.<br>\t\t\t<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://maily.so/josh/posts/wjzde0lyo3p\" target=\"_blank\">https://maily.so/josh/posts/wjzde0lyo3p</a>> <br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>Q. Umax도 ChatGPT를 이용해 만드셨나요? 개발 과정이 어땠나요?<br>\t\t\t<br><br>\t\t\t<br>네, 코드의 약 90%를 ChatGPT가 작성했고, 나머지는 제가 직접 했어요. 개발 과정은 Rizz GPT 때보다 훨씬 수월했어요. 이미 앱 개발 경험이 있었고, ChatGPT 사용법도 익숙해졌거든요.<br>\t\t\t<br>약 한 달 반 만에 앱을 완성했어요. 그 후 인플루언서 마케팅을 활용해 첫 번째 홍보 영상으로 출시했죠.&#160;그 영상은 10만 뷰를 기록했고, 몇 천 건의 다운로드를 얻었어요. 첫 달에 약 10만 달러의 수익을 올렸죠.<br>\t\t\t<br>\t\t\t<br>Umax<br>\t\t\t<br>&#160;<br>\t\t\t<br>Q. 그 정도면 꽤 성공적인 출발이네요. 그 후에는 어떻게 됐나요?<br>\t\t\t<br><br>\t\t\t<br>네, 좋은 출발이었죠.&#160;하지만 금세 위기가 찾아왔어요.&#160;경쟁자가 나타난 거예요. 그들은 우리 앱의 모든 것을 그대로 복사했어요.&#160;마케팅 전략부터 UI, 심지어 얼굴 분석 결과까지요. 그들은 2주 만에 우리가 한 달 반 동안 이룬 것을 따라잡았어요.<br>\t\t\t<br>이 상황에서 저는 과감한 결정을 내렸어요.&#160;4일 동안 20만 달러 (약 2억 원) 이상을 인플루언서 마케팅에 투자했죠.&#160;그때까지 번 돈을 모두 쏟아부은 거나 다름없었어요.<br>\t\t\t<br>&#160;<br>\t\t\t<br>Q. 결과는 어땠나요?<br>\t\t\t<br><br>\t\t\t<br>다행히 그 전략이 통했어요.&#160;그 다음 3일 동안 우리는 폭발적인 성장을 했어요.&#160;첫날 10만 다운로드, 그 다음날 9만 다운로드, 그 다음날 8만 다운로드...&#160;수익도 하루에 3만 5천에서 4만 달러씩 들어왔어요.<br>\t\t\t<br>결과적으로 우리는 월 반복 수익(MRR)을 15만 달러에서 50만 달러로 끌어올렸어요.&#160;하룻밤 사이에 말이죠. 우리는 경쟁자의 다운로드 수를 4배나 앞질렀고, 수익도 4배 더 올렸어요.<br>\t\t\t<br>\t\t\t<br>Umax 주당 수익 : 6,800만 원<br>\t\t\t<br>&#160;<br>\t\t\t<br>Q. Umax의 수익 모델은 어떻게 되나요?<br>\t\t\t<br><br>\t\t\t<br>Umax는 구독 모델로 운영돼요. 사용자들은 3.99달러를 지불하고 얼굴 분석 서비스를 이용해요.&#160;처음에는 무료로 사용할 수 있게 했다가, 일정 횟수 이상 사용하면 구독을 하도록 유도했죠.<br>\t\t\t<br>우리는 가격을 3.99달러로 책정했는데, 이게 적절했던 것 같아요. 너무 비싸지도 않고, 그렇다고 너무 싸지도 않았거든요. 사용자들이 가치 있다고 느낄 만한 가격이었죠.<br>\t\t\t<br>&#160;<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://maily.so/josh/posts/wjzde0lyo3p\" target=\"_blank\">https://maily.so/josh/posts/wjzde0lyo3p</a>> <br>\t\t\t<br><br>\t\t\t<br>Q: 가격 정책은 어떻게 되나요?<br>\t\t\t<br><br>\t\t\t<br>월 10달러 또는 연 30달러입니다.&#160;대부분의 사용자가 연간 구독을 선택해요. 처음에는 3일 무료 체험을 제공합니다.&#160;그런데 우리는 완전한 프리미엄 모델이에요. 무료 버전은 없습니다.<br>\t\t\t<br>&#160;<br>\t\t\t<br>\t\t\t<br>많은 앱들이 무료 버전을 제공하고 광고를 넣거나 프리미엄 기능을 팔려고 하는데, 그건 좋은 전략이 아니에요. 한번 무료로 쓰기 시작하면, 나중에 돈을 내게 만들기가 매우 어려워지거든요.<br>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://eopla.net/magazines/23928\" target=\"_blank\">https://eopla.net/magazines/23928</a>>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

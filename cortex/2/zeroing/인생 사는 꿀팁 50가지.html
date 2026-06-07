@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>인생 사는 꿀팁 50가지</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">인생 사는 꿀팁 50가지</div>
+<div class="date">2017년 4월 11일 화요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-인생-사는-꿀팁-50가지';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "인생 사는 꿀팁 50가지<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>오늘의 웃긴 짤<br>\t\t\t<br>2017-03-30 12:01:49<br>\t\t\t<br>저작권 및 콘텐츠 관련 문의<br>\t\t\t<br>selfintro@naver.com",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "a0d994bf3c.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "image",
+    "src": "e4c8836b96.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "image",
+    "src": "652fd2f115.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "출처 : 모링월드<br>\t\t<br>\t\t<br>\t\t\t<br><a href=\"http://yellow.kr/financeView.jsp?s=$INDU\" target=\"_blank\">http://yellow.kr/financeView.jsp?s=$INDU</a><br>\t\t\t<br><a href=\"https://hugin00munin.blogspot.com/2019/08/blog-post_9.html?m=0\" target=\"_blank\">https://hugin00munin.blogspot.com/2019/08/blog-post_9.html?m=0</a><br>\t\t<br>\t\t<br>\t\t\t<br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt/2192226\" target=\"_blank\">https://www.instiz.net/pt/2192226</a><br>\t\t\t\t[",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "c55fd9617a.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "](<a href=\"https://www.instiz.net/)\" target=\"_blank\">https://www.instiz.net/)</a>\t\t\t\t<br>&#160;<br>\t\t\t\t[",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "dadb5d22a1.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "](<a href=\"https://www.instiz.net/)\" target=\"_blank\">https://www.instiz.net/)</a>\t\t\t\t<br>&#160;77245<br>\t\t\t\t<br>- <a href=\"https://www.instiz.net/popup_search.htm\" target=\"_blank\">통합검색</a><br>\t\t\t\t<br>- <a href=\"http://javascript:spell(\" target=\"_blank\">맞춤법</a>)<br>\t\t\t\t<br>- <a href=\"http://javascript:rule(1\" target=\"_blank\">이용방법&#183;규칙</a>)<br>\t\t\t\t<br>- <a href=\"http://javascript:rule(5\" target=\"_blank\">질문&#183;제안&#183;신고</a>)<br>\t\t\t\t<br>- <a href=\"http://javascript:setting(\" target=\"_blank\">설정</a>)<br>\t\t\t\t<br>- <a href=\"http://javascript:showinti(\" target=\"_blank\">로그인</a>)<br>\t\t\t\t<br>- <a href=\"https://www.instiz.net/pt/2192226?loginview=1&join=1\" target=\"_blank\">회원가입</a><br>\t\t\t\t<br>- <a href=\"https://www.instiz.net/pt\" target=\"_blank\">이슈</a><br>\t\t\t\t<br>- <a href=\"https://www.instiz.net/name\" target=\"_blank\">일상</a><br>\t\t\t\t<br>- <a href=\"https://www.instiz.net/name_enter\" target=\"_blank\">연예</a><br>\t\t\t\t<br>- <a href=\"https://www.instiz.net/name_beauty\" target=\"_blank\">뷰티</a><br>\t\t\t\t<br>- <a href=\"https://www.instiz.net/market\" target=\"_blank\">장터</a><br>\t\t\t\t<br>- <a href=\"https://www.instiz.net/writing\" target=\"_blank\">팬픽</a><br>\t\t\t\t<br>- <a href=\"https://www.instiz.net/name_study\" target=\"_blank\">공부</a><br>\t\t\t\t<br>- <a href=\"https://www.instiz.net/news\" target=\"_blank\">뉴스</a><br>\t\t\t\t<br>- <a href=\"https://www.instiz.net/realtime\" target=\"_blank\">일정</a><br>\t\t\t\t<br>- <a href=\"http://javascript:op('//www.ichart.kr'\" target=\"_blank\">iChart</a>)<br>\t\t\t\t<br>- <a href=\"https://www.instiz.net/spage/2\" target=\"_blank\">게임</a><br>\t\t\t\t<br>- 자주 가는 메뉴<br>\t\t\t\t<br>댓글<br>\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br><a href=\"https://www.instiz.net/pt\" target=\"_blank\">인티포털</a><br>\t\t\t\t\t\t<br>l<a href=\"http://javascript:moresearch(\" target=\"_blank\">검색 옵션</a>)<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br>[청둥오리가 알려주는 인생의 꿀팁[3] .jpg](<a href=\"https://www.instiz.net/pt/2192226?page=1&nolisting=&k=)\" target=\"_blank\">https://www.instiz.net/pt/2192226?page=1&nolisting=&k=)</a><a href=\"https://www.instiz.net/pt/2192226?page=1&nolisting=&k=&vc=1#goreple\" target=\"_blank\">5</a>&#160;<a href=\"http://javascript:void(0\" target=\"_blank\">•••</a>)&#160;l&#160;<a href=\"https://www.instiz.net/pt?category=2\" target=\"_blank\">유머&#183;감동</a><br>\t\t\t\t\t\t\t\t<br><a href=\"https://www.instiz.net/bbs/write.php?id=pt&page=1&nolisting=&k=\" target=\"_blank\">&#160;새 글 (W)&#160;</a>&#160;&#160;<a href=\"https://www.instiz.net/iframe_scrap.htm?id=pt&no=2192226&category=2&subject=%EC%B2%AD%EB%91%A5%EC%98%A4%EB%A6%AC%EA%B0%80+%EC%95%8C%EB%A0%A4%EC%A3%BC%EB%8A%94+%EC%9D%B8%EC%83%9D%EC%9D%98+%EA%BF%80%ED%8C%81%5B3%5D+.jpg\" target=\"_blank\">스크랩</a><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br><a href=\"http://javascript:void(0\" target=\"_blank\">달님진기</a>)&#160;l6년 전 (2014.7.14 23:40)l조회 1860l<br>\t\t\t\t\t\t\t\t[",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "fe2105bdc5.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "](javascript:ajaxload2('../bbs/vote.php?id=pt&no=2192226&vote='+$('.votenow2192226').html(),1,function(data)%7binnerHTMLJS('ajaxhtml',data);%7d);)<br>&#160;<a href=\"http://javascript:ajaxload2('../bbs/vote.php?id=pt&no=2192226&vote='+$('.votenow2192226'\" target=\"_blank\">0</a>.html(),1,function(data)%7binnerHTMLJS('ajaxhtml',data);%7d);)<br>\t\t\t\t\t\t\t\t<br><a href=\"https://www.instiz.net/pt/2192226\" target=\"_blank\">https://instiz.net/pt/2192226</a>&#160;&#160;<a href=\"https://www.instiz.net/pt/2192226#\" target=\"_blank\">글 주소 복사</a>&#160;l&#160;<a href=\"http://javascript:ccl('pt','2192226'\" target=\"_blank\">출처</a>)<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t옛날 글 알림&#160;l&#160;이 글은 6년 전에 쓰여졌습니다<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>아이디어는 떠오르게 되어있다",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "8541fdc28a.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "진정으로 생각할 용기만 가진다면<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>중요한 결정을 내리지마라. 흥분해있을땐<br>\t\t\t\t\t\t\t\t<br>약속하지말아라. 행복에 젖어있을땐<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>그 사람이 용서받을만하기때문에 용서하는 것이 아니다.<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>네가 평화를 누릴 자격이 있기때문에 용서하는것이다.<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>가끔 읽었던 책이나 영화를 다시보는게 어떤가<br>\t\t\t\t\t\t\t\t<br>그것들의 줄거리는 변하지 않았지만 그것을 보는 너의 관점은 달라져있을 것이다.<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>피자를 전자렌지에 돌릴때는 물한컵을 같이 넣고 돌려라<br>\t\t\t\t\t\t\t\t<br>죽은피자가 살아나는 기적을 보게 될것이다.<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>취준생 친구한테 만날때마다 취업했냐고물어보지 좀 말아라<br>\t\t\t\t\t\t\t\t<br>했으면 너한테도 말해줬겠지<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>애들은 부모곁에 있을때보다 친구들과 있을때 조금 더 자기모습을 드러낸다.<br>\t\t\t\t\t\t\t\t<br>그러므로 만약아이의 담임선생이 아이에 대한 문제를 언급한다면 경청할필요가 있다.<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>너의 아이들에게 요리를 가르쳐라<br>\t\t\t\t\t\t\t\t<br>성별에 관계없이<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>술을 진탕먹고 잤는데 일찍 일어나졌다면 혈당이 낮아져서 그렇다.<br>\t\t\t\t\t\t\t\t<br>빵을 먹든 피넛버터를 먹든 단걸먹고나면 다시 잠들수 있을 것이다.<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>걔 친구들이 모두 라면<br>\t\t\t\t\t\t\t\t<br>걔도 다.<br>\t\t\t\t\t\t\t\t<br>네가 정말로 애용하는 제품이나 물건이 생겼다면<br>\t\t\t\t\t\t\t\t<br>그걸 만든 회사에 감사하다는 메시지를 보내봐라 대부분의 회사는 답례를 한다.<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>조용한 애들은 스스로 자신이 조용한걸 안다.<br>\t\t\t\t\t\t\t\t<br>네가 그걸 지적해주지 않아도<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>남자들에게 미묘한 힌트같은건남기지마라<br>\t\t\t\t\t\t\t\t<br>어차피 못알아챔<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>바닥에 토해놓은걸 치우려면 우선 커피부터 부어라<br>\t\t\t\t\t\t\t\t<br>냄새를 잡아주고토사물을건조시켜 다소 쉽게 치울수 있다.<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>&#160;&#160;0<br>\t\t\t\t\t\t\t\t<br>* 비회원 참여 가능<br>\t\t\t\t\t\t\t\t<br><a href=\"http://javascript:sendlink(\" target=\"_blank\">공유</a>;)<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br>&#160;<a href=\"http://javascript:police('pt','2192226','%EC%9C%A0%EB%A8%B8%C2%B7%EA%B0%90%EB%8F%99'\" target=\"_blank\">신고</a>)<br>\t\t\t\t\t\t\t\t[",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "fe2105bdc5.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "](javascript:ajaxload2('../bbs/vote.php?id=pt&no=2192226&vote='+$('.votenow2192226').html(),1,function(data)%7binnerHTMLJS('ajaxhtml',data);%7d);)<br>&#160;<a href=\"http://javascript:ajaxload2('../bbs/vote.php?id=pt&no=2192226&vote='+$('.votenow2192226'\" target=\"_blank\">0</a>.html(),1,function(data)%7binnerHTMLJS('ajaxhtml',data);%7d);)<br>\t\t\t\t\t\t\t\t<br><a href=\"http://javascript:votelist(\" target=\"_blank\">추천 내역</a>)<br>\t\t\t\t\t\t\t\t<br><a href=\"https://www.instiz.net/iframe_scrap.htm?id=pt&no=2192226&category=2&subject=%EC%B2%AD%EB%91%A5%EC%98%A4%EB%A6%AC%EA%B0%80+%EC%95%8C%EB%A0%A4%EC%A3%BC%EB%8A%94+%EC%9D%B8%EC%83%9D%EC%9D%98+%EA%BF%80%ED%8C%81%5B3%5D+.jpg\" target=\"_blank\">스크랩 20</a>",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "537fe7bbaf.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "6년 전<br>\t\t\t\t\t\t\t\t<br>이찌은&#160;&#160;스무살의 봄<br>\t\t\t\t\t\t\t\t<br>ㅋㅋㅋㅋㅋ뭔가분위기있으면서 피식하게돼는 꿀팁!!? 그래도 슼슼!!!<br>\t\t\t\t\t\t\t\t<br><a href=\"http://javascript:cmtmoreviewbtn(67211743\" target=\"_blank\">•••</a>;)<a href=\"http://javascript:void(reple(67211743,'',67211743\" target=\"_blank\">답글</a>))",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "537fe7bbaf.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "6년 전<br>\t\t\t\t\t\t\t\t<br>하늘에는달<br>\t\t\t\t\t\t\t\t<br>올 ㅋ<br>\t\t\t\t\t\t\t\t<br><a href=\"http://javascript:cmtmoreviewbtn(67211823\" target=\"_blank\">•••</a>;)<a href=\"http://javascript:void(reple(67211823,'',67211823\" target=\"_blank\">답글</a>))",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "537fe7bbaf.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "6년 전<br>\t\t\t\t\t\t\t\t<br>뷘 스<br>\t\t\t\t\t\t\t\t<br>오리고기는 맛있다.<br>\t\t\t\t\t\t\t\t<br>훈제일떄 더더욱<br>\t\t\t\t\t\t\t\t<br><a href=\"http://javascript:cmtmoreviewbtn(67211825\" target=\"_blank\">•••</a>;)<a href=\"http://javascript:void(reple(67211825,'',67211825\" target=\"_blank\">답글</a>))",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "537fe7bbaf.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "6년 전<br>\t\t\t\t\t\t\t\t<br>반달슴가곰&#160;&#160;널 조아해<br>\t\t\t\t\t\t\t\t<br>올ㅋ<br>\t\t\t\t\t\t\t\t<br><a href=\"http://javascript:cmtmoreviewbtn(67212303\" target=\"_blank\">•••</a>;)",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "537fe7bbaf.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "6년 전<br>\t\t\t\t\t\t\t\t<br>아이들의 권선생님<br>\t\t\t\t\t\t\t\t<br>어짜피못알아챔ㅋ<br>\t\t\t\t\t\t\t\t<br><a href=\"http://javascript:cmtmoreviewbtn(67212353\" target=\"_blank\">•••</a>;)<a href=\"http://javascript:void(reple(67212353,'',67212353\" target=\"_blank\">답글</a>))<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t\t\t<br><br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t번호<br>\t\t\t\t\t\t\t\t카테고리<br>\t\t\t\t\t\t\t\t<br><a href=\"http://javascript:op('//www.instiz.net/notice/216'\" target=\"_blank\">초록글 ⓘ</a>)&#160;l&#160;<a href=\"https://www.instiz.net/iframe_green_set.htm\" target=\"_blank\">닫기</a><br>\t\t\t\t\t\t\t\t<br>&#160;&#160;1&#160;/ 3&#160;키보드<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t닉네임<br>\t\t\t\t\t\t\t\t날짜<br>\t\t\t\t\t\t\t\t조회",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "fe2105bdc5.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "<a href=\"https://www.instiz.net/pt?category=2\" target=\"_blank\">유머&#183;감동</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804428?green=1\" target=\"_blank\">생각보다 많은 여자들이 갖고있는 연애 관련 생각</a><a href=\"https://www.instiz.net/pt/6804428?green=1&vc=1#goreple\" target=\"_blank\">355</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">민천재 (23)</a>)<br>\t\t\t\t\t\t\t\t\t\t15:04<br>\t\t\t\t\t\t\t\t\t\t56641<br>\t\t\t\t\t\t\t\t\t\t21<br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?category=2\" target=\"_blank\">유머&#183;감동</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804047?green=1\" target=\"_blank\">정신과 의사가 6살 아이의 치료를 포기한 이유</a><a href=\"https://www.instiz.net/pt/6804047?green=1&vc=1#goreple\" target=\"_blank\">313</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">색지</a>)<br>\t\t\t\t\t\t\t\t\t\t2:04<br>\t\t\t\t\t\t\t\t\t\t80112<br>\t\t\t\t\t\t\t\t\t\t16<br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?category=2\" target=\"_blank\">유머&#183;감동</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804426?green=1\" target=\"_blank\">교사가 개입하기 애매한 집단 따돌림 상황.jpg</a><a href=\"https://www.instiz.net/pt/6804426?green=1&vc=1#goreple\" target=\"_blank\">296</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">세기말</a>)<br>\t\t\t\t\t\t\t\t\t\t15:02<br>\t\t\t\t\t\t\t\t\t\t60312<br>\t\t\t\t\t\t\t\t\t\t13<br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?category=1\" target=\"_blank\">이슈&#183;소식</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804359?green=1\" target=\"_blank\">'박찬욱 식' 기괴함과 '봉준호 식' 기괴함의 차이.jpg</a><a href=\"https://www.instiz.net/pt/6804359?green=1&vc=1#goreple\" target=\"_blank\">175</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">우우아아</a>)<br>\t\t\t\t\t\t\t\t\t\t12:26<br>\t\t\t\t\t\t\t\t\t\t51805<br>\t\t\t\t\t\t\t\t\t\t14<br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?category=1\" target=\"_blank\">이슈&#183;소식</a><br>\t\t\t\t\t\t\t\t\t\t[[단독] \"'곰팡이' 잔뜩 핀 유명 브랜드 도넛, 다 폭로하겠습니다”..](<a href=\"https://www.instiz.net/pt/6804589?green=1)\" target=\"_blank\">https://www.instiz.net/pt/6804589?green=1)</a><a href=\"https://www.instiz.net/pt/6804589?green=1&vc=1#goreple\" target=\"_blank\">141</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">천재인</a>)<br>\t\t\t\t\t\t\t\t\t\t19:20<br>\t\t\t\t\t\t\t\t\t\t41880<br>\t\t\t\t\t\t\t\t\t\t4<br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804742<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804742?page=1&nolisting=&k=\" target=\"_blank\">돌아가신 아버지가 보낸 메일</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">김밍굴</a>)<br>\t\t\t\t\t\t\t\t23:50<br>\t\t\t\t\t\t\t\t1<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804741<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804741?page=1&nolisting=&k=\" target=\"_blank\">애견샵에 오래있던 강아지가 할 수 있었던 유일한 감정표현</a><a href=\"https://www.instiz.net/pt/6804741?page=1&nolisting=&k=&vc=1#goreple\" target=\"_blank\">1</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">빅뱅 사랑한</a>)<br>\t\t\t\t\t\t\t\t23:46<br>\t\t\t\t\t\t\t\t244<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804740<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804740?page=1&nolisting=&k=\" target=\"_blank\">'거짓말' 인천 학원강사 후회의 눈물.... 징역 2년 구형.gisa..</a><a href=\"https://www.instiz.net/pt/6804740?page=1&nolisting=&k=&vc=1#goreple\" target=\"_blank\">1</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">더보이즈 상</a>)<br>\t\t\t\t\t\t\t\t23:44<br>\t\t\t\t\t\t\t\t298<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804739<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804739?page=1&nolisting=&k=\" target=\"_blank\">나루토 - 생각보다 많이 약한 이타치</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">sweetly</a>)<br>\t\t\t\t\t\t\t\t23:42<br>\t\t\t\t\t\t\t\t134<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804738<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804738?page=1&nolisting=&k=\" target=\"_blank\">악당 된 이유류 甲.........jpg</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">+ordin</a>)<br>\t\t\t\t\t\t\t\t23:41<br>\t\t\t\t\t\t\t\t282<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804737<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804737?page=1&nolisting=&k=\" target=\"_blank\">총각 시절 준하형 갈구는 명수옹의 공격력 수준.jpg</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">백챠</a>)<br>\t\t\t\t\t\t\t\t23:39<br>\t\t\t\t\t\t\t\t413<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804736<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804736?page=1&nolisting=&k=\" target=\"_blank\">가짜 사나이 교관들이 만약 여자였다면?</a><a href=\"https://www.instiz.net/pt/6804736?page=1&nolisting=&k=&vc=1#goreple\" target=\"_blank\">1</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">내 마음속에</a>)<br>\t\t\t\t\t\t\t\t23:36<br>\t\t\t\t\t\t\t\t727<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804735<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804735?page=1&nolisting=&k=\" target=\"_blank\">홍철 없는 홍철팀</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">한 편의 너</a>)<br>\t\t\t\t\t\t\t\t23:35<br>\t\t\t\t\t\t\t\t299<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804734<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t[[MV] Junoflo - Angels (Visualizer)](<a href=\"https://www.instiz.net/pt/6804734?page=1&nolisting=&k=)\" target=\"_blank\">https://www.instiz.net/pt/6804734?page=1&nolisting=&k=)</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">닉네임135672</a>)<br>\t\t\t\t\t\t\t\t23:33<br>\t\t\t\t\t\t\t\t122<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804733<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804733?page=1&nolisting=&k=\" target=\"_blank\">남친이 아래애무하다가 토했어</a><a href=\"https://www.instiz.net/pt/6804733?page=1&nolisting=&k=&vc=1#goreple\" target=\"_blank\">16</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">윤정한 아내</a>)<br>\t\t\t\t\t\t\t\t23:32<br>\t\t\t\t\t\t\t\t4071<br>\t\t\t\t\t\t\t\t1<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804732<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804732?page=1&nolisting=&k=\" target=\"_blank\">서울 사람도 길 잃어버린다는 서울 3대 미로</a><a href=\"https://www.instiz.net/pt/6804732?page=1&nolisting=&k=&vc=1#goreple\" target=\"_blank\">4</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">김상연</a>)<br>\t\t\t\t\t\t\t\t23:31<br>\t\t\t\t\t\t\t\t473<br>\t\t\t\t\t\t\t\t1<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804731<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804731?page=1&nolisting=&k=\" target=\"_blank\">사진 보내면 그려드립니다.JPG</a><a href=\"https://www.instiz.net/pt/6804731?page=1&nolisting=&k=&vc=1#goreple\" target=\"_blank\">3</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">308679_return</a>)<br>\t\t\t\t\t\t\t\t23:30<br>\t\t\t\t\t\t\t\t402<br>\t\t\t\t\t\t\t\t1<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804730<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804730?page=1&nolisting=&k=\" target=\"_blank\">개쩌는 Dynamite 기타 커버</a><a href=\"https://www.instiz.net/pt/6804730?page=1&nolisting=&k=&vc=1#goreple\" target=\"_blank\">8</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">세정언니링</a>)<br>\t\t\t\t\t\t\t\t23:28<br>\t\t\t\t\t\t\t\t846<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804729<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804729?page=1&nolisting=&k=\" target=\"_blank\">대한민국 상위 1%가 가지고 있는 부동산</a><a href=\"https://www.instiz.net/pt/6804729?page=1&nolisting=&k=&vc=1#goreple\" target=\"_blank\">11</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">950107</a>)<br>\t\t\t\t\t\t\t\t23:28<br>\t\t\t\t\t\t\t\t1387<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804728<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804728?page=1&nolisting=&k=\" target=\"_blank\">비행기 안 스튜어디스 침실</a><a href=\"https://www.instiz.net/pt/6804728?page=1&nolisting=&k=&vc=1#goreple\" target=\"_blank\">9</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">몹시호시</a>)<br>\t\t\t\t\t\t\t\t23:25<br>\t\t\t\t\t\t\t\t2237<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804727<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804727?page=1&nolisting=&k=\" target=\"_blank\">'인종차별 폭발' 네이마르, \"유일한 후회는 그X, 얼굴 못 때린 것..</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">옹뇸뇸뇸</a>)<br>\t\t\t\t\t\t\t\t23:24<br>\t\t\t\t\t\t\t\t851<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804726<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804726?page=1&nolisting=&k=\" target=\"_blank\">지금 난리난 쿠키런 오븐브레이크</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">Wannable(워너</a>)<br>\t\t\t\t\t\t\t\t23:23<br>\t\t\t\t\t\t\t\t570<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804725<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804725?page=1&nolisting=&k=\" target=\"_blank\">디지털 교도소 근황</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">영은수</a>)<br>\t\t\t\t\t\t\t\t23:22<br>\t\t\t\t\t\t\t\t551<br>\t\t\t\t\t\t\t\t0<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t6804724<br>\t\t\t\t\t\t\t\t<br><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt/6804724?page=1&nolisting=&k=\" target=\"_blank\">칸 영화제에 이선균 혼자가서 화난 전혜진.jpg</a><a href=\"https://www.instiz.net/pt/6804724?page=1&nolisting=&k=&vc=1#goreple\" target=\"_blank\">13</a><br>\t\t\t\t\t\t\t\t<a href=\"http://javascript:void(0\" target=\"_blank\">아이오아이 김</a>)<br>\t\t\t\t\t\t\t\t23:20<br>\t\t\t\t\t\t\t\t2586<br>\t\t\t\t\t\t\t\t2<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?category=&prev_no\" target=\"_blank\">&#160;처음&#160;</a>&#160;&#160;<a href=\"http://javascript:lopen('../popup_easter_egg.htm?mode=bird',490\" target=\"_blank\">@@@</a>)<br>\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?1\" target=\"_blank\">1</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?page=2\" target=\"_blank\">2</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?page=3\" target=\"_blank\">3</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?page=4\" target=\"_blank\">4</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?page=5\" target=\"_blank\">5</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?page=6\" target=\"_blank\">6</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?page=7\" target=\"_blank\">7</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?page=8\" target=\"_blank\">8</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?page=9\" target=\"_blank\">9</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?page=10\" target=\"_blank\">10</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?page=11\" target=\"_blank\">11</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?page=12\" target=\"_blank\">12</a><br>\t\t\t\t\t\t\t\t\t\t<a href=\"https://www.instiz.net/pt?page=13\" target=\"_blank\">다음</a><br>\t\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t\t<br><a href=\"http://javascript:showsm('evt',2,13\" target=\"_blank\">이용 규칙</a>)<br>\t\t\t\t\t\t\t\t<br>&#160;&#160;<a href=\"https://www.instiz.net/bbs/write.php?id=pt&page=1&nolisting=&k=\" target=\"_blank\">&#160;새 글 (W)&#160;</a><br>\t\t\t\t\t\t\t\t<br>\t\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t\t<br>\t\t\t\t\t<br>\t\t\t\t<br>\t\t\t\t<br><a href=\"http://javascript:trend(''\" target=\"_blank\">인스티즈 트렌드</a>)&#160;lios14포토위젯엔하이픈이정도면미리알림아이폰7아는형님위버스샵잘생겼다물어보면<br>\t\t\t\t<br>전체 인기글&#160;l&#160;<a href=\"https://www.instiz.net/notice/307\" target=\"_blank\">안내</a><br>\t\t\t\t<br>9/19 23:46 ~ 9/19 23:48 기준<br>\t\t\t\t<br>1 ~ 10위<br>\t\t\t\t<br>11 ~ 20위<br>\t\t\t\t<br>1<br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt\" target=\"_blank\">인티포털</a><br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt/6804733\" target=\"_blank\">남친이 아래애무하다가 토했어</a>&#160;&#160;<a href=\"https://www.instiz.net/pt/6804733?vc=1\" target=\"_blank\">13</a>",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "a83295fcbe.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;2<br>\t\t\t\t<br>2<br>\t\t\t\t<br><a href=\"https://www.instiz.net/name\" target=\"_blank\">익명잡담</a><br>\t\t\t\t<br><a href=\"https://www.instiz.net/name/38710727\" target=\"_blank\">난 왜 인스타 스토리에 이런 거 올리고 싶을까...</a>&#160;&#160;<a href=\"https://www.instiz.net/name/38710727?vc=1\" target=\"_blank\">94</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "7e631876db.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;1<br>\t\t\t\t<br>3<br>\t\t\t\t<br><a href=\"https://www.instiz.net/name\" target=\"_blank\">익명잡담</a><br>\t\t\t\t<br><a href=\"https://www.instiz.net/name/38710595\" target=\"_blank\">경찰시험 난리났네...</a>&#160;&#160;<a href=\"https://www.instiz.net/name/38710595?vc=1\" target=\"_blank\">46</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "7e631876db.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;1<br>\t\t\t\t<br>4<br>\t\t\t\t<br><a href=\"https://www.instiz.net/name\" target=\"_blank\">익명잡담</a><br>\t\t\t\t<br><a href=\"https://www.instiz.net/name/38710298\" target=\"_blank\">아 나 엄청 못생겼는데 꾸미고 돌아다닌거 너무 쪽팔림</a>&#160;&#160;<a href=\"https://www.instiz.net/name/38710298?vc=1\" target=\"_blank\">114</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "a83295fcbe.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;1<br>\t\t\t\t<br>5<br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt\" target=\"_blank\">인티포털</a><br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt/6804720\" target=\"_blank\">상대방이 말할 때마다 김종민이 예? 예? 거리는 이유.jpg</a>&#160;&#160;<a href=\"https://www.instiz.net/pt/6804720?vc=1\" target=\"_blank\">36</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "7e631876db.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;1<br>\t\t\t\t<br>6<br>\t\t\t\t<br><a href=\"https://www.instiz.net/name\" target=\"_blank\">익명잡담</a><br>\t\t\t\t<br><a href=\"https://www.instiz.net/name/38710093\" target=\"_blank\">어제부터 mooda 어플 쓰고 있는데</a>&#160;&#160;<a href=\"https://www.instiz.net/name/38710093?vc=1\" target=\"_blank\">75</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "dbce177e73.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "7<br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt\" target=\"_blank\">인티포털</a><br>\t\t\t\t<br>급상승&#160;&#160;<a href=\"https://www.instiz.net/pt/6804718\" target=\"_blank\">친구 많지 않은분들 결혼할때 걱정하는 상황</a>&#160;&#160;<a href=\"https://www.instiz.net/pt/6804718?vc=1\" target=\"_blank\">11</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "a83295fcbe.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;10<br>\t\t\t\t<br>8<br>\t\t\t\t<br><a href=\"https://www.instiz.net/name\" target=\"_blank\">익명잡담</a><br>\t\t\t\t<br><a href=\"https://www.instiz.net/name/38710480\" target=\"_blank\">Mbti 중에 F랑 T 반응이라는데</a>&#160;&#160;<a href=\"https://www.instiz.net/name/38710480?vc=1\" target=\"_blank\">152</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "7e631876db.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;1<br>\t\t\t\t<br>9<br>\t\t\t\t<br><a href=\"https://www.instiz.net/name\" target=\"_blank\">익명잡담</a><br>\t\t\t\t<br><a href=\"https://www.instiz.net/name/38710303\" target=\"_blank\">&#128367;</a>나도 폰꾸했는대 깰꼼하지 40&#128367;&#160;&#160;<a href=\"https://www.instiz.net/name/38710303?vc=1\" target=\"_blank\">39</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "7e631876db.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;1<br>\t\t\t\t<br>10<br>\t\t\t\t<br><a href=\"https://www.instiz.net/name\" target=\"_blank\">익명잡담</a><br>\t\t\t\t<br><a href=\"https://www.instiz.net/name/38710592\" target=\"_blank\">멀쩡히 다니던 4년제 집어치우고 이번에 전문대 쓰는 20학번..</a>&#160;&#160;<a href=\"https://www.instiz.net/name/38710592?vc=1\" target=\"_blank\">50</a>",
+    "w": 320
+  },
+  {
+    "type": "image",
+    "src": "7e631876db.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "&#160;1<br>\t\t\t\t<br>1 ~ 10위<br>\t\t\t\t<br>11 ~ 20위<br>\t\t\t\t<br>인티포털의 인기글&#160;l&#160;<a href=\"https://www.instiz.net/notice/307\" target=\"_blank\">안내</a><br>\t\t\t\t<br>9/19 23:48 ~ 9/19 23:50 기준<br>\t\t\t\t<br>1 ~ 10위<br>\t\t\t\t<br>11 ~ 20위<br>\t\t\t\t<br>1<br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt/6804733?category=2\" target=\"_blank\">남친이 아래애무하다가 토했어</a><a href=\"https://www.instiz.net/pt/6804733?category=2&vc=1\" target=\"_blank\">16</a><br>\t\t\t\t<br>2<br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt/6804728?category=2\" target=\"_blank\">비행기 안 스튜어디스 침실</a><a href=\"https://www.instiz.net/pt/6804728?category=2&vc=1\" target=\"_blank\">9</a><br>\t\t\t\t<br>&#160;16<br>\t\t\t\t<br>3<br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt/6804720?category=2\" target=\"_blank\">상대방이 말할 때마다 김종민이 예? 예? 거리는 이유.jpg</a><a href=\"https://www.instiz.net/pt/6804720?category=2&vc=1\" target=\"_blank\">36</a><br>\t\t\t\t<br>&#160;2<br>\t\t\t\t<br>4<br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt/6804718?category=2\" target=\"_blank\">친구 많지 않은분들 결혼할때 걱정하는 상황</a><a href=\"https://www.instiz.net/pt/6804718?category=2&vc=1\" target=\"_blank\">12</a><br>\t\t\t\t<br>&#160;3<br>\t\t\t\t<br>5<br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt/6804715?category=2\" target=\"_blank\">허리 박살나는 자세.jpg</a><a href=\"https://www.instiz.net/pt/6804715?category=2&vc=1\" target=\"_blank\">12</a><br>\t\t\t\t<br>&#160;6<br>\t\t\t\t<br>6<br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt/6804714?category=2\" target=\"_blank\">'소원을 말해봐' 하면 가장 먼저 떠오르는 의상은?</a><a href=\"https://www.instiz.net/pt/6804714?category=2&vc=1\" target=\"_blank\">85</a><br>\t\t\t\t<br>&#160;6<br>\t\t\t\t<br>7<br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt/6804717?category=2\" target=\"_blank\">평생 공짜 위아래.jpg</a><a href=\"https://www.instiz.net/pt/6804717?category=2&vc=1\" target=\"_blank\">46</a><br>\t\t\t\t<br>&#160;10<br>\t\t\t\t<br>8<br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt/6804724?category=2\" target=\"_blank\">칸 영화제에 이선균 혼자가서 화난 전혜진.jpg</a><a href=\"https://www.instiz.net/pt/6804724?category=2&vc=1\" target=\"_blank\">13</a><br>\t\t\t\t<br>&#160;6<br>\t\t\t\t<br>9<br>\t\t\t\t<br><a href=\"https://www.instiz.net/pt/6804712?category=2\" target=\"_blank\">목숨 걸고 찍는 SNS 인증샷.jpg</a><a href=\"https://www.instiz.net/pt/6804712?category=2&vc=1\" target=\"_blank\">15</a><br>\t\t\t\t<br>&#160;14<br>\t\t\t\t<br>10<br>\t\t\t\t[",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "2b3d83ac81.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "](<a href=\"https://www.instiz.net/pt/6800594?category=1)\" target=\"_blank\">https://www.instiz.net/pt/6800594?category=1)</a>\t\t\t\t<br><a href=\"https://www.instiz.net/pt/6800594?category=1\" target=\"_blank\">남자친구 있어요 가 기분 나쁜 이유</a><a href=\"https://www.instiz.net/pt/6800594?category=1&vc=1\" target=\"_blank\">396</a><br>\t\t\t\t<br>&#160;10<br>\t\t\t\t<br>1 ~ 10위<br>\t\t\t\t<br>11 ~ 20위<br>\t\t\t\t<br>급인기 게시판&#160;l&#160;<a href=\"https://www.instiz.net/writing2?category=7\" target=\"_blank\">글잡담 N 실제연애</a>&#160;&#160;313l&#160;<a href=\"https://www.instiz.net/pt?category=2\" target=\"_blank\">인티포털 유머&#183;감동</a>&#160;&#160;71l&#160;<a href=\"https://www.instiz.net/name_enter?category=49\" target=\"_blank\">익명예잡 스트레이키즈</a>&#160;&#160;47<br>\t\t\t\t<br>신설 메뉴&#160;l&#160;<a href=\"https://www.instiz.net/name_enter?category=335\" target=\"_blank\">엔하이픈</a>&#160;l&#160;<a href=\"https://www.instiz.net/name_enter?category=334\" target=\"_blank\">ㄱ맠정</a>&#160;l&#160;<a href=\"https://www.instiz.net/name?category=39\" target=\"_blank\">서브컬쳐</a>&#160;l&#160;<a href=\"https://www.instiz.net/name?category=38\" target=\"_blank\">짱구</a><br>\t\t\t\t<br><a href=\"http://javascript:mailto(\" target=\"_blank\">이메일 문의</a>)&#160;l&#160;<a href=\"http://javascript:rule(6\" target=\"_blank\">개인정보취급방침</a>)&#160;l&#160;<a href=\"https://www.instiz.net/notice/87\" target=\"_blank\">권리 침해</a>&#160;l&#160;<a href=\"http://javascript:mailto(5\" target=\"_blank\">광고</a>)&#160;l&#160;<a href=\"https://www.instiz.net/notice?category=7\" target=\"_blank\">채용</a>&#160;l&#160;<a href=\"http://javascript:gomb_switch(\" target=\"_blank\">모바일</a>)<br>\t\t\t\t<br>사업자등록번호 : 655-86-00876&#160;l&#160;통신판매업신고 : 2017-서울강남-03991&#160;<a href=\"http://javascript:op('<a href=\"http://www.ftc.go.kr/www/bizCommView.do?key=232&apv_perm_no=2017322016230203991&pageUnit=10&searchCnd=wrkr_no&searchKrwd=6558600876&pageIndex=1'\" target=\"_blank\">http://www.ftc.go.kr/www/bizCommView.do?key=232&apv_perm_no=2017322016230203991&pageUnit=10&searchCnd=wrkr_no&searchKrwd=6558600876&pageIndex=1'</a>\" target=\"_blank\">(등록 정보 확인)</a>)&#160;l&#160;대표 : 김준혁<br>\t\t\t\t<br>주소 : 서울특별시 강남구 논현로 94길 25-8, 3층&#160;l&#160;TEL : 070-7720-0983 (FAX : 050-7530-7181)<br>\t\t\t\t<br>&#169; instiz Corporation<br>\t\t\t\t<br><br>\t\t\t\t출처: <<a href=\"https://www.instiz.net/pt/2192226\" target=\"_blank\">https://www.instiz.net/pt/2192226</a>> <br>\t\t\t\t<br><br>\t\t\t\t<br><br>\t\t\t<br>\t\t\t[",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "c55fd9617a.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "](<a href=\"https://www.instiz.net/)[\" target=\"_blank\">https://www.instiz.net/)[</a>",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "dadb5d22a1.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "](<a href=\"https://www.instiz.net/)[\" target=\"_blank\">https://www.instiz.net/)[</a>",
+    "w": 260
+  },
+  {
+    "type": "image",
+    "src": "2b3d83ac81.png",
+    "alt": "인생 사는 꿀팁 50가지",
+    "w": 220
+  },
+  {
+    "type": "text",
+    "content": "](<a href=\"https://www.instiz.net/pt/6800594?category=1)\" target=\"_blank\">https://www.instiz.net/pt/6800594?category=1)</a>\t\t\t<br><br>\t\t\t출처: <<a href=\"https://www.instiz.net/pt/2192226\" target=\"_blank\">https://www.instiz.net/pt/2192226</a>>",
+    "w": 320
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

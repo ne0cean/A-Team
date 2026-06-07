@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>태블릿 지인 판매</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">태블릿 지인 판매</div>
+<div class="date">2015년 7월 21일 화요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-태블릿-지인-판매';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "태블릿 지인 판매<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>이동호<br>\t\t\t<br>1. 010/MNP 여부 : 010<br>\t\t\t<br>2. 희망 요금제 : 데이터 1G <br>\t\t\t<br>3. 원하는 단말/색상 : 에어2 화이트<br>\t\t\t<br>4. 청구서 발송 주소 or e-mail : [linus205@hanmail.net](mailto:linus205@hanmail.net)<br>\t\t\t<br>5. 은행 or 카드사 명 / 결제 계좌 or 카드 번호 / 명의자 : 우리은행 / 1002-240-618803 / 이동호<br>\t\t\t<br>6. 개통자 이름 : 이동호<br>\t\t\t<br>7. 주민등록번호 : 800722-1231766<br>\t\t\t<br>8. 배송지 주소 : 서울특별시 중구 을지로2가 11번지 SK티타워 17층 법무실 Compliance팀<br>\t\t\t<br>9. 배송지 연락처 : 010-4950-9264<br>\t\t\t<br><br>\t\t\t<br>최원혁<br>\t\t\t<br>1. 010/MNP 여부 : 신규<br>\t\t\t<br>  1-1. (MNP 시) 회선 번호 :<br>\t\t\t<br>2. 희망 요금제 : 데이터 5G<br>\t\t\t<br> 3. 원하는 단말/색상 : 에어2 골드<br>\t\t\t<br>4. 청구서 발송 주소 or e-mail : kingrabbit1510@gmail.com<br>\t\t\t<br> 5. 은행 or 카드사 명 / 결제 계좌 or 카드 번호 / 명의자 :<br>\t\t\t<br>    현대카드 / 4330-2805-8583-0707 / 김호영<br>\t\t\t<br>(7_1. 개통자 본인 결제계좌가 아닐 경우 주민번호 :      )<br>\t\t\t<br>6. 개통자 이름 : 김호영<br>\t\t\t<br>7. 주민등록번호 : 850822-1691012<br>\t\t\t<br> 8. 배송지 주소 : 울산광역시 동구 화잠로53 화암관 1동 1225호<br>\t\t\t<br><br>\t\t\t<br>이인호<br>\t\t\t<br>*하기 양식 변형치 말고 기재 바랍니다.<br>\t\t\t<br>1. 010/MNP 여부 : 010<br>\t\t\t<br>2. 희망 요금제 : 데이터 5G <br>\t\t\t<br>3. 원하는 단말/색상 : 에어2 골드<br>\t\t\t<br>4. 청구서 발송 주소 or e-mail : lih1986@naver.com<br>\t\t\t<br>5. 은행 or 카드사 명 / 결제 계좌 or 카드 번호 / 명의자 : 신한은행/110-334-897258/이인호<br>\t\t\t<br>6. 개통자 이름 : 이인호<br>\t\t\t<br>7. 주민등록번호 : 860404-1790512<br>\t\t\t<br>8. 배송지 주소 : 서울시 관악구 보라매동 보라매로 5길 1 SKT보라매사옥 수도권인프라팀 이인호<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>박관연<br>\t\t\t<br>1. 010/MNP 여부 : 010<br>\t\t\t<br>  1-1. (MNP 시) 회선 번호 :<br>\t\t\t<br>2. 희망 요금제 : 데이터 2.5G<br>\t\t\t<br>3. 원하는 단말/색상 : 에어2 골드<br>\t\t\t<br>4. 청구서 발송 주소 or e-mail : gypark7@gmail.com<br>\t\t\t<br>5. 은행 or 카드사 명 / 결제 계좌 or 카드 번호 / 명의자 : 하나SK카드/4119 0570 0047 3645/박관연<br>\t\t\t<br>(7_1. 개통자 본인 결제계좌가 아닐 경우 주민번호 :       )<br>\t\t\t<br>6. 개통자 이름 : 박관연<br>\t\t\t<br>7. 주민등록번호 : 840802-1019322<br>\t\t\t<br>8. 배송지 주소 : 서울시 성동구 상왕십리동75 노블리안오피스텔 1317호<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>유병현<br>\t\t\t<br>1. 010/MNP 여부 : 010신규(아이패드)<br>\t\t\t<br>1-1. (MNP 시) 회선 번호 : <br>\t\t\t<br>2. 희망 요금제 : 데이터 5G <br>\t\t\t<br>3. 원하는 단말/색상 : 아이패드 에어2 64기가 블랙<br>\t\t\t<br>4. 청구서 발송 주소 or e-mail : [ybhwithjoy@gmail.com](mailto:ybhwithjoy@gmail.com)<br>\t\t\t<br>5. 은행 or 카드사 명 / 결제 계좌 or 카드 번호 / 명의자 : 우리은행 1002-443-294244 유병현<br>\t\t\t<br>(7_1. 개통자 본인 결제계좌가 아닐 경우 주민번호 : )<br>\t\t\t<br>6. 개통자 이름 : 유병현<br>\t\t\t<br>7. 주민등록번호 : 840203-1408715<br>\t\t\t<br>8. 배송지 주소 : 100-999 서울시 중구 을지로65 SKT 티타워 7층 공공인프라영업팀 유병현 앞<br>\t\t\t<br><br>\t\t<br>\t\t<br>\t\t\t<br>*하기 양식 변형치 말고 기재 바랍니다.<br>\t\t\t<br>1. 010/MNP 여부 : <br>\t\t\t<br>  1-1. (MNP 시) 회선 번호 : <br>\t\t\t<br>2. 희망 요금제 : 데이터 1G OR 2.5, 5G <br>\t\t\t<br>3. 원하는 단말/색상 : 에어2 화이트/ 블랙/ 골드<br>\t\t\t<br>4. 청구서 발송 주소 or e-mail : <br>\t\t\t<br>5. 은행 or 카드사 명 / 결제 계좌 or 카드 번호 / 명의자 :<br>\t\t\t<br> (7_1. 개통자 본인 결제계좌가 아닐 경우 주민번호 :       )<br>\t\t\t<br>6. 개통자 이름 : <br>\t\t\t<br>7. 주민등록번호 : <br>\t\t\t<br>8. 배송지 주소 : <br>\t\t\t<br>*신분증은 반드시 \"전주시 덕진구 명륜4길 9번지 좋은생각북대점\"로 등기발송 해주셔야 하며, 태블릿 택배발송 시 동봉해드립니다. 등기 받을사람 연락처 063-902-0050<br>\t\t\t<br><br>\t\t\t<br>요금제는 개통월 포함 4개월,<br>\t\t\t<br>회선은 개토월 포함 7개월 이상 유지해주셔야 하구요.",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>배달의 민족</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">배달의 민족</div>
+<div class="date">2020년 4월 7일 화요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-배달의-민족';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "배달의 민족<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>클리앙에서 오늘 베스트 오른 글인데 읽어볼만한 가치가 있어서 퍼와봄.. (진보 성향인 클리앙에서도 공감을 많이 받았단 점에서 읽어볼만함)<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://byline.network/2020/01/it-tmi-%EB%B0%B0%EB%8B%AC%EC%9D%98%EB%AF%BC%EC%A1%B1-%EB%A7%A4%EA%B0%81%EC%97%90-%EB%8C%80%ED%95%9C-%EC%9D%B4%EB%9F%B0-%EA%B4%80%EC%A0%90-%EC%A0%80%EB%9F%B0-%EA%B4%80%EC%A0%90/\" target=\"_blank\">https://byline.network/2020/01/it-tmi-%EB%B0%B0%EB%8B%AC%EC%9D%98%EB%AF%BC%EC%A1%B1-%EB%A7%A4%EA%B0%81%EC%97%90-%EB%8C%80%ED%95%9C-%EC%9D%B4%EB%9F%B0-%EA%B4%80%EC%A0%90-%EC%A0%80%EB%9F%B0-%EA%B4%80%EC%A0%90/</a><br>\t\t\t<br><br>\t\t\t<br><a href=\"https://n.news.naver.com/article/025/0002990824\" target=\"_blank\">https://n.news.naver.com/article/025/0002990824</a><br>\t\t\t<br><br>\t\t\t<br>출처 : <br>\t\t\t<br><a href=\"https://m.clien.net/service/board/lecture/14801987\" target=\"_blank\">https://m.clien.net/service/board/lecture/14801987</a><br>\t\t\t<br>=========================<br>\t\t\t<br>배민이 수수료를 올렸다고 하니 많은 분들이 감정에 휘둘려 그냥 모르겠고 배민 삭제하자 얘기들이 나오는 것 같습니다.<br>\t\t\t<br>의외로 많은 분들이 잘못 알고 계시는 부분들이 있는 것 같아 한번 짚고 넘어가려고 글을 쓰게 되었습니다.<br>\t\t\t<br><br>\t\t\t<br>(어제 모공에 올렸던 글을 다시 정리합니다.)<br>\t\t\t<br><br>\t\t\t<br>1) 현재 배민은 업계 최저 수수료를 받습니다. 더불어 배민 앱내 전화주문은 수수료가 '아예' 없습니다.<br>\t\t\t<br><br>\t\t\t<br>배민은 전화주문 버튼이 눈에 띄는 곳에 위치하고 있으며 이 버튼을 통한 주문은 수수료가 한 푼도 들지 않습니다. 애초에 전화로 뭘 주문했는지 녹취하는 것도 아닌 이상 수수료를 받을 명분도 없죠.<br>\t\t\t<br><br>\t\t\t<br>참고로 배달의민족 수수료가 5.8%이고 (여기에 카드결제 시 카드결제 수수료 약 2.8~3% 가량)<br>\t\t\t<br><br>\t\t\t<br>요기요는 14.5%<br>\t\t\t<br><br>\t\t\t<br>쿠팡이츠는 약 20% 입니다.<br>\t\t\t<br><br>\t\t\t<br>우버이츠가 있던 시절에는 약 25%의 수수료를 받았습니다. 이마저도 미국 우버이츠보다는 저렴한 요율인걸로..<br>\t\t\t<br><br>\t\t\t<br>(쿠팡이츠, 우버이츠는 배달기사 인건비 포함금액입니다, 배민에도 이와 비슷한 배민라이더스 서비스가 있는데요. 이건 16.5%의 수수료를 바탕으로 라이더 배차부터 빠른 배달 서비스, 라이더 인력 관리 등 음식점에서는 조리만 하면 나머지 배달 관련한 모든 일을 배민측에서 해주는 서비스라고 보면 되는데 이거 수수료 합리적이라고 좋아하는 업주들도 많아요... 전화로 들은 주소 일일히 입력해가며 배달대행 기사 부를 필요도 없고 기본적으로 회사 소속이라 배민라이더스 기사들은 친절하거든요. 받는 사람 주소고 나발이고 중요치 않고 주문 들어온 음식 만들어 꺼내어 놓기만 하면 되니... 요새 배달대행료가 원체 비싸기도 하구요.)<br>\t\t\t<br><br>\t\t\t<br>배민이 음식값의 5.8% 수수료 받는다고 뒤늦게 헐 미친거 아닌가, 수수료 엄청 비싸다 하시는 분들 계시는데 원래 다른 회사들은 비교할 수 없을 만큼 더 많이 받았습니다. 쿠팡이츠나 요기요가 절대 배달의민족의 대체재가 될 수 없어요.<br>\t\t\t<br><br>\t\t\t<br>2) 업주님들 대부분 배달의민족이라도 있어야 도움이 됩니다.<br>\t\t\t<br><br>\t\t\t<br>불과 몇년 사이 눈에 띄게 줄어들거나 없어진게 있죠. 바로 배달음식점 전단지입니다. 이제 배달의민족 들어가면 주변 맛집 배달음식점 리스트 다 나오니까 전단지가 필요 없어진거에요.&#160;다달이 전단지 인쇄비에 붙이던 인건비 생각하면 지금 배달의민족 등록비가 더 쌀 지경이죠..&#160;실제로 동네 배달맛집이 어마어마하게 부흥하고 시장도 커졌잖아요. 배민에는 맛집랭킹이라는, 돈 안 받고 실제 동네 랭킹대로 노출시키는 화면도 있는데 이게 동네 숨은 맛집 성공시켜주는데 도움 되구요.<br>\t\t\t<br><br>\t\t\t<br>이처럼 배달의민족이 동네 배달집 전단지 역할을 하고 있는 이상, 새로운 배달음식점을 발굴시켜 주는 이상 소상공인에게는 어쩔 수 없이 도움이 될 수밖에 없는 구조입니다. 배달의민족 등장 전 프랜차이즈 치킨만 시켜먹다가, 배달의민족 쓰고 나서 동네치킨집 시켜먹기 시작한 사람들 정말 많습니다. 배달의민족이 없으면 해봐야 BBQ나 네네치킨 같은거 대표주문전화밖에 모르거든요. 요즘 한식집부터 시작해서 특이하고 독창적인 배달음식이 많이 등장하고 이쪽 업계가 부흥한 건 정말 배달앱 덕분이라고 해도 과언이 아닙니다. 요즘에야 엄청난 레드오션이지만 불과 1~2년 전만 해도 동네 임대료 싼 구석 2층에 배달전용으로 독특한 배달음식(예를 들어, 쪽갈비라던지, 생선구이라던지, 파스타라던지..) 가게 차리고 배달의민족 맛집랭킹 한번 올렸다하면 매출이 어마어마했죠.<br>\t\t\t<br><br>\t\t\t<br>또한 매우 중요한 사실인데요. 아시겠지만 전화주문 한 건 받으려면 한참 걸립니다. 잘나가는 배달집 방문해보시면 알겠지만 피크타임에는 30초에 주문 하나씩 들어와요. (배달의민족~ 주문!!! 소리 다들 아실듯) 전화로 주문 받으면&#160;아예 한 사람 이상의 인력이 주문을 받는데만 온전히 투입되어야 합니다.&#160;요새는 메뉴 자체를 배달앱에서 선택하고 다양한 옵션을 추가하게끔 되어있는 경우가 많아서, 배달앱 없이 전화로 이 옵션 목록을 볼 수도 없고, 사장님한테 ‘아 옵션으로 뭐뭐 있어요? 뭐가 잘나가요? 무슨 맛 치킨이 있다구요?’ 하면 옵션목록 열댓가지 불러주려다가 사장님 환장하시는 구조죠....<br>\t\t\t<br><br>\t\t\t<br>3) 요기요와 배민이 같은 회사니까 그놈이 그놈이다?&#160;<br>\t\t\t<br><br>\t\t\t<br>일단 감정적인 부분과 이에 대한 걱정은 뒤로하고 팩트만 나열하자면 아직 합병승인은 안났습니다.... 그리고 합병 구조도 그냥 단순히 합쳐서 하나로 운영하는게 아니에요. 쉽게말해 현대자동차 기아자동차 같은 회사라고 두 회사에서 똑같은 차를 팔지는 않듯이요. 배달의민족은 소상공인을 위해 다양한 정책을 가지고 노력해 온 회사에요.(이 부분은 아래 후술하겠습니다.) 그리고 그 근간이나 핵심 운영인력이 어디 가는게 아니고 같은 브랜드로 계속 운영합니다.<br>\t\t\t<br><br>\t\t\t<br>또한 합병이 된다고 할지언정, 배민이 합병하는 회사는 독일의 딜리버리히어로이고(합병이유는 함께 동남아시장 배달사업에 진출하기 위해서라고 합니다, 이동네는 배달앱 수수료가 35%에 달한다고 하네요), 요기요는 독일 본사의 한국 자회사인 딜리버리히어로 코리아가 운영하는 브랜드에요.<br>\t\t\t<br><br>\t\t\t<br>물론 저도, 인수합병만큼은 안 됐으면 하는 바램입니다.&#160;승인이 안 날 것 같긴 하지만요...<br>\t\t\t<br><br>\t\t\t<br>개인적으로 지금까지의 행보 때문에 배민이라는 브랜드를 참 좋아했는데, 인수되면 여러모로 아쉽지 싶어요.<br>\t\t\t<br><br>\t\t\t<br>4) 번외로, 그간 배민이 억울했을? 점<br>\t\t\t<br><br>\t\t\t<br>배민은 소상공인과의 협력을 위해 그간 수수료를 아예 받지 않는 정책을 펼쳐왔습니다. 제기억에 대략 2015~2016년 즈음 배달앱 수수료 문제가 불거졌고 그당시 요기요가 거의 20%를 가져갔었어요. 지금 생각해도 정말 비싸죠. 이 때 배민이 대략 8~9% 정도 수수료를 받다가,&#160;우리는 소상공인과의 상생을 위해 수수료 제로를 선언한다 하고 수수료를 아예 없애버렸습니다.&#160;이 때 요기요도 수수료를 14.5% 정도로 인하한 걸로 기억합니다. 하지만 사람들은 그런거에 관심이 없었어요. 수수료 안받는 배민 쓰자는 운동도 찻잔 속 태풍이었을 뿐, 제가 비슷한 글을 아무리 클리앙에 올려도 '최종 소비자가 음식점 주인이 내는 배달앱 수수료에 왜 신경을 써야 합니까, 그냥 저는 요기요 쓸래요' 하는 사람도 수두룩했구요.<br>\t\t\t<br><br>\t\t\t<br>그리고 요기요는 14.5%의 수수료를 받는 이상 여기서 유도리있게 10% 할인쿠폰 같은걸 뿌리기에 훨씬 더 적합한 수익구조였고, 배민은 수수료를 안받는데 할인을 해줄래야 해줄수가 없는 구조였어요. 그래서 뭐 1000원 500원 할인쿠폰 뿌리다가 욕만 더 먹었죠. 사람들은 배민이 수수료를 안 받기 때문에 할인쿠폰을 뿌릴 수 없는 상황이었다는 부분에 대해 관심도 없고 그게 무슨 상관이냐는 반응을 보이는 경우가 대부분이었습니다. 혜택이 요기요가 더 많은데 나는 죽어도 요기요만 쓸거다, 배민 500원 쿠폰 찌질하고 더러워서 기분나빠서 안받는다, 마케팅 마음에 안들어서 안쓴다 등...<br>\t\t\t<br><br>\t\t\t<br>그런데 5.8% 수수료, 그것도 2위 업체의 반도 안 되는 수수료를 1위 업체가 받겠다는데 사람들이 들고 일어나고 이상한 식으로 소문 퍼지니 아마 적잖이 당황스러워할듯 합니다. 물론 하필 코로나 시국에 왜 지금 수수료를 받겠다는 선택을 했는지는 의문입니다만, 오픈마켓(지마켓, 옥션, 11번가 등)만 해도 상품 카테고리에 따라 매출액의 10%에서 많게는 20%까지 수수료로 받아가며, 대리운전 기사들에게 대리서비스 제공업체들이 수수료로 최소 20%씩 떼어가는 와중에 배달의민족의 5.8% 수수료가 비싼 수수료인지에 대해서는, 저는 잘 모르겠습니다. 게다가 배달의민족이 최근 몇 년간 배달먹거리 시장을 엄청나게 확대시킴으로서 많은 소상공인이 배민을 등에 업고 성장했음을 감안한다면 더더욱 글쎄요. 배달앱 아니었으면 배달음식 시장이 지난 2~3년간 매년 두 배 이상 대폭 성장하는 일이 있었을까요. 설렁탕집, 냉면집, 떡볶이집의 대거 배달매출 극대화가 일어날 수 있었을까요. 이게 돈이 좀 된다는 소문이 도니 배달음식 하는 업체가 기하급수적으로 늘어서 제 살 깎아먹기를 하고 있을지도 모르겠다는 생각은 조금 드네요.<br>\t\t\t<br><br>\t\t\t<br>더불어 배달음식점을 하는 지인들에게 듣기로는 이번에 수수료 5.8%가 의무사항은 아니라고 합니다. 다만 월정액제(월 88,000원 내는 깃발꽂기) 이용 시 기존처럼 노출이 많이 되지 않아 매출의 5.8% 광고수수료를 내는 상품을 사실상 안 쓰기 어려워졌기에 5.8% 수수료를 징수한다고 알려지게 되었구요. 문제는 광고 정책이 바뀌어서 광고비에 돈을 쏟는 만큼 비례해서 수익이 올라가질 않게 되었고, 돈을 태우는 만큼 광고가 되는 입찰식 광고가 사실상 사라지다시피 하고 고정 광고료를 내는 식으로 바뀌었는데 이게 같은 광고비면 여러 업체들이 번갈아가면서 나오는 식이라 신규업체들 노출시키기가 좀 더 힘들어졌다는게 문제라는 얘기가 있습니다. (기존의 깃발꽂기식 x)<br>\t\t\t<br><br>\t\t\t<br>어찌보면 이는, 기존 배민 알고리즘상 신규업체를 띄워주기가 편해서 기존 업체들이 계속해서 새 업체인것처럼 새 상호를 배민에 등록하는 꼼수를 썼기에 이를 막기 위한 조치이기도 한 것 같아요.<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://m.post.naver.com/viewer/postView.nhn?volumeNo=27819672&memberNo=15305315&vType=VERTICAL\" target=\"_blank\">https://m.post.naver.com/viewer/postView.nhn?volumeNo=27819672&memberNo=15305315&vType=VERTICAL</a><br>\t\t\t<br><br>\t\t\t<br>코로나 시국에 수수료를 올리게 된 건 참 좋지 못한 선택이었던 것 같지만, 나름대로 여러 코로나 대책도 내놓긴 했었네요. 배민라이더스 직원 자가격리 시 82만원 지원, 업주에게 한도내 수수료 50% 감면 등...<br>\t\t\t<br><br>\t\t\t<br>ㅡㅡㅡ<br>\t\t\t<br><br>\t\t\t<br>아무튼 얘기가 하다보니 산으로 갔는데요.<br>\t\t\t<br><br>\t\t\t<br>결론을 이야기하자면...<br>\t\t\t<br><br>\t\t\t<br>요즘 트렌드의 배달음식을 즐겨 드시던 분들께서(원래 가끔 한달에 한두번 치킨만 드시던 분들은 어차피 요즘 배달음식 문화를 잘 모르실 테니 제 글을 잘 이해하지 못하실 수도 있습니다)<br>\t\t\t<br><br>\t\t\t<br>묻어놓고 아몰라 배민 요즘 나쁘대 탈퇴하자~ 하는건 소상공인분들께 오히려 도움이 안 될 수 있습니다.<br>\t\t\t<br><br>\t\t\t<br>인근 숨은 맛집, 새로운 메뉴 주문, 신규 발굴 등의 목적으로 사용하긴 해야 도움이 되지 싶어요.<br>\t\t\t<br><br>\t\t\t<br>다만 사장님들의 수수료가 걱정된다면, 앱 내 주문보다는 전화주문 기능을 적극 이용하시면 합리적으로 배민에게 수수료 쥐어주지 않고 주문하실 수 있습니다. (다만 인기업소들은 피크타임에 요즘 일부러 전화주문을 안 받는 추세이기도 합니다. 전화만 받고 있을 수 없으니)<br>\t\t\t<br><br>\t\t\t<br>더불어 배민오더라는 시스템도 있는데, 이건 사장님들께 배달대행료 부담을 없애고 직접 음식을 픽업해올 수 있는 시스템이니 참고하세요.<br>\t\t\t<br><br>\t\t\t<br>어제 이 글의 원본이 되는 글을 모두의 공원에 올렸는데, 소상공인 몇 분이 댓글을 달아주셨습니다.<br>\t\t\t<br><br>\t\t\t<br>댓글 참고하실 수 있도록 링크 겁니다.&#160;<a href=\"https://m.clien.net/service/board/park/14798607CLIEN\" target=\"_blank\">https://m.clien.net/service/board/park/14798607CLIEN</a><br>\t\t\t<br><br>\t\t\t<br>*********************<br>\t\t\t<br><br>\t\t\t<br>마지막으로 댓글에서 제가 배민 관계자냐는 의혹이 있어 설명하자면&#160;<br>\t\t\t<br><br>\t\t\t<br>그냥 코딩 공부하는 백수고, 배민과는 1도 관계 없으니 참고 부탁드려요.<br>\t\t\t<br><br>\t\t\t<br>배민커넥트 알바는 며칠 해본 적 있네요.&#160;<br>\t\t\t<br><br>\t\t\t<br>개인적으로 회사로서의 우아한형제들에 대한 이미지가 좋긴 합니다. 회사내 직원 처우도 유명하고, 대표자의 운영철학도 그렇고, 우아한테크코스 등 개발자 업계에 미치는 영향도 크고...<br>\t\t\t<br><br>\t\t\t<br>거기다가 앞서 말씀드렸듯 그간 배민의 배달의민족 행보에 대해서 좋게 평가하고 있었거든요. 그래서 인수합병되면 좀 짜증날듯...<br>\t\t\t<br><br>\t\t\t<br>쿠팡과 요즘 비교되는 일이 잦은데 쿠팡에 비하면 아무튼 &#160;여러모로 정도경영을 실천하고 있다고 해도 될 정도인지라(쿠팡이츠 라이더와 배민커넥트 라이더를 비교한다면.. 쿠팡은 꼼수와 편법이 난무하는데 배민은 모든 라이더에게 고용보험 가입부터 시작해서 정식계약 진행하는 것부터 차원이 다르죠, 라이더 코로나 자가격리 시 지원금을 회사에서 주는 것도 그렇고) 저는 쿠팡도 좋아하는 입장이긴 하지만요... 반대로 위메프와 요기요는 싫어하구요. 대기업 중에서는 롯데 삼성 싫어하고 신세계를 그나마 좋아하.... 글이 또 산으로 가는 듯하니 이만 줄이겠습니다.&#160;<br>\t\t<br>\t\t<br>\t\t\t<br>[심재석의 입장] 배달의민족 수수료 기사 작성법 - Byline Network - <a href=\"https://byline.network/2020/04/6-51/?ct=t(RSS_EMAIL_CAMPAIGN\" target=\"_blank\">https://byline.network/2020/04/6-51/?ct=t(RSS_EMAIL_CAMPAIGN)&mc_cid=861d19d9ac&mc_eid=ac0ddbad9a</a>&mc_cid=861d19d9ac&mc_eid=ac0ddbad9a)<br>\t\t\t<br><br>\t\t\t<br><a href=\"https://outstanding.kr/beamincommision20200408/\" target=\"_blank\">https://outstanding.kr/beamincommision20200408/</a>",
+    "w": 400
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

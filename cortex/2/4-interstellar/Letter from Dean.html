@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Letter from Dean</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .caption { font-size: 12px; color: #888; margin-top: 6px; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.card table td, .card table th { border: 1px solid #444; padding: 4px 8px; vertical-align: top; }
+.card table th { background: #333; color: #ccc; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+<div class="title-bar">Letter from Dean</div>
+<div class="date">2016년 4월 11일 월요일</div>
+<div class="board" id="board"></div>
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Letter-from-Dean';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "content": "Letter from Dean<br>\t\t<br>\t\t<br>\t<br>\t<br>\t\t<br>\t\t\t<br>Dean. 당신의 젊음을 빌어 사는자로서 간구합니다.<br>\t\t\t<br><br>\t\t\t<br>올해 안으로 영어를 뗀다.<br>\t\t\t<br>필생의 사랑을 찾을 것<br>\t\t\t<br>필생의 과업을 찾을 것 - 나 홀로 점프업 IoT와 O2O콜라보<br>\t\t\t<br><a href=\"http://ppss.kr/archives/78636\" target=\"_blank\">http://ppss.kr/archives/78636</a><br>\t\t\t<br><a href=\"http://of.tomntom.net/%ec%97%ac%ec%9e%90%eb%93%a4%ec%9d%b4-%ec%9d%b4%eb%a0%87%ea%b2%8c%eb%a7%8c-%ec%9e%85%ec%9c%bc%eb%a9%b4-%eb%b0%98%ec%9d%80-%eb%a8%b9%ed%9e%8c%eb%8b%a4%ea%b3%a0-%eb%a7%90%ed%95%98%eb%8a%94-%eb%82%a8/\" target=\"_blank\">http://of.tomntom.net/%ec%97%ac%ec%9e%90%eb%93%a4%ec%9d%b4-%ec%9d%b4%eb%a0%87%ea%b2%8c%eb%a7%8c-%ec%9e%85%ec%9c%bc%eb%a9%b4-%eb%b0%98%ec%9d%80-%eb%a8%b9%ed%9e%8c%eb%8b%a4%ea%b3%a0-%eb%a7%90%ed%95%98%eb%8a%94-%eb%82%a8/</a><br>\t\t\t<br><a href=\"http://www.mobiinside.com/kr/index.php/2016/04/18/cc-2/\" target=\"_blank\">http://www.mobiinside.com/kr/index.php/2016/04/18/cc-2/</a><br>\t\t\t<br>사람들은 선택을 위해 정보를 찾고<br>\t\t\t<br>그런면에서 비교 컨텐츠는 강력하다.<br>\t\t\t<br><br>\t\t\t<br>ㅇ <a href=\"http://www.itworld.co.kr/slideshow/98894?slide=3#mobile_stage_slide\" target=\"_blank\">http://www.itworld.co.kr/slideshow/98894?slide=3#mobile_stage_slide</a><br>\t\t\t<br>ㅇ <a href=\"http://m.insight.co.kr/newsRead.php?ArtNo=59263\" target=\"_blank\">http://m.insight.co.kr/newsRead.php?ArtNo=59263</a><br>\t\t\t<br>ㅇ [H](Http://m.biz.chosun.com/svc/article.html?contid=2016042201751&m.facebook.com)ttp://m.biz.chosun.com/svc/article.html?contid=2016042201751&m.facebook.com<br>\t\t\t<br>ㅇ <a href=\"http://tvcast.naver.com/special/live/403\" target=\"_blank\">http://tvcast.naver.com/special/live/403</a><br>\t\t\t<br>ㅇ <a href=\"http://www.bloter.net/archives/254406\" target=\"_blank\">http://www.bloter.net/archives/254406</a><br>\t\t\t<br><br>\t\t\t<br>좋은 계획은 의지에 의지하지 않는 계획이다.<br>\t\t\t<br>나쁜 계획은 의지를 시험한다.<br>\t\t\t<br><br>\t\t\t<br>준일이 인강 노트북<br>\t\t\t<br><a href=\"http://m.news.naver.com/read.nhn?mode=LSD&sid1=001&oid=277&aid=0003720062\" target=\"_blank\">http://m.news.naver.com/read.nhn?mode=LSD&sid1=001&oid=277&aid=0003720062</a><br>\t\t\t<br><a href=\"http://m.blog.naver.com/ksc12545/220682063067\" target=\"_blank\">http://m.blog.naver.com/ksc12545/220682063067</a><br>\t\t\t<br>One thing. 영어만  하자.<br>\t\t\t<br><br>\t\t\t<br>[코끼리는 생각하지마]<br>\t\t\t<br>[나는 고작 한번 해봤을 뿐이다.]<br>\t\t\t<br>[행동하라]<br>\t\t\t<br>[하버스 새벽4시반]<br>\t\t\t<br>자기계발서가 아니라 전문분야의 깊이 있는 책을 읽어라.<br>\t\t\t<br><br>\t\t\t<br><br>\t\t\t<br>그는,<br>\t\t\t<br>자기주장이 강하며, 감정표현이 서툴고<br>\t\t\t<br>한 가지에 골몰하여 끝을 봅니다.<br>\t\t\t<br><br>\t\t\t<br>호전적이고, 감정의 기복이 깊으며<br>\t\t\t<br>판단에는 소심할 정도로 신중하나,<br>\t\t\t<br>결심을 굳히면 성급할 정도로 빠릅니다.<br>\t\t\t<br><br>\t\t\t<br>재능은 없으나 글을 짓는 것이 취미인지라<br>\t\t\t<br>스트레스를 글로 푸는 버릇이 있습니다.<br>\t\t\t<br><br>\t\t\t<br>안녕하세요,<br>\t\t\t<br>김준영  입니다<br>\t\t\t<br><br>\t\t\t<br>현재는 제도권 말단에 편입되어<br>\t\t\t<br>사람들이 말하는 사람구실은 하고 있으나<br>\t\t\t<br>외곬수, 언더, 비주류, 인디, 도라이가<br>\t\t\t<br>유행가마냥 즐겨듣던 수식어 였습니다.<br>\t\t\t<br><br>\t\t\t<br>가계가 파산하는 경험을 하였으며,<br>\t\t\t<br>이에 대한 심적인 도피처로 고3시절까지 밤샘 게임, 학교에서는 좋아하는 책과 낮잠으로 인생을 허투루 보낸적이 있습니다.<br>\t\t\t<br><br>\t\t\t<br>그럼에도 운이 좋아 실력에 과분한 대학을<br>\t\t\t<br>장학생으로 졸업하였고, 학벌은 불변일 것이나<br>\t\t\t<br>학력은 여전히 신장되고 있음을 보증합니다.<br>\t\t\t<br><br>\t\t\t<br>나는<br>\t\t\t<br>내 안에 무엇이 있던<br>\t\t\t<br>그것이 시커먼 무언가, <br>\t\t\t<br>순백의 무엇이던간에<br>\t\t\t<br>투명하게 비춰지길 원합니다.<br>\t\t\t<br>그게 나니까.<br>\t\t\t<br><br>\t\t\t<br>나는 내가 좋습니다.<br>\t\t\t<br>사랑받는 나는 아닐 지언정<br>\t\t\t<br>내가 사랑하는 나이며<br>\t\t\t<br><br>\t\t\t<br>조금 나빠도<br>\t\t\t<br>내가 살기 좋은 나.<br>\t\t\t<br><br>\t\t\t<br>인생이 허무하게 느껴질 때는<br>\t\t\t<br>산다고 살고, 이룬다고 이룬 것들이<br>\t\t\t<br>사실 내가 원하는 것이 아니었다는걸<br>\t\t\t<br>깨닫게 되었을 때라고 합니다.<br>\t\t\t<br><br>\t\t\t<br>사랑받고, 인정받으며 살아왔지만<br>\t\t\t<br>사실 그것이 진짜 나의 모습은 아니었을 때.<br>\t\t\t<br>같은 허무를 느끼지 않겠습니까.<br>\t\t\t<br><br>\t\t\t<br>나는 나답게 살려고 합니다.<br>\t\t\t<br><br>\t\t\t<br>부끄럽지만, 저는 싸가지가 없는편입니다.<br>\t\t\t<br>하지만 경우는 있는 사람입니다.<br>\t\t\t<br><br>\t\t\t<br>대부분의 사람이 처음 대하는 나를<br>\t\t\t<br>투박하고 불편하게 여깁니다.<br>\t\t\t<br>끝내 나를 좋아해주었다는 것이 나의<br>\t\t\t<br>아픔이요 또 자랑입니다.<br>\t\t\t<br><br>\t\t\t<br>100점<br>\t\t\t<br><br>\t\t\t<br>중국에서의 모금 반대<br>\t\t\t<br><br>\t\t\t<br>학벌 좋은 여자보다<br>\t\t\t<br>사고하는 힘이 있는 사람<br>\t\t\t<br>배려 받기보다 배려하는 것이 익숙한<br>\t\t\t<br>우아한 강함<br>\t\t\t<br><br>\t\t\t<br>선과 악은 인간의 발명품이라는 사실에<br>\t\t\t<br>스스로의 지성으로 도달 한 정도의<br>\t\t\t<br>사유의 깊이를 품고있기를 희망합니다.<br>\t\t\t<br><br>\t\t\t<br>ㅇ <a href=\"http://m.huffpost.com/kr/entry/7996698\" target=\"_blank\">http://m.huffpost.com/kr/entry/7996698</a>?<br>\t\t\t<br>ㅇ <a href=\"http://www2.pullbbang.com/video.pull?vcode=l15140532\" target=\"_blank\">http://www2.pullbbang.com/video.pull?vcode=l15140532</a>",
+    "w": 400
+  },
+  {
+    "type": "image",
+    "src": "c7c089a502.png",
+    "alt": "Letter from Dean",
+    "w": 220
+  },
+  {
+    "type": "image",
+    "src": "3200160b82.png",
+    "alt": "Letter from Dean",
+    "w": 220
+  },
+  {
+    "type": "image",
+    "src": "db83907028.png",
+    "alt": "Letter from Dean",
+    "w": 220
+  },
+  {
+    "type": "image",
+    "src": "b0647f090b.png",
+    "alt": "Letter from Dean",
+    "w": 220
+  },
+  {
+    "type": "image",
+    "src": "4e6fb8de13.png",
+    "alt": "Letter from Dean",
+    "w": 220
+  }
+];
+
+let cards = [];
+let moving = null, resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  cards = saved ? JSON.parse(saved) : DEFAULT_CARDS.map(c => ({...c}));
+  renderCards();
+  if (!saved) autoLayout();
+}
+
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      const w = Math.min(card.w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colHeights[c] < colHeights[minCol]) minCol = c;
+      card.x = minCol * (colW + GAP);
+      card.y = colHeights[minCol];
+      card.w = w;
+      el.style.left = card.x + 'px';
+      el.style.top = card.y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = card.y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = Math.max(...colHeights) + 100 + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) requestAnimationFrame(place);
+  else images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+    else img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, table')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if (confirm('삭제?')) { cards.splice(i, 1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = card.alt || '';
+      img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+      if (card.caption) {
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = card.caption;
+        el.appendChild(cap);
+      }
+    } else if (card.type === 'table') {
+      const wrapper = document.createElement('div');
+      wrapper.style.overflowX = 'auto';
+      wrapper.innerHTML = card.html || '';
+      el.appendChild(wrapper);
+    }
+
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    const nx = moving.origX + e.clientX - moving.startX;
+    const ny = moving.origY + e.clientY - moving.startY;
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    card.w = Math.max(100, resizing.startW + e.clientX - resizing.startX);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    card.x = Math.max(0, moving.origX + e.clientX - moving.startX);
+    card.y = Math.max(0, moving.origY + e.clientY - moving.startY);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); }
+    moving = null; saveBoard();
+  }
+  if (resizing) { resizing = null; saveBoard(); }
+});
+
+function addTextCard() {
+  cards.push({ type: 'text', content: '', x: 50, y: window.scrollY + 100, w: 300 });
+  renderCards();
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 }); renderCards(); saveBoard(); };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards(); autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>
