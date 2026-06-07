@@ -3187,21 +3187,47 @@ function showDashboard() {
   cortexFile = null;
 }
 
+function copyNotePath() {
+  if (!cortexFile) return;
+  navigator.clipboard.writeText(cortexFile.path).then(() => {
+    const btn = document.getElementById('copyNotePathBtn');
+    if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '⎘'; }, 1500); }
+  });
+}
+
 function renderNoteViewer() {
   if (!cortexFile) return '';
-  const { path: fp, content, name } = cortexFile;
+  const { path: fp, content } = cortexFile;
+  const isHtml = fp.toLowerCase().endsWith('.html');
+  const copyBtn = `<button id="copyNotePathBtn" onclick="copyNotePath()">⎘</button>`;
+
+  if (isHtml) {
+    setTimeout(() => {
+      const iframe = document.getElementById('noteIframe');
+      if (iframe) iframe.srcdoc = content;
+    }, 0);
+    return `<div class="md-toolbar">
+      <button onclick="showDashboard()">&#9664; Back</button>
+      <span class="md-path">${esc(fp)}</span>
+      ${copyBtn}
+    </div><iframe id="noteIframe" style="width:100%;height:calc(100vh - 50px);border:none;background:#1e1e1e;display:block"></iframe>`;
+  }
+
   if (cortexEditing) {
     return `<div class="md-toolbar">
       <button onclick="showDashboard()">&#9664; Back</button>
       <span class="md-path">${esc(fp)}</span>
+      ${copyBtn}
       <label style="cursor:pointer;font-size:10px;color:#58a6ff;padding:3px 8px">&#128247; <input type="file" accept="image/*" style="display:none" onchange="uploadImage(this.files[0])"></label>
       <button onclick="saveCortexFile()">Save</button>
       <button onclick="cortexEditing=false;document.getElementById('noteContent').innerHTML=renderNoteViewer()">Cancel</button>
     </div><textarea class="md-edit" id="cortexEditArea" onpaste="handlePaste(event)">${esc(content)}</textarea>`;
   }
+
   return `<div class="md-toolbar">
     <button onclick="showDashboard()">&#9664; Back</button>
     <span class="md-path">${esc(fp)}</span>
+    ${copyBtn}
     <button onclick="cortexEditing=true;document.getElementById('noteContent').innerHTML=renderNoteViewer();document.getElementById('cortexEditArea')?.focus()">Edit</button>
   </div><div class="md-content">${renderMarkdown(content)}</div>`;
 }
