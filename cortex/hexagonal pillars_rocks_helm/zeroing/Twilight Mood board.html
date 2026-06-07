@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Twilight Mood board</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 20px 30px 60px;
+  overflow-x: hidden;
+}
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.title-bar {
+  background: #3a3a5c;
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+
+.board { position: relative; }
+
+.card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 12px;
+  position: absolute;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img {
+  width: 100%;
+  border-radius: 4px;
+  display: block;
+}
+.card .text {
+  outline: none;
+  min-height: 20px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions {
+  position: absolute;
+  top: 4px; right: 4px;
+  display: none;
+  gap: 4px;
+}
+.card:hover .card-actions { display: flex; }
+.card-btn {
+  background: #333;
+  border: 1px solid #555;
+  color: #ccc;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.card-btn:hover { background: #444; color: #fff; }
+
+.resize-handle {
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 16px; height: 16px;
+  cursor: se-resize;
+  opacity: 0;
+}
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  bottom: 3px; right: 3px;
+  width: 8px; height: 8px;
+  border-right: 2px solid #666;
+  border-bottom: 2px solid #666;
+}
+
+.toolbar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: #161b22;
+  border-top: 1px solid #30363d;
+  padding: 8px 20px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  z-index: 200;
+}
+.toolbar button {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #e0e0e0;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+</style>
+</head>
+<body>
+
+<div class="title-bar" contenteditable="true">Twilight Mood board</div>
+<div class="date">2024년 8월 4일 일요일 오후 4:16</div>
+
+<div class="board" id="board"></div>
+
+<div class="toolbar">
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <span class="status" id="status">Ready</span>
+</div>
+
+<script>
+const SAVE_KEY = 'twilight-mood-board-v3';
+const IMG_BASE = '../../attachments/onenote/';
+
+const DEFAULT_CARDS = [
+  { type: 'text', content: `<a href="https://www.ytn.co.kr/_ln/0104_201704131135438931">YTN 기사</a>\n<a href="https://www.instagram.com/reel/C8Y71lZRuvF/">Move Forward</a> - Sam Altman\n<a href="https://www.instagram.com/reel/C3j55KJPA4H/">부의</a> 갓길 차선`, w: 260 },
+  { type: 'text', content: `아무 것도 하지 않은 대가 역시 치르게 될 것이다.\n<span class="highlight-red">망해봤자 잃는 건 넷플릭스 볼 수 있었던 주말 이틀 뿐</span>\n<span class="highlight-blue">고정우 곽석영 이윤행을봐.</span> 여기서 잘 되어봤자 지역팀 팀장이야 그걸 원해?`, w: 340 },
+  { type: 'image', src: '31ccac0100.png', w: 220 },
+  { type: 'image', src: '956d836bd8.png', w: 220 },
+  { type: 'text', content: `고통은 두개골 속에 갇혀 있는 뇌가 자기 맘대로 외쳐대는 반응일 뿐이다.\n세상의 것이 아니다.\n3인칭으로 스스로를 바라보고, 2인칭으로 도전/추동하라`, w: 280 },
+  { type: 'image', src: '9856b73cc5.png', link: 'https://www.instagram.com/reel/C8Y71lZRuvF/', w: 200 },
+  { type: 'image', src: 'ecaac0c867.png', w: 240 },
+  { type: 'image', src: '29abc454a6.png', w: 200 },
+  { type: 'image', src: '32f86b5f12.png', w: 200 },
+  { type: 'image', src: '8f937c299c.png', w: 180 },
+  { type: 'image', src: '59c8db2247.png', w: 200 },
+  { type: 'text', content: `마이크가 꾸준함을 유지해온 방법:\n• 매일 예술 작품을 만들도록 강제하기\n• 지루함을 피하기 위해 계속해서 기술을 확장\n• 매일 포스팅하기\n• 작품을 만들수록 쉬워졌다\n\n출처: <a href="https://eopla.net/magazines/20543#">eopla.net</a>\n\n처음부터 완벽한 아이디어는 없어요. 그냥 시작하세요. 그리고 포기하지 마세요.`, w: 320 },
+  { type: 'image', src: '14c5c1fe0f.png', w: 180 },
+  { type: 'image', src: '1d63007967.png', w: 200 },
+  { type: 'image', src: 'e912ef143a.png', w: 220 },
+  { type: 'image', src: 'ceb1e41a8e.png', link: 'https://www.instagram.com/reel/C-FMoYkR2yn/', w: 200 },
+  { type: 'image', src: '7c61a23d5c.png', link: 'https://www.instagram.com/reel/C-FMoYkR2yn/', w: 200 },
+  { type: 'image', src: 'f0a05cbaf9.png', w: 180 },
+  { type: 'image', src: 'a81c7e6f0a.png', w: 240 },
+  { type: 'image', src: '5250262a75.png', w: 200 },
+  { type: 'image', src: 'a8aaa7575d.png', w: 220 },
+  { type: 'image', src: '1bcd49b38d.png', w: 200 },
+  { type: 'text', content: `<b style="font-size:24px">Necessity is the mother of invention</b>`, w: 360 },
+  { type: 'image', src: '7cba8813bd.png', link: 'https://www.instagram.com/reel/DGZljqeTIg8/', w: 240 },
+  { type: 'image', src: '5fea11746f.png', w: 200 },
+  { type: 'image', src: 'b8f5a8c53d.png', w: 220 },
+  { type: 'image', src: 'e8ed930fba.png', w: 200 },
+  { type: 'image', src: '0938fb48bc.png', w: 220 },
+  { type: 'image', src: 'ddacd7a4b5.png', w: 200 },
+  { type: 'text', content: `학교에 가라. 취업해라. 상처받아라. 피해자 노릇을 해라. 65세에 은퇴해라.\n\n이것은 이미 실패가 예견된, 낡은 길이다.\n\n• 남들이 정해준 알려진 길을 거부하라\n• 미지의 영역으로 과감히 뛰어들어라\n• 마음을 확장하기 위해 새롭고 더 높은 목표를 세워라\n• 혼란을 기꺼이 받아들이고 성장을 허용하라\n• 자연의 보편적인 원리를 공부하라\n• 깊이 있는 제너럴리스트가 되어라`, w: 340 },
+  { type: 'image', src: '42e9c95c55.png', w: 220 },
+  { type: 'text', content: `• 만약 다음 5년 동안 아무것도 변하지 않는다면, 당신의 평범한 화요일은 어떤 모습일까?\n• 위 상황을 10년으로 확장하라. 당신은 무엇을 놓쳤는가?\n• 당신은 인생의 끝자락에 서 있다. 안전한 버전의 삶만 살았고 패턴을 한 번도 깨지 못했다. 그 대가는 무엇인가?\n• 실제로 변화하기 위해 당신이 버려야 할 정체성은 무엇인가?\n• 당신이 지금까지 변하지 못한 가장 창피한 진짜 이유는 무엇인가?\n• 만약 현재의 행동이 일종의 자기보호 수단이라면, 당신은 구체적으로 무엇을 보호하고 있는가?`, w: 380 },
+  { type: 'text', content: `기다리지 마세요. 무엇을 할지 결정하기 위해 대학 졸업 때까지 기다리지 마세요. X라는 일을 하기 위해 반드시 X라는 직업을 가질 필요는 없습니다. 종종 스스로 어떤 형태로든 그 일을 바로 시작할 수 있습니다.`, w: 340 },
+];
+
+let cards = [];
+let moving = null;
+let resizing = null;
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  if (saved) {
+    cards = JSON.parse(saved);
+    renderCards();
+  } else {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    renderCards();
+    // Auto-layout after images load
+    autoLayout();
+  }
+}
+
+// Masonry auto-layout: place cards in columns, shortest column first
+function autoLayout() {
+  const GAP = 14;
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 260));
+  const colW = (boardW - GAP * (cols - 1)) / cols;
+  const colHeights = new Array(cols).fill(0);
+
+  // Wait for all images to load, then compute
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  const total = images.length;
+
+  function place() {
+    allCards.forEach((el, i) => {
+      const card = cards[i];
+      // Use card.w but clamp to column width
+      const w = Math.min(card.w || colW, colW);
+      // Find shortest column
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) {
+        if (colHeights[c] < colHeights[minCol]) minCol = c;
+      }
+      const x = minCol * (colW + GAP);
+      const y = colHeights[minCol];
+      card.x = x;
+      card.y = y;
+      card.w = w;
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      el.style.width = w + 'px';
+      colHeights[minCol] = y + el.offsetHeight + GAP;
+    });
+    const maxH = Math.max(...colHeights);
+    document.getElementById('board').style.minHeight = (maxH + 100) + 'px';
+    saveBoard();
+  }
+
+  if (total === 0) {
+    requestAnimationFrame(place);
+  } else {
+    images.forEach(img => {
+      if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
+      else {
+        img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
+      }
+    });
+  }
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const idx = +el.dataset.idx;
+    if (cards[idx]?.type === 'text') {
+      const t = el.querySelector('.text');
+      if (t) cards[idx].content = t.innerHTML;
+    }
+  });
+}
+
+function saveBoard() {
+  syncText();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
+  document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
+}
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    if (card.w) el.style.width = card.w + 'px';
+
+    // Drag
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle')) return;
+      e.preventDefault();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
+      el.classList.add('moving');
+    });
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn);
+    el.appendChild(actions);
+
+    // Content
+    if (card.type === 'text') {
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy';
+      img.onerror = () => img.style.display = 'none';
+      if (card.link) {
+        const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
+        a.appendChild(img); el.appendChild(a);
+      } else { el.appendChild(img); }
+    }
+
+    // Resize
+    const rh = document.createElement('div');
+    rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
+    });
+    el.appendChild(rh);
+
+    board.appendChild(el);
+  });
+
+  // Update board height
+  requestAnimationFrame(() => {
+    let maxBottom = 0;
+    document.querySelectorAll('.card').forEach(el => {
+      const b = (parseFloat(el.style.top) || 0) + el.offsetHeight;
+      if (b > maxBottom) maxBottom = b;
+    });
+    board.style.minHeight = (maxBottom + 100) + 'px';
+  });
+}
+
+const GRID = 20;
+const GAP = 14;
+
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// Find nearest non-overlapping position, pushing others if shift held
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+
+  // Sort other cards by distance from moved card
+  const others = cards.map((c, i) => ({ c, i, el: document.querySelector(`.card[data-idx="${i}"]`) }))
+    .filter(o => o.i !== movedIdx && o.el);
+
+  for (const o of others) {
+    const oh = o.el.offsetHeight;
+    // Check overlap
+    const overlapX = moved.x < (o.c.x + (o.c.w || 200)) && (moved.x + (moved.w || 200)) > o.c.x;
+    const overlapY = moved.y < (o.c.y + oh) && (moved.y + mh) > o.c.y;
+    if (overlapX && overlapY) {
+      // Push down
+      o.c.y = moved.y + mh + GAP;
+      o.el.style.top = o.c.y + 'px';
+    }
+  }
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX;
+    let ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+    // Live preview of snap guides
+    if (e.shiftKey) el.style.outline = '1px dashed rgba(240,192,64,0.3)';
+    else el.style.outline = '';
+  }
+  if (resizing) {
+    const card = cards[resizing.idx];
+    let nw = resizing.startW + e.clientX - resizing.startX;
+    if (e.shiftKey) nw = snap(nw);
+    card.w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`);
+    if (el) el.style.width = card.w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    const card = cards[moving.idx];
+    let nx = moving.origX + e.clientX - moving.startX;
+    let ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    card.x = Math.max(0, nx);
+    card.y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
+    if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null;
+    saveBoard();
+  }
+  if (resizing) {
+    if (e.shiftKey) pushCards(resizing.idx);
+    resizing = null;
+    saveBoard();
+  }
+});
+
+function addTextCard() {
+  const sy = window.scrollY;
+  cards.push({ type: 'text', content: '', x: 50, y: sy + 100, w: 300 });
+  renderCards();
+  setTimeout(() => {
+    const els = document.querySelectorAll('.card .text');
+    els[els.length - 1]?.focus();
+  }, 100);
+}
+
+function addImageCard() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const sy = window.scrollY;
+      cards.push({ type: 'image', src: reader.result, x: 50, y: sy + 100, w: 240 });
+      renderCards(); saveBoard();
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function exportBoard() {
+  syncText();
+  const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'twilight-mood-board.json';
+  a.click();
+}
+
+function resetLayout() {
+  if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  cards.forEach(c => { delete c.x; delete c.y; });
+  renderCards();
+  autoLayout();
+}
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>
