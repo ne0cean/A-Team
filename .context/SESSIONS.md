@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-07] OneNote → Cortex HTML 카드보드 전면 재마이그레이션
+
+**완료**: 기존 오염 마이그레이션(1313개 중복) 제거. `scripts/migrate-onenote-html.mjs` 신규 — Archive 1638개 .md → HTML 카드보드 1137개(3525 카드). MD5 이미지 매핑 707 PNG 100% 복원. 신규 cortex 0–4 디렉토리 구조. Twilight Mood board 포맷 준용. MEMORY.md 레슨 추가(OneNote Graph API URL 괄호 regex 함정). debrief 완료.
+**이슈**: Graph API URL 내 `users('email')` 괄호로 `[^)]+` regex 실패 → 3번 수정 끝에 `.+\/\$value` greedy 패턴 해결. Dashbaord 하위 subdirectory 100개 누락 → SECTION_MAP 명시적 추가.
+**빌드**: ✅ tsc --noEmit PASS
+
 ## [2026-06-05] Cortex Frame 카테고리 관계 재정의
 
 **완료**: SOURCE_SYNC_MAP weekday:input 제거(flow↔block만), work 레이블 Tasks→Work, _carried ↩아이콘→회색 텍스트(#888), weekday.input routine→todo(이월 활성화), GITHUB_TOKEN Cloudflare 등록. 배포(dade39b5)
