@@ -326,7 +326,7 @@ function formatDate(iso) {
 function cleanCardText(html) {
   return html
     .replace(/<p[^>]*>/gi, '')
-    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/p>/gi, ' ')   // 문장 사이 공백 (개행 아님)
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<div[^>]*>/gi, '')
     .replace(/<\/div>/gi, '\n')
