@@ -58,7 +58,7 @@ function init() {
   loadStandingOrders();
   loadRecurringTemplates();
   loadFrames();
-  loadVision();
+  // loadVision(); // replaced by Twilight Mood board iframe
   loadSidebarTree('cortex');
   registerSW();
   initCellScrollDelay();
