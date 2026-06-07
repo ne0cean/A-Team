@@ -74,6 +74,14 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-08) — Cortex Dashboard carry/delete/workout 버그 수정
+
+- **carry cascade 방지** — `getCatItemsForRender` carry filter에 `!i._carried` 추가. _carried 항목 재이월 차단
+- **delete 전파** — `delItem`에서 미래 날짜 `_carried` 항목 연쇄 제거 + `_carry_rejects` target 날짜에 저장 (버그: 원본 날에 저장하던 것 수정)
+- **9일 input 오염 데이터 초기화** — 72개 누적 _carried 항목 D1에서 정리
+- **workout 완전 격리** — `workout-log` 독립 D1 키 (`{ "YYYY-MM-DD": [...] }`). `/api/workout-log` 전용 엔드포인트. 월 탐색해도 상단 bar는 오늘 날짜 고정. `save()` / 빌드 / 배포 영향 없음
+- 배포 완료 (98831c25)
+
 ## Last Completions (2026-06-07) — Vision Board 재마이그레이션 + Cortex 배포
 
 - `node scripts/migrate-onenote-html.mjs --apply` — 1137 HTML 파일 재생성, 3452 카드
