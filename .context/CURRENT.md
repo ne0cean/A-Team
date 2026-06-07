@@ -70,6 +70,15 @@
 - **SW bump 경고 규칙** — cortex CLAUDE.md + MEMORY.md 반영. SW 버전 bump 전 사용자 경고 의무화
 - **board-template.html** — git history에서 복원
 
+## Last Completions (2026-06-07) — GitHub 벤치마킹 + server.mjs workout 버그 수정
+
+- **server.mjs workout 보존 버그** 수정 — `saveMonth()` 내 preserve workout 루프 추가 + `/api/workout` POST 배열 포맷 + XOR 그룹 로직. 로컬 개발 서버가 Worker와 동기화됨
+- **GitHub 벤치마킹** 4개 프로젝트 조사 (Cortex / A-Team / dial / mole) — 계획 파일 `~/.claude/plans/delightful-cuddling-cosmos.md`
+- **NNN-Studio/Dial** — archived(2026-01-15), 앱별 모드전환 없음. 흡수 불필요
+- **tw93/Mole V1.37~V1.39** — 도메인 달라 흡수 없음. mole install.sh `.py` 동기화 추가 완료
+- **mac-dial upstream** — 이미 최신. rebase 불필요
+- **rohitg00 PR** — A-Team 비공개라 불가 (오픈소스 전환 후 재검토)
+
 ## Last Completions (2026-06-07) — H&A 채널 리서치 (트레바리 + 웰리트립)
 
 - **트레바리 찜목록 27개** Playwright 스크래핑 → AI 하이퍼포머(35만/강남/6.28) + 매력적인 결핍(35만/안국/6.14) 픽
