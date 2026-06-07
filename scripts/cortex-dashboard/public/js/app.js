@@ -718,7 +718,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
         const doneClass = item.done ? 'done' : '';
         const clr = SRC_COLORS[item._src] || '#6e7681';
         html += `<div class="item ${doneClass}" style="border-left:2px solid ${clr}">
-          <input type="checkbox" ${item.done?'checked':''} onchange="toggleRecurring(${d},${idx})">
+          <input type="checkbox" ${item.done?'checked':''} onchange="toggleRecurring(${d},${idx})" aria-label="${esc(item.text)}">
           <span class="src-dot" style="background:${clr}"></span>
           <span class="item-text" contenteditable="true" style="color:${clr}"
             onblur="editRecurring(${d},${idx},this.textContent)"
@@ -745,7 +745,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
           return;
         }
         html += `<div class="item${item.done?' done':''}" data-d="${d}" data-cat="${cat}" data-idx="${idx}">
-          <input type="checkbox" ${item.done?'checked':''} onchange="toggleItem(${d},'${cat}',${idx})">
+          <input type="checkbox" ${item.done?'checked':''} onchange="toggleItem(${d},'${cat}',${idx})" aria-label="${esc(item.text)}">
           <span class="item-text frame-text" contenteditable="true"
             onblur="editFrameItemFromCalendar(${d},'${cat}',${idx},htmlToMarkdown(this.innerHTML))"
             onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
@@ -775,7 +775,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
         ondragend="dragEnd(event)"
         ondragover="dragOver(event)" ondragleave="dragLeave(event)"
         ondrop="drop(event,${d},'${cat}',${idx})">
-        <input type="checkbox" ${checked} data-drag-handle onchange="toggleItem(${d},'${cat}',${idx})">
+        <input type="checkbox" ${checked} data-drag-handle onchange="toggleItem(${d},'${cat}',${idx})" aria-label="${esc(item.text)}">
         <span class="item-text${item.url?' has-link':''}${item._frame?' frame-text':''}" contenteditable="true"
           onblur="${blurFn}"
           onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
@@ -786,7 +786,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     });
 
     html += `<div class="new-item" id="new-${d}-${cat}">
-      <textarea rows="1" placeholder="..."
+      <textarea rows="1" placeholder="..." aria-label="${CAT_NAMES[cat]} 새 항목"
         style="resize:none;overflow:hidden;background:transparent;border:none;color:#e0e0e0;font-size:12px;padding:0;width:100%;box-sizing:border-box;font-family:inherit;outline:none"
         oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitDayCatTextarea(this,${d},'${cat}');}"
@@ -802,7 +802,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       html += `<div class="category cat-${cat}"><div class="cat-label cl-${cat}"><span>${CAT_NAMES[cat]}</span>
         <span class="cat-add" onclick="addSeparatorItem(${d},'${cat}')" title="구분선 추가" style="font-size:9px;color:#484f58;margin-right:1px">—</span>
         <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span></div>
-        <div class="new-item" id="new-${d}-${cat}"><textarea rows="1" placeholder="..."
+        <div class="new-item" id="new-${d}-${cat}"><textarea rows="1" placeholder="..." aria-label="${CAT_NAMES[cat]} 새 항목"
           style="resize:none;overflow:hidden;background:transparent;border:none;color:#e0e0e0;font-size:12px;padding:0;width:100%;box-sizing:border-box;font-family:inherit;outline:none"
           oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitDayCatTextarea(this,${d},'${cat}');}"
@@ -1816,17 +1816,17 @@ function renderStandingOrders() {
         <span onclick="moveSOItem('standing',${i},-1)" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
         <span onclick="moveSOItem('standing',${i},1)" ${i===soLen-1?'style="visibility:hidden"':''}>&#9660;</span>
       </div>
-      <input type="checkbox" ${s.active?'checked':''} onchange="toggleSOActive(${i})">
+      <input type="checkbox" ${s.active?'checked':''} onchange="toggleSOActive(${i})" aria-label="${esc(s.text)}">
       <span contenteditable="true" style="flex:1" onblur="editSOText(${i},htmlToMarkdown(this.innerHTML))" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${linkify(s.text)}</span>
-      <input class="so-date-input" placeholder="날짜" value="${esc(s.date||'')}"
+      <input class="so-date-input" placeholder="날짜" aria-label="날짜" value="${esc(s.date||'')}"
         onblur="setSoDate(${i},this.value)"
         onkeydown="if(event.key==='Enter'){this.blur();}"
         title="날짜 입력: 6월 11일 / 6/11 / 6.11">
       <span class="del-btn" onclick="delSO(${i})" style="display:inline">&#215;</span>
     </div>`;
   });
-  html += `<div class="frame-add"><input placeholder="Add standing order..." onkeydown="if(event.key==='Enter'){addSO(this.value);this.value='';}">
-    <button onclick="addSO(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button></div>`;
+  html += `<div class="frame-add"><input placeholder="Add standing order..." aria-label="Add standing order" onkeydown="if(event.key==='Enter'){addSO(this.value);this.value='';}">
+    <button aria-label="추가" onclick="addSO(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button></div>`;
   // HF dates
   const hfFromNow = (standingData.happy_friday || [])
     .filter(d => d.slice(0, 7) >= ymKey && d.slice(0, 4) === String(currentYear))
@@ -1874,10 +1874,10 @@ function renderStandingOrders() {
       <span onclick="moveSOItem('weekly_recurring',${i},-1)" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
       <span onclick="moveSOItem('weekly_recurring',${i},1)" ${i===wrLen-1?'style="visibility:hidden"':''}>&#9660;</span>
     </div>
-    <select style="width:40px;background:#0d1117;border:1px solid #30363d;color:#f0c040;font-size:10px;border-radius:2px" onchange="editWeeklyDow(${i},+this.value)">
+    <select aria-label="요일" style="width:40px;background:#0d1117;border:1px solid #30363d;color:#f0c040;font-size:10px;border-radius:2px" onchange="editWeeklyDow(${i},+this.value)">
       ${DOW_NAMES_SHORT.map((n,di)=>`<option value="${di}" ${w.dow===di?'selected':''}>${n}</option>`).join('')}
     </select>
-    <select style="width:44px;background:#0d1117;border:1px solid #30363d;color:#6e7681;font-size:10px;border-radius:2px" onchange="editWeeklyFreq(${i},this.value)">
+    <select aria-label="주기" style="width:44px;background:#0d1117;border:1px solid #30363d;color:#6e7681;font-size:10px;border-radius:2px" onchange="editWeeklyFreq(${i},this.value)">
       <option value="weekly" ${w.freq==='weekly'?'selected':''}>매주</option>
       <option value="biweekly" ${w.freq==='biweekly'?'selected':''}>격주</option>
     </select>
@@ -1894,17 +1894,17 @@ function renderStandingOrders() {
     wrActivity.forEach(x => { html += renderWeeklyItem(x); });
   }
   html += `<div class="frame-add" style="gap:4px">
-    <select id="newWkDow" style="width:40px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;border-radius:2px">
+    <select id="newWkDow" aria-label="요일" style="width:40px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;border-radius:2px">
       ${DOW_NAMES_SHORT.map((n,i)=>`<option value="${i}">${n}</option>`).join('')}
     </select>
-    <select id="newWkFreq" style="width:44px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;border-radius:2px">
+    <select id="newWkFreq" aria-label="주기" style="width:44px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;border-radius:2px">
       <option value="weekly">매주</option><option value="biweekly">격주</option>
     </select>
-    <select id="newWkSection" style="width:52px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;border-radius:2px">
+    <select id="newWkSection" aria-label="섹션" style="width:52px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;border-radius:2px">
       <option value="work">WORK</option><option value="activity">ACT</option>
     </select>
-    <input placeholder="Add weekly item..." onkeydown="if(event.key==='Enter'){addWeekly(this.value);this.value='';}">
-    <button onclick="addWeekly(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button>
+    <input placeholder="Add weekly item..." aria-label="Add weekly item" onkeydown="if(event.key==='Enter'){addWeekly(this.value);this.value='';}">
+    <button aria-label="추가" onclick="addWeekly(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button>
   </div>`;
   html += '</div>';
 
@@ -1924,7 +1924,7 @@ function renderStandingOrders() {
           <span onclick="moveSOItem('monthly_recurring',${i},-1)" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
           <span onclick="moveSOItem('monthly_recurring',${i},1)" ${i===mrLen-1?'style="visibility:hidden"':''}>&#9660;</span>
         </div>
-        <select style="width:46px;${selStyle}" onchange="editMR(${i},'day',+this.value)">
+        <select aria-label="날짜" style="width:46px;${selStyle}" onchange="editMR(${i},'day',+this.value)">
           <option value="0" ${item.day===0?'selected':''}>말일</option>
           ${Array.from({length:31},(_,d)=>`<option value="${d+1}" ${item.day===d+1?'selected':''}>${d+1}일</option>`).join('')}
         </select>
@@ -1934,11 +1934,11 @@ function renderStandingOrders() {
       </div>`;
     });
     html += `<div class="frame-add" style="gap:4px">
-      <select id="newMRDay" style="width:46px;${selStyle}">
+      <select id="newMRDay" aria-label="날짜" style="width:46px;${selStyle}">
         <option value="0">말일</option>${Array.from({length:31},(_,d)=>`<option value="${d+1}">${d+1}일</option>`).join('')}
       </select>
-      <input placeholder="Add monthly recurring..." onkeydown="if(event.key==='Enter'){addMR(this.value);this.value='';}">
-      <button onclick="addMR(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button>
+      <input placeholder="Add monthly recurring..." aria-label="Add monthly recurring" onkeydown="if(event.key==='Enter'){addMR(this.value);this.value='';}">
+      <button aria-label="추가" onclick="addMR(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button>
     </div>`;
   }
 
@@ -1957,8 +1957,8 @@ function renderStandingOrders() {
       <span class="del-btn" onclick="delMonthlyItem(${i})" style="display:inline">&#215;</span>
     </div>`;
   });
-  html += `<div class="frame-add"><input placeholder="Add this-month item..." onkeydown="if(event.key==='Enter'){addMonthlyItem(this.value);this.value='';}">
-    <button onclick="addMonthlyItem(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button></div>`;
+  html += `<div class="frame-add"><input placeholder="Add this-month item..." aria-label="Add this-month item" onkeydown="if(event.key==='Enter'){addMonthlyItem(this.value);this.value='';}">
+    <button aria-label="추가" onclick="addMonthlyItem(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button></div>`;
   html += '</div>';
 
   // Yearly — editable, 월/일 오름차순
@@ -1976,10 +1976,10 @@ function renderStandingOrders() {
         <span onclick="moveSOItem('yearly',${i},-1)" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
         <span onclick="moveSOItem('yearly',${i},1)" ${i===yLen-1?'style="visibility:hidden"':''}>&#9660;</span>
       </div>
-      <select style="width:46px;${selStyle}" onchange="editYearlyMonth(${i},+this.value)">
+      <select aria-label="월" style="width:46px;${selStyle}" onchange="editYearlyMonth(${i},+this.value)">
         ${Array.from({length:12},(_,m)=>`<option value="${m+1}" ${y.month===m+1?'selected':''}>${m+1}월</option>`).join('')}
       </select>
-      <select style="width:42px;${selStyle}" onchange="editYearlyDay(${i},+this.value)">
+      <select aria-label="일" style="width:42px;${selStyle}" onchange="editYearlyDay(${i},+this.value)">
         ${dayOpts}
       </select>
       <span contenteditable="true" style="flex:1" onblur="editYearlyText(${i},this.textContent)">${linkify(y.text)}${y.lunar && y.lunarMonth && y.lunarDay ? `<span style="font-size:8px;color:#8b949e;margin-left:4px">(음 ${y.lunarMonth}/${y.lunarDay})</span>` : ''}</span>
@@ -1987,15 +1987,15 @@ function renderStandingOrders() {
     </div>`;
   });
   html += `<div class="frame-add" style="gap:4px">
-    <select id="newYearlyMonth" style="width:46px;${selStyle}">
+    <select id="newYearlyMonth" aria-label="월" style="width:46px;${selStyle}">
       ${Array.from({length:12},(_,m)=>`<option value="${m+1}">${m+1}월</option>`).join('')}
     </select>
-    <select id="newYearlyDay" style="width:42px;${selStyle}">
+    <select id="newYearlyDay" aria-label="일" style="width:42px;${selStyle}">
       <option value="0">-</option>${Array.from({length:31},(_,d)=>`<option value="${d+1}">${d+1}</option>`).join('')}
     </select>
     <button id="lunarToggleBtn" onclick="toggleLunarMode()" style="width:28px;font-size:10px;padding:0 4px;background:${_lunarMode?'#2a2000':'#161b22'};color:${_lunarMode?'#f0c040':'#6e7681'};border:1px solid ${_lunarMode?'#f0c040':'#30363d'};border-radius:2px;cursor:pointer" title="음력 입력 모드">음</button>
-    <input placeholder="Add yearly item..." onkeydown="if(event.key==='Enter'){addYearly(this.value);this.value='';}">
-    <button onclick="addYearly(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button></div>`;
+    <input placeholder="Add yearly item..." aria-label="Add yearly item" onkeydown="if(event.key==='Enter'){addYearly(this.value);this.value='';}">
+    <button aria-label="추가" onclick="addYearly(this.previousElementSibling.value);this.previousElementSibling.value=''">+</button></div>`;
   html += '</div>';
 
   document.getElementById('soPanel').innerHTML = html;
@@ -2532,13 +2532,13 @@ function renderFrames() {
       });
 
       html += `<div class="frame-add" style="flex-direction:column;align-items:stretch;gap:3px">
-        <textarea rows="1" placeholder="Add item… (여러 줄 붙여넣기 가능)"
+        <textarea rows="1" placeholder="Add item… (여러 줄 붙여넣기 가능)" aria-label="새 항목 추가"
           style="resize:none;overflow:hidden;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:12px;border-radius:3px;padding:3px 6px;width:100%;box-sizing:border-box;font-family:inherit"
           oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitFrameTextarea(this,'${ftype}','${cat}');}"></textarea>
         <div style="display:flex;gap:4px">
-          <button onclick="submitFrameTextarea(this.parentElement.previousElementSibling,'${ftype}','${cat}')" style="flex:1">+</button>
-          <button onclick="addFrameSeparator('${ftype}','${cat}')" title="구분선 추가" style="font-size:10px;padding:0 4px">─</button>
+          <button aria-label="추가" onclick="submitFrameTextarea(this.parentElement.previousElementSibling,'${ftype}','${cat}')" style="flex:1">+</button>
+          <button aria-label="구분선 추가" onclick="addFrameSeparator('${ftype}','${cat}')" title="구분선 추가" style="font-size:10px;padding:0 4px">─</button>
         </div>
       </div>`;
       html += '</div>';
@@ -2847,13 +2847,13 @@ async function injectFrames() {
 function renderRecurringTemplates() {
   if (!recurringData) return;
   let html = `<div class="rtpl-toolbar">
-    <select id="rtplCat">${CATS.map(c=>`<option value="${c}">${CAT_NAMES[c]}</option>`).join('')}</select>
-    <input type="text" id="rtplName" class="rtpl-name" placeholder="New recurring..." onkeydown="if(event.key==='Enter')addRT()">
-    <select id="rtplType" onchange="updateRTExtra()">
+    <select id="rtplCat" aria-label="카테고리">${CATS.map(c=>`<option value="${c}">${CAT_NAMES[c]}</option>`).join('')}</select>
+    <input type="text" id="rtplName" class="rtpl-name" placeholder="New recurring..." aria-label="새 반복 항목 이름" onkeydown="if(event.key==='Enter')addRT()">
+    <select id="rtplType" aria-label="반복 유형" onchange="updateRTExtra()">
       <option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option>
     </select>
     <span id="rtplExtra"></span>
-    <button onclick="addRT()">Add</button>
+    <button aria-label="추가" onclick="addRT()">Add</button>
   </div>`;
 
   const templates = recurringData.templates || [];
