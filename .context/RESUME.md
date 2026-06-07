@@ -1,7 +1,7 @@
 ---
 mode: normal
 status: active
-created: 2026-06-08T03:17:32+0900
+created: 2026-06-08T08:25:57+0900
 task: **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
 ---
 
@@ -11,11 +11,11 @@ task: **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 
 - CURRENT.md Next Tasks 확인 후 최우선 항목부터 시작
 
 ## 미완료 Next Tasks (High Priority)
-- [deferred] **Cortex 데이터 구조 안정화** — 설계 결정 필요. 구체적 범위 사용자 확인 후 재개
-- [deferred] **Confluence PAT 발급** — VDI 사용자 직접 발급 필요
-- [deferred] **Confluence 역변환기 + daemon** — PAT 발급 + 안정화 후 구현
-- [deferred] **제품 빌드 시작** — Connectome MVP — 아키텍처 결정 필요
-- [deferred] **A-Team OKR 설정** — 사용자 입력 필요
+- [ ] **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
+- [ ] **Confluence PAT 발급** — VDI에서 프로필 > Personal Access Tokens 확인
+- [ ] **Confluence 역변환기 + daemon** — 안정화 후 구현 재개
+- [ ] **제품 빌드 시작** — Connectome MVP
+- [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정
 
 ## 메모
-cron 자동 재개: 전체 태스크가 설계결정/외부접근 필요로 autonomous 실행 불가. 사용자 세션에서 /vibe 로 재개 필요.
+세션이 /end 없이 종료됨. 위 태스크부터 이어서 진행.
