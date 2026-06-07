@@ -56,6 +56,32 @@ a:hover { text-decoration: underline; }
 }
 .card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
 .card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card .caption {
+  font-size: 11px;
+  color: #888;
+  margin-top: 6px;
+  min-height: 16px;
+  outline: none;
+  border-top: 1px solid #333;
+  padding-top: 4px;
+}
+.card .caption:empty::before { content: '캡션 추가...'; color: #444; }
+
+/* Table styles */
+.card table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 4px 0;
+}
+.card table td, .card table th {
+  border: 1px solid #555;
+  padding: 4px 8px;
+  min-width: 40px;
+  outline: none;
+  vertical-align: top;
+}
+.card table th { background: #333; font-weight: bold; }
+
 .card-actions {
   position: absolute;
   top: 4px; right: 4px;
@@ -91,6 +117,90 @@ a:hover { text-decoration: underline; }
   border-bottom: 2px solid #666;
 }
 
+/* Formatting toolbar */
+#fmt-toolbar {
+  position: fixed;
+  display: none;
+  z-index: 300;
+  background: #252525;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 4px 8px;
+  gap: 4px;
+  align-items: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  flex-wrap: wrap;
+  max-width: 340px;
+}
+#fmt-toolbar button {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #ccc;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 13px;
+  cursor: pointer;
+  min-width: 28px;
+}
+#fmt-toolbar button:hover { background: #3a3a3a; border-color: #555; color: #fff; }
+#fmt-toolbar .sep { width: 1px; height: 18px; background: #444; margin: 0 2px; }
+#fmt-toolbar input[type=color] {
+  width: 24px; height: 24px; padding: 0; border: 1px solid #555;
+  border-radius: 3px; cursor: pointer; background: transparent;
+}
+#fmt-toolbar select {
+  background: #333; color: #ccc; border: 1px solid #555;
+  border-radius: 4px; padding: 2px 4px; font-size: 12px; cursor: pointer;
+}
+
+/* Link popup */
+#vision-link-popup {
+  position: fixed;
+  display: none;
+  z-index: 400;
+  background: #252525;
+  border: 1px solid #555;
+  border-radius: 8px;
+  padding: 12px;
+  width: 300px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+}
+#vision-link-popup label { font-size: 12px; color: #aaa; display: block; margin-bottom: 4px; }
+#vision-link-popup input {
+  width: 100%; background: #1a1a1a; border: 1px solid #555; color: #e0e0e0;
+  border-radius: 4px; padding: 6px 8px; font-size: 13px; outline: none;
+  margin-bottom: 8px;
+}
+#vision-link-popup input:focus { border-color: #58a6ff; }
+#vision-link-popup .popup-btns { display: flex; gap: 6px; justify-content: flex-end; }
+#vision-link-popup .popup-btns button {
+  background: #333; border: 1px solid #555; color: #ccc;
+  border-radius: 4px; padding: 5px 12px; font-size: 12px; cursor: pointer;
+}
+#vision-link-popup .popup-btns button.primary { background: #1f6feb; border-color: #388bfd; color: #fff; }
+#vision-link-popup .popup-btns button:hover { opacity: 0.85; }
+
+/* Context menu */
+#ctx-menu {
+  position: fixed;
+  display: none;
+  z-index: 500;
+  background: #252525;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 180px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+#ctx-menu .ctx-item {
+  padding: 7px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #ccc;
+}
+#ctx-menu .ctx-item:hover { background: #3a3a3a; color: #fff; }
+#ctx-menu .ctx-sep { height: 1px; background: #3a3a3a; margin: 3px 0; }
+
 .toolbar {
   position: fixed;
   bottom: 0; left: 0; right: 0;
@@ -125,6 +235,55 @@ a:hover { text-decoration: underline; }
 
 <div class="board" id="board"></div>
 
+<!-- Formatting toolbar -->
+<div id="fmt-toolbar" style="display:none;flex">
+  <button title="굵게 (Ctrl+B)" onmousedown="e=>e.preventDefault()" onclick="fmt('bold')"><b>B</b></button>
+  <button title="기울기 (Ctrl+I)" onclick="fmt('italic')"><i>I</i></button>
+  <button title="밑줄 (Ctrl+U)" onclick="fmt('underline')"><u>U</u></button>
+  <button title="취소선" onclick="fmt('strikeThrough')"><s>S</s></button>
+  <div class="sep"></div>
+  <select title="글자 크기" onchange="fmt('fontSize', this.value); this.value=''">
+    <option value="">크기</option>
+    <option value="1">작게</option>
+    <option value="3">보통</option>
+    <option value="5">크게</option>
+    <option value="7">매우 크게</option>
+  </select>
+  <div class="sep"></div>
+  <input type="color" id="txt-color" title="글자색" value="#e0e0e0" oninput="fmt('foreColor', this.value)">
+  <input type="color" id="bg-color" title="배경색(형광펜)" value="#ffff00" oninput="fmt('hiliteColor', this.value)">
+  <div class="sep"></div>
+  <button title="표 삽입" onclick="insertTable()">⊞ 표</button>
+  <button title="링크 (Ctrl+K)" onclick="openLinkPopupFmt()">🔗</button>
+</div>
+
+<!-- Link popup -->
+<div id="vision-link-popup">
+  <label>URL</label>
+  <input id="vision-link-url" type="url" placeholder="https://" autocomplete="off">
+  <div class="popup-btns">
+    <button onclick="visionRemoveLink()">제거</button>
+    <button onclick="closeVisionLinkPopup()">취소</button>
+    <button class="primary" onclick="visionSaveLink()">저장</button>
+  </div>
+</div>
+
+<!-- Context menu -->
+<div id="ctx-menu">
+  <div class="ctx-item" onclick="tableAddRowAbove()">위에 행 추가</div>
+  <div class="ctx-item" onclick="tableAddRowBelow()">아래에 행 추가</div>
+  <div class="ctx-item" onclick="tableAddColLeft()">왼쪽에 열 추가</div>
+  <div class="ctx-item" onclick="tableAddColRight()">오른쪽에 열 추가</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="tableDeleteRow()">행 삭제</div>
+  <div class="ctx-item" onclick="tableDeleteCol()">열 삭제</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="tableToggleHeader()">헤더 행 토글</div>
+  <div class="ctx-item" onclick="tableCellBgColor()">셀 배경색</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" style="color:#ff6b6b" onclick="tableDelete()">표 삭제</div>
+</div>
+
 <div class="toolbar">
   <button onclick="addTextCard()">+ 텍스트</button>
   <button onclick="addImageCard()">+ 이미지</button>
@@ -136,7 +295,6 @@ a:hover { text-decoration: underline; }
 
 <script>
 const SAVE_KEY = 'twilight-mood-board-v3';
-const BOARDW_KEY = 'twilight-mood-board-v3-w';
 const IMG_BASE = '../../attachments/onenote/';
 
 const DEFAULT_CARDS = [
@@ -179,17 +337,20 @@ let cards = [];
 let moving = null;
 let resizing = null;
 
+// ── Undo stack ──────────────────────────────────────────
+const undoStack = [];
+function pushUndo() {
+  syncText();
+  undoStack.push(JSON.stringify(cards));
+  if (undoStack.length > 50) undoStack.shift();
+}
+
+// ── Load / Save ─────────────────────────────────────────
 function loadBoard() {
   const saved = localStorage.getItem(SAVE_KEY);
   if (saved) {
     cards = JSON.parse(saved);
-    const savedW = +localStorage.getItem(BOARDW_KEY) || 0;
-    const currentW = document.getElementById('board').offsetWidth;
     renderCards();
-    // 뷰포트 폭이 40px 이상 바뀌었거나 위치 없는 카드가 있으면 재배치
-    if (Math.abs(savedW - currentW) > 40 || cards.some(c => c.x === undefined)) {
-      autoLayout();
-    }
   } else {
     cards = DEFAULT_CARDS.map(c => ({...c}));
     renderCards();
@@ -197,7 +358,6 @@ function loadBoard() {
   }
 }
 
-// Masonry auto-layout: place cards in columns, shortest column first
 function autoLayout() {
   const GAP = 14;
   const boardW = document.getElementById('board').offsetWidth;
@@ -205,7 +365,6 @@ function autoLayout() {
   const colW = (boardW - GAP * (cols - 1)) / cols;
   const colHeights = new Array(cols).fill(0);
 
-  // Wait for all images to load, then compute
   const allCards = document.querySelectorAll('.card');
   const images = document.querySelectorAll('.card img');
   let loaded = 0;
@@ -214,37 +373,29 @@ function autoLayout() {
   function place() {
     allCards.forEach((el, i) => {
       const card = cards[i];
-      // Use card.w but clamp to column width
       const w = Math.min(card.w || colW, colW);
-      // Find shortest column
       let minCol = 0;
       for (let c = 1; c < cols; c++) {
         if (colHeights[c] < colHeights[minCol]) minCol = c;
       }
       const x = minCol * (colW + GAP);
       const y = colHeights[minCol];
-      card.x = x;
-      card.y = y;
-      card.w = w;
+      card.x = x; card.y = y; card.w = w;
       el.style.left = x + 'px';
       el.style.top = y + 'px';
       el.style.width = w + 'px';
-      void el.offsetWidth; // 동기 리플로우 강제 — 정확한 높이 읽기
+      void el.offsetWidth; // force reflow for accurate height
       colHeights[minCol] = y + el.offsetHeight + GAP;
     });
-    const maxH = Math.max(...colHeights);
-    document.getElementById('board').style.minHeight = (maxH + 100) + 'px';
+    document.getElementById('board').style.minHeight = (Math.max(...colHeights) + 100) + 'px';
     saveBoard();
   }
 
-  if (total === 0) {
-    requestAnimationFrame(place);
-  } else {
+  if (total === 0) { requestAnimationFrame(place); }
+  else {
     images.forEach(img => {
       if (img.complete) { loaded++; if (loaded >= total) requestAnimationFrame(place); }
-      else {
-        img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); };
-      }
+      else { img.onload = img.onerror = () => { loaded++; if (loaded >= total) requestAnimationFrame(place); }; }
     });
   }
 }
@@ -256,16 +407,20 @@ function syncText() {
       const t = el.querySelector('.text');
       if (t) cards[idx].content = t.innerHTML;
     }
+    if (cards[idx]?.type === 'image') {
+      const cap = el.querySelector('.caption');
+      if (cap) cards[idx].caption = cap.textContent;
+    }
   });
 }
 
 function saveBoard() {
   syncText();
   localStorage.setItem(SAVE_KEY, JSON.stringify(cards));
-  localStorage.setItem(BOARDW_KEY, document.getElementById('board').offsetWidth);
   document.getElementById('status').textContent = '저장됨 ' + new Date().toLocaleTimeString();
 }
 
+// ── Render ──────────────────────────────────────────────
 function renderCards() {
   const board = document.getElementById('board');
   board.innerHTML = '';
@@ -278,9 +433,9 @@ function renderCards() {
     if (card.y !== undefined) el.style.top = card.y + 'px';
     if (card.w) el.style.width = card.w + 'px';
 
-    // Drag
+    // Drag (exclude text, links, buttons, resize, caption, table cells)
     el.addEventListener('mousedown', e => {
-      if (e.target.closest('.text, a, .card-btn, .resize-handle')) return;
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, .caption, td, th')) return;
       e.preventDefault();
       moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x || 0, origY: card.y || 0 };
       el.classList.add('moving');
@@ -291,7 +446,10 @@ function renderCards() {
     actions.className = 'card-actions';
     const delBtn = document.createElement('button');
     delBtn.className = 'card-btn'; delBtn.textContent = '×';
-    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { cards.splice(i,1); renderCards(); saveBoard(); } };
+    delBtn.onclick = e => {
+      e.stopPropagation();
+      if (confirm('삭제?')) { pushUndo(); cards.splice(i, 1); renderCards(); saveBoard(); }
+    };
     actions.appendChild(delBtn);
     el.appendChild(actions);
 
@@ -301,17 +459,51 @@ function renderCards() {
       text.className = 'text';
       text.contentEditable = true;
       text.innerHTML = card.content || '';
-      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+
+      // #1 — link click in contenteditable
+      text.addEventListener('click', e => {
+        const a = e.target.closest('a');
+        if (a && a.href) { e.preventDefault(); window.open(a.href, '_blank'); }
+      });
+
+      // #6 — show formatting toolbar on focus
+      text.addEventListener('focus', () => showFmtToolbar(text));
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); hideFmtToolbarDelayed(); });
+
+      // #8 — Ctrl+K
+      text.addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault(); e.stopPropagation();
+          openVisionLinkPopup();
+        }
+      });
+
       el.appendChild(text);
     } else if (card.type === 'image') {
       const img = document.createElement('img');
-      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
-      img.alt = ''; img.loading = 'lazy';
+      const src = card.src;
+      img.src = src.startsWith('http') || src.startsWith('data:') ? src : IMG_BASE + src;
+      img.alt = card.caption || card.src.replace(/\.\w+$/, '');
+      img.loading = 'lazy';
       img.onerror = () => img.style.display = 'none';
+
       if (card.link) {
         const a = document.createElement('a'); a.href = card.link; a.target = '_blank';
         a.appendChild(img); el.appendChild(a);
       } else { el.appendChild(img); }
+
+      // #4 — caption
+      const caption = document.createElement('div');
+      caption.className = 'caption';
+      caption.contentEditable = true;
+      caption.textContent = card.caption || '';
+      caption.addEventListener('blur', () => {
+        card.caption = caption.textContent;
+        img.alt = card.caption || card.src;
+        saveBoard();
+      });
+      caption.addEventListener('mousedown', e => e.stopPropagation()); // prevent drag
+      el.appendChild(caption);
     }
 
     // Resize
@@ -319,6 +511,7 @@ function renderCards() {
     rh.className = 'resize-handle';
     rh.addEventListener('mousedown', e => {
       e.preventDefault(); e.stopPropagation();
+      pushUndo();
       resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth };
     });
     el.appendChild(rh);
@@ -337,33 +530,24 @@ function renderCards() {
   });
 }
 
-const GRID = 20;
-const GAP = 14;
-
+// ── Drag / Resize ───────────────────────────────────────
+const GRID = 20, GAP = 14;
 function snap(v) { return Math.round(v / GRID) * GRID; }
 
-// Find nearest non-overlapping position, pushing others if shift held
 function pushCards(movedIdx) {
   const moved = cards[movedIdx];
   const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
   if (!movedEl) return;
   const mh = movedEl.offsetHeight;
-
-  // Sort other cards by distance from moved card
-  const others = cards.map((c, i) => ({ c, i, el: document.querySelector(`.card[data-idx="${i}"]`) }))
-    .filter(o => o.i !== movedIdx && o.el);
-
-  for (const o of others) {
-    const oh = o.el.offsetHeight;
-    // Check overlap
-    const overlapX = moved.x < (o.c.x + (o.c.w || 200)) && (moved.x + (moved.w || 200)) > o.c.x;
-    const overlapY = moved.y < (o.c.y + oh) && (moved.y + mh) > o.c.y;
-    if (overlapX && overlapY) {
-      // Push down
-      o.c.y = moved.y + mh + GAP;
-      o.el.style.top = o.c.y + 'px';
-    }
-  }
+  cards.map((c, i) => ({ c, i, el: document.querySelector(`.card[data-idx="${i}"]`) }))
+    .filter(o => o.i !== movedIdx && o.el)
+    .forEach(o => {
+      const oh = o.el.offsetHeight;
+      const ox = o.c.x, ow = o.c.w || 200;
+      const overlapX = moved.x < (ox + ow) && (moved.x + (moved.w || 200)) > ox;
+      const overlapY = moved.y < (o.c.y + oh) && (moved.y + mh) > o.c.y;
+      if (overlapX && overlapY) { o.c.y = moved.y + mh + GAP; o.el.style.top = o.c.y + 'px'; }
+    });
 }
 
 document.addEventListener('mousemove', e => {
@@ -373,11 +557,8 @@ document.addEventListener('mousemove', e => {
     let nx = moving.origX + e.clientX - moving.startX;
     let ny = moving.origY + e.clientY - moving.startY;
     if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
-    el.style.left = nx + 'px';
-    el.style.top = ny + 'px';
-    // Live preview of snap guides
-    if (e.shiftKey) el.style.outline = '1px dashed rgba(240,192,64,0.3)';
-    else el.style.outline = '';
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+    el.style.outline = e.shiftKey ? '1px dashed rgba(240,192,64,0.3)' : '';
   }
   if (resizing) {
     const card = cards[resizing.idx];
@@ -391,33 +572,27 @@ document.addEventListener('mousemove', e => {
 
 document.addEventListener('mouseup', e => {
   if (moving) {
+    pushUndo();
     const card = cards[moving.idx];
     let nx = moving.origX + e.clientX - moving.startX;
     let ny = moving.origY + e.clientY - moving.startY;
     if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
-    card.x = Math.max(0, nx);
-    card.y = Math.max(0, ny);
+    card.x = Math.max(0, nx); card.y = Math.max(0, ny);
     const el = document.querySelector(`.card[data-idx="${moving.idx}"]`);
     if (el) { el.classList.remove('moving'); el.style.outline = ''; }
     if (e.shiftKey) pushCards(moving.idx);
-    moving = null;
-    saveBoard();
+    moving = null; saveBoard();
   }
-  if (resizing) {
-    if (e.shiftKey) pushCards(resizing.idx);
-    resizing = null;
-    saveBoard();
-  }
+  if (resizing) { resizing = null; saveBoard(); }
 });
 
+// ── Add cards ────────────────────────────────────────────
 function addTextCard() {
+  pushUndo();
   const sy = window.scrollY;
   cards.push({ type: 'text', content: '', x: 50, y: sy + 100, w: 300 });
   renderCards();
-  setTimeout(() => {
-    const els = document.querySelectorAll('.card .text');
-    els[els.length - 1]?.focus();
-  }, 100);
+  setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length - 1]?.focus(); }, 100);
 }
 
 function addImageCard() {
@@ -427,8 +602,8 @@ function addImageCard() {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const sy = window.scrollY;
-      cards.push({ type: 'image', src: reader.result, x: 50, y: sy + 100, w: 240 });
+      pushUndo();
+      cards.push({ type: 'image', src: reader.result, x: 50, y: window.scrollY + 100, w: 240 });
       renderCards(); saveBoard();
     };
     reader.readAsDataURL(file);
@@ -436,6 +611,25 @@ function addImageCard() {
   input.click();
 }
 
+// #5 — Ctrl+V paste image
+document.addEventListener('paste', e => {
+  // Skip if pasting inside text card (let contenteditable handle)
+  if (e.target.closest && e.target.closest('.text')) return;
+  for (const item of e.clipboardData?.items || []) {
+    if (item.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        pushUndo();
+        cards.push({ type: 'image', src: reader.result, x: 80, y: window.scrollY + 80, w: 300 });
+        renderCards(); saveBoard();
+      };
+      reader.readAsDataURL(item.getAsFile());
+      e.preventDefault(); break;
+    }
+  }
+});
+
+// ── Export / Reset ───────────────────────────────────────
 function exportBoard() {
   syncText();
   const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' });
@@ -447,19 +641,299 @@ function exportBoard() {
 
 function resetLayout() {
   if (!confirm('자동 재배치합니다. 현재 위치가 변경됩니다.')) return;
+  pushUndo();
   cards.forEach(c => { delete c.x; delete c.y; });
-  renderCards();
-  autoLayout();
+  renderCards(); autoLayout();
 }
 
-setInterval(saveBoard, 30000);
-
-let _rzTimer;
-window.addEventListener('resize', () => {
-  clearTimeout(_rzTimer);
-  _rzTimer = setTimeout(autoLayout, 400);
+// ── Global keyboard ──────────────────────────────────────
+document.addEventListener('keydown', e => {
+  // #2 — Ctrl+Z undo (only when not editing text)
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    const active = document.activeElement;
+    const inText = active && active.closest && active.closest('.text');
+    if (!inText && undoStack.length) {
+      e.preventDefault();
+      cards = JSON.parse(undoStack.pop());
+      renderCards();
+      document.getElementById('status').textContent = '되돌림';
+    }
+  }
 });
 
+// ── #6 Formatting toolbar ─────────────────────────────────
+let fmtHideTimer = null;
+let _savedRange = null;
+
+function showFmtToolbar(el) {
+  clearTimeout(fmtHideTimer);
+  const tb = document.getElementById('fmt-toolbar');
+  const rect = el.getBoundingClientRect();
+  tb.style.left = rect.left + 'px';
+  tb.style.top = Math.max(4, rect.top - 44) + 'px';
+  tb.style.display = 'flex';
+}
+
+function hideFmtToolbarDelayed() {
+  fmtHideTimer = setTimeout(() => {
+    document.getElementById('fmt-toolbar').style.display = 'none';
+  }, 200);
+}
+
+function fmt(cmd, val) {
+  // Restore saved selection if any
+  if (_savedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_savedRange);
+  }
+  document.execCommand(cmd, false, val || null);
+  _savedRange = null;
+  saveBoard();
+}
+
+// Save selection before toolbar button click steals focus
+document.getElementById('fmt-toolbar').addEventListener('mousedown', e => {
+  e.preventDefault(); // prevent blur on text div
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) _savedRange = sel.getRangeAt(0).cloneRange();
+});
+
+// ── #7 Table insert ───────────────────────────────────────
+let ctxCell = null;
+
+function insertTable() {
+  const rows = parseInt(prompt('행 수:', '3'), 10); if (!rows || rows < 1) return;
+  const cols = parseInt(prompt('열 수:', '3'), 10); if (!cols || cols < 1) return;
+
+  let html = '<table style="border-collapse:collapse;width:100%;margin:4px 0">';
+  for (let r = 0; r < rows; r++) {
+    html += '<tr>';
+    for (let c = 0; c < cols; c++) {
+      const tag = r === 0 ? 'th' : 'td';
+      html += `<${tag} contenteditable="true" style="border:1px solid #555;padding:4px 8px;min-width:40px;"></${tag}>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+
+  if (_savedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_savedRange);
+  }
+  document.execCommand('insertHTML', false, html);
+  _savedRange = null;
+  saveBoard();
+}
+
+// Table context menu
+document.addEventListener('contextmenu', e => {
+  const cell = e.target.closest('td, th');
+  if (!cell) return;
+  e.preventDefault();
+  ctxCell = cell;
+  const menu = document.getElementById('ctx-menu');
+  menu.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
+  menu.style.top = Math.min(e.clientY, window.innerHeight - 240) + 'px';
+  menu.style.display = 'block';
+});
+
+document.addEventListener('click', () => {
+  document.getElementById('ctx-menu').style.display = 'none';
+});
+
+function tableAddRowBelow() {
+  if (!ctxCell) return;
+  const tr = ctxCell.closest('tr');
+  const cols = tr.querySelectorAll('td,th').length;
+  const newTr = document.createElement('tr');
+  for (let c = 0; c < cols; c++) {
+    const td = document.createElement('td');
+    td.contentEditable = true;
+    td.style.cssText = 'border:1px solid #555;padding:4px 8px;min-width:40px;';
+    newTr.appendChild(td);
+  }
+  tr.after(newTr); saveBoard();
+}
+
+function tableAddRowAbove() {
+  if (!ctxCell) return;
+  const tr = ctxCell.closest('tr');
+  const cols = tr.querySelectorAll('td,th').length;
+  const newTr = document.createElement('tr');
+  for (let c = 0; c < cols; c++) {
+    const td = document.createElement('td');
+    td.contentEditable = true;
+    td.style.cssText = 'border:1px solid #555;padding:4px 8px;min-width:40px;';
+    newTr.appendChild(td);
+  }
+  tr.before(newTr); saveBoard();
+}
+
+function tableAddColRight() {
+  if (!ctxCell) return;
+  const table = ctxCell.closest('table');
+  const colIdx = [...ctxCell.parentElement.children].indexOf(ctxCell);
+  table.querySelectorAll('tr').forEach(tr => {
+    const cells = tr.querySelectorAll('td,th');
+    const ref = cells[colIdx];
+    const tag = ref.tagName.toLowerCase();
+    const newCell = document.createElement(tag);
+    newCell.contentEditable = true;
+    newCell.style.cssText = 'border:1px solid #555;padding:4px 8px;min-width:40px;';
+    ref.after(newCell);
+  });
+  saveBoard();
+}
+
+function tableAddColLeft() {
+  if (!ctxCell) return;
+  const table = ctxCell.closest('table');
+  const colIdx = [...ctxCell.parentElement.children].indexOf(ctxCell);
+  table.querySelectorAll('tr').forEach(tr => {
+    const cells = tr.querySelectorAll('td,th');
+    const ref = cells[colIdx];
+    const tag = ref.tagName.toLowerCase();
+    const newCell = document.createElement(tag);
+    newCell.contentEditable = true;
+    newCell.style.cssText = 'border:1px solid #555;padding:4px 8px;min-width:40px;';
+    ref.before(newCell);
+  });
+  saveBoard();
+}
+
+function tableDeleteRow() {
+  if (!ctxCell) return;
+  const tr = ctxCell.closest('tr');
+  const table = tr.closest('table');
+  if (table.querySelectorAll('tr').length <= 1) { tableDelete(); return; }
+  tr.remove(); saveBoard();
+}
+
+function tableDeleteCol() {
+  if (!ctxCell) return;
+  const table = ctxCell.closest('table');
+  const colIdx = [...ctxCell.parentElement.children].indexOf(ctxCell);
+  table.querySelectorAll('tr').forEach(tr => {
+    const cells = tr.querySelectorAll('td,th');
+    if (cells.length <= 1) return;
+    cells[colIdx]?.remove();
+  });
+  saveBoard();
+}
+
+function tableToggleHeader() {
+  if (!ctxCell) return;
+  const table = ctxCell.closest('table');
+  const firstRow = table.querySelector('tr');
+  if (!firstRow) return;
+  firstRow.querySelectorAll('td,th').forEach(cell => {
+    const newTag = cell.tagName === 'TD' ? 'TH' : 'TD';
+    const newCell = document.createElement(newTag);
+    newCell.contentEditable = true;
+    newCell.style.cssText = cell.style.cssText;
+    newCell.innerHTML = cell.innerHTML;
+    cell.replaceWith(newCell);
+  });
+  saveBoard();
+}
+
+function tableCellBgColor() {
+  if (!ctxCell) return;
+  const color = prompt('셀 배경색 (예: #1a1a3a 또는 red):', ctxCell.style.background || '');
+  if (color !== null) { ctxCell.style.background = color; saveBoard(); }
+}
+
+function tableDelete() {
+  if (!ctxCell) return;
+  const table = ctxCell.closest('table');
+  if (confirm('표를 삭제하시겠습니까?')) { pushUndo(); table.remove(); saveBoard(); }
+}
+
+// ── #8 Ctrl+K link popup ──────────────────────────────────
+let _linkSavedRange = null;
+
+function openVisionLinkPopup() {
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) _linkSavedRange = sel.getRangeAt(0).cloneRange();
+
+  // Prefill if cursor is on a link
+  let existingUrl = '';
+  if (sel && sel.anchorNode) {
+    const a = sel.anchorNode.parentElement?.closest('a');
+    if (a) existingUrl = a.href;
+  }
+
+  const popup = document.getElementById('vision-link-popup');
+  document.getElementById('vision-link-url').value = existingUrl;
+  const focusedEl = document.activeElement;
+  const rect = focusedEl?.getBoundingClientRect?.() || { left: 100, bottom: 100 };
+  popup.style.left = Math.min(rect.left, window.innerWidth - 320) + 'px';
+  popup.style.top = Math.min(rect.bottom + 4, window.innerHeight - 130) + 'px';
+  popup.style.display = 'block';
+  setTimeout(() => document.getElementById('vision-link-url').focus(), 50);
+}
+
+function openLinkPopupFmt() {
+  openVisionLinkPopup();
+}
+
+function closeVisionLinkPopup() {
+  document.getElementById('vision-link-popup').style.display = 'none';
+  _linkSavedRange = null;
+}
+
+function visionSaveLink() {
+  const url = document.getElementById('vision-link-url').value.trim();
+  if (!url) { closeVisionLinkPopup(); return; }
+
+  if (_linkSavedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_linkSavedRange);
+  }
+
+  // If selection is collapsed, wrap current word; otherwise wrap selection
+  const sel = window.getSelection();
+  if (sel && !sel.isCollapsed) {
+    document.execCommand('createLink', false, url);
+    // Ensure target=_blank
+    if (sel.anchorNode) {
+      const a = sel.anchorNode.parentElement?.closest('a') || sel.focusNode?.parentElement?.closest('a');
+      if (a) a.target = '_blank';
+    }
+  } else {
+    // No selection — insert as new link
+    const a = `<a href="${url}" target="_blank">${url}</a>`;
+    document.execCommand('insertHTML', false, a);
+  }
+
+  _linkSavedRange = null;
+  closeVisionLinkPopup();
+  saveBoard();
+}
+
+function visionRemoveLink() {
+  if (_linkSavedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_linkSavedRange);
+  }
+  document.execCommand('unlink');
+  _linkSavedRange = null;
+  closeVisionLinkPopup();
+  saveBoard();
+}
+
+// Close link popup on Enter
+document.getElementById('vision-link-url').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); visionSaveLink(); }
+  if (e.key === 'Escape') closeVisionLinkPopup();
+});
+
+// ── Init ─────────────────────────────────────────────────
+setInterval(saveBoard, 30000);
 loadBoard();
 </script>
 </body>
