@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-07] Vision Board 재마이그레이션 + Cortex 배포
+
+**완료**: 사용자 승인 후 `--apply` 실행(1137 HTML, 3452 카드). Worker 배포(16e0ae6a). 보호 파일 무결성 ✅
+**이슈**: 없음
+**빌드**: ✅
+
 ## [2026-06-07] Cortex PWA 모바일 흰/검은 화면 복구
 
 **완료**: iframe `/vision.html`→`/vision` (307 redirect 우회). SW v35→v36 bump (손상 캐시 강제 클리어). 배포 검증 완료.

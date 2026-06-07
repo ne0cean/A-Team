@@ -70,12 +70,17 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-07) — Vision Board 재마이그레이션 + Cortex 배포
+
+- `node scripts/migrate-onenote-html.mjs --apply` — 1137 HTML 파일 재생성, 3452 카드
+- Cortex Worker 배포 완료 (16e0ae6a)
+- `cortex/2/5-life-xlab/ritual-routine/` 보호 파일 무결성 확인 ✅
+
 ## Last Completions (2026-06-07) — Cortex PWA 모바일 흰/검은 화면 복구
 
-- **근본 원인**: `<iframe src="/vision.html">` → Cloudflare 307 redirect → SW stale-while-revalidate가 redirected response 캐시 → iOS Safari `caches.match()` 빈 response → 흰/검은 화면
-- **`index.html:83`** `src="/vision.html"` → `src="/vision"` (canonical URL, redirect 없음)
-- **`sw.js:1`** `cortex-v35` → `cortex-v36` (손상 캐시 강제 클리어 + 모든 기기 fresh reload)
-- 배포 완료 (`003dc05e`) — `curl` 검증: sw.js `cortex-v36` ✅, index.html `src="/vision"` ✅
+- **근본 원인**: `<iframe src="/vision.html">` → Cloudflare 307 redirect → SW stale-while-revalidate 캐시 오염 → iOS Safari 빈 response → 흰/검은 화면
+- `index.html:83` `/vision.html` → `/vision`, `sw.js` v35 → v36 (캐시 클리어)
+- 배포 완료 (`003dc05e`) — curl 검증 ✅
 
 ## Last Completions (2026-06-07) — Cortex 노트 뷰어 HTML 렌더링 + copy 버튼
 
@@ -164,7 +169,6 @@
 ## Next Tasks
 
 ### High Priority
-- [x] **Vision Board / Twilight Mood board 컨펌** → 전체 재마이그레이션 + Cortex Worker 배포 완료 (2026-06-07)
 - [ ] **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
 - [ ] **Confluence PAT 발급** — VDI에서 프로필 > Personal Access Tokens 확인
 - [ ] **Confluence 역변환기 + daemon** — 안정화 후 구현 재개
