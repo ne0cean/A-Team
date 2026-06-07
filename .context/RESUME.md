@@ -1,7 +1,7 @@
 ---
 mode: normal
 status: active
-created: 2026-06-08T01:34:59+0900
+created: 2026-06-08T03:17:32+0900
 task: **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
 ---
 
@@ -15,7 +15,7 @@ task: **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 
 - [ ] **Confluence PAT 발급** — VDI에서 프로필 > Personal Access Tokens 확인
 - [ ] **Confluence 역변환기 + daemon** — 안정화 후 구현 재개
 - [ ] **제품 빌드 시작** — Connectome MVP
-- [x] **Dashboard a11y 수정** — design audit score 65→70+ ✅ (dcbb6c99)
+- [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정
 
 ## 메모
 세션이 /end 없이 종료됨. 위 태스크부터 이어서 진행.
