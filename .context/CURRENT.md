@@ -70,6 +70,13 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-07) — Cortex PWA 모바일 흰/검은 화면 복구
+
+- **근본 원인**: `<iframe src="/vision.html">` → Cloudflare 307 redirect → SW stale-while-revalidate가 redirected response 캐시 → iOS Safari `caches.match()` 빈 response → 흰/검은 화면
+- **`index.html:83`** `src="/vision.html"` → `src="/vision"` (canonical URL, redirect 없음)
+- **`sw.js:1`** `cortex-v35` → `cortex-v36` (손상 캐시 강제 클리어 + 모든 기기 fresh reload)
+- 배포 완료 (`003dc05e`) — `curl` 검증: sw.js `cortex-v36` ✅, index.html `src="/vision"` ✅
+
 ## Last Completions (2026-06-07) — Cortex 노트 뷰어 HTML 렌더링 + copy 버튼
 
 - **HTML 노트 뷰어 수정** — `.html` 파일을 `renderMarkdown()`(HTML escape) 대신 `<iframe srcdoc>`으로 렌더링. 기존: 코드 그대로 출력. 수정: 스타일/스크립트 포함 완전 렌더링

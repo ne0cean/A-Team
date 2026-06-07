@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-07] Cortex PWA 모바일 흰/검은 화면 복구
+
+**완료**: iframe `/vision.html`→`/vision` (307 redirect 우회). SW v35→v36 bump (손상 캐시 강제 클리어). 배포 검증 완료.
+**이슈**: Cloudflare assets HTML extension stripping + SW stale-while-revalidate 조합이 iOS Safari에서 빈 response 반환.
+**빌드**: ✅ (wrangler deploy 성공, curl 검증)
+
 ## [2026-06-07] Cortex 노트 뷰어 HTML 렌더링 + copy 버튼
 
 **완료**: HTML 노트 뷰어 iframe srcdoc 렌더링(기존 escape→코드 출력 수정). copy 버튼(⎘) 신규 추가. OneNote HTML 카드보드→문서 편집기 형태 전환(1137개 재생성). Cortex Worker 배포(3e3d53de).
