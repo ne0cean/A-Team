@@ -330,10 +330,15 @@ function cleanCardText(html) {
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<div[^>]*>/gi, '')
     .replace(/<\/div>/gi, '\n')
+    .replace(/<td[^>]*>/gi, '\t')    // table cell → tab separator
+    .replace(/<\/tr>/gi, '\n')       // table row → newline
+    .replace(/<[^>]*(table|thead|tbody|tr|th)[^>]*>/gi, '')
     .replace(/<span[^>]*class="[^"]*NormalTextRun[^"]*"[^>]*>([\s\S]*?)<\/span>/gi, '$1')
     .replace(/<span[^>]*>([\s\S]*?)<\/span>/gi, '$1')
     .replace(/<(?!\/?(a|b|strong|em|br)[\s>])[^>]+>/gi, '')
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&#39;/g, "'").replace(/&quot;/g, '"')
+    .replace(/\r\n/g, '\n').replace(/\r/g, '\n')          // normalize CRLF
+    .split('\n').map(l => l.trim()).join('\n')              // trim each line
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
