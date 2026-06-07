@@ -45,4 +45,4 @@ SUMMARY=$(curl -s -m 3 https://api.groq.com/openai/v1/chat/completions \
 [ -z "$SUMMARY" ] && { echo '{}'; exit 0; }
 
 jq -n --arg ctx "Quick summary ($LINES lines): $SUMMARY" \
-  '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
+  '{hookSpecificOutput:{hookEventName:"PostToolUse",systemMessage:$ctx}}'

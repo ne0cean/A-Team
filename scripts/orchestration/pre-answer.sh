@@ -7,12 +7,17 @@
 # potentially avoiding Agent calls entirely.
 
 INPUT=$(cat)
-MSG=$(echo "$INPUT" | jq -r '.message // .content // ""' 2>/dev/null)
+# Field name varies by CC version: try prompt, message, content
+MSG=$(echo "$INPUT" | jq -r '.prompt // .message // .content // ""' 2>/dev/null)
 
 LOG="/tmp/orchestration-userprompt.log"
 GROQ_API_KEY="${GROQ_API_KEY:-}"
 
-echo "$(date +%H:%M:%S) FIRE msg=$(echo $MSG | head -c 60)" >> "$LOG"
+# Debug: dump raw INPUT keys on first call per session (schema verification)
+DEBUG_DUMP="/tmp/pre-answer-debug.json"
+[ ! -f "$DEBUG_DUMP" ] && echo "$INPUT" | jq 'keys' > "$DEBUG_DUMP" 2>/dev/null
+
+echo "$(date +%H:%M:%S) FIRE msg=$(echo "$MSG" | head -c 60)" >> "$LOG"
 
 # No API key or empty message → pass
 [ -z "$GROQ_API_KEY" ] && { echo '{}'; exit 0; }
@@ -31,7 +36,7 @@ if $IS_CORTEX_EDIT; then
     CTX=$(printf '%s' "$DCTX" | python3 -c "import sys; import json; print(json.dumps(sys.stdin.read())[1:-1])" 2>/dev/null)
     if [ -n "$CTX" ]; then
       echo "$(date +%H:%M:%S) CORTEX_EDIT_INTENT injected" >> "$LOG"
-      printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"[CORTEX PRE-EDIT 자동 주입]\\n%s"}}\n' "$CTX"
+      printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","systemMessage":"[CORTEX PRE-EDIT 자동 주입]\\n%s"}}\n' "$CTX"
       exit 0
     fi
   fi
@@ -103,4 +108,4 @@ echo "$ANSWER" | grep -qiE "I don't know|cannot|not sure|don't have" && { echo '
 echo "$(date +%H:%M:%S) ANSWERED" >> "$LOG"
 
 jq -n --arg ctx "Pre-computed (Groq, free): $ANSWER" \
-  '{hookSpecificOutput:{hookEventName:"UserPromptSubmit",additionalContext:$ctx}}'
+  '{hookSpecificOutput:{hookEventName:"UserPromptSubmit",systemMessage:$ctx}}'
