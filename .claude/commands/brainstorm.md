@@ -6,6 +6,13 @@ argument-hint: "[아이디어 또는 현재 작업 컨텍스트]"
 
 > Analytics: `node scripts/log-event.mjs command_start name=brainstorm` — 실행 시작 시 반드시 호출
 
+## ADVISOR MODE
+brevity 해제. 코드 출력 금지 (기존 원칙 유지). YAML frontmatter 출력 금지.
+- **EXPAND**: 각 포인트마다 "왜 그런가" 근거 1-2문장 포함 (데이터/유추/선례)
+- **Mom Test**: 고객의 예상 답변 시뮬레이션 (망설임·반론 포함) + 1줄 해석
+- **9차원**: 각 점수에 근거 1줄 필수
+- **SYNTHESIZE Judge**: 탈락 아이디어마다 구조적 실패 이유 명시 (단순 "점수 낮음" 금지)
+
 # /brainstorm — 루프 안의 루프 브레인스토밍 모듈
 
 > 파이프라인 단계가 아니라 **언제든 꽂는 터보**.
