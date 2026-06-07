@@ -74,6 +74,14 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-08) — Cortex Dashboard 14일 버그 + 일정 표기 복구 + 재발방지
+
+- **toggleView() 14일 버그 수정** — week 전환 시 `currentWeekStart` 오늘 기준 리셋. "This Week" = 항상 오늘 주
+- **getMonthlyRecurring() monthly 주입 제거** — `standingData.monthly[ym]` 날짜 prefix 아이템 day cell 주입 금지 (사이드바 전용 복원)
+- **DECISIONS.md 재발방지 패턴** — [D-WEEKFIX], [D-MONTHLYINJECT], [D-WORKOUT-ATOMIC] 3개 등록
+- wrangler deploy + `/api/month` 200 확인. 배포 완료 (3e1394d1)
+- **A-Team /absorb** — kb-real-estate 2건 pending 등록 (IMP-20260608-01/02)
+
 ## Last Completions (2026-06-08) — Cortex Dashboard carry/delete/workout 버그 수정
 
 - **carry cascade 방지** — `getCatItemsForRender` carry filter에 `!i._carried` 추가. _carried 항목 재이월 차단

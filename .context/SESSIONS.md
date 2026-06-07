@@ -1,5 +1,17 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-08] /absorb + Cortex Dashboard 버그 수정 (14일/일정/재발방지)
+
+**완료**:
+- /absorb: kb-real-estate 스캔 2건 pending 등록 (IMP-20260608-01 research-prompts.mjs, IMP-20260608-02 setup.sh)
+- toggleView() 14일 버그 수정 — week 전환 시 currentWeekStart 오늘 기준 리셋
+- getMonthlyRecurring() monthly[ym] 텍스트 주입 제거 — 사이드바 전용 복원
+- DECISIONS.md [D-WEEKFIX] [D-MONTHLYINJECT] [D-WORKOUT-ATOMIC] 재발방지 패턴 추가
+- wrangler deploy 완료 (3e1394d1), /api/month 200 확인
+
+**이슈**: pending.md rebase 충돌 (IMP-20260607 원격 항목 vs 로컬 IMP-20260608 항목). --theirs로 해소 후 absorb commit 재적용.
+**빌드**: ✅ (Worker 배포 + API 200)
+
 ## [2026-06-07] Advisor Mode 스킬 최적화 (autoresearch 9개 스킬)
 
 **완료**: brainstorm/office-hours/plan-ceo/cold-review/okr — ADVISOR MODE 블록 추가 (5개). thinking-partner/board/morning SKIP (구조적 이유). retro SKIP (Groq hook 차단). 슬래시 커맨드 워크플로우 가이드 생성 (`~/.claude/commands/slash-command-workflow.md`). 레슨 2개 저장 (Groq preempt, Advisor Mode 적합성).
