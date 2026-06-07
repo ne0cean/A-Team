@@ -322,43 +322,108 @@ function formatDate(iso) {
   } catch { return iso || ''; }
 }
 
+// ── Extract card text: keep <a>,<b>,<br>, strip wrappers ─────────────────────
+function cleanCardText(html) {
+  return html
+    .replace(/<p[^>]*>/gi, '')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<div[^>]*>/gi, '')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<span[^>]*class="[^"]*NormalTextRun[^"]*"[^>]*>([\s\S]*?)<\/span>/gi, '$1')
+    .replace(/<span[^>]*>([\s\S]*?)<\/span>/gi, '$1')
+    .replace(/<(?!\/?(a|b|strong|em|br)[\s>])[^>]+>/gi, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&#39;/g, "'").replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// ── Extract board cards from OneNote absolute-layout HTML ─────────────────────
+function extractBoardCards(bodyContent) {
+  const cards = [];
+
+  // Pass 1: top-level absolute images
+  for (const m of bodyContent.matchAll(/<img\b([^>]*?)(?:\/>|>)/gi)) {
+    const tag = m[1];
+    const styleM = tag.match(/style="[^"]*position:absolute;left:(\d+(?:\.\d+)?)px;top:(\d+(?:\.\d+)?)px/);
+    if (!styleM) continue;
+    const srcM = tag.match(/data-fullres-src="__ATTACHMENT__([a-f0-9]+\.png)"|src="__ATTACHMENT__([a-f0-9]+\.png)"/);
+    if (!srcM) continue;
+    const x = Math.round(parseFloat(styleM[1]));
+    const y = Math.round(parseFloat(styleM[2]));
+    const wM = tag.match(/width="(\d+(?:\.\d+)?)"/);
+    const w = wM ? Math.min(Math.round(parseFloat(wM[1])), 480) : 220;
+    const src = srcM[1] || srcM[2];
+    // Check for wrapping <a> just before this tag
+    const before = bodyContent.slice(Math.max(0, m.index - 300), m.index);
+    const linkM = before.match(/<a\s[^>]*href="([^"]+)"[^>]*>\s*$/);
+    const card = { type: 'image', x, y, w, src };
+    if (linkM) card.link = linkM[1];
+    cards.push(card);
+  }
+
+  // Pass 2: top-level absolute divs
+  const divRe = /<div\s+style="position:absolute;left:(\d+(?:\.\d+)?)px;top:(\d+(?:\.\d+)?)px;width:(\d+(?:\.\d+)?)px">/g;
+  let dm;
+  while ((dm = divRe.exec(bodyContent)) !== null) {
+    const x = Math.round(parseFloat(dm[1]));
+    const y = Math.round(parseFloat(dm[2]));
+    const w = Math.min(Math.round(parseFloat(dm[3])), 600);
+    // Find matching </div> by depth
+    let depth = 1, j = dm.index + dm[0].length;
+    while (j < bodyContent.length && depth > 0) {
+      if (bodyContent[j] === '<') {
+        if (bodyContent.slice(j, j + 4).toLowerCase() === '<div') depth++;
+        else if (bodyContent.slice(j, j + 5).toLowerCase() === '</div') depth--;
+      }
+      if (depth > 0) j++;
+    }
+    const inner = bodyContent.slice(dm.index + dm[0].length, j);
+    const content = cleanCardText(inner);
+    if (content.trim()) cards.push({ type: 'text', x, y, w, content });
+  }
+
+  return cards.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+}
+
 // ── Process .onenote.html (Graph API raw HTML) → Cortex HTML ─────────────────
 async function processOnenoteHtmlSource(onenoteHtmlPath, dstDir, dstSection, title, date) {
   const rawHtml = await readFile(onenoteHtmlPath, 'utf8');
   const base = imgBase(dstSection);
 
-  // Extract body content
+  // Extract body content + fix image placeholders
   const bodyMatch = rawHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
   let bodyContent = bodyMatch ? bodyMatch[1] : rawHtml;
+  bodyContent = bodyContent.replace(/__ATTACHMENT__([a-f0-9]+\.png)/g, (_, f) => `__ATTACHMENT__${f}`); // keep placeholders for card extractor
 
-  // Replace __ATTACHMENT__filename placeholder with correct relative path
-  bodyContent = bodyContent.replace(/__ATTACHMENT__([a-f0-9]+\.png)/g, (_, f) => base + f);
-
-  // Fix any remaining Graph API image URLs (fallback)
-  bodyContent = bodyContent.replace(
-    /src="(https:\/\/graph\.microsoft\.com[^"]+\/\$value)"/g,
-    (_, url) => {
-      const filename = graphUrlToFilename(url);
-      if (!filename) return `src="missing.png"`;
-      return `src="${base}${filename}"`;
-    }
-  );
-
-  // Detect absolute-layout pages (e.g. Vision Board) and calculate container dimensions
   const isAbsolute = rawHtml.includes('data-absolute-enabled="true"');
-  let pageW = 0, pageH = 0;
+
   if (isAbsolute) {
-    for (const m of rawHtml.matchAll(/position:absolute;left:(\d+)px;top:(\d+)px(?:;width:(\d+)px)?/g)) {
-      const r = parseInt(m[1]) + (m[3] ? parseInt(m[3]) : 400);
-      const b = parseInt(m[2]) + 400;
-      if (r > pageW) pageW = r;
-      if (b > pageH) pageH = b;
-    }
-    pageW = Math.max(pageW + 40, 1200);
-    pageH = Math.max(pageH + 80, 800);
+    // Board-template mode: extract cards → interactive board
+    const cards = extractBoardCards(bodyContent);
+    const saveKey = 'board-' + slugify(title);
+    const boardTemplate = await readFile(
+      join(process.env.HOME, 'Projects/a-team/scripts/cortex-dashboard/templates/board-template.html'),
+      'utf8'
+    );
+    return boardTemplate
+      .replace('{{BOARD_TITLE}}', escHtml(title))
+      .replace('{{BOARD_TITLE}}', escHtml(title)) // title-bar contenteditable
+      .replace('{{BOARD_DATE}}', escHtml(date))
+      .replace('{{SAVE_KEY}}', saveKey)
+      .replace('{{IMG_BASE}}', base)
+      .replace('{{DEFAULT_CARDS}}', JSON.stringify(cards, null, 2));
   }
 
-  const pageHtml = `<!DOCTYPE html>
+  // Linear doc mode (non-absolute pages): wrap OneNote HTML body
+  bodyContent = bodyContent
+    .replace(/__ATTACHMENT__([a-f0-9]+\.png)/g, (_, f) => base + f)
+    .replace(/src="(https:\/\/graph\.microsoft\.com[^"]+\/\$value)"/g, (_, url) => {
+      const fn = graphUrlToFilename(url);
+      return fn ? `src="${base}${fn}"` : `src="missing.png"`;
+    });
+
+  return `<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -372,17 +437,11 @@ body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-syst
 .toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
 .toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; }
 .toolbar button:hover { background: #30363d; color: #fff; }
-${isAbsolute
-  ? `.onenote-body { position: relative; overflow: auto; min-width: ${pageW}px; min-height: ${pageH}px; }`
-  : `.onenote-body { padding: 20px 24px 80px; }`
-}
+.onenote-body { padding: 20px 24px 80px; }
 .onenote-body * { color: #e0e0e0 !important; background-color: transparent !important; }
 .onenote-body table { border-collapse: collapse; margin-bottom: 12px; }
 .onenote-body td, .onenote-body th { border: 1px solid #444 !important; padding: 6px 10px !important; vertical-align: top; }
-${isAbsolute
-  ? `/* absolute layout: 원본 img 크기 유지 */`
-  : `.onenote-body img { max-width: 100%; height: auto; border-radius: 4px; display: block; }`
-}
+.onenote-body img { max-width: 100%; height: auto; border-radius: 4px; display: block; }
 .onenote-body a { color: #6cb0f6 !important; text-decoration: none; }
 .onenote-body a:hover { text-decoration: underline; }
 </style>
@@ -393,9 +452,7 @@ ${isAbsolute
   <span class="t-date">${escHtml(date)}</span>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
 </div>
-<div class="onenote-body">
-${bodyContent}
-</div>
+<div class="onenote-body">${bodyContent}</div>
 <script>
 function copyPath() {
   navigator.clipboard.writeText(location.pathname).then(() => {
@@ -407,8 +464,6 @@ function copyPath() {
 </script>
 </body>
 </html>`;
-
-  return pageHtml;
 }
 
 // ── Process a single .md file → .html ────────────────────────────────────────
