@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">위대한 하루<br>		<br>		<br>	<br>	<br>		<br>			<br>설레이는가?<br>			<br><br>			<br>웃어라,<br>			<br>주리지 않으면 먹지마라,<br>			<br><br>			<br>즐겨라.<br>		<br>		<br>			<br>씨이오 말고, 창업주<br>			<br>리더 보다는, 멘토<br>			<br>전문가 말고, 장인<br>			<br>되는거 말고, 하는 거다..<br>			<br><br>			<br>From 열망 to 희망<br>			<br><br>			<br><br>			<br>게임의 법칙을 우회하여, 판을 새로 짤 수 있어야 한다.<br>			<br>국경과, 인더스트리, 기술과 진입장벽을 허무는 <br>			<br>와해성 혁신 상품이 되자.<br>			<br><br>			<br><br>			<br><br>			<br>마케터로써의 나의 이상은 독과점 시장.<br>			<br>다투어 피흘리지 않고,<br>			<br>이기려고 진흙탕에 구르지 않으며,<br>			<br>하나를 더 팔아보려 거짓을 말하지 않고,<br>			<br>사람들의 가슴을 할퀴지 않아도 되는 환경.<br>			<br><br>			<br>마케팅을 없애버릴 수 없다면,<br>			<br>마케팅을 개선할 수 없다면,<br>			<br>그런 마케팅을 멈출 한가지 대안.<br>			<br><br>			<br>대안이 되자.<br>			<br>실행력이 되자.<br>			<br><br>			<br><br>			<br><br>			<br>세상을 바꾸겠다던<br>			<br>미치광이들만이 <br>			<br>언제나,<br>			<br>세상을 바꿔왔다.<br>			<br><br>			<br>하지만,<br>			<br>혼자서는 세상을 바꿀 수 없다.<br>			<br><br>			<br>이것은, 내가 시작했지만<br>			<br>우리가 끝내야 할 싸움이다.<br>		<br>		<br>			<br>모든 것이 정해져 있는 거라면,<br>			<br>모든 것에 자격이 필요한 거라면,<br>			<br><br>			<br>산다는 건 <br>			<br>살아 나간다는 건<br>			<br>대체 무슨 의미지?<br>			<br><br>			<br>부침이 있고<br>			<br>오열하는 눈물<br>			<br>극복하는 희열,<br>			<br>그런 일렁임이 있는 삶이 좋다.<br>			<br>오열하는 눈물도. 모두 다. <br>			<br><br>			<br>다, 내꺼.<br>			<br><br>			<br>나는 다시,<br>			<br>준비가 된 것 같다.</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

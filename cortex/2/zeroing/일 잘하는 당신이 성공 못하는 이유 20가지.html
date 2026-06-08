@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">일 잘하는 당신이 성공 못하는 이유 20가지<br>		<br>		<br>	<br>	<br>		<br>			<br>1. 과도한 승부욕 <br>			<br>이기는 것 자체가 목적이 되어 에너지를 낭비하게 된다. <br>			<br><br>			<br>2. 지나친 의견 추가 <br>			<br>함께 일하는 사람의 의욕을 꺾어놓거나 반감시킨다. <br>			<br><br>			<br>3. 쓸데없는 비평 <br>			<br>사람들이 방어적 태도를 취하며 점점 멀어진다. <br>			<br><br>			<br>4. 파괴적인 말 <br>			<br>상대에게 상처를 입히고 적으로 돌아서게 한다. <br>			<br><br>			<br>5. 부정적 표현 <br>			<br>대화를 목적 없는 싸움으로 흘러가게 만든다. <br>			<br><br>			<br>6. 잘난 척하기 <br>			<br>똑똑해 보이려고 할수록 더욱 바보 취급을 받는다. <br>			<br><br>			<br>7. 격한 감정 <br>			<br>강한 모습을 보이려다 우스꽝스러운 사람으로 비쳐진다. <br>			<br><br>			<br>8. 반대의견 <br>			<br>정보가 차단된 채 자신의 책상 앞에 홀로 앉아 있게 된다. <br>			<br><br>			<br>9. 정보의 독점 <br>			<br>사람들을 소외시킴으로써 오해와 불신을 키운다. <br>			<br><br>			<br>10. 인색한 칭찬 <br>			<br>불공평한 사람이라는 인상 때문에 사람들이 떠난다. <br>			<br><br>			<br>11. 남의 공 가로채기 <br>			<br>부당한 희생자를 만들어 분노를 표출시킨다. <br>			<br><br>			<br>12. 변명 <br>			<br>새로운 기회와 숨겨진 재능을 잃어버린다. <br>			<br><br>			<br>13. 핑계 <br>			<br>아무런 소득도 없이 문제는 해결되지 않은 채 남아 있다. <br>			<br><br>			<br>14. 편애 <br>			<br>실력 있고 정직한 사람들에게 불이익이 돌아간다. <br>			<br><br>			<br>15. 사과하지 않기 <br>			<br>사람들의 도움을 얻어낼 수많은 기회를 떠나보낸다. <br>			<br><br>			<br>16. 경청하지 않기 <br>			<br>당신보다 더 능력 있는 직원들을 떠나게 만든다. <br>			<br><br>			<br>17. 감사하지 않기 <br>			<br>조용히 끝날 수 있는 일을 요란하게 만들어버린다. <br>			<br><br>			<br>18. 엉뚱한 화풀이 <br>			<br>문제를 바로잡을 수 있는 타이밍을 놓쳐버린다. <br>			<br><br>			<br>19. 책임 전가 <br>			<br>위기를 모면하려다가 더 큰 위험에 부딪힌다. <br>			<br><br>			<br>20. 자기 미화 <br>			<br>당신에게 필요한 변화를 시작할 수 없다. <br>			<br><br>			<br>-일 잘하는 당신이 성공을 못하는 20가지 비밀(마셜 골드스미스(Marshall Goldsmith) 지음)&#160;</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">잡보장경 中<br>		<br>		<br>	<br>	<br>		<br>			<br><잡보장경>﻿<br>			<br>"벙어리처럼 침묵하고<br>			<br>임금님 처럼 말하며<br>			<br>눈처럼 냉정하고<br>			<br>불처럼 뜨거워라.<br>			<br>태산같은 자부심을 갖고<br>			<br>누운 풀처럼 자기를 낮추어라".<br>			<br><br>			<br><br>			<br>유리하다고 교만하지 말고<br>			<br>불리하다고 비굴하지 말라.<br>			<br><br>			<br>자기가 아는 대로 진실만을 말하여<br>			<br>주고받는 말마다 악(惡)을 막아<br>			<br>듣는 이에게 기쁨을 주어라.<br>			<br><br>			<br>무엇을 들었다고 쉽게 행동하지 말고<br>			<br>그것이 사실인지 깊이 생각하여<br>			<br>이치(理致)가 명확할 때<br>			<br>과감히 행동하라.<br>			<br><br>			<br>지나치게 인색하지 말고<br>			<br>성내거나 미워하지 말라.<br>			<br><br>			<br>이기심을 채우고자 정의를 등지지 말고<br>			<br>원망을 원망으로 갚지 말라.<br>			<br><br>			<br>위험에 직면하여 두려워 말고 <br>			<br>이익을 위해 남을 모함하지 말라.<br>			<br><br>			<br>객기(客氣)부려 만용(蠻勇)하지 말고<br>			<br>허약하여 비겁하지 말라.<br>			<br><br>			<br>사나우면 남들이 꺼려하고<br>			<br>나약하면 남이 업신여기나니<br>			<br>사나움과 나약함을 버려<br>			<br>지혜롭게 중도(中道)를 지켜라.<br>			<br><br>			<br>태산(泰山)같은 자부심을 갖고<br>			<br>누운 풀처럼 자기를 낮추어라.<br>			<br>역경(逆境)을 참아 이겨내고<br>			<br>형편이 잘 풀릴 때를 조심하라.<br>			<br><br>			<br>재물(財物)을 오물(汚物)처럼 보고<br>			<br>터지는 분노를 잘 다스려라. <br>			<br>때(時)와 처지(處地)를 살필 줄 알고<br>			<br>부귀(富貴)와 쇠망(衰亡)이<br>			<br>교차(交叉)함을 알라</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

@@ -453,6 +453,7 @@ function parseFlowContent(html, baseX, baseY, divW) {
   const GAP = 8;
   let curY = baseY;
   let lastTextCard = null; // accumulates consecutive text-only rows into one card
+  let lastSingleImageCard = null; // tracks last row that had exactly one image (for caption attach)
   // Split by <br> to determine rows
   const parts = html.split(/<br\s*\/?>/gi);
   for (const part of parts) {
@@ -461,6 +462,7 @@ function parseFlowContent(html, baseX, baseY, divW) {
     const imgMatches = [...trimmed.matchAll(/<img\b([^>]*?)(?:\/>|>)/gi)];
     if (imgMatches.length > 0) {
       lastTextCard = null; // image row breaks text accumulation
+      lastSingleImageCard = null;
       // If there's meaningful text before the first image, emit it as a text card first
       const firstImgBefore = cleanCardText(trimmed.slice(0, imgMatches[0].index));
       if (firstImgBefore.trim()) {
@@ -470,6 +472,7 @@ function parseFlowContent(html, baseX, baseY, divW) {
         curY += th + GAP;
       }
       let curX = baseX, rowH = 0;
+      const rowCards = [];
       for (const im of imgMatches) {
         const tag = im[1];
         const srcM = tag.match(/data-fullres-src="__ATTACHMENT__([a-f0-9]+\.png)"|src="__ATTACHMENT__([a-f0-9]+\.png)"/);
@@ -477,30 +480,43 @@ function parseFlowContent(html, baseX, baseY, divW) {
         const src = srcM[1] || srcM[2];
         const wM = tag.match(/width="(\d+(?:\.\d+)?)"/);
         const hM = tag.match(/height="(\d+(?:\.\d+)?)"/);
-        const imgW = wM ? Math.min(Math.round(parseFloat(wM[1])), 480) : 220;
-        const imgH = hM ? Math.round(parseFloat(hM[1])) : 200;
+        const rawW = wM ? Math.round(parseFloat(wM[1])) : 220;
+        const imgW = Math.min(rawW, 480);
+        const imgH = hM ? Math.round(parseFloat(hM[1]) * (imgW / rawW)) : 200;
         const altM = tag.match(/\balt="([^"]*)"/);
         const alt = altM ? altM[1].trim() : '';
         const before = trimmed.slice(0, im.index);
         const linkM = before.match(/<a\s[^>]*href="([^"]+)"[^>]*>\s*$/);
-        const card = { type: 'image', x: curX, y: curY, w: imgW, src };
+        const card = { type: 'image', x: curX, y: curY, w: imgW, h: imgH, src };
         if (linkM) card.link = linkM[1];
         if (isMeaningfulAlt(alt)) card.caption = alt.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
         results.push(card);
+        rowCards.push(card);
         curX += imgW + GAP;
         rowH = Math.max(rowH, imgH);
+      }
+      // Track single-image rows for potential caption attachment
+      if (rowCards.length === 1 && !firstImgBefore.trim()) {
+        lastSingleImageCard = rowCards[0];
       }
       curY += rowH + GAP;
     } else {
       const content = cleanCardText(trimmed);
       if (content.trim()) {
         const w = Math.min(divW, 600);
-        if (lastTextCard) {
+        // If previous row had exactly one image and no caption yet, attach short text as caption
+        if (lastSingleImageCard && !lastSingleImageCard.caption && content.trim().length < 150) {
+          lastSingleImageCard.caption = content.trim();
+          lastSingleImageCard = null;
+          // Don't create a separate text card — caption is absorbed into the image card
+        } else if (lastTextCard) {
+          lastSingleImageCard = null;
           // Merge consecutive text rows into one card
           lastTextCard.content += '\n' + content;
           const h = estimateTextHeight(lastTextCard.content, w);
           curY = lastTextCard.y + h + GAP;
         } else {
+          lastSingleImageCard = null;
           const h = estimateTextHeight(content, w);
           lastTextCard = { type: 'text', x: baseX, y: curY, w, content };
           results.push(lastTextCard);
@@ -526,13 +542,17 @@ function extractBoardCards(bodyContent) {
     const x = Math.round(parseFloat(styleM[1]));
     const y = Math.round(parseFloat(styleM[2]));
     const wM = tag.match(/width="(\d+(?:\.\d+)?)"/);
-    const w = wM ? Math.min(Math.round(parseFloat(wM[1])), 480) : 220;
+    const hM = tag.match(/height="(\d+(?:\.\d+)?)"/);
+    const rawW = wM ? Math.round(parseFloat(wM[1])) : 220;
+    const w = Math.min(rawW, 480);
+    const h = hM ? Math.round(parseFloat(hM[1]) * (w / rawW)) : null;
     const altM = tag.match(/\balt="([^"]*)"/);
     const alt = altM ? altM[1].trim() : '';
     const src = srcM[1] || srcM[2];
     const before = bodyContent.slice(Math.max(0, m.index - 300), m.index);
     const linkM = before.match(/<a\s[^>]*href="([^"]+)"[^>]*>\s*$/);
     const card = { type: 'image', x, y, w, src };
+    if (h) card.h = h;
     if (linkM) card.link = linkM[1];
     if (isMeaningfulAlt(alt)) card.caption = alt.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
     cards.push(card);

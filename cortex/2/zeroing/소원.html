@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">소원<br>		<br>		<br>	<br>	<br>		<br>			<br>뇌과학이 밝혀낸, 소원을 이루는 비법<br>			<br><br>			출처: <<a href="http://www.huffingtonpost.kr/2014/06/09/story_n_5471250.html?ncid=fcbklnkkrhpmg00000001" target="_blank">http://www.huffingtonpost.kr/2014/06/09/story_n_5471250.html?ncid=fcbklnkkrhpmg00000001</a>> <br>			<br><br>			<br>"최고의 삶을 누려라!" "당신만의 운명을 창조하라!" "꿈을 실현해라!" 자동차 범퍼 스티커, 페이스북 게시물과 냉장고 자석의 문구는 한결같이 더 나은 미래를 약속한다. 그러나 저 말들에 진실이 들어있을까? 정말 나만의 현실을 창조할 수 있을까?<br>			<br>답만 말하면 그렇다. 비전 보드, 만트라 같은 주문, 명확한 세부사항과 함께 꿈을 적어 놓는 것은 바램을 현실화시키는 데 도움을 준다. 카니예 웨스트를 봐라. 거의 10년 가까이 그는 킴 카다시안을 원했고, 지난주 그는 결국 그녀와 결혼하지 않았는가!<br>			<br>수년 전에, 시크릿이라는 책 때문에 난리가 났었다. 이 책은 명확하고 의도적으로 원하는 것을 시각화한다면, 결국엔 그것이 이루어진다고 말했다. 호화로운 바닷가의 저택을 원하는가? 책은 그것이 현실이 될 것이라고 말한다. 백만 달러를 원하는가? 그럼 가질 수 있다. 미드나잇블루 색상의 벤츠가 탐나는가? 무슨 말인지 이해가 가는가? 나는 상상하면 현실이 된다는 개념이 아주 좋다. 그러나 내면의 실증적이고 회의적인 목소리는 그에 의문을 제기한다. <br>			<br>시크릿 책은 "좋아하면 좋아하는 것을 끌어들인다는" 믿음 즉, 긍정적인 생각이 긍정적인 현실로 이어지고, 부정적인 생각은 부정적인 현실로 이어진다는 끌림의 법칙에 기초를 두고 있다. 이는 사실이다. 그러나 블루 벤츠가 짠하고 현관문 앞에 나타날 것이라 그런 것이 아니다. 그보다는 뇌의 연결작용 때문에 일어나는 일련의 현상 때문이다. 여기에는 과학이 숨겨져 있다.<br>			<br>자, 이제 끌림의 법칙이 어떻게 일어나는지 보자. 뇌는 엄청나게 거대한 컴퓨터와 같다. 일상의 매 순간 전기 신호로 작동되는, 뉴런이라고 불리는 세포에 천억 비트의 정보를 저장한다. 뉴런은 뇌의 나머지 부분과 몸에 무엇을 할지를 전달하기 위하여 함께 전기 신호를 발사한다. 그러나 뇌는 모든 정보를 한꺼번에 떠올릴 수는 없어서 지름길(신경전달통로라 불림)을 만든다. 어떤 것을 더 경험하면 할수록, 그것에 이르는 통로는 더욱 강력해진다. 예를 들면, 네 개의 다리가 있는 단단한 표면을 보면, 뇌는 주저하지 않고 곧바로 "테이블"이라고 인식할 것이다.</div>
@@ -66,6 +72,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -81,6 +90,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -89,13 +149,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vision Board</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Vision Board</div>
+<div class="date">2020-02-16</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'sample-vision-opt4';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 360,
+    "y": 19,
+    "w": 573,
+    "content": "부의</a> 갓길 차선\n<a href=\"https://www.instagram.com/reel/C8Y71lZRuvF/?igsh=MTJwZHFjOWttcW81dA==\" style=\"font-family:Pretendard Light;font-size:10pt\">샘알트먼</a>\n태도가, 서사다."
+  },
+  {
+    "type": "text",
+    "x": 504,
+    "y": 19,
+    "w": 325,
+    "content": "필생의 사랑을 할 것\n필생의 업을 가질 것\n이미 다 이룬 것으로 느끼고, 행동 하라.\n뇌는 믿는 것을 실행한다. 사이보그가 되자.\nCEO로 아침을 시작해, 살아.\n회사일 이외의 모든 것이,\n게임이고 스포츠여야해. flow"
+  },
+  {
+    "type": "text",
+    "x": 768,
+    "y": 19,
+    "w": 600,
+    "content": "Emergency</a>/ Fake it till you make it → Fearless.peerless\n나는 매일 모든면에서 더 나이지고 있다.\n아쉬울 것 없는, 내일이 없어도 되는, 그리하여 명랑한 어른\n이제부터는 관계가 성과다. 다른 사람이 너를 만나서 느끼는 느낌/감정. 여유, 그게 전부야. 친절은 힘보다 강하다.\n사실인가, 필요한가, 친절한가, 나만 할 수 있는 말인가?\n스트레스를 운영해라, 그래야 게임에 낄 수 있다.\n외로움을 길들일 수 있다면, 이 자유가 모두 네 거야."
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 115,
+    "w": 298,
+    "content": "결과가 아닌,\n과정의 시각화"
+  },
+  {
+    "type": "html",
+    "x": 48,
+    "y": 163,
+    "w": 295,
+    "html": "<span lang=\"en-US\"><span style=\"font-weight:bold\">Family </span>- <span lang=\"ko-KR\">존경</span> <span lang=\"ko-KR\">받는</span> <span lang=\"ko-KR\">명가</span></span>\n<p data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">금가람<span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/ </span><span style=\"font-family:Malgun Gothic\">황세연</span><span lang=\"en-US\">/ </span>이수림</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">케이트블란챗/ 제니퍼로렌스/ <span lang=\"ko-KR\">레이첼</span> <span lang=\"ko-KR\">맥아담스</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">백선영<span lang=\"en-US\">/ </span>문지원<span lang=\"en-US\">/ </span>신민정<span lang=\"en-US\">/ </span>장소라<span lang=\"en-US\">/ </span>가영<span lang=\"en-US\">?</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">황혜진<span lang=\"en-US\">/ </span>아주라<span lang=\"en-US\">/ </span>정<span lang=\"en-US\">소민</span><span lang=\"en-US\">/ </span>박은빈<span lang=\"en-US\">/ </span>서메리</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">전지현<span lang=\"en-US\"> / </span>이유영<span lang=\"en-US\">/ </span>엄지원<span lang=\"en-US\">/ </span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">강지영<span lang=\"en-US\">/ </span>키릴</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">성격<span lang=\"en-US\"> - </span>촘미<span lang=\"en-US\">, </span>김원희<span lang=\"en-US\">, </span><a href=\"https://www.instagram.com/peitakagin?igsh=MWphbzlscWRreHgzcA==\" lang=\"en-US\">뚯밖의 이상형</a></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">장도연<span lang=\"en-US\">, </span>김원희<span lang=\"en-US\">, </span>원지안<span lang=\"en-US\">, </span>최수연<span lang=\"en-US\">, </span>이은규</p>\r\n\t\t\t\t\t<img alt=\"Kiireel \nMelting Cheek \" width=\"480\" height=\"555.5\" src=\"__ATTACHMENT__817eb4addf.png\" data-src-type=\"image/jpeg\" data-fullres-src=\"__ATTACHMENT__817eb4addf.png\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t\t\t<img alt=\"주말 앵커는 오늘까지…!” 4월 결혼 앞둔 강지영 아나운서가 &#39;뉴스룸&#39; 떠나며 짧지만 만감이 교차하는 작별인사를 건넸다 &lt; 연예인&amp;셀럽  &lt; 엔터테인먼트 &lt; 기사본문 - 허프포스트코리아\" width=\"299\" height=\"169\" src=\"__ATTACHMENT__e2616d2d10.png\" data-src-type=\"image/jpeg\" data-fullres-src=\"__ATTACHMENT__e2616d2d10.png\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t\t\t<img width=\"437\" height=\"624\" src=\"__ATTACHMENT__73de572bd8.png\" data-src-type=\"image/jpeg\" data-fullres-src=\"__ATTACHMENT__73de572bd8.png\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t\t\t\n<span lang=\"en-US\"><span style=\"font-weight:bold\">Serendipity</span></span>\n<img alt=\"Conan O&#39;Brien&#39;s Career Evolution is As Timely As Ever\" width=\"480\" height=\"270\" src=\"__ATTACHMENT__f406b950f9.png\" data-src-type=\"image/jpeg\" data-fullres-src=\"__ATTACHMENT__f406b950f9.png\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t\n"
+  },
+  {
+    "type": "html",
+    "x": 345,
+    "y": 163,
+    "w": 356,
+    "html": "<span lang=\"en-US\"><span style=\"font-weight:bold\">Interstellar </span></span>\n\t\t\t\t\t<table style=\"border:1px solid\">\r\n\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t<td style=\"background-color:#d8d8d8;border:1px solid;font-family:Pretendard\"><span lang=\"en-US\"><span style=\"font-family:Pretendard Light;font-size:10pt\">Goal</span></span></td>\r\n\t\t\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t\t<td style=\"background-color:#d8d8d8;border:1px solid;font-family:Pretendard\"><span lang=\"en-US\"><span style=\"font-family:Pretendard Light;font-size:10pt\">Deadline</span></span></td>\r\n\t\t\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t</table>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">올해<span lang=\"en-US\"> </span>하고<span lang=\"en-US\"> </span>싶은<span lang=\"en-US\"> </span>실패는<span lang=\"en-US\">, </span>이런거야<span lang=\"en-US\">.</span><span lang=\"en-US\">￼</span>제품을<span lang=\"en-US\"> </span>런칭했는데<span lang=\"en-US\"> MAU, </span>매출이<span lang=\"en-US\"> </span>내가<span lang=\"en-US\"> </span>생각한<span lang=\"en-US\"> </span>수준<span lang=\"en-US\">(</span>이게<span lang=\"en-US\"> </span>있어겠지<span lang=\"en-US\">)</span>에<span lang=\"en-US\"> </span>못<span lang=\"en-US\"> </span>미치는<span lang=\"en-US\"> </span>것<span lang=\"en-US\">. </span>그래서<span lang=\"en-US\"> </span>피봇을<span lang=\"en-US\"> 5</span>번<span lang=\"en-US\"> </span>이상<span lang=\"en-US\"> </span>하는<span lang=\"en-US\"> </span>것<span lang=\"en-US\">.</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">Geo connetome 글로벌런칭 - MAU 500만, 매출 ##<span lang=\"ko-KR\">달러</span> Market cap. 1B<span lang=\"ko-KR\">의</span> <span lang=\"ko-KR\">기업가</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">뉴욕/실리콘밸리 에서 일하고 살고 싶다.</p>\r\n\t\t\t\t\t<img alt=\"Best things to do in New York 2024 | Attractions &amp; activities - Klook  Philippines\" width=\"480\" height=\"270\" src=\"__ATTACHMENT__69ae405ecb.png\" data-src-type=\"image/png\" data-fullres-src=\"__ATTACHMENT__6608f4bd90.png\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.youtube.com/watch?v=WrZLUx7B5gQ\" lang=\"en-US\">New York</a> City <span style=\"font-family:Segoe UI Emoji\">&#128509;</span> [4K] - Manhattan at Night! Experience the City!</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.google.com/maps/place/New+York+Comedy+Club+-+East+Village/@40.7547278,-73.9841896,3a,75y,138.75h,80.81t/data=!3m7!1e1!3m5!1s2ipawk13mX4kGhmTajl5Pg!2e0!6shttps:%2F%2Fstreetviewpixels-pa.googleapis.com%2Fv1%2Fthumbnail%3Fcb_client%3Dmaps_sv.tactile%26w%3D900%26h%3D600%26pitch%3D9.188075273303681%26panoid%3D2ipawk13mX4kGhmTajl5Pg%26yaw%3D138.74989093370937!7i16384!8i8192!4m15!1m8!3m7!1s0x89c24fa5d33f083b:0xc80b8f06e177fe62!2sNew+York,+NY,+USA!3b1!8m2!3d40.7127753!4d-74.0059728!16zL20vMDJfMjg2!3m5!1s0x89c2590ae00ff4a3:0xc2c6270cfe87b198!8m2!3d40.7266204!4d-73.9897826!16s%2Fg%2F11gkrpz1tw?entry=ttu&amp;g_ep=EgoyMDI1MDYwMS4wIKXMDSoASAFQAw%3D%3D\" style=\"font-family:Malgun Gothic\">New York Street view</a><span style=\"font-family:Malgun Gothic\"> </span></p>\r\n\t\t\t\t\t<iframe width=\"267\" height=\"200\" data-original-src=\"https://www.youtube.com/watch?v=WrZLUx7B5gQ\" src=\"https://www.youtube.com/embed/WrZLUx7B5gQ?feature=oembed&autoplay=true\" />\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">빌게이츠 세상의 문제를 해결하는 어른</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">세상의 문제를 해결하면. 그런 사람이 되는거지.</p>\r\n\t\t\t\t\t<img alt=\"Can Jack Dorsey stay on as CEO of both Square and Twitter?\" width=\"480\" height=\"480\" src=\"__ATTACHMENT__833d5ef569.png\" data-src-type=\"image/jpeg\" data-fullres-src=\"__ATTACHMENT__833d5ef569.png\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t\t\t<img width=\"318.5\" height=\"369\" src=\"__ATTACHMENT__5f8af77fbe.png\" data-src-type=\"image/png\" data-fullres-src=\"__ATTACHMENT__5f8af77fbe.png\" data-fullres-src-type=\"image/png\" />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.instagram.com/reel/DALwszQSIZ2/?igsh=MWU5YmZ2NHJtaGsyeA==\" style=\"font-family:Pretendard Light;font-size:10pt\">https://www.instagram.com/reel/DALwszQSIZ2/?igsh=MWU5YmZ2NHJtaGsyeA==</a></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">1</span><span lang=\"ko-KR\" style=\"font-family:Pretendard Light;font-size:10pt\">원칙</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span lang=\"ko-KR\" style=\"font-family:Pretendard Light;font-size:10pt\">사고</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span lang=\"ko-KR\" style=\"font-family:Pretendard Light;font-size:10pt\">기계적으로</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span lang=\"ko-KR\" style=\"font-family:Pretendard Light;font-size:10pt\">시도하고</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span lang=\"ko-KR\" style=\"font-family:Pretendard Light;font-size:10pt\">실패하고</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span lang=\"ko-KR\" style=\"font-family:Pretendard Light;font-size:10pt\">다시</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span lang=\"ko-KR\" style=\"font-family:Pretendard Light;font-size:10pt\">시도해</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">매몰비용과</span><span lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">감정의</span><span lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt\"> Bais</span><span style=\"font-family:Pretendard Light;font-size:10pt\">에</span><span lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">매몰되지</span><span lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">마</span><span lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt\">. Don think, Just Do.</span></p>\r\n\t\t\t\t\t\n<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">Character</span> - 어떤 기분, 성과, 사람<span lang=\"ko-KR\">으로</span> <span lang=\"ko-KR\">하루를</span> <span lang=\"ko-KR\">살</span> <span lang=\"ko-KR\">것인가</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"color:#3f3f3f;font-weight:bold\">Zeroing </span>기분 <span lang=\"ko-KR\">좋아지는</span>, 만나고 싶은 <span lang=\"ko-KR\">어른</span>, <span lang=\"ko-KR\">따듯한</span> Pro</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">사람들이</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">너와</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">함께</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">할</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">때</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">느끼는</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">기분이</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">곧</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">너다</span><span lang=\"en-US\" style=\"font-weight:bold\">.</span><span lang=\"en-US\" style=\"font-weight:bold\">￼</span><span style=\"font-weight:bold\">타인과</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">세상에</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">대한</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">호기심</span><span lang=\"en-US\" style=\"font-weight:bold\">/</span><span style=\"font-weight:bold\">호감</span><span lang=\"en-US\" style=\"font-weight:bold\"> + </span><span style=\"font-weight:bold\">친절함</span><span lang=\"en-US\" style=\"font-weight:bold\"> + </span><span style=\"font-weight:bold\">바라는</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">것</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">없어</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">아쉬울</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">것</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">없고</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">그래서</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">두려움이</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">없고</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">명랑한</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">사람</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\">호의를<span lang=\"en-US\"> </span>반복해서<span lang=\"en-US\"> </span>둘리가<span lang=\"en-US\"> </span>되자<span lang=\"en-US\">.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\">친절만큼<span lang=\"en-US\"> </span>보편적이면서도<span lang=\"en-US\"> </span>절대적이고<span lang=\"en-US\">, </span><span lang=\"en-US\">￼</span>또한<span lang=\"en-US\"> </span>즉각적인<span lang=\"en-US\"> </span>효과를<span lang=\"en-US\"> </span>보이는<span lang=\"en-US\"> </span>마법은<span lang=\"en-US\"> </span>없다<span lang=\"en-US\">.</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">소리내어</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">하는</span><span lang=\"en-US\" style=\"font-weight:bold\"> 인사는 가장 효과적인 브랜딩</span><span lang=\"en-US\">이다. </span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\">나라면, 지금의 나라면</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">맷보머</span></p>\r\n\t\t\t\t\t\n<img alt=\")rable Coffee Date I Meet Joe Black \" width=\"480\" height=\"253\" src=\"__ATTACHMENT__6bd76e9213.png\" data-src-type=\"image/png\" data-fullres-src=\"__ATTACHMENT__6bd76e9213.png\" data-fullres-src-type=\"image/png\" />\r\n\t\t\t\t\t<img alt=\"조정석 아닌 이익준? 상상불가!..&#39;슬의생&#39; #인생캐 #인생노래 #인생케미\" width=\"480\" height=\"384\" src=\"__ATTACHMENT__d1502d2bfa.png\" data-src-type=\"image/jpeg\" data-fullres-src=\"__ATTACHMENT__d1502d2bfa.png\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">Matt Bomer (<span style=\"font-family:Malgun Gothic\">맷</span> <span style=\"font-family:Malgun Gothic\">보머</span>)</p>\r\n\t\t\t\t\t<img alt=\"해연갤 - 토끼같은 봄신 맷보머 출연하는 나이스 가이즈 7월에 꼭볼거임\" width=\"202\" height=\"250\" src=\"__ATTACHMENT__236e5e9b7c.png\" data-src-type=\"image/jpeg\" data-fullres-src=\"__ATTACHMENT__236e5e9b7c.png\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t\t\t<img alt=\"파이트 클럽 &lt; 지난 프로그램 &lt; 프로그램 &lt; 시네마테크KOFA - 한국영상자료원\" width=\"480\" height=\"275.5\" src=\"__ATTACHMENT__01462e280b.png\" data-src-type=\"image/jpeg\" data-fullres-src=\"__ATTACHMENT__01462e280b.png\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t\n"
+  },
+  {
+    "type": "html",
+    "x": 703,
+    "y": 163,
+    "w": 500,
+    "html": "<span lang=\"en-US\"><span style=\"font-weight:bold\">Community=Peer</span></span>\n<img alt=\"today&#39;s AI models are the stupidest they&#39;ll ever be&#39; - bill gates and sam  altman on chatGPT\" width=\"480\" height=\"270\" src=\"__ATTACHMENT__1acbe2a226.png\" data-src-type=\"image/jpeg\" data-fullres-src=\"__ATTACHMENT__1acbe2a226.png\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t\t\t<img alt=\"Photo: Apple&#39;s Jobs, Facebook&#39;s Zuckerberg Flank Obama At Dinner : The  Two-Way : NPR\" width=\"480\" height=\"270.5\" src=\"__ATTACHMENT__4f961d6b9e.png\" data-src-type=\"image/jpeg\" data-fullres-src=\"__ATTACHMENT__4f961d6b9e.png\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">   </p>\r\n\t\t\t\t\t\n<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">Assets</span></p>\r\n\t\t\t\t\t<table style=\"border:1px solid\">\r\n\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t<td style=\"background-color:#d8d8d8;border:1px solid;font-family:Pretendard\"><span lang=\"en-US\"><span style=\"font-family:Pretendard Light;font-size:10pt\">Goal</span></span></td>\r\n\t\t\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t\t<td style=\"background-color:#d8d8d8;border:1px solid;font-family:Pretendard\"><span lang=\"en-US\"><span style=\"font-family:Pretendard Light;font-size:10pt\">Deadline</span></span></td>\r\n\t\t\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t</table>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t\n<img alt=\"동호대교 야경 한남동 뷰with 니콘d750 : 네이버 블로그\" width=\"480\" height=\"320\" src=\"__ATTACHMENT__ba6c8b0a1b.png\" data-src-type=\"image/jpeg\" data-fullres-src=\"__ATTACHMENT__ba6c8b0a1b.png\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t\t\t<img alt=\"이탈리아 토스카나 여행 - 글래디에이터 막시무스의 집 / 발도르차 평원 전망대 : 네이버 블로그\" width=\"480\" height=\"320\" src=\"__ATTACHMENT__1f3316a2d2.png\" data-src-type=\"image/jpeg\" data-fullres-src=\"__ATTACHMENT__1f3316a2d2.png\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t\n"
+  },
+  {
+    "type": "image",
+    "x": 960,
+    "y": 163,
+    "w": 352,
+    "src": "83b35c72a5.png",
+    "caption": "I love you duck. Let it rip"
+  },
+  {
+    "type": "image",
+    "x": 963,
+    "y": 391,
+    "w": 331,
+    "src": "be65e8dc82.png"
+  },
+  {
+    "type": "text",
+    "x": 960,
+    "y": 960,
+    "w": 600,
+    "content": "<a href=\"https://www.instagram.com/reels/DT0NzO_iRIz/\">https://www.instagram.com/reels/DT0NzO_iRIz/</a>"
+  },
+  {
+    "type": "image",
+    "x": 552,
+    "y": 2323,
+    "w": 203,
+    "src": "835d9195db.png",
+    "caption": "맷 보머 - 화이트 칼라의 훈남 : 네이버 블로그"
+  }
+];
+const CONTENT_HASH = '58dd384e';
+
+let cards = [];
+let moving = null, resizing = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (document.activeElement?.contentEditable === 'true') return; // let browser handle text undo
+    e.preventDefault();
+    undo();
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle')) return;
+      e.preventDefault();
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; t.style.width = '100%'; });
+      wrapper.querySelectorAll('td,th').forEach(td => { td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top'; });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+<div style="position:fixed;bottom:12px;right:80px;z-index:9999;background:#3fb950;color:white;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;pointer-events:none;">[Option 4] 카드 방식 + 열 단위 분리</div>
+</body>
+</html>
