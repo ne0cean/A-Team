@@ -40,6 +40,18 @@ Opus 조건: 신규 아키텍처 / 3개+ 옵션 비교 / 5개+ 파일 강한 의
 변경 3+ 파일 → Haiku adversarial 자동. 보안 패턴 → CSO mini-scan.
 상세: `governance/rules/quality-pipeline.md`
 
+## 슬래시 커맨드 Analytics 의무
+모든 슬래시 커맨드 첫 번째 액션: Analytics 로깅 (`node scripts/log-event.mjs command_start name=X`) 스킵 금지.
+커맨드 파일에 `Analytics:` 라인 있으면 **무조건 먼저 실행**. 슬래시 커맨드 게이트 hook이 자동 주입.
+
+## UI 배포 완료 선언 조건
+`wrangler deploy` 완료 후: ui-inspector 에이전트 또는 브라우저 스크린샷으로 시각 확인 필수.
+curl 200 / ok:true = 완료 증거 아님. 화면에 기능이 작동해야 완료.
+
+## 원본 소스 참조 의무 (마이그레이션/복원)
+"마이그레이션/가져와/복원/이전" 작업: 원본 소스 파일 반드시 읽은 후 작업 시작.
+원본 미확인 상태 배포 = Truth Contract 위반.
+
 ## 커맨드 자동 제안
 작업 패턴 감지 시 1줄 제안. 전체 테이블: **AGENTS.md** (이 파일에 넣지 말 것).
 Autoresearch shadow: tracked 커맨드 완료 후 `.autoresearch/_shadow/<name>/log.jsonl` 조용히 로깅.
