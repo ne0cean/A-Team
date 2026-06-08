@@ -540,113 +540,109 @@ function detectPageType(rawHtml) {
 // ── Extract images from table cells as individual positioned cards (Type A) ───
 // containerX/Y: absolute position of the div wrapping the table
 // Returns { imageCards, tableHtmlWithPlaceholders }
-// - imageCards: individual draggable image cards at cell positions
-// - tableHtmlWithPlaceholders: table HTML with <img> replaced by sized placeholder divs
+//
+// Strategy: OneNote HTML can have malformed/nested <tr> elements where a <tr>
+// opens inside another <tr>'s span (overlapping, not properly nested). A per-tr
+// regex loop misses those rows entirely.
+// Fix: scan <td> elements directly on the full tableHtml. Detect column widths
+// dynamically from the first occurrence of each distinct width value.
 function extractTableImageCards(tableHtml, containerX, containerY) {
-  const imageCards = [];
+  const CARD_PAD = 12;
+  const seen = new Set();
   let tableHtmlOut = tableHtml;
-  const seen = new Set(); // dedup by src filename
-  const CARD_PAD = 12; // board .card CSS padding — images must start inside this offset
 
-  // ── Primary pass: tr/td structure ─────────────────────────────────────────
-  // Note: OneNote HTML sometimes has malformed/nested <tr> elements that the lazy
-  // regex cannot handle. The secondary pass below catches any images missed here.
-  const trRe = /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi;
-  let trM;
-  let rowY = containerY + CARD_PAD; // offset by card padding so images land inside the card
-  while ((trM = trRe.exec(tableHtml)) !== null) {
-    const rowHtml = trM[1];
-    let cellX = containerX + CARD_PAD;
-    let rowMaxH = 0;
-    const tdRe = /<td\b([^>]*)>([\s\S]*?)<\/td>/gi;
-    let tdM;
-    while ((tdM = tdRe.exec(rowHtml)) !== null) {
-      const tdAttrs = tdM[1];
-      const tdContent = tdM[2];
-      const wAttr = tdAttrs.match(/width\s*:\s*(\d+)/i) || tdAttrs.match(/width="(\d+)"/i);
-      const cellW = wAttr ? parseInt(wAttr[1]) : 200;
-      const imgRe = /<img\b([^>]*?)(?:\/>|>)/gi;
-      let imgM;
-      let imgOffsetY = 0;
-      while ((imgM = imgRe.exec(tdContent)) !== null) {
-        const tag = imgM[1];
-        const fullresM = tag.match(/data-fullres-src="__ATTACHMENT__([a-f0-9]+\.\w+)"/);
-        const srcAttrM = tag.match(/src="__ATTACHMENT__([a-f0-9]+\.\w+)"/);
-        const primarySrc = (fullresM && fullresM[1]) || (srcAttrM && srcAttrM[1]);
-        if (!primarySrc || seen.has(primarySrc)) continue;
-        const iW = tag.match(/width="(\d+(?:\.\d+)?)"/);
-        const iH = tag.match(/height="(\d+(?:\.\d+)?)"/);
-        const rawW = iW ? parseFloat(iW[1]) : cellW;
-        const w = Math.min(Math.round(rawW), 480);
-        const scale = rawW > 0 ? w / rawW : 1;
-        const h = iH ? Math.round(parseFloat(iH[1]) * scale) : null;
-        const altM = tag.match(/\balt="([^"]*)"/);
-        const alt = altM ? altM[1].trim() : '';
-        const card = { type: 'image', x: cellX, y: rowY + imgOffsetY, w, src: primarySrc };
-        if (h) {
-          card.h = h;
-          rowMaxH = Math.max(rowMaxH, imgOffsetY + h);
-          imgOffsetY += h + 8;
-        }
-        if (isMeaningfulAlt(alt)) card.caption = alt.replace(/\s+/g, ' ').trim();
-        imageCards.push(card);
-        seen.add(primarySrc);
-        // If src and data-fullres-src point to different files, emit both
-        if (srcAttrM && fullresM && srcAttrM[1] !== fullresM[1] && !seen.has(srcAttrM[1])) {
-          const card2 = { type: 'image', x: cellX + w + 8, y: rowY + imgOffsetY - (h || 0) - 8, w, src: srcAttrM[1] };
-          if (h) card2.h = h;
-          imageCards.push(card2);
-          seen.add(srcAttrM[1]);
-        }
-        const placeholder = h
-          ? `<div style="display:inline-block;width:${w}px;height:${h}px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4"></div>`
-          : `<div style="display:inline-block;width:${w}px;height:120px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4"></div>`;
-        tableHtmlOut = tableHtmlOut.replace(imgM[0], placeholder);
-      }
-      cellX += cellW;
-    }
-    // Use 30px for text-only header rows (vs 200px which placed images too far down)
-    rowY += rowMaxH || 30;
+  // ── Step 1: detect column x-positions from td width attributes ─────────────
+  // Collect all distinct td widths in document order (first 3 unique values = cols)
+  const colWidths = [];
+  for (const m of tableHtml.matchAll(/<td\b([^>]*)>/gi)) {
+    const wM = m[1].match(/width\s*[":]\s*(\d+)/i);
+    if (!wM) continue;
+    const w = parseInt(wM[1]);
+    if (!colWidths.includes(w)) colWidths.push(w);
+    if (colWidths.length >= 2) break; // 2 explicit widths → 3rd col is flexible
+  }
+  // colX[i] = absolute x start of column i
+  const colX = [containerX + CARD_PAD];
+  for (let i = 0; i < colWidths.length; i++) colX.push(colX[i] + colWidths[i]);
+  // colY[i] tracks current y cursor per column
+  const colY = colX.map(() => containerY + CARD_PAD);
+
+  function colIndexForWidth(w) {
+    if (!w) return colX.length - 1; // no width → last (flex) col
+    const idx = colWidths.indexOf(w);
+    return idx >= 0 ? idx : colX.length - 1;
   }
 
-  // ── Secondary pass: catch images in malformed/nested rows missed by regex ──
-  // Layout missed images below the primary cards, in a 3-column grid
-  const maxCardY = imageCards.length > 0
-    ? Math.max(...imageCards.map(c => c.y + (c.h || 200)))
-    : rowY;
-  let spY = maxCardY + 20;
-  let spCol = 0;
-  const SP_COLS = 3;
-  const SP_COL_W = 300;
-  const SP_GAP = 10;
+  function emitImg(tag, col) {
+    const fullresM = tag.match(/data-fullres-src="__ATTACHMENT__([a-f0-9]+\.\w+)"/);
+    const srcAttrM = tag.match(/src="__ATTACHMENT__([a-f0-9]+\.\w+)"/);
+    const primarySrc = (fullresM && fullresM[1]) || (srcAttrM && srcAttrM[1]);
+    if (!primarySrc || seen.has(primarySrc)) return;
+    const iW = tag.match(/width="(\d+(?:\.\d+)?)"/);
+    const iH = tag.match(/height="(\d+(?:\.\d+)?)"/);
+    const rawW = iW ? parseFloat(iW[1]) : 360;
+    const w = Math.min(Math.round(rawW), 480);
+    const scale = rawW > 0 ? w / rawW : 1;
+    const h = iH ? Math.round(parseFloat(iH[1]) * scale) : 200;
+    const altM = tag.match(/\balt="([^"]*)"/);
+    const alt = altM ? altM[1].trim() : '';
+    const x = colX[col] !== undefined ? colX[col] : colX[colX.length - 1];
+    const y = colY[col] !== undefined ? colY[col] : colY[colY.length - 1];
+    const card = { type: 'image', x, y, w, h, src: primarySrc };
+    if (isMeaningfulAlt(alt)) card.caption = alt.replace(/\s+/g, ' ').trim();
+    imageCards.push(card);
+    seen.add(primarySrc);
+    colY[col] = y + h + 8;
+    // If src and data-fullres-src are different files, emit both
+    if (srcAttrM && fullresM && srcAttrM[1] !== fullresM[1] && !seen.has(srcAttrM[1])) {
+      const card2 = { type: 'image', x, y: colY[col], w, h, src: srcAttrM[1] };
+      imageCards.push(card2);
+      seen.add(srcAttrM[1]);
+      colY[col] += h + 8;
+    }
+  }
 
-  const imgRe2 = /<img\b([^>]*?)(?:\/>|>)/gi;
-  let imgM2;
-  while ((imgM2 = imgRe2.exec(tableHtml)) !== null) {
-    const tag = imgM2[1];
+  const imageCards = [];
+
+  // ── Step 2: primary pass — scan <td> elements on the full tableHtml ─────────
+  // This works even when <tr> elements are malformed/overlapping.
+  const tdRe = /<td\b([^>]*)>([\s\S]*?)<\/td>/gi;
+  let tdM;
+  while ((tdM = tdRe.exec(tableHtml)) !== null) {
+    const tdAttrs = tdM[1];
+    const tdContent = tdM[2];
+    const wM = tdAttrs.match(/width\s*[":]\s*(\d+)/i);
+    const cellW = wM ? parseInt(wM[1]) : null;
+    const col = colIndexForWidth(cellW);
+
+    for (const imgM of tdContent.matchAll(/<img\b([^>]*?)(?:\/>|>)/gi)) {
+      const tag = imgM[1];
+      if (tag.includes('position:absolute')) continue;
+      emitImg(tag, col);
+      const w2 = (tag.match(/width="(\d+)"/)||[])[1]||360;
+      const h2 = (tag.match(/height="(\d+)"/)||[])[1]||200;
+      const ph = `<div style="display:inline-block;width:${Math.min(parseInt(w2),480)}px;height:${Math.min(parseInt(h2),600)}px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4"></div>`;
+      tableHtmlOut = tableHtmlOut.replace(imgM[0], ph);
+    }
+  }
+
+  // ── Step 3: secondary pass — images not inside any <td> (free-floating) ─────
+  // OneNote sometimes places images directly in <tr> or nested div without <td>.
+  // Assign these to the column with the least current height (balance heuristic).
+  for (const imgM of tableHtml.matchAll(/<img\b([^>]*?)(?:\/>|>)/gi)) {
+    const tag = imgM[1];
     if (tag.includes('position:absolute')) continue;
     const fullresM = tag.match(/data-fullres-src="__ATTACHMENT__([a-f0-9]+\.\w+)"/);
     const srcAttrM = tag.match(/src="__ATTACHMENT__([a-f0-9]+\.\w+)"/);
-    for (const srcFile of [fullresM && fullresM[1], srcAttrM && srcAttrM[1]]) {
-      if (!srcFile || seen.has(srcFile)) continue;
-      const iW = tag.match(/width="(\d+(?:\.\d+)?)"/);
-      const iH = tag.match(/height="(\d+(?:\.\d+)?)"/);
-      const rawW = iW ? parseFloat(iW[1]) : SP_COL_W;
-      const w = Math.min(Math.round(rawW), 480);
-      const scale = rawW > 0 ? w / rawW : 1;
-      const h = iH ? Math.round(parseFloat(iH[1]) * scale) : 200;
-      const altM = tag.match(/\balt="([^"]*)"/);
-      const alt = altM ? altM[1].trim() : '';
-      const card = { type: 'image', x: containerX + CARD_PAD + spCol * (SP_COL_W + SP_GAP), y: spY, w, h, src: srcFile };
-      if (isMeaningfulAlt(alt)) card.caption = alt.replace(/\s+/g, ' ').trim();
-      imageCards.push(card);
-      seen.add(srcFile);
-      spCol++;
-      if (spCol >= SP_COLS) { spCol = 0; spY += h + SP_GAP; }
-      // Replace in table HTML (img tag still present since primary pass skipped it)
-      const placeholder = `<div style="display:inline-block;width:${w}px;height:${h}px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4"></div>`;
-      tableHtmlOut = tableHtmlOut.replace(imgM2[0], placeholder);
-    }
+    const primarySrc = (fullresM && fullresM[1]) || (srcAttrM && srcAttrM[1]);
+    if (!primarySrc || seen.has(primarySrc)) continue;
+    // Pick column with minimum current y (balance)
+    const col = colY.indexOf(Math.min(...colY));
+    emitImg(tag, col);
+    const w2 = (tag.match(/width="(\d+)"/)||[])[1]||360;
+    const h2 = (tag.match(/height="(\d+)"/)||[])[1]||200;
+    const ph = `<div style="display:inline-block;width:${Math.min(parseInt(w2),480)}px;height:${Math.min(parseInt(h2),600)}px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4"></div>`;
+    tableHtmlOut = tableHtmlOut.replace(imgM[0], ph);
   }
 
   return { imageCards, tableHtmlWithPlaceholders: tableHtmlOut };
