@@ -133,7 +133,7 @@ export default {
           // scalar fields: restore only if incoming key is undefined (empty string = intentional delete)
           // array fields: restore if server has items and client has empty/missing array
           const SCALAR_FIELDS = ['one_thing', 'day_type', 'notes'];
-          const ARRAY_FIELDS = ['outcome', 'input', 'workout'];
+          const ARRAY_FIELDS = ['outcome', 'input', 'workout', 'ritual', 'work', 'hexagonal'];
           for (const [day, dd] of Object.entries(existing.days || {})) {
             if (!data.days[day]) continue;
             for (const key of SCALAR_FIELDS) {
@@ -142,8 +142,20 @@ export default {
               }
             }
             for (const key of ARRAY_FIELDS) {
-              if (dd[key]?.length && !data.days[day][key]?.length) {
+              if (!dd[key]?.length) continue;
+              if (!data.days[day][key]?.length) {
+                // Incoming is empty but server has items — restore server's
                 data.days[day][key] = dd[key];
+              } else {
+                // Both have items — preserve done=true from server per matching text
+                const serverByText = new Map(dd[key].map(i => [i.text, i]));
+                data.days[day][key] = data.days[day][key].map(item => {
+                  const serverItem = serverByText.get(item.text);
+                  if (serverItem?.done === true && item.done === false) {
+                    return { ...item, done: true };
+                  }
+                  return item;
+                });
               }
             }
           }
