@@ -111,16 +111,19 @@ export default {
             return new Response(JSON.stringify({ error: 'blocked: would erase data' }), { status: 400, headers });
           }
           // Preserve per-day fields from stale full-month saves (multi-tab/device safety net)
-          // workout: client strips before POSTing (managed via /api/workout-log)
           // scalar fields: restore only if incoming key is undefined (empty string = intentional delete)
+          // array fields: restore if server has items and client has empty/missing array
           const SCALAR_FIELDS = ['one_thing', 'day_type', 'notes'];
+          const ARRAY_FIELDS = ['outcome', 'input', 'workout'];
           for (const [day, dd] of Object.entries(existing.days || {})) {
             if (!data.days[day]) continue;
-            if (dd.workout?.length && !data.days[day].workout) {
-              data.days[day].workout = dd.workout;
-            }
             for (const key of SCALAR_FIELDS) {
               if (dd[key] !== undefined && data.days[day][key] === undefined) {
+                data.days[day][key] = dd[key];
+              }
+            }
+            for (const key of ARRAY_FIELDS) {
+              if (dd[key]?.length && !data.days[day][key]?.length) {
                 data.days[day][key] = dd[key];
               }
             }
