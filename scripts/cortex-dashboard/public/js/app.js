@@ -305,7 +305,7 @@ function renderMonthView() {
   }
   let pastTotal = 0, pastDone = 0;
   pastWeeks.forEach(week => week.filter(c => c.current).forEach(c => {
-    const dd = monthData.days[String(c.d)] || {};
+    const dd = monthData?.days?.[String(c.d)] || {};
     CATS.forEach(cat => { const items = dd[cat] || []; pastTotal += items.length; pastDone += items.filter(i => i.done).length; });
   }));
 
@@ -831,6 +831,7 @@ function htmlToMarkdown(html) {
 }
 
 function linkify(s) {
+  s = (s || '').replace(/&nbsp;/g, ' ');
   // Handle [text](url) markdown links (any url), then bare URLs
   let result = '';
   let last = 0;
