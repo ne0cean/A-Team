@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">#felix roasting<br>			<br>비건 음식점 찾아보기<br>			<br><br>			<br>건축, 공원, <br>			<br>다리, 도서관, 광장, 공원, 마천루<br>			<br><br>			<br>Tony Dragon`s Grile '토니 드래곤즈 그릴'<br>			<br>▲주소:  미국<br>			<br>▲영업시간: 월~금요일- 오전 10:30~오후 6:00<br>			<br>&#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; 토요일- 오전 11:00~오후 5:00 / 일요일 휴무<br>			<br>백종원은 같은 날, 점심으로 미국인이 가장 사랑하는 식사 메뉴 '햄버거'를 맛보기 위해 이동했다.&#160;<br>			<br>'스트리트 푸드파이터2' 뉴욕 편에 등장한 식당은 '토니 드래곤 그릴'으로 앞서 방문한 식당들과는 다른게 푸드트럭의 형태로 운영되는 곳으로, 방목으로 키운 닭 가슴살과 같은 고급 재료를 사용하여 버거를 조리하는 것이 특징이다.<br>			<br><br>			<br>Luke's Lobster<br>			<br><br>			<br><br>			<br><a href="https://m.clien.net/service/board/park/14037284" target="_blank">https://m.clien.net/service/board/park/14037284</a><br>			<br><br>			<br><br>			<br>허석준님/컨텐츠투자담당, [16.10.19 18:18]<br>			<br>Starbucks Opens 23,000-Square-Foot Roastery in NYC<br>			<br><a href="https://stories.starbucks.com/press/2018/starbucks-opens-23000-square-foot-immersive-coffee-destination-in-new-york/" target="_blank">https://stories.starbucks.com/press/2018/starbucks-opens-23000-square-foot-immersive-coffee-destination-in-new-york/</a><br>			<br><br>			<br>허석준님/컨텐츠투자담당, [16.10.19 18:18]<br>			<br>세계에서 제일 럭셔리한 스벅<br>			<br><br>			<br>허석준님/컨텐츠투자담당, [16.10.19 18:19]<br>			<br>Wolfgang's<br>			<br>4 Park Ave, New York, NY 10016<br>			<br>(212) 889-3369<br>			<br><br>			<br><a href="https://g.co/kgs/gEFMWv" target="_blank">https://g.co/kgs/gEFMWv</a><br>			<br><br>			<br>허석준님/컨텐츠투자담당, [16.10.19 18:19]<br>			<br>가성비 좋은 스테이크 하우스</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

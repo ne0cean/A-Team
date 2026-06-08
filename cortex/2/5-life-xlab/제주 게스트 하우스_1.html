@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">제주 게스트 하우스<br>		<br>		<br>	<br>	<br>		<br>			<br>ㅇ 사람들과 어울리기 좋은 제주 게스트하우스 BEST 9 <a href="https://www.wishbeen.co.kr/plan/1eab73f1cab0689e" target="_blank">https://www.wishbeen.co.kr/plan/1eab73f1cab0689e</a><br>			<br>ㅇ 지금, 제주에서 핫!한 게스트하우스 7 | 대학내일 - <a href="https://univ20.com/10327" target="_blank">https://univ20.com/10327</a><br>			<br>ㅇ 제주도 게스트하우스 후기! (예하, 봉쉡, 이디, 슬로우트립, 미도, 오렌지) - <a href="http://culturallife.tistory.com/500" target="_blank">http://culturallife.tistory.com/500</a><br>			<br><br>			<br>협재 게스트 하우스<br>			<br>봄날 게스트 하우스<br>			<br>오누 <br>			<br>아프리카<br>			<br>소낭 - 11시 소등, 자기소개. 밖에 나가는 것 안됨.<br>			<br>4차원 - 자유<br>			<br>탱자싸롱<br>			<br>산티아고<br>			<br>그럼에도 불구하고<br>			<br>제주에 살다<br>			<br>바람이 머물다 - 자유<br>			<br>계란후라이 - 자유<br>			<br>단디해라 <br>			<br>산티아고 - 소등 11시, 이를 빌미로 2차?<br>			<br>청춘게스트하우스 :: PARTY - <a href="http://cheongchungeha.com/party" target="_blank">http://cheongchungeha.com/party</a><br>			<br>쪼인<br>			<br>오뉴<br>			<br><br>			<br><a href="http://notyourfault.co.kr/" target="_blank">http://notyourfault.co.kr/</a><br>		<br>		<br>			<br>ㅇ 국내 파티게스트 하우스 <a href="https://www.wishbeen.co.kr/plan/cb6af03955d019c6?partner=5c1cfccb08755807&utm_source=fb_ip&utm_medium=post&utm_campaign=mkt_p&utm_content=151106_16%3A00_in_e" target="_blank">https://www.wishbeen.co.kr/plan/cb6af03955d019c6?partner=5c1cfccb08755807&utm_source=fb_ip&utm_medium=post&utm_campaign=mkt_p&utm_content=151106_16%3A00_in_e</a><br>			<br><br>			<br>전주 톡 게스트 하우스<br>			<br>해운대 와우<br>			<br>광주 뉴광주<br>		<br>		<br>			<br>협재 게스트 하우스<br>			<br>봄날 게스트 하우스<br>			<br>오누 <br>			<br>아프리카<br>			<br>소낭 - 11시 소등, 자기소개. 밖에 나가는 것 안됨.<br>			<br>4차원 - 자유<br>			<br>탱자싸롱<br>			<br>산티아고<br>			<br>그럼에도 불구하고<br>			<br>제주에 살다<br>			<br>바람이 머물다 - 자유<br>			<br>계란후라이 - 자유<br>			<br>단디해라 <br>			<br>산티아고 - 소등 11시<br>			<br>청춘게스트하우스 :: PARTY - <a href="http://cheongchungeha.com/party" target="_blank">http://cheongchungeha.com/party</a></div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

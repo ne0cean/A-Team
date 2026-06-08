@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,9 +54,14 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">영어:<br>					<br>단초점<br>					<br>					<br>App., 과외<br>					<br>One: 넷플릭스 대본, VOCA PDF<br>					<br>Listening: 아리랑, 오디오북, 슈츠, <br>					<br>Reading: VOCA, 영어교재, 원서<br>					<br>Writing: VOCA나, 읽은 것 필사<br>					<br>Speaking: ChatGPT<br>					<br>				<br>				<br>					<br>Team building<br>					<br>:<br>					<br>					해커톤, 데모데이, 직접연락, 기존에 만난 모든사람 총동원<br>				<br>				<br>					MVP<br>					사업계획서 - 버블, 피그마<br>				<br>				<br>					코딩<br>					인프런, 생활코딩, Udemy나 Coursera에서 플러터나 리액트￼해당 오픈소스의&#160;*Github issues > 공식문서(문서 관리가 잘 안된 경우도 있음) > **스택오버플로우 > 개인 블로그(미디엄 > 티스토리 > 네이버 블로그 (개인적으로)<br>				<br>			<br>			<br><br>			<br><a href="https://cliffenglish.co.kr/course" target="_blank">벼랑 영어</a>, <a href="https://arrowenglish.co.kr/" target="_blank">애로우</a> 잉글리시, 영국문화원, <br>			<br>원어민 과외?<br>			<br><a href="https://www.usespeak.com/ko/event/23june-secret/home?utm_source=kakao_moment&utm_medium=clt_kakao_test_bizboard_a&utm_campaign=clt_kakao_test_bizboard_a&utm_content=nadia_audio_sync" target="_blank">스픽</a>, cake, 말해보카<br>			<br>단초점, 크레이프케이크, 바탕화면 앱변경</div>
+<div class="block block-text" data-idx="0" contenteditable="true">영어:<br>					<br>단초점<br>					<br>					<br>App., 과외<br>					<br>One: 넷플릭스 대본, VOCA PDF<br>					<br>Listening: 아리랑, 오디오북, 슈츠, <br>					<br>Reading: VOCA, 영어교재, 원서<br>					<br>Writing: VOCA나, 읽은 것 필사<br>					<br>Speaking: ChatGPT<br>					<br>				<br>				<br>					<br>Team building<br>					<br>:<br>					<br>					해커톤, 데모데이, 직접연락, 기존에 만난 모든사람 총동원<br>				<br>				<br>					MVP<br>					사업계획서 - 버블, 피그마<br>				<br>				<br>					코딩<br>					인프런, 생활코딩, Udemy나 Coursera에서 플러터나 리액트￼해당 오픈소스의&#160;<em>Github issues > 공식문서(문서 관리가 잘 안된 경우도 있음) > </em>*스택오버플로우 > 개인 블로그(미디엄 > 티스토리 > 네이버 블로그 (개인적으로)<br>				<br>			<br>			<br><br>			<br><a href="https://cliffenglish.co.kr/course" target="_blank">벼랑 영어</a>, <a href="https://arrowenglish.co.kr/" target="_blank">애로우</a> 잉글리시, 영국문화원, <br>			<br>원어민 과외?<br>			<br><a href="https://www.usespeak.com/ko/event/23june-secret/home?utm_source=kakao_moment&utm_medium=clt_kakao_test_bizboard_a&utm_campaign=clt_kakao_test_bizboard_a&utm_content=nadia_audio_sync" target="_blank">스픽</a>, cake, 말해보카<br>			<br>단초점, 크레이프케이크, 바탕화면 앱변경</div>
 </div>
 <script>
 const SAVE_KEY = 'note-영어-';
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

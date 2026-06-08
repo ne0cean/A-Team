@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">공연/전시<br>		<br>		<br>	<br>	<br>		<br>			<br>				<br>					<a href="http://ticket.interpark.com/" target="_blank">공연</a><br>					<br><br>					<br>				<br>				<br>					전시회<br>					<br><a href="https://www.sacticket.co.kr/SacHome/exhibit/schedule" target="_blank">예술의</a> 전당<br>					<br><a href="https://ddp.or.kr/main" target="_blank">DDP</a><br>					<br>				<br>				<br>					재즈바<br>					<br><br>					<br>				<br>				<br>					위스키바<br>					청담 볼트82￼광화문 찰스￼동교동삼거리 <br>				<br>			<br>			<br><a href="https://post.29cm.co.kr/" target="_blank">https://post.29cm.co.kr/</a><br>			<br><a href="https://blog.naver.com/PostView.nhn?blogId=allthat_art&logNo=221622687011&categoryNo=141&parentCategoryNo=&from=thumbnailList" target="_blank">https://blog.naver.com/PostView.nhn?blogId=allthat_art&logNo=221622687011&categoryNo=141&parentCategoryNo=&from=thumbnailList</a><br>			<br><br>			<br><a href="https://www.29cm.co.kr/shop/category/main?category=265100100" target="_blank">https://www.29cm.co.kr/shop/category/main?category=265100100</a><br>			<br><a href="https://m.sacticket.co.kr/msac/exhi/plan.do" target="_blank">https://m.sacticket.co.kr/msac/exhi/plan.do</a><br>			<br><a href="https://www.culture.go.kr/perform/performList.do" target="_blank">https://www.culture.go.kr/perform/performList.do</a><br>			<br><a href="http://mticket.interpark.com/" target="_blank">http://mticket.interpark.com/</a><br>			<br><a href="https://www.mmca.go.kr/exhibitions/progressList.do#" target="_blank">https://www.mmca.go.kr/exhibitions/progressList.do#</a><br>			<br><a href="http://m.yes24.com/Goods/Detail/68814368" target="_blank">http://m.yes24.com/Goods/Detail/68814368</a><br>			<br><br>			<br><a href="https://instagram.com/cultureart4u?igshid=1tagi8pt0ma18" target="_blank">https://instagram.com/cultureart4u?igshid=1tagi8pt0ma18</a><br>		<br>		<br>			<br>미술관 리스트업<br>			<br>				<br>- 대림미술관<br>				<br>- DDP 전시: <a href="http://www.heren.co.kr/article/Art&Travel/view.do?idx=861&utm_source=facebook&utm_medium=social&utm_campaign=herenfb" target="_blank">2</a>월<br>				<br>- 한가람 미술관<br>				<br>- 디뮤지엄<br>				<br>- 금호미술관<br>				<br>- <a href="http://www.kumhomuseum.com/" target="_blank">http://www.kumhomuseum.com/</a><br>			<br>		<br>		<br>			<br>데스커 스토어<br>			<br><a href="http://www.kumhomuseum.com/exhbit.html#" target="_blank">바우하우스와 현대생활</a><br>			<br>전시해설 -<br>			<br>화~일 11:00, 15:00<br>			<br><br>			<br>한국아트페어 9월 24일<br>			<br><a href="http://kiaf.org/2019/" target="_blank">http://kiaf.org/2019/</a><br>			<br><br>			<br>2월 화랑미술제</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

@@ -74,6 +74,16 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-08) — OneNote 3-type 분류 확정 + Board 이미지/캡션 수정
+
+- **3-type 분류 결정**: Board(Vision Board)/Image+Text(Twilight) = board-template.html 동일 경로. Table+Text(Skin care) = docMode:true Linear Doc. 3번째 템플릿 불필요.
+- **docMode 전달 경로 구축**: SECTION_MAP → processFile() → processOnenoteHtmlSource() 파라미터 체인 완성
+- **extractBoardCards() Pass 1 height 추출**: `height="..."` → `card.h` (비율 스케일링 포함). Twilight 이미지 중첩 해소
+- **parseFlowContent() 캡션 attach**: 단독 이미지 row 직후 짧은 텍스트(<150자) → `lastSingleImageCard.caption`으로 흡수. Vision Board 캡션 복원
+- **board-template renderCards()**: `img.style.width/height` 명시 적용
+- **재마이그레이션**: Character 섹션(141파일, docMode=true) + Zeroing(73파일) 재생성 확인
+- **plan-eng 병렬 분석**: 3개 Opus 에이전트 분류 전략 검토 → 2 코드 경로 유지 결론
+
 ## Last Completions (2026-06-08) — Cortex Dashboard 14일 버그 + 일정 표기 복구 + 재발방지
 
 - **toggleView() 14일 버그 수정** — week 전환 시 `currentWeekStart` 오늘 기준 리셋. "This Week" = 항상 오늘 주
@@ -189,6 +199,9 @@
 ## Next Tasks
 
 ### High Priority
+- [ ] **OneNote 나머지 섹션 html fetch** — Mo chuisle, String, Interstellar, Snowball, Futures options `.onenote.html` 다운로드 후 전체 재마이그레이션
+- [ ] **Vision Board 근접 캡션** — `html` 카드(table 내 이미지) proximity 기반 캡션 연결 (현재 미구현, 사용자 결정 필요)
+- [ ] **ONENOTE-MIGRATION-SPEC.md 갱신** — 3-type 아키텍처 + docMode 규칙 반영
 - [ ] **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
 - [ ] **Confluence PAT 발급** — VDI에서 프로필 > Personal Access Tokens 확인
 - [ ] **Confluence 역변환기 + daemon** — 안정화 후 구현 재개

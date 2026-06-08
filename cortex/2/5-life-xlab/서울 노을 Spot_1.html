@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">서울 노을 Spot<br>		<br>		<br>	<br>	<br>		<br>			<br>티타워 31층<br>			<br>낙산공원<br>			<br>르돌치 1946<br>			<br>북카페 채그로<br>			<br>남산N타워<br>			<br>한강 둔치<br>			<br><a href="https://post.naver.com/viewer/postView.nhn?volumeNo=21764990&memberNo=22649225" target="_blank">노을공원</a>- 6호선 월드컵경기장역 1번 출구<br>			<br><a href="http://www.tripview.co.kr/2016" target="_blank">http://www.tripview.co.kr/2016</a><br>			<br><a href="https://sera-s.tistory.com/entry/%ED%95%9C%EA%B0%95%ED%8F%AC%ED%86%A0%EC%8A%A4%ED%8C%9F-%EB%9A%9D%EC%84%AC%EC%9C%A0%EC%9B%90%EC%A7%80-%ED%95%9C%EA%B0%95%EA%B3%B5%EC%9B%90-%EB%85%B8%EC%9D%84-%EC%9D%B8%EC%83%9D%EC%83%B7-%EC%A7%80%EB%8F%84%EC%B2%A8%EB%B6%80" target="_blank">뚝섬유원지</a><br>			<br>일몰 스팟 - <a href="http://mediask.co.kr/35693" target="_blank">http://mediask.co.kr/35693</a><br>			<br>여의도 한강공원, 반포대교 한강공원<br>			<br>해방촌에서 용산2동 주민센터쪽 - 후암동 소월로<br>			<br>송파구 올림픽로<br>			<br>청담도로공원 팔각정<br>			<br><a href="https://1boon.kakao.com/dailylife/191010_1" target="_blank">https://1boon.kakao.com/dailylife/191010_1</a><br>			<br><a href="https://1boon.kakao.com/dailylife/190722_1" target="_blank">https://1boon.kakao.com/dailylife/190722_1</a><br>			<br><a href="https://m.blog.naver.com/kakoi77/221863312764" target="_blank">https://m.blog.naver.com/kakoi77/221863312764</a> <br>			<br><a href="https://www.esquirekorea.co.kr/article/46595" target="_blank">https://www.esquirekorea.co.kr/article/46595</a> <br>			<br><a href="https://tiktikeuro.tistory.com/160" target="_blank">https://tiktikeuro.tistory.com/160</a></div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

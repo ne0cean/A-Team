@@ -42,17 +42,23 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
 <div class="toolbar">
   <span class="t-title">캠핑</span>
-  <span class="t-date">Invalid Date</span>
+  
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">높은 곳에서 탁 트인 리버뷰를 보고 있으면 스트레스는 저 멀리 흘러가고, 마음은 가볍게 환기될 거야. 그래서 준비했어. 경기·충북·경남 뷰 보장 캠핑장 3곳 소개할게. 이번 연휴엔 예쁜 풍경 보며 힐링 제대로 챙기자랭🧡<br><br>  <br><br>[경기 가평] <a href="https://event.stibee.com/v2/click/NzgxODMvMjk5NzYzMC8yOTE1NDUv/aHR0cHM6Ly9uYXZlci5tZS81NExiYzVvZQ" target="_blank">캠프게이트</a><br><br>서울에서 차로 한 시간 반, 북한강 줄기를 따라가면 호수를 정면에 둔 캠핑장이 나타나. 2번·8번 사이트는 파노라마 뷰로 명당 중 명당. 개별 화장실과 개수대도 갖춰져 있어 편리하고, 카라반 옵션이 있어 장비 없어도 바로 출발 가능해.<br><br>  <br><br>[충북 충주] <a href="https://event.stibee.com/v2/click/NzgxODMvMjk5NzYzMC8yOTE1NDUv/aHR0cHM6Ly9uYXZlci5tZS81RVVaeXRiNQ" target="_blank">캠핑808</a><br><br>충주호를 한눈에 담을 수 있도록 모든 사이트가 호수 쪽을 향하고 있어. 관리가 잘 되어 쾌적하게 머물 수 있고, 아침 물안개 낀 풍경은 꼭 경험해볼 만해. 오토캠핑장이라 직접 준비한 장비를 세우면, 풍경이 곧 배경이 된다랭. 유람선 타고 호수를 건너는 재미도 놓치지 마<br><br>  <br><br>[경남 합천] <a href="https://event.stibee.com/v2/click/NzgxODMvMjk5NzYzMC8yOTE1NDUv/aHR0cHM6Ly9uYXZlci5tZS9HMzhvM0o0RQ" target="_blank">해피캠핑장</a><br><br>합천호 앞이라 어디 앉아도 뷰가 보장되는 곳. 낮에는 시원한 호수, 밤에는 조명과 나무 정원이 어우러져 분위기가 완성돼. 수영장과 트램폴린 같은 시설도 있어 세대 구분 없이 즐겁지. 이 곳 역시, 오토캠핑장이라 내 텐트를 펼치는 재미도 있다랭</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

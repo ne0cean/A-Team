@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">27Sun @New York > Korea<br>		<br>		<br>	<br>	<br>		<br>			<br>항공기 체크인<br>			<br><br>			<br>선물 사기<br>			<br>첼시마켓 <br>			<br><a href="https://m.blog.naver.com/PostView.nhn?blogId=segyerotravel&logNo=220636457491&proxyReferer=https%3A%2F%2Fwww.google.com%2F" target="_blank">https://m.blog.naver.com/PostView.nhn?blogId=segyerotravel&logNo=220636457491&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a><br>			<br>				<br>- 팀/그룹 쿠키<br>				<br>- 전투 쿠키<br>				<br>- 지원 초콜릿<br>				<br>- 셩형 편지지 레고<br>				<br>- 현우형<br>				<br>- 쵠 티<br>				<br>- 동호형 레고<br>				<br>- 조민<br>				<br>- 남주 첼시마켓 게임기<br>				<br>- 여주 치즈?<br>				<br>- 박순옥 모마 모네 수련<br>				<br>- <a href="https://m.blog.naver.com/PostView.nhn?blogId=nydelphie&logNo=221126295835&proxyReferer=https%3A%2F%2Fwww.google.com%2F" target="_blank">https://m.blog.naver.com/PostView.nhn?blogId=nydelphie&logNo=221126295835&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a><br>			<br>			 く コ 田 0 山 一 HON 田 コ < 0 <br>化 < 0N3 コ V5 ト N 田 > 0 イ <br>、 000000000000000 ・ <br>S 三 つ 3 っ 工 3 三 3 っ 5 <br>・ 0 を ノ " width="468" height="624" src="<a href="https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-635afdb590541246b062c4544463c3c3!1-733661839CC53BA5!7918/$value" target="_blank">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-635afdb590541246b062c4544463c3c3!1-733661839CC53BA5!7918/$value</a>" data-src-type="image/jpeg" data-fullres-src="<a href="https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-fb177cc21c6d174d8c454170dbaf9278!1-733661839CC53BA5!7918/$value" target="_blank">https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-fb177cc21c6d174d8c454170dbaf9278!1-733661839CC53BA5!7918/$value</a>" data-fullres-src-type="image/jpeg" /><br>			<br>항공기 체크인<br>			<br>슈퍼셔틀 탑승장소 확인<br>			<br><a href="https://www.supershuttle.com/" target="_blank">https://www.supershuttle.com/</a><br>			<br>남주영 선물 첼시마켓<br>			<br><br>			<br>10시 40분 vessel<br>			<br><br>			<br>신호사진<br>			<br>이 하나로 뉴욕에서의 여정을 갈무리한다.<br>			<br><br>			<br>교차와 합의, 절충<br>			<br>그를 바탕으로한 유연성<br>			<br>끊임 없는 순환과 유입.<br>			<br>유지하는 전통이 아닌 변주되는 전통.<br>			<br><br>			<br>이 도시엔 Play나 Pause같은건 없다.<br>			<br>오직 끊이지고 리듬과 템포가 흐를뿐.</div>
@@ -65,6 +71,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -80,6 +89,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -88,13 +148,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

@@ -1,5 +1,19 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-08] OneNote 3-type 분류 확정 + Board 이미지/캡션 수정
+
+**완료**:
+- 3-type 분류 결정: Board/Twilight = board-template.html, Table+Text = docMode:true Linear Doc
+- docMode 파라미터 체인 구축 (SECTION_MAP → processFile → processOnenoteHtmlSource)
+- extractBoardCards() Pass 1 height 추출 → card.h 저장 (Twilight 이미지 중첩 해소)
+- parseFlowContent() lastSingleImageCard 캡션 attach (Vision Board 캡션 복원)
+- board-template renderCards() img.style.width/height 적용
+- plan-eng 3 병렬 Opus 에이전트 분류 전략 검토 → 2 코드 경로 유지 결론
+- Character(141파일) + Zeroing(73파일) 재마이그레이션 완료
+
+**이슈**: plan-eng 에이전트 model 파라미터 누락 → hook 차단. `model: "opus"` 추가로 해소.
+**빌드**: ✅ (migrate-onenote-html.mjs 재실행 성공)
+
 ## [2026-06-08] /absorb + Cortex Dashboard 버그 수정 (14일/일정/재발방지)
 
 **완료**:

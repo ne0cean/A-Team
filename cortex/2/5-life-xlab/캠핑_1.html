@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">캠핑<br>		<br>		<br>	<br>	<br>		<br>			<br>ㅇ 준비물<br>			<br>핫팩, 침낭, 발포매트, 고기화로대<br>			<br><br>			<br>ㅇ 쇼핑<br>			<br>[화로] 그릴(중형-50x30)/ 숯+번개탄/ 면장갑/ 위생장갑/ 장작(캠핑장에서 2덩이)<br>			<br>[고기] 고기/ 쌈장/ 허브솔트/ 쌈채소/ 과일/ 과자/ 김치/ 고구마/ 버섯/ 소시지<br>			<br>[찌개] 라면/ 햇반/ 계란/ 부대찌개/ 김치찌개 인스턴트<br>			<br>[식기] 종이컵/ 일회용(밥/ 국그릇/ 반찬접시)/ 젓/숟가락/ 물티슈/ 휴지<br>			<br>[음료] 술/ 음료수/ 생수/ 냉매/ 얼음/ 아이스박스<br>			<br>[기타] 껌/ 핫팩/ 밀크시슬/ 커피/ 코베아 패브릭 발포매트<br>			<br><br>			<br>Wish : 조개, 호일, 버섯, 토마토, 버터, 참기름(소용량)<br>			<br><br>			<br>=============================<br>			<br><br>			<br>#장 목록<br>			<br>오이 1팩<br>			<br>마늘 1팩<br>			<br>상추 2팩<br>			<br>깻잎 1팩<br>			<br>대파 1팩<br>			<br>깐양파 1팩<br>			<br>과일 (딸기, 귤)<br>			<br>오겹살 6근<br>			<br>목살 2근<br>			<br>소세지 1팩<br>			<br>고춧가루 작은팩<br>			<br>부침가루<br>			<br>올리브유 1개<br>			<br>간장<br>			<br>컷팅대파<br>			<br>소고기다시다 작은팩<br>			<br>쌈장 작은거 4개<br>			<br>김치 큰봉지 (좀 익은게 좋음)<br>			<br>- 묵은지 있으면 묵은지로<br>			<br>오렌지주스 페트2<br>			<br>포도주스 페트2<br>			<br>물 페트 6<br>			<br>사이다2<br>			<br>소주20병(처음처럼10, 참이슬10)<br>			<br>자몽의이슬&청포도 5병<br>			<br>맥주 피처 6개<br>			<br>젓가락50개묶음<br>			<br>접시 20개<br>			<br>종이컵 50개<br>			<br>소주종이컵 20개<br>			<br>플라스틱 수저 20개<br>			<br>종이국그릇20개<br>			<br>과자 10개<br>			<br>컵라면 14개<br>			<br>(왕뚜껑7, 육개장 동그란거7)<br>		<br>		<br>			<br>서해안 몽산포 솔숲<br>		<br>		<br>			<br>평창 캠핑 700 - r2 b3</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

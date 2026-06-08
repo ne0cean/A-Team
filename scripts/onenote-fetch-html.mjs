@@ -12,11 +12,12 @@
 
 import { readFile, writeFile, mkdir, access } from 'fs/promises';
 import { join, dirname, basename } from 'path';
+import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
 import { readdir } from 'fs/promises';
 
-const HOME = process.env.HOME;
-const CORTEX = join(HOME, 'Projects/a-team/cortex');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const CORTEX = join(__dirname, '..', 'cortex');
 const ARCHIVE_BASE = join(CORTEX, '4/interstellar-onenote');
 const ATTACHMENTS = join(CORTEX, 'attachments');
 const TOKEN_FILE = join(CORTEX, '.onenote-token.json');
