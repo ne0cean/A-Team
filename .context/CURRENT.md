@@ -73,6 +73,16 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-09) — 하네스 최고등급 강화 (사용자 지시 무시 근절)
+
+- **위반 3건 수집**: (1) 마이그레이션 원본 좌표 미회수 (2) `/investigate` Analytics 스킵 (3) wrangler deploy 후 시각검증 없이 완료 선언
+- **`slash-command-gate.py` 신규** — UserPromptSubmit hook: 슬래시 커맨드 감지 → 커맨드 파일의 Analytics 라인 강제 주입. `/investigate` → `node scripts/log-event.mjs command_start name=investigate` 즉시 표시
+- **`instruction-tracker.py` 강화** — prose 연결어(그리고/추가로/게다가 등) 감지 추가. 트리거 조건 완화 (items>=1 OR connectors>=2 OR actions>=2)
+- **`pre-bash.sh` 업데이트** — wrangler deploy 메시지에 "UI 시각 검증 없이 완료 선언 금지" 추가
+- **`CLAUDE.md` 3개 하드 규칙** — 슬래시 커맨드 Analytics 의무 / UI 배포 완료 선언 조건 / 마이그레이션 원본 소스 참조 의무
+- **settings.json** — slash-command-gate.py UserPromptSubmit 등록
+- **vision.html pushCards 버그 배포** — `pushCards` 제거 (카드 이동 시 주변 카드 따라 움직이는 버그) → `0f475f72`
+
 ## Last Completions (2026-06-08) — OneNote 3-type 분류 확정 + Board 이미지/캡션 수정
 
 - **3-type 분류 결정**: Board(Vision Board)/Image+Text(Twilight) = board-template.html 동일 경로. Table+Text(Skin care) = docMode:true Linear Doc. 3번째 템플릿 불필요.
