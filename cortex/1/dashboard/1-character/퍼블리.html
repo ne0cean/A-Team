@@ -42,17 +42,23 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
 <div class="toolbar">
   <span class="t-title">퍼블리</span>
-  <span class="t-date">Invalid Date</span>
+  
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">퍼블리<br>		<br>		<br>	<br>	<br>		<br>			<br><a href="https://publy.co/content/7015?fr=category" target="_blank">https://publy.co/content/7015?fr=category</a><br>			<br><br>			<br><a href="https://publy.co/content/6925?fr=category" target="_blank">https://publy.co/content/6925?fr=category</a><br>			<br><br>			<br><a href="https://publy.co/set/633?fr=category" target="_blank">https://publy.co/set/633?fr=category</a><br>		<br>		<br>			<br>표지에 어울리는 사진은&#160;<a href="https://unsplash.com/" target="_blank">언스플래시</a>,&#160;<a href="https://www.pexels.com/ko-kr/" target="_blank">펙셀즈</a>,&#160;<a href="https://pixabay.com/" target="_blank">픽사베이</a><br>			<br>디자인 아이디어는&#160;<a href="https://pinterest.com/" target="_blank">핀터레스트</a>에서 찾아볼 수 있습니다. 영문으로 'PowerPoint Design'이라고 검색해보세요. 여기에 올해 연도를 추가해 검색하면 최신 PPT 디자인도 볼 수 있습니다.&#160;<br>			<br>			<br><br>			출처: <<a href="https://publy.co/content/6887?fr=category" target="_blank">https://publy.co/content/6887?fr=category</a>> <br>			<br><br>			<br><a href="http://www.pinterest.co.kr/" target="_blank">핀터레스트(Pinterest)</a>와&#160;<a href="http://freepik.com/" target="_blank">프리픽(Freepik)</a>을 추천해요. 이 두 사이트에 접속한 다음, 검색창에 '프레젠테이션', 'PPT Templet', 'PPT Templet 색상명'* 등의 검색어를 입력하시면 다양한 템플릿의 검색 결과를 확인하실 수 있습니다.<br>			<br>* "PPT Templet 색상명"의 검색어를 통해 회사에서 주로 사용하는 색상(로고색 등)이 있다면 그 색상이 포함된 레퍼런스를 찾을 수 있습니다.<br>			<br><br>			출처: <<a href="https://publy.co/content/5652?fr=chapter-text" target="_blank">https://publy.co/content/5652?fr=chapter-text</a>> <br>			<br><br>			<br><br>		<br>		<br>			<br>나는 내가 소비하는 것이 아니라, 내가 생산하는 것으로 평가받고, 그것으로 정의되는게 옳다고 생각해.<br>			<br><br>			<br><br>			<br> 취향을 지양하고, 무취향을 지향하는 이유야.</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

@@ -42,17 +42,23 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
 <div class="toolbar">
   <span class="t-title">Valuation</span>
-  <span class="t-date">Invalid Date</span>
+  
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">Valuation<br>		<br>		<br>	<br>	<br>		<br>			<br>				<br>에드워스 다모다란 밸류에이션 <a href="http://pages.stern.nyu.edu/~adamodar/" target="_blank">http://pages.stern.nyu.edu/~adamodar/</a><br>				<br><a href="http://pages.stern.nyu.edu/~adamodar/New_Home_Page/littlebook.htm" target="_blank">http://pages.stern.nyu.edu/~adamodar/New_Home_Page/littlebook.htm</a><br>				<br><br>				<br><br>				<br>- DCF<br>				<br>- Trading Multiples(Valuation Multiples)<br>			<br>			<br><br>			<br><br>			<br><br>			<br>			<br><br>			<br><br>			<br><a href="https://m.blog.naver.com/PostView.nhn?blogId=dlwnsqud123&logNo=221215929143&proxyReferer=https%3A%2F%2Fwww.google.com%2F" target="_blank">https://m.blog.naver.com/PostView.nhn?blogId=dlwnsqud123&logNo=221215929143&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a><br>			<br><br>			<br><a href="https://platum.kr/archives/4559" target="_blank">https://platum.kr/archives/4559</a><br>			<br><br>			<br><a href="https://blog.naver.com/PostView.nhn?blogId=cgeorge07&logNo=221412427352&categoryNo=83&parentCategoryNo=-1&viewDate=&currentPage=&postListTopCurrentPage=&isAfterWrite=true" target="_blank">https://blog.naver.com/PostView.nhn?blogId=cgeorge07&logNo=221412427352&categoryNo=83&parentCategoryNo=-1&viewDate=&currentPage=&postListTopCurrentPage=&isAfterWrite=true</a><br>			<br><br>			<br><a href="http://www.samili.com/acc/Acc_View.asp?f_seqnum=136&page=2" target="_blank">http://www.samili.com/acc/Acc_View.asp?f_seqnum=136&page=2</a><br>		<br>		<br>			<br>Free<br>			<br>Dow jones <a href="https://www.marketwatch.com/investing/stock/nflx" target="_blank">https://www.marketwatch.com/investing/stock/nflx</a><br>			<br>Yahoo Finance <a href="https://finance.yahoo.com/" target="_blank">https://finance.yahoo.com/</a><br>			<br><br>			<br>Paid<br>			<br>Factiva <a href="https://professional.dowjones.com/factiva/" target="_blank">https://professional.dowjones.com/factiva/</a><br>			<br>Mergermarket <a href="https://www.mergermarket.com/info/" target="_blank">https://www.mergermarket.com/info/</a><br>			<br><br>			<br>교육 Program<br>			<br><a href="https://fcbfi.org/research-valuation-modeling-selftraining/" target="_blank">https://fcbfi.org/research-valuation-modeling-selftraining/</a><br>		<br>		<br>			<br><br>		<br>		<br>			<br><br>		<br>		<br>			<br>Trading Multiple Valuations is nothing but identifying comparable companies and performing relative valuations like an expert to find the fair value of the firm.<br>			<br><br>			<br>The trading multiple valuation processes starts with identifying the comparable companies, then selecting the right valuation tools and finally preparing a table that can provide easy inferences about the fair valuation of the industry and the company.<br>			<br><br>			<br>Transaction Multiples(Acquisition Multiple) is a method where we look at the past Merger & Acquisition (M&A) transactions and value a comparable company using precedents.<br>			<br><br>			<br>It is based on the premise that the value of the company can be estimated by analyzing the price paid by the acquirer company in comparable acquisitions.<br>		<br>		<br>			<br><a href="https://assethorizon.tistory.com/4" target="_blank">https://assethorizon.tistory.com/4</a><br>			<br><a href="https://blog.naver.com/phoonie" target="_blank">https://blog.naver.com/phoonie</a><br>		<br>		<br>			<br>Valuation/Projection<br>			<br>Term-sheet<br>			<br>(사례) WAVVE/B-boy/ADT</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

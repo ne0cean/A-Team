@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">구석기 식단<br>		<br>		<br>	<br>	<br>		<br>			<br><a href="http://navercast.naver.com/magazine_contents.nhn?rid=1495&contents_id=18632" target="_blank">http://navercast.naver.com/magazine_contents.nhn?rid=1495&contents_id=18632</a><br>			<br><a href="http://blog.naver.com/tokitoc?Redirect=Log&logNo=20195686214" target="_blank">http://blog.naver.com/tokitoc?Redirect=Log&logNo=20195686214</a><br>			<br><a href="http://blog.naver.com/wings1027?Redirect=Log&logNo=130174528890" target="_blank">http://blog.naver.com/wings1027?Redirect=Log&logNo=130174528890</a><br>			<br><a href="http://blog.naver.com/shw4225?Redirect=Log&logNo=140061962849" target="_blank">http://blog.naver.com/shw4225?Redirect=Log&logNo=140061962849</a><br>			<br><a href="https://youtube.com/shorts/YnAhImNM6as?si=Nw8D3jVZv6fcWEYU" target="_blank">먹을게 못 됐다는 고대 채소들</a><br>			<br><br>			<br>			<br>[다이어트 식단] 박용우 박사가 제안하는 구석기 다이어트 식단<br>			<br>&#160;<br>			<br>농경시대 이전 구석기시대 다이어트 방법<br>			<br>1. 설탕, 액상과당, 트랜스지방, 정제탄수화물 및 다양한 식품첨가물이 들어있는 정제가공식품, 패스트푸드의 섭취를 피한다.<br>			<br>2.&#160; 곡류, 콩류(콩, 두부, 땅콩), 감자류(감자, 고구마), 유제품(우유, 요거트, 치즈), 소금 섭취를 가급적 최소화한다.<br>			<br>3.&#160; 단백질 음식을 충분히 섭취한다.&#160; <br>			<br>&#160; - 생선, 해산물은 마음껏!<br>			<br>&#160; - 소고기 살코기, 돼지고기 보쌈 살코기, 계란, 닭가슴살 등은 충분히!<br>			<br>&#160; - 건강에 해로운 지방이 많은 갈비, 삼겹살 등은 적게!<br>			<br>4. 나물과 생채소, 해조류, 버섯 등은 매 끼니에 두접시 이상!</div>
@@ -66,6 +72,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -81,6 +90,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -89,13 +149,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>
