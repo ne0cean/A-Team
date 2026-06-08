@@ -118,6 +118,14 @@ navigate 후 남은 currentWeekStart를 그대로 쓰면 14일 버그 재발.
 day cell에 주입 금지. 사이드바 스케줄러 전용.
 `monthly_recurring` 구조화 데이터({day, text})만 day cell에 허용.
 
+### [D-RENDER-GUARD] render()는 monthData 로드 전 호출 불가
+`render()` 진입부에 `if (!monthData) return;` 가드 필수.
+`loadFrames()`가 `loadMonth()`보다 먼저 완료되면 monthData=undefined 상태에서 render() 호출 → crash → 검은 화면.
+race condition 근본 원인: init()에서 모든 async 함수를 await 없이 호출.
+
+### [D-LOADMONTH-TRYCATCH] loadMonth()는 반드시 try/catch
+API 실패 시 showToast 표시 후 return. monthData가 null인 채로 render()까지 도달 금지.
+
 ### [D-WORKOUT-ATOMIC] workout 저장은 반드시 atomic /api/workout
 `save()`에서 workout strip 확인: `grep -n "Strip workout" public/js/app.js`
 worker에서 Preserve workout 확인: `grep -n "Preserve workout" worker/src/index.js`

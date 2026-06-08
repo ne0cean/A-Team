@@ -119,8 +119,15 @@ function getWeekStart(date) {
 let prevMonthData = null, nextMonthData = null;
 
 async function loadMonth(isInit) {
-  const res = await fetch(`${API}/api/month?ym=${ym()}`);
-  monthData = await res.json();
+  let res;
+  try {
+    res = await fetch(`${API}/api/month?ym=${ym()}`);
+    monthData = await res.json();
+  } catch (e) {
+    console.error('[cortex] loadMonth failed:', e);
+    showToast('달력 로드 실패 — 새로고침 해주세요', true);
+    return;
+  }
   // 오늘이 속한 월이면 todayMonthData 캐시
   const now = new Date();
   if (isInit || (currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1)) {
@@ -230,6 +237,7 @@ function syncMonthFromWeek() {
 
 // --- Render ---
 function render() {
+  if (!monthData) return; // [D-RENDER-GUARD] monthData 로드 전 render 호출 방지 (loadFrames race condition)
   const container = document.getElementById('calendarContainer');
 
   // Flush one-thing field before DOM rebuild
