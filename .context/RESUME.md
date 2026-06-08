@@ -1,6 +1,6 @@
 ---
 mode: normal
-status: active
+status: deferred
 created: 2026-06-08T08:25:57+0900
 task: **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
 ---
@@ -27,5 +27,5 @@ FILES_MODIFIED: 0
 TESTS_STATUS: SKIPPED
 WORK_TYPE: dispatch
 RECOMMENDATION: Confluence PAT 발급(VDI 접속 필요) 또는 Cortex 안정화 구체 스펙 지정 후 재개. 자율 루프 재개 시 동일 상태.
-LAST_CHECKED: 2026-06-08T09:30
+LAST_CHECKED: 2026-06-08T13:35
 ---END---
