@@ -14,6 +14,12 @@
 **이슈**: plan-eng 에이전트 model 파라미터 누락 → hook 차단. `model: "opus"` 추가로 해소.
 **빌드**: ✅ (migrate-onenote-html.mjs 재실행 성공)
 
+## [2026-06-08] Cortex 데이터 유실 근본 해결 — ARRAY_FIELDS 동적 감지 + TDD + 복구 자동화
+
+**완료**: ARRAY_FIELDS 동적 감지(merge.js) + vitest 18 tests + backup-d1 --apply + verify-data.mjs + PMI
+**이슈**: verify-data.mjs 자동 호출 차기 세션
+**빌드**: ✅ 18/18 PASS + deploy 성공
+
 ## [2026-06-08] /absorb + Cortex Dashboard 버그 수정 (14일/일정/재발방지)
 
 **완료**:
