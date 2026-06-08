@@ -68,12 +68,31 @@ export default {
           await env.DB.prepare(
             "INSERT OR REPLACE INTO ritual_data (key, data, updated_at) VALUES (?, ?, datetime('now'))"
           ).bind(backupKey, prev.data).run();
-          // Keep only last 5 backups per key
+          // Keep only last 5 backups per key (short-term undo buffer)
           const oldBackups = await env.DB.prepare(
             "SELECT key FROM ritual_data WHERE key LIKE ? ORDER BY updated_at DESC LIMIT -1 OFFSET 5"
           ).bind(`_backup:${key}:%`).all();
           for (const row of (oldBackups.results || [])) {
             await env.DB.prepare("DELETE FROM ritual_data WHERE key = ?").bind(row.key).run();
+          }
+          // Daily checkpoint: one snapshot per calendar day, kept 30 days
+          // Only for month keys (YYYY-MM), not nested keys
+          if (/^\d{4}-\d{2}$/.test(key)) {
+            const today = new Date().toISOString().slice(0, 10);
+            const cpKey = `_checkpoint:${key}:${today}`;
+            const exists = await env.DB.prepare('SELECT key FROM ritual_data WHERE key = ?').bind(cpKey).first();
+            if (!exists) {
+              await env.DB.prepare(
+                "INSERT OR REPLACE INTO ritual_data (key, data, updated_at) VALUES (?, ?, datetime('now'))"
+              ).bind(cpKey, prev.data).run();
+              // Keep only last 30 daily checkpoints per key
+              const oldCps = await env.DB.prepare(
+                "SELECT key FROM ritual_data WHERE key LIKE ? ORDER BY updated_at DESC LIMIT -1 OFFSET 30"
+              ).bind(`_checkpoint:${key}:%`).all();
+              for (const row of (oldCps.results || [])) {
+                await env.DB.prepare("DELETE FROM ritual_data WHERE key = ?").bind(row.key).run();
+              }
+            }
           }
         }
         await env.DB.prepare(
@@ -444,28 +463,54 @@ export default {
         return new Response(JSON.stringify({ ok: true, count: Array.isArray(data[section]) ? data[section].length : null }), { headers });
       }
 
-      // --- Undo (restore from auto-backup) ---
+      // --- Backup list (GET /api/backups?key=2026-06) ---
+      if (path === '/api/backups' && method === 'GET') {
+        const targetKey = url.searchParams.get('key') || 'standing-orders';
+        const recents = await env.DB.prepare(
+          "SELECT key, updated_at FROM ritual_data WHERE key LIKE ? ORDER BY updated_at DESC LIMIT 5"
+        ).bind(`_backup:${targetKey}:%`).all();
+        const checkpoints = await env.DB.prepare(
+          "SELECT key, updated_at FROM ritual_data WHERE key LIKE ? ORDER BY updated_at DESC LIMIT 30"
+        ).bind(`_checkpoint:${targetKey}:%`).all();
+        return new Response(JSON.stringify({
+          recent_backups: (recents.results || []).map(r => ({ key: r.key, updated_at: r.updated_at })),
+          daily_checkpoints: (checkpoints.results || []).map(r => ({ key: r.key, updated_at: r.updated_at })),
+        }), { headers });
+      }
+
+      // --- Undo (restore from auto-backup or checkpoint) ---
       if (path === '/api/undo' && method === 'POST') {
-        const { key } = await request.json();
+        const { key, from } = await request.json();
         const undoableKeys = new Set([...Object.values(kvMap), ...(await env.DB.prepare("SELECT key FROM ritual_data WHERE key LIKE '20%'").all()).results.map(r => r.key)]);
         const targetKey = key || 'standing-orders';
         if (!undoableKeys.has(targetKey) && !/^\d{4}-\d{2}$/.test(targetKey)) {
           return new Response(JSON.stringify({ error: 'invalid undo key' }), { status: 400, headers });
         }
-        const backups = await env.DB.prepare(
-          "SELECT key, updated_at FROM ritual_data WHERE key LIKE ? ORDER BY updated_at DESC LIMIT 5"
-        ).bind(`_backup:${targetKey}:%`).all();
-        if (!backups.results?.length) {
-          return new Response(JSON.stringify({ error: 'no backups found' }), { status: 404, headers });
+        // Allow restoring from a specific backup/checkpoint key
+        let sourceKey;
+        if (from) {
+          const validPrefix = `_backup:${targetKey}:` ;
+          const validCpPrefix = `_checkpoint:${targetKey}:`;
+          if (!from.startsWith(validPrefix) && !from.startsWith(validCpPrefix)) {
+            return new Response(JSON.stringify({ error: 'invalid from key' }), { status: 400, headers });
+          }
+          sourceKey = from;
+        } else {
+          // Default: most recent short-term backup
+          const backups = await env.DB.prepare(
+            "SELECT key, updated_at FROM ritual_data WHERE key LIKE ? ORDER BY updated_at DESC LIMIT 1"
+          ).bind(`_backup:${targetKey}:%`).all();
+          if (!backups.results?.length) {
+            return new Response(JSON.stringify({ error: 'no backups found' }), { status: 404, headers });
+          }
+          sourceKey = backups.results[0].key;
         }
-        const latest = backups.results[0];
-        const backupData = await env.DB.prepare('SELECT data FROM ritual_data WHERE key = ?').bind(latest.key).first();
+        const backupData = await env.DB.prepare('SELECT data, updated_at FROM ritual_data WHERE key = ?').bind(sourceKey).first();
         if (backupData) {
-          const restored = JSON.parse(backupData.data);
           await env.DB.prepare(
             "INSERT OR REPLACE INTO ritual_data (key, data, updated_at) VALUES (?, ?, datetime('now'))"
           ).bind(targetKey, backupData.data).run();
-          return new Response(JSON.stringify({ ok: true, restored_from: latest.updated_at, backups_available: backups.results.length }), { headers });
+          return new Response(JSON.stringify({ ok: true, restored_from: backupData.updated_at, source: sourceKey }), { headers });
         }
         return new Response(JSON.stringify({ error: 'backup data corrupted' }), { status: 500, headers });
       }

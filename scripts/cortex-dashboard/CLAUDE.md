@@ -36,7 +36,7 @@ grep -n "window.fetch = " public/js/app.js
 ## 배포 URL (절대 변경 금지)
 `https://cortex.feat-breeze.workers.dev`
 
-Worker: `wrangler deploy` (from `worker/` 디렉토리)
+Worker: `wrangler deploy --config wrangler.toml` (from `worker/` 디렉토리) — **반드시 --config 명시** (없으면 parent wrangler.jsonc가 override, cortex-dashboard static에 잘못 배포됨)
 Assets: Cloudflare Workers static assets (`public/`)
 
 ---
