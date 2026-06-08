@@ -520,6 +520,7 @@ export default {
       }
 
       // --- Workout (legacy, month-embedded) ---
+      // Preserve workout: dd.workout must survive PATCH — see DECISIONS.md
       if (path === '/api/workout' && method === 'GET') {
         return new Response('Method Not Allowed', { status: 405, headers: { ...headers, 'Allow': 'POST' } });
       }

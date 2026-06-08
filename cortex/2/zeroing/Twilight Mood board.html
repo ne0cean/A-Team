@@ -26,6 +26,7 @@ a:hover { text-decoration: underline; }
 .resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
 .card:hover .resize-handle { opacity: 0.6; }
 .resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
 .highlight-red { color: #ff6b6b; }
 .highlight-blue { color: #6cb0f6; }
 .highlight-gold { color: #f0c040; }
@@ -375,6 +376,7 @@ const CONTENT_HASH = '2c951078';
 
 let cards = [];
 let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
 const GRID = 20, GAP = 14;
 function snap(v) { return Math.round(v / GRID) * GRID; }
 
@@ -401,10 +403,35 @@ function showStatus(msg) {
   showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
 document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
   if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-    if (document.activeElement?.contentEditable === 'true') return; // let browser handle text undo
+    if (isText) return;
     e.preventDefault();
     undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
   }
 });
 
@@ -496,6 +523,9 @@ function renderCards() {
     el.addEventListener('mousedown', e => {
       if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
       e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
       snapshot();
       moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
       el.classList.add('moving');
@@ -573,6 +603,7 @@ function renderCards() {
     const rh = document.createElement('div'); rh.className = 'resize-handle';
     rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
     el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
     board.appendChild(el);
   });
   requestAnimationFrame(() => {
