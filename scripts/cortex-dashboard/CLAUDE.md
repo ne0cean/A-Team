@@ -62,3 +62,38 @@ Assets: Cloudflare Workers static assets (`public/`)
 ---
 
 참조: [DECISIONS.md](DECISIONS.md)
+
+---
+
+## 로컬 백업 시스템 (필수 숙지)
+
+`scripts/cortex-dashboard/backups/` — **14일치 daily snapshot** (Mac launchd 매일 18:00 KST 자동 실행)
+
+| 파일 | 내용 |
+|------|------|
+| `backups/YYYY-MM-DD.json` | 전월~익익월 4개월 + standing-orders + day-frames + vision 전체 |
+| `backups/backup.log` | 실행 이력 |
+
+```bash
+# 가용 백업 목록
+node scripts/cortex-dashboard/backup-d1.mjs --list
+
+# 특정 날짜 snapshot 확인
+node scripts/cortex-dashboard/backup-d1.mjs --restore YYYY-MM-DD
+
+# 특정 day/category 복원
+node scripts/cortex-dashboard/backup-d1.mjs --restore-day YYYY-MM-DD day [category]
+```
+
+---
+
+## "복구 불가" 선언 금지 조건 (절대 원칙)
+
+다음 순서를 **전부** 확인하기 전 "복구 불가", "영구 소실", "백업 없음" 단언 금지:
+
+1. `ls scripts/cortex-dashboard/backups/` — 로컬 daily snapshot 존재 여부 (14일치)
+2. `GET /api/backups?key=YYYY-MM` — D1 recent 5개 + daily checkpoint 30개
+3. `node scripts/cortex-dashboard/backup-d1.mjs --list` — 백업 파일 내용 직접 확인
+
+위 3단계 모두 확인 후에도 해당 데이터가 없을 때만 "복구 불가"를 선언할 수 있다.
+선언 시 반드시 각 단계 확인 결과를 함께 보고한다.
