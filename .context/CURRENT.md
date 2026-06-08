@@ -1,10 +1,9 @@
 # CURRENT — A-Team 글로벌 툴킷
 
 ## Pre-flight Gate — 2026-06-08 (debrief)
-- [ ] cortex 대시보드 one_thing 데이터 확인: `curl .../api/month?ym=2026-06 | jq '.days | to_entries[] | select(.value.one_thing) | .key'`
-- [ ] Cortex worker 배포 후 반드시 GET API로 one_thing 생존 확인 (오늘 데이터 유실 패턴)
-- [ ] retro advisor mode 재테스트: 이 PC에서 실행 (preempt-agent hook 미등록 확인됨 ✅)
-- [ ] /retro 실행 전 Pre-flight Gate 3번 완료 필수
+- [ ] cortex 데이터 상태 확인 (날짜별 outcome 카운트): `curl -s "https://cortex.feat-breeze.workers.dev/api/month?ym=2026-06" > /tmp/m.json && node -e "const d=require('/tmp/m.json'); ['8','9','10','11','12'].forEach(k=>console.log('day'+k, (d.days[k]?.outcome||[]).length))"`
+- [ ] cortex app.js 수정 시 배포 후 반드시 `node scripts/cortex-dashboard/verify-ui.mjs` 실행 + 스크린샷 Read 확인
+- [ ] 복구 작업 전 반드시 백업 vs D1 전수 비교 table 먼저 출력 (날짜 빠뜨림 방지)
 - [ ] Next: Confluence PAT 발급 (VDI 접속 시) + Connectome MVP 시작
 
 
@@ -73,6 +72,15 @@
 
 ## In Progress Files
 - (없음)
+
+## Last Completions (2026-06-08) — Cortex 데이터 유실 재발 방지 (구조적 해결)
+
+- **ARRAY_FIELDS 하드코딩 제거** — `merge.js` 순수 함수 분리. 동적 array 감지로 교체 (새 카테고리 추가 시 코드 수정 불필요)
+- **TDD 18개** — `worker/src/__tests__/merge.test.js` (scalar/array/done=true/dynamic/edge 커버)
+- **backup-d1.mjs --apply** — SQL 수동 생성 없이 D1 직접 복구 (`--restore DATE --apply`)
+- **verify-data.mjs** — 배포 후 무결성 자동 검증 (done 수 급감 감지, exit 1 = FAIL)
+- **DECISIONS.md** — 동적 merge 아키텍처 + TDD 의무 + 복구 워크플로우 문서화
+- wrangler deploy + HTTP 200 + verify-data PASS 확인
 
 ## Last Completions (2026-06-08) — Cortex Dashboard 검은 화면 근본 수정 + 재발방지
 
@@ -171,21 +179,6 @@
 - **설계 결정 기록** — `.context/design-decisions.md` 신설 (SSOT=Cortex, Confluence=VDI 터널)
 - **BLOCK**: Confluence PAT 발급 확인 필요 (VDI 접속 시). Cortex 데이터 구조 안정화 선행 필요
 
-## Last Completions (2026-06-05) — Cortex Frame 카테고리 관계 재정의
-
-- **GITHUB_TOKEN 시크릿 등록** — Cloudflare Worker `cortex` 배포. notes 내용 검색 활성화
-- **SOURCE_SYNC_MAP 수정** — weekday:input 제거, flow:source ↔ block:source만 유지
-- **work 레이블** Tasks → Work
-- **_carried 시각** ↩ 노란 아이콘 제거, 짙은 회색(#888) 텍스트
-- **D1 weekday.input** type `routine` → `todo` (이월 파이프라인 활성화)
-- 배포 완료 (`dade39b5`) — outcome/input 미체크 항목 날짜 순 이월 동작
-
-## Last Completions (2026-06-05) — Cortex Dashboard Round 2 + 버그 수정
-
-- Notes 검색 GitHub Code Search API 전환, unified search, textarea 전체 적용
-- source 카테고리 신설, flow/block outcome/source 분리, SOURCE_SYNC_MAP 재매핑
-- 일괄 붙여넣기 textarea (Citrix VDI 환경 동작), workout null 오염 근본 수정
-- impact.mjs/pickup-resume/vibe-init checkpoints/reviewer retry_count/SubagentStop 검증 완료
 
 ## Next Tasks
 
@@ -196,6 +189,7 @@
 - [ ] **제품 빌드 시작** — Connectome MVP
 
 ### Medium Priority
-- [x] **Dashboard a11y 수정** — design audit score 65→70+ (dcbb6c99)
+- [ ] **verify-data.mjs 자동 호출** — deploy.sh 통합 (wrangler deploy 후 자동 실행)
+- [ ] **worker/package-lock.json** — gitignore 추가 또는 커밋 결정
 - [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정
 - [ ] **generate_from_template.py** — 기존 PPTX 텍스트 교체 엔진
