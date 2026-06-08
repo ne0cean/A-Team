@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">선물리스트<br>		<br>		<br>	<br>	<br>		<br>			<br>				<br>와인<br>				<br>루이보스/허브티+도자기 찻잔 세트<br>				<br>조 말론, 딥디크 디퓨저/캔들 세트<br>				<br>프라고나르/산타마리아노벨라 방향제<br>				<br><br>				<br>텀블러<br>				<br><a href="https://www.instagram.com/chakolab.kr?igsh=MWZxNTF6bzlmajk5aA==" target="_blank">https://www.instagram.com/chakolab.kr?igsh=MWZxNTF6bzlmajk5aA==</a><br>				<br><br>				<br>&#127873; 10만~20만원대 선물 추천 리스트<br>				<br>					<br>- 광동 한방차 세트 / 정관장 홍삼정 에브리타임<br>					<br>- 루이보스/허브티+도자기 찻잔 세트<br>					<br>- 프리미엄 견과류 세트 (예: 하루견과 명품 세트)<br>					<br>- ➕ “대표님, 건강 챙기시라고 작은 선물 준비했습니다”라는 멘트가 딱 어울림<br>				<br>				<br>					<br>- 몽블랑, 라미, 파버카스텔 등의 고급 펜<br>					<br>- 고급 가죽 명함지갑 (MCM, 코치, 몽삭 등)<br>					<br>- ➕ 매일 쓰면서 한 번쯤 나를 떠올릴 수 있는 선물<br>				<br>				<br>					<br>- 10~15만 원대 프랑스, 이탈리아 와인 + 리델 와인잔 한 세트<br>					<br>- 발베니, 맥켈란 등 위스키 (고급스럽고 선물감 있음)<br>					<br>- ➕ “대표님 기분 좋은 날 한 잔 하시라고요!”<br>				<br>				<br>					<br>- 조 말론, 딥디크 디퓨저/캔들 세트<br>					<br>- 프라고나르/산타마리아노벨라 방향제<br>					<br>- ➕ “업무 공간이나 집에서 은은하게 쓰시라고요”<br>				<br>				<br>					<br>- 피톤치드 효과 있는 공기정화식물 + 심플한 화분<br>					<br>- ➕ “대표님 사무실이나 집에 생기를 더해드리고 싶었어요”<br>				<br>				<br><br>				<br>절판된 책<br>				<br>집들이 선물 - <a href="https://www.instagram.com/grann_korea/" target="_blank">더그란</a> 타월<br>				<br><br>				<br><a href="https://www.instagram.com/algerve_official?igsh=Nmd1a2Jjd2lldmQ=" target="_blank">여친 악세서리 선물</a><br>				<br><br>				<br><a href="https://pleasing.com/" target="_blank">https://pleasing.com/</a><br>				<br><br>				<br>타월  <a href="https://towelbom.com/" target="_blank">https://towelbom.com/</a></div>
@@ -69,6 +75,9 @@ function save() {
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
   });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
+  });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
   s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
@@ -83,6 +92,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -91,13 +151,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

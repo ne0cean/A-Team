@@ -42,17 +42,23 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
 <div class="toolbar">
   <span class="t-title">스타트업 Lecture</span>
-  <span class="t-date">Invalid Date</span>
+  
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">스타트업 Lecture<br>		<br>		<br>	<br>	<br>		<br>			<br>				<br>					<a href="http://javascript:vote(6793,%20%22up%22" target="_blank">▲</a>;)<br>					<br><a href="https://nyanye.com/daun/2022/06/20/ApplePie-Pro-%ED%94%84%EB%A1%9C%EB%8D%95%ED%8A%B8-%EC%95%84%EC%9D%B4%EB%94%94%EC%96%B4%EC%97%90%EC%84%9C-MVP-%EA%B8%B0%ED%9A%8D-%EB%94%94%EC%9E%90%EC%9D%B8-%EA%B0%9C%EB%B0%9C-%EB%9F%B0%EC%B9%AD-%EC%84%B1%EC%9E%A5%EA%B9%8C%EC%A7%80/" target="_blank">ApplePie Pro - 프로덕트 아이디어에서 MVP 기획 디자인 개발 런칭 성장까지</a><br>					<br>&#160;(nyanye.com)<br>					<br>				<br>				<br>					<br><br>					<br>					10P by&#160;<a href="https://news.hada.io/user?id=luckydaun" target="_blank">luckydaun</a>&#160;21시간전&#160;|&#160;<a href="http://javascript:fav(6793,%20%22favorite%22" target="_blank">favorite</a>)&#160;|&#160;<a href="https://news.hada.io/topic?id=6793" target="_blank">댓글 4개</a><br>				<br>				<br>					<br><br>					<br>										<br><br>					<br>						<br><br>						<br>- 들어가며…<br>						<br>- 사건의 발단<br>						<br>- 세 줄 짜리 아이디어<br>						<br>- 기획<br>						<br>- 중고판매사업을 하는 이유, 버는 돈을 정당화할 수 있는 사회적 가치<br>						<br>- 시장조사: 국내 최근 5년 맥북 시장 규모가 1조원일지도 모른다. (가설)<br>						<br>- 서비스 특징 잡기<br>						<br>- 고객 페르소나 만들기<br>						<br>- 비즈니스 모델 만들기<br>						<br>- 구현과 개발<br>						<br>- 디자인<br>						<br>- 개발 스펙 생각하기<br>						<br>- 만들어낸 기능들<br>						<br>- 출시 & 마케팅<br>						<br>- 지인 피드백 받기<br>						<br>- 클로즈베타 출시하기<br>						<br>- 공개하기<br>						<br>- 검색엔진 최적화<br>						<br>- 현실에 부딪히기<br>						<br>- 감동하기<br>						<br>- 출시 그 이후 이야기<br>						<br>- 서른개의 일감이 제품이 되었습니다.<br>						<br>- 성장<br>						<br>- 배움 - 기능을 만들기 전부터 고객을 만나자<br>						<br>- Growth Hacking<br>						<br>- 문제에 대한 가설<br>						<br>- 문제를 해결하기 위한 지표 수립<br>						<br>- 앞으로의 마음가짐 - 국내 최고의 중고애플 마켓플레이스가 될 수도 있다.<br>					<br>					<br>				<br>			<br>			<br><br>			출처: <<a href="https://news.hada.io/topic?id=6793&utm_source=discord&utm_medium=bot&utm_campaign=280" target="_blank">https://news.hada.io/topic?id=6793&utm_source=discord&utm_medium=bot&utm_campaign=280</a>> <br>			<br><br>		<br>		<br>			<br><a href="https://apply.primer.kr/lessons/3" target="_blank">https://apply.primer.kr/lessons/3</a></div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

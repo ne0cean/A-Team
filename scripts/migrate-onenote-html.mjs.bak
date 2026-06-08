@@ -528,62 +528,6 @@ function parseFlowContent(html, baseX, baseY, divW) {
   return results;
 }
 
-// ── Detect page type from raw OneNote HTML ────────────────────────────────────
-// Type A (visionboard): data-absolute-enabled + table containing images
-// Type B (twilight):    data-absolute-enabled + no table images
-// Type C (doc):         no data-absolute-enabled
-function detectPageType(rawHtml) {
-  if (!rawHtml.includes('data-absolute-enabled="true"')) return 'doc';
-  return /<table[\s\S]{0,2000}?<img/i.test(rawHtml) ? 'visionboard' : 'twilight';
-}
-
-// ── Extract images from table cells as individual positioned cards (Type A) ───
-// containerX/Y: absolute position of the div wrapping the table
-function extractTableImageCards(tableHtml, containerX, containerY) {
-  const cards = [];
-  const trRe = /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi;
-  let trM;
-  let rowY = containerY;
-  while ((trM = trRe.exec(tableHtml)) !== null) {
-    const rowHtml = trM[1];
-    let cellX = containerX;
-    let rowMaxH = 0;
-    const tdRe = /<td\b([^>]*)>([\s\S]*?)<\/td>/gi;
-    let tdM;
-    while ((tdM = tdRe.exec(rowHtml)) !== null) {
-      const tdAttrs = tdM[1];
-      const tdContent = tdM[2];
-      // Cell width from style="width:N" or width="N"
-      const wAttr = tdAttrs.match(/style="[^"]*width\s*:\s*(\d+)/i) || tdAttrs.match(/width="(\d+)"/i);
-      const cellW = wAttr ? parseInt(wAttr[1]) : 200;
-      // Extract images from this cell
-      const imgRe = /<img\b([^>]*?)(?:\/>|>)/gi;
-      let imgM;
-      while ((imgM = imgRe.exec(tdContent)) !== null) {
-        const tag = imgM[1];
-        const srcM = tag.match(/data-fullres-src="__ATTACHMENT__([a-f0-9]+\.\w+)"/) ||
-                     tag.match(/src="__ATTACHMENT__([a-f0-9]+\.\w+)"/);
-        if (!srcM) continue;
-        const iW = tag.match(/width="(\d+(?:\.\d+)?)"/);
-        const iH = tag.match(/height="(\d+(?:\.\d+)?)"/);
-        const rawW = iW ? parseFloat(iW[1]) : cellW;
-        const w = Math.min(Math.round(rawW), 480);
-        const scale = w / rawW;
-        const h = iH ? Math.round(parseFloat(iH[1]) * scale) : null;
-        const altM = tag.match(/\balt="([^"]*)"/);
-        const alt = altM ? altM[1].trim() : '';
-        const card = { type: 'image', x: cellX, y: rowY, w, src: srcM[1] };
-        if (h) { card.h = h; rowMaxH = Math.max(rowMaxH, h); }
-        if (isMeaningfulAlt(alt)) card.caption = alt.replace(/\s+/g, ' ').trim();
-        cards.push(card);
-      }
-      cellX += cellW;
-    }
-    rowY += rowMaxH || 200;
-  }
-  return cards;
-}
-
 // ── Extract board cards from OneNote absolute-layout HTML ─────────────────────
 function extractBoardCards(bodyContent) {
   const cards = [];
@@ -631,14 +575,8 @@ function extractBoardCards(bodyContent) {
     }
     const inner = bodyContent.slice(dm.index + dm[0].length, j);
     if (/<table[\s>]/i.test(inner)) {
-      // Type A: extract images from table cells as individual positioned cards
-      const tableImgCards = extractTableImageCards(inner, divX, divY);
-      if (tableImgCards.length > 0) {
-        for (const c of tableImgCards) cards.push(c);
-      } else {
-        // No images in table → keep as html card (text-only tables)
-        cards.push({ type: 'html', x: divX, y: divY, w: divW, html: inner });
-      }
+      // Table-containing div → preserve HTML as single card
+      cards.push({ type: 'html', x: divX, y: divY, w: divW, html: inner });
     } else {
       const flowCards = parseFlowContent(inner, divX, divY, divW);
       for (const c of flowCards) {
@@ -661,8 +599,7 @@ async function processOnenoteHtmlSource(onenoteHtmlPath, dstDir, dstSection, tit
   let bodyContent = bodyMatch ? bodyMatch[1] : rawHtml;
   bodyContent = bodyContent.replace(/__ATTACHMENT__([a-f0-9]+\.png)/g, (_, f) => `__ATTACHMENT__${f}`); // keep placeholders for card extractor
 
-  const pageType = forceDoc ? 'doc' : detectPageType(rawHtml);
-  const isAbsolute = pageType !== 'doc';
+  const isAbsolute = !forceDoc && rawHtml.includes('data-absolute-enabled="true"');
 
   if (isAbsolute) {
     // Board mode: extract cards with flow-based positioning → interactive board template

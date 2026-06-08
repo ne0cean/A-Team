@@ -42,17 +42,23 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
 <div class="toolbar">
   <span class="t-title">대세상승장에서 서핑을 해야해.</span>
-  <span class="t-date">Invalid Date</span>
+  
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">대세상승장에서 서핑을 해야해.<br>			<br>음악, 술 등 인류가 종말을 맞기 전에는 망하지 않을 기업들이 있지.<br>			<br>무엇이 변하고 무엇이 변하지 않을 것인가.<br>			<br>반면, 보험을 들지 않는대신 연금처럼 사모을 회사는 어딜까? 삼성전자 뿐일까? 해외는 세금때문에?<br>			<br><br>			<br>ㅇ 목표: 사업 1억, 주택구입 자금 마련<br>			<br>2020년 말 자산총계 5억(Gap 8천)<br>			<br>ㅇ 수단: 주식, 부동산(아파트 청약, 오피스텔), 금, 리츠<br>			<br>아파트를 대출끼고 사버리면 아파트 가격 상승 후 매각하는 시나리오 이외의 업사이드가 모두 사라짐. -> 아버지 청약 카드 써야됨.<br>			<br>ㅇ Target: <br>			<br>  단기: 네이버+대한통운, 스튜디오드래곤, 넷플릭스, 카카오게임즈, 웹툰주식, 구리, 니켈(배터리 데이 전호)<br>			<br>  장기: 의식주, 중국/인도 주식<br>			<br>ㅇ 가용자금<br>			<br>ㅇ 시나리오<br>			<br>1/ 남들처럼 대출끼고 집을 사서, 시세차익과 주거안정을 얻는다.<br>			<br>2/ 전세 살면서 잔여 현금으로 투자를 한다.<br>			<br>3/ 월세로 돌리고 공격적인 투자로 전환한다.<br>			<br><br>			<br>중국 기업들 주식을 사야한다.<br>			<br><br>			<br>부동산은 매크로 보다는, 내가 사야하는 아파트? 혹은 오피스로도 쓸수 있는 매물이<br>			<br>오를 것이냐 떨어질거냐가 중요하다. Target.<br>			<br><br>			<br>3Q 실적발표 후 5일 경과 되면 팔기, 목표주가는 43만원.<br>			<br>적정 매수가는 32만원 이상<br>			<br>1/ 매입<br>			<br>2/ IPO 직후 주가 추이 및 변동폭 History 정리</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

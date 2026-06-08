@@ -42,17 +42,23 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
 <div class="toolbar">
   <span class="t-title">Figma Slide</span>
-  <span class="t-date">Invalid Date</span>
+  
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">Figma Slide<br>		<br>		<br>	<br>	<br>		<br>			<br>갈릴레오 <a href="https://www.usegalileo.ai/" target="_blank">https://www.usegalileo.ai/</a><br>			<br>비즐리 <a href="https://app.visily.ai/projects?type=team" target="_blank">https://app.visily.ai/projects?type=team</a><br>			<br>릴룸 <a href="https://www.relume.io/" target="_blank">https://www.relume.io/</a><br>			<br>_____________________________________________<br>			<br><br>			<br><a href="https://help.figma.com/hc/en-us/articles/24170630629911-Explore-Figma-Slides" target="_blank">https://help.figma.com/hc/en-us/articles/24170630629911-Explore-Figma-Slides</a><br>			<br>피그마 슬라이드 개선사항 <a href="https://www.figma.com/release-notes/" target="_blank">https://www.figma.com/release-notes/</a><br>			<br><br>			<br>25년 초부터 유저당 월 3달러, 5달러 유료 요금제로 제공될 예정<br>			<br><br>			<br><a href="https://help.figma.com/hc/ko/articles/24037640924823-Config-2024%EC%97%90%EC%84%9C-%EB%B0%9C%ED%91%9C%EB%90%9C-%EC%83%88%EB%A1%9C%EC%9A%B4-%EA%B8%B0%EB%8A%A5" target="_blank">Config 2024</a><br>			<br><br>			<br><a href="https://www.figma.com/community/category/presentations" target="_blank">https://www.figma.com/community/category/presentations</a><br>			<br><a href="https://www.youtube.com/watch?v=aduVMrS-v4o" target="_blank">전</a> 세계 디자이너들 난리난 피그마 컨퍼런스 요약 | Config2024<br>			<br><br>			<br>			<br><br>			<br>ALT + 1, 2, 8, 9: File, Asset, Design, Prototype switching<br>			<br>Shift + Ctrl + Arrows: 10px +<br>			<br>Ctrl + E: 다각형 도형 외곽선 설정<br>			<br>정렬: Alt + A, D, W, S<br>			<br>수직 간격 조정: WIN - Alt + Shift + V / MAC - Ctrl + Option + V<br>			<br>수평 간격 조정: WIN - Alt + Shift + H / MAC - Ctrl + Option + H<br>			<br>면과 선 반전: Shift + X<br>			<br>기존 텍스트 서식 유지 하면서 붙여넣기: Ctrl + Shift + V<br>		<br>		<br>			<br><a href="https://help.figma.com/hc/en-us" target="_blank">https://help.figma.com/hc/en-us</a></div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

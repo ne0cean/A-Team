@@ -42,17 +42,23 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
 <div class="toolbar">
   <span class="t-title">조직도</span>
-  <span class="t-date">Invalid Date</span>
+  
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">조직도<br>		<br>		<br>	<br>	<br>		<br>			<br><a href="https://brunch.co.kr/@nexttrack/6" target="_blank">https://brunch.co.kr/@nexttrack/6</a><br>			<br><br>			<br><br>			<br><br>			<br>조직이나 개인이 목표를 설정하고 전략을 수립할 때, Vision, Mission, Goal이라는 용어가 자주 사용되지만, 그 의미가 혼동되는 경우가 많습니다. 각 용어의 차이점을 명확히 설명하겠습니다.<br>			<br>				<br>- <br>Mission (미션, 사명):<br>				<br>					<br>- 정의: 조직의 존재 이유와 근본적인 목적을 나타냅니다. 조직이 왜 존재하는지, 어떤 가치를 제공하는지를 설명하며, 이는 조직의 정체성과 본질을 반영합니다.<br>					<br>- 예시: "우리는 학교, 가정, 지역사회와 파트너십을 통해 학생들에게 평등한 교육을 제공한다." ￼<a href="https://brunch.co.kr/%40%405TcO/34?utm_source=chatgpt.com" target="_blank">Brunch Story</a><br>				<br>				<br>				<br>- <br>Vision (비전):<br>				<br>					<br>- 정의: 조직이 미래에 달성하고자 하는 구체적인 모습이나 상태를 묘사합니다. 이는 조직의 장기적인 목표와 방향성을 제시하며, 구성원들에게 영감을 주고 동기를 부여합니다.<br>					<br>- 예시: "우리는 긍정적인 마인드셋과 협력적 관계를 통해 학생들이 성장하고, 도전하고 배울 수 있는 환경을 만든다." ￼<a href="https://brunch.co.kr/%40%405TcO/34?utm_source=chatgpt.com" target="_blank">Brunch Story</a><br>				<br>				<br>				<br>- <br>Goal (목표):<br>				<br>					<br>- 정의: 비전을 실현하기 위해 설정하는 구체적이고 측정 가능한 단기 또는 중기 목표를 의미합니다. 이는 조직이 비전을 향해 나아가는 과정에서 달성해야 할 단계적인 성과를 나타냅니다.<br>					<br>- 예시: "5학년 학생들의 75% 이상이 1학기 말까지 점 8분 음표를 연주할 수 있도록 매 수업 시간에 슬라이드를 통해 가르치겠다." ￼<a href="https://brunch.co.kr/%40%405TcO/34?utm_source=chatgpt.com" target="_blank">Brunch Story</a><br>				<br>				<br>			<br>			<br>요약:<br>			<br>				<br>- Mission: 조직의 존재 이유와 근본적인 목적을 나타내며, 조직이 왜 존재하는지를 설명합니다.<br>				<br>- Vision: 조직이 미래에 달성하고자 하는 구체적인 모습을 묘사하며, 장기적인 목표와 방향성을 제시합니다.<br>				<br>- Goal: 비전을 실현하기 위해 설정하는 구체적이고 측정 가능한 목표로, 비전을 향한 단계적인 성과를 나타냅니다.</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

@@ -42,17 +42,23 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
 <div class="toolbar">
   <span class="t-title">시간 X 공간 X 인간</span>
-  <span class="t-date">Invalid Date</span>
+  
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">시간 X 공간 X 인간<br>		<br>		<br>	<br>	<br>		<br>			<br>결국 내 업, 1 > 2 >= 3<br>			<br>				<br>					구분<br>					Wavve 전적<br>					T1 잔류<br>					T2 전적<br>				<br>				<br>					장점<br>					<br>[커리어]<br>					<br>서비스 커리어<br>					<br>웨이브 전문성<br>					<br>OTT/미디어 관련 네트워크<br>					<br><br>					<br>[보상]<br>					<br>팬텀 스톡<br>					<br><br>					<br>[기타]<br>					<br>					<br>[커리어]<br>					<br>웨이브 관련 업무 지속<br>					<br>사내 스타트앳 활용 사내 벤처<br>					<br><br>					<br>[보상]<br>					<br><br>					<br>[기타]<br>					<br>					<br>[커리어]<br>					<br>딜가이로 전향<br>					<br><br>					<br>[보상]<br>					<br><br>					<br>[기타]<br>					<br>제시카-벤 라인<br>					<br>				<br>				<br>					단점<br>					커리어가 서비스, 웨이브로 국한<br>					<br><br>					<br>					<br><br>					<br>				<br>				<br>					3년 후 시나리오<br>					<br>1/ T1으로 복귀해서 웨이브 관련 업무 지속<br>					<br>2/ T1으로 복귀해서 다른 업무로 전환<br>					<br>3/ T2로 복귀해서 웨이브 관련 업무 지속<br>					<br>4/ T2로 복귀해서 다른 업무<br>					<br>5/ 이직 or 창업<br>					<br>					1/ 사내 벤처<br>					<br>1/ SK홀딩스<br>					<br><br>					<br>				<br>			<br>			<br><br>			<br>조건:<br>			<br>준범이형 패키지(A밴드+팬텀 + 부장) + 데이터 담당들<br>			<br>2년 후 복귀, 웨이브 지분을 가진 회사로 복귀<br>		<br>		<br>			<br>		<br>		<br>			<br>성장<br>			<br>(연봉.직책/ 커리어/ 실력)<br>		<br>		<br>			<br>재투자<br>			<br>건강/언어/ 업무지식/ 네트워크<br>			<br>신성장동력<br>		<br>		<br>			<br>고성과<br>		<br>		<br>			<br>고성과<br>		<br>		<br>			<br>트래픽<br>		<br>		<br>			<br>판매자<br>		<br>		<br>			<br>		<br>		<br>			<br>각 육각 기둥과 연계<br>			<br>일 사랑 놀이 연대</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

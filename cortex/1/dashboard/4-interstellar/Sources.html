@@ -42,17 +42,23 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
 <div class="toolbar">
   <span class="t-title">Sources</span>
-  <span class="t-date">Invalid Date</span>
+  
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">Sources<br>		<br>		<br>	<br>	<br>		<br>			<br>				<br><a href="https://www.perplexity.ai/search/culryeog-ganeunghan-yeongeo-ji-jt8aHI4ITImaSABo1t3RyQ" target="_blank">https://www.perplexity.ai/search/culryeog-ganeunghan-yeongeo-ji-jt8aHI4ITImaSABo1t3RyQ</a><br>				<br><br>				<br>쉬운 것과 애플 Conference call처럼 난이도 높은걸 번갈아가면서 하자<br>				<br><br>				<br>&#127822; 우선 시작순서 (난이도/효과)<br>				<br>- Go Ahead, Make Up New Words!&#160;– 쉬운 단어/표현 + 유머<br>				<br>- Your Body Language May Shape Who You Are&#160;– 일상 패턴<br>				<br>- How to talk like a native speaker&#160;– 학습 메커니즘 직접 듣기<br>				<br>- Do Schools Kill Creativity?&#160;– 리듬/스트레스 패턴 깊이 학습<br>				<br>- The Power of Vulnerability&#160;– 감정표현/표현 확장<br>				<br><br>				<br>					<br>						Ted 강연 제목<br>						연사<br>						길이<br>						왜 학습 최적화?<br>					<br>					<br>						The power of vulnerability<br>						Bren&#233; Brown<br>						20분<br>						감정 표현과 스토리텔링 연습에 좋고, 단순한 언어로 복잡한 주제를 설명. Transcript로 쉐도잉 추천.<a href="https://englishonline.britishcouncil.org/blog/articles/the-best-ted-talks-for-learning-english/" target="_blank">englishonline.britishcouncil+1</a>​<br>					<br>					<br>						How languages shape the way we think<br>						Lera Boroditsky<br>						14분<br>						언어학 주제로 어휘&#183;문장 구조 학습에 유용. 명확한 발음과 논리적 전개.<a href="https://englishlive.ef.com/en/blog/english-in-the-real-world/best-ted-talks-english-language-learners/" target="_blank">englishlive.ef+2</a>​<br>					<br>					<br>						10 ways to have a better conversation<br>						Celeste Headlee<br>						11분<br>						대화 기술 중심으로 실생활 표현 풍부. 짧아서 반복 청취에 적합.<a href="https://www.fluentu.com/blog/educator-english/easy-ted-talks-for-esl-students/" target="_blank">fluentu</a>​<br>					<br>					<br>						Go ahead, make up new words!<br>						Erin McKean<br>						9분<br>						재미있는 어휘 창조 주제. 가벼운 톤으로 어휘 확장에 좋음.<a href="https://englishlive.ef.com/en/blog/english-in-the-real-world/best-ted-talks-english-language-learners/" target="_blank">englishlive.ef+1</a>​<br>					<br>					<br>						The secrets of learning a new language<br>						L&#253;dia Machov&#225;<br>						15분<br>						언어 학습 팁 직접 공유. 동기부여+실용 어휘 학습에 최적.<a href="https://englishonline.britishcouncil.org/blog/articles/the-best-ted-talks-for-learning-english/" target="_blank">englishonline.britishcouncil</a>​</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

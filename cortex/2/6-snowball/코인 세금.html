@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">코인 세금<br>		<br>		<br>	<br>	<br>		<br>			<br>첫번째 단계인 재화로도 취급하지 않는 단계<br>			<br>이 시기에 관련된 대표적인 뉴스는 '경찰 압수 가상화폐 ‘비트코인’ 처분 골머리'라는 뉴스입니다.<br>			<br>이 단계에서는 법적 취급도 못 받고, 이걸로 번 돈도 제대로 된 취급을 받지 못합니다. &#160;또한 피해에 대해서도 법적인 보호를 받기도 힘듭니다.<br>			<br>그래서 가상화폐로 번 돈에도 직접적인 세금을 부과할 수는 없습니다.<br>			<br>다만 이 돈으로 부동산등을 사게 되면 구입 자금에 대한 '자금출처조사' 를 받을 가능성이 있습니다.&#160;<br>			<br>자금 출처를 제대로 밝히지 못하면 '재산취득자금 등의 증여 추정'의 원칙에 따라 소명하지 못한 금액에 대해서는 증여 받은걸로 간주해서 증여세를 내야 됩니다.<br>			<br>증여세는 상속세와 같은 세율로 금액에 따라 10%(1억 이하) 에서 50%(30억 초과) 상당히 높은 세율입니다.<br>			<br><a href="https://www.clien.net/service/board/cm_vcoin/10980654" target="_blank">https://www.clien.net/service/board/cm_vcoin/10980654</a><br>			<br><br>			<br>미소명되는 금액이 <취득재산의 가액의 100분의 20에 상당하는 금액과 2억원 중 적은 금액(이하 ‘기준금액’이라 함)>에 미달하는 경우에는 자금출처소명이 충분히 이루어진 것으로 보아, 해당 미소명금액에 대하여 별도로증여세를 과세하지 아니한다.<br>			<br>미소명 금액 < Min[①재산취득가액 &#215; 20％, ②2억원]인 경우에는 미소명금액에 대하여 증여세를 과세하지 아니한다.<br>			<br><br>			<br>15*20%=3억 or 2억 중 2억이 적으므로 미소명 금액이 2억에 미달해야함.<br>			<br>즉, 비트코인 수익 중 2억 이상 사용불가?<br>			<br><br>			<br><사례1><br>			<br>나부자씨가 APT를 15억원에 취득하고 자금출처원이 입증되는 금액이 11억원인 경우 미소명금액이 4억원이다. 이 경우 미소명금액 4억원은 기준금액 2억원을 초과하므로 미소명금액 4억원 전액을 부모로부터 증여받은 것으로 본다는 의미이다.<br>			<br>&#160;<br>			<br>*Min[① 15억원 &#215; 20％, ② 2억원]<br>			<br>** 주의할 점은 이 경우 미소명금액 4억원에서 기준금액인 2억원을 차감한 2억원에 대하여 증여세를 과세하는 것이 아니라, 미소명금액 4억원 전액에 대하여 증여세를 과세한다는 것이다. 이 점에 유의해야 한다.<br>			<br>&#160;<br>			<br><사례2><br>			<br>나부자씨가 APT를 15억원에 취득하고 자금출처원이 입증되는 금액이 14억원인 경우, 미소명금액은 1억원이다. 이 경우 미소명금액 1억원이 기준금액 2억원*에 미달하므로 미소명금액 1억원은 증여세 과세대상에서 제외된다 할 것이다.<br>			<br>*Min[① 15억원 &#215; 20％, ② 2억원]</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

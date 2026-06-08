@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">강의 Site<br>		<br>		<br>	<br>	<br>		<br>			<br>				<br>코세라 <a href="https://www.coursera.org/" target="_blank">https://www.coursera.org/</a><br>				<br><br>				<br>코세라 코리아 커뮤니티 <a href="http://cafe.daum.net/courseraKorea/" target="_blank">http://cafe.daum.net/courseraKorea/</a><br>				<br><br>				<br><a href="http://cafe.daum.net/courseraKorea/" target="_blank">http://cafe.daum.net/courseraKorea/</a><br>				<br><br>				<br>- <a href="http://ocw.mit.edu/" target="_blank">MIT 오픈코스웨어</a> <a href="http://ocw.mit.edu/index.htm" target="_blank">http://ocw.mit.edu/index.htm</a>￼미국 매사추세츠공과대학 온라인 강의, 인류학, 물리학, 역사 등 코스안내, 동영상 제공.<br>				<br>- <br><br>				<br>				<br>- <a href="http://webcast.berkeley.edu/" target="_blank">버클리</a>대학교 웹캐스트  <a href="http://webcast.berkeley.edu/" target="_blank">http://webcast.berkeley.edu/</a>￼미국 캘리포니아대학교 버클리캠퍼스, 수업 및 개론과목 VOD 제공.<br>				<br><br>				<br><a href="http://www.khanacademy.org/" target="_blank">http://www.khanacademy.org/</a><br>				<br>칸 아카데미<br>				<br><br>				<br>- KBS1 공부하는 인간<br>				<br><a href="http://www.kbs.co.kr/1tv/sisa/academicus/view/vod/" target="_blank">http://www.kbs.co.kr/1tv/sisa/academicus/view/vod/</a><br>				<br><br>				<br>모바일 서비스 개발 방법 강의<br>				<br><a href="http://203.235.204.251/Live/Player/PlayerE/Multi_StreamPlayer_utf.asp?servicename=%5BT-Class%5D%EA%B0%9C%EB%B0%9C%EC%9E%90%EA%B0%80%20%EC%A0%9C%EC%8B%9C%ED%95%98%EB%8A%94%20Mobile%20%EC%84%9C%EB%B9%84%EC%8A%A4%20%EA%B0%9C%EB%B0%9C%20%EB%B0%A9%EB%B2%95&ORG_ID=56&liveday=2012-08-08&starttime=08:15&endtime=10:16&camnum=2001&caller=main&userid=SKTL00000087223&hname=%EA%B9%80%EC%A4%80%EC%98%81&educd=101042&viewstime=08:30&viewetime=10:16" target="_blank">http://203.235.204.251/Live/Player/PlayerE/Multi_StreamPlayer_utf.asp?servicename=%5BT-Class%5D%EA%B0%9C%EB%B0%9C%EC%9E%90%EA%B0%80%20%EC%A0%9C%EC%8B%9C%ED%95%98%EB%8A%94%20Mobile%20%EC%84%9C%EB%B9%84%EC%8A%A4%20%EA%B0%9C%EB%B0%9C%20%EB%B0%A9%EB%B2%95&ORG_ID=56&liveday=2012-08-08&starttime=08:15&endtime=10:16&camnum=2001&caller=main&userid=SKTL00000087223&hname=%EA%B9%80%EC%A4%80%EC%98%81&educd=101042&viewstime=08:30&viewetime=10:16</a></div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

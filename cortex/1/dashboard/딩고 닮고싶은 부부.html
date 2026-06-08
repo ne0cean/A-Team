@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true"><a href="https://www.youtube.com/watch?v=suSC05lS--g" target="_blank">딩고</a> 닮고싶은 부부<br>			<br><a href="http://search.chosun.com/search/total.search?query=%EC%B0%A8%EC%84%B8%EB%8C%80+%EC%9C%A0%ED%8A%9C%EB%B2%84&pageconf=total" target="_blank">차세대</a> 유튜버<br>			<br><a href="http://blog.naver.com/smallbooks" target="_blank">약빤</a> 블로그 ▶ 너도 블로그/ 브런치 미디엄 등 뭐든 해야대 그게 니 강점이니까 재미나고 신나고 깊이있게.<br>			<br>방송 아니면 블로그<br>			<br><br>			<br>빨래 수거 배달 3335-3985 <br>			<br>전산학, 컴퓨터 공학 책 숙독<br>			<br>컨셉 흥신소 구매/ 수학책 구매(개념원리, 수학독본)<br>			<br>포토샵 공부 / 피씨방가서 포토샵 다운받기, <br>			<br>HBR 결제<br>			<br>프로그래밍/데이터 분석 풀타임 교육 알아보기<br>			<br>애플뮤직 써볼까? <a href="https://namu.wiki/w/%EB%B6%84%EB%A5%98:%EC%9D%8C%EC%95%85%20%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0" target="_blank">음악커뮤니티</a><br>			<br>바이오분야도 공부 - 유전자코딩<br>			<br>폰정리<br>			<br>이사할지 결정. 목적은?<br>			<br>영어/블록체인 공부<br>			<br>리프레쉬 일정 정하기 - 블록체인 교육/ 한과교육<br>			<br>차 목적 통장<br>			<br>퍼블리 읽기<br>			<br>수학 회계 공부<br>			<br>이불세탁, 겨울준비 옷방 정리<br>			<br>네트워킹 점검<br>			<br>스팀잇 계정 만들기<br>			<br>구몬? 수학<br>			<br>블록체인 교육 및 세미나 일정 보고 리프레쉬 일정 정하기<br>			<br>어플 목업으로 UX/UI 짜보기<br>			<br>이불빨래 - 은혜세탁소 02-338-5713, 클린업24, 빨래터 홍대입구역점, 코인워시24<br>			<br><br>			<br>모든 분야에 프로젝트를 셋팅하고 동료를 모아라, 모티베이션을 설계하라.<br>			<br><br>			<br>연습생 - 독하게 실력을 쌓되<br>			<br>마음을 열고 세상 모두와 연결되자.<br>			<br>				<br>- 먼저 연락해 - 원하는걸 요구해. 만나자고해<br>			<br>		<br>		<br>			<br><br>			<br><br>		<br>		<br>			<br><br>			<br><br>		<br>		<br>			<br>수학책<br>			<br>‘소설처럼 아름다운 수학 이야기’를 <br>			<br>‘과학으로 생각한다’의<br>			<br><br>			<br>‘수학의  수학’을<br>			<br>‘X의 즐거움’을 <br>			<br>‘돈키호테는 수학 때문에 미쳤다’의</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

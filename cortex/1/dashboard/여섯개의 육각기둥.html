@@ -42,8 +42,9 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
@@ -53,6 +54,11 @@ a:hover { text-decoration: underline; }
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">여섯개의 육각기둥<br>		<br>		<br>	<br>	<br>		<br>			<br><br>		<br>		<br>			<br>6개<br>			<br>1/ SKT + AICPA 취득. 커리어 빌딩: 구형모델, 커리어와 명예만<br>			<br>2/ SKT + 부동산: 안분지족 행복<br>			<br>3/ SKT 사내벤처<br>			<br>5/ MBA or 해외석사 이후 현지 취업 or 창업<br>			<br>6/ Start-up 이직 이후 창업<br>			<br><br>			<br>부동산, 주식, 사업<br>			<br>파워포인트 엑셀 워드<br>			<br><br>			<br>코페르니쿠스 원리란 ‘지구는 특별하지 않다'(우주의 중심이 아니다)<br>			<br><br>			<br>[출처: 서울신문에서 제공하는 기사입니다.]&#160;<a href="https://nownews.seoul.co.kr/news/newsView.php?id=20160910601006#csidx1b3e70e417c2ebb8a86daaf1f4932a2" target="_blank">https://nownews.seoul.co.kr/news/newsView.php?id=20160910601006#csidx1b3e70e417c2ebb8a86daaf1f4932a2&#160;</a><br>			<br><br>			From <6> <br>			<br><br>			<br><br>			<br>Two rabbits,<br>			<br>기본기 - 응용기 - 필살기<br>			<br>풀스텍 개발자<br>			<br>워렌버핏, 빌게이츠가 롤모델<br>			<br>시간/ 공간/ 관계 이 세 가지 영역에서의 보편타당한 불편을 해결한다.<br>			<br>만드는 일이 좋아. <br>			<br><br>			<br><br>			<br>다만 무심하게 최선을 다하고 싶다. 사심 없이 궁극을 추구하고 싶다. 그런 내가 만들어갈 서사. 그것만이 궁금하다.<br>			<br>그것이 살아낼 충분한 이유고 의미다.<br>			<br><br>			<br>내가 쓸 이야기에 대한 순수한 열망<br>			<br><br>			<br>유연성, 학습<br>			<br><br>			<br>재무제표, 기업분석 BM분석<br>			<br>내가 원하는 삶을 상상해봐. 비전보드 재작성<br>			<br>바이오테크<br>			<br>협상력<br>			<br>유전공학/ AI<br>			<br>건축,<br>			<br>바이오 경영?<br>			<br>사심 없이 궁극을 추구한다. 무진<br>			<br>노력에대한 진지함. 자신을 초월하는 것<br>			<br>더 갚이 관계 맺고 기여하는 것<br>			<br><br>			<br>명장<br>			<br>대학원<br>			<br>내 인생의 삼원색<br>			<br>책 술 <br>			<br>vc or 스타텁취업<br>			<br><br>			<br>코난쇼 같은걸 진행해보고 싶어<br>			<br>기부나 봉사를?<br>			<br><br>			<br>나의 해리티지는 뭘까?</div>
@@ -71,6 +77,9 @@ function save() {
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
   });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
+  });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
   s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
@@ -85,6 +94,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -93,13 +153,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>

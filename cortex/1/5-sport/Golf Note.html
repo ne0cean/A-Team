@@ -42,17 +42,23 @@ a:hover { text-decoration: underline; }
 .block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
 .block-table .table-wrap { overflow-x: auto; }
 .block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; }
+.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
 .block-table th { background: #2a2a3a; color: #ccc; }
+.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
 </style>
 </head>
 <body>
 <div class="toolbar">
   <span class="t-title">Golf Note</span>
-  <span class="t-date">Invalid Date</span>
+  
   <button onclick="save()">저장</button>
   <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
   <span class="t-status" id="status"></span>
+  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
+    <button onclick="zoomOut()" title="Ctrl+-">−</button>
+    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=">+</button>
+  </span>
 </div>
 <div class="doc" id="doc">
 <div class="block block-text" data-idx="0" contenteditable="true">Golf Note<br>		<br>		<br>	<br>	<br>		<br>			<br>				<br>ㅇ 목표 : 80타<br>				<br>ㅇ Gap : 25타<br>				<br>ㅇ 문제 : 비거리, 직진성<br>				<br><br>				<br><a href="http://search.naver.com/search.naver?where=nexearch&query=%EA%B3%A8%ED%94%84&sm=top_hty&fbm=1&ie=utf8" target="_blank">http://search.naver.com/search.naver?where=nexearch&query=%EA%B3%A8%ED%94%84&sm=top_hty&fbm=1&ie=utf8</a><br>				<br><br>				<br>- 독학골프 10일만에 머리 올리기<br>				<br><br>				<br>				<br><br>				<br><br>				<br>				<br><br>				<br><br>				<br>				<br><br>				<br><br>				<br>				<br>롱게임 숏게임 피칭게임<br>				<br><br>				<br>				<br><br>				<br><br>				<br>				<br><br>				<br><br>				<br>				<br><br>				<br><br>				<br>				<br><br>				<br><br>				<br>				<br><br>			<br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>		<br>		<br>			<br>상무신도심 - 치평동 1161번지 6:30~12시 (062-372-8910)<br>			<br><a href="http://map.naver.com/?query=%EC%9E%A5%EA%B5%90%EB%B9%8C%EB%94%A9+%EA%B3%A8%ED%94%84&type=SITE_1&siteOrder=#" target="_blank">남산</a>골프연습장 <a href="http://map.naver.com/?query=%EC%9E%A5%EA%B5%90%EB%B9%8C%EB%94%A9+%EA%B3%A8%ED%94%84&type=SITE_1&siteOrder=#" target="_blank">거리뷰</a> <a href="http://map.naver.com/?query=%EC%9E%A5%EA%B5%90%EB%B9%8C%EB%94%A9+%EA%B3%A8%ED%94%84&type=SITE_1&siteOrder=#" target="_blank">항공뷰</a> ￼서울특별시 용산구 이태원동￼<a href="http://map.naver.com/?query=%EC%9E%A5%EA%B5%90%EB%B9%8C%EB%94%A9+%EA%B3%A8%ED%94%84&type=SITE_1&siteOrder=#" target="_blank">동서</a>골프앤휘트니스 <a href="http://map.naver.com/?query=%EC%9E%A5%EA%B5%90%EB%B9%8C%EB%94%A9+%EA%B3%A8%ED%94%84&type=SITE_1&siteOrder=#" target="_blank">거리뷰</a> <a href="http://map.naver.com/?query=%EC%9E%A5%EA%B5%90%EB%B9%8C%EB%94%A9+%EA%B3%A8%ED%94%84&type=SITE_1&siteOrder=#" target="_blank">항공뷰</a> ￼서울특별시 용산구 청파동1가<br>			<br><br>		<br>		<br>			<br>드라이버<br>			<br>내가족의 원수모드<br>			<br>팔을 쭉 들어서 펴고 자세를 낮추고. 볼을 아래로 노려본다.<br>			<br>백스윙은 최대한 천천히 가볍게.<br>			<br>코킹후 칠때는 헤드 무게로 가볍게 날린다</div>
@@ -64,6 +70,9 @@ function save() {
   const data = {};
   document.querySelectorAll('.block-text').forEach(el => {
     data[el.dataset.idx] = el.innerHTML;
+  });
+  document.querySelectorAll('.block-table').forEach(el => {
+    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
   });
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   const s = document.getElementById('status');
@@ -79,6 +88,57 @@ function copyPath() {
   });
 }
 
+function attachTableListeners() {
+  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
+    if (td._editAttached) return;
+    td._editAttached = true;
+    td.title = '더블클릭으로 편집';
+    td.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      this.contentEditable = 'true';
+      this.focus();
+    });
+    td.addEventListener('blur', function() {
+      this.contentEditable = 'false';
+      save();
+    });
+    td.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
+        e.preventDefault();
+        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
+        const next = cells[cells.indexOf(this) + 1];
+        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
+      }
+    });
+  });
+}
+
+// Zoom
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const doc = document.getElementById('doc');
+  doc.style.transform = 'scale(' + zoom + ')';
+  doc.style.transformOrigin = '0 0';
+  doc.style.width = (100 / zoom) + '%';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('doc').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+
 // Restore saved edits
 const saved = localStorage.getItem(SAVE_KEY);
 if (saved) {
@@ -87,13 +147,18 @@ if (saved) {
     document.querySelectorAll('.block-text').forEach(el => {
       if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
     });
+    document.querySelectorAll('.block-table').forEach(el => {
+      const key = 'tbl-' + el.dataset.idx;
+      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
+    });
   } catch(e) {}
 }
 
 document.querySelectorAll('.block-text').forEach(el => {
   el.addEventListener('blur', save);
 });
-
+attachTableListeners();
+applyZoom();
 setInterval(save, 30000);
 </script>
 </body>
