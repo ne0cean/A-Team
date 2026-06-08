@@ -620,6 +620,12 @@ const server = createServer(async (req, res) => {
       return jsonRes(res, 200, { ok: true });
     }
 
+    if (path === '/api/workout' && req.method === 'GET') {
+      res.writeHead(405, { 'Allow': 'POST' });
+      res.end('Method Not Allowed');
+      return;
+    }
+
     if (path === '/api/workout' && req.method === 'POST') {
       const { ym, day, workout, part } = JSON.parse(await readBody(req));
       const data = loadMonth(ym);
@@ -644,6 +650,8 @@ const server = createServer(async (req, res) => {
         const idx = dd.workout.indexOf(part);
         if (idx >= 0) dd.workout.splice(idx, 1);
         else dd.workout.push(part);
+      } else {
+        return jsonRes(res, 400, { error: 'invalid workout payload' });
       }
       saveMonth(ym, data);
       return jsonRes(res, 200, { ok: true, workout: dd.workout });

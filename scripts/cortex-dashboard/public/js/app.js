@@ -14,6 +14,7 @@ let _weekScrolledToToday = false; // only scroll today into view on mode switch,
 let _pendingCarrySave = false; // carry logic sets this; render() saves once at the end
 let _lunarMode = false; // yearly add form: 음력 toggle state
 let _activeSOTab = 'standing'; // persists tab across renderStandingOrders() calls
+let sidebarOpen = false;
 
 // --- Korean Lunar Calendar Conversion ---
 // Data: ny=[solarMonth,solarDay of 음1/1], lm=leap month (0=none), ml=month lengths (29/30 days)
@@ -55,6 +56,7 @@ function init() {
   currentYear = now.getFullYear();
   currentMonth = now.getMonth() + 1;
   currentWeekStart = getWeekStart(now);
+  updateDeviceMode();
   loadMonth(true);
   loadStandingOrders();
   loadRecurringTemplates();
@@ -3122,6 +3124,10 @@ function isDesktop() {
   return window.screen.width >= 900;
 }
 
+function updateDeviceMode() {
+  document.body?.classList.toggle('desktop-screen', isDesktop());
+}
+
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
@@ -3286,6 +3292,7 @@ function handlePaste(event) {
 }
 
 init();
+window.addEventListener('resize', updateDeviceMode);
 
 // Refresh workout bar when tab becomes visible (picks up mobile changes)
 document.addEventListener('visibilitychange', () => {
