@@ -15,6 +15,10 @@ npx wrangler deploy --config wrangler.toml
 # 배포 후 즉시 검증 (이것까지 해야 "완료")
 curl -s -w "\n%{http_code}" "https://cortex.feat-breeze.workers.dev/api/day-frames" | tail -1
 # → 반드시 200
+
+# 데이터 무결성 검증 (worker 변경 시 추가 필수)
+node scripts/cortex-dashboard/verify-data.mjs --all
+# → PASS만 허용. FAIL 시 배포 롤백 후 원인 조사
 ```
 
 **절대 금지**:
@@ -23,6 +27,39 @@ curl -s -w "\n%{http_code}" "https://cortex.feat-breeze.workers.dev/api/day-fram
 - root `cortex-dashboard/` 에서 `npx wrangler deploy` → 동일 문제
 
 **UI 변경 시 "완료" 기준**: curl 200 + ui-inspector 에이전트로 화면 실제 확인까지
+
+---
+
+## 🔒 데이터 무결성 아키텍처 (2026-06-08 확정)
+
+### Merge 로직
+- **파일**: `worker/src/merge.js` — 순수 함수, D1 의존성 없음
+- **테스트**: `worker/src/__tests__/merge.test.js` (18개 케이스)
+- **원칙**: ARRAY_FIELDS 하드코딩 화이트리스트 절대 금지
+  - 동적 감지: 서버 데이터에서 array-valued 키를 자동 탐지
+  - `_` 프리픽스 내부 필드(예: `_dismissed`)는 병합 제외
+  - 새 체크리스트 카테고리 추가 시 코드 변경 불필요
+
+### 복구 워크플로우 (오늘 이후 표준)
+```bash
+# 1. 가용 백업 확인
+node scripts/cortex-dashboard/backup-d1.mjs --list
+
+# 2. 내용 확인 (dry-run, D1 변경 없음)
+node scripts/cortex-dashboard/backup-d1.mjs --restore YYYY-MM-DD
+
+# 3. 실제 복구 (D1에 PUT)
+node scripts/cortex-dashboard/backup-d1.mjs --restore YYYY-MM-DD --apply
+
+# 4. 특정 day/category만 복구
+node scripts/cortex-dashboard/backup-d1.mjs --restore-day YYYY-MM-DD <day> [category] --apply
+```
+
+**SQL 스크립트 수동 생성 금지** — --apply 플래그로만 복구할 것.
+
+### Worker 수정 시 TDD 의무
+- merge 로직 변경 → `npx vitest run` (worker/ 디렉토리에서) GREEN 확인 후 배포
+- 새 카테고리 추가 → 테스트 불필요 (동적 감지가 자동 처리)
 
 ---
 

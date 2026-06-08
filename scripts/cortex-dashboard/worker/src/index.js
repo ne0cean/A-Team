@@ -3,6 +3,8 @@
  * All data stored in D1 SQLite as key-value (key=string, data=JSON text)
  */
 
+import { mergeMonthData } from './merge.js';
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -129,36 +131,10 @@ export default {
           if (existingCount > 10 && newCount === 0 && newDayCount === 0) {
             return new Response(JSON.stringify({ error: 'blocked: would erase data' }), { status: 400, headers });
           }
-          // Preserve per-day fields from stale full-month saves (multi-tab/device safety net)
-          // scalar fields: restore only if incoming key is undefined (empty string = intentional delete)
-          // array fields: restore if server has items and client has empty/missing array
-          const SCALAR_FIELDS = ['one_thing', 'day_type', 'notes'];
-          const ARRAY_FIELDS = ['outcome', 'input', 'workout', 'ritual', 'work', 'hexagonal'];
-          for (const [day, dd] of Object.entries(existing.days || {})) {
-            if (!data.days[day]) continue;
-            for (const key of SCALAR_FIELDS) {
-              if (dd[key] !== undefined && data.days[day][key] === undefined) {
-                data.days[day][key] = dd[key];
-              }
-            }
-            for (const key of ARRAY_FIELDS) {
-              if (!dd[key]?.length) continue;
-              if (!data.days[day][key]?.length) {
-                // Incoming is empty but server has items — restore server's
-                data.days[day][key] = dd[key];
-              } else {
-                // Both have items — preserve done=true from server per matching text
-                const serverByText = new Map(dd[key].map(i => [i.text, i]));
-                data.days[day][key] = data.days[day][key].map(item => {
-                  const serverItem = serverByText.get(item.text);
-                  if (serverItem?.done === true && item.done === false) {
-                    return { ...item, done: true };
-                  }
-                  return item;
-                });
-              }
-            }
-          }
+          // Preserve per-day fields from stale full-month saves (multi-tab/device safety net).
+          // Dynamic merge: no hardcoded ARRAY_FIELDS — all array-valued keys in existing
+          // data are preserved automatically. Add new checklist categories freely.
+          mergeMonthData(existing, data);
         }
         await setKey(ym, data);
         return new Response(JSON.stringify({ ok: true }), { headers });
