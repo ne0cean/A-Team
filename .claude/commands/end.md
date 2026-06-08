@@ -137,6 +137,46 @@ git diff --name-only --diff-filter=A 2>/dev/null | grep -E '^(lib/.*\.ts|\.claud
 - 미연결 항목 발견 시: 즉시 Phase 2 연결 수행 (빌드 검증 포함)
 - 또는 복잡하면: CURRENT.md의 Next Tasks에 `/optimize` TODO 등록
 
+## Step 3.7 — Commands Sync (A-Team 레포에서만, 자동)
+
+A-Team 레포에서 `/end` 실행 시 `~/.claude/commands/`의 신규/수정 파일을 `.claude/commands/`로 자동 동기화한다.
+이 단계가 없으면 Mac에서 만든 스킬이 push되지 않아 다른 PC에서 소실된다.
+
+```bash
+CURRENT_REPO=$(git rev-parse --show-toplevel 2>/dev/null || echo '')
+ATEAM_CANDIDATES=(
+  "$HOME/Projects/a-team"
+  "$HOME/Desktop/Dev Projects/A-Team"
+  "/c/Users/$USER/Desktop/Dev Projects/A-Team"
+  "$CURRENT_REPO"
+)
+
+# 현재 레포가 A-Team인지 확인
+IS_ATEAM=false
+for candidate in "${ATEAM_CANDIDATES[@]}"; do
+  [ "$(realpath "$CURRENT_REPO" 2>/dev/null)" = "$(realpath "$candidate" 2>/dev/null)" ] && IS_ATEAM=true && break
+done
+
+if $IS_ATEAM; then
+  GLOBAL_CMDS="$HOME/.claude/commands"
+  REPO_CMDS="$CURRENT_REPO/.claude/commands"
+  mkdir -p "$REPO_CMDS"
+
+  SYNCED=0
+  while IFS= read -r -d '' f; do
+    fname=$(basename "$f")
+    repo_file="$REPO_CMDS/$fname"
+    # 글로벌이 더 최신이거나 레포에 없으면 복사
+    if [ ! -f "$repo_file" ] || [ "$f" -nt "$repo_file" ]; then
+      cp "$f" "$repo_file"
+      SYNCED=$((SYNCED + 1))
+    fi
+  done < <(find "$GLOBAL_CMDS" -maxdepth 1 -name "*.md" -print0)
+
+  [ $SYNCED -gt 0 ] && echo "🔄 Commands sync: ${SYNCED}개 스킬 → .claude/commands/ 반영 (커밋 포함 예정)"
+fi
+```
+
 ## Step 3.8 — A-Team Drift 감지 (자동)
 
 현재 프로젝트가 a-team 자체가 **아닌데** a-team 하위 사본(`A-Team/`, `a-team/`, `.a-team/` 등)이 존재하거나, 프로젝트 내 `.claude/commands/`·`governance/`·`scripts/auto-switch/` 가 수정되었다면 drift 신호. `ateam-sovereignty.md` 제2/7원칙에 따라 **글로벌이 정본**.

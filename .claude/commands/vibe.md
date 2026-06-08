@@ -127,6 +127,23 @@ fi
 
 ```bash
 git pull --rebase --autostash origin $(git branch --show-current) 2>&1 | tail -3 || true
+
+# A-Team 레포인 경우: pull 후 .claude/commands/ → ~/.claude/commands/ 자동 동기화
+CURRENT_REPO=$(git rev-parse --show-toplevel 2>/dev/null || echo '')
+if [ -d "$CURRENT_REPO/.claude/commands" ]; then
+  GLOBAL_CMDS="$HOME/.claude/commands"
+  REPO_CMDS="$CURRENT_REPO/.claude/commands"
+  SYNCED=0
+  while IFS= read -r -d '' f; do
+    fname=$(basename "$f")
+    global_file="$GLOBAL_CMDS/$fname"
+    if [ ! -f "$global_file" ] || [ "$f" -nt "$global_file" ]; then
+      cp "$f" "$global_file"
+      SYNCED=$((SYNCED + 1))
+    fi
+  done < <(find "$REPO_CMDS" -maxdepth 1 -name "*.md" -print0)
+  [ $SYNCED -gt 0 ] && echo "🔄 Commands sync: ${SYNCED}개 스킬 → ~/.claude/commands/ 복원"
+fi
 ```
 
 읽을 파일:
