@@ -9,7 +9,7 @@
 
 ## 주요 디렉토리
 
-- `.claude/commands/` — 슬래시 커맨드 원본 (74개)
+- `.claude/commands/` — 슬래시 커맨드 원본 (85개)
 - `.context/` — CURRENT.md (작업 상태), SESSIONS.md (이력), DECISIONS.md
 - `governance/` — 규칙/워크플로우/스킬
 - `scripts/` — 자동화 스크립트
@@ -112,7 +112,6 @@
 - `legal-check` — 프로젝트 법률 문서 컴플라이언스 검사
 - `dashboard` — analytics
 - `capability`
-- `prjt`
 - `issue-triage` — GitHub 이슈 트리아지 — 자동 분류, 우선순위 배정, CURRENT
 - `github-review` — GitHub PR 리뷰 — 변경사항 분석 후 reviewer 에이전트 리뷰 + GitHub 코멘트 게시
 
@@ -127,13 +126,25 @@
 - `cold-review` — A-Team 냉철한 구조 감사
 - `autoresearch` — Karpathy식 프롬프트 자동 최적화 루프
 - `doc-sync` — 문서 Drift 감지 & 동기화
-- `daily-review` — "[Deprecated → /daily-brief] 어제와 오늘의 변경사항 분석 + 성장 제안"
 - `browse` — 브라우저 자동화
 - `re` — Research Mode 관리 — 자율 리서치 에이전트 시작/정지/상태 확인
 
 ### 기타
-- `repos`
-- `todo`
+- `brainstorm`
+- `consolidate`
+- `daily-note`
+- `data-race`
+- `dd`
+- `debrief`
+- `design-clone`
+- `idea`
+- `inbox`
+- `learn`
+- `mece-gap`
+- `morning`
+- `recall`
+- `tidy-inbox`
+- `watchdog`
 ## 현재 Phase
 
 - 0 인프라 완료 → **Phase 1 진입 가능** (분석/BI)
