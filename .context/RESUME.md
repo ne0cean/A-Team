@@ -19,3 +19,12 @@ task: **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 
 
 ## 메모
 세션이 /end 없이 종료됨. 위 태스크부터 이어서 진행.
+
+---AGENT_STATUS---
+EXIT_SIGNAL: NEEDS_INPUT
+TASKS_COMPLETED: 없음 (모든 태스크 사용자 결정/외부 접근 필요로 defer)
+FILES_MODIFIED: 1
+TESTS_STATUS: SKIPPED
+WORK_TYPE: docs
+RECOMMENDATION: Confluence PAT 발급(VDI 접속 필요) 또는 Cortex 안정화 구체 스펙 지정 후 재개
+---END---
