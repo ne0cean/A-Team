@@ -539,8 +539,12 @@ function detectPageType(rawHtml) {
 
 // ── Extract images from table cells as individual positioned cards (Type A) ───
 // containerX/Y: absolute position of the div wrapping the table
+// Returns { imageCards, tableHtmlWithPlaceholders }
+// - imageCards: individual draggable image cards at cell positions
+// - tableHtmlWithPlaceholders: table HTML with <img> replaced by sized placeholder divs
 function extractTableImageCards(tableHtml, containerX, containerY) {
-  const cards = [];
+  const imageCards = [];
+  let tableHtmlOut = tableHtml;
   const trRe = /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi;
   let trM;
   let rowY = containerY;
@@ -548,17 +552,18 @@ function extractTableImageCards(tableHtml, containerX, containerY) {
     const rowHtml = trM[1];
     let cellX = containerX;
     let rowMaxH = 0;
+    // Split row into cells manually to avoid greedy/lazy regex issues with nested content
     const tdRe = /<td\b([^>]*)>([\s\S]*?)<\/td>/gi;
     let tdM;
     while ((tdM = tdRe.exec(rowHtml)) !== null) {
       const tdAttrs = tdM[1];
       const tdContent = tdM[2];
-      // Cell width from style="width:N" or width="N"
-      const wAttr = tdAttrs.match(/style="[^"]*width\s*:\s*(\d+)/i) || tdAttrs.match(/width="(\d+)"/i);
+      const wAttr = tdAttrs.match(/width\s*:\s*(\d+)/i) || tdAttrs.match(/width="(\d+)"/i);
       const cellW = wAttr ? parseInt(wAttr[1]) : 200;
-      // Extract images from this cell
+      // Extract each image in this cell; stack vertically if multiple
       const imgRe = /<img\b([^>]*?)(?:\/>|>)/gi;
       let imgM;
+      let imgOffsetY = 0;
       while ((imgM = imgRe.exec(tdContent)) !== null) {
         const tag = imgM[1];
         const srcM = tag.match(/data-fullres-src="__ATTACHMENT__([a-f0-9]+\.\w+)"/) ||
@@ -572,16 +577,25 @@ function extractTableImageCards(tableHtml, containerX, containerY) {
         const h = iH ? Math.round(parseFloat(iH[1]) * scale) : null;
         const altM = tag.match(/\balt="([^"]*)"/);
         const alt = altM ? altM[1].trim() : '';
-        const card = { type: 'image', x: cellX, y: rowY, w, src: srcM[1] };
-        if (h) { card.h = h; rowMaxH = Math.max(rowMaxH, h); }
+        const card = { type: 'image', x: cellX, y: rowY + imgOffsetY, w, src: srcM[1] };
+        if (h) {
+          card.h = h;
+          rowMaxH = Math.max(rowMaxH, imgOffsetY + h);
+          imgOffsetY += h + 8; // stack vertically within cell
+        }
         if (isMeaningfulAlt(alt)) card.caption = alt.replace(/\s+/g, ' ').trim();
-        cards.push(card);
+        imageCards.push(card);
+        // Replace img tag with sized placeholder in table HTML
+        const placeholder = h
+          ? `<div style="display:inline-block;width:${w}px;height:${h}px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4"></div>`
+          : `<div style="display:inline-block;width:${w}px;height:120px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4"></div>`;
+        tableHtmlOut = tableHtmlOut.replace(imgM[0], placeholder);
       }
       cellX += cellW;
     }
     rowY += rowMaxH || 200;
   }
-  return cards;
+  return { imageCards, tableHtmlWithPlaceholders: tableHtmlOut };
 }
 
 // ── Extract board cards from OneNote absolute-layout HTML ─────────────────────
@@ -631,14 +645,12 @@ function extractBoardCards(bodyContent) {
     }
     const inner = bodyContent.slice(dm.index + dm[0].length, j);
     if (/<table[\s>]/i.test(inner)) {
-      // Type A: extract images from table cells as individual positioned cards
-      const tableImgCards = extractTableImageCards(inner, divX, divY);
-      if (tableImgCards.length > 0) {
-        for (const c of tableImgCards) cards.push(c);
-      } else {
-        // No images in table → keep as html card (text-only tables)
-        cards.push({ type: 'html', x: divX, y: divY, w: divW, html: inner });
-      }
+      // Type A: keep table as html card (structure) + extract images as individual draggable cards
+      const { imageCards, tableHtmlWithPlaceholders } = extractTableImageCards(inner, divX, divY);
+      // Always keep the table structure (with placeholder divs where images were)
+      cards.push({ type: 'html', x: divX, y: divY, w: divW, html: tableHtmlWithPlaceholders });
+      // Add image cards on top — draggable outside table bounds
+      for (const c of imageCards) cards.push(c);
     } else {
       const flowCards = parseFlowContent(inner, divX, divY, divW);
       for (const c of flowCards) {
