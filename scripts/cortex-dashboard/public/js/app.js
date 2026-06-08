@@ -1563,8 +1563,12 @@ async function saveGoalText(text) {
 }
 
 async function saveOneThing(d, text) {
-  ensureDay(d).one_thing = text.trim();
-  await save();
+  const trimmed = text.trim();
+  ensureDay(d).one_thing = trimmed; // keep in-memory in sync
+  await fetch(`${API}/api/one-thing`, {
+    method: 'POST', headers: AUTH,
+    body: JSON.stringify({ ym: ym(), day: String(d), text: trimmed })
+  });
 }
 
 async function loadWorkoutLog() {
@@ -1631,9 +1635,13 @@ async function toggleWorkout(part) {
 
 async function saveNotes(d, text) {
   const dd = ensureDay(d);
-  if (text.trim()) dd.notes = text.trim();
+  const trimmed = text.trim();
+  if (trimmed) dd.notes = trimmed; // keep in-memory in sync
   else delete dd.notes;
-  await save();
+  await fetch(`${API}/api/notes`, {
+    method: 'POST', headers: AUTH,
+    body: JSON.stringify({ ym: ym(), day: String(d), notes: trimmed })
+  });
 }
 
 function toggleNotes(d) {
