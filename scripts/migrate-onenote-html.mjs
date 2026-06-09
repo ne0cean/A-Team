@@ -30,15 +30,15 @@ if (DRY_RUN) console.log('🔍 DRY RUN mode (pass --apply to write files)\n');
 // ── Section mapping: Archive source → cortex target ──────────────────────────
 const SECTION_MAP = [
   // 2_6 hexagonal pillars → cortex/2/
-  // docMode:true → data-absolute-enabled 무시하고 Document 모드 강제 (비-Board 섹션)
-  { src: '2_6 hexagonal pillars_Rocks_Helm/1. Character',  dst: '2/1-character',     docMode: true },
-  { src: '2_6 hexagonal pillars_Rocks_Helm/2. Mo chuisle', dst: '2/2-mo-chuisle',    docMode: true },
-  { src: '2_6 hexagonal pillars_Rocks_Helm/3. String',     dst: '2/3-string',        docMode: true },
-  { src: '2_6 hexagonal pillars_Rocks_Helm/4. Interstellar', dst: '2/4-interstellar', docMode: true },
-  { src: '2_6 hexagonal pillars_Rocks_Helm/5. Life Xlab',  dst: '2/5-life-xlab',    docMode: true },
-  { src: '2_6 hexagonal pillars_Rocks_Helm/6. Snowball',   dst: '2/6-snowball',      docMode: true },
-  { src: '2_6 hexagonal pillars_Rocks_Helm/Futures options', dst: '2/futures-options', docMode: true },
-  { src: '2_6 hexagonal pillars_Rocks_Helm/Zeroing',       dst: '2/zeroing' }, // Board 모드 허용
+  // docMode 제거 — detectPageType()이 페이지별 자동 분류 (A/B/C)
+  { src: '2_6 hexagonal pillars_Rocks_Helm/1. Character',    dst: '2/1-character' },
+  { src: '2_6 hexagonal pillars_Rocks_Helm/2. Mo chuisle',   dst: '2/2-mo-chuisle' },
+  { src: '2_6 hexagonal pillars_Rocks_Helm/3. String',       dst: '2/3-string' },
+  { src: '2_6 hexagonal pillars_Rocks_Helm/4. Interstellar', dst: '2/4-interstellar' },
+  { src: '2_6 hexagonal pillars_Rocks_Helm/5. Life Xlab',   dst: '2/5-life-xlab' },
+  { src: '2_6 hexagonal pillars_Rocks_Helm/6. Snowball',     dst: '2/6-snowball' },
+  { src: '2_6 hexagonal pillars_Rocks_Helm/Futures options', dst: '2/futures-options' },
+  { src: '2_6 hexagonal pillars_Rocks_Helm/Zeroing',         dst: '2/zeroing' },
   // 1_Projects → cortex/1/
   { src: '1_Projects/1_',          dst: '1/1_' },
   { src: '1_Projects/2. SLL',      dst: '1/2-sll' },
