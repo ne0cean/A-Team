@@ -62,7 +62,41 @@ describe('cascadeFrameDone', () => {
 
   it('skips days with no data', () => {
     const data = { days: { '9': {} } };
-    expect(() => cascadeFrameDone(data, 30, 9, 'outcome', 'X', true)).not.toThrow();
+    expect(() => cascadeFrameDone(data, 30, 9, 'outcome', 'X', true, '')).not.toThrow();
+  });
+
+  it('restores missing _frame item in subsequent days when unchecking (done=false)', () => {
+    const data = {
+      days: {
+        '9':  { outcome: [{ text: 'X', done: false, _frame: true, url: 'http://x' }] },
+        '10': { outcome: [] }, // inject-frames가 prevDoneTodos로 제거한 상태
+      }
+    };
+    cascadeFrameDone(data, 30, 9, 'outcome', 'X', false, 'http://x');
+    expect(data.days['10'].outcome).toHaveLength(1);
+    expect(data.days['10'].outcome[0]).toMatchObject({ text: 'X', done: false, _frame: true, url: 'http://x' });
+  });
+
+  it('does not restore if item is in _dismissed', () => {
+    const data = {
+      days: {
+        '9':  { outcome: [{ text: 'X', done: false, _frame: true }] },
+        '10': { outcome: [], _dismissed: ['X'] },
+      }
+    };
+    cascadeFrameDone(data, 30, 9, 'outcome', 'X', false, '');
+    expect(data.days['10'].outcome).toHaveLength(0);
+  });
+
+  it('does not inject missing item when checking (done=true)', () => {
+    const data = {
+      days: {
+        '9':  { outcome: [{ text: 'X', done: true, _frame: true }] },
+        '10': { outcome: [] },
+      }
+    };
+    cascadeFrameDone(data, 30, 9, 'outcome', 'X', true, '');
+    expect(data.days['10'].outcome).toHaveLength(0);
   });
 });
 

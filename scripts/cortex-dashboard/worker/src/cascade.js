@@ -11,13 +11,25 @@
  * @param {string} category - 카테고리 (outcome, input 등)
  * @param {string} itemText - 아이템 text
  * @param {boolean} done - 전파할 done 값
+ * @param {string} [itemUrl=''] - done=false 시 아이템 복원에 사용할 url
  */
-export function cascadeFrameDone(data, daysInMonth, fromDayNum, category, itemText, done) {
+export function cascadeFrameDone(data, daysInMonth, fromDayNum, category, itemText, done, itemUrl = '') {
   for (let d = fromDayNum + 1; d <= daysInMonth; d++) {
-    const arr = data.days?.[String(d)]?.[category];
-    if (!Array.isArray(arr)) continue;
+    const dk = String(d);
+    if (!data.days[dk]) data.days[dk] = {};
+    const dayD = data.days[dk];
+    if (!dayD[category]) dayD[category] = [];
+    const arr = dayD[category];
     const item = arr.find(i => i._frame && i.text === itemText);
-    if (item) item.done = done;
+    if (item) {
+      item.done = done;
+    } else if (!done) {
+      // uncheck: 아이템이 inject-frames에 의해 제거된 경우 복원 (dismissed 아닌 경우만)
+      const dismissed = new Set(dayD._dismissed || []);
+      if (!dismissed.has(itemText)) {
+        arr.push({ text: itemText, url: itemUrl, done: false, _frame: true });
+      }
+    }
   }
 }
 

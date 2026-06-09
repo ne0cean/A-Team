@@ -156,7 +156,7 @@ export default {
           if (item._frame) {
             const [y, m] = ym.split('-').map(Number);
             const dim = new Date(y, m, 0).getDate();
-            cascadeFrameDone(data, dim, parseInt(day), category, item.text, item.done);
+            cascadeFrameDone(data, dim, parseInt(day), category, item.text, item.done, item.url || '');
           }
           await setKey(ym, data);
         }
