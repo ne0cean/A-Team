@@ -39,5 +39,6 @@ export const CONFIG = {
   sync: {
     intervalMs: 30_000,           // 30초
     stateFile: join(ROOT, '.confluence-sync-state.json'),
+    categories: ['work'],         // Confluence에 올릴 카테고리만
   },
 };

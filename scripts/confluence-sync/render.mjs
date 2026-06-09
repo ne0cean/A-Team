@@ -57,15 +57,13 @@ function taskList(items, dayNum, cat) {
   return `<ac:task-list>\n${tasks}\n</ac:task-list>`;
 }
 
-function todaySection(dayData, dateStr) {
+function todaySection(dayData, dateStr, cats) {
   const d = new Date(dateStr + 'T00:00:00');
   const label = `${MONTH_KO[d.getMonth()]} ${d.getDate()}일 (${DAYS_KO[d.getDay()]})`;
   const dayNum = d.getDate();
-  const cats = ['ritual', 'input', 'work', 'outcome', 'flow', 'block'];
-
   const rows = cats.map(cat => {
     const items = dayData?.[cat] || [];
-    if (!items.length && ['flow','block'].includes(cat)) return '';
+    if (!items.length) return '';
     const bg = CAT_COLOR[cat];
     return `<tr>
       <td style="background-color:${bg};font-weight:bold;width:80px;">${CAT_LABEL[cat]}</td>
@@ -137,7 +135,7 @@ ${tasks}
 </ac:task-list>`;
 }
 
-export function renderPage(monthData, soData, todayStr) {
+export function renderPage(monthData, soData, todayStr, cats = ['ritual','input','work','outcome','flow','block']) {
   _taskIdCounter = 1;
   const dayNum = String(parseInt(todayStr.split('-')[2]));
   const dayData = monthData.days?.[dayNum] || {};
@@ -149,7 +147,7 @@ export function renderPage(monthData, soData, todayStr) {
   });
 
   const sections = [
-    todaySection(dayData, todayStr),
+    todaySection(dayData, todayStr, cats),
     weekSection(monthData, todayStr),
     standingOrdersSection(soData),
     `<!-- CORTEX_META:${syncMeta} -->`,

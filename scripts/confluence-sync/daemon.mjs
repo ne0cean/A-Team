@@ -113,7 +113,7 @@ async function syncOnce() {
 
   if (cortexChanged || todayChanged || FORCE_PUSH || confVersion === 0) {
     console.log(`[sync] Confluence 업데이트 (cortex 변경: ${cortexChanged}, 날짜 변경: ${todayChanged})`);
-    const xhtml = renderPage(monthData, soData, today);
+    const xhtml = renderPage(monthData, soData, today, CONFIG.sync.categories);
     const title = pageTitle(today);
     try {
       await confUpdatePage(title, xhtml, confPage.version.number);
