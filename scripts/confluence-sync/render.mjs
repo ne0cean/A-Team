@@ -62,7 +62,10 @@ function todaySection(dayData, dateStr, cats) {
   const label = `${MONTH_KO[d.getMonth()]} ${d.getDate()}일 (${DAYS_KO[d.getDay()]})`;
   const dayNum = d.getDate();
   const rows = cats.map(cat => {
-    const items = dayData?.[cat] || [];
+    // work 카테고리: _frame 제외한 work + _recurring 합산
+    const baseItems = (dayData?.[cat] || []).filter(i => !i._frame);
+    const recurItems = cat === 'work' ? (dayData?._recurring || []) : [];
+    const items = [...baseItems, ...recurItems];
     if (!items.length) return '';
     const bg = CAT_COLOR[cat];
     return `<tr>
@@ -94,7 +97,11 @@ function weekSection(monthData, todayStr, cats) {
     const items = monthData.days?.[dayNum] || {};
     const yy = d.getFullYear(), mm = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
     const isToday = `${yy}-${mm}-${dd}` === todayStr;
-    const allItems = cats.flatMap(cat => items[cat] || []);
+    const allItems = cats.flatMap(cat => {
+      const base = (items[cat] || []).filter(i => !i._frame);
+      const recur = cat === 'work' ? (items._recurring || []) : [];
+      return [...base, ...recur];
+    });
     const label = `${DAYS_KO[d.getDay()]} ${d.getDate()}`;
     const bg = isToday ? '#FFF9C4' : 'transparent';
     const taskHtml = allItems.slice(0,5).map(it => {
