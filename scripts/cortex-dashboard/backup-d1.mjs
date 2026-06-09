@@ -76,7 +76,7 @@ async function backup() {
   }
 
   // Key-value data
-  for (const key of ['standing-orders', 'day-frames', 'vision']) {
+  for (const key of ['standing-orders', 'day-frames', 'vision', 'workout-log']) {
     try {
       snapshot.data[key] = await apiFetch(`${API}/api/${key}`);
       console.log(`  ✓ ${key}`);
@@ -156,6 +156,22 @@ async function restore(date, apply = false) {
         ok++;
       } else {
         console.error(`  ✗ ${key}: status=${res.status} body=${JSON.stringify(res.body)}`);
+        fail++;
+      }
+    } else if (key === 'workout-log') {
+      // workout-log: restore date by date (no _version, single-date POST)
+      try {
+        let dateOk = 0;
+        for (const [date, workout] of Object.entries(val || {})) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Array.isArray(workout)) continue;
+          const res = await apiPost(`${API}/api/workout-log`, { date, workout });
+          if (res.status === 200 && res.body?.ok) dateOk++;
+          else console.error(`  ✗ workout-log[${date}]: ${JSON.stringify(res.body)}`);
+        }
+        console.log(`  ✓ workout-log: ${dateOk}개 날짜 복구`);
+        ok++;
+      } catch (e) {
+        console.error(`  ✗ workout-log: ${e.message}`);
         fail++;
       }
     } else if (kvEndpoints[key]) {
