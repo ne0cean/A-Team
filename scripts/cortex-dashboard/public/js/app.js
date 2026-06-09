@@ -575,6 +575,18 @@ function getCatItemsForRender(d, dayData, cat) {
         // Rejection list: texts explicitly deleted by user — never re-carry
         const rejectKey = `_carry_rejects_${cat}`;
         const rejected = new Set((dayData[rejectKey] || []).map(normText));
+        // Remove stale _carried items whose source is now done in prevDay
+        const prevDoneTexts = new Set(
+          (prevDay[cat] || []).filter(i => i.done && !i._frame).map(i => normText(i.text))
+        );
+        if (prevDoneTexts.size > 0) {
+          const currentItems = dayData[cat] || [];
+          const hasStale = currentItems.some(i => i._carried && prevDoneTexts.has(normText(i.text)));
+          if (hasStale) {
+            ensureDay(d)[cat] = currentItems.filter(i => !i._carried || !prevDoneTexts.has(normText(i.text)));
+            _pendingCarrySave = true;
+          }
+        }
         const prevUndone = (prevDay[cat] || []).filter(i =>
           !i.done && !i._frame && !i._carried && !prevFrameTexts.has(normText(i.text)) && !rejected.has(normText(i.text))
         );
