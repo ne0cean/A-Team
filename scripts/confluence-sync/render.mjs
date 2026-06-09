@@ -92,7 +92,8 @@ function weekSection(monthData, todayStr, cats) {
     d.setDate(monday.getDate() + i);
     const dayNum = String(d.getDate());
     const items = monthData.days?.[dayNum] || {};
-    const isToday = d.toISOString().slice(0,10) === todayStr;
+    const yy = d.getFullYear(), mm = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
+    const isToday = `${yy}-${mm}-${dd}` === todayStr;
     const allItems = cats.flatMap(cat => items[cat] || []);
     const label = `${DAYS_KO[d.getDay()]} ${d.getDate()}`;
     const bg = isToday ? '#FFF9C4' : 'transparent';
