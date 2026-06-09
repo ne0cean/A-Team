@@ -80,7 +80,7 @@ ${rows}
 </table>`;
 }
 
-function weekSection(monthData, todayStr) {
+function weekSection(monthData, todayStr, cats) {
   const today = new Date(todayStr + 'T00:00:00');
   const dow = today.getDay();
   const monday = new Date(today);
@@ -93,11 +93,7 @@ function weekSection(monthData, todayStr) {
     const dayNum = String(d.getDate());
     const items = monthData.days?.[dayNum] || {};
     const isToday = d.toISOString().slice(0,10) === todayStr;
-    const allItems = [
-      ...(items.work || []),
-      ...(items.input || []),
-      ...(items.outcome || []),
-    ];
+    const allItems = cats.flatMap(cat => items[cat] || []);
     const label = `${DAYS_KO[d.getDay()]} ${d.getDate()}`;
     const bg = isToday ? '#FFF9C4' : 'transparent';
     const taskHtml = allItems.slice(0,5).map(it => {
@@ -148,8 +144,7 @@ export function renderPage(monthData, soData, todayStr, cats = ['ritual','input'
 
   const sections = [
     todaySection(dayData, todayStr, cats),
-    weekSection(monthData, todayStr),
-    standingOrdersSection(soData),
+    weekSection(monthData, todayStr, cats),
     `<!-- CORTEX_META:${syncMeta} -->`,
   ];
 
