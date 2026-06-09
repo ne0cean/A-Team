@@ -139,6 +139,9 @@ async function processMdFile(mdPath, token) {
   const date = parseDate(content);
   const htmlPath = mdPath.replace(/\.md$/, '.onenote.html');
 
+  // Skip if already downloaded
+  try { await access(htmlPath); console.log(`  skip (exists): ${basename(htmlPath)}`); return; } catch {}
+
   console.log(`  fetching: ${title}`);
 
   // Fetch Graph API HTML
