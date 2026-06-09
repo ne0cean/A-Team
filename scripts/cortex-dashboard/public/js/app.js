@@ -2353,7 +2353,8 @@ async function searchCortex(q) {
       const onclick = r.type === 'dir'
         ? `loadSidebarTree('${r.path}')`
         : `openNote('${r.path}')`;
-      return `<div class="tree-item" onclick="${onclick}"><span class="icon">${icon}</span><span class="name">${esc(r.name)}</span></div>`;
+      const snippet = r.snippet ? `<div style="font-size:10px;color:#8b949e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px">${esc(r.snippet)}</div>` : '';
+      return `<div class="tree-item" onclick="${onclick}"><span class="icon">${icon}</span><span class="name">${esc(r.name)}</span>${snippet}</div>`;
     }).join('');
   } catch(e) {
     el.innerHTML = `<div style="color:#f85149;padding:8px">검색 오류: ${esc(String(e))}</div>`;
@@ -3203,12 +3204,22 @@ async function loadSidebarTree(dirPath) {
     if (i < parts.length - 1) html += ' / ';
   });
   html += '</div>';
+  const FOLDER_LABELS = {
+    '1-character': 'Character', '2-mo-chuisle': 'Mo chuisle',
+    '3-string': 'String', '4-interstellar': 'Interstellar',
+    '5-life-xlab': 'Life Xlab', '6-snowball': 'Snowball',
+    'zeroing': 'Zeroing', 'futures-options': 'Futures options',
+    '2-sll': 'SLL', '3-hfk': 'HFK', '5-sport': 'Sport',
+    'dashboard': 'Dashboard', 'mk1': 'MK1',
+    'mkt-fb': 'MKT FB', 'side-hustle': 'Side Hustle', 'writing': 'Writing',
+  };
   html += items.filter(i => !i.name.startsWith('.')).map(i => {
     const icon = i.type === 'dir' ? '&#128193;' : '&#128196;';
+    const label = i.type === 'dir' ? (FOLDER_LABELS[i.name] || esc(i.name)) : esc(i.name);
     const onclick = i.type === 'dir'
       ? `loadSidebarTree('${i.path}')`
       : `openNote('${i.path}')`;
-    return `<div class="tree-item" onclick="${onclick}"><span class="icon">${icon}</span><span class="name">${esc(i.name)}</span></div>`;
+    return `<div class="tree-item" onclick="${onclick}"><span class="icon">${icon}</span><span class="name">${label}</span></div>`;
   }).join('');
   el.innerHTML = html;
 }

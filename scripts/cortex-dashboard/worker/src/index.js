@@ -780,7 +780,25 @@ export default {
         const q = url.searchParams.get('q')?.toLowerCase();
         if (!q) return new Response('[]', { headers });
 
-        // Use git tree API to get ALL file paths, then filter by name
+        // GitHub Code Search (content search)
+        try {
+          const csRes = await fetch(
+            `https://api.github.com/search/code?q=${encodeURIComponent(q)}+repo:${REPO}+in:file+path:cortex/`,
+            { headers: { ...ghHeaders, Accept: 'application/vnd.github.v3.text-match+json' } }
+          );
+          if (csRes.ok) {
+            const csData = await csRes.json();
+            const results = (csData.items || []).slice(0, 30).map(i => ({
+              name: i.name,
+              path: i.path,
+              type: 'file',
+              snippet: i.text_matches?.[0]?.fragment || '',
+            }));
+            return new Response(JSON.stringify(results), { headers });
+          }
+        } catch (_) { /* fallthrough to path search */ }
+
+        // Fallback: git tree API path filter
         const treeUrl = `https://api.github.com/repos/${REPO}/git/trees/master?recursive=1`;
         const treeRes = await fetch(treeUrl, { headers: ghHeaders });
         if (!treeRes.ok) return new Response('[]', { headers });
@@ -792,7 +810,8 @@ export default {
           .map(i => ({
             name: i.path.split('/').pop(),
             path: i.path,
-            type: i.type === 'tree' ? 'dir' : 'file'
+            type: i.type === 'tree' ? 'dir' : 'file',
+            snippet: '',
           }));
 
         return new Response(JSON.stringify(results), { headers });
