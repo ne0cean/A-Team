@@ -4,6 +4,7 @@
  */
 
 import { mergeMonthData } from './merge.js';
+import { cascadeFrameDone, cascadeFrameDelete } from './cascade.js';
 
 export default {
   async fetch(request, env) {
@@ -149,7 +150,14 @@ export default {
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
         const arr = data.days[day]?.[category];
         if (Array.isArray(arr) && validIndex(index, arr)) {
-          data.days[day][category][index].done = !data.days[day][category][index].done;
+          const item = data.days[day][category][index];
+          item.done = !item.done;
+          // _frame 아이템이면 이후 날짜에도 done 상태 전파
+          if (item._frame) {
+            const [y, m] = ym.split('-').map(Number);
+            const dim = new Date(y, m, 0).getDate();
+            cascadeFrameDone(data, dim, parseInt(day), category, item.text, item.done);
+          }
           await setKey(ym, data);
         }
         return new Response(JSON.stringify({ ok: true }), { headers });
@@ -265,6 +273,12 @@ export default {
             }
           }
           arr.splice(index, 1);
+          // _frame 아이템이면 이후 날짜에서도 제거 + _dismissed 추가
+          if (removed._frame) {
+            const [y, m] = ym.split('-').map(Number);
+            const dim = new Date(y, m, 0).getDate();
+            cascadeFrameDelete(data, dim, parseInt(day), category, removed.text);
+          }
           await setKey(ym, data);
         }
         return new Response(JSON.stringify({ ok: true }), { headers });

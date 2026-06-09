@@ -1,10 +1,11 @@
 # CURRENT — A-Team 글로벌 툴킷
 
-## Pre-flight Gate — 2026-06-08 (debrief)
-- [ ] cortex 데이터 상태 확인 (날짜별 outcome 카운트): `curl -s "https://cortex.feat-breeze.workers.dev/api/month?ym=2026-06" > /tmp/m.json && node -e "const d=require('/tmp/m.json'); ['8','9','10','11','12'].forEach(k=>console.log('day'+k, (d.days[k]?.outcome||[]).length))"`
-- [ ] cortex app.js 수정 시 배포 후 반드시 `node scripts/cortex-dashboard/verify-ui.mjs` 실행 + 스크린샷 Read 확인
-- [ ] 복구 작업 전 반드시 백업 vs D1 전수 비교 table 먼저 출력 (날짜 빠뜨림 방지)
-- [ ] Next: Confluence PAT 발급 (VDI 접속 시) + Connectome MVP 시작
+## Pre-flight Gate — 2026-06-09 (debrief #2)
+- [ ] cascade fix 커밋 확인: `git status` → cascade.js, cascade.test.js, index.js 커밋됐는지
+- [ ] app.js 미커밋 변경: `git diff scripts/cortex-dashboard/public/js/app.js` 확인 후 커밋 or 버림
+- [ ] Confluence 페이지 확인: work+_recurring 항목 정상 표시 (https://confluence.tde.sktelecom.com/x/VZYEQ)
+- [ ] [Mac 귀가 후] launchd 설치: `bash scripts/confluence-sync/install-mac-autostart.sh`
+- [ ] [Mac 귀가 후] OneNote fetch: `python3 scripts/onenote-auth.py` → `node scripts/onenote-fetch-html.mjs --section "Mo chuisle"`
 
 
 ## Status
