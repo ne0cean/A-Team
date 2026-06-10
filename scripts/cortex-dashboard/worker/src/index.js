@@ -79,8 +79,8 @@ export default {
             await env.DB.prepare("DELETE FROM ritual_data WHERE key = ?").bind(row.key).run();
           }
           // Daily checkpoint: one snapshot per calendar day, kept 30 days
-          // Only for month keys (YYYY-MM), not nested keys
-          if (/^\d{4}-\d{2}$/.test(key)) {
+          // For month keys (YYYY-MM) AND workout-log (critical isolated data)
+          if (/^\d{4}-\d{2}$/.test(key) || key === 'workout-log') {
             const today = new Date().toISOString().slice(0, 10);
             const cpKey = `_checkpoint:${key}:${today}`;
             const exists = await env.DB.prepare('SELECT key FROM ritual_data WHERE key = ?').bind(cpKey).first();
@@ -296,6 +296,31 @@ export default {
         else delete data.days[day].day_type;
         await setKey(ym, data);
         return new Response(JSON.stringify({ ok: true }), { headers });
+      }
+
+      // --- Reset Day Types (잘못된 explicit day_type 일괄 정리) ---
+      if (path === '/api/reset-day-types' && method === 'POST') {
+        const { ym } = await request.json();
+        if (!ym || !/^\d{4}-\d{2}$/.test(ym)) {
+          return new Response(JSON.stringify({ error: 'invalid ym' }), { status: 400, headers });
+        }
+        const [year, month] = ym.split('-').map(Number);
+        const data = await getKey(ym) || { days: {} };
+        let cleared = 0;
+        for (const [dayKey, dd] of Object.entries(data.days || {})) {
+          const d = parseInt(dayKey);
+          const dow = new Date(year, month - 1, d).getDay();
+          if (
+            (dow === 0 && dd.day_type === 'block') ||
+            (dow === 6 && dd.day_type === 'flow') ||
+            (dow >= 1 && dow <= 5 && (dd.day_type === 'block' || dd.day_type === 'flow'))
+          ) {
+            delete dd.day_type;
+            cleared++;
+          }
+        }
+        if (cleared > 0) await setKey(ym, data);
+        return new Response(JSON.stringify({ cleared, ym }), { headers });
       }
 
       // --- Notes ---
@@ -520,17 +545,46 @@ export default {
       // --- Workout Log (isolated, date-keyed, independent of month data) ---
       if (path === '/api/workout-log' && method === 'GET') {
         const data = await getKey('workout-log') || {};
+        // Auto-recovery: if completely empty, restore from latest checkpoint
+        if (Object.keys(data).length === 0) {
+          const latest = await env.DB.prepare(
+            "SELECT data, updated_at FROM ritual_data WHERE key LIKE '_checkpoint:workout-log:%' ORDER BY updated_at DESC LIMIT 1"
+          ).first();
+          if (latest) {
+            const recovered = JSON.parse(latest.data);
+            if (Object.keys(recovered).length > 0) {
+              await setKey('workout-log', recovered);
+              return new Response(JSON.stringify({ ...recovered, _auto_recovered: true, _recovered_at: latest.updated_at }), { headers });
+            }
+          }
+        }
         return new Response(JSON.stringify(data), { headers });
       }
       if (path === '/api/workout-log' && method === 'POST') {
-        const { date, workout } = await request.json();
-        if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Array.isArray(workout)) {
+        const body = await request.json();
+        const { date, workout, part, force } = body;
+        if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || (part === undefined && !Array.isArray(workout))) {
           return new Response(JSON.stringify({ error: 'invalid payload' }), { status: 400, headers });
         }
-        const data = await getKey('workout-log') || {};
-        data[date] = workout;
+        const prevData = await getKey('workout-log') || {};
+        const data = { ...prevData };
+        if (part !== undefined) {
+          // XOR: 단일 part 토글 (SvelteKit 앱 호환)
+          const wo = [...(data[date] || [])];
+          const idx = wo.indexOf(part);
+          if (idx >= 0) wo.splice(idx, 1); else wo.push(part);
+          data[date] = wo;
+        } else {
+          data[date] = workout;  // 배열 직접 저장 (구형 app.js 호환)
+        }
+        // Shrink protection: refuse bulk clear unless force:true
+        const prevTotal = Object.values(prevData).reduce((s, a) => s + (Array.isArray(a) ? a.length : 0), 0);
+        const newTotal = Object.values(data).reduce((s, a) => s + (Array.isArray(a) ? a.length : 0), 0);
+        if (prevTotal > 3 && newTotal === 0 && !force) {
+          return new Response(JSON.stringify({ error: 'shrink-protected', prevTotal, hint: 'pass force:true to override' }), { status: 409, headers });
+        }
         await setKey('workout-log', data);
-        return new Response(JSON.stringify({ ok: true }), { headers });
+        return new Response(JSON.stringify({ ok: true, workout: data[date] }), { headers });
       }
 
       // --- Workout (legacy, month-embedded) ---

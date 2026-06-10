@@ -145,13 +145,15 @@ async function loadMonth(isInit) {
   prevMonthData = await prevRes.json();
   nextMonthData = await nextRes.json();
   // visionText2 is loaded from standingData.vision (global, see loadStandingOrders)
-  // Auto viewMode: 오늘이 속한 주 → This Week, 그 외 주/월 → Full Month
-  const _now = new Date();
-  const _todayWeekStart = getWeekStart(_now);
-  const _isTodayWeek = currentWeekStart.getFullYear() === _todayWeekStart.getFullYear()
-    && currentWeekStart.getMonth() === _todayWeekStart.getMonth()
-    && currentWeekStart.getDate() === _todayWeekStart.getDate();
-  viewMode = _isTodayWeek ? 'week' : 'month';
+  // Auto viewMode: 최초 로드에만 적용. 이후 loadMonth() 재호출 시 사용자 선택 유지.
+  if (isInit) {
+    const _now = new Date();
+    const _todayWeekStart = getWeekStart(_now);
+    const _isTodayWeek = currentWeekStart.getFullYear() === _todayWeekStart.getFullYear()
+      && currentWeekStart.getMonth() === _todayWeekStart.getMonth()
+      && currentWeekStart.getDate() === _todayWeekStart.getDate();
+    viewMode = _isTodayWeek ? 'week' : 'month';
+  }
   updateLabel();
   render();
   renderWorkoutBar();
@@ -1585,10 +1587,21 @@ async function saveOneThing(d, text) {
 
 async function loadWorkoutLog() {
   try {
-    const res = await fetch(`${API}/api/workout-log`);
-    workoutLog = await res.json();
-  } catch { workoutLog = {}; }
-  renderWorkoutBar();
+    const res = await fetch(`${API}/api/workout-log`, { headers: AUTH });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    // Auto-recovery 감지: 서버가 checkpoint에서 복구한 경우
+    if (data._auto_recovered) {
+      console.warn('[workout] 서버가 checkpoint에서 자동 복구함:', data._recovered_at);
+      showToast('운동 기록이 자동 복구됐습니다 (' + (data._recovered_at || '') + ')');
+      delete data._auto_recovered;
+      delete data._recovered_at;
+    }
+    workoutLog = data;
+  } catch (e) {
+    console.error('[workout] loadWorkoutLog failed:', e);
+    // workoutLog 기존 값 유지 — 실패 시 덮어쓰지 않음
+  }
 }
 
 function renderWorkoutBar() {
@@ -1664,9 +1677,26 @@ function toggleNotes(d) {
 // --- Day Type ---
 async function cycleDayType(d) {
   const dd = ensureDay(d);
+  // block/flow는 요일 기반 자동 처리 — 수동 설정 불가. hf/vacation만 수동 허용.
+  const MANUAL_TYPES = ['hf', 'vacation'];
   const current = dd.day_type || null;
-  const idx = current ? TYPES.indexOf(current) : -1;
-  const next = idx >= TYPES.length - 1 ? null : TYPES[idx + 1];
+  // 기존에 block/flow가 explicit으로 저장돼 있으면 null로 리셋 (자동값 복귀)
+  if (current === 'block' || current === 'flow') {
+    await fetch(`${API}/api/day-type`, {
+      method: 'POST', headers: AUTH,
+      body: JSON.stringify({ ym: ym(), day: String(d), type: null })
+    });
+    delete dd.day_type;
+    await fetch(`${API}/api/inject-frames`, {
+      method: 'POST', headers: AUTH,
+      body: JSON.stringify({ ym: ym(), fromDay: d, toDay: d })
+    });
+    await loadMonth();
+    render();
+    return;
+  }
+  const idx = current ? MANUAL_TYPES.indexOf(current) : -1;
+  const next = idx >= MANUAL_TYPES.length - 1 ? null : MANUAL_TYPES[idx + 1];
 
   await fetch(`${API}/api/day-type`, {
     method: 'POST', headers: AUTH,
@@ -1681,7 +1711,7 @@ async function cycleDayType(d) {
     method: 'POST', headers: AUTH,
     body: JSON.stringify({ ym: ym(), fromDay: d, toDay: d })
   });
-  await loadMonth(); // reload to get injected items
+  await loadMonth();
   render();
 }
 
@@ -3052,6 +3082,7 @@ document.addEventListener('pointermove', e => {
 // Touch drag for mobile — drag handle 기반
 let _touchDragEl = null, _touchDragData = null, _touchDragTarget = null;
 document.addEventListener('touchstart', e => {
+  if (e.target.type === 'checkbox') return;
   const handle = e.target.closest('[data-drag-handle]');
   if (!handle) return;
   const item = handle.closest('.item');
@@ -3344,8 +3375,9 @@ document.addEventListener('visibilitychange', () => {
           if (!monthData.days[day]) monthData.days[day] = {};
           if (dd.workout !== undefined) monthData.days[day].workout = dd.workout;
         }
-        renderWorkoutBar();
+        return loadWorkoutLog();
       })
+      .then(() => renderWorkoutBar())
       .catch(() => {});
   }
 });

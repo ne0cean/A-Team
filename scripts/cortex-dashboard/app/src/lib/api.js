@@ -86,7 +86,11 @@ export async function injectFrames(ym, fromDay, toDay) {
 }
 export async function loadWorkoutLog() { return request('/api/workout-log'); }
 export async function toggleWorkout(ym, day, part) {
-  return request('/api/workout', { method: 'POST', body: JSON.stringify({ ym, day, part }) });
+  const dateStr = `${ym}-${String(day).padStart(2, '0')}`;
+  return request('/api/workout-log', {
+    method: 'POST',
+    body: JSON.stringify({ date: dateStr, part })
+  });
 }
 export async function undoMonth(ym) {
   return request('/api/undo', { method: 'POST', body: JSON.stringify({ ym }) });
