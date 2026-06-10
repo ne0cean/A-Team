@@ -1,8 +1,8 @@
 # CURRENT — A-Team 글로벌 툴킷
 
-## Pre-flight Gate — 2026-06-09 (debrief #2)
-- [ ] cascade fix 커밋 확인: `git status` → cascade.js, cascade.test.js, index.js 커밋됐는지
-- [ ] app.js 미커밋 변경: `git diff scripts/cortex-dashboard/public/js/app.js` 확인 후 커밋 or 버림
+## Pre-flight Gate — 2026-06-10
+- [x] cascade fix 커밋 확인 ✅
+- [x] app.js 미커밋 변경 → 커밋됨 (4대 버그 수정 포함) ✅
 - [ ] Confluence 페이지 확인: work+_recurring 항목 정상 표시 (https://confluence.tde.sktelecom.com/x/VZYEQ)
 - [ ] [Mac 귀가 후] launchd 설치: `bash scripts/confluence-sync/install-mac-autostart.sh`
 - [ ] [Mac 귀가 후] OneNote fetch: `python3 scripts/onenote-auth.py` → `node scripts/onenote-fetch-html.mjs --section "Mo chuisle"`
@@ -73,6 +73,10 @@
 
 ## In Progress Files
 - (없음)
+
+## Last Completions (2026-06-10)
+
+- **Cortex 4대 버그 수정 + workout 3중 보호 시스템**: Bug1 모바일 체크박스(touchstart e.preventDefault 차단 수정), Bug2 workout 반복 유실 근본원인(d66c6030 merge 롤백 + 이중저장소 통합) + 3중 보호(daily checkpoint 확장/auto-recovery GET/shrink protection POST), Bug3 PC↔모바일 동기화(visibilitychange workout-log reload), Bug4 Block/Flow 요일 배치(cycleDayType MANUAL_TYPES 제약 + /api/reset-day-types). 배포 완료.
 
 ## Last Completions (2026-06-09) — 하네스 최고등급 강화 (사용자 지시 무시 근절)
 
@@ -204,6 +208,8 @@
 ## Next Tasks
 
 ### High Priority
+- [ ] **workout 백업 복구 확인** — 유실된 날짜 있으면 `GET /api/backups?key=workout-log` 확인 후 `/api/undo` 복구
+- [ ] **`POST /api/reset-day-types {"ym":"2026-06"}`** 실행 — 잘못된 explicit block/flow 일괄 정리
 - [ ] **OneNote 나머지 섹션 html fetch** — Mo chuisle, String, Interstellar, Snowball, Futures options `.onenote.html` 다운로드 후 전체 재마이그레이션
 - [ ] **Vision Board 근접 캡션** — `html` 카드(table 내 이미지) proximity 기반 캡션 연결 (현재 미구현, 사용자 결정 필요)
 - [ ] **ONENOTE-MIGRATION-SPEC.md 갱신** — 3-type 아키텍처 + docMode 규칙 반영

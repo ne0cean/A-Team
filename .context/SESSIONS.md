@@ -1378,3 +1378,15 @@ de9c77d [feat]: 토큰 비용 추정 + Pre-Check Skip Gate 실행체 (171 tests)
 
 **이슈**: OneNote 3_Archive 미다운로드 (Microsoft API 장애)
 **빌드**: ✅ 583 tests PASS (50 files)
+
+## [2026-06-10] Cortex 4대 버그 수정 + Workout 3중 보호
+
+**완료**:
+- Bug1 모바일 체크박스: touchstart `e.preventDefault`가 `data-drag-handle` 체크박스 차단 → `if (e.target.type === 'checkbox') return` 추가
+- Bug2 Workout 반복 유실 근본 수정: d66c6030 merge가 d46de9f1 fix 롤백한 것 확인. SvelteKit `/api/workout` 레거시 → `/api/workout-log` 통합. 3중 보호: (1)setKey daily checkpoint workout-log 확장 (2)GET auto-recovery (3)POST shrink protection
+- Bug3 PC↔모바일 동기화: visibilitychange에 `loadWorkoutLog()` 추가
+- Bug4 Block/Flow 배치: cycleDayType MANUAL_TYPES=['hf','vacation'], POST /api/reset-day-types 추가
+- Worker 배포 완료 (e68e1c14)
+
+**이슈**: 2026-06-05~08 백업 4개에 workout-log 미포함 (e1c9fc41 이전) — 해당 기간 유실 데이터는 D1 checkpoint로만 복구 가능
+**빌드**: ✅ Worker 배포 성공

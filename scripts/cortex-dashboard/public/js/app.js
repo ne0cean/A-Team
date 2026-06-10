@@ -1322,7 +1322,7 @@ async function handleItemKey(e, d, cat, idx) {
             if (cellEl) cellEl.scrollTop = _cellScroll;
           });
         }
-      }, 50);
+      }, 150); // 50→150ms: 모바일 DOM 렌더 완료 보장
     });
   } else if (e.key === 'ArrowUp') {
     e.preventDefault();
@@ -1368,14 +1368,10 @@ async function addNewItemAfter(d, cat, afterIdx) {
   day[cat].splice(afterIdx + 1, 0, { text: '', url: '', done: false });
   await save(); render();
   setTimeout(() => {
-    const items = document.querySelectorAll(`.item[draggable]`);
-    // Find the right item by scanning
-    let count = 0;
-    for (const item of items) {
-      const span = item.querySelector('.item-text');
-      if (span && span.textContent === '') { span.focus(); break; }
-    }
-  }, 50);
+    // data 속성 기반으로 정확한 위치 탐색 (textContent 비교 방식은 여러 빈 항목 시 오탐)
+    const targetItem = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${afterIdx + 1}"]`);
+    if (targetItem) targetItem.querySelector('.item-text')?.focus({ preventScroll: true });
+  }, 150); // 150ms: 모바일 렌더 완료 보장
 }
 
 // Parse a single pasted line → { text, url }
@@ -3124,13 +3120,16 @@ document.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) { pullActive = false; return; } // 핀치줌 등 멀티터치 무시
   if (e.target.closest('[data-drag-handle]')) { pullActive = false; return; } // 드래그 핸들은 PTR 스킵
   if (window.visualViewport && window.visualViewport.scale > 1.05) { pullActive = false; return; } // 줌 상태에서 PTR 차단
+  // 입력 포커스 상태에서 PTR 차단 (키보드 올라온 상태에서 실수로 스크롤 시 새로고침 방지)
+  const ae = document.activeElement;
+  if (ae && (ae.isContentEditable || ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) { pullActive = false; return; }
   pullY = e.touches[0].screenY;
   pullActive = (document.documentElement.scrollTop || document.body.scrollTop) < 5;
 }, { passive: true });
 document.addEventListener('touchend', e => {
   if (!pullActive) return;
   const dy = e.changedTouches[0].screenY - pullY;
-  if (dy > 80) location.reload();
+  if (dy > 150) location.reload(); // 150px 이상 당겨야 새로고침 (80→150, 오탐 방지)
   pullActive = false;
 });
 
