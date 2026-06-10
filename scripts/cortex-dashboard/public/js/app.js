@@ -3060,7 +3060,9 @@ function showToast(msg = '저장됨', isError = false) {
 function toast(msg, isError) { showToast(msg, isError); }
 
 // --- Pull-to-refresh ---
-let pullY = 0, pullActive = false;
+let pullY = 0, pullActive = false, pullStartTime = 0;
+// PTR indicator element (created once)
+const _ptrEl = (() => { const d = document.createElement('div'); d.id = 'ptr-indicator'; document.body.appendChild(d); return d; })();
 window.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
     e.preventDefault();
@@ -3164,13 +3166,31 @@ document.addEventListener('touchstart', e => {
   // 입력 포커스 상태에서 PTR 차단 (키보드 올라온 상태에서 실수로 스크롤 시 새로고침 방지)
   const ae = document.activeElement;
   if (ae && (ae.isContentEditable || ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) { pullActive = false; return; }
-  pullY = e.touches[0].screenY;
+  pullY = e.touches[0].clientY;
+  pullStartTime = Date.now();
   pullActive = (document.documentElement.scrollTop || document.body.scrollTop) < 5;
 }, { passive: true });
+document.addEventListener('touchmove', e => {
+  if (!pullActive || _touchDragEl) return;
+  const dy = e.touches[0].clientY - pullY;
+  if (dy <= 0) { _ptrEl.style.display = 'none'; return; }
+  const elapsed = Date.now() - pullStartTime;
+  const distPct = Math.min(dy / 80, 1); // 80px = 100% 거리
+  const timePct = Math.min(elapsed / 800, 1); // 800ms = 100% 시간
+  const pct = Math.min(distPct, timePct);
+  if (dy > 20) { // 20px 이상 당길 때만 인디케이터 표시
+    _ptrEl.style.display = 'flex';
+    _ptrEl.style.setProperty('--pct', pct);
+    _ptrEl.classList.toggle('ready', distPct >= 1 && timePct >= 1);
+  }
+}, { passive: true });
 document.addEventListener('touchend', e => {
+  _ptrEl.style.display = 'none';
+  _ptrEl.classList.remove('ready');
   if (!pullActive) return;
-  const dy = e.changedTouches[0].screenY - pullY;
-  if (dy > 150) location.reload(); // 150px 이상 당겨야 새로고침 (80→150, 오탐 방지)
+  const dy = e.changedTouches[0].clientY - pullY;
+  const elapsed = Date.now() - pullStartTime;
+  if (dy > 80 && elapsed > 800) location.reload(); // 80px + 800ms 모두 충족 시 새로고침
   pullActive = false;
 });
 
