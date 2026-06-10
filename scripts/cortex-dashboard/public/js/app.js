@@ -1926,6 +1926,20 @@ function renderStandingOrders() {
     });
     html += '</details>';
   }
+  html += `<div style="margin-top:10px;border-top:1px solid #21262d;padding-top:8px">
+  <div style="font-size:9px;color:#6e7681;margin-bottom:5px;font-weight:600">D-DAY 계산기</div>
+  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    <input id="ddayDays" type="number" min="1" placeholder="##일"
+      style="width:52px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;padding:2px 4px;border-radius:2px"
+      oninput="updateDdayDate()">
+    <span id="ddayDateLabel" style="font-size:11px;color:#f0c040;min-width:70px"></span>
+    <input id="ddayTitle" placeholder="제목"
+      style="flex:1;min-width:80px;background:#0d1117;border:1px solid #30363d;color:#e0e0e0;font-size:11px;padding:2px 4px;border-radius:2px"
+      onkeydown="if(event.key==='Enter'){applyDday();}">
+    <button onclick="applyDday()"
+      style="background:#21262d;border:1px solid #30363d;color:#e0e0e0;font-size:11px;padding:2px 8px;border-radius:2px;cursor:pointer">적용하기</button>
+  </div>
+</div>`;
   html += '</div>';
 
   // Weekly — editable
@@ -2160,6 +2174,33 @@ function addSO(text) {
   if (!text?.trim()) return;
   standingData.standing.push({ id: `so-${Date.now()}`, text: text.trim(), active: true });
   saveStandingData(); renderStandingOrders(); render();
+}
+
+function updateDdayDate() {
+  const n = +document.getElementById('ddayDays')?.value;
+  const lbl = document.getElementById('ddayDateLabel');
+  if (!lbl) return;
+  if (!n || n < 1) { lbl.textContent = ''; return; }
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  const DOW = ['일','월','화','수','목','금','토'];
+  lbl.textContent = `${d.getMonth()+1}/${d.getDate()} (${DOW[d.getDay()]})`;
+}
+
+function applyDday() {
+  const n = +document.getElementById('ddayDays')?.value;
+  const title = document.getElementById('ddayTitle')?.value?.trim();
+  if (!n || !title) { showToast('일수와 제목을 입력하세요', true); return; }
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  const dateStr = `${d.getMonth()+1}/${d.getDate()}`;
+  standingData.standing.push({ id: `so-${Date.now()}`, text: title, active: true, date: dateStr });
+  saveStandingData();
+  setSoDate(standingData.standing.length - 1, dateStr);
+  document.getElementById('ddayDays').value = '';
+  document.getElementById('ddayTitle').value = '';
+  document.getElementById('ddayDateLabel').textContent = '';
+  renderStandingOrders();
 }
 
 function editMonthlyItem(i, text) {
