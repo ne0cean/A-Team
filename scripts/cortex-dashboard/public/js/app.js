@@ -3061,6 +3061,26 @@ function toast(msg, isError) { showToast(msg, isError); }
 
 // --- Pull-to-refresh ---
 let pullY = 0, pullActive = false, pullStartTime = 0;
+// Scroll chaining: day-cell 경계 도달 시 페이지 스크롤로 전환
+let _cellScroll = null;
+document.addEventListener('touchstart', e => {
+  const cell = e.target.closest('.day-cell');
+  if (!cell) { _cellScroll = null; return; }
+  _cellScroll = { cell, prevY: e.touches[0].clientY };
+}, { passive: true });
+document.addEventListener('touchmove', e => {
+  if (!_cellScroll || _touchDragEl) return;
+  const { cell } = _cellScroll;
+  const curY = e.touches[0].clientY;
+  const deltaY = _cellScroll.prevY - curY; // 양수 = 위로 스크롤
+  _cellScroll.prevY = curY;
+  const atTop = cell.scrollTop <= 0 && deltaY < 0;
+  const atBottom = cell.scrollTop + cell.clientHeight >= cell.scrollHeight - 1 && deltaY > 0;
+  if (atTop || atBottom) {
+    e.preventDefault();
+    window.scrollBy(0, deltaY);
+  }
+}, { passive: false });
 // PTR indicator element (created once)
 const _ptrEl = (() => { const d = document.createElement('div'); d.id = 'ptr-indicator'; document.body.appendChild(d); return d; })();
 window.addEventListener('keydown', e => {
