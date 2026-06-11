@@ -694,7 +694,8 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   const lessonBadge = lessonCount > 0
     ? `<span class="lesson-badge" title="${lessonCount}개 레슨">L</span>`
     : '';
-  const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '');
+  const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '')
+    + (dayData.events || []).map(evt => `<div class="day-event">${esc(evt)}</div>`).join('');
   const soBadges = soEvts.map(s => {
     const label = s.text.includes(':') ? s.text.split(':')[0].trim() : s.text.trim();
     return `<span class="so-date-badge">${esc(label)}</span>`;
@@ -1993,26 +1994,29 @@ function renderStandingOrders() {
   // Monthly — editable
   html += '<div id="soTab-monthly" style="display:none">';
 
-  // Monthly Recurring (매달 반복) — 날짜 오름차순
-  const mr = (standingData.monthly_recurring || []).slice().sort((a, b) => (a.day || 0) - (b.day || 0));
+  // Monthly Recurring (매달 반복) — 날짜 오름차순 (origIdx 보존)
+  const mr = (standingData.monthly_recurring || [])
+    .map((item, origIdx) => ({ item, origIdx }))
+    .sort((a, b) => (a.item.day || 0) - (b.item.day || 0));
   const mrLen = mr.length;
   if (mrLen > 0) {
     html += '<div style="font-size:9px;color:#6e7681;margin-bottom:4px;font-weight:600">MONTHLY RECURRING</div>';
-    const dayLabel = (d) => d === 0 ? '말일' : d + '일';
     const selStyle = 'background:#0d1117;border:1px solid #30363d;color:#f0c040;font-size:10px;border-radius:2px';
-    mr.forEach((item, i) => {
+    mr.forEach(({ item, origIdx }, i) => {
+      const prevOrig = i > 0 ? mr[i-1].origIdx : -1;
+      const nextOrig = i < mrLen-1 ? mr[i+1].origIdx : -1;
       html += `<div class="so-item">
         <div class="so-move">
-          <span onclick="moveSOItem('monthly_recurring',${i},-1)" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
-          <span onclick="moveSOItem('monthly_recurring',${i},1)" ${i===mrLen-1?'style="visibility:hidden"':''}>&#9660;</span>
+          <span onclick="moveSOItemSwap('monthly_recurring',${origIdx},${prevOrig})" ${i===0?'style="visibility:hidden"':''}>&#9650;</span>
+          <span onclick="moveSOItemSwap('monthly_recurring',${origIdx},${nextOrig})" ${i===mrLen-1?'style="visibility:hidden"':''}>&#9660;</span>
         </div>
-        <select aria-label="날짜" style="width:46px;${selStyle}" onchange="editMR(${i},'day',+this.value)">
+        <select aria-label="날짜" style="width:46px;${selStyle}" onchange="editMR(${origIdx},'day',+this.value)">
           <option value="0" ${item.day===0?'selected':''}>말일</option>
           ${Array.from({length:31},(_,d)=>`<option value="${d+1}" ${item.day===d+1?'selected':''}>${d+1}일</option>`).join('')}
         </select>
-        <span contenteditable="true" style="flex:1" onblur="editMR(${i},'text',this.textContent)">${linkify(item.text)}</span>
-        <span class="link-btn" onclick="openMRLink(event,${i})" style="cursor:pointer;font-size:8px;display:inline">&#128279;</span>
-        <span class="del-btn" onclick="delMR(${i})" style="display:inline">&#215;</span>
+        <span contenteditable="true" style="flex:1" onblur="editMR(${origIdx},'text',this.textContent)">${linkify(item.text)}</span>
+        <span class="link-btn" onclick="openMRLink(event,${origIdx})" style="cursor:pointer;font-size:8px;display:inline">&#128279;</span>
+        <span class="del-btn" onclick="delMR(${origIdx})" style="display:inline">&#215;</span>
       </div>`;
     });
     html += `<div class="frame-add" style="gap:4px">
@@ -2233,6 +2237,13 @@ function editMR(i, field, val) {
   if (field === 'text') standingData.monthly_recurring[i].text = val.trim();
   else standingData.monthly_recurring[i][field] = val;
   saveStandingData();
+}
+function moveSOItemSwap(section, idx1, idx2) {
+  if (idx2 === -1) return;
+  const arr = section === 'monthly_recurring' ? standingData.monthly_recurring : null;
+  if (!arr) return;
+  [arr[idx1], arr[idx2]] = [arr[idx2], arr[idx1]];
+  saveStandingData(); renderStandingOrders();
 }
 function delMR(i) { standingData.monthly_recurring.splice(i, 1); saveStandingData(); renderStandingOrders(); render(); }
 function addMR(text) {
