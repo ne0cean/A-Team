@@ -116,10 +116,18 @@ function safeFilename(title) {
     .slice(0, 100);
 }
 
+// ── Resolve dest dir (flattens 3_Archive/N/SectionName → 3_Archive/SectionName) ──
+function resolveDestDir(sectionPath) {
+  const parts = sectionPath.split('/');
+  // 3-part path like "3_Archive/Work/24_성장전략" → "3_Archive/24_성장전략"
+  if (parts.length >= 3) return `${parts[0]}/${parts[parts.length - 1]}`;
+  return sectionPath;
+}
+
 // ── Fetch a single missing page ───────────────────────────────────────────────
 async function fetchPage(pageId, sectionPath, token) {
-  // sectionPath = e.g. "1_Projects/Dashbaord"
-  const destDir = join(ARCHIVE_BASE, sectionPath);
+  const flatPath = resolveDestDir(sectionPath);
+  const destDir = join(ARCHIVE_BASE, flatPath);
 
   // Get metadata
   let meta;
@@ -140,10 +148,11 @@ async function fetchPage(pageId, sectionPath, token) {
     return false;
   }
 
-  // Extract group and section from sectionPath
+  // Extract section_group and section for frontmatter
+  // sectionPath may be "1_Projects/Dashbaord", "3_Archive/6/6. Accumulation", etc.
   const parts = sectionPath.split('/');
-  const group = parts[0] || '';
-  const section = parts[1] || '';
+  const section = parts[parts.length - 1] || '';
+  const group = parts.length >= 3 ? `${parts[0]}/${parts[1]}` : parts[0] || '';
 
   console.log(`  fetching: "${title}" (${pageId})`);
 
