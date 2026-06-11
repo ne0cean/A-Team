@@ -73,6 +73,30 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-11) — OneNote 전수 실사 + Traffic & Banking 복원
+
+- **pagination 버그 수정**: `$top=100` 경계에서 nextLink 누락 → `$skip` 폴백 추가. Dashbaord 100 → **137개** 정확 조회
+- **JSON 모드 버그 수정**: 섹션 그룹 확장이 `!JSON_MODE` 조건 안에 갇혀있던 문제 수정
+- **3_Archive 재귀 조회**: 중첩 섹션 그룹(3_Archive→Work, 1, 2, 3...) 재귀 확장 → 18 → **30개** 섹션
+- **InterStellar 전수 실사**: API 1,896 vs 로컬 1,233 = **갭 663개** (7개 섹션). 감사 결과: `.context/onenote-audit-2026-06-11.json`
+- **Traffic & Banking 복원**: Graph API fetch → `.md` + `.onenote.html` 생성 → migrate → D1 검색 인덱스 업데이트 → **`curl https://cortex.feat-breeze.workers.dev/api/cortex/search?q=banking`에서 검색 확인 ✅**
+- **`scripts/audit-onenote-pages.mjs`**: 완성 (전수 비교 재사용 가능)
+- **`scripts/onenote-fetch-missing.mjs`**: 완성 (`--from-audit` 배치 fetch 지원)
+
+**갭 현황** (전체 663개 중 Traffic & Banking 포함 3개 처리됨):
+| 섹션 | GAP |
+|------|-----|
+| 1_Projects/Dashbaord | 24 (Traffic & Banking ✅ + 23개 미처리) |
+| 1_Projects/MK1 | 57 |
+| 2_.../1. Character | 152 |
+| 2_.../4. Interstellar | 26 |
+| 2_.../5. Life Xlab | 314 |
+| 3_Archive/6/6. Accumulation | 55 |
+| 3_Archive/Work/24_성장전략 | 35 |
+
+**다음 fetch 방법**: `python3 scripts/onenote-auth.py` 토큰 갱신 후 → `node scripts/onenote-fetch-missing.mjs --from-audit .context/onenote-audit-2026-06-11.json` → `node scripts/migrate-onenote-html.mjs --apply` → `node scripts/build-search-index.mjs`
+**주의**: Microsoft Graph API rate limit 심함. 이미지 많은 페이지에서 10s × N 대기 발생. 토큰 만료 전 완료 불가 시 재시도.
+
 ## Last Completions (2026-06-11) — OneNote 허위보고 수정 + PARA 디렉토리 구조 완성
 
 - **3_Archive 451개 전량 미마이그레이션 수정**: SECTION_MAP 누락으로 무음 스킵되던 3_Archive 12개 서브섹션 전량 추가. `--apply --section "3_Archive"` 실행 → 451개 HTML 생성.
@@ -217,7 +241,7 @@
 ### High Priority
 - [ ] **workout 백업 복구 확인** — 유실된 날짜 있으면 `GET /api/backups?key=workout-log` 확인 후 `/api/undo` 복구
 - [ ] **`POST /api/reset-day-types {"ym":"2026-06"}`** 실행 — 잘못된 explicit block/flow 일괄 정리
-- [ ] **OneNote 나머지 섹션 html fetch** — Mo chuisle, String, Interstellar, Snowball, Futures options `.onenote.html` 다운로드 후 전체 재마이그레이션
+- [ ] **OneNote 663개 갭 fetch (토큰 갱신 필요)** — `python3 scripts/onenote-auth.py` 후 `node scripts/onenote-fetch-missing.mjs --from-audit .context/onenote-audit-2026-06-11.json` → migrate → D1 재빌드. Rate limit 주의: 이미지 많으면 느림. 감사 파일: `.context/onenote-audit-2026-06-11.json`
 - [ ] **Vision Board 근접 캡션** — `html` 카드(table 내 이미지) proximity 기반 캡션 연결 (현재 미구현, 사용자 결정 필요)
 - [ ] **ONENOTE-MIGRATION-SPEC.md 갱신** — 3-type 아키텍처 + docMode 규칙 반영
 - [ ] **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
