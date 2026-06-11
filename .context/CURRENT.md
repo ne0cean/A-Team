@@ -1,7 +1,7 @@
 # CURRENT — A-Team 글로벌 툴킷
 
 ## Pre-flight Gate — 2026-06-11 (debrief)
-- [ ] standing-orders `holidays + happy_friday` 둘 다 확인: `curl -s https://cortex.feat-breeze.workers.dev/api/standing-orders | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.happy_friday.filter(x=>x.startsWith('2026-06')), Object.entries(d.holidays).filter(([k])=>k.startsWith('2026-06')))"`
+- [x] standing-orders `holidays + happy_friday` 둘 다 확인: happy_friday=[06-26,06-30], holidays=[지방선거06-03, 현충일06-06, HappyFriday06-26, 06-30] ✅
 - [ ] monthly_recurring 삭제 정상 동작 앱에서 직접 검증 (날짜 오름차순 정렬 상태에서 삭제 시 맞는 항목 지워지는지)
 - [ ] [Mac 귀가 후] launchd 설치: `bash scripts/confluence-sync/install-mac-autostart.sh`
 - [ ] [Mac 귀가 후] OneNote fetch: `python3 scripts/onenote-auth.py`
