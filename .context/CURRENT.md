@@ -1,11 +1,10 @@
 # CURRENT — A-Team 글로벌 툴킷
 
-## Pre-flight Gate — 2026-06-10
-- [x] cascade fix 커밋 확인 ✅
-- [x] app.js 미커밋 변경 → 커밋됨 (4대 버그 수정 포함) ✅
-- [ ] Confluence 페이지 확인: work+_recurring 항목 정상 표시 (https://confluence.tde.sktelecom.com/x/VZYEQ)
+## Pre-flight Gate — 2026-06-11 (debrief)
+- [ ] standing-orders `holidays + happy_friday` 둘 다 확인: `curl -s https://cortex.feat-breeze.workers.dev/api/standing-orders | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.happy_friday.filter(x=>x.startsWith('2026-06')), Object.entries(d.holidays).filter(([k])=>k.startsWith('2026-06')))"`
+- [ ] monthly_recurring 삭제 정상 동작 앱에서 직접 검증 (날짜 오름차순 정렬 상태에서 삭제 시 맞는 항목 지워지는지)
 - [ ] [Mac 귀가 후] launchd 설치: `bash scripts/confluence-sync/install-mac-autostart.sh`
-- [ ] [Mac 귀가 후] OneNote fetch: `python3 scripts/onenote-auth.py` → `node scripts/onenote-fetch-html.mjs --section "Mo chuisle"`
+- [ ] [Mac 귀가 후] OneNote fetch: `python3 scripts/onenote-auth.py`
 
 
 ## Status
