@@ -23,25 +23,34 @@ function walk(dir, base = CORTEX) {
     if (e.isDirectory()) {
       if (SKIP_DIRS.has(rel) || e.name.startsWith('.')) continue;
       results.push(...walk(full, base));
-    } else if (e.isFile() && extname(e.name) === '.md') {
+    } else if (e.isFile() && (extname(e.name) === '.md' || extname(e.name) === '.html')) {
       try {
-        const content = readFileSync(full, 'utf-8');
+        const raw = readFileSync(full, 'utf-8');
         const stat = statSync(full);
-        const lines = content.split('\n');
-        const title = lines[0]?.replace(/^#\s*/, '').replace(/^title:\s*"?([^"]*)"?.*/, '$1').trim() || e.name.replace('.md', '');
-        // Extract pillar from path
-        const pillarMatch = rel.match(/^hexagonal pillars_rocks_helm\/(\d-[^/]+)/);
-        const pillar = pillarMatch ? pillarMatch[1] : (rel.startsWith('projects') ? 'projects' : 'other');
+        let content, title;
+        if (extname(e.name) === '.html') {
+          content = raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+          const titleMatch = raw.match(/<title[^>]*>([^<]+)<\/title>/i) || raw.match(/<h[12][^>]*>([^<]+)<\/h[12]>/i);
+          title = titleMatch ? titleMatch[1].trim() : e.name.replace('.html', '');
+        } else {
+          content = raw;
+          const lines = raw.split('\n');
+          title = lines[0]?.replace(/^#\s*/, '').replace(/^title:\s*"?([^"]*)"?.*/, '$1').trim() || e.name.replace('.md', '');
+        }
+        const pillar = rel.startsWith('areas/') ? 'areas'
+          : rel.startsWith('projects/') ? 'projects'
+          : rel.startsWith('archive/') ? 'archive'
+          : (rel.match(/hexagonal pillars_rocks_helm\/(\d-[^/]+)/) || [])[1] || 'other';
 
         results.push({
           id: createHash('md5').update(rel).digest('hex').slice(0, 16),
           path: rel,
-          filename: e.name.replace('.md', ''),
+          filename: e.name.replace(/\.(md|html)$/, ''),
           title,
           pillar,
-          content: content.slice(0, 5000), // first 5000 chars for search
+          content: content.slice(0, 8000),
           modified: stat.mtime.toISOString().slice(0, 10),
-          lines: lines.length,
+          lines: raw.split('\n').length,
         });
       } catch {}
     }
