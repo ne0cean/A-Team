@@ -337,6 +337,20 @@ export default {
         return new Response(JSON.stringify({ ok: true }), { headers });
       }
 
+      // --- Events (day-level calendar events) ---
+      if (path === '/api/events' && method === 'POST') {
+        const { ym, day, events } = await request.json();
+        if (!validYm(ym) || !validDay(day)) {
+          return new Response(JSON.stringify({ error: 'invalid day payload' }), { status: 400, headers });
+        }
+        const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
+        if (!data.days[day]) data.days[day] = {};
+        if (Array.isArray(events) && events.length > 0) data.days[day].events = events;
+        else delete data.days[day].events;
+        await setKey(ym, data);
+        return new Response(JSON.stringify({ ok: true }), { headers });
+      }
+
       // --- Reorder ---
       if (path === '/api/reorder' && method === 'POST') {
         const { ym, day, category, fromIdx, toIdx } = await request.json();

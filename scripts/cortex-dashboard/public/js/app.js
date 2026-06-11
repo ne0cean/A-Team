@@ -694,8 +694,6 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   const lessonBadge = lessonCount > 0
     ? `<span class="lesson-badge" title="${lessonCount}개 레슨">L</span>`
     : '';
-  const evtHtml = (holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : '')
-    + (dayData.events || []).map(evt => `<div class="day-event">${esc(evt)}</div>`).join('');
   const soBadges = soEvts.map(s => {
     const label = s.text.includes(':') ? s.text.split(':')[0].trim() : s.text.trim();
     return `<span class="so-date-badge">${esc(label)}</span>`;
@@ -703,7 +701,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   let html = `<div class="day-num${dowClass}">
     <span>${d}${badgeHtml}${progressBadge}${lessonBadge}${soBadges}</span>
     <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
-  </div>${evtHtml}`;
+  </div>${holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : ''}`;
 
   // One Thing
   const ot = dayData.one_thing || '';
@@ -711,6 +709,9 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     onblur="saveOneThing(${d}, htmlToMarkdown(this.innerHTML))"
     onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}else if(event.key.toLowerCase()==='k'&&(event.ctrlKey||event.metaKey)){event.preventDefault();event.stopPropagation();openOneThingLinkPopup(event,${d});}"
   >${linkify(ot)}</div>`;
+
+  // Events — one-thing 아래 배치
+  html += (dayData.events || []).map(evt => `<div class="day-event">${esc(evt)}</div>`).join('');
 
   // Categories
   const SRC_COLORS = { yearly: '#f0c040', monthly: '#bc8cff', weekly: '#6e7681' };

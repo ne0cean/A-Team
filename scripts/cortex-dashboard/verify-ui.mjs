@@ -14,6 +14,7 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 
 const URL = process.argv[2] || 'https://cortex.feat-breeze.workers.dev';
+const strict = process.argv.includes('--strict');
 const outDir = 'C:/tmp';
 const ts = Date.now();
 const screenshotPath = join(outDir, `cortex-verify-${ts}.png`);
@@ -29,18 +30,26 @@ await page.setViewportSize({ width: 1280, height: 900 });
 try {
   await page.goto(URL, { waitUntil: 'networkidle', timeout: 30000 });
 
-  // 기본 요소 존재 확인
+  // JS render 완료 대기 — networkidle 직후 셀 미생성 race condition 방지
+  // day-cell=월간뷰, week-cell=주간뷰(기본값)
+  try {
+    await page.waitForSelector('.day-cell, .week-cell', { timeout: 10000 });
+  } catch {
+    process.stderr.write('[verify-ui] WARN: .day-cell/.week-cell 10초 내 미출현\n');
+  }
+
+  // 기본 요소 확인 (항상 검사) — .day-event는 제외 (이벤트 없는 날 오탐 방지)
   const checks = [
-    { selector: '.day-cell', label: 'day cells' },
-    { selector: '.week-grid, .month-grid, [class*="grid"]', label: 'calendar grid' },
+    { selector: '.day-cell, .week-cell', label: 'day/week cells', strictFail: true },
+    { selector: '.week-grid, .month-grid, [class*="grid"]', label: 'calendar grid', strictFail: true },
   ];
 
   let failed = false;
-  for (const { selector, label } of checks) {
+  for (const { selector, label, strictFail } of checks) {
     const el = await page.$(selector);
     if (!el) {
       process.stderr.write(`[verify-ui] WARN: ${label} 셀렉터(${selector}) 미발견\n`);
-      failed = true;
+      if (strictFail || strict) failed = true;
     }
   }
 
