@@ -28,6 +28,13 @@ IS_CORTEX_EDIT=false
 echo "$MSG" | grep -qiE '(app\.js|worker|index\.js|cortex|dashboard).*(수정|고쳐|변경|추가|삭제|바꿔|고치|편집)' && IS_CORTEX_EDIT=true
 echo "$MSG" | grep -qiE '(수정|고쳐|변경|추가|삭제|바꿔|고치|편집).*(app\.js|worker|index\.js|cortex|dashboard)' && IS_CORTEX_EDIT=true
 
+# ── 마이그레이션 완료 선언 시 verify 강제 ──────────────────────
+echo "$MSG" | grep -qE 'migrate-onenote-html.*--apply|--apply.*migrate-onenote' && {
+  CTX="[마이그레이션 완료 기준 — 절대 원칙] --apply 실행 후 반드시: node scripts/verify-migration.mjs\\nPASS 확인 후에만 '완료' 선언 가능. fetch 완료 ≠ migration 완료. SECTION_MAP 미포함 섹션은 무음 스킵됨."
+  printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","systemMessage":"%s"}}\n' "$CTX"
+  exit 0
+}
+
 if $IS_CORTEX_EDIT; then
   DECISIONS_FILE="/Users/noir/Projects/a-team/scripts/cortex-dashboard/DECISIONS.md"
   if [ -f "$DECISIONS_FILE" ]; then

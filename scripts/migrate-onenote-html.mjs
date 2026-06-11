@@ -57,6 +57,19 @@ const SECTION_MAP = [
   { src: '1_Projects/Dashbaord/5. Life Xlab',  dst: '1/dashboard/5-life-xlab' },
   { src: '1_Projects/Dashbaord/6. Snowball',   dst: '1/dashboard/6-snowball' },
   { src: '1_Projects/Dashbaord/2. Block chain', dst: '1/dashboard/2-blockchain' },
+  // 3_Archive → cortex/3/  (이전 세션 누락 — 2026-06-11 실사 후 추가)
+  { src: '3_Archive/1. Character',        dst: '3/1-character' },
+  { src: '3_Archive/2. Cyrano Scenario',  dst: '3/2-cyrano-scenario' },
+  { src: '3_Archive/2. Mo chuisle',       dst: '3/2-mo-chuisle' },
+  { src: '3_Archive/24_성장전략',          dst: '3/24-growth-strategy' },
+  { src: '3_Archive/25_AI전략팀',          dst: '3/25-ai-strategy' },
+  { src: '3_Archive/26_SD',               dst: '3/26-sd' },
+  { src: '3_Archive/3. Solidarity',       dst: '3/3-solidarity' },
+  { src: '3_Archive/4. Interstellar',     dst: '3/4-interstellar' },
+  { src: '3_Archive/5. Life Xlab',        dst: '3/5-life-xlab' },
+  { src: '3_Archive/6. Accumulation',     dst: '3/6-accumulation' },
+  { src: '3_Archive/Career',              dst: '3/career' },
+  { src: '3_Archive/Skill',               dst: '3/skill' },
 ];
 
 // ── Image mapping: Graph API URL → local PNG filename ────────────────────────

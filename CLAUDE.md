@@ -48,6 +48,11 @@ Opus 조건: 신규 아키텍처 / 3개+ 옵션 비교 / 5개+ 파일 강한 의
 `wrangler deploy` 완료 후: ui-inspector 에이전트 또는 브라우저 스크린샷으로 시각 확인 필수.
 curl 200 / ok:true = 완료 증거 아님. 화면에 기능이 작동해야 완료.
 
+## 마이그레이션 완료 조건 (절대 원칙)
+`migrate-onenote-html.mjs --apply` 실행 후 반드시: `node scripts/verify-migration.mjs`
+verify PASS 후에만 "완료" 선언 가능. fetch 완료 ≠ migration 완료.
+SECTION_MAP 미포함 섹션은 무음 스킵 — 신규 소스 섹션 추가 시 SECTION_MAP coverage 먼저 확인.
+
 ## 원본 소스 참조 의무 (마이그레이션/복원)
 "마이그레이션/가져와/복원/이전" 작업: 원본 소스 파일 반드시 읽은 후 작업 시작.
 원본 미확인 상태 배포 = Truth Contract 위반.
