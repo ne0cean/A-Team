@@ -73,6 +73,14 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-11) — OneNote 허위보고 수정 + PARA 디렉토리 구조 완성
+
+- **3_Archive 451개 전량 미마이그레이션 수정**: SECTION_MAP 누락으로 무음 스킵되던 3_Archive 12개 서브섹션 전량 추가. `--apply --section "3_Archive"` 실행 → 451개 HTML 생성.
+- **Snowball 46개 갭 수정**: 재fetch된 파일 누락분 `--apply --section "6. Snowball"` 재실행으로 해결. 164/164 (100%).
+- **verify-migration.mjs 신규**: source .onenote.html vs output .html 섹션별 비교. 80% 미만 시 exit 1. SECTION_MAP 미포함 소스 디렉토리 자동 감지. 최종 결과: `src=1609 dst=1635 (102%) PASS`.
+- **PARA 시맨틱 디렉토리 rename**: `cortex/1/` → `cortex/projects/`, `cortex/2/` → `cortex/areas/`, `cortex/3/` → `cortex/archive/`. SECTION_MAP dst 경로 일괄 업데이트.
+- **하네스 보강**: `pre-answer.sh` `--apply` 감지 훅. `CLAUDE.md` 마이그레이션 완료 조건 규칙. `MEMORY.md` fetch≠migration 레슨. catalog.jsonl 1809개 재인덱싱.
+
 ## Last Completions (2026-06-10)
 
 - **Cortex 4대 버그 수정 + workout 3중 보호 시스템**: Bug1 모바일 체크박스(touchstart e.preventDefault 차단 수정), Bug2 workout 반복 유실 근본원인(d66c6030 merge 롤백 + 이중저장소 통합) + 3중 보호(daily checkpoint 확장/auto-recovery GET/shrink protection POST), Bug3 PC↔모바일 동기화(visibilitychange workout-log reload), Bug4 Block/Flow 요일 배치(cycleDayType MANUAL_TYPES 제약 + /api/reset-day-types). 배포 완료.
