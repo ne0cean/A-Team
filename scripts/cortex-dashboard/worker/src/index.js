@@ -343,6 +343,22 @@ export default {
         if (!validYm(ym) || !validDay(day)) {
           return new Response(JSON.stringify({ error: 'invalid day payload' }), { status: 400, headers });
         }
+        // standing_orders 충돌 체크 — standing/monthly/yearly에 같은 텍스트 있으면 409
+        if (Array.isArray(events) && events.length > 0) {
+          const so = await getKey('standing-orders');
+          const soTexts = [
+            ...(so?.standing || []),
+            ...(so?.monthly_recurring || []),
+            ...(so?.yearly || []),
+          ].map(r => (r.text || '').trim());
+          const conflict = events.find(e => soTexts.includes(e.trim()));
+          if (conflict) {
+            return new Response(
+              JSON.stringify({ error: 'conflict_with_standing_orders', text: conflict }),
+              { status: 409, headers }
+            );
+          }
+        }
         const data = await getKey(ym) || { month: ym, goals: {}, days: {} };
         if (!data.days[day]) data.days[day] = {};
         if (Array.isArray(events) && events.length > 0) data.days[day].events = events;

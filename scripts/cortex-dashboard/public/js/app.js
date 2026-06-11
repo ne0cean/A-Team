@@ -694,6 +694,8 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   const lessonBadge = lessonCount > 0
     ? `<span class="lesson-badge" title="${lessonCount}개 레슨">L</span>`
     : '';
+  // LAYOUT CONTRACT (순서 변경 금지):
+  // 1. day-num  2. holiday-name  3. one-thing  4. day-event  5. 카테고리
   const soBadges = soEvts.map(s => {
     const label = s.text.includes(':') ? s.text.split(':')[0].trim() : s.text.trim();
     return `<span class="so-date-badge">${esc(label)}</span>`;

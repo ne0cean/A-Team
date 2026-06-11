@@ -53,6 +53,20 @@ try {
     }
   }
 
+  // one-thing이 day-event보다 앞에 오는지 DOM 순서 검증
+  const orderCheck = await page.evaluate(() => {
+    const cell = document.querySelector('.week-cell, .day-cell');
+    if (!cell) return 'no-cell';
+    const ot = cell.querySelector('.one-thing');
+    const ev = cell.querySelector('.day-event');
+    if (!ot || !ev) return 'no-events';
+    return (ot.compareDocumentPosition(ev) & Node.DOCUMENT_POSITION_FOLLOWING) ? 'correct' : 'wrong';
+  });
+  if (orderCheck === 'wrong') {
+    process.stderr.write('[verify-ui] LAYOUT FAIL: .day-event가 .one-thing 위에 렌더됨 (LAYOUT CONTRACT 위반)\n');
+    failed = true;
+  }
+
   await page.screenshot({ path: screenshotPath, fullPage: false });
   process.stdout.write(screenshotPath + '\n');
 
