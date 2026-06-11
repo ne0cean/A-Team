@@ -27,6 +27,7 @@ const PAGE_ID_ARG = (() => { const i = process.argv.indexOf('--page-id'); return
 const SECTION_ARG = (() => { const i = process.argv.indexOf('--section'); return i >= 0 ? process.argv[i+1] : null; })();
 const AUDIT_FILE = (() => { const i = process.argv.indexOf('--from-audit'); return i >= 0 ? process.argv[i+1] : null; })();
 const DRY_RUN = process.argv.includes('--dry-run');
+const NO_IMAGES = process.argv.includes('--no-images');
 
 if (!PAGE_ID_ARG && !AUDIT_FILE) {
   console.error('Usage: --page-id <id> --section <group/section> | --from-audit <audit.json> [--dry-run]');
@@ -55,6 +56,16 @@ function graphGet(url, token, binary = false) {
         const retry = parseInt(res.headers['retry-after'] || '10') * 1000;
         console.log(`  Rate limit, waiting ${retry/1000}s...`);
         return setTimeout(() => resolve(graphGet(url, token, binary)), retry);
+      }
+      if (res.statusCode === 401) {
+        let body = '';
+        res.on('data', c => body += c);
+        res.on('end', () => {
+          const err = new Error(`HTTP 401: 토큰 만료 — python3 scripts/onenote-auth.py 실행 후 재시도`);
+          err.tokenExpired = true;
+          reject(err);
+        });
+        return;
       }
       if (res.statusCode !== 200) {
         let body = '';
@@ -134,6 +145,7 @@ async function fetchPage(pageId, sectionPath, token) {
   try {
     meta = await getPageMeta(pageId, token);
   } catch (e) {
+    if (e.tokenExpired) throw e; // propagate to main loop → abort
     console.error(`  메타데이터 fetch 실패 [${pageId}]: ${e.message}`);
     return false;
   }
@@ -161,12 +173,13 @@ async function fetchPage(pageId, sectionPath, token) {
   try {
     rawHtml = await graphGet(`${GRAPH_BASE}/pages/${pageId}/content`, token);
   } catch (e) {
+    if (e.tokenExpired) throw e;
     console.warn(`  HTML fetch 실패: ${e.message}`);
     return false;
   }
 
-  // Download images
-  const imgUrls = [...rawHtml.matchAll(/src="(https:\/\/graph\.microsoft\.com[^"]+\/\$value)"/g)]
+  // Download images (skip if --no-images)
+  const imgUrls = NO_IMAGES ? [] : [...rawHtml.matchAll(/src="(https:\/\/graph\.microsoft\.com[^"]+\/\$value)"/g)]
     .map(m => m[1]);
 
   if (imgUrls.length > 0) console.log(`    images: ${imgUrls.length}`);
@@ -243,6 +256,11 @@ for (const t of tasks) {
     if (created) done++;
     else skipped++;
   } catch (e) {
+    if (e.tokenExpired) {
+      console.error(`\n토큰 만료로 중단. 완료: ${done}개 생성, ${skipped}개 스킵, ${failed}개 실패`);
+      console.error('python3 scripts/onenote-auth.py 실행 후 재시도');
+      process.exit(1);
+    }
     console.error(`  ERROR: ${e.message}`);
     failed++;
   }
