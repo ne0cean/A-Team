@@ -54,7 +54,7 @@ for (const dir of SEARCH_DIRS) {
     const rel = relative(CORTEX, f);
     const raw = readFileSync(f, 'utf-8');
     const title = extractTitle(raw, basename(f, '.html'));
-    const body = stripHtml(raw).slice(0, 800); // 800 chars for search
+    const body = stripHtml(raw).slice(0, 50000); // full content for search
     const stat = statSync(f);
     docs.push({
       path: rel,
