@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>트레바리</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">트레바리</div>
+<div class="date">2022년 4월 25일 월요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-트레바리';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 840,
+    "y": 67,
+    "w": 600,
+    "content": "Tennis bomb\n5/6(토) ~ 5/28(토) 4주\n15시 ~ 18시"
+  },
+  {
+    "type": "text",
+    "x": 72,
+    "y": 139,
+    "w": 600,
+    "content": "윙블링 - 아몬즈: 쥬얼리 사이트\n육아 = 반려견, 사람에 대해 케어하던 모든 것, 자금이 반려견으로 향하고 있다.\n1인가구 급증 + 초혼 연령 상승 + 반려견/묘 키우는 가구 증가\n+ 물거기, 식물(플랜테리어-엔씽), 수석, 난 등 유니크한 무언가를 수집하거나 키우는 니치시장\n강아지 유치원, 납골당, 장례식\n강남 스타트업-액션\n매달 두 번째 토요일 15시 00분 ~18시 00분\n1회차 2023.1.14(토) - 권도균의 스타트업 경영수업\n2회차 2023.2.11(토) - 사업의 철학\n3회차 2023.3.11(토) - 린분석\n4회차 2023.4.8(토) - 크래프톤 웨이\n안국 스타트업-출발\n매달 네 번째 토요일&#160;10시 00분&#160;~13시 00분\n1회차:&#160;2023.1.28 (토) - 절대 성공하지 못할 거야\n2회차:&#160;2023.2.25 (토) - 당신은 사업가입니까-캐럴 로스\n3회차:&#160;2023.3.25 (토) -\n4회차:&#160;2023.4.22 (토)\n[놀러가기]\n당신은 사업가입니까\n하드씽\n사업의 철학\n제로 투 원\n슈독\n린스타트업\n아이디어 불패의 법칙\n크래프톤 웨이\n유난한 도전\n마스터스 오브 스케일\n절대 성공하지 못할 거야\n규칙 없음\n상우가든, 나이스타임2, 보틀러, 오트렉, 인당 3 이하 : 대구집"
+  },
+  {
+    "type": "text",
+    "x": 840,
+    "y": 163,
+    "w": 421,
+    "content": "아침에 100페이지를 읽는다.\n퇴근 후에 50페이지씩, 두 번에 나눠 100페이지를 읽는다.\n아침에 읽는 책과 저녁에 읽는 책은 다르다.\n대다수의 책을 빌려 읽고,\n2번째 읽을 때 혹은 2번 이상 읽어야 하는 책만 구매한다.\n이 책은 절반을 읽었을 때 장바구니에 넣었다.\n요즘에 어려운 책을 읽어야 한다는 생각을, 말을 많이 한다.\n나와 교류하는 이들이 이런 책을 읽었으면 한다.\n다른 말을 하는 책, 다른 관점을 보게 해주는 사람이야 말로 만날 가치가 있으니까.\n다른 말을 해줄 사람을, 다른 말을 하는 책을 읽어야 한다.\n나는 플랜C를 고민해야 하는 사람이다.\n왜냐면 누구나 플랜B가 있으니까. 그건 내가 테이블 저쪽에 앉은 누군가 말해준다."
+  },
+  {
+    "type": "text",
+    "x": 1152,
+    "y": 811,
+    "w": 600,
+    "content": "이 책은 거대 미디어 기업 넷플릭스의 창업 이야기이다.공동 창업자 마크 랜돌프의 회고록으로 쓰여 있다. 창업 1997년부터 나스닥에 상장하는 2002년 5월까지 그의 꿈이 현실로 이루어지는 과정을 보여준다. 창업 초기의 생생한 노하우와 위기관리, 협상 전략, 사원 관리 등 창업에 필요한 세세하고 흥미로운 아이디어가 가득하다.\n넷플릭스 방식을 도입하여 비슷한 서비스를 제공하는 기업들이 점점 늘어나고 있다. 하지만 넷플릭스는 방대한 자료와 더불어 넷플릭스만의 장점이 많다. 영화 추천 알고리즘부터 넷플릭스에서만 볼 수 있는 영화 및 프로그램 제공 등 다양한 방식으로 차별화를 두고 있다. 넷플릭스가 처음 어떻게 창업이 되었으며 현재의 모습이 되기까지 어떤 우여곡절이 있었는지 창업자 마크 랜돌프가 상세히 전하고 있다.\n▷ 사실 넷플릭스라는 사업구상은 신성한 계시의 순간에 떠오른 게 아니었다.&#160;유용하고 완벽한 구상이 한순간에 문득 생각난 것은 아니었다.&#160;형편없는 사업&#160;1000가지를 생각하다가 좋은 구상 하나를 얻는 게 진실이다.\n&#160;\n▷&#160;사실 어떤 사업 계획도 시장에 내놓은 후에는 수정을 거쳐야 한다.&#160;그러니 가능한 한 빨리 사업 구상을 실천해보면서 현실과 부딪치는 게 낫다.\n&#160;\n▷&#160;집중하라.&#160;이게 성공하는 기업의 비밀 무기다.&#160;넷플릭스 역사를 돌아보면 미래로 나아가기 위해 과거의 일부를 계속 버려야 했다. DVD 판매를판매를&#160;중단하고,&#160;따로 대여 서비스를 중단하고 월간 이용 서비스로 사업의 방향을 집중하였다.\n&#160;\n▷&#160;결과가 아니라 문제를 해결하는 과정 자체를 즐길 줄 알아야 한다.&#160;그래야 꿈을 이루기까지 기간이 예상보다 길어질 때 포기하지 않고 버틸 수 있다.\n&#160;\n▷&#160;누가 성공하고 누가 실패할지 아무도 모른다면 우리는 우리 자신을 믿어야 한다.&#160;우리 자신을 시험해 보아야 한다.&#160;그리고 기꺼이 실패해야 한다.\n[랜돌프집안의 성공법칙]\n1/ 시키는 일보다 최소 10% 이상은 더 해라\n2/ 네가 모르는 것에 대해 사실처럼 말하지 마라. 항상 조심하면서 자신을 다스려라.\n3/ 윗사람이든 아랫사람이든 예의를 갖춰라\n4/ 트집 잡게나 불평하지 마라. 진지하게 건설적으로 비판하는 자세를 유지하라.\n5/ 근거가 있다면 결정을 두려워하지 마라\n6/ 가능하다면 숫자로 표현하라\n7/ 마음을 열어두되 끊임없이 의심하라\n8/ 시간을 엄수하라\n누군가의 성공 스토리는 참으로 흥미롭다.&#160;그 성공이 크던 작던 수많은 노력과 실패의 경험으로 얼룩져 있지만 결국 포기하지 않고 성공을 이루어 낸다.&#160;이 책은 넷플릭스라는 거대 기업의 이야기이기에 어느 부분은 더 호기심을 갖고 읽게 되었고,&#160;반면 넘사벽 천재들의 이야기이기에 나와는 다른 세상의 이야기인 듯 거리감이 생기기도 했다.\n&#160;\n하지만 결국 핵심은 내 주변 이웃의 성공 이야기와 닮아 있다. 성공한 사람들은 누가 머라 해도 결국 실행에 옮겼다. 예전과 다른 게 있다면 요즘은 세세한 목표와 계획을 세우기보다, 실행의 속도가 엄청나게 빨라졌다는 것이다. 계획하는 시간에 누군가는 그것을 이미 실행하고 있고, 망설이는 사이에 트렌드는 계속 변화한다.설이는 사이에 트렌드는 계속 변화한다.\n+++++++++++++++++++\n비즈니스 세계에서 모든 순간은 단 한번밖에 일어나지 않는다.\n그렇다. 지금 누군가가 컴퓨터 소프트웨어를 만들어 내서 제2의 빌게이츠가 될 수도, 새로운 소셜&#160;네트워크를 만들어 제2의 마크 저커버그가 되는 것은 거의 불가능할 것 이다. 피터 틸은 이런&#160;단순하고 명료한 말로 그의 이야기를 시작한다.&#160;\n1장 - 미래를 향해 도전하라.\n미래는 알기 어렵다. 하지만 '기술'이라고 불리는 0에서 1을 만들 수 있는 진보를 통해, 과거에서부터 현재까지 많은 사람들이 미래를 앞당겨왔다고 말한다. 우리사회에서 불편하고 합리적이지 않은 진실들이 100년동안 변하지 않는다면 우리의 미래는 100년뒤에야 오는 것이고 10년만에 변한다면 우리의 미래는 바로 코앞에 와있는 것이라고 말한다.\n2장 - 과거에서 배워라.\n1990년대 말, 우리가 닷컴버블에서 배운 4가지 교훈.\n1. 점진적 발전을 이뤄라.\n2. 가벼운 몸집에 유연한 조직을 유지하라.\n3. 경쟁자보다 조금 더 잘하라.\n4. 판매가 아니라 제품에 초점을 맞춰라.\n피터틸이 생각하는 정반대의 원칙들.\n1. 사소한 것에도 매달리는 것보다는 대담하게 위험을 감수하는 편이 낫다.\n2. 나쁜 계획도 계획이 아예 없는 것보다는 낫다.\n3. 경쟁이 심한 시장은 이윤을 파괴한다.\n4. 판매 역시 제품만큼이나 중요하다.\n3장 - 행복한 회사는 모두 다르다.\n'독점 이윤'을 창출할 수 있는 구글과 같은 회사는 행복하다.\n구글의 모토인 '사악해 지지 말자'는 브랜드전략의 일부이기도 하지만, 생존의 위협을 받지 않고도 윤리문제를 진지하게 고려할 수 있을 만큼 충분히 성공한 기업이 누리는 특권이기도 하다. 즉, 완전경쟁에 있는 기업들은 현재의 이윤에 너무 몰두한 나머지, 장기적 플랜이나 회사 내의 여러 중요한 인간관계 등에 덜 신경을 쓸 수 밖에 없다는 점을 보여준다.&#160;\n4장 - 경쟁 이데올로기\n나 또한 마찬가지지만, 많은 사람들이 경쟁을 좋은 것이라고 생각한다.\n예를들어, \" 역시 경쟁이 있어야, 소비자 한테 좋은거야. \" 하는 말을 다들 한번쯤은&#160;해보았을 수도 있다. 하지만, 경쟁은 비즈니스에서 좋은 것이 아니라고 피터틸은 말한다. 경쟁을 해야하는 기업은 그 전쟁터에 있기 때문에 힘들다.&#160;비즈니스는 전쟁 같은 경쟁이 아니다. 그리고 실제로 경쟁은 선한 것이 아니라, 파괴적인 것이다. 회사 내부만 봐도, 승진을 위해 경쟁자에게 집착하고 그 때문에 효율적으로 일하는 조직이&#160;되기 어렵지 않은가.&#160;\n과거의 예를 봐도 그렇다.&#160;\n마이크로소프트와 구글은 경쟁구도였다.&#160;\n구글독스 vs MS 오피스, 넥서스 vs 서퍼스, 크롬 OS vs 윈도우 등 그들은 제품과 서비스는&#160;서로에게 집착했다. 그 둘이 신나게 경쟁하는 동안 2013년 1월, 애플(Apple)은 두 기업을 합친 것보다 큰 기업가치를 가지게 되었다.&#160;불과 몇년전 마이크로소프트와 구글은 '각각' 애플보다 기업가치가 높았던 것을 생각해보면 참으로 놀랄만한 일이다. (스티브잡스니까..그럴수도있겠다.)&#160;이렇게 된 것은 MS와 Google 모두가 경쟁자에 집착한 나머지 그들이 혁신을 하기위해 던져야 할 더 큰 질문들을 잊어버렸기 때문이다.\n5장 - 라스트 무버 어드밴티지.\n현재의 기업가치는 어떻게 결정되는 것일까에 대한 명쾌한 해답을 준다.\n뉴욕타임즈와 트위터를 비교해 보면 쉽다. 트위터가 기업공개(IPO) 당시 그 가치는 240억 달러였다. 이는 뉴욕타임즈보다 약 12배가되는 금액이었다. 심지어 트위터는 2012년 적자를 기록했고, 뉴욕타임즈는 1억 3,300만 달러를 벌어들였는데 말이다. 이런 기업가치를 만들어내는 이유는 바로 '독점이윤'에 있다. 투자자들은 트위터가 향후 10년간 독점이윤을 확보할 수 있을 것으로 예상한 것이고, 뉴욕타임즈와 같은 신문사들의 독점기회는 끝난 것으로 보았기 때문이다.&#160;\n내가 공부했던 금융 분야에는 이런 말이 있다.\n\"모든 금융상품의 가치는 미래의 현금흐름을 현재가치화 한 것이다.\"&#160;\n기업가치도 같다.&#160;\n오늘의 기업가치는 그 회사가 미래에 벌어들일 모든 돈의 총합이다.\n그렇기 때문에 많은 기술기업들이 현재 적자를 기록하고 있어도 10년 혹은 15년 이후에 그들이 가져올 수익때문에 좋은 기업가치를 유지하고 있는 것이라고 말해준다.&#160;\n그렇다면, 먼 미래까지 높은 현금흐름이 예상되는 회사는 어떤 모습을 띠고 있을까 하니,&#160;바로 아래 4가지의 특징 중 몇가지를 가진다는 것이 발견되었다.&#160;\n독자기술, 네트워크 효과, 규모의 경제, 브랜드 전략 (p.67~73)\n6장 - 스타트업은 로또가 아니다.\n7장 - 돈의 흐름을 좇아라.\n7장에서는 Founders Fund(피터 틸이 속해있는 투자회사)의 케이스를 인용하며,&#160;스타트업 투자가들의 이야기를 다룬다.&#160;Founders Fund의 경우, 가장 잘 한 투자인 페이스북이 주는 수익이 나머지 포트폴리오 모두의 수익을 합친 것보다 훨씬 크다. 두번째로 잘한 투자인 팔란티어의 경우도 페이스북을 제외한 나머지 모든 포트폴리오의 수익보다도 크다. 이런 케이스에 교훈을 얻어 피터틸은 두가지 투자원칙을 제시한다.&#160;\n첫째, 잠재적으로 펀드 전체의 가치에 맞먹을 수익을 올릴 가능성이 있는 회사에만 투자해라.\n둘째, 첫번째 원칙 때문에 제약이 너무 많이 생기므로 다른 원칙은 있을 수 없다.&#160;\n만약 투자회사들이 자신의 위험을 분산한답시고 무분별한 투자 포트폴리오를 만든다면, 사실 그것은 로또를 사는 것이나 다름이 없다고 말한다.&#160;\n이러한 원칙이 성립될 수 있는 이유는 바로 우리가&#160;'거듭제곱의 법칙의 세상'에 살기 때문이다. 즉 실제로 0.1~2%의 소수 스타트업이 발생시키는 가치가 다른 무수한 기업들의 가치보다도 큰&#160;세상에 살고 있기 때문이다.\n8장 -&#160;발견하지 못한 비밀.\n과거 18세기만해도 세상에는 풀리지 않은 비밀들이 참 많았다.&#160;\n하지만 현재에는 세계지도에 점이 찍히지 않은 곳이 없다. 우리가 사는 세계는 아주 쉬운문제나 풀기 불가능한 문제들이 남은것 처럼 보이는 것이 사실이다. 하지만 다시 처음으로 돌아가&#160;\n정말 중요한 진실인데, 남들이 동의해주지 않은 것은 무엇인가 ?\n라는 물음을 다시한번 생각해보면, 정말로 풀리지 않는 문제들은 대부분 우리의 '관습'안에 있다는 것을 깨닫는다. 즉 0에서 1을 만들어내는 사람들은, 이러한 통념과 관습을 거부하고 그것에 대한 중요한 진실을 찾아내는 사람들이다.\n세상에는 아직도 숨겨진 비밀들이 많다. 하지만 그것을 아는 사람들은 바로 지칠 줄모르고 비밀을 찾아 헤매는 사람들에게만 그 모습을 드러낼 것이다.&#160;\n9장 - 기초를 튼튼히 하라.\n9장에서는 공동창업자 구하기, 이사회 구성하기 등의 내용을 다룬다.&#160;요약하면 이렇다.\n- 공동창업자는 배우자 고르듯 골라라.&#160;\n- 이사회는 3명이 가장 효과적이다.\n- 변호사/회계사는 외부에서 고용하자.&#160;\n- 시간제 직원은 소용이 없다.\n- 풀타임으로 참여하는 사람들만을 고용하자.&#160;\n- 원격지에서 일하는 것은 피하자.&#160;\n버스에 타든지 내리든지, 양단간에 결정을 내려야 한다.\n10장 - 마피아를 만들어라.\n기업문화에 관한 파트. 많은 사람들이 알다시피 이 글을 쓴 피터틸을 비롯해 페이팔의 창업멤버들은 현재 실리콘밸리에서&#160;'페이팔 마피아'라고 불린다. 이들은 페이팔은 2004년 15억달러에 매각한 이후에도 여전히 '단단히 엮인 관계'를 유지하고 있기 때문이다.&#160;피터 틸은 페이팔을 직장으로 보지 않았다. 특별히 '우리'라는 사람들과 함께 일하는 것을 신나게 생각했다고 한다. 결국 기업문화라는 것은 어디에 존재하는 것이 아니라 바로 그 '회사 자체'라는 것을 보여주는 말이라고 생각한다.&#160;\n또 채용에 관해서도 인상깊은 구절이 있었다.&#160;\n20번째 직원은 왜 우리회사에 합류할까 ?&#160;\n내가 회사에서 20번째 직원이라면, 왜 합류하게 됬을까? 정답은 없다. 회사마다 다를 것이다. 하지만 보편적으로는 회사의 미션이 가진 설득력을 정확히 이해했거나 그게 아니면 중요한 일을 왜 회사가 하고 있는지를 이해했거나 라고 말한다.&#160;\n<한명당 한가지 책임>\n스티브잡스도 RPI라는 비슷한 컨셉을 직원들에게 부여했던 것으로 알고 있는데 피터 틸도 마찬가지로 '내부적으로 각 개인은 업무에 의해 확연히 구분되어야 한다.'라고 주장한다. 신생기업의 내부 관계는 평화롭지 않으면 아예 살아남을 수 없고 또 그 특성상 매우 유동적이다. 그러므로 역할을 확실히 구분해주어 충돌을 줄이는 것이 장기적으로 훨씬 더 도움이 된다고 말한다. 이는 나도 많이 공감하고 있는데, 초기에 멀티플레이어 역할을 하는 사람들의 경우 자신의 일인 것 같으면서도 다른 사람들의 의견을 듣지 않을 수가 없다. 이러한 상황이되면, 내 의견이 맞는 것 같아도&#160;불필요한 충돌이 생기고 그 안에서 관계가 조금씩 어긋나기도 한다.&#160;\n11장 - 회사를 세운다고 고객이 올까\n11장에서는 세일즈에 대해 다룬다. 많은 공학도들이 생각하는 세일즈의 비이성적인 부분. 하지만\n우리 모두가 세일즈에 이끌리는 것은 부정할 수 없다는 사실.&#160;서비스나 제품별로 세일즈를 효과적으로 하는 법에 대해 다루고, 마지막으로 제품이나 서비스만을 세일즈하는 것이 아니라, 회사의 문화도 팔아야 한다는 말을 남긴다.\n12장 - 사람과 기계, 무엇이 중요한가.\n최근에는 '머신 러닝(machine-learning)'이라던지 빅 데이터 등 소프트웨어에도 많은 진보가 있었고, 또 애플의 시리(Siri) 등의 AI도 어렵지 않게 볼 수 있다. 과연 기계는 인간에게 어떤 존재이고 어떤 존재여야만 할까?&#160;\n많은 사람들이 기계가 인간을 대체할 것이라고 걱정하지만, 실상은 그렇지 않다.\n기계는 인간을 보완하는 것이다. 빅데이터만 생각해보아도, 데이터 그자체는 그냥 많은 데이터에 지나지 않는다. 그러한 데이터를 통찰력있는 전문가들이 분석을 해야만 비로소 의미를 가지는 데이터가 되는 것이다. 마찬가지로 대부분의 직업에서 사람들이 하는 일은 기계가 대신할 수 없다. 사람을 상대하고,&#160;아주 미세한 변화에도 그들을 대하는 태도가 다르다. 결국 기계가 우리를 대체하거나 지배할 날이 올까? 라는 질문에 대한 대답은, 22세기에 해도 좋다. 차라리 그런 확률보다 그 전 수십년 동안 우리 사회에서 인간이 훨씬 더 좋은 세상을 만들 수 있다는 가능성이 더 높아보인다.\n13장 - 테슬라의 성공\n2000년대에 등장한 테슬라의 이야기를 다룬다. 당시의 큰 트렌드는 바로 '청정 에너지'였다.&#160;이 거대한 토픽에 대해서는 대부분의 투자자, 기업가, 정부 관료들의 이견이 없었다. 하지만 미국정부가 이에 관해 천문학적인 규모의 지원을 시작하면서, 사실 에너지 거품이 시작되었다고 할 수 있었다. 수천개의 에너지 기업이 생기고, 5,000억 달러 이상의 자본이 해당 분야로 투자되었다. 하지만 결과는? 대부분의 기업이 기술의 부재, 세일즈의 부재, 시장 변화에 민감하지 못해서(셰일가스의 등장 등) 사라져갔다. 이 때에 테슬라는 앞서 말했던, 작은 타겟(전기로 굴러가는 고급 로드스터)를 시작으로 현재까지 엄청난 행보를 이어오고 있다. 그 성공의 배경과 에너지 버블에 대한 이야기를 다룬다.\n14장 - 창업자의 역설\n누구나 창업자가 될 수 있을까 ?&#160;\n정말 어려운 질문이다. 마지막 14장에서는 여러 분야에서 특이한 인물들과 창업자에 대해 다룬다.\n레이디가가, 에이미 와인하우스, 리처드 브랜슨, 숀 파커 등등...&#160;\n레이디가가가 처음부터 머리에 뿔을 달고 태어났을리는 없다.&#160;그렇다면 그녀는 일부러 그런 의상들을 입는 것일까? 아니면 홍보의 일환으로 그런 것일까? 아무도 레이디가가의 본명같은 것에는 관심이 없다.&#160;\n이렇게 특이한 기질을 가진 사람들(적어도 그렇게 보이는 사람들)은 항상 그런 기질이 그들의 삶에\n많은 굴곡을 가져온다.\n스티브잡스는 '애플'이라는 정말 대체불가능한 기업을 만들었지만, 1985년 그는 회사에서 쫓겨나기도 했으니까 말이다. 정말 위대한 창업자들은 과거의 '왕'과 같다. 단 한사람뿐인 독특한 창업자는 권위있는 결정을 내릴 수 있고, 강력한 개인적 충성을 얻어낼 수 있으며, 몇십년을 내다본 계획을 세울 수 있다.\n역설적이게도 훈련받은(키워진) 전문가들로 채워진 비개인적 관료제가 얼마든지 길게 유지될 수 있을 것 같지만, 애플이나 구글, 오라클의 창업가들을 보게되면 사실 전자의 시야가 더 짧다.&#160;\n기업이 알아야 할 교훈은 창업자가 필요하다는 것이다. 이상하고 극단적으로 보이는 창업자들을 인내할&#160;필요가 있다. 왜냐하면, 점진적 발전을 넘어서 진정으로 회사를 이끌어낼 수 있는 개인은 그들이기 때문이다."
+  },
+  {
+    "type": "text",
+    "x": 72,
+    "y": 1301,
+    "w": 600,
+    "content": "린 분석\n이 책의 좋은 점은 각종 지표들을 체크해야 한다는 것에서 끝나지 않는다는 점이다.\n대부분의 지표를 분석하는데 기준이 필요하다.\n목표 기준이 없으면 더이상 줄일 수 없는 지표를 개선하는데 시간과 노력을 낭비할 수 있기 때문이다.\n이런 목표 기준을 별도의 장에서 각 사업 모델별로 자세히 설명해 주고, 마지막으로 31가지의 사례 연구를 통해 실제로 어떻게 사업에 적용하고 발전시켜 나가는지를 보여준다.\n좋은 지표란?\n1. 상대적이다. - 사용자 그룹별, 경쟁자 별로 비교할 수 있으면 상황을 이해하는데 도움이 된다.\n2. 이해하기 쉽다. - 많은 사람들이 이해하고 그 지표에 대해서 대화를 나눌 수 있어야 한다.\n3. 비율로 표현된다. - 행동 반영, 비교의 속성, 내재된 갈등 요소 비교 용이하기에 좋다.\n4. 행동 방식을 바꾼다. - 지표 변화에 따라 사업의 방향성을 바꿀 수 있다.\n정리해보자면,\n지표를 통해서 많은 사람들과 이해했고 그것을 통해 대화(토론)를 통해 인사이트를 발견하며\n제품이 가고자 하는 방향인지 판단해 주는 지표를 좋은 지표로 보고 있는 듯하다.\n나쁜 지표에 대한 재미있는 사례가 나오는데 요약하자면\n우리는 전화 상담 이후 상담원에게 가끔 (혹은 자주) 높은 평가 점수를 부탁받는다.\n그리고 사례에서는 이것을 잘못된 지표라고 부른다.\n그 이유는 고객에게 좋은 서비스를 제공하려고 노력하는 것이 아니라\n좋은 평가 점수를 받는 것에 중점을 뒀기 때문에 나쁜 지표라고 부른다.\n2014년에 쓰인 책의 내용과&#160;인사이트는 8년이 지난 지금까지도 유효하다. 시간이 지남에 따라 변화하는 트렌드나 현상만 언급하는 것이 아니라, 스타트업의 발단과 성장 과정에 관한 본질적이고 핵심적인 내용을 담고 있기 때문이다. 책에 나오는 다양한 기업 사례와 수치들을 모두 이해하기엔 무리가 있었는데 앞으로 실무를 경험하면 좀 더 깊이 있게 이해할 수 있지 않을까&#160;기대한다.\n=================================================\n형이 사업하지 말라고 했잖아\n창업 전 스스로에게 물어야 할 질문들이라는 부제의 이 책은 사업가를 꿈꾸거나 창업을 준비하는 사람들이 꼭 읽어야 하는 필독서라고 생각된다. 비즈니스 전략가이자 거래 협상가인 이 책의 저자 캐럴로스가 사업이라는 직업에 대해 현실적인 입장을 이야기하며, 사업의 실패와 사업가로서 성공하는데 필요한 전략들을&#160;직설적이고 냉철하고 조목조목하게 따져 이야기한다. 스스로가 사업을 해야 하는 이유를 파악하고, 자신이 사업가가 되기에 적합한 사람이고 환경인지 스스로&#160;냉정하게 판단할 수 있도록 도와준다.&#160;\n창업자가 된다는 것 = 막 걸음마를 뗀 경영자가 된다는 것일 것이다. 기술자도 아니고 관리자도 아닌 경영자. 조직도를 만들고, 알 맞은 사람을 배치 할 수 있어야 한다. 그게 누군지 끝까지 찾고, 또 감화 시켜서 데려올 수 있어야 한다.\n[아이디어는 사업이 아니다.]\np120. \"상품/서비스를 잘 안다는 것이 해당 영역의 비즈니스를 잘 영위 할 수 있다는 의미는 아니다.\"\n게임 사업 투자를 검토할 때, 한 동기가 내게 말했다. \"너 소환사의 협곡 알아?\" 나는 말했다. \"게임을 잘 알고 잘하는 사람이 게임 비즈니스를 해야된다면. 페이커가 T1 구단주가 되어야지.\"\n&#160;\n우선 사업가가 될 수 있는가, 없는가라는 질문보다 사업가가 되어야 하는가, 말아야 하는가라는 질문에 대해 숙고하라고 충고하는 이 책의 저자는 1인기업이든 중소기업이든 대기업이든 사업가라는 직업으로 성공을 하기에는 너무 어려운 현 시대에&#160;반드시 알고 주의해야 할 요소들을 자세히 이야기한다. 빌 게이츠나 워렌 버핏 등의 성공한 사업가들의 화려하고 성공적인 모습들만 보고 만만하게 보면 큰 코 다친다는 것을 제대로 알 수 있는&#160;조언들이다.&#160;사업가의 의미를 알고 나면 그 뒤에는 자신이 사업가에 걸맞는 성격인지 평가하는데, 이때 사업가가 되면 따르는 리스크와 보상에 대해서도 알 수 있다. 따라서 자신이 꿈꾸고 그려왔던 사업가의 모습과 실제 사업가의 생활은 많은 차이가 있는 것을 진지하게 조언하며 알려준다.\n&#160;\n여러가지 부분에서 사업이라는 것을 결코 쉽고 만만하게 생각한 적은 단 한번도 없었음에도 불구하고 이 책을 읽으면서&#160;정말 어렵고 신중해야 하는 것이라는 것을 또 한번 인정하게 되었다.&#160;또한 사업을 하지 말아야 할&#160;성격을 알아가며 그런 부류의 사람들은 그냥 남의 밑에서 일하는 것을 권하면서 더&#160;현명한&#160;길을 걷도록&#160;방안들을 생각해 보게끔 만드는 내용들이었다. 결코 쉽게 이야기할 수 있는 주제가 아닌만큼 저자가 냉정하고 냉철하게 직설적으로 현실적인 이야기하는&#160;것이 더 마음에&#160;와 닿았다.\n==============================================\np.39 \"신제품 아이디어를 시장에 내놓을 때 실패는 언제 '언제나' 옵션이다.\"\n언제 가장 많이 실패할까? 출시나 운영 또는 전제 때문이라고 저자는 설명한다.\np.112 \"시장이 있다면 방법은 있다.\"\n생각을 바꿔서 성공한 사례, pivot\n가설은 어떠한 모습이어야 하는가. 아랍에서 온 여행자의 행색을 하고 있었다. 숫자다.\n\"적어도 X규모의 Y고객은 Z할 것이다.\" X - TAM, Y - 표적시장, Z - Action\n나만의 가설\n랜딩 페이지, 유튜브, 껍데기 말고도 더 다양한 형태의 프리토타이핑이 가능하지 않을까 하는 생각을 하게 되었다. Product market fit이 있다면, 각 제품에 맞는 pretotype도 존재할테니까.\n===========================================\n자신만의 가설 설명하는 시간 숙제로 미리 내기\n듣고 싶어할 내용과 말하고 싶어 할 내용의 밸런스.\n+ 독후감들 참고해서 보강\n인상 깊었던 부분과 이유\n될놈을 찾는 방법\nBook Talk 1\n\n[안될 놈] 생각랜드에 방치된 나의 아이디어는 무엇인가요? 아직 '안될 놈'이라고 생각한 이유나, 주변 사람들에게 받은 피드백은 무엇이었나요?\n[될 놈] 지금 나의 생각랜드에 있는 '될 놈'은 무엇인가요? 아직 현실로 가져오지 못한 이유도 말해주세요.\n[데이터] 나만의 데이터를 수집해본 경험을 공유해주세요.\n[FLOP] 출시나 운영 때문이 아닌 애초에 '안될 놈'이었던 실패 사례는 무엇이 있을까요?\nBook Talk 2\n\n[가설] 각자의 제품/서비스 혹은 담당 업무에서 내가 가진 '아이디어'와 '시장 호응 가설'을 공유해주세요.\n[프리토타이핑] 내 아이디어의 프리토타이핑은 어떤 방식이 적합할까요? 프리토타이핑에 고민이 되는 부분은 무엇인가요?\n[설문 조사] 내가 응하거나 혹은 진행해본 설문 조사 경험은 어땠나요? 어떤 데이터를 얻었나요? 설문조사가 유용한 경우는 어떤 경우가 있을까요?\nBook Talk 3\n\n시장 기회가 있다고 생각하지만 내가 원하지 않는 시장이나 아이디어, 반대로 내가 원하지만 시장기회가 우려되는 영역이 있다면 공유해주세요.\n'안될 놈' 이라고 생각했는데, 잘 되고 있는 제품/서비스가 있다면?\n책에서 공감하기 어려웠거나 의문이든 부분, 현실적인 적용이 고민되는 부분을 공유해주세요.\n발제문 텍스트로 공유하기!\n내가 경험한 프리토타이핑\n<a href=\"https://brunch.co.kr/@uniher/31#:~:text=%EC%95%84%EC%9D%B4%EB%94%94%EC%96%B4%EC%9D%98%20%EA%B8%B0%EB%B3%B8%20%EC%A0%84%EC%A0%9C(FLOP,%EB%8D%94%20%EA%B3%A0%ED%86%B5%EC%8A%A4%EB%9F%BD%EA%B2%8C%20%EC%8B%A4%ED%8C%A8%ED%95%9C%EB%8B%A4\">https://brunch.co.kr/@uniher/31#:~:text=%EC%95%84%EC%9D%B4%EB%94%94%EC%96%B4%EC%9D%98%20%EA%B8%B0%EB%B3%B8%20%EC%A0%84%EC%A0%9C(FLOP,%EB%8D%94%20%EA%B3%A0%ED%86%B5%EC%8A%A4%EB%9F%BD%EA%B2%8C%20%EC%8B%A4%ED%8C%A8%ED%95%9C%EB%8B%A4</a>.\n나는 사실 토스를 거의 안 쓰는 편인데도 책에 나온 굵직한 성공 사례들을 다 알고 있다는 게 놀라웠다. 그만큼 지난&#160;몇 년간 토스가 우리 사회에서 화제의 회사였다는 거겠지. 읽는 내내 가슴이 부글부글 끓었다. “왜 나는 이렇게 생각을 못했지?” “우리 회사가 토스처럼 사업을 성공시키려면 어떤 점을 개선해야하지? 내가 뭘 할 수 있지?” “왜 나는 진심을 다해 도전하지 않았지?” 등의 생각이 들어 끝까지 읽지 못하고 중간에 메모장을 켰다.\n책을 살 때까지만 해도 ‘얼마나 솔직하게 썼겠어’ 싶은 생각이 컸는데, 읽다보니 성공의 이유 뿐만 아니라 실패담까지 투명하게 밝혀서 오히려 토스의 자신감이 더 잘 느껴졌다. 우리한테 이만큼 다 알려줘도 이길 자신이 있구나. 진짜 멋있다.\n챕터가 바뀌면서 해당 챕터의&#160;주요 인물을 묘사하는 대목들이 좋았다. 이승건 대표 시점으로만 쓰였다면&#160;다 못 읽었을 것 같다.\n토스가 간편결제로 돈을 벌 수 없다는 걸 깨닫던 순간, 토스가 100명 규모로 늘어나면서 기존 문화를 잃을 위기에 처했던 순간, 토스대부를 접어야 했던 순간, 토스 디자인 시스템을 만들던 순간 등등...&#160;책에 묘사된 토스의 중요한 순간들마다 주인공이 다 달랐다.\n토스가 책을 통해 알려주는 성공방정식을 정리해보면,\n1/ 실패는 되도록 빨리, 저렴하게 경험한다.\n2/ 왜냐하면 시장이 무엇에 반응할지는 직접 해보기 전까지 모르기 때문이다. MVP로 빠르게 테스트해서 검증해본다.\n3/ 테스트 결과가 아니다 싶을 때는 빠르게 포기한다. 상인이 존재하는 이유는 시장에 풍요를 가져다주는 것인데, 이를 충족하지 못한다면 빨리 인정하고 포기해야 손실을 줄일 수 있다.\n4/ 영리한 여우는 굴을 여러개 판다. 즉, 한가지 사업에 사활을 걸지 않는다. 빨리 실패할 수 있는 이유는 대안이 있기 때문이다. - 토스는 이런 일하기 방식을 ‘다다다다 프로젝트’라고 명명했다.\n5/ 제품이 일정 궤도 이상에 올랐다면 이 것을 고도화(디자인시스템 마련, 인프라 구축, 데이터 고도화)해야한다. - 나는 오히려 이 부분을 일정 궤도 이상에 오르지 않았다면 마땅히 제쳐두고 가야 할 부분이라고 읽었다.\n6/ 능력 있는 사람들은 오히려 자율성을 더 열어줄 때 최대한의 능력을 발휘한다.\n7/ 이 때 무임승차하거나 제도의 허점을 이용하는 1%는 있기 마련이다.\n8/ 1%를 최소화하기 위해 채용은 더욱 신중하게 한다.\n9/ 구성원이 많아질수록 솔직함은 더 중요해진다. 대표와 경영진은 직함을 내려두고 직원들이 자유롭게 제언할 수 있도록 방안을 강구해야 한다. 책에 등장인물을 데려올 때 가장 중요한 것은 독자가 그 사람을 미워하지 않게 하는 것이라고 생각하는데, 이 책은 등장인물 중 그 누구도 미워할 수 없게 아주 잘 쓴 책인 것 같다. 특히 맡은 역할과 지위 때문에 상대적으로 미움 받을 가능성이 큰 이승건 대표조차도 그의 단점을 빼지 않고 본문에 녹이면서도 독자가 이 사람을 미워하지 않도록 입체적으로 묘사한 게 대단하다.\n가장 재밌었던 장면들,\n1/ 2014년 카카오가 '뱅크월렛 포 카카오'를 내자 이승건 대표가 즉각적으로 '토스를&#160;포기하자'라고 반응했다는 장면.\n책을 읽어 보면 토스가 생각보다 더 카카오를 끊임없이 의식하며 성장해 왔음을 알 수 있는데, 잠시나마 카카오에 '알아서 기자'라고 생각할 때가 있었다니&#160;지금의 토스나 이승건 대표의 이미지를 생각해 보면 정말 놀랍다.&#160;심지어 '당시 여자친구'의 조언으로 마음을 돌렸다는 내용을 공개한 것도 파격적이다.\n팀원들은 이대로 끝낼 수 없다며 반대했지만, 당시 이승건의 심리 상태는 '알아서 기자'에 가까웠다. (57쪽)\n2/ 대출비교 서비스가 폐기된 이후 대출 광고 배너를 시도하는 장면.\n대출 광고 배너를 하자는 제안에는&#160;반대가 심했다고 한다. 사용자 경험을 해치고 가치를 제공하지 못할 것 같다는 게 그 이유.\n하지만 막상 실행해 보니 달랐다.&#160;사실 사용자들은 대출을 어디서 받아야 하는지조차 몰랐기 때문에 배너 광고로도 분명 가치를 줄 수 있었고, '대출 하면 토스'라는 인식도 줄 수 있었다고. 당시 격렬하게 반대했던 한 구성원은 공개적으로 사과하기까지 했다고.\n고객을 잘 이해하지 못한 채로, 우리끼리 생각하는 '좋은 제품'에 대한 기준만 높았던 거예요. (134~135쪽)\n3/ 토스 디자인&#160;시스템(TDS)을 구축하는 장면.\n2018년 성장세가 주춤한 토스는 앱 디자인과 기능을 정렬하기로 했고 '디자인 시스템'을 구축했다. 사실 나에게 토스는 항상 'UX가 탑티어인 스타트업'이기도 했는데, 이게 생각보다 얼마 되지 않은 면이라는 게 놀라웠다.\n이 파트를 읽으니 왜 토스가 굳이 이모지 폰트까지 내려고 했는지 더 확실하게 이해되는 기분. 그리고 왠지 '유난한 도전' 책 표지도 토스 디자인 시스템에 맞춰서 만든 거 아닌가 싶어졌다. 제목 폰트는 토스 프로덕트 산스인 것 같고\n토스팀의 무게추가 사용자경험을 향해 기울고 있었다. (183쪽)\n4/ '친구를 초대하면 나도 5000원, 친구도 5000원' 이벤트를 '친구에게 5000원 보내기'로 바꾼 장면.\n소비자들에게 가는 보상의 총합이 줄었으니까 이상한 결정 같지만 사실 사람들은 '내게 이득이 되는 일을 친구에게 부탁하는 것'보다 '친구에게 이득이 되는 일을 하는 것'을 더 쉽게 느끼므로 더 효과가 좋았다고 한다. 비용이 반으로 줄어드는 것은 덤.\n이렇게 잘 안 될 것 같지만 실제로는 잘되는 것들을 찾는 것이 중요해요. 찾기는 어렵지만 한 번 찾으면 임팩트가 매우 크기 때문이에요. (158쪽)\n마스터스 오브 스케일 ===========================================\n성공한 스타트업 편집샵\n직접 기업을 운영하거나 혹은 사업을 시작하려는 분들에게는 많은 유용한 팁들이 포함되어 있다. 한가지 아쉬운 점은 꽤나 많은 주제들을 다루려하다보니, 좀더 자세하게 기술되어도 좋을 내용들이 다소 짧게 요약되어 버린점이다. 마치 3-4페이지에 걸쳐서 읽어도 좋을 부분들이 1페이지에 결론 중심으로 요약된 그런 부분들도 상당히 있다. 방송했던 내용들을 요약해서 담다보니 그렇게 된것이라 생각한다.\n너무 많은 지침들이 있어서 이 책을 읽고나서 일주일쯤 지난 지금 기억에 남는건,\n회사를 창업해서 키워나갈때 속도를 빠르게 밀어붙이 라는 것. (블리츠 스케일링)\n담대하게, 의지를 가지고 최대한의 투자를 받아서 ─ 투자받는것에 실패해도 계속 도전할것 ─ 비즈니스를 키워나가지 않으면 이미 비슷한 사업체가 어딘가에서 또 탄생하게 마련이라는 것. 그리고 비즈니스를 키워나갈때 창업자의(리더의) 확실한 비전이 있어야하며, 그 비전은 직원들과 철저하게 공유되어야 하고 비전을 제시할 사람은 결국 리더뿐이라는 것.\n또한 회사를 키울때 가장 중요한건 회사의 문화이며, 그 문화를 만들어나갈수 있는 인력과 리더가 매우 중심이 된다는 것이다. 제품과 서비스에만 정신이 팔려, 간혹 소홀해질수있는 눈에 안 보이는 무기가 바로 이 '문화'라는 것이다.\n스쳐지나가는 글귀였던것 같지만 마음에 확 박혔던 문장은,\n내 제품(서비스)을 좋아하는 백만명의 사용자보다는\n내 제품(서비스)을 사랑하는 백명의 사용자가 훨씬 파워풀하다는것.\n지나가는 100명보다 직접 내 shop에 들러주는 10명이 엄청 소중하고 중요하다는것과\n그 10명이 재방문할수 있으면 적어도 그 shop이 소위 '똔똔'은 맞춘다는것(적자는 피한다).\n책에서 제시하는 지침 외에도 전반적으로 미국의 기업들이 소개되다보니 미국 특유의 회사 문화 같은 것도 느껴진다.\n하지만 한국에서도 저자가 제시하는 지침들이 안 통하리라는 법은 없을 것이며,\n1인 사업자로 시작하게되는 모든 이들에게 용기 내라고 말해주고 싶다.\n나이키의 창업스토리를 담은 책 '슈독'은 은둔의 경영자 필 나이트의 자서전 격인 책이다. 이 책을 관통하는 주제는 단 하나로 요약할 수 있다. 완벽하게 준비해서 사업을 벌이는 사람은 없다는 것. 시총이 이탈리아 한 해 GDP(2조원)를 웃도는 애플의 스티브 잡스도, 유통업을 뒤흔든 아마존의 제프 베저스, 소셜네트워크서비스(SNS)를 세계에 전파한 페이스북의 마크 저커버그도 단칸방에서 사업을 구상했다. 그들은 좌충우돌하며 만든 이 기업이 어떻게 변화하고 성장하며, 사회에 어떤 영향을 끼칠지 몰랐다. 그들은 '미친 생각'을 가지고 그저 밑바닥부터 시작했을 뿐이다.\n나이키를 만든 필 나이트도 마찬가지다. 신발에 미친 그는 전후인 1960년대 일본에 찾아간다. 아식스로 유명한 오니즈카 타이거라는 신발회사였다. 그는 회사 임원을 만난 자리에서 말한다. \"오니즈카 신발을 미국에서 팔고 싶습니다\". 필 나이트는 자신이 미국에서 '블루리본'이라는 신발 판매업을 운영하고 있다고 했다. 그러나 그것은 순전히 거짓말이었다. 그는 그저 대학생이었을 뿐이다. 이렇게 시작한 블루리본은 일본에서 신발을 들여와 미국 동부를 중심으로 판매를 확장해 나간다. 그것도 주먹구구식이었다. 오니즈카로부터 몇 개의 신발을 떼 오면 학교의 운동부원이나 코치들에게 직접 판매하는 시스템이었다.&#160;\n그는 이런 식으로 회사의 크기를 키워갔다. 회사의 덩치에 비해 자본금과 현금흐름이 너무나 약해 주거래 은행으로부터는 번번이 거절당하는 수모도 당했다. 그도 블루리본을 창업하고 신발을 판매할 때 이 기업이 얼마나 큰 기업이 될지 몰랐을 것이다. 그는 그저 닥치는 일에 부딪혔고 쓰러져도 다시 일어났다. 그는 뒷걸음칠 때도 있었지만 눈은 앞을 바라봤고, 이가 없으면 잇몸이라는 정신으로 기업을 키워갔다.\n[나이키 최초의 후원 선수인 스티브 프리폰테인]\n그가 정의한 나이키의 창업 정신은 '프리폰테인 정신'이다. 프리폰테인은 나이키가 처음 후원했던 장거리 육상선수의 이름이다. 프리폰테인은 첫 스타트부터 끝까지 전력을 다해 달린 선수다. 보통 장거리 선수들은 초반에 힘을 비축해 마지막에 힘을 쏟아붓는 게 통상의 일이지만 그는 달랐다. \"작전은 필요 없고 오직 열심히 뛸 뿐\"이라는 말과 함께 나이키의 정신이 됐다. 나이키는 프리폰테인처럼 와플 모양의 밑창 운동화를 성공시키면 곧바로 벌어들여온 이익을 전부 재투자하는 '전력질주' 방식으로 기업을 키워갔다.&#160;\n[나이키의 공동 차업주인 빌 바우어만이 와플 기계로 고무를 녹여 개발한 신발]\n나이키 창업에 뛰어들었던 사람들의 공통점이 있다면 그들이 슈독(shoe dog)이라는 점이다. 슈독은 신발의 제조 판매 구매 디자인에 전념하는 사람을 말한다(269p). 그들은 신발 밑창에 쿠션을 덧대고, 공기를 주입하는 등 새로운 기술을 선보인다. 나이키의 추종자들은 이들의 '프런티어' 정신을 사랑했다. 그들이 가진 '반골기질'은 나이키의 추동력이 됐다. 나이키의 창업 멤버인 우델은 촉망받던 운동선수에서 교통사고로 인해 하반신 불구가 됐고, 헤이즈는 체중이 많이 나가 직전 직장에서 파트너 회계사가 되지 못했다. 이들 모두 직장상사에 버림받고, 운이 좋지 않았고 사회로부터 거부당한 사람들이다. &#160;\n이들의 반골기질은 대기업에서 불가능한 자유로운 토론문화를 만들었는데, 이것이 기업에 활기를 불어넣었다. 창업 멤버들과 술자리에서 치열하게 나이키 앞날을 논의했다. 이를 '버트페이스'(ButtFace) 모임이라고 이름 지었다. 고집 센 이들이 만나 공격적인 언사를 통해 다른 사람을 공격하면서 더 나은 사업 방향을 정하는 것이다. &#160;&#160;\n기업을 세우면 모든 것이 싸움이었다. 그러나 이들은 사업을 포기하더라도 중단하지는 않았다. 1971년 오니즈카 타이거즈의 신발이 중단될 위기가 놓이자 자체 브랜드를 만들어 돌파했다. \"기업가는 결코 포기해선 안 된다고 말하는 사람들이 있지만 나는 포기할 때를 알고 다른 것을 추구할 때를 아는 지혜가 필요하다. 포기가 중단을 의미하지 않는다, 기업가는 결코 중단해선 안 된다\"\n필 나이트의 무대포식의 경영전략과 삶의 방식은 오늘날 젊은이들에게 잊힌 무언가를 건드린다. 밀레니얼, 3포 세대로 불러지는 지금의 20~30세대는 나약함과 유약함의 상징으로 대변되고 있다. 이들은 옛날 젊은이보다 똑똑하지만 세상을 비관적으로 바라본다. 이 세대는 2008년 글로벌 금융위기 이후 저성장의 늪과 높은 실업률이라는 한계에 직면해 있다. 이렇게 주어진 조건은 바꿀 수 없다. 그러나 이러한 조건 속에서 할 수 있는 일은 찾을 수 있다. 나이키의 슬로건처럼 우리는 도전해야 한다. JUST DO IT. 그냥 하자.\n======================================================\n기업가와 관리자 그리고 기술자\n이 책 <사업의 철학>은 25년 전 첫 출간된 책으로, 출간 즉시 경영의 고전이 된 책이라고 한다. 전 세계 700만 명이 탐독한 경영의 고전으로 많은 사업가들을 폐업의 위기에서 구해낸 밀리언셀러라기에 그 내용이 궁금해졌다. 많은 사람들이 창업을 하는데 빠른 속도로 문을 닫는 모습을 많이 볼 수 있다. 분명 생긴지 얼마 되지 않은 새 가게가 어느 날 아침 보면 사라져 있다. 미국도 창업 첫 해에 40% 이상이 망하고, 5년 안에 80% 이상, 그리고 첫 5년을 살아남은 기업의 80% 이상이 그 다음 5년 안에 망할 정도로 믿기 어려운 속도로 창업에 실패한 사업체가 증가하고 있다고 한다. 그리하여 저자는 창업하고 실패하기를 반복하는 이들이 몰랐던 것들에 대해 이야기한다.\n&#160;\n기업가와 관리자의 지배를 받는 기술자들은 다양한 이유를 대며 기업가 열병을 앓는 기술자는 자신이 너무나 좋아하는 일, 자신의 기술 분야를 택하여 창업을 하는데 문제는&#160;그렇게 창업한 기술자가 자신의 기술을 믿고 그 기술을 쓰기 위해 창업을 하지만 정작 사업에 필요한 것은 기술 뿐만 아니라 기업가 정신, 관리자 역할 등 다방면까지 신경써야 한다는 것이다. 분명 좋아해서 시작한 그 일은 낯설고 불쾌하고 잡다한 업무 속에서 점차 하기 싫은 일이 된다. 처음엔 열정과 포부를 가지고 도전했던&#160;그 일은 점점 생계유지의 도구로 전락해 버린다.\n&#160;\n여기서는 파이 굽는 것을 좋아하고 잘하여 가게를 차린 사라라는 여성의 사례들 보여주는데, 사라의 이런 경험은 사업을 처음 시작하는 이들에게서 흔히 볼 수 있는 모습이다. 사라는 아침 7시에 가게 문을 열기 위해 새벽 3시에 출근하여 청소부터 시작하여 파이 굽기, 재료 구입, 이익을 계산하는 등&#160;기업가 역할과 관리자 역할까지 전부 떠맡아&#160;한다. 그녀가 매일같이 반복되는 이런 삶에 지쳐 자포자기했을 때 저자는 파이만 맛있게 만들면 된다는 기술자 마인드로는 절대 성공하지 못한다며 그렇다면 파이를 굽는 일(기술자)을 하는 것이 맞다고 냉철하게 이야기하며 그녀의 힘든 상황을 돕기 위해 사업의 철학에 대해 여러가지 조언을 해주는데 공감할 수 있는 상황과 도움이 되는 유익한 내용들이었다.\n&#160;\n사실 우리 내면에게는 기업가, 관리자, 기술자가 모두 들어 있다고 한다. 그리고 이 세 가지 인격이 똑같이 균형을 이루는 축복을 받은 사람은 거의 없는데&#160;아마&#160;이런 축복을 받은 사람들은 대표적으로 우리가 유능한 사람이라고 말하는 몇몇 인물들일 것이다.\n&#160;\n기업가의 역할은 항상&#160;의문을 품어 보는&#160;것이다.&#160;과거가 아닌 미래를 지향하면서 항상&#160;상상하고 꿈꾸고, 이성의 한계 너머나 가슴 깊숙한 곳 어딘가에 떠 있을 가능성들을 혼자 힘으로 모을 수 있는 만큼 모아 생각해 보는 것이다.&#160;그것이 바로 창업을 하고 사업을 진행해 가는 각 단계마다 기업가 인격이 해야 할 일이다. '뭐가 있을까?' 그렇게 끊임없이 의문을 품고 묻는 것이 바로 기업가 인격이 해야 할 일이다. (p.51)\n&#160;\n사업을 인생에 비유하여 유아기와 청소년기를 거쳐야만 성인기 기업에 이를 수 있다고 말하며, 각 단계의 역할과 각 단계를 버텨내는 방법에 대해 이야기한다. 그리고 기업가의 시각을 갖게 만들어 주는 것이 바로 아래 정리한&#160;것인데, 지속 가능한 사업 원형의 창조를 가능케 하는 수단인 사업개발 프로그램 7단계이다. 각 단계마다 적절한 설명과 예시를 보여주며 정확한 답을 제시하기 보다는 본인 스스로 자연스레 떠오르는 좋은 질문들을 이끌어내는 내용들이었다.&#160;\n&#160;\n&#160;\n[사업개발 프로그램&#160;7단계]\n&#160;\n1.&#160;주요 목표&#160;- 내가 가장 가치를 두는 것은 무엇인가? 나는 어떤 형태의 삶을 원하는가? 나는 내 삶이 어떤 모습, 어떤 느낌이기를 원하는가? 나는 어떤 사람이 되기를 소망하는가? 이 모든 질문에 대한 답이 바로 당신의 주요 목표이다. 다음은 창업을 하기 전에, 혹은 내일 다시 사업으로 돌아가기 전에 주요 목표를 세우는 데 있어서 스스로 해 볼 수 있는 질문들이다.\n&#160;- 나의 인생이 어떻게 보이길 바라는가?\n&#160;-&#160;일상의 삶이 어떠하기를 바라는가?\n&#160;- 내가 내 삶에 대해 잘 안다고 말할 수 있으려면 어떻게 해야 할까?\n&#160;- 나의 가족, 친구, 사업 동료, 고객, 직원, 공동체를 비롯하여 다른 사람들과 어떻게 지내기를 원하는가?\n&#160;- 사람들이 나에 대해 어떻게 생각하면 좋겠는가?\n&#160;- 지금으로부터 2년 뒤에 무엇을 하고 있으면 좋겠는가? 지금으로부터 10년 뒤, 혹은 20년 뒤에는? 내 삶이 다하는 때에는?\n&#160;- 인생에서 구체적으로 무엇을 배우고 싶은가? 영적으로, 싱체적으로, 재정적으로, 기술적으로, 지적으로 무엇을 배우고 싶은가? 관계에 대해서는?\n&#160;- 내가 원하는 일을 하려면 얼마나 많은 돈이 필요할까? 언제 그 돈이 필요할까? (P.178)\n2.&#160;전략적 목표&#160;- 궁극적으로 어떻게 해야 사업을 통해 주요 목표를 이룰 수 있는지 매우 명확하게 진술한 것을 말한다. 그것은 완성품으로서의 사업이 어떤 모습이어야 할지 보여 주는 비전이기도 하다. 전략적 목표에 포함되어야&#160;하는 기준은 돈, 추구할 만한 기회이다.\n3.&#160;조직 전략&#160;- 조직화되기를 원하면 조직도를 먼저 만들어라. 우선 조직도에 필요한 직책은 사장 겸 최고 운영 책임자, 마케팅 담당 임원, 운영 담당 임원, 재무 담당 임원 등이다.\n4.&#160;관리 전략&#160;- 성공적인 관리를 위해서 필요한 것은&#160;유능한 관리자가 아니라 관리 시스템이다. 관리 시스템은&#160; 마케팅 효과를 만들어 내기 위해 사업 원형 속에 설계해 넣은 시스템인데 당신의 관리 전략이자 지속 가능한 사업 원형이 당신이 원하는 결과를 만들어 내도록 하는 수단이 되고, 직원들의 행동을 예측 할 수 없어 힘들어하는 당신의 고민을 해결해 줄 해결책이 될 것이다.\n5.&#160;인사 전략&#160;- 직원들이 내가 원하는 일을 하게 하려면 그 일을 하는 것이 하지 않는 것보다 그들에게 중요할 수밖에 없도록 분위기를 만들어야 한다. 그러면 자연스럽게 직원들의 삶 자체에 녹아들게 된다.\n6.&#160;마케팅 전략&#160;- 마케팅 활동은 당신이 고객들을 끌어오기 위해서 하는 약속과 더불어 시작되며, 당신에게 온 고객들을 상대로 판매 행위를 할 때도 계속된다. 그리고 고객들이 문을 나서기 전에 약속을 지키는 것으로 끝이 난다. (P.293) 고객 발굴, 판매 전환, 고객 만족의 과정이 사업의 성장에 중요한 이유이기에 마케팅 활동은 결코 중단되어서는 안 된다.\n7.&#160;시스템 전략&#160;- 사업에는 하드시스템, 소프트시스템, 정보시스템이 있다. 원하는 결과를 얻으려면 이 세 가지 시스템을 잘 통합시켜야 한다."
+  }
+];
+const CONTENT_HASH = 'ec381183';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

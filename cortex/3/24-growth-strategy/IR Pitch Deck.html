@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IR Pitch Deck</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">IR Pitch Deck</div>
+<div class="date">2018년 10월 25일 목요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-IR-Pitch-Deck';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 600,
+    "content": "<a href=\"https://www.cirrusinsight.com/blog/startup-pitch-decks\">https://www.cirrusinsight.com/blog/startup-pitch-decks</a>\n무적의 투자유치용 덱 작성법\n<a href=\"http://bridge.500startups.co.kr/%eb%ac%b4%ec%a0%81%ec%9d%98-%ed%88%ac%ec%9e%90%ec%9c%a0%ec%b9%98%ec%9a%a9-%eb%8d%b1-%ec%9e%91%ec%84%b1%eb%b2%95/\" style=\"font-size:13.5pt;background-color:whitesmoke;font-weight:bold\">Editor's Note </a>\n좋은 투자유치용 덱을 만들기 위해 참고할만한 좋은 조언들은 충분히 많다. 500스타트업이 특히 사랑하는 저자 마크 수스터의 글이 대표적이다.온라인 상에 다양함 템플릿과 실제 실제 스타트업의 투자유치용 덱 자료 모음집들(https://attach.io/startup-pitch-decks/)도 있다. 이 글의 저자인 잔즈는 이런 자료들을 한 번쯤 시간 내어 읽어볼 것을 추천한다. 이 글에서는 그간 많이 다뤄지지 않은 세부적인 내용을 설명한다. 투자유치용 덱에서 숫자, 도표, 그리고 추정치를 제시할때 고려해야할 요소들을 다루고 있다. 간략하고 명료한 내용이므로 실행에 옮기기 그리 어렵진 않을 것으로 예상한다. 탄탄한 투자유치용 덱으로 무장하고 전쟁터에 나가길 바라는 마음에 이 글을 소개한다."
+  },
+  {
+    "type": "text",
+    "x": 888,
+    "y": 139,
+    "w": 600,
+    "content": "Pitch deck\n<a href=\"https://yeonlab.com/pitchdeck/\">https://yeonlab.com/pitchdeck/</a>\nIR&#160;(Investor Relations)란, 투자자들을 대상으로 기업 설명 및 홍보 활동을 하여 투자 유치를 원활하게 하는 활동을 의미한다.\nPitch deck의 목적\n영화의 trailers (미리보기/예고편) 처럼, 당신이 투자를 받기 위해 보여주는 비즈니스 모델의 teaser 와 유사하다.\n최종적으로 fundraising을 통한 IR 목적이며\n기관/투자자와의 investment interests fit을 어필하고\n기본적인 관심 preliminary interest 유도하여\n최우선적으로, 투자자와의 미팅을 하기 위해 만드는 짧은 발표이다.\n당신의 그 부담스러움을 덜어주기 위해, 김도연 컨설턴트가 몇 개의 베스트 스타트업 피치덱을 가지고 왔다. 이 예시를 참고하면서, 이제는 엄청나게 거대해진 Facebook 이나 수백만 달러의 valuation 을 평가받는 회사들이 그 당시에 어떻게 회사를 어필하여 투자를 유치했는지 아이디어를 가질 수 있으리라 믿는다.\n피치덱에 포함시켜야 할 내용은?\n팀 구성\n당신이 해결하고자 하는 문제(유저들이 겪고 있는 문제점)\n당신만이 제공하는 문제 해결법(USP)\n당신이 제공하는 문제 해결법이 고객들에게 중요한 이유(ROI)\n기본 기술에 대한 설명 및 차별화된 IP\n시장 규모(<a href=\"https://verticalplatform.kr/archives/5494\" style=\"font-size:12pt;color:#464646;background-color:white\">TAM</a>)\n경쟁구도\n유닛 이코노믹\n회사의 재정적 전망:&#160;최근 18 개월 동안 월별 소득 계산서와 향후 3~5년간 예상되는 소득 계산서(미래를 정확히 예측할 수는 없지만 어쨋든 향후 전망에 대한 정보를 제공하는 것은 매우 중요)\n유저 메트릭 혹은 기업을 대상으로 하는 서비스 일 경우 주요 고객 및 파이프라인\n목표로 잡고 있는 투자 유치 금액\n수익금 사용\n포함시키지 말아야 할 내용은?\n곧 출시 예정인 기능에 대한 자세한 설명\n고객에 대한 자세한 설명\n연봉에 관한 정보\n당신의 경쟁사 혹은 대중들에게 알리고 싶지 않은 정보들\nUnicorn Pitch deck Sample\n<a href=\"https://www.cirrusinsight.com/blog/startup-pitch-decks\">https://www.cirrusinsight.com/blog/startup-pitch-decks</a>\n<a href=\"https://www.slideshare.net/TechInAsiaID/buzzfeed-pitch-deck?ref=https://yeonlab.com/pitchdeck/\">buzzfeed-pitch-deck</a>\nthrive-global-pitch-deck</a>\n<a href=\"https://www.slideshare.net/AlexanderJarvis/youtube-pitch-deck?ref=https://www.cirrusinsight.com/blog/startup-pitch-decks\">youtube-pitch-deck</a>\n<a href=\"https://www.slideshare.net/DanielleMorrill/mattermark-2nd-final-series-a-deck?ref=https://www.cirrusinsight.com/blog/startup-pitch-decks\">DanielleMorrill</a>\n<a href=\"https://www.slideshare.net/AlexanderJarvis/crew-pitch-deck-seriesa?ref=https://www.cirrusinsight.com/blog/startup-pitch-decks\">crew-pitch-deck</a>\n<a href=\"https://www.slideshare.net/AlexanderJarvis/wework-pitch-deck-55170129?ref=https://www.cirrusinsight.com/blog/startup-pitch-decks\">wework-pitch-deck</a> D"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 423,
+    "w": 600,
+    "content": "<style type=\"text/css\"> .wpb_animate_when_almost_visible { opacity: 1; }</style>\n납득할만한 바텀업 방식의 총 유효시장(TAM) 추정 제시\n대부분의 투자유치용 덱에는 회사의 총 유효시장(TAM)에 대한 추정치가 포함된다. 하지만 일부 회사들은 가끔 허무맹랑한 숫자를 제시하는데, 이는 구체적인 수치가 없기 때문이다.\n예를 들어, 미국내 의사들을 위한 실습 관리 소프트웨어 시장의 규모를 추산하면서 투자자에게 “헬스케어 소프트웨어 산업이 100억 달러 규모의 시장”이라고 한다면 “중국의 1% 수준”이라고 말하는 것보다는 낫다. 하지만 그렇다고 유의미한 수치로 보기도 어렵다. 하지만 당신이 미국에 대략 23만 명의 내과의사가 있고 &#160;단위당 매출(ARPA)이 500달러므로 총 유효시장(TAM)은 14억 달러 정도의 규모라고 설명한다면 훨씬 신빙성 있다. 물론, 이후 회사가 어떻게 새로운 분야를 개척하고 지불금액을 키워 총 유효시장을 키울 것인지 설명하는 것도 좋다.\n총 유효시장에 대한 추정치를 제시하는 과정에서 바텀업 방식의 추산 방식을 택하는 것이 어디선가 검색해서 얻은 자료를 제시하는 탑다운 방식보다 낫다. 마켓플레이스를 만드는 회사라면 시장 규모를 제시할 때 총 거래규모(GMV)인지 그 중 일부분인지를 명확히 밝혀야 한다.\n업종마다, 마켓플레이스 유형마다 차이도 크다. 마켓플레이스 전문가가 작성한 마켓플레이스 수익화 전략</a>에 관한 글을 참고하기 바란다. 진입하려는 시장에 소프트웨어와 서비스가 섞여있다면 각각 지출 규모는 어느 정도인지 구분해 파악해야 한다. 제품에 따라 (전체 시장 규모가 감소 추세더라도) 소프트웨어 부문 시장은 성장한다고 얘기해도 충분히 설득력이 있을 수 있다.\n이것이 왜 중요한가?\n초기 시장의 규모는 투자자들이 매우 중요시하는 점이다. 그렇다고 모든 투자자가 규모가 큰 초기 시장에만 투자한다는 얘긴 아니다. 어떤 회사는 작은 시장에 침투해 총 유효시장을 확장한다. 또 새로운 시장을 개척하는 경우에는 숫자를 제시하기 어려울 때도 있다. 총 유효시장은 투자자들이 투자 기회를 평가할 때 검토하는 수 많은 지표 중 하나다. 하지만 매우 중요한 것은 사실이므로 듣는 이가 명확하게 감을 잡을 수 있도록 전달하는데 신경을 써야 한다.\n&#160;\n쉽게 검증할 수 있도록 추정치와 주장을 제시\n투자유치용 덱에서 가령 총 유효시장 규모를 외부 시장조사 업체 자료에서 인용했다면 항상 그 출처를 밝혀라. 그외에 슬라이드에 포함한 모든 수치 등 덱에 포함한 내용은 근거를 명시해야 한다. 외부 자료나 분석은 원본 출처 링크를 포함시켜야 한다. 박사 학위 논문에 버금갈 만큼 한 줄 한 줄 참고 문헌이나 주석을 달라는 얘기는 아니지만, 외부 자료를 인용할 때는 그만큼 근거를 명확히 보여줘야 한다는 얘기다.\n벤처투자자들은 매달 수 백 개의 덱을 살펴보는데, 상당수는 꽤나 강력한 주장이나 가설을 담고 있다. 투자자를 설득해 투자를 유치하려면 주장에 대한 근거를 제시해야 하는 것은 당연하다. 예를 들어, 당신의 소프트웨어가 기존 제품들보다 ‘20% 더 효과적’이라고 주장한다면 그 근거가 무엇인지 궁금해할 것이다. ‘효과적’이라 것을 어떻게 정의하고 측정했는지, 비교 대상은 무엇인지 등 말이다. 지나치게 깐깐하다고 불만스러울 수도 있다. 하지만 고객생애가치(LTV) 대비 고객획득비용(CAC)의 비율이 1:5라고 주장하려면 당연히 어떻게 이를 계산하고 추정했는지, 그리고 어떤 소비자 코호트를 분석했는지 설명이 필요하다. &#160;\n<a href=\"http://bridge.500startups.co.kr/wp-content/uploads/2018/08/111.jpeg\">"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 1167,
+    "w": 480,
+    "h": 226,
+    "src": "0b7d291533.png",
+    "link": "http://bridge.500startups.co.kr/wp-content/uploads/2018/08/111.jpeg"
+  },
+  {
+    "type": "image",
+    "x": 888,
+    "y": 1223,
+    "w": 220,
+    "h": 200,
+    "src": "e1d05d1cd9.png"
+  },
+  {
+    "type": "image",
+    "x": 1116,
+    "y": 1223,
+    "w": 220,
+    "h": 200,
+    "src": "3e42be6994.png"
+  },
+  {
+    "type": "image",
+    "x": 1344,
+    "y": 1223,
+    "w": 220,
+    "h": 200,
+    "src": "b83d5efa6a.png"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1401,
+    "w": 600,
+    "content": "애매모호함을 피하라\n당신이 사용하는 지표에 널리 통용되거나 합의된 정의가 없다면 스스로 정의하고 덱에 포함시켜라. 가령 당신이 소비자 대상 웹 서비스를 운영하는데 “반복 비율이 80%”라고 주장했다고 가정해보자. 추가적인 설명이 없다면 이는 유의미한 정보가 아니다. 방문자의 80%가 재방문 사용자라는 의미인가? 사용자의 80%가 재방문한다는 의미인가? 이 경우에 시간 간격은 어떤가? 유사한 맥락에서 이탈율에 대해 이야기할 때 가입 취소(logo churn)인지 구매 취소(dollar churn)인지를 구분해야 하며, 후자의 경우에도 총 취소액인지 순 취소액인지 등을 명시해야 한다.\n월별반복매출(MRR) 혹은 이자및세전이익(EBIT) 등 명확히 정의된 개념은 투자자가 이해하기 쉽다. 하지만 애매한 경우 정확한 정의를 짚어주는 것이 좋다. 실제로 공기업들이 재무제표 혹은 미국 증권거래위원회(SEC) 제출자료에서 GAAP(미국 회계기준) 지표를 따르지 않는 경우를 얼마나 철저하게 구분하는지를 보라. 관련 주제에 대해 더 알고 싶다면 <a href=\"http://christophjanz.blogspot.com/2017/12/how-public-saas-companies-report-churn.html\" style=\"font-size:12pt\">SaaS 회사들이 이탈(구매 취소)을 정의하는 다양한 방법에 대한 글</a>을 참고하라."
+  },
+  {
+    "type": "image",
+    "x": 888,
+    "y": 1431,
+    "w": 220,
+    "h": 200,
+    "src": "9d1e29944d.png"
+  },
+  {
+    "type": "image",
+    "x": 1116,
+    "y": 1431,
+    "w": 220,
+    "h": 200,
+    "src": "c058933e13.png"
+  },
+  {
+    "type": "image",
+    "x": 1344,
+    "y": 1431,
+    "w": 220,
+    "h": 200,
+    "src": "0a6103524f.png"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1665,
+    "w": 600,
+    "content": "공기업들은 정확한 지표를 사용하는 것이 생존의 여부와 직결되는 중요한 문제다. 부정확한 재무정보 전달은 법적인 문제가 될 수 있고, 크게는 주주 소송으로까지 이어질 수 있는 매우 민감한 사안이다. 따라서 재무 및 법무팀에서는 혹시 모를 분쟁을 피하기 위해서라도 최대한 상세하게 문서를 준비한다.\n<a href=\"http://bridge.500startups.co.kr/wp-content/uploads/2018/08/222-1.png\">"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 1789,
+    "w": 480,
+    "h": 122,
+    "src": "83203c07c7.png",
+    "link": "http://bridge.500startups.co.kr/wp-content/uploads/2018/08/222-1.png"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1919,
+    "w": 600,
+    "content": "초기 단계 창업자라면 부정확한 회계 보고 때문에 송사에 휘말리거나 감옥에 가는 일까지는 우려하지 않아도 된다. 다만 명확하지 않은 지표를 두고 얘기하면 투자자와 소통이 어렵고, 회사에 대한 이해를 더욱 어렵게 만든다.\n도표로 속이려 하지마라"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2003,
+    "w": 600,
+    "content": "<a href=\"http://bridge.500startups.co.kr/wp-content/uploads/2018/08/333.png\">"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 2067,
+    "w": 480,
+    "h": 277,
+    "src": "22c89dc1f8.png",
+    "link": "http://bridge.500startups.co.kr/wp-content/uploads/2018/08/333.png"
+  },
+  {
+    "type": "image",
+    "x": 536,
+    "y": 2067,
+    "w": 480,
+    "h": 280,
+    "src": "4f6f8afaa6.png",
+    "link": "http://bridge.500startups.co.kr/wp-content/uploads/2018/08/444.png"
+  },
+  {
+    "type": "image",
+    "x": 1024,
+    "y": 2067,
+    "w": 480,
+    "h": 416,
+    "src": "001ba04772.png",
+    "link": "http://bridge.500startups.co.kr/wp-content/uploads/2018/08/555.png"
+  },
+  {
+    "type": "image",
+    "x": 1512,
+    "y": 2067,
+    "w": 480,
+    "h": 416,
+    "src": "2b7db4632e.png",
+    "link": "http://bridge.500startups.co.kr/wp-content/uploads/2018/08/666.png"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2491,
+    "w": 600,
+    "content": "<a href=\"https://medium.com/point-nine-news/how-to-bulletproof-your-fundraising-deck-d18c0de6d93d\" style=\"font-size:12pt\">원문 링크</a>"
+  }
+];
+const CONTENT_HASH = '83eddb95';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

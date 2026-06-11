@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quibi</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Quibi</div>
+<div class="date">2020년 4월 11일 토요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Quibi';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 576,
+    "content": "<a href=\"https://techcrunch.com/2020/04/09/quibi-vs-tiktok/\">https://techcrunch.com/2020/04/09/quibi-vs-tiktok/</a>\n<a href=\"https://news.joins.com/article/23749338?fbclid=IwAR3JeoJSFxw8jgWa8Og_FD4Ztd557R9D8u-dY7H2Z7FX5z8HZ-CtySx85Yk\" style=\"font-size:11pt\">https://news.joins.com/article/23749338?fbclid=IwAR3JeoJSFxw8jgWa8Og_FD4Ztd557R9D8u-dY7H2Z7FX5z8HZ-CtySx85Yk</a>\n<a href=\"https://en.wikipedia.org/wiki/Quibi\" style=\"font-size:11pt\">https://en.wikipedia.org/wiki/Quibi</a>\nhttps://www.theverge.com/2020/4/8/21211463/quibi-screenshot-streaming-netflix-disney-tiktok-instagram-viral-tiger-king</a>\n<a href=\"https://divinations.substack.com/p/quibi-will-be-a-multi-billion-dollar\" style=\"font-size:11pt\">https://divinations.substack.com/p/quibi-will-be-a-multi-billion-dollar</a>\n<a href=\"https://finance.yahoo.com/news/mobile-only-quibi-sees-more-161647082.html\" style=\"font-size:11pt\">https://finance.yahoo.com/news/mobile-only-quibi-sees-more-161647082.html</a>\nhttps://www.theverge.com/2020/4/6/21207500/quibi-app-how-to-watch-download-price-subscription-streaming-rotation-shows</a>\n퀴비 콘텐츠 라인업\nhttps://www.theverge.com/2020/3/6/21167126/quibi-launch-lineup-day-one-movies-tv-shows-price</a>"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 583,
+    "w": 480,
+    "h": 230,
+    "src": "78b26aabd1.png",
+    "caption": "시스템 생성 대체 텍스트: Quibi"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 821,
+    "w": 480,
+    "h": 172,
+    "src": "ab3877a458.png"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 1001,
+    "w": 480,
+    "h": 308,
+    "src": "f796c4823e.png",
+    "caption": "시스템 생성 대체 텍스트: Quibi"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 1317,
+    "w": 480,
+    "h": 299,
+    "src": "0d3660ef13.png",
+    "caption": "시스템 생성 대체 텍스트: WHAT,S"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1624,
+    "w": 576,
+    "content": "Short form OTT Quibi의 2조짜리 실험은 성공할 수 있을까?\nOTT계의 금수저로 Amazon prime video와 Apple tv+, Peacock이 있다면,\n본투비 유니콘인 Quibi가 타나났다. Lunching 전 이미 17억 5천만달러(2조 1400억 원)을 투자 받으며 화려하게 데뷔했다.\n[Overview]\n도시 20~30대 청년 Target의  'Short form' 동영상 스트리밍 서비스(OTT)\n헐리우드 대표적 애니메이션 스튜디오인 Dreamworks의 창업자이자 전 월트디즈니 CEO인 Jeffery Katzenberg가 2017년 미디어 및 기술 투자 스타트업 WndrCo를 설립하면서 출시한 'New TV'가 전신이다.\n서비스명: Quibi(퀴비; Quick Bite)\n소재지/설립일: 미국 LA/2018년\n출시일: 2020. 04. 06\n서비스 국가: 미국/캐나다 (추후 확대 예정)\nTarget: 자투리 시간에 모바일 영상 시청을 즐기는 도심의 20~30대 연령층\nBusiness Model: 광고 + Subscription\nSubscription 가격: 90일 Free trial 제공 이후 광고 포함 월 $5, 광고 제외 월 $8\n광고: Pre-roll 광고로 콘텐츠 재생시간 5분 미만에는 5초~6초, 10초, 5~10분 동영상에는 15초 광고 삽입, 재생 중 정지나 Skip 불가\nFounder: Jeffery Katzenberg: Dreamworks의 창업자이자 전 월트디즈니 CEO\nCEO: Meg Whitman: 월트 디즈니, HP&#183;이베이의 CEO 출신\nKPI:  ① 유료 순가입자수  ② 시청 동영상 개수  ③ 시청자들의 이용패턴\n▶ OTT 비즈니스의 Key Indicator는 시청분수 임에도, 시청 영상 개수를 KPI로 삼고 있는 점이 독특하다. 누적으로는 시청 분수와 동일한 개념이 될 수 있겠으나, 하나의 콘텐츠에 몰입해서 길게 시청하는 것과, 분절된 콘텐츠를 시청해나가는 것은 분명한 차이가 있다는 점에서 추이가 주목된다.\n[Performance]\nㅇ 투자유치\n총 17억 5000만 달러(약 2조 1000억 원)\n주요 투자자: Diseny, Warner Media, 21st Century Fox, LIONSGATE, NBCU, viacom, Alilbaba, MGM, JP Morgan\nㅇ 가입자\n출시 당일 30만건 이상 다운로드 기록했고, 일주일간 1.7백만 가입자를 모았다.\nDiseny+가 출시 첫날 천만을 모은데 반해 열위이나, 역시 전통적인 콘텐츠 플랫폼과는 Target이 다르다.\n그들이 도시에 거주하는 20~30대의 자투리시간을 공략하겠다고 밝혔듯이, 어쩌면 Neflix를 위시한 일반적인 OTT와의 경쟁이 아닐 수 있다. 오히려 Share of time 측면에서 콘텐츠의 연속성이 중요치 않은 Tiktok과 같은 숏폼 플랫폼 내지는 자투리 시간을 지배하는 Facebook, Instagram, Snap과 같은 SNS와의 경쟁일 수 있다는 이야기다.\n즉, 관전 포인트는 고객들 입장에서는 돈을 지불하지 않던 영역(=지불 의향이 극도로 낮은 영역)에 대한 도전이라는 점이 될 수 있겠다.\nㅇ 광고 판매\nP&G, 펩시 , 월마트 , 구글 등의 대형 광고주와의 계약을 통해 2019 년 말 기준으로 1년치 광고분인 $ 1.5억(1,800억 원) 규모의 광고를 선판매+완판했다.\n광고주 리스트도 화려하다. Google, Walmart, Taco Bell, Pepsi, T-Mobile, P&G 등 10개 업체가 총 25개 브랜드의 광고를 진행할 예정이다.\n(10 개의 독점 파트너: Progressive, Discover, General Mills, Procter & Gamble, AB InBev, Taco Bell, Pepsi, T-Mobile, Google, Walmart)\n광고주와 독점 파트너십을 맺고, 동일 카테고리의 기업의 광고는 중복 집행하지 않는 정책을 취하고 있다. 이를 테면 P&G와 Unilever를 동시에 광고주로 유치하지 않는 식이다.\n광고주들이 퀴비의 플랫폼에 광고를 집행하는 것은\n1) 퀴비의 주요 시청자가 숏폼에 익숙한 25~35 세로 예상 되 고\n2) 턴 스타일 기술이 시청자들의 관여를 높여 광고의 효용이 높을 것으로 판단했기 때문이다."
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 2628,
+    "w": 480,
+    "h": 128,
+    "src": "8815e54fe4.png",
+    "caption": "시스템 생성 대체 텍스트: DISCOVER Gene『al Mills Google 및: • •Mobile• P&amp;G Walmart 하("
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2764,
+    "w": 576,
+    "content": "[Feature]\n고품질 단편 동영상 제공: 개별 시리즈는 총 2~4시간 분량으로 제작되어 회당 10분이 넘지 않는 분량으로 서비스 예정\n영상의 길이 측면에서 Youtube와 TicTok을, 콘텐츠 퀄리티 측면에서 Netflix 지향\n지원 디바이스: 모바일 only, 모바일 단말을 통해서만 제공되는 프리미엄 Short form 콘텐츠 지향 (N스크린 미지원)\n경쟁플랫폼 대비 저렴하나 계정공유는 가능하나 동시접속을 허용하지 않아, 가격경쟁력 측면에서는 동등하거나 소폭 열위\n모든 콘텐츠 다운로드 가능"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 2948,
+    "w": 480,
+    "h": 300,
+    "src": "6c8fea0a91.png"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3256,
+    "w": 576,
+    "content": "[Creators]\nIP Share하는 조건으로 헐리웃 유명 제작자 및 간판급 배우, SNS 인플루언서 기용\nSteven Spielberg, Guillermo del Toro, Antoine Fuqua, Sam Raimi 등 일류 영화감독을 비롯, 유명 코미디언 Kevin Hart, 유명 모델 Chrissy Teigen, Tyra Banks, 배우겸 가수 Jennifer Lopez와 Idris Elba 등 유명 헐리우드 스타들과 연예/스포츠 스타 대거 합류\n2019년 8월 기준 제작관련 제휴는 30건 이상\n대형 Creator 들을 포섭할 수 있었던 이유는, 오리지널 시리즈 제작자가 해당 시리즈의 IP(지적재산권) 소유를 허용한 것이 크게 작용한 것으로 보임\n[Content]\n크게  3개 Categories로 구성, ① Movies  ② Episodic unscripted and Docs(예능, 다큐)  ③ Daily Essentials(일일 프로그램, 뉴스, 스포츠 등)\n1/ Movies in Chapaters: 한편의 영화를 한 챕터별 7~10 분의 동영상으로 구성\n2/ Unscripted and Docs: 음식, 패션, 여행, 동물, 자동차, 예능 등 모든 에피소드 10 분 이내\n3/ Daily Essentials: 5~6 분 길이의 뉴스, 엔터테인먼트 정보를 매일 제공"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 3600,
+    "w": 480,
+    "h": 222,
+    "src": "a38e032930.png",
+    "caption": "시스템 생성 대체 텍스트: 17 이름 귀비에 콘텐츠 공급 예정인 주요 감독&#39;작가/바우 현황 추산드라 아가 스S|른 &amp; 로비 0덭 거드 한 어셔 하이라 발그스 나오미 욋卜츠 에이리 하거림 칼 그루 아담 터빈 적 에프론 존 파트로 국|이들린 을은 듼튀卜좋권 Ho[[월 M크「집a 70m 7 Code 출견 Code 3 7 톡 The Sane 심사돈|월, Bean 출견, 자작 Fata] Atræfion 출견 Just Cæ Drnk 작가, 그-톡 크크d Ada다1 09••Ⅰ爸 출견 230 Etrcn 출견 EVA VS. 3100k 출견 h&quot;살0 Mayhem 저작 Fibzed 출견 Fibzed 출견 Till Lægue 제작 이를 드무니 인 소피 터너 하희자 코시 제니퍼 로하= 파스트크국 최이스 다러= 크&amp;전 리Ⅰ이놀즈 아담 리폰 저스틴 로일랜드 스SIE 스더러그 스E|본 ″러그 낼런 스트리7上트 월리업A 작품 Last Resort 체작 hstagmn SLO,,ræ 출견 Fbcred 개최 0[工! Asians 작가 Tharks 크 Wcn 제작, 참겨 Lite—Ste Tcrys 진형 Tos 작가, 저작 불특정 아니다이션 프로•력트 참겨 This 0크y Useless history 진형 Ten TUI 01L111 침“겨 Rék*,lotty 금동체작. 3009 Wond Avenges 작가 1,龜e|죠5 체작 After 03R 제작 I-Jrmafced 체작"
+  },
+  {
+    "type": "image",
+    "x": 536,
+    "y": 3600,
+    "w": 480,
+    "h": 298,
+    "src": "c01c192b5f.png",
+    "caption": "시스템 생성 대체 텍스트: T±le 2. 제작 비용에 따爨 콘壑 • 대본 있는 것: 모만 특000클러 Lighthouse groiects 대부 없는 것. 듬만 달러 (&amp;uper—premium) 일부 비연재 본런치 2만 달러 Content excusive • 1만 딜러 (1|〕e middle) 0에y essentias 1만 달러 (the bottom) • 충 부랑 2″4시간 짜리를 매일 12쬐4부 부랑으로 짆어 2주 능한 연재 • Justin Timberia&amp;. •Inspired 바•. Bryant, •Under the 뵤』n• • 기존의 케이를 네트워크 밑 디지결 콘텐츠 브랜드를 통해 제공되던 0,회bi 전용 쇼 • NBC의 Saturday Night Live&quot;, Food N에햅0,k, Anlmal 등 • 뉴싀 스포츠 등 논픽션 및 리일리티 콘텐츠여 에서 엔터테인먼트 라이프 스타일 등 다임한 주제의 인들-구인서 제작 본텐츠를 앙리하여 주 5일 방영 자료: BL듸n은「」드 In드던은「 Intelligence, STRASAC」E 재구성 [2013.12!"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3906,
+    "w": 576,
+    "content": "ㅇ 제작자에 따른 콘텐츠 구분\n1/ Steven Spielberg와 같은 헐리우드 유명 제작자들이 제작한 블록버스터급 콘텐츠\n2/ 기존 TV네트워크나 유명인사와의 제휴를 통해 제작한 콘텐츠\n3/ YouTube, Instargram, 팟캐스트 등 소셜 미디어 인플루언서들이 제작하는 콘텐츠\n제작 파트너들에게 제작비용 전액을 지원하며 20%의 마진도 보장.  Quibi와 합작으로 제작한 콘텐츠에 대해 Quibi가 7년 동안 License를 보유하고, On-air 2년 후 제작자들은 해당 콘텐츠에 대한 소유권 회수 후 장편으로 리패키징하여 다른 퍼블리셔에게 라이선스 판매 가능 (Quibi의 독점 라이선스는 단편 콘텐츠에만 적용)\n▶ 콘텐츠 감가상각과 숏폼 콘텐츠의 생명력을 생각하면 제작자들의 실질적 Benefit은 미지수\n인플루언서의 콘텐츠는 Steven Spielberg 등 헐리우드 블록버스 제작자들의 콘텐츠 같은 압도적 화제성을 유발하지 않을 수 있지만, 시청자들에게 Quibi의 침투율을 제고할 수 있는 요소가 될 것으로 기대됨\n[차별화 요소]\n1/ 퀴비는 넷플릭스가 만든 습관 '빈지워칭(Binge Watching)', 즉 몰아보기와는 반대 전략을 택하고 있다. 퀴비는 2시간짜리 영화도 10분 내외로 잘라 매주 또는 매일 공개한다.\nㅇ 오리지널 콘텐츠\nㅇ 광고기반 수익 모델\nㅇ 모바일 플랫폼 기술\n2/ '턴 스타일(Turn Style)' 기술: 같은 Scean이라도 가로보기와 세로보기의 내용이 다르다. 가로-세로 전환 시 자동으로 화면 비율이 최적화 된다.(라고 하지만 가로로 보다가 세로로 바꾸면 체감상 확대 되는 정도의 차이가 있다.) 여러 시점 보여주기도 가능하다."
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4310,
+    "w": 576,
+    "content": "[퀴비 오리지널 Nest 의 가로 시청 모드]"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4362,
+    "w": 576,
+    "content": "[퀴비 오리지널 Nest 의 세로 시청 모드]\n시청자에게 주인공 시점 제공"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4434,
+    "w": 576,
+    "content": "가로로 시청하면 시청자는 일반 영화와 차이를 발견할 수 없다 그러나 세로 모드로 시청하면 주인 공의 관점에서 이야기가 전개된다 세로모드에서는 주인공이 보안 카메라를 통해 보게 되는 침입자의 모습을 보여주고 가족에게 영상전화를 걸었을 때는 주인공의 모습을 비춰 시청자가 주인공 이 된 것과 같은 효과를 준다.\n3/ Tech-driven OTT\n스마트폰에서 수집한 사용자 위치, 시간, 날씨 등의 데이터를 활용하여 시청에 접목하는 방안을 연구중(스티븐 스필버그 감독이 협업해 일몰 후에만 볼 수 있는 호러 드라마 ‘스필\n버그의 애프터 다크(Spielberg’s After Dark)’가 작품 개발 단계에 있음)"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4598,
+    "w": 576,
+    "content": "가입 5년간 확보할 것으로 예상되는 가입자 수에 따라 3가지 시나리오의 지출전략을 공개했다.\n5년안에 2천만 가입자를 확보한다면 Subscription이 매출의 59.5%를 차지,\n7천만명이면 68.1%를 차지 할 것으로 추산"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 4682,
+    "w": 480,
+    "h": 260,
+    "src": "5b40a5ba9b.png",
+    "caption": "시스템 생성 대체 텍스트: Katzenberg는 지난 2년간 각종 언론 인터뷰와 투자 설명회를 통해 Quibi의 가입자 확보 전 략 및 예산 집행 구상을 지속적으로 밝혀왔다. 예산 집행안은 가입 5년 안에 확보할 것으로 예상되는 가입자 수에 따라 그게 3가지 시나리오로 구성되어 있다 T±le 1. Quibi의 출시 후 최초 5년간 예상 가입자 수에 따른 지출 ~ Base cæe Upside 예상 가입자 수 • 1,100만 명 • 4000법 명 • 7,000만 명 1년 차 • 3덕 5.630한 딜러 • 6역 딜러 예상 지•규모 5년 차 • 6역 1.800만 달러 • 9역 7,800만 달러 26역 딜러 자료: 80듸n은「」드 In드던은「 Intelligence, STR-ABASE 재구성 [2013.12!"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4950,
+    "w": 576,
+    "content": "[Marketing]\nㅇ Promotion\nT-Mobile과의 파트너십 <a href=\"https://www.t-mobile.com/news/quibi-on-us\">https://www.t-mobile.com/news/quibi-on-us</a>\nT-Mobile의 기존 Plan인 \"Magenta\"에 포함. 1 년 동안 Quibi on Us 및 Netflix on Us를 사용한 후 둘 중 한가지를 선택 가능하다."
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 5094,
+    "w": 480,
+    "h": 197,
+    "src": "f108628c24.png",
+    "caption": "시스템 생성 대체 텍스트: Magenta@ Plus $50 /line Pricing 4 |- (5200/1″•) Start shopping 〉 Unlimited talk &amp; text Unlimited 4G LTE data 0 n 0 network Netflix &amp; Quibi on us fy !囊크「. then cho Taxes &amp; fees included Mobile h0t590t data T-Mobile Tuesdays Dedicated customer Care team 0 0 0 0 0 0 Essentials $30 /line Pricing 4 with AutoPay (5120/1”•) Start shopping 〉 data Magenta@ $40 /line Pricing 4 |- (5160/1″•) Start shopping 〉 Netflix 1 50 크GB 46 LTE data. mated @ 36 Netflix *. 2 HD 7 Quibi 206B of 46 LTE data. Ll &quot;limited @"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5299,
+    "w": 576,
+    "content": "시장의 기대와 우려\n사람들이 가볍고 중독적인 무료 SNS 영상 대신, Quibi의 다소 무거운 유료 영상으로 갈아탈 지는 미지수\n퀴비의 턴 스타일이 소비자의 시청 습관을 바꿀수 있을지에 대해 회의적. 화면을 돌려가며 영상을 보는 사람은 아직 많지 않다.\nNetflix는 시리즈 전 회차를 한 번에 공개하여 Binge viewing으로 성공했다. 이와 정 반대의 전략은 굉장히 실험적이다.\n밀레니얼과 Z세대들이 짧은 영상을 선호한다고는 하지만, 콘텐츠의 서사를 이해시키고, 또 받아들이기 위한 최소한의 시간이 있다. 당시이 본 숏폼 콘텐츠 중에 인상깊은 콘텐츠를 말해보라. 중요한건 길이가 아니라 서사에서 베어나오는 감동과 재미, 흥미다. 최근 넷플릭스에서도 젋은층이 볼만한 드라마는 40분 정도, 6개 에피소드로 한번에 시즌 전체를 몰아봐도 2시간 30분 정도로 영화 한편과 동일한 분량으로 패키징 되고 있다.\n질적으로는 Netfilx, 양적 수준은 YouTube에 맞추겠다는 목표가 되려 차별성을 저해할 수 있다. 2015년 출시 수 3년만에 중단된 Verizon의 동영상 서비스인 go90의 전철을 밟을 수 있다. TV 프로그램 품질의 짧은 길이 및 중간 길이 오리지널 시리즈를 제공하며 Netfix와 YouTube의 중간 지대 플랫폼으로 포지셔닝 하려 한 go90가 짧은 길이 동영상은 YouTube에서, 긴 길이의 고품질 동영상은 Netfilx에서 소비하는 행태가 보편화된 시장 여건으로 인해 충분한 규모의 시청자를 견인하는데 실패한 선례가 있다.\n숏폼은 전략이 될 수 없다. Facebook Watch가 2018년 부터 회당 30분 미만의 드라마 시리즈 \"Sorry For Your Loss\"를 비롯 광고기반의 고품질 오리지널 콘텐츠를 지속적으로 제공하고 있다. Netflix와 Amazon 등에서도 최근 회당 30분 미만으로 축소된 시리즈를 공개하고 있다.\n범람하는 OTT로 인한 구독피로와 Share of wallet 싸움에서 승리해야만 한다. 딜로이트는 \"OTT 구독자의 47%가 스트리밍 서비스의 증가에 불만을 갖고 있고, 57%가 구독한 OTT에서 좋아하는 콘텐트가 중단될 때 좌절한다\"고 밝혔다.\nCross platform 미지원에 대한 우려. 고품질의 동영상을 오직 모바일로만 시청한다는 것은 낭비이며 아무도 시도하지 않는 데에는 이유가 있다는 지적이다.\n코로나 이후 모바일보다 pc나 웹으로 콘텐츠 소비하는 비중이 증가\n미국에선 휴대폰 앱보다 컴퓨터 웹사이트를 통해 콘텐츠를 소비하는 경우가 크게 늘어났다. 재택근무나 원격학습 탓에 데스크톱, 노트북을 쓰는 경우가 많아지며 상대적으로 휴대폰을 보는 시간이 줄어든 것."
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 5843,
+    "w": 480,
+    "h": 359,
+    "src": "1ea61f9dbd.png",
+    "caption": "시스템 생성 대체 텍스트: 26 나덕 만 일일 평균 트 160M 3 결 24 일 20M 15원 120M"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6210,
+    "w": 576,
+    "content": "결언\n우리가 지하철에서 내릴 때에 맞춰서 콘텐츠가 끝나지 않는다는 것은 콘텐츠의 길이와는 무관하다. 그런 면에서 이동중에 혹은 자투리 시간에 볼 수 있는 콘텐츠라는 것이 따로 존재한다는 그들의 전제에 의문이 드는 것이 사실이다.\n스낵컬쳐, 스낵 콘텐츠라는 개념은 오래전부터 존재해왔다. 콘텐츠 소비의 본질은 변하지 않는다. 결국 콘텐츠의 길이나 Tech가 아닌 콘텐츠 자체의 매력도가 핵심이고, 그런면에서 향후 제공 콘텐츠들의 면면을 보아야만 Quibi의 진면목을 알 수 있을 것이다.\nQuibi의 가설은 심플하다.\n많은 사람들이 TV에서 YouTube보다 프리미엄 동영상을 시청하는 것과 같은 이유로 사람들이 휴대 전화에서 할리우드 스타일의 비디오를 선호 할 것이라는 가정이다. 그리고 이 이론을 테스트하기에 17 억 5 천만 달러는 적당한 돈이다. 성공이나 실패를 예단하는 것보다 이 실험 자체가 쇼 비즈니스에 있어서 의미가 있다.\n다행히 카젠버그는 쇼비즈니스의 거물답게 자신이 하려는 실험이 무엇인지 정확히 알고 있다. \"우린 다른 OTT와 싸우는 게 아니다.&#160;무료'와 싸운다\"고 했다. 즉, 유튜브&#183;페북&#183;인스타&#183;틱톡 등 SNS에 사람들이 쓰는 시간을 두고 경쟁하겠다는 것이다. 이는 넷플릭스가 경쟁자로 포트나이트를 지목한 것과 일맥상통한다. 그들은 넷플릭스보다 더 엄청난 괴물들과 싸워야하는지 모른다.\nCBS가 인기 뉴스 탐사프로그램 '60 Minute'를 Quibi 전용으로 전환한 '60 IN 6' (20년 4월 런칭 예정)\nNBCU 산하 스페인 채널 '텔레문도(Telemundo)'가 Quibi 전용 데일리 뉴스 프로그램 ('20년 4월 런칭 예정)\nESPN이 스포츠 뉴스 속보 및 핵심장면(Biggest moment) 포함된 Quibi 전용 데일리 스포츠쇼 런칭 예정"
+  }
+];
+const CONTENT_HASH = 'fa406c13';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

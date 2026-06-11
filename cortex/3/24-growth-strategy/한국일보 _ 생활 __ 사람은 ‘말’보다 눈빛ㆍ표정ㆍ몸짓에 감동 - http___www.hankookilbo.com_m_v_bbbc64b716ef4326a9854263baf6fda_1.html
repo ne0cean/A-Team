@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한국일보 : 생활 :: 사람은 ‘말’보다 눈빛ㆍ표정ㆍ몸짓에 감동 - http://www.hankookilbo.com/m/v/bbbc64b716ef4326a9854263baf6fdab</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">한국일보 : 생활 :: 사람은 ‘말’보다 눈빛ㆍ표정ㆍ몸짓에 감동 - http://www.hankookilbo.com/m/v/bbbc64b716ef4326a9854263baf6fdab</div>
+<div class="date">2017년 7월 11일 화요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-한국일보-생활-사람은-말-보다-눈빛-표정-몸짓에-감동-http-www-h';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 115,
+    "w": 600,
+    "content": "한국일보 : 생활 :: 사람은 ‘말’보다 눈빛ㆍ표정ㆍ몸짓에 감동 - <a href=\"http://www.hankookilbo.com/m/v/bbbc64b716ef4326a9854263baf6fdab\" style=\"font-weight:bold\">http://www.hankookilbo.com/m/v/bbbc64b716ef4326a9854263baf6fdab</a>\n언제 어디서 무엇을 어떻게 왜,\n오감 : 시, 청, 촉, 공\n언어 비언어\n시간 공간 관계\n의식주\n커뮤니케이션의 대상\n커뮤니케이션의 방식\n커뮤니케이션의 시점\n메시지 내용 및 성격\n커뮤니케이션 상황\n점자. 햅틱. 모스부호\n음성, 음악, 비가청대역\n텍스트 표의문자.\n상형문자. 픽토그램.\n그림. 스케치. 사진\n휘파람. 박수. 핑거스냅. 쉿.\n춤\n시선 윙크\n수신호. 수화. 제스춰\n눈물. 표정. 웃음소리. 하품\n대상\n일대일. 일대다. 다대다. 다대일\n불특정 다수. 불특정 개인. 나자신\n방식\n귓속말. 눈치. 넛지. 샤우팅. 한숨\n게시판. 칠판\n카드 편지 일기\n시점\n실시간. 시간차. 백년의 편지\n커뮤니케이션의 영원한, 궁국의 컨텐츠는 결국 사람.\n사람과 사람간의 호기심과 관심.\n모든 컨텐츠는 이야기는 결국 사람이 자아내는 것. 메세지의 포맷. 그릇과 재료만 달라질뿐\n실체의 개선 : 차별적 가치 - 언제 어디서나 누구와든 연결이 잘 된다.\n언제 : 상황 운전중, 회의중일 때도\n어디서\n누구와 : 전화번호부에 없는 사람과도 - 관계의 확장, 다자간 통화? SNS?\n무엇을\n어떻게 : 문자, 사진, 동영상, 스케치/드로잉, 이모티콘// 비언어적 커뮤니케이션 : 윙크, 표정, 손짓, 수화를 텍스트로 변환, 외국어를 텍스트나 한국음성으로 변환,\n왜 - 잠수모드 (선택적 커뮤니케이션/ 차단)\n귓속말, 샤우팅\n박수, 환호\n목소리 보정기능\n주변소리 필터\n보이스콘. 효과음. 박수 구간반복.\n통화내용 저장 및 내보내기\n발화시간 점유율 그래프, 높낮이 등 통화 통계\n언어 ㅡ 텍스트 음성 수화\n비언어 ㅡ 그림 사진 영상 표정 몸짓 손짓 옷차림 자세http://www.loveject.com/commun\n가상.증강 공간대화\n문서 칠판 파일 담벼락\n언제 어디서 누구와 무엇을  어떻게 왜\n콜캐스트 라디오음성 방송\n예약 음성 메시지\n식별 가능할 것, 네트워크 효과를 발생시킬 것, 막대한 가입자 기반 활용가능 P2P 플랫폼\n개인 미디어, 광고 플랫폼\n시각적으로 식별 가능하게?\n번호를 주고받는 것과 같은 상황에서? 노출되도록 하려면?\n막대한 가입자 네트웍\n컴퓨팅 파워활용\n사물과의 통화\n모일수록 배가되는것\n공동구매 커머스\n블록체인을 통신에?\n투표나 리서치\nㅇ 실시간 번역 통화 혹은 음성을 번역해서 텍스트로 보여주기\nㅇ 두손을 못쓰는 상황에서 휘파람으로 전화 받기\n[기타 추가]\nㅇ 샤우팅 - 일대 다, 다대 다 커뮤니케이션\nㅇ 햅틱. 모스부호 . 두드리는 것만으로 커뮤니케이션 할 수 있도록. 메시지 전송,\nㅇ T맵 지도위에 위치기반 게시판을 만들 수 있게하면?\n해당 지역, 건물의 가상 게시판 역할. 증강현실 형태로도 구현 가능\n==================================================================\n전 국민, 아니 전 세계 모든 사람이 자신만의 ID를 가질 수 있는 세상에서.\n고객 ID를 번호, 숫자로 국한하는 것은 너무 구식입니다.\nㅇ T전화 프로필 도입\nㅇ SK고객이기만 하면 번호로 식별하지 않고, 닉네임으로 검색해서 프로필 저장 가능 - 이메일 SNS등 모두다\nSKT고객이기만 하면 고객이 평생번호가 아닌 자신의 닉네임을 신청하고 받아서, 거기에 이동전화부터 이메일 등 자신을 접촉할 수 있는 모든 경로를 입력하고. 이를 그룹별로 선택적으로 오픈.\nSKT 고객이기만 하면 대한민국 국민 둘 중 하나와 번호 교환절차 없이도 소통할 수 있다.\n국민의 절반과 자유롭게 소통할 수 있다.\nSKT 고객이기만 하면, 굳이 전화번호나 SNS ID를 공유하지 않아도\n서로 연결이 가능하다면 어떨까요?\nSKT 고객이기만 하면, 멀리있는 정보를 다른 고객에게 요청하고 또 전달 받을수있다면 어떨까요?\nSKT 고객이기만 하면, 앞에있는 식당에 얼마나 많은 고객이 전화를 했고, 또 얼마나 많은 고객이방문했는지알 수 있다면 어떨까요?\n서비스번호로 고객을 분류하고, 고객들이 서로를 인식하는 ID가 아직도 숫자라는건 너무 구식입니다. 닉네임으로 바꿔보면 어떨까요? 고객들이 자신만의 ID를 만들고, 그 아이디만 알려주면 T전화에서 검색하고 팔로우해서 서로 다양한 방식으로 커뮤니케이션 할 수 있다면 어떨 까요?\nㅇ 틱네임\n틱네임 - 닉네임을 전화번호 대신사용\n전화번호, 이메일, SNS계정을 연동\nT-ic name을 검색하고 팔로우하면 해당 정보가 폰북에 저장\nㅇ 티프로필\n개인의 프로필을 등록\n위치기반으로 인근에 있는 SKT고객의 프로필을 조회 할 수 있도록\n자신의 프로필 정보중 선택적으로 오픈할 수 있도록\n현재 이동통신을 활용한 커뮤니케이션이\n실제 커뮤니케이션과 가장 큰 차이를 보이는 것은\nID입니다. 우리는 일상생활에서 처음보는 사람 심지어 이름을 모르는 사람과도\n자유롭게 커뮤니케이션이 가능합니다. 그런데 이동통신은 어떻습니까?\n이건바꿀 수 없는 걸까요?\n사람을 살아가게 하는 것은 호기심이고, 관계를 이어주는 것은\n서로에 대한 호기심입니다. 그것을 우리는 관심이라고 합니다.\n개인적보에 대한 숱한 우려와 리스크에도 불구하고 페이스북이\n자신을 표현하고자 하는 욕구가, 언제나 리스크를 이겨왔기 때문입니다.\n과거 싸이월드와 다모임 등의 서비스에서 사람들은 HTML을 배우는 열성을 보이면서까지 자신의 프로필을 다양한폰트와 색채로 꾸몄습니다. 이제 그런 공간을 고객들에게 열어주자는 제안입니다.\n카카오톡 프로필을 하루가 멀다하고 바꾸는 사람들, 인스타그램에 자신의위치와 행적을 여과없이 드러내는 사람들.\n위치정보 기준으로 인근에 있는 사람들 프로필 조회\nㅇ T-ASKING/ 미션캠\n멀리 있는 소식이나 정보를 뉴스를 통해서만 접해왔습니다. 날씨, 사건/사고, 정치, 경제 등 많은 이슈를. 이제는 어떻습니까? 제주 지역의 지금 날씨가, 어느 식당의 자리가 만석인지 궁금하면 그곳에 있는 다른 사람에게 물어보거나, 사진이나 영상으로도 피드백 받을수 있는 세상입니다. 게다가 우리는 전국민의 절반이 고객입니다. 특정지역에있는 두 명중 한명은 나의 요청이 나질문에 대답해줄 수 있다는 것이죠. 만인의 만인에 대한 기자화, 대리자화 가기술적으로가능한 시대입니다.\n이 세가지 제안을 관통하는 것은 막대한 가입자기반을 활용할 수 있다는 것입니다.\n사람은 그 자체로 정보 덩어리이고 이 정보를 매개하는, '연결'하는 것입니다.\n번호가 아닌 닉네임을 통해서 서로를 더 쉽게 연결하고, 개인의 프로필을 통해 서로의 정보를 공유하고, 고객과 고객과의 연결을 매게해서 각자가 '만들어내는 정보'를 '연결합니다.\n앞에 서있는 남자가 어떤 사람인지 궁금하면 폰북으로 확인하고,\n멀리있는 지역의 사고현장이 궁금하면 그곳에 있는 고객에게 취재를 요청하면 됩니다.\n트위터에서, 페이스북에서 늘상 일어나는 일이죠?\n========================================\n=============[YT 마케팅 - TTL : 단말, 요금]==================\n요즘 YT라고 다르지 않습니다. 부모세대에서 ㅇㅇ를\n군중심리. 준거집단.\nSKT X 엑소 콜라보 전용 컬러링 및 벨소리. - 서브 타이틀곡 전속 계약.\n요금제에 따른 커스터마이징 이모티콘, 계급장 같은.\nSNS에 올릴 수 있는 소재를 지속적으로 제공. 주로 공간이나 먹을 것 등 스몰럭셔리.\n콘서트나 공연, 패션 등 시각적인 것.\n티티엘이 없어서 와이티가 무너진게 아니다.\n더 저렴해지거나 더 강력해지거나 D2D\n고객이 모이는곳에서 더 잘터지게\n트래픽이 힘이될순없나\n정보\n매장 방문자수 통계. 전화건 숫자.\n미션캠\n기자화\n요금제 식별가능하게표기\n명분은 상대가 알아야만 가능한 서비스. 혹은 원하는 고객만\n블록체인과 커뮤니케이션 리워드 데이터 엮을 수 없나 피투피 플랫폼으로 서로를 연결, 스팀잇\n기존의 뭔가를 파괴하는 플랫폼이어야\n마케팅은 차별이다.\n블랙라벨 고객을 만들어야\n===================\nㅇ [청구서] 구독형 상품 + 청구서 (구독형 청구서)\n11번가 ‘서브스크립션-M’\n- 월1회 발송되는 상품에 청구서를 동봉하고 건당 300원만 얹어서 팔면 청구서 비용 상쇄 가능\n- 고객당 연간 3,600원/월 300원을 추가로 받으면 되는 것. 즉 건당 300원 이상의 수익만 낼 수 있는 형태면 조건 충족.\n- 형태\n1) 정보 구독형 : 잡지사, 신문사를 통해 청구서를 동봉하여 발송하는 조건으로 당사 유통망에서 판매\n2) 쿠폰북형 : 월 500원 ~ 1000원 정도의 비용으로 SK그룹 상품 + 제휴사 할인 쿠폰북 구독\n3) SKT모델 화보 : 종이청구서를 선택한 고긱에게 월 1회씩 발송되는 화보 판매\n4) 복권형 청구서 : 청구서를 구매하면 청구서 뒷면에 복권이 인쇄되어 있고, 월에 1회 추첨.\n- 상기 청구서 TYPE을 고객 Seg별로 나누어 아웃바운드 콜과 매장 방문고객에게 권매하여 점진적으로 기존 종이청구서 대체 -> 청구서의 BM화 실현\nBM이 자리잡을 경우 기존 종이청구서 발송으로 인해 소요된 비용 이상을 수익화 가능함.\n[청구서] 서브스크립션 커머스 X SKT Collaboration 청구서\n실행방안\nㅇ 서브스크립션 커머스(제품 정기구독 서비스) + 청구서 모델 : 청구서와 함께 받아보는 서브스크립션 커머스 - 청구서에 소요되는 비용을 상쇄 하려면 고객당 연간 3,600원/월 300원을 추가로 징구해야함. 즉, 건당 300원의 수익만 낼 수 있으면 됨.\n- 서브스크립션 서비스에 청구서를 동봉하고 건당 300원만 얹어서 팔면 청구서 비용 상쇄 가능\n- 서브스크립션 서비스는 특성상 벌크 구매로 인한 원가 절감이 가능하므로, T멤버십과 연계 가능\n- 판매 1) 유통망에서 종이 청구서 선택 고객에게 권매 2) T멤버십과 연계하여 수익 창출 - 고객은 매 월 받아 볼 카테고리&상품을 홈페이지에서 선택. 청구서는 동봉. - 대부분의 서브스크립션 서비스가 1) 오프라인 접점이 없고 2) SKT 정도의 가입자 기반을 대상으로 마케팅이 불가능하므로 당사와의 Co-work은 매력적인 Deal이 될 수 있음.\n종이청구서 비용 상쇄는 물론, 서브스크립션 서비스 재판매를 통한 추가 수익창출 가능\n3년 통신료 할인 복권을 동봉하고, 돈을 받는다면요?\n========================================================\nㅇ 폰이 가까워지면, 같은 음악, 등 취향이 같을 때 알림.\nㅇ SKT 고객들끼리 만나면, LDE 점멸 및 포인트 적립?\nSNS로는 함께 식사할 수 없습니다.\n전화로는 서로의 입을 맞출 수 없습니다. 포옹할 수 없습니다.\n문자로는 서로의 호홉과 눈빛을, 비언어적 커뮤니케이션을 전할 수 없습니다.\n사람에게 영원 불멸의 컨텐츠는 역시 사람이다.\n우리는 결국, 만나야 합니다.\n개인적보에 대한 숱한 우려와 리스크에도 불구하고 페이스북이\n자신을 표현하고자 하는 욕구가, 언제나 리스크를 이겨왔기 때문입니다.\n2. 식별가능한 스킴을 서비스에 입힌다. 넌 이거 안돼?\nㅇ 리워드 요금제\nㅇ 탐스 요금제"
+  }
+];
+const CONTENT_HASH = '95ef88ed';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

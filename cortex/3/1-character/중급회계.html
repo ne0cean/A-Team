@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>중급회계</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">중급회계</div>
+<div class="date">2023년 9월 23일 토요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-중급회계';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 600,
+    "content": "다음 중 금융자산이 아닌 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>다른 기업의 지분상품\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>수량이 확정되지 않은 비파생상품\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>현금과 예치금\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>금융자산을 인도하기로 한 계약상 의무\n정답 :&#160;4.&#160;금융자산을 인도하기로 한 계약상 의무\n[해설]\n금융자산을 인도하기로 한 계약상 의무는 금융부채로 분류한다.\n다음 중 금융부채가 아닌 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>매입채무\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>발행콜옵션\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>투자풋옵션\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>주식결제채무\n답 :&#160;3.&#160;투자풋옵션\n[해설]\n투자풋옵션은 잠재적으로 유리한 조건으로 금융자산을 수취하기로 한 계약상 권리로서 금융자산이다.\n다음 중 취득시 부대비용을 즉시 비용처리하는 금융자산은 무엇인가?\n㉠ 당기손익-공정가치 측정 금융자산\n㉡ 상각후원가 측정 금융자산\n㉢ 기타포괄손익-공정가치 측정 금융자산\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>㉠\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>㉠, ㉡\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>㉡, ㉢\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>㉠, ㉡, ㉢\n정답 :&#160;1.&#160;㉠\n[해설]\n㉠ 당기손익인식 공정가치 측정 금융자산의 최초인식과 관련된 거래원가는 지출시점에서 즉시 비용으로 인식함\n기타포괄손익-공정가치 측정 금융자산 평가손익의 회계처리에 대한 설명으로 옳은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>인식하지 않는다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>공정가치로 평가하며 평가손익은 기타포괄손익으로 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>공정가치로 평가하며 평가손익은 당기손익으로 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>공정가치로 평가하며 증가분은 기타포괄손익, 감소분은 당기손익으로 인식한다\n정답 :&#160;2.&#160;공정가치로 평가하며 평가손익은 기타포괄손익으로 인식한다.\n[해설]\n기타포괄손익-공정가치 측정 금융자산의 평가손익은 공정가치로 평가하며 기타포괄손익으로 인식한다.\n다음 중 상각후원가로 후속측정하는 금융자산은 무엇인가?\n㉠ 당기손익-공정가치 측정 금융자산\n㉡ 상각후원가 측정 금융자산\n㉢ 기타포괄손익-공정가치 측정 금융자산\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>㉡\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>㉠, ㉡\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>㉡, ㉢\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>㉠, ㉢\n정답 :&#160;1.&#160;㉡\n[해설]\n당기손익-공정가치 측정 금융자산과 기타포괄손익-공정가치 측정 금융자산은 공정가치로 후속측정한다. 반면에 상각후원가 측정 금융자산은 상각후 원가로 후속측정한다.\n다음 중 금융자산을 제거하지 않는 경우에 해당하는 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>금융자산을 아무런 조건 없이 매도하는 경우\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>양도자가 매도한 금융자산을 재매입시점의 공정가치로 재매입할 수 잇는 권리를 보유하는 경우\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>외가격의 옵션인 경우\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>유가증권대차계약을 체결한 경우\n정답 :&#160;4.&#160;유가증권대차계약을 체결한 경우\n[해설]\n유가증권대차계약을 체결한 경우 위험과 보상의 대부분을 보유하는 경우로서 금융자산을 계속인식하고 관련부채를 인식한다.\n지분상품의 손상차손과 환입에 대한 설명으로 옳은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>원가 평가하는 매도가능지분상품의 손상은 당기손익으로 인식하지 않는다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>공정가치 평가하는 매도가능지분상품의 손상은 당기손익으로 인식하지 않는다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>원가 평가하는 매도가능지분상품 손상의 환입은 당기손익으로 한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>공정가치 평가하는 매도가능지분상품의 손상의 환입은 공정가치 상승분만 기타포괄손익으로 인식한다.\n정답 :&#160;4.&#160;공정가치 평가하는 매도가능지분상품의 손상의 환입은 공정가치 상승분만 기타포괄손익으로 인식한다.\n[해설]\n공정가치 평가하는 매도가능지분상품의 손상의 환입은 공정가치 상승분만 기타포괄손익으로 인식한다.\n금융상품의 손상차손과 환입에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>기업이 투자채무상품을 기타포괄손익-공정가치로 측정하는 경우 손상차손과 손상차손환입으로 인식할 금액은 상각후원가로 측정하는 경우와 같다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>신용손실은 현금부족액을 최초 이자율로 할인한 금액을 말한다. 단, 취득시 신용이 손상된 경우 취득시점의 신용조정 이자율을 적용한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>기대신용손실은 금융자산의 신용손실을 개별 채무불이행 발생 위험으로 가중평균한 신용손실을 말한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>신용위험으로 인한 손상차손 인식후 이자수익은 손실충당금을 차감한 장부금액에 최초 유효\n정답 :&#160;4.&#160;신용위험으로 인한 손상차손 인식후 이자수익은 손실충당금을 차감한 장부금액에 최초 유효이자율을 적용하여 인식한다.\n[해설]\n손상충당금 차감 전 총장부금액에 최초 유효 유효이자율을 적용하여 인식한다.\n지분법에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>지분법은 투자자산을 최초에 원가로 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>지분법은 취득시점 이후 발생한 피투자자의 순자산 변동액 중 투자자의 지분을 해당 투자자산에 가감하여 보고한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>지분법 적용대상 관계기업은 기업의 법적형태에 제한을 받지 않는다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>지분법은 투자자가 피투자자에 대한 의결권의 20% 이상을 소유하고 있는 경우 무조건 적용해야 한다.\n정답 :&#160;4.&#160;지분법은 투자자가 피투자자에 대한 의결권의 20% 이상을 소유하고 있는 경우 무조건 적용해야 한다.\n[해설]\n지분법은 피투자자에 대한 의결권의 20%이상을 소유하고 있는 경우 뿐만 아니라, 20%미만 이지만, 몇 가지 조건들을 만족하는 경우에도 적용하며 20%이상이지만 지분법을 적용하지 않는 상황도 있다.\n지분법에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>지분법은 지분율이 20%미만이어도 적용하는 상황이 있다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>지분법은 지분율이 20%이상이어도 적용하는 상황이 있다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>유의적 영향력이란 보통 피투자자에 대한 지분율이 20%이상인 경우를 말한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>피투자자\n정답 :&#160;4.&#160;피투자자에 대한 지분율이 20%이상인 경우 유의적 영향력을 행사할 수 있다.\n[해설]\n피투자자에 대한 지분율이 20%이상이지만, 몇 가지 조건을 만족하여 유의적인 영향력을 행사할 수 없는 경우가 있다.\n지분법의 특수모형에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>내부미실현손익 발생시 보고기간말의 내부미실현손익에 투자지분율을 곱하여 관계기업주식과 지분법손익에 각각 차감하여 반영한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>내부미실현손익은 하향판매의 경우에만 제거한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>내부미실현손익은 실현되는 보고기간의 관계기업주식과 지분법손익에 다시 가산하여 반영한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>내부미실현손익은 상향판매의 경우와 하향판매의 경우에 발생한다.\n정답 :&#160;2.&#160;내부미실현손익은 하향판매의 경우에만 제거한다.\n[해설]\n내부미실현손익은 하향판매와 상향판매의 구분 없이 제거한다.\n지분법에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>유의적 영향력이란 보통 피투자자에 대한 지분율이 20%이상인 경우를 말한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>지분법은 투자자산을 최초에 공정가치로 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>지분법은 지분율이 20%미만이어도 적용하는 상황이 있다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>지분법 적용대상 관계기업은 기업의 법적형태에 제한을 받지 않는다.\n정답 :&#160;2.&#160;지분법은 투자자산을 최초에 공정가치로 인식한다.\n[해설]\n지분법은 투자자산을 최초에 원가로 인식한다.\n복합금융상품에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>전환사채는 복합금융상품이다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>신주인수권 부채는 법적형식은 자본, 경제적 실질은 부채로서 복합금융상품이다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>전환우선주는 복합금융상품이 아니다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>주식선택권은 복합금융상품이 아니다.\n정답 :&#160;2.&#160;신주인수권 부채는 법적형식은 자본, 경제적 실질은 부채로서 복합금융상품이다.\n[해설]\n신주인수권은 법적형식은 부채, 경제적 실질은 부채와 자본으로서 복합금융상품이다.\n복합금융상품에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>국제회계기준은 자본가치 분리인식법을 적용하고 있다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>자본가치인식법이란 전환권대가와 신주인수권대가를 부채와 분리하여 인식하는 것을 말한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>전환권 대가는 전환시 주식발행초과금으로 대체할 수 있다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>자본가치 인식법은 경제적 실질보다는 회계처리 형식에 기초한다.\n정답 :&#160;4.&#160;자본가치 인식법은 경제적 실질보다는 회계처리 형식에 기초한다.\n[해설]\n자본가치 인식법은 회계처리 형식보다는 경제적 실질에 기초한다.\n복합금융상품에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>자본가치 인식법은 회계처리 형식보다는 경제적 실질에 기초한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>주식선택권은 복합금융상품이 아니다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>전환권 대가는 전환시 주식발행초과금으로 대체하여야 한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>자본가치인식법이란 전환권대가와 신주인수권대가를 부채와 분리하여 인식하는 것을 말한다.\n정답 :&#160;3.&#160;전환권 대가는 전환시 주식발행초과금으로 대체하여야 한다.\n[해설]\n대체할 수 있다.\n복합금융상품에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>국제회계기준은 자본가치 분리인식법을 적용하고 있다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>자본가치인식법이란 전환권대가와 신주인수권대가를 부채와 분리하여 인식하는 것을 말한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>전환권 대가는 전환시 주식발행초과금으로 대체할 수 있다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>자본가치 인식법은 경제적 실질보다는 회계처리 형식에 기초한다.\n정답 :&#160;4.&#160;자본가치 인식법은 경제적 실질보다는 회계처리 형식에 기초한다.\n[해설]\n자본가치 인식법은 회계처리 형식보다는 경제적 실질에 기초한다.\n전환사채에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>전환조건 변경 시 원래의 조건 하에서 전환으로 인하여 보유자가 수취하였을 대가의 공정가치의 차이를 전환조건변경손실로 즉시 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>전환사채 조기 상환 시 사채상환손익이 발생할 수 있다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>전환권 대가는 만기에 소멸한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>회계 연도 중에는 전환권을 행사할 수 없다.\n정답 :&#160;4.&#160;회계 연도 중에는 전환권을 행사할 수 없다.\n[해설]\n회계 연도 중에도 전환권을 행사할 수 있으며 권리 행사일 현재의 사채 장부금액을 주식의 발행가액으로 인식한다.\n전환사채에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>전환권 조정은 이자비용으로 상각한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>전환권 대가는 상각하지 않는다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>전환권 대가는 기타자본요소이다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>만기 상환 일엔 사채상환손익이 인식될 수 있다.\n정답 :&#160;4.&#160;만기 상환 일엔 사채상환손익이 인식될 수 있다.\n[해설]\n만기 상화 시에는 미 전환된 전환사채의 장부금액이 현금으로 지급되므로 사채상환손익이 인식되지 않는다.\n신주인수권부사채에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>신주인수권대가는 만기에 자본잉여금으로 대체한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>신주인수권 만기 상환시엔 사채상환손익이 인식된다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>신주인수권을 행사하더라도 표시이자 지급액은 감소하지 않는다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>신주인수권 대가는 만기에 소멸한다.\n정답 :&#160;2.&#160;신주인수권 만기 상환시엔 사채상환손익이 인식된다.\n[해설]\n신주인수권 만기 상환 시엔 신주인수권부사채의 장부금액을 현금으로 지급하므로 상환손익이 인식되지 않는다.\n신주인수권부사채에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>신주인수권 대가는 유효이자율법으로 상각한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>신주인수권 조정은 이자비용으로 상각한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>신주인수권 대가는 기타자본요소이다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>신주인수권을 행사하여도 사채는 소멸하지 않는다.\n정답 :&#160;1.&#160;신주인수권 대가는 유효이자율법으로 상각한다.\n[해설]\n신주인수권 대가는 상각하지 않는다.\n다음 중 주식결제형 주식기준보상이 아닌 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>현금결제형 가상주식\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>주식결제형 미가득주식\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>주식결제형 주식선택권\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>주식결제형 주가차액보상권\n정답 :&#160;1.&#160;현금결제형 가상주식\n[해설]\n현금결제형 가상주식은 현금결제형 주식기준보상이다.\n다음 중 주식결제형 주식기준보상거래에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>보상원가는 자본으로 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>보상원가는 부여일의 공정가치로 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>공정가치는 매년 재측정한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>보상수량은 최선의 추정치에 기초하여 인식한다.\n정답 :&#160;3.&#160;공정가치는 매년 재측정한다.\n[해설]\n공정가치는 후속적으로 재측정하지 않는다.\n다음 중 현금결제형 주식기준보상거래에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>보상원가는 자본으로 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>보상원가는 부여일의 공정가치로 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>공정가치는 매년 재측정한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>보상수량은 최선의 추정치에 기초하여 인식한다.\n정답 :&#160;1.&#160;보상원가는 자본으로 인식한다.\n[해설]\n보상원가는 부채로 인식한다.\n다음 중 현금결제형 주식기준보상거래에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>보상원가는 권리부여일에 부여한 옵션의 공정가치를 측정하여 부채로 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>즉시 가득되는 경우 총보상원가를 가득기간에 배분하여 인식하며, 그에 상응하여 부채 항목의 증가를 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>가득될 것으로 예상되는 지분상품의 수량에 대한 최선의 추정치에 기초하여 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>행사시 장기미지급비용 장부금액과 현금지급액의 차이는 당기손익으로 인식한다.\n정답 :&#160;2.&#160;즉시 가득되는 경우 총보상원가를 가득기간에 배분하여 인식하며, 그에 상응하여 부채 항목의 증가를 인식한다.\n[해설]\n즉시 가득되는경우 총보상원가 전부를 부여일에 즉시 인식하고, 그에 상응하여 부채의 증가를 인식한다.\n다음 중 주당이익에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>기본주당계속영업이익은 유통 중인 보통주식 1주가 창출한 계속영업이익을 말한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>기본주당순이익은 유통 중인 보통주식 1주가 창출한 당기순이익을 말한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>희석주당계속영업이익은 잠재적보통주까지 고려한 보통주식 1주가 창출한 계속영업이익을 말한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>희석주당이익은 잠재적보통주까지 고려한 보통주식 1주가 창출한 중단영업이익을 말한다.\n답 :&#160;4.&#160;희석주당이익은 잠재적보통주까지 고려한 보통주식 1주가 창출한 중단영업이익을 말한다.\n[해설]\n희석주당이익은 잠재적보통주까지 고려한 보통주식 1주가 창출한 당기순이익을 말한다.\n다음 중 가중평균유통보통주식수를 계산할 때 주식발행일부터 가중평균 하는 거래가 아닌 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>유상증자\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>신주인수권 행사\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>무상증자\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>주식선택권행사\n정답 :&#160;3.&#160;무상증자\n[해설]\n보상원가의 공정가치는 제공한 재화나 용역의 공정가치로 인식하는 것이 원칙이다.\n다음 중 가중평균유통보통주식수를 계산할 때 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>신주인수권 행사시 주식 발행일을 기준으로 가중평균한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>전환사채 전환 시 전환일을 기준으로 가중평균한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>주식배당 시 주식 발행일을 기준으로 가중평균한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>주식선택권 행사시 주식 발행일을 기준으로 가중평균한다.\n정답 :&#160;3.&#160;주식배당 시 주식 발행일을 기준으로 가중평균한다.\n[해설]\n주식배당은 원본 주식 발행일을 기준으로 가중 평균한다.\n다음 중 가중평균유통보통주식수를 계산할 때 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>자기주식 취득 시 취득시점부터 처분시점까지의 기간을 차감하여 가중평균한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>전환우선주 전환 시 전환일을 기준으로 가중평균한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>유상증자 시 주식 발행일을 기준으로 가중평균한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>주식병합시 주식 발행일을 기준으로 가중평균한다.\n정답 :&#160;4.&#160;주식병합시 주식 발행일을 기준으로 가중평균한다.\n[해설]\n주식병합은 원본 주식 발행일을 기준으로 가중 평균한다.\n다음 중 잠재적 보통주가 아닌 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>1/1 발행되어 7/1에 모두 전환된 전환사채\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>1/1 발행되어 12/1에 모두 전환된 전환우선주\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>7/1 무상증자로 발행된 주식\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>1/1 발행되어 아직 행사되지 않은 신주인수권\n정답 :&#160;3.&#160;7/1 무상증자로 발행된 주식\n[해설]\n무상증자로 발행된 주식은 원본 주식 발행일의 유통보통주식수에 가산한다.\n다음 중 잠재적 보통주식수를 계산할 때 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>전환우선주는 전환권을 행사한 것으로 가정하여 유통보통주식수에 가산한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>주식선택권은 조건이 충족되었을 경우 유통보통주식수에 가산한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>옵션은 발행하여야 할 보통주식수와 회계기간 평균시장가격으로 발행한 것으로 가정한 환산한 보통주식수의 차이를 추가로 발해하는 것으로 간주하여 유통보통주식수에 가산한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>전환사채는 전환권을 행사한 것으로 가정하여 유통보통주식수에 가산한다.\n정답 :&#160;2.&#160;주식선택권은 조건이 충족되었을 경우 유통보통주식수에 가산한다.\n[해설]\n주식선택권은 발행하여야 할 보통주식수와 회계기간 평균시장가격으로 발행한 것으로 가정한 환산한 보통주식수의 차이를 추가로 발행하는 것으로 간주하여 유통보통주식수에 가산한다.\n다음 중 잠재적 보통주가 아닌 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>7/1 유상증자로 발행된 주식\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>1/1 매입하여 7/1에 모두 행사한 옵션\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>1/1 발행되어 아직 행사되지 않은 주식매입권\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>1/1 발행되어 8/1에 모두 전환된 전환우선주\n정답 :&#160;1.&#160;7/1 유상증자로 발행된 주식\n[해설]\n유상증자로 발행된 주식은 주식 발행일부터 가중평균유통보통주식수에 포함된다.\n희석주당이익 계산 시 보통주에 귀속되는 이익 증가액에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>전환우선주 : 전환우선주 배당금\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>전환사채 : 전환사채 총이자비용 x (1－세율)\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>신주인수권 : 상환할증금 이자비용 x (1－세율)\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>주식선택권 : 주식보상비용\n정답 :&#160;4.&#160;주식선택권 : 주식보상비용\n[해설]\n희석주당이익 계산 시 주식선택권으로 인한 이익증가액은 세후보상비용이다.\n다음 중 리스에 대한 설명 중 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>금융리스의 법적형식은 임대차거래, 경제적실질은 금전대차거래이다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>자산관련 위험과 보상의 대부분이 리스이용자에게 이전되지 않는 경우 운융리스로 분류한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>운용리스의 법적형식은 임대차거래, 경제적실질은 금전대차거래이다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>자산관련 위험과 보상의 대부분이 리스이용자에게 이전되는 경우 금융리스로 분류한다.\n정답 :&#160;3.&#160;운용리스의 법적형식은 임대차거래, 경제적실질은 금전대차거래이다.\n[해설]\n운용리스의 법적형식은 임대차거래, 경제적실질도 임대차거래이다.\n다음 중 일반적으로 금융리스로 분류되는 사례로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>리스 기간 종료시점에 리스자산의 소유권이 리스이용자에게 이전되는 경우\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>리스기간이 리스자산의 경제적내용연수의 상당부분을 차지하는 경우\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>리스이용자가 공정가치보다 충분히 높은 가격으로 리스자산을 매수할 수 있는 선택권을 가지고 있는 경우\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>리스약정일 최소리스료의 현재가치가 리스자산 공정가치의 대부분에 상당하는 경우\n정답 :&#160;3.&#160;리스이용자가 공정가치보다 충분히 높은 가격으로 리스자산을 매수할 수 있는 선택권을 가지고 있는 경우\n[해설]\n리스이용자가 공정가치보다 충분히 낮은 가격으로 리스자산을 매수할 수 있는 선택권을 가지고 있는 경우에 금융리스로 분류한다.\n다음 리스계약의 용어 중 리스제공자와 리스이용자간에 정기적으로 수수하기로 약정한 리스료란 무엇인가?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>최소리스료\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>정기리스료\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>보증잔존가치\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>무보증잔존가치\n정답 :&#160;2.&#160;정기리스료\n[해설]\n리스제공자와 리스이용자간에 정기적으로 수수하기로 약정한 리스료는 정기리스료이다.\n다음 리스계약의 용어 중 리스기간 종료시점에 리스자산을 반환하는 경우 예상 잔존가치 중 지급이 보증된 부분을 일컫는 용어는 무엇인가?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>무보증잔존가치\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>보증잔존가치\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>정기리스료\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>염가매수선택권\n정답 :&#160;2.&#160;보증잔존가치\n[해설]\n리스기간 종료시점에 리스자산을 반환하는 경우 예상 잔존가치 중 지급이 보증된 부분은 보증잔존가치이다.\n금융리스의 제공자에 대한 회계처리에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>최소리스료와 무보증잔존가치의 현재가치와 동일한 금액을 금융리스채권으로 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>리스개설직접원가는 금융리스채권에 포함한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>리스기간에 금융리스채권에 대해 정액법으로 이자수익을 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>금융리스채권잔액에 해당하는 금액을 현금으로 수령하거나 자산을 받는다.\n정답 :&#160;3.&#160;리스기간에 금융리스채권에 대해 정액법으로 이자수익을 인식한다.\n[해설]\n제공자는 리스기간에 금융리스채권에 대해 유효이자율법으로 이자수익을 인식한다.\n금융리스의 이용자에 대한 회계처리에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>최소리스료의 현재가치와 리스자산의 공정가치 중 작은 금액을 금융리스 자산, 부채로 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>리스기간에 리스부채에 대해 유효이자율법을 적용하여 이자비용을 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>금융리스 자산과 부채의 금액은 같다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>리스개설원가는 금융리스자산에 포함한다.\n정답 :&#160;3.&#160;금융리스 자산과 부채의 금액은 같다.\n[해설]\n리스개설원가가 존재할 경우 금융리스자산에 포함되기 때문에 부채와 금액이 일치하지 않는 경우가 있다.\n판매형리스에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>매출액은 자산의 공정가치와 시장이자율로 할인한 최소리스료의 현재가치 중 큰 금액으로 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>매출원가는 자산의 장부금액에서 무보증 잔존가치의 현재가치를 차감한 금액이다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>판매부대비용은 개시일에 즉시 비용으로 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>이자수익은 유효이자율법으로 인식한다.\n정답 :&#160;1.&#160;매출액은 자산의 공정가치와 시장이자율로 할인한 최소리스료의 현재가치 중 큰 금액으로 인식한다.\n[해설]\n제조자 또는 판매자인 리스제공자는 리스개시일에 기초자산의 공정가치와 리스제공자에게 귀속되는 리스료를 시장이자율을로 할인한 현재가치 중 적은 금액으로 수익을 인식한다.\n판매 후 운용리스에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>공정가치에 근거한 판매거래는 손익을 즉시 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>공정가치에 미달한 판매거래에서 낮은 리스료로 보상되지 않는다면 손실을 즉시 인식한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>공정가치를 초과한 판매거래는 공정가치 초과 이익을 이연하여 리스기간동안 환입한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>공정가치에 미달한 판매거래에서 낮은 리스료로 보상된다면 손실을 즉시 인식한다.\n정답 :&#160;1.&#160;매출액은 자산의 공정가치와 시장이자율로 할인한 최소리스료의 현재가치 중 큰 금액으로 인식한다.\n[해설]\n제조자 또는 판매자인 리스제공자는 리스개시일에 기초자산의 공정가치와 리스제공자에게 귀속되는 리스료를 시장이자율을로 할인한 현재가치 중 적은 금액으로 수익을 인식한다.\n다음 중 법인세부담액을 회계이익에 대응하여 포괄손익계산서에 법인세비용으로 배분하는 시기를 조정해주는 과정을 무엇이라 하는가?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>법인세 기간내 배분\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>법인세 기간간 배분\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>이연법인세자산 손상 인식\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>부의법인세비용의 인식\n정답 :&#160;2.&#160;법인세 기간간 배분\n[해설]\n법인세부담액을 회계이익에 대응하여 포괄손익계산서에 법인세비용으로 배분하는 시기를 조정해주는 과정을 법인세 기간간 배분이라고 한다.\n다음 중 법인세법상 납부해야 할 금액이 법인세비용을 초과하는 경우 그 초과하는 금액을 무엇이라 하는가?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>이연법인세부채\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>이연법인세자산\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>법인세부담액\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>법인세비용\n2.&#160;이연법인세자산\n[해설]\n법인세법상 납부해야 할 금액이 법인세비용을 초과하는 경우 그 초과하는 금액을 이연법인세 자산이라 한다.\n법인세 기간간 배분 회계에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>세율이 변경되는 경우 일시적 차이가 소멸하는 기간의 평균세율을 적용하여 계산한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>관련자산의 처리방법에 따라 세율이 달라지는 경우 예상처리방법에 따라 세율을 달리 적용하여 계산한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>관련부채의 처리방법에 따라 세율이 달라지는 경우 예상처리방법에 따라 세율을 달리 적용하여 계산한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>누진세율이 적용되는 경우 일시적 차이가 소멸하는 기간의 평균세율을 적용하여 계산한다.\n정답 :&#160;1.&#160;세율이 변경되는 경우 일시적 차이가 소멸하는 기간의 평균세율을 적용하여 계산한다.\n[해설]\n세율이 변경되는 경우 일시적 차이가 소멸하는 기간의 확정된 미래세율을 적용하여 계산한다.\n법인세 기간간 배분 회계에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>당기법인세 자산과 부채는 상계의 요건을 만족하는 경우 당기법인세자산과 당기법인세 부채를 상계하여 유동자산(부채)로 공시한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>이연법인세 자산과 부채는 상계의 요건을 만족하는 경우 이연법인세자산과 이연법인세 부채를 상계하여 비유동자산(부채)로 공시한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>이연법인세자산과 부채에 대해서 현지가치평가를 허용한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>결손금으로 차기 이후에 납부할 법인세를 감면받게 된다.\n정답 :&#160;3.&#160;이연법인세자산과 부채에 대해서 현지가치평가를 허용한다.\n[해설]\n이연법인세자산과 부채에 대해서 현지가치평가를 배제한다.\n재무제표의 작성과 보고에 적용하던 회계정책을 다른 회계정책으로 변경하는 것을 무엇이라 하는가?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>회계 정책의 변경\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>회계 추정의 변경\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>오류수정\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>회계 오류의 변경\n정답 :&#160;1.&#160;회계 정책의 변경\n[해설]\n재무제표의 작성과 보고에 적용하던 회계정책을 다른 회계정책으로 변경하는 것을 회계 정책의 변경이라 한다.\n당초 추정의 근거가 되었던 상황의 변화, 새로운 정보의 획득, 추가적인 경험의 축적에 따라 지금까지 사용해오던 회계적 추정치를 변경하는 것을 무엇이라 하는가?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>소급법 적용\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>회계 추정의 변경\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>오류수정\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>회계 기준의 변경\n정답 :&#160;2.&#160;회계 추정의 변경\n[해설]\n당초 추정의 근거가 되었던 상황의 변화, 새로운 정보의 획득, 추가적인 경험의 축적에 따라 지금까지 사용해오던 회계적 추정치를 변경하는 것을 회계 추정의 변경이라 한다.\n다음 중 회계정책의 변경으로 보는 사례가 아닌 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>재고자산 원가흐름의 변경\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>유형자산의 평가모형의 변경\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>금융상품 원가흐름의 가정의 변경\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>감가상각방법의 변경\n정답 :&#160;4.&#160;감가상각방법의 변경\n[해설]\n감가상각방법의 변경은 회계추정의 변경의 사례이다.\n다음 중 회계추정의 변경으로 보는 사례가 아닌 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>매출채권 대손률 변경\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>감가상각자산 내용연수의 변경\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>유가증권 취득단가 산정방법\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>제품보증충당부채의 추정치 변경\n정답 :&#160;3.&#160;유가증권 취득단가 산정방법\n[해설]\n유가증권 취득단가 산정방법은 회계 정책의 변경이다.\n다음 중 현금흐름 변동에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>기업의 주요 수익창출활동은 영업활동으로 분류한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>장기성 자산 처분은 투자활동으로 분류한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>기업의 납입자본의 구성내용 변동을 가져오는 활동은 재무활동으로 분류한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>재무활동은 영업활동으로 분류한다.\n정답 :&#160;4.&#160;재무활동은 영업활동으로 분류한다.\n[해설]\n투자활동이나 재무활동이 아닌 기타의 활동을 영업활동으로 분류한다.\n다음 중 영업활동으로 인한 현금흐름으로 분류되는 사례가 아닌 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>재화의 판매에 따른 현금유입\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>유형자산의 처분에 따른 현금유입\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>단기매매목적으로 보유하는 계약에서 발생하는 현금유입\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>종업원과 관련된 현금유출\n정답 :&#160;2.&#160;유형자산의 처분에 따른 현금유입\n[해설]\n유형자산의 처분에 따른 현금유입은 투자활동으로 인한 현금흐름의 사례이다.\n다음 중 현금흐름표에 대한 설명으로 옳지 않은 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>종속기업의 취득과 처분에 따른 총 현금흐름은 별도로 표시하고 재무활동으로 분류한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>지배력을 상실하지 않는 종속기업에 대한 소유지분 변동은 자본거래로 회계처리하고 재무활동으로 분류한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>사채할인발행차금 이자비용은 재무활동 이자비용으로 분류한다.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>장기대여금에 대한 현재가치할인차금 상각이자수익은 투자활동 이자수익으로 분류한다."
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 17663,
+    "w": 600,
+    "content": "정답 :&#160;1.&#160;종속기업의 취득과 처분에 따른 총 현금흐름은 별도로 표시하고 재무활동으로 분류한다.\n[해설]\n종속기업의 취득과 처분에 따른 총 현금흐름은 별도로 표시하고 투자활동으로 분류한다.\n다음 상황에서 영업활동으로 인한 현금흐름을 구하면?"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 17767,
+    "w": 480,
+    "h": 82,
+    "src": "3015ee5c8a.png"
+  }
+];
+const CONTENT_HASH = '2625a4cd';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

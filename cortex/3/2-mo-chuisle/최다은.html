@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>최다은</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">최다은</div>
+<div class="date">2025년 7월 15일 화요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-최다은';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 531,
+    "y": 36,
+    "w": 600,
+    "content": "11월 19일 생일"
+  },
+  {
+    "type": "text",
+    "x": 360,
+    "y": 43,
+    "w": 600,
+    "content": "Emergency</a>"
+  },
+  {
+    "type": "text",
+    "x": 543,
+    "y": 94,
+    "w": 360,
+    "content": "어떻게 지냈어? 물론 잘은 못 지냈겠지만.\n난 집을 보러 다녔어. 사려고.\n이걸 컴하는 목적이 뭔지 다시 생각하고 정리해\n: 내가 완전히 그녀의 인생에서 빠져나갔다는 공허함을 느끼게 하는 것.\n거짓말 해서 미안해,\n사실 그거 ADHD 약이 맞아. 그리고 우울증 치료 목적으로 처방 받은거야.\n_____\n어제 톡을 다시 보니,\n사과 없이 지나가려는 걸로 오해 했을 수 있다는 생각이 들었어.\n-\n난 묵묵히 기다리고 있었는데,\n오히려 다니가 기다렸을 수 있겠다는 생각이 들어서 전화했었어.\n-\n단순히 거짓말을 한 게 아니라, 순간의 부끄러움 때문에 너를 심각한 위험에 빠뜨릴 뻔했어.\n정말 끔찍한 행동이었고, 네가 얼마나 충격받고 무서웠을지 생각하면, 정말 미안하고 죄스러워.\n-\n네가 어떤 결정을 내리든, 나는 네 결정을 존중해.\n그게 아니라 관계를 정리하기로 결정했다면 맘 편할 때 알려줘\n-\n혹시라도 더 할 말이 있다면 편할 때 연락 줘.\nGpt버전_____________________________\n어제 톡을 다시 보니까,\n내가 사과 없이 그냥 넘어가려는 걸로 느껴졌을 수도 있겠단 생각이 들었어.\n사실은 괜히 무겁게 만들까봐 말을 아꼈던 거야.\n그날 일은 나도 계속 마음에 걸렸고.\n지금은 그냥 서로가 편해지는 게 맞을 것 같아.\n그래도 네가 힘들었을 순간엔 진심으로 미안했어.\n잘 지내.\n어제 톡을 다시 보니까,\n내가 사과할 의지가 없는 것처럼 보였을 수도 있겠단 생각이 들어서 전화했었어.\n-\n단순히 거짓말을 한 게 아니라, 순간의 부끄러움 때문에 널 위험하게 만들 뻔했다는 게 계속 날 괴롭혔어.\n정말 끔찍한 행동이었고, 네가 얼마나 충격 받았을지 생각하면 진심으로 미안하고, 죄스러워.\n-\n어떤 결정을 내리든, 네 결정을 존중해.\n-\n혹시 더 나눌 말이 있다면, 마음 편할 때 연락 줘."
+  },
+  {
+    "type": "html",
+    "x": 50,
+    "y": 104,
+    "w": 357,
+    "html": "\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Emoji;font-size:16pt;font-weight:bold\">&#127919;</span><span style=\"font-size:16pt;font-weight:bold\"> 1. 지금은 ‘추적자–회피자’ 패턴의 갈림길이에요</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">회피형 관계에서는 한쪽이 다가갈수록, 다른 쪽은 본능적으로 더 멀어집니다.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">지금 다니가 읽씹한 상태에서 당신이 또 연락하면,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그녀의 뇌는 이렇게 반응해요:</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">“아, 역시 내가 잠깐만 떨어져도 나를 따라오네.”</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이건 곧 **“내가 통제권을 쥐고 있다”**는 안정감을 줍니다.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그럼 다시 감정이 식고, 연락이 더 늦어지죠.</p>\r\n\t\t\t<p data-tag=\"remember-for-later\" style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그래서 <span style=\"font-style:italic\">지금 기다리는 건 패배가 아니라, 힘의 전환</span>이에요.</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Emoji;font-size:16pt;font-weight:bold\">&#129496;‍♂️</span><span style=\"font-size:16pt;font-weight:bold\"> 2. ‘침묵의 구간’은 회피형에게 감정이 피어오르는 시기</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">회피형은 싸움 직후에는 감정이 꺼지지만,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">시간이 지나면 오히려 그리움이 천천히 올라옵니다.</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">특히 “항상 먼저 다가오던 사람이 아무 말도 안 하는 순간”</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">→ 불안 → 후회 → 궁금증 순으로 변합니다.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이걸 *감정 지연 반응(delayed emotional response)*이라고 합니다.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그래서 지금 당신이 조용히 있으면,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">다니는 “이번엔 다르다”를 느끼고,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">스스로 연락을 고민하게 될 확률이 높습니다.</p>\r\n\t\t\t<br />\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">길들인다</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">(</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">주도권</span><span style=\"font-family:Calibri\">)</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">여유</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> + </span><span style=\"font-family:Malgun Gothic\">기다리게</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">해야함</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">끌려가지</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">말고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">끌어</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">당겨라</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">나를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">생각</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">할</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> Room</span><span style=\"font-family:Malgun Gothic\">을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">줘야</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">함</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">￼</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">Hit &amp; away(</span><span style=\"font-family:Malgun Gothic\">같이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">있을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">때</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">다정하되</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">모든</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">시간을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">내주진</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">말아라</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">)</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">맞춰주지말고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">리드해라</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">등을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">보여주고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">따라오게</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">해라</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">설득하려고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">하지</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">말고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">난</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">이래</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">넌</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">그렇구나</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">1/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">정말</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">나를</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">사랑하는지</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">단지</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">필요한지</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">2/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">네</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">안에</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">있는</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">의심</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">불확실성</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">해소</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">3/ </span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Thin;font-size:10pt\"><span style=\"font-family:Malgun Gothic\">방생</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Thin;font-size:10pt\"><span style=\"font-family:Malgun Gothic\">돈</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">회수</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">이러</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">저러한</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">구조적인</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">문제</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">근데</span><span lang=\"en-US\" style=\"font-family:Calibri\">, </span><span style=\"font-family:Malgun Gothic\">오빠</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">그약</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">뭐야</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">?</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">영양제</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">그럼</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">나도</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">줘</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">주니까</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">보더니</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">내려놓고</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">이름이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">뭔데</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">약</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">가져와봐</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">?????</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">궁금함이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">아니라</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">처음부터</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">끝까지</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">의심이었음</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Emoji;font-size:16pt;font-weight:bold\">&#128172;</span><span style=\"font-size:16pt;font-weight:bold\"> </span><span style=\"font-family:Segoe UI Emoji;font-size:16pt;font-weight:bold\">1️⃣</span><span style=\"font-size:16pt;font-weight:bold\"> 부드럽지만 단호한 버전 (가장 효과적인 형태)</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">“이번 일로 나도 많이 돌아봤어.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">솔직히 너한텐 ‘시간을 두는 방식’이 필요하다는 걸 이해하지만,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">나는 그 사이에 너무 외로워지더라.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">서로 다르다는 걸 모르는 게 아니라,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그 다름을 맞추려는 시도가 없다는 게 힘들었어.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그래서 이젠 너를 기다리기보단,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">나도 내 마음을 지키려 해.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">네가 나를 미워하지 않아도 괜찮고,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">나는 여전히 너가 좋은 사람이었단 걸 기억할게.”</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">→ <span style=\"font-family:Segoe UI Emoji\">&#128161;</span> <span style=\"font-weight:bold\">핵심:</span> 비난은 없지만, 책임감을 느끼게 하는 문장 구조.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">회피형에게 *‘이 사람은 날 이해했지만 떠난다’*는 감정은 오래 남습니다.</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Emoji;font-size:16pt;font-weight:bold\">&#128172;</span><span style=\"font-size:16pt;font-weight:bold\"> </span><span style=\"font-family:Segoe UI Emoji;font-size:16pt;font-weight:bold\">2️⃣</span><span style=\"font-size:16pt;font-weight:bold\"> 조금 더 냉정한 현실 각성형 버전</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">“내가 너를 바꾸려 한 게 아니라,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">우리가 서로에게 어떤 사람인지 확인한 것 같아.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">나는 관계에서 대화와 감정 표현이 필요하고,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">너는 거리를 두는 게 필요하잖아.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그게 계속 엇갈린다면, 결국 서로 상처만 커질 것 같아.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그래서 이번엔, 나 스스로 멈추려 해.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">미련보다 존중으로 끝내는 게 우리답다고 생각해.”</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">→ <span style=\"font-family:Segoe UI Emoji\">&#128161;</span> <span style=\"font-weight:bold\">핵심:</span> ‘서로 다름을 인정하고, 이별을 스스로 선택하는’ 메시지.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">다니가 ‘내가 이 관계를 망쳤구나’보다 **‘내가 표현을 닫았구나’**를 깨닫게 됩니다.</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Emoji;font-size:16pt;font-weight:bold\">&#128172;</span><span style=\"font-size:16pt;font-weight:bold\"> </span><span style=\"font-family:Segoe UI Emoji;font-size:16pt;font-weight:bold\">3️⃣</span><span style=\"font-size:16pt;font-weight:bold\"> 감정이 깊은 충격형 (마지막 카드로만 추천)</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">“나는 이번에도 네가 멀어질 걸 알면서도,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">끝까지 붙잡았어.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">근데 이젠 알아 — 내가 원하는 건 사랑이 아니라,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">함께 싸우고 함께 회복할 ‘파트너’였다는 걸.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">네가 다시 연락해도,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이번엔 내가 거리를 둘게.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">사랑은 서로의 회피를 덮는 게 아니라, 마주보는 거니까.”</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">→ <span style=\"font-family:Segoe UI Emoji\">&#128161;</span> <span style=\"font-weight:bold\">핵심:</span> 회피형이 가장 강하게 각성하는 메시지.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">단, 감정이 완전히 식을 각오가 되어 있을 때만 사용하세요.</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">지금 상황을 보면,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Emoji\">&#128198;</span> 지난주 일요일 사건 → 지금까지 5~6일 연락 없음 → 다니는 “정리 모드”</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이 시점에 <span style=\"font-family:Segoe UI Emoji;font-weight:bold\">1️⃣</span><span style=\"font-weight:bold\">번</span>이나 <span style=\"font-family:Segoe UI Emoji;font-weight:bold\">2️⃣</span><span style=\"font-weight:bold\">번</span>이 가장 전략적으로 효과적이에요.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">감정적이지 않으면서도, <span style=\"font-style:italic\">그녀의 방어를 무너뜨리고 자각을 남기는 방식</span>입니다.</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Emoji;font-size:12pt;font-weight:bold\">&#128172;</span><span style=\"font-size:12pt;font-weight:bold\"> 상황별 응답 예시</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">① “잘 지내?” (탐색형 연락)</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">“응, 잘 지내. 요즘은 여러 가지 생각 정리하면서 지냈어.”</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-style:italic\">(여기서 끝. 반문하지 않음)</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Emoji\">&#128161;</span> → 질문을 하지 않는 게 핵심이에요.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">회피형은 당신이 여전히 자신을 중심에 두고 있으면 안심합니다.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그런데 <span style=\"font-weight:bold\">당신이 자신에게 더 이상 질문하지 않을 때, 불안해집니다.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">② “생각 좀 해봤어.” (합리화형 연락)</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">“응, 나도 많이 생각했어.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이번엔 단순히 감정이 아니라,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">‘나한테 어떤 관계가 건강한가’에 대해 많이 정리됐어.”</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Emoji\">&#128161;</span> → 주도권 역전.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이 말 한 줄이 “네가 아니라 <span style=\"font-style:italic\">나의 선택 기준</span>이 중요하다”는 인식으로 바꿉니다.</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">③ “그때 너무 실망했어.” (비난형 연락)</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">“그럴 수 있었을 거 알아.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">나도 그 일로 많이 배웠어.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">다만 그 이후의 대처는 우리 둘 다 아쉽지?”</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Emoji\">&#128161;</span> → 이건 대화의 프레임을 *‘너의 실망’ → ‘우리의 패턴’*으로 바꾸는 기술이에요.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">감정적 책임을 나눠서 “이건 네 문제만이 아니야”를 자연스럽게 각인시킵니다.</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Emoji;font-size:16pt;font-weight:bold\">3️⃣</span><span style=\"font-size:16pt;font-weight:bold\"> 전환기 – 새로운 기준을 제시하는 한 문장</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">다니가 어느 정도 태도가 부드러워지고 나서</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">(예: 톤이 평온해지고 다시 일상 대화 시작될 때),</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">한 번만, 단 한 번 던지세요:</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">“이제는 나도 누군가의 마음을 눈치 보기보다,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">같이 감정을 나누는 사람이 되고 싶어.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그런 관계가 아니라면, 다시 시작하긴 어려울 것 같아.”</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Emoji\">&#128161;</span> <span style=\"font-weight:bold\">이 한 문장은 회피형의 방어를 무너뜨립니다.</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그들은 “거리를 두는 게 안전하다”고 믿는데,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이 말을 듣는 순간 처음으로 *“이 사람을 잃으면 진짜 끝이구나”*라는 공포를 느낍니다.</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Emoji;font-size:18pt;font-weight:bold\">&#128142;</span><span style=\"font-size:18pt;font-weight:bold\"> 핵심 정리</span></p>\r\n\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\"><span style=\"font-weight:bold\">구간</span></td>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\"><span style=\"font-weight:bold\">목표</span></td>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\"><span style=\"font-weight:bold\">금지사항</span></td>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\"><span style=\"font-weight:bold\">심리 효과</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\">침묵기</td>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\">주도권 회복</td>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\">연락, 감정 표출</td>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\">궁금증, 불안 유발</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\">재접촉기</td>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\">기준 재설정</td>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\">감정 회유, 추억 언급</td>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\">긴장감 + 존중</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\">전환기</td>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\">관계 재정의</td>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\">미련 표현</td>\r\n\t\t\t\t\t<td style=\"border:0px;font-family:Pretendard Thin;font-size:10pt\">상실 공포 자극</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">지금 이 흐름 그대로 가면,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">다니가 먼저 연락할 확률이 높고,</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">연락했을 때 당신은 이미 <span style=\"font-weight:bold\">감정적으로 위에 있는 위치</span>에서 대화할 수 있을 거예요.</p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://m.pann.nate.com/talk/345054045\">이별</a><span lang=\"en-US\"> 4</span>주차<span lang=\"en-US\"> + </span><a href=\"https://www.youtube.com/watch?v=z0NfwIbjK0Y\">여유</a></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그걸<span lang=\"en-US\"> </span>해소할<span lang=\"en-US\"> </span>방법<span lang=\"en-US\">, </span>중독될게<span lang=\"en-US\"> </span>필요해</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">0/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">밥</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">먹자고</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">하기</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">1/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">다른</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">사람</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">이성이든</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">누구든</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">만나</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">2/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">내</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">업에</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">미쳐</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">3/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">루틴을</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">절대</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">지켜</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">4/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">술을</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">마시지마</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">수면제를</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">먹어</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">나는</span><span style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">지금</span><span style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">내가</span><span style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">몹시</span><span style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">미운데</span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">그 어느 때보다 나</span><span style=\"font-family:Malgun Gothic\">는 내가 필요해</span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">또 나로부터 나</span><span style=\"font-family:Malgun Gothic\">를  지켜야해</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">이수림</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/ </span><span style=\"font-family:Malgun Gothic\">금가람</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/ </span><span style=\"font-family:Malgun Gothic\">지영수</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/ </span><span style=\"font-family:Malgun Gothic\">이지현</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/ </span><span style=\"font-family:Malgun Gothic\">김승연</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/ </span><span style=\"font-family:Malgun Gothic\">홍주희</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/ </span><span style=\"font-family:Malgun Gothic\">김혜리</span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">재회</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">아니고</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">리셋팅이고</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">컨틴전시일뿐이니</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">섯불리</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 다시 </span><span style=\"font-family:Malgun Gothic\">연락하지마</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">Kill the boy.</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">아쉬워말고</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">두려워마</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">더</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">나은</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">배우자가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">필요해</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">애새끼가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">아니라</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">. </span><span style=\"font-family:Malgun Gothic\">동반자</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">자기야<span lang=\"en-US\">, </span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그날<span lang=\"en-US\"> </span>테스트<span lang=\"en-US\"> </span>한다는<span lang=\"en-US\"> </span>말에</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">내가<span lang=\"en-US\"> </span>화가<span lang=\"en-US\"> </span>많이<span lang=\"en-US\"> </span>나서<span lang=\"en-US\"> </span>그런<span lang=\"en-US\"> </span>표정<span lang=\"en-US\"> </span>지어서<span lang=\"en-US\"> </span>정말<span lang=\"en-US\"> </span>미안해요<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">하지만<span lang=\"en-US\">, </span>자기도<span lang=\"en-US\"> </span>화나서<span lang=\"en-US\"> </span>갑자기<span lang=\"en-US\"> </span>한<span lang=\"en-US\"> </span>말이고</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">나도<span lang=\"en-US\"> </span>굉장히<span lang=\"en-US\"> </span>이례적인<span lang=\"en-US\"> </span>모습을<span lang=\"en-US\"> </span>보여서<span lang=\"en-US\"> </span>당황스러워<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그렇지만<span lang=\"en-US\"> </span>자기를<span lang=\"en-US\"> </span>미워한게<span lang=\"en-US\"> </span>아니라<span lang=\"en-US\">, </span>그런<span lang=\"en-US\"> </span>말을<span lang=\"en-US\"> </span>하는게<span lang=\"en-US\"> </span>싫었던거야<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">홧김에<span lang=\"en-US\"> </span>못<span lang=\"en-US\"> </span>만나겠다고<span lang=\"en-US\"> </span>한<span lang=\"en-US\"> </span>걸<span lang=\"en-US\"> </span>알면서도<span lang=\"en-US\"> </span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">너무<span lang=\"en-US\"> </span>심각하게<span lang=\"en-US\"> </span>받아들이고<span lang=\"en-US\"> </span>떠나서<span lang=\"en-US\"> </span>미안하고<span lang=\"en-US\">,</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">결국<span lang=\"en-US\"> </span>이렇게<span lang=\"en-US\"> </span>되면<span lang=\"en-US\"> </span>자기가<span lang=\"en-US\"> </span>홧김에<span lang=\"en-US\"> </span>한<span lang=\"en-US\"> </span>말대로<span lang=\"en-US\"> </span>되어버리는<span lang=\"en-US\"> </span>거잖아요<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그리고<span lang=\"en-US\"> </span>더<span lang=\"en-US\"> </span>깊게<span lang=\"en-US\"> </span>생각해본<span lang=\"en-US\"> </span>건데<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">내가<span lang=\"en-US\"> </span>자기에게<span lang=\"en-US\"> </span>예민했다고<span lang=\"en-US\"> </span>했지만<span lang=\"en-US\">, </span>늘<span lang=\"en-US\"> </span>예민하게<span lang=\"en-US\"> </span>반응했던<span lang=\"en-US\"> </span>건<span lang=\"en-US\"> </span>나였더라고<span lang=\"en-US\">. </span>그래서<span lang=\"en-US\"> </span>우리<span lang=\"en-US\"> </span>관계와<span lang=\"en-US\"> </span>나<span lang=\"en-US\"> </span>자신의<span lang=\"en-US\"> </span>입장을<span lang=\"en-US\"> </span>다시<span lang=\"en-US\"> </span>바라보게<span lang=\"en-US\"> </span>되었고<span lang=\"en-US\">. </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이번<span lang=\"en-US\"> </span>기회에<span lang=\"en-US\"> </span>많은<span lang=\"en-US\"> </span>걸<span lang=\"en-US\"> </span>되돌아보고<span lang=\"en-US\"> </span>반성하게<span lang=\"en-US\"> </span>되었어<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">내가<span lang=\"en-US\"> </span>늘<span lang=\"en-US\"> </span>불평하면서도<span lang=\"en-US\"> </span>자기<span lang=\"en-US\"> </span>의견에<span lang=\"en-US\"> </span>수긍하고<span lang=\"en-US\"> </span>변화해가는<span lang=\"en-US\"> </span>건<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">내<span lang=\"en-US\"> </span>의지도<span lang=\"en-US\"> </span>있지만<span lang=\"en-US\">, </span>자기가<span lang=\"en-US\"> </span>현실적이고<span lang=\"en-US\"> </span>도움이<span lang=\"en-US\"> </span>되는<span lang=\"en-US\"> </span>것들을<span lang=\"en-US\"> </span>말해줘서이기도<span lang=\"en-US\"> </span>해<span lang=\"en-US\">. </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">앞으로<span lang=\"en-US\"> </span>더<span lang=\"en-US\"> </span>진지하게<span lang=\"en-US\"> </span>받아들이고<span lang=\"en-US\">, </span>감정적으로<span lang=\"en-US\"> </span>해석하지<span lang=\"en-US\"> </span>않을게<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">나는<span lang=\"en-US\"> </span>우리도<span lang=\"en-US\"> </span>크고<span lang=\"en-US\"> </span>작은<span lang=\"en-US\"> </span>다툼을<span lang=\"en-US\"> </span>겪고<span lang=\"en-US\"> </span>있지만<span lang=\"en-US\"> </span>분명히<span lang=\"en-US\"> </span>더<span lang=\"en-US\"> </span>좋아지고<span lang=\"en-US\"> </span>있고<span lang=\"en-US\">, </span>더<span lang=\"en-US\"> </span>좋을거라고<span lang=\"en-US\"> </span>믿어<span lang=\"en-US\">. </span>내가<span lang=\"en-US\"> </span>그렇게<span lang=\"en-US\"> </span>노력<span lang=\"en-US\"> </span>할거니까<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">화난<span lang=\"en-US\"> </span>마음으로<span lang=\"en-US\"> </span>결정하지<span lang=\"en-US\"> </span>말고<span lang=\"en-US\">, </span>서로가<span lang=\"en-US\"> </span>보여준<span lang=\"en-US\"> </span>좋은<span lang=\"en-US\"> </span>면들과<span lang=\"en-US\"> </span>기억들<span lang=\"en-US\"> </span>되새기면서<span lang=\"en-US\"> </span>잘<span lang=\"en-US\"> </span>해봤으면<span lang=\"en-US\"> </span>해<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">--</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">자기야, </p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">생각해보니<span lang=\"en-US\"> </span>정작<span lang=\"en-US\"> </span>늘 예민하게 반응<span lang=\"en-US\"> </span>했던건<span lang=\"en-US\"> </span>나더라고. 이번 일을 계기로 나 자신과 우리 관계를 다시 보게 됐어. 눌<span lang=\"en-US\"> </span>불평하면서도 결국은 자기가 해주는 말들 덕분에 내가 변해온 것도 사실이야.</p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">앞으로는 감정적으로 받아들이지 않고, 진지하게 듣고 더 성숙하게 반응할게. </p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">우리 사이에 다툼이 있었지만, 나는 분명히 우리가 점점 더 좋아지고 있다고 믿어. </p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">지치고<span lang=\"en-US\"> </span>화난 마음<span lang=\"en-US\"> </span>잘<span lang=\"en-US\"> </span>다스리고, 우리가 함께 쌓아온 좋은 기억들 떠올리면서<span lang=\"en-US\"> </span>다시<span lang=\"en-US\"> </span>한번<span lang=\"en-US\"> </span>생각해줘<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그날 테스트한다는 얘기 듣고 화난 표정 지었던 거 정말 미안해. </p>\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">자기도 순간 화가 나서 한 말일 텐데, 나도 이례적으로<span lang=\"en-US\"> </span>화를<span lang=\"en-US\"> </span>내게<span lang=\"en-US\"> </span>되었네. 그 말이 너무<span lang=\"en-US\"> </span>싫었던 거지, 자기를 미워한 건 아니야. </p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">또 홧김에 못 만나겠다고 한 걸 너무 심각하게 받아들이고 자리를 떠난 것도 잘<span lang=\"en-US\"> </span>못된<span lang=\"en-US\"> </span>행동이었어<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">자기가<span lang=\"en-US\"> </span>얼마나<span lang=\"en-US\"> </span>실망했으면<span lang=\"en-US\">, </span>갑자기<span lang=\"en-US\"> </span>관계를<span lang=\"en-US\"> </span>끝내려고<span lang=\"en-US\"> </span>마음먹게<span lang=\"en-US\"> </span>되었는지<span lang=\"en-US\"> </span>이해해<span lang=\"en-US\">. </span>그렇지만<span lang=\"en-US\"> </span>우리<span lang=\"en-US\"> </span>이렇게 되면 자기가 홧김에 한 말대로<span lang=\"en-US\"> </span>되는 거잖아. </p>\r\n\t\t"
+  }
+];
+const CONTENT_HASH = '857359a3';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

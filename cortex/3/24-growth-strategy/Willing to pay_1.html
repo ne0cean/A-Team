@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Willing to pay</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Willing to pay</div>
+<div class="date">2018년 10월 1일 월요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Willing-to-pay';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "html",
+    "x": 48,
+    "y": 115,
+    "w": 720,
+    "html": "\r\n\t\t\t<ul>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;font-size:17pt;font-weight:bold\">3개월간 유료콘텐츠에 돈 낸 사람 10명 중 1명</span></p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:10.5pt;color:#555555\">&quot;온라인 활동량 통신요금 수준과 비례&quot;</span></p>\r\n\t\t\t\t<li style=\"font-size:10pt\"><span style=\"background-color:#14293e\">김윤희 기자</span></li>\r\n\t\t\t\t<li style=\"font-size:10pt\"><span style=\"background-color:#14293e\">입력 : 2018.09.30.11:25</span></li>\r\n\t\t\t\t<li style=\"font-size:10pt\"><span style=\"background-color:#14293e\">수정 : 2018.09.30.11:25</span></li>\r\n\t\t\t\t<li style=\"font-size:10pt\"><span style=\"background-color:#14293e\">3 </span></li>\r\n\t\t\t\t<div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t<br />\r\n\t\t\t\t<li><div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t</li>\r\n\t\t\t\t<br />\r\n\t\t\t\t<li><div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t</li>\r\n\t\t\t\t<br />\r\n\t\t\t\t<li><br />\r\n\t\t\t\t</li>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">지난 3개월간 온라인 유료 콘텐츠를 구매한 경험이 있는 이용자 비중이 11.6%에 그치는 것으로 나타났다.</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">정보통신정책연구원(KISDI)은 &#39;이동통신서비스요금 지출 규모에 따른 인터넷, 모바일 이용행태 차이 분석&#39; 보고서를 통해 이같이 밝혔다.</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">해당 보고서는 통신요금 수준에 따른 웹, 앱 이용량을 다각도로 분석했다. 이에 따르면 TV프로그램, 영화를 포함한 동영상 감상, 교육 콘텐츠, 음악, 게임 등 온라인 콘텐츠 관련 유료 구매 경험자는 콘텐츠 종류와 상관없이 10%를 넘지 않았다.</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:8pt;color:white;background-color:#333333\">출처=정보통신정책연구원(KISDI)</span></p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">지출 규모를 보면, 통신요금이 높을 수록 온라인 콘텐츠 지출 금액도 높았다. 월 8만원 이상 통신요금을 지출하는 집단은 월 평균 2만7천800원을 콘텐츠에 썼다. 반면 월 2만원에서 4만원 미만의 통신요금을 내는 집단의 경우 월 평균 9천100원을 콘텐츠에 지출, 가장 적은 금액을 지불했다.</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">SNS나 뉴스 댓글 작성, 게시판 글 작성 등 온라인 활동도 비슷한 양상을 보였다. KISDI는 &quot;월 통신 지출이 많아질수록 온라인 활동이 활발해지는 경향을 보였다&quot;고 설명했다.</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">TV홈쇼핑을 포함한 전자상거래 경험 유무는 월 2만원 이상 6만원 미만의 통신요금을 내는 집단에서는 반반 정도였다. 6만원 이상을 내는 집단에서는 유경험자가 70% 이상으로 크게 늘어났다.</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:8pt;color:white;background-color:#333333\">출처=정보통신정책연구원(KISDI)</span></p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이동통신서비스를 이용해야 하는 해외 직구, 온라인몰 이용, 개인간 거래 등 전자상거래 경험도 통신 요금 지출 수준과 비례하는 것으로 나타났다.</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">한편 보고서 조사 결과 월 평균 통신요금은 5만857원, 기기할부금은 월 평균 9천794원으로, KISDI는 타 조사 결과와 비슷한 수준이라고 언급했다.</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:8pt;color:white;background-color:#333333\">출처=정보통신정책연구원(KISDI)</span></p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">월 2만원 이하 통신요금을 지출하는 응답자는 전체의 1.5%로 나타났다. 정부의 통신비 절감 정책 중 일환인 월 2만원대 보편요금제가 상정하는 데이터 제공량은 1GB 수준이다.</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">KISDI는 &quot;현재 월 1GB 이상의 데이터를 이용하려면 최소 3만원대 요금제에 가입해야 한다&quot;며 &quot;응답자 중 월 3만원 미만 요금제 가입자는 전체의 6.2%를 차지했다&quot;고 밝혔다.</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">기기할부금의 경우 월 2만원 미만으로 지출하는 응답자가 전체의 79.1%였다.</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">​</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">KISDI는 &quot;미디어 환경이 모바일 중심으로 변화했으며, 이동전화는 단순한 전화기가 아닌 멀티미디어로서의 기능을 수행한다&quot;며 &quot;어떤 요금제를 사용하는가에 따라 온라인 활동, 전자상거래, 온라인 콘텐츠 이용 등 사용자의 인터넷 활동에 차이가 나타나는 것은 당연한 결과로 볼 수 있다&quot;고 분석했다.</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">--------------------------------------------------------</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">OTT로 인해 하나의 콘텐츠가 다양한 플랫폼과 다양한 네트워크를 통해 여러 단말기로 전달되는 ‘원 콘텐츠 멀티 루트’(One Contents Multi Route) 현상이 정착됨에 </p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">넷플릭스가 자신의 정통 브랜드만 내세우고 콘텐츠를 제공한 사업자의 브랜드를 노출시키지 않는 사실을 들면서, “국내 OTT 기업의 콘텐츠 확보를 위한 경쟁력은 글로벌 OTT 기업이 제공할 수 없는 제안을 통해 그 해결책을 찾을 수 있다”며 그 경쟁력은 고도화된 마케팅 기법, 빅데이터 분석 기술, 네트워크 운영 기술에 달렸다고 보았다.</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">&lt;img height=&quot;1&quot; width=&quot;1&quot; style=&quot;display:none&quot; src=&quot;https://www.facebook.com/tr?id=433243833778050&amp;ev=PageView&amp;noscript=1&quot;/&gt; </p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">곽 교수는 지난 7월에 열린 한국미디어경영학회 세미나에서도 같은 내용을 발표한 바 있다.</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">곽 교수는 <span style=\"font-family:Segoe UI Symbol\">▲</span>방송(동영상)콘텐츠 유통구조의 다변화 <span style=\"font-family:Segoe UI Symbol\">▲</span>비선형 콘텐츠 소비의 증가 <span style=\"font-family:Segoe UI Symbol\">▲</span><span lang=\"en-US\">TV</span>에서<span lang=\"en-US\"> </span>모바일로<span lang=\"en-US\"> </span>필수매체<span lang=\"en-US\"> </span>변화<span lang=\"en-US\"> </span><span lang=\"en-US\" style=\"font-family:Segoe UI Symbol\">▲</span>모바일<span lang=\"en-US\"> </span>기기를<span lang=\"en-US\"> </span>통한<span lang=\"en-US\"> </span>동영상콘텐츠<span lang=\"en-US\"> </span>이용률<span lang=\"en-US\"> </span>등의<span lang=\"en-US\"> </span>자료를<span lang=\"en-US\"> </span>설명하며<span lang=\"en-US\">, </span>국내<span lang=\"en-US\"> OTT</span>시장의<span lang=\"en-US\"> </span>규모와<span lang=\"en-US\"> </span>성장세를<span lang=\"en-US\"> </span>추정하며<span lang=\"en-US\"> </span>발표를<span lang=\"en-US\"> </span>시작했다<span lang=\"en-US\">.</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이어 그는 <span style=\"font-family:Segoe UI Symbol\">▲</span>스트리밍서비스로 시장표준 선도 <span style=\"font-family:Segoe UI Symbol\">▲</span>몰아보기 지원과 과감한 콘텐츠 투자 등 차별화 <span style=\"font-family:Segoe UI Symbol\">▲</span>콘텐츠유통사(플랫폼)과 제작사를 넘나드는 다양한 파트너십 <span style=\"font-family:Segoe UI Symbol\">▲</span>현지 맞춤화 콘텐츠 제작 <span style=\"font-family:Segoe UI Symbol\">▲</span>딥러닝 기술 기반한 맞춤형 콘텐츠 추천 같은 개인화 서비스 등 넷플릭스가 취해왔던 해외시장 진입전략을 소개하며 성공요인을 분석하고 현재 국내 시장 진입 이후 행보에 대해 그 연관성을 깊이 있게 짚어 나갔다.</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">곽교수는 지난 <span style=\"font-family:Segoe UI Symbol\">▲</span><span lang=\"en-US\">2016</span>년<span lang=\"en-US\"> 5</span>월<span lang=\"en-US\">, </span>딜라이브<span lang=\"en-US\"> </span>셋톱박스에<span lang=\"en-US\"> </span>탑재<span lang=\"en-US\"> </span><span lang=\"en-US\" style=\"font-family:Segoe UI Symbol\">▲</span><span lang=\"en-US\">2017</span>년<span lang=\"en-US\"> 11</span>월<span lang=\"en-US\">, CJ</span>헬로비전<span lang=\"en-US\"> OTT </span>뷰잉&#183;디지털방송<span lang=\"en-US\"> </span>셋톱<span lang=\"en-US\"> </span>탑재<span lang=\"en-US\"> </span><span lang=\"en-US\" style=\"font-family:Segoe UI Symbol\">▲</span><span lang=\"en-US\">2018</span>년<span lang=\"en-US\"> 5</span>월<span lang=\"en-US\"> LG</span>유플러스<span lang=\"en-US\"> </span>무제한<span lang=\"en-US\"> </span>데이터요금제와<span lang=\"en-US\"> </span>결합한<span lang=\"en-US\"> 3</span>개월<span lang=\"en-US\"> </span>무료서비스<span lang=\"en-US\"> </span>제공<span lang=\"en-US\"> </span>등<span lang=\"en-US\"> </span>넷플릭스의<span lang=\"en-US\"> </span>행보를<span lang=\"en-US\"> </span>파악하며<span lang=\"en-US\">, </span>그들이<span lang=\"en-US\"> </span>제휴기업의<span lang=\"en-US\"> </span>자원을<span lang=\"en-US\"> </span>활용해<span lang=\"en-US\"> </span>위험을<span lang=\"en-US\"> </span>분산하면서도<span lang=\"en-US\"> </span>시장진입속도는<span lang=\"en-US\"> </span>가속화해<span lang=\"en-US\"> </span>빠른<span lang=\"en-US\"> </span>시장접근과<span lang=\"en-US\"> </span>규모의<span lang=\"en-US\"> </span>경제<span lang=\"en-US\"> </span>효과를<span lang=\"en-US\"> </span>실현했다고<span lang=\"en-US\"> </span>봤다<span lang=\"en-US\">. </span>넷플릭스는<span lang=\"en-US\"> </span>이<span lang=\"en-US\"> </span>과정에서<span lang=\"en-US\"> </span>국내<span lang=\"en-US\"> </span>규제<span lang=\"en-US\"> </span>환경에<span lang=\"en-US\"> </span>대해<span lang=\"en-US\"> </span>익히면서도<span lang=\"en-US\">, </span>그들이<span lang=\"en-US\"> </span>제시하는<span lang=\"en-US\"> </span>새로운<span lang=\"en-US\"> </span>결합서비스의<span lang=\"en-US\"> </span>표준을<span lang=\"en-US\"> </span>국내에<span lang=\"en-US\"> </span>조기<span lang=\"en-US\"> </span>정립하려는<span lang=\"en-US\"> </span>의도가<span lang=\"en-US\"> </span>있었다고<span lang=\"en-US\"> </span>분석했다<span lang=\"en-US\">.</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">유튜브 세대의 영상 콘텐츠 선호 유형에 대해서는 “긴 프로그램을 싫어한다는 것으로 알려져 있는데, 이 또한 상대적일 뿐”이라며, 오히려, 같은 시청자들이 좋아하는 시리즈를 장시간 집중적으로 몰입해서 시청하고 있다고 보았다. 유튜브 세대를 정확히 꿰뚫어 본 결과, 넷플릭스는 몰아보기 기능과 고유 알고리즘을 활용한 맞춤형 콘텐츠 추천을 선보이기에 이르렀고, 이는 기존 방송문화의 혁신을 불러일으켰을 뿐만 아니라, 유튜브 세대의 넷플릭스 문화를 형성하기에 이르렀다는 설명이다.<span lang=\"en-US\"> </span></td>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">긴<span lang=\"en-US\"> </span>콘텐츠를<span lang=\"en-US\"> </span>싫어한다는게<span lang=\"en-US\">, </span>단순히<span lang=\"en-US\"> </span>길이인가<span lang=\"en-US\"> </span>아니면<span lang=\"en-US\"> </span>전개의<span lang=\"en-US\"> </span>호홉인가를<span lang=\"en-US\"> </span>명확히<span lang=\"en-US\"> </span>해야한다<span lang=\"en-US\">. </span>착시일<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있다<span lang=\"en-US\">.</span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">OTT 사업자 넷플릭스는 핵심 고객을 소비자가 아니라, 콘텐츠 제작자로 선정했다. </p>\r\n\t\t\t\t<br />\r\n\t\t\t</ul>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 127,
+    "w": 360,
+    "h": 200,
+    "src": "044b05d29d.png",
+    "caption": "페이스북"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 335,
+    "w": 360,
+    "h": 200,
+    "src": "be8011262c.png",
+    "caption": "트위터"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 543,
+    "w": 360,
+    "h": 200,
+    "src": "f4b0351574.png",
+    "caption": "구글"
+  }
+];
+const CONTENT_HASH = '185638d5';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

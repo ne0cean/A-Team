@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>아티클 정리_겨울 1st</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">아티클 정리_겨울 1st</div>
+<div class="date">2024년 12월 3일 화요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-아티클-정리-겨울-1st';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 115,
+    "w": 600,
+    "content": "#1.\n양손잡이 조직 The Ambidextrous Organization\n기업이 과거의 제품과 프로세스를 관리하면서￼동시에 미래를 위한 혁신을 준비하는 능력을 갖춘 조직\n주요 특징\n조직 분리: 새로운 탐색 부서와 전통적인 활용 부서를 분리하여 각각 다른 프로세스, 구조, 문화를 가질 수 있게 합니다￼.\n경영진 통합: 분리된 부서들 간에 고위 경영진 수준에서 긴밀한 연결 유지￼.\n혁신과 효율의 균형: 급진적 혁신과 점진적 개선을 동시에 추구할 수 있습니다￼.\n양손잡이 관리자의 중요성\n양손잡이 조직의 성공에는 양손잡이 관리자가 핵심적,\n매우 다른 종류의 비즈니스 니즈를 이해하고 민감하게 대응할 수 있는 능력을 갖춰야 하며,￼.\n엄격한 비용 절감자와 자유로운 사고의 기업가적 특성을 동시에 지니고,￼어려운 트레이드오프를 결정할 수 있는 객관성을 유지해야 한다.￼.\n결론\n거의 모든 기업은 혁신적인 제품과 프로세스를 통해 자신을 갱신해야 하지만, 이는 전통적인 비즈니스를 희생하면서 이루어져서는 안 됩니다.\n2 요약\nP&G의 성공적인 혁신 전략과 '신성장 공장' 모델 사례\n타이드 브랜드의 혁신적 변화: 기존 세제 영역을 넘어 다양한 신제품 개발과 현지화 전략으로 시장 점유율 확대\n타이드 내추럴스: 인도에서는 손세탁을 주로 하는 소비자들에게 피부 자극 없이 세척력이 뛰어난 제품을 제공하여 시장 점유율을 크게 늘렸습니다.\n타이드 위드 액티리프트: 타이드의 액체 세탁세제를 대폭 개선하여 미국 시장에서 빠른 성장을 이끌었습니다.\n신성장 공장 모델: 창의성과 대량 생산 방식을 결합한 혁신 시스템으로, 파괴적 혁신과 변화-유지형 혁신을 통해 새로운 시장 창출 및 기존 제품 가치 향상\n에디슨의 실험실에서의 창의성과 포드의 대량 생산 방식의 장점을 결합,\n새로운 시장을 창출하고, 변화-유지형 혁신을 통해 기존 제품에 새로운 가치를 부여\nC+D (Connect and Develop) 모델: 외부 혁신을 내부로 도입하는 전략으로 혁신 성공률 향상\n글로벌 시장 전략: 각 지역 특성에 맞춘 현지화 전략 실행\n신흥 시장을 위한 33센트짜리 면도기\n드라이브스루 창구와 24시간 수거 서비스를 제공하는 Tide 드라이클리닝 매장￼\n혁신의 유형을 네 가지로 분류하여 체계적이고 지속 가능한 성장 추구\n유지형 혁신: 기존 제품의 개선을 통해 고객의 만족도를 높이고 시장 점유율을 확대.\n상업형 혁신: 창의적인 마케팅과 포장을 통해 제품의 매력을 증대시키고 시장에서의 입지를 강화.\n변화-유지형 혁신: 기존 카테고리를 재구성하며, 근본적인 변화를 통해 소비자와 시장에 새로운 가치를 제공.\n파괴형 혁신: 완전히 새로운 시장을 창출하며 급진적인 제품을 통해 새로운 기회를 선도.\n혁신적 구조와 역량: 이 \"공장\"은 새로운 제품과 비즈니스 모델을 신속하게 시장에 선보이기 위한 네트워크로 구성되었습니다\n학습과 실행의 균형: 실패 경험을 자원으로 활용하고, 지속적인 혁신 기회 발굴을 위한 환경 조성￼\n성과\n2000년 당시 성장이 제한적이었던 Tide는 10년 후 매출이 거의 두 배로 증가했습니다\n섬유 및 가정용품 관리 부문의 연간 매출이 120억 달러에서 거의 240억 달러로 증가\nTide는 신흥 시장에서 급성장하고 있으며, 새로운 제품과 비즈니스로 확장 중\n시사점\n대기업에서도 집단적 창의성을 관리하고 지속 가능한 수익 성장을 창출할 수 있음을 보여줍니다\n++++++++++++++++++\n#2. 영문판\nP&G의 혁신 전략\n\"새로운 성장 공장\" 설립: 2000년대 초, P&G는 성장 목표와 혁신 파이프라인 간의 격차를 해소하기 위해 \"새로운 성장 공장\"을 만들었습니다￼.\n혁신적 구조와 역량: 이 \"공장\"은 새로운 제품과 비즈니스 모델을 신속하게 시장에 선보이기 위한 네트워크로 구성되었습니다￼.\n다양한 혁신 결과:\n신흥 시장을 위한 33센트짜리 면도기\n드라이브스루 창구와 24시간 수거 서비스를 제공하는 Tide 드라이클리닝 매장￼\n혁신 지원 요소:\n새로운 비즈니스 창출 그룹\n기업가적 \"가이드\"\n혁신 매뉴얼\n파괴적 혁신 \"대학\"￼\n성과\nTide 브랜드의 성장: 2000년 당시 성장이 제한적이었던 Tide는 10년 후 매출이 거의 두 배로 증가했습니다\n부문 매출 증가: 섬유 및 가정용품 관리 부문의 연간 매출이 120억 달러에서 거의 240억 달러로 증가했습니다￼\n브랜드 확장: Tide는 신흥 시장에서 급성장하고 있으며, 새로운 제품과 비즈니스로 확장되고 있습니다￼\n이 사례는 대기업에서도 집단적 창의성을 관리하고 지속 가능한 수익 성장을 창출할 수 있음을 보여줍니다\n#2-2 한글판\n이 글은 조직 내에서 혁신을 촉진하기 위한 전략과 접근 방식을 다루고 있습니다. 주요 내용은 다음과 같습니다:\n혁신의 필요성\n현대의 빠르게 변화하는 시장 환경에서 기업은 지속적인 혁신을 통해 경쟁력을 유지해야 합니다.\n혁신은 단순한 제품 개발을 넘어, 비즈니스 모델, 프로세스, 고객 경험 등 다양한 분야에서 이루어져야 합니다.\n조직 내 혁신 촉진 방법\n문화 조성:\n실패를 두려워하지 않는 문화와 실험을 장려하는 환경을 만들어야 합니다.\n직원들이 자유롭게 아이디어를 제안하고 실험할 수 있도록 지원해야 합니다.￼\n다양한 팀 구성:\n다양한 배경과 전문성을 가진 팀을 구성하여 서로 다른 관점을 통합하고 창의적인 해결책을 도출해야 합니다.￼\n고객 중심 접근:\n고객의 필요와 피드백을 반영하여 혁신을 추진해야 하며, 고객과의 소통을 강화해야 합니다.￼\n지속적인 학습과 개발:\n직원들에게 교육과 훈련 기회를 제공하여 지속적으로 새로운 기술과 지식을 습득할 수 있도록 해야 합니다.￼\n결론\n혁신은 단기적인 목표가 아니라 장기적인 전략으로 접근해야 하며, 조직 전체가 참여하는 문화가 필요합니다.\n이러한 접근 방식을 통해 기업은 변화에 능동적으로 대응하고 지속 가능한 성장을 이룰 수 있습니다.\n공유\n____________________________________________________--\n<a href=\"https://hbr.org/topic/subject/innovation\" lang=\"ko-KR\" style=\"font-family:GT America;font-weight:bold\">Innovation</a>\nThe Ambidextrous Organization\nby&#160;<a href=\"https://hbr.org/search?term=Charles%20A.%20O%E2%80%99Reilly%20III\" style=\"font-family:GT America\">Charles A. O’Reilly III</a>&#160;and&#160;<a href=\"https://hbr.org/search?term=Michael%20L.%20Tushman\" style=\"font-family:GT America\">Michael L. Tushman</a>\n<a href=\"https://hbr.org/archive-toc/BR0404\" lang=\"ko-KR\" style=\"font-family:GT America\">From the Magazine (April 2004)</a>\nSummary.&#160;&#160;&#160;"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2039,
+    "w": 600,
+    "content": "Reprint: R0404D\n&#160;\nCorporate executives must constantly look backward, attending to the products and processes of the past, while also gazing forward, preparing for the innovations that will define the future.\n&#160;\nThis\n...more\nPost</a>\nPost\nShare\nSave\nBuy Copies</a>\nPrint\nThe Roman god Janus had two sets of eyes—one pair focusing on what lay behind, the other on what lay ahead. General managers and corporate executives should be able to relate. They, too, must constantly look backward, attending to the products and processes of the past, while also gazing forward, preparing for the innovations that will define the future.\nThis mental balancing act can be one of the toughest of all managerial challenges—it requires executives to explore new opportunities even as they work diligently to exploit existing capabilities—and it’s no surprise that few companies do it well. Most successful enterprises are adept at refining their current offerings, but they falter when it comes to pioneering radically new products and services. Kodak and Boeing are just two of the more recent examples of once dominant companies that failed to adapt to market changes. Kodak excelled at analog photography but hasn’t been able to make the leap to digital cameras. Boeing, a longtime leader in commercial aircraft, has experienced difficulties in its defense-contracting businesses and has recently stumbled in the face of competition from Airbus.\nThe failure to achieve breakthrough innovations while also making steady improvements to an existing business is so commonplace—and so fascinating—that it has become a battleground of management thought. For decades, scholars have spun theories to explain the puzzle and offered advice on how to solve it. Some have argued that there’s no way out of the conundrum—that established companies simply lack the flexibility to explore new territory. Some have suggested that big companies adopt a venture capital model, funding exploratory expeditions but otherwise staying out of their way. Others have pointed to cross-functional teams as the key to creating breakthrough innovations. Still others have claimed that a company may be able to shift back and forth between different organizational models, focusing on exploitation for a period and then moving into exploration mode.\nWe recently decided to test these and other theories by taking a close look at the real world, examining how actual, contemporary businesses fare when they attempt to pursue innovations that lie beyond their current products or markets. Do they succeed in achieving breakthroughs? Do their existing businesses suffer? What organizational and managerial structures do they use? What works, and what doesn’t?\nWe discovered that some companies have actually been quite successful at both exploiting the present and exploring the future, and as we looked more deeply at them we found that they share important characteristics. In particular, they separate their new, exploratory units from their traditional, exploitative ones, allowing for different processes, structures, and cultures; at the same time, they maintain tight links across units at the senior executive level. In other words, they manage organizational separation through a tightly integrated senior team. We call these kinds of companies “ambidextrous organizations,” and we believe they provide a practical and proven model for forward-looking executives seeking to pioneer radical or disruptive innovations while pursuing incremental gains. A business does not have to escape its past, these cases show, to renew itself for the future.\nExploiting and Exploring\nTo flourish over the long run, most companies need to maintain a variety of innovation efforts. They must constantly pursue&#160;incremental innovations,&#160;small improvements in their existing products and operations that let them operate more efficiently and deliver ever greater value to customers. An automaker, for example, may frequently tweak a basic engine design to increase horsepower, enhance fuel efficiency, or improve reliability. Companies also have to make&#160;architectural innovations,&#160;applying technological or process advances to fundamentally change some component or element of their business. Capitalizing on the data communication capabilities of the Internet, for instance, a bank can perhaps shift its customer-service call center to a low-labor-cost country like India. Finally, businesses need to come up with&#160;discontinuous innovations—radical advances like digital photography that profoundly alter the basis for competition in an industry, often rendering old products or ways of working obsolete.\nAll these types of innovation can have different targets. Some may be aimed at a firm’s current customers. Others may be delivered to an existing market that lies beyond a company’s current customer base—a car insurer may create a new kind of policy for boat owners, for instance. Still others may be focused on serving an entirely new market that has yet to be clearly defined—people who download online music, for example. As shown in the exhibit “A Map of Innovation,” the types of innovation and the targeted markets can be plotted in a matrix.\nA Map of Innovation"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 3963,
+    "w": 228,
+    "h": 52,
+    "src": "b5f78bacd0.png"
+  },
+  {
+    "type": "image",
+    "x": 284,
+    "y": 3963,
+    "w": 228,
+    "h": 208,
+    "src": "29d2f263c3.png"
+  },
+  {
+    "type": "image",
+    "x": 520,
+    "y": 3963,
+    "w": 228,
+    "h": 133,
+    "src": "947d33d657.png"
+  }
+];
+const CONTENT_HASH = '854a1bdd';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

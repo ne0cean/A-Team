@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image &amp; Icon</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Image &amp; Icon</div>
+<div class="date">2012년 1월 26일 목요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Image-Icon';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 1032,
+    "y": 115,
+    "w": 600,
+    "content": "<a href=\"http://www.imgur.com/\" style=\"font-family:굴림;font-size:9.5pt;font-weight:bold\">imgur</a> <a href=\"http://www.imgur.com/\" style=\"font-family:굴림;font-size:9pt\">www.</a>imgur.com ￼사진 공유 서비스, 갤러리 및 회원간 평가 수록.\n<a href=\"http://leehyekang.blogspot.kr/2015/03/floral-frame-powerpoint-template.html?m=1\">http://leehyekang.blogspot.kr/2015/03/floral-frame-powerpoint-template.html?m=1</a>\nPPT Form 다운로드\n친절한 혜강씨 <a href=\"http://leehyekang.com/\">http://leehyekang.com/</a>\n무료 아이콘 사이트입니다~\n<a href=\"http://www.iconarchive.com\" style=\"font-family:957317_10\">http://www.iconarchive.com</a>\n벡터아트 <a href=\"https://www.google.co.kr/search?q=%EB%B3%B5%EC%88%98%EC%B4%88&biw=1600&bih=775&source=lnms&tbm=isch&sa=X&ved=0ahUKEwjNsN32gKHJAhVGE6YKHdIXD1IQ_AUIBigB#tbm=isch&q=%EB%B2%A1%ED%84%B0+%EC%95%84%ED%8A%B8\">https://www.google.co.kr/search?q=%EB%B3%B5%EC%88%98%EC%B4%88&biw=1600&bih=775&source=lnms&tbm=isch&sa=X&ved=0ahUKEwjNsN32gKHJAhVGE6YKHdIXD1IQ_AUIBigB#tbm=isch&q=%EB%B2%A1%ED%84%B0+%EC%95%84%ED%8A%B8</a>\nClipart & Icon\n아이콘스피디아&#160;<a href=\"http://www.iconspedia.com/\" lang=\"en-US\">http://www.iconspedia.com/</a>\n아이콘 파인드&#160;<a href=\"http://iconfind.co.kr/find/index.jsp\" lang=\"en-US\">http://iconfind.co.kr/find/index.jsp</a>\n아이콘 파인더&#160;<a href=\"https://www.iconfinder.com/\" lang=\"en-US\">https://www.iconfinder.com/</a>\n아이콘스&#160;DB&#160;<a href=\"http://www.iconsdb.com/\" lang=\"en-US\">http://www.iconsdb.com/</a>\n클립아트 코리아&#160;<a href=\"http://www.clipartkorea.co.kr/\" lang=\"en-US\">http://www.clipartkorea.co.kr/</a>\n무료클립아트&#160;<a href=\"http://www.clker.com/\" lang=\"en-US\">http://www.clker.com/</a>\n클립아트 포털&#160;<a href=\"https://openclipart.org/\" lang=\"en-US\">https://openclipart.org/</a>\n오픈클립아트&#160;<a href=\"https://openclipart.org/\" lang=\"en-US\">https://openclipart.org/</a>\nMS Clipart&#160;<a href=\"http://office.microsoft.com/en-us/images/results.aspx?qu=STYLE\">http://office.microsoft.com/en-us/images/results.aspx?qu=STYLE</a>\n->&#160;추천 검색어&#160;: style 1541, style 1540 , &#160;style 1539 , style 1562 , avatar , avatars, png\nㅇ&#160;Googling\n&#160; Silhouette or * / +&#160;키워드&#160;+ .PNG/.dot&#160;로 검색\n&#160; *key word : party streamers, happy birth day, Retro, ribon\n&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; line drawing / diamond backgraound(pattern) / dot backgraound(pattern)\n&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; Seat layouts\n&#160;&#160;키워드&#160;+ Background image\n&#160;&#160;키워드&#160;+ clipart\n&#160;&#160;키워드&#160;+ pictogram\n&#160; *색상 찾을 때는&#160;Light + color\n&#160;&#160;<a href=\"https://www.google.co.kr/search?q=hite&newwindow=1&biw=1920&bih=971&source=lnms&tbm=isch&sa=X&ei=0w50VJ64CJL18QXEqoGgCw&ved=0CAYQ_AUoAQ\">*banner riboon.png</a>\n&#160; *Filetype:PDF, PPT…..\nㅇ 기업 로고\n-&#160;외국 기업&#160;Logo&#160;검색&#160;-> Flikr (ex.&#160;검색&#160;: apple logo png)\n-&#160;국내 기업&#160;Logo&#160;검색&#160;-> KMUG &#160;의 로고 자료실\n&#160;->&#160;디자인 내에 로고 자료실이 있음.&#160;자유게시판 형태여서 무료로 다운로드 가능\nㅇ 배경날리기&#160;:&#160;<a href=\"http://clippingmagic.com/\" lang=\"en-US\">http://clippingmagic.com/</a>\n&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;<a href=\"http://apps.pixlr.com/editor/\">http://apps.pixlr.com/editor/</a>\n&#160;\nㅇ&#160;PPT Study site\n런웨이\n\n인포그래픽\n픽토그램\n<a href=\"http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query=%EC%9E%A1%EC%A7%80%EB%A0%88%EC%9D%B4%EC%95%84%EC%9B%83\">잡지레이아웃</a>\n모션그래픽\n\n&#160;\n플래티콘: <a href=\"https://www.flaticon.com/\">https://www.flaticon.com/</a> 무료 아이콘\n<a href=\"http://reddreams.tistory.com/1447\">http://reddreams.tistory.com/1447</a>\nSVG -> WMF 컨버터 https://github.com/stjeong/svg/releases</a>\n*WMF는 벡터방식으로 조합해서 만든 파일이므로 파워포인트에서 수정가능\n&#160;\nPhoto & Image\n아이스탁 포토&#160;&#160; (<a href=\"http://www.istockphoto.com/\" lang=\"en-US\">www.Istockphoto.com</a>)\n토픽 포토&#160;&#160; (<a href=\"http://www.topicphoto.com/\" lang=\"en-US\">www.topicphoto.com</a>)\n게티이미지&#160;&#160;&#160; (<a href=\"http://www.gettyimageskorea.com/\" lang=\"en-US\">www.gettyimageskorea.com</a>)\nFlickr&#160;&#160;&#160; (<a href=\"http://www.flickr.com/\">www.Flickr.com</a>)\nMorguefile&#160;&#160; (<a href=\"http://www.morguefile.com/\">www.morguefile.com</a>)\nStock.xchng&#160;&#160; (<a href=\"http://www.sxc.hu/\">www.sxc.hu</a>)\nCompifht&#160;&#160;&#160;&#160;&#160; (<a href=\"http://compfight.com/\">http://compfight.com/</a>)\nEverystockphoto&#160;&#160; (<a href=\"http://www.everystockphoto.com/\">www.everystockphoto.com</a>)\n&#160;\nㅇ&#160;Image file로 검색 구글 이미지 검색\n<a href=\"http://www.tineye.com/\" lang=\"en-US\">http://www.tineye.com/</a>\nhttp://kr.pictriev.com/facedb/fs2.php</a>\n<a href=\"http://www.gazopa.com/\" lang=\"en-US\">http://www.gazopa.com/</a>\n무료 클립아트 찾는 곳&#160;: Microsoft Office Online&#160;클립아트 검색\n-&#160;추천 검색어&#160;: style 1541, style 1540 , style 1539 , style 1562 , avatar , avatars, png\n=>&#160;마이크로소프트 홈페이지 개편으로 현재는&#160;\n<a href=\"http://office.microsoft.com/ko-kr/images/?CTT=97\" lang=\"en-US\">http://office.microsoft.com/ko-kr/images/?CTT=97</a>&#160;에서 이미지 검색이 가능함\nhttp://www.demitrio.com/?p=5250</a>\n\n좋은 서체:&#160;￼-&#160;클립아트 대체용 서체: WingDings\n파워포인트 활용소프트￼전체스토리 트리구조로 짜기: MS-word&#160;개요보기, Freemind(프리웨어)￼이미지 작업: Photoworks, GIMP\n글자크기:&#160;￼-&#160;본문: 14포인트 추천￼-&#160;제목: 18포인트 추천￼-&#160;추천글꼴:&#160;서울남산체(추천),&#160;서울한강체(서울시 배포),&#160;아리따체(아모레퍼시픽)￼-&#160;서체를 같이 저장하기 위해 저장옵션에서 글꼴 포함 선택\n국내기업로고 구하기￼KMUG - kmug.co.kr의 로고자료실\n글로벌기업로고 구하기￼brandsoftheworld.com, helpai.com\n고화질의 무료 아이콘 구하기￼iconfactory - iconfactory.com￼interpascelift - interfacelift.com[출처]&#160;<a href=\"http://blog.naver.com/comsnow96/60139308567\" lang=\"en-US\">파워포인트</a>&#160;블루스|작성자&#160;<a href=\"http://blog.naver.com/comsnow96\">쭈니</a>\n이미지 편집툴 : <a href=\"https://photo-works.net/\" lang=\"en-US\">PhotoWORKS</a>, <a href=\"https://www.gimp.org/\" lang=\"en-US\">GIMP</a>\n템플릿 <a href=\"https://1boon.daum.net/aplusgirl/20180325_PPTtemplate\">https://1boon.daum.net/aplusgirl/20180325_PPTtemplate</a>\n친절한 혜강씨\n<a href=\"http://leehyekang.blogspot.com/\">http://leehyekang.blogspot.com/</a>\n<a href=\"https://www.youtube.com/channel/UCrRm40vhmc8UtbZd8dO79Tg\">https://www.youtube.com/channel/UCrRm40vhmc8UtbZd8dO79Tg</a>\nhttp://trendw.kr/media/16-011101.t1m</a>"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 600,
+    "content": "<a href=\"https://www.autodraw.com/\">https://www.autodraw.com/</a>\nClipart & Icon\n<a href=\"https://www.reshot.com/\">https://www.reshot.com/</a>\n<a href=\"https://phosphoricons.com/\">https://phosphoricons.com/</a>\n아이콘스피디아 <a href=\"http://www.iconspedia.com/\" style=\"font-family:맑은 고딕;background-color:white\">http://www.iconspedia.com/</a>\n아이콘 파인드 <a href=\"http://iconfind.co.kr/find/index.jsp\">http://iconfind.co.kr/find/index.jsp</a>\n아이콘 파인더 <a href=\"https://www.iconfinder.com/\">https://www.iconfinder.com/</a>\n아이콘스 DB <a href=\"http://www.iconsdb.com/\">http://www.iconsdb.com/</a>\n클립아트 코리아 <a href=\"http://www.clipartkorea.co.kr/\" style=\"font-family:맑은 고딕;background-color:white\">http://www.clipartkorea.co.kr/</a>\n무료클립아트 <a href=\"http://www.clker.com/\">http://www.clker.com/</a>\n클립아트 포털 <a href=\"https://openclipart.org/\">https://openclipart.org/</a>\n오픈클립아트 <a href=\"https://openclipart.org/\" lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt\">https://openclipart.org/</a>\n소프트아이콘 닷컴 <a href=\"http://www.softicons.com/\">http://www.softicons.com/</a>\n아이콘아카이브 닷컴 <a href=\"http://www.iconarchive.com/\">http://www.iconarchive.com/</a>\nPNG ING 닷컴\nMS Clipart <a href=\"http://office.microsoft.com/en-us/images/results.aspx?qu=STYLE\" style=\"font-family:맑은 고딕;background-color:white\">http://office.microsoft.com/en-us/images/results.aspx?qu=STYLE</a>\n-> 추천 검색어 : style 1541, style 1540 , &#160;style 1539 , style 1562 , avatar , avatars, png\nㅇ Googling\nSilhouette or * / + 키워드 + .PNG/.dot 로 검색\n*key word : party streamers, happy birth day, Retro, ribon\nline drawing / diamond backgraound(pattern) / dot backgraound(pattern)\nSeat layouts\n키워드 + Background image\n키워드 + clipart\n키워드 + pictogram\n*색상 찾을 때는 Light + color\n<a href=\"https://www.google.co.kr/search?q=hite&newwindow=1&biw=1920&bih=971&source=lnms&tbm=isch&sa=X&ei=0w50VJ64CJL18QXEqoGgCw&ved=0CAYQ_AUoAQ#newwindow=1&tbm=isch&q=banner+ribbon.png&spell=1&imgdii=_\" lang=\"ko-KR\">*banner riboon.png</a>\n*Filetype:PDF, PPT…..\n상 : https://www.google.co.kr/search?q=ribbon&newwindow=1&biw=1843&bih=918&source=lnms&tbm=isch&sa=X&ei=M1q3VNvfHIi3mwW7_YLQDQ&ved=0CAYQ_AUoAQ#tbm=isch&tbs=rimg%3ACZq-OhUJx_1rPIjh2PcRCyCV2MR7J5AvJsxgiieg2Yta0syex-rqlMcBmOExUZmbdH8yx1o-6t08DXaQsOwzNDxkBSSoSCXY9xELIJXYxEWSYT9do--FUKhIJHsnkC8mzGCIRamfhVoacNoAqEgmJ6DZi1rSzJxEjQdu5h0Ey9yoSCbH6uqUxwGY4EThX9YnuQ-o3KhIJTFRmZt0fzLERGA9wurB2PBUqEgnWj7q3TwNdpBFJ_1A7k8Tx7ASoSCSw7DM0PGQFJEYxZejjojU_1W&q=ribbon&imgdii=_</a>\nㅇ 기업 로고￼- 외국 기업 Logo 검색 -> Flikr (ex. 검색 : apple logo png)￼- 국내 기업 Logo 검색 -> KMUG &#160;의 로고 자료실￼&#160;-> 디자인 내에 로고 자료실이 있음. 자유게시판 형태여서 무료로 다운로드 가능\nㅇ 배경날리기 : <a href=\"http://clippingmagic.com/\">http://clippingmagic.com/</a>\n<a href=\"http://apps.pixlr.com/editor/\" lang=\"ko-KR\">http://apps.pixlr.com/editor/</a>\n더나운프로젝트: https://thenounproject.com/</a> 아이콘 모음\nIcons DB\n아이콘 몬스터\n엔들리스아이콘스\n플랫아이콘\nㅇ STYLE 1539~41, 1562\nLOGO : 플리커, 국내 - KMUG</a>, brandsofttheworld.com</a>\nㅇ 픽토그램\nThe noun project http://thenounproject.com/</a>\nㅇ Google Autodraw\n<a href=\"https://www.autodraw.com/\">https://www.autodraw.com/</a>\nPhoto & Image\n아이스탁 포토   (<a href=\"http://www.istockphoto.com/\" lang=\"en-US\" style=\"font-family:맑은 고딕;background-color:white\">www.Istockphoto.com</a>)\n토픽 포토   (<a href=\"http://www.topicphoto.com/\" lang=\"en-US\" style=\"font-family:맑은 고딕;background-color:white\">www.topicphoto.com</a>)\n게티이미지    (<a href=\"http://www.gettyimageskorea.com/\" lang=\"en-US\" style=\"font-family:맑은 고딕;background-color:white\">www.gettyimageskorea.com</a>)\nFlickr    (<a href=\"http://www.flickr.com/\" style=\"font-family:맑은 고딕;background-color:white\">www.Flickr.com</a>)\nMorguefile   (<a href=\"http://www.morguefile.com/\" style=\"font-family:맑은 고딕;background-color:white\">www.morguefile.com</a>)\nStock.xchng   (<a href=\"http://www.sxc.hu/\" style=\"font-family:맑은 고딕;background-color:white\">www.sxc.hu</a>)\nCompifht      (<a href=\"http://compfight.com/\" style=\"font-family:맑은 고딕;background-color:white\">http://compfight.com/</a>)\nEverystockphoto   (<a href=\"http://www.everystockphoto.com/\" style=\"font-family:맑은 고딕;background-color:white\">www.everystockphoto.com</a>)\n&#160;\nㅇ Image file로 검색\n<a href=\"http://www.tineye.com/\" style=\"font-family:맑은 고딕;background-color:white\">http://www.tineye.com/</a>\nhttp://kr.pictriev.com/facedb/fs2.php</a>\n<a href=\"http://www.gazopa.com/\" style=\"font-family:맑은 고딕;background-color:white\">http://www.gazopa.com/</a>\n<a href=\"https://www.google.co.kr/imghp?hl=ko&tab=wi&ei=ayF0VLzQKcOF8gXjlILwBA&ved=0CAQQqi4oAg\">구글 이미지 검색</a>\nㅇ PPT Study site\n런웨이</a>\n+인포그래픽 & 픽토그램 & 잡지 레이아웃&모션그래픽 : 애프터 이펙트\n중앙 Guide 선 : Alt + F9\n선택창, 개체 숨기기/표시 : Alt + F9\n이미지는 PNG, 아이콘은 SVG 파일로 검색\n슬라이드쇼 상태에서 Ctrl + 마우스 휠: 바둑판식 배열\n모핑 효과 - 프레지 처럼 만들 수 있음\nhttps://trendw.kr/2016-02262429.t1m</a>\n<a href=\"https://www.sindohblog.com/category/LIFE/%EC%A7%81%EC%9E%A5%EB%85%B8%ED%95%98%EC%9A%B0\">https://www.sindohblog.com/category/LIFE/%EC%A7%81%EC%9E%A5%EB%85%B8%ED%95%98%EC%9A%B0</a>\n자료\n<a href=\"https://www.gilbut.co.kr/book/view?bookcode=BN002005&pdscode=pds\">https://www.gilbut.co.kr/book/view?bookcode=BN002005&pdscode=pds</a>\n<a href=\"https://brunch.co.kr/@hyungsukkim/70?fbclid=IwAR05vZFkUFqoa8EtL_HRkus7jN_r5C_eDFqf4Q6j2pvtsUGMK5oSYt6yxDI\">https://brunch.co.kr/@hyungsukkim/70?fbclid=IwAR05vZFkUFqoa8EtL_HRkus7jN_r5C_eDFqf4Q6j2pvtsUGMK5oSYt6yxDI</a>\n[아이콘]\n<a href=\"http://icunow.co.kr/freeicon6/\">http://icunow.co.kr/freeicon6/</a>\n<a href=\"https://pixelbuddha.net/\">https://pixelbuddha.net/</a>\n<a href=\"https://tilda.cc/free-icons/\">https://tilda.cc/free-icons/</a>\n<a href=\"https://www.ikonate.com/\">https://www.ikonate.com/</a>\n설명 <a href=\"http://icunow.co.kr/ikonate/\">http://icunow.co.kr/ikonate/</a>\n<a href=\"https://boxicons.com/cheatsheet\">https://boxicons.com/cheatsheet</a>\n[로고]\n<a href=\"http://instantlogosearch.com/\">http://instantlogosearch.com/</a>\n<a href=\"http://icunow.co.kr/khroma/\">http://icunow.co.kr/khroma/</a>\n&#160;‘unDraw</a>‘는 무료로 사용 가능한 일러스트를 원하는 컬러에 맞춰 다운로드 받을 수 있는 서비스입니다.\n출처: <<a href=\"http://icunow.co.kr/polygon-art/\">http://icunow.co.kr/polygon-art/</a>>\n머티리얼 디자인을 위한 색 조합을 만들어주는 ‘Material mixer’\n<a href=\"https://material.io/tools/icons/?style=baseline\">https://material.io/tools/icons/?style=baseline</a>\n출처: <<a href=\"http://icunow.co.kr/%EB%A8%B8%ED%8B%B0%EB%A6%AC%EC%96%BC-%EB%94%94%EC%9E%90%EC%9D%B8%EC%9D%84-%EC%9C%84%ED%95%9C-%EC%83%89-%EC%A1%B0%ED%95%A9%EC%9D%84-%EB%A7%8C%EB%93%A4%EC%96%B4%EC%A3%BC%EB%8A%94-material-mixer/?utm_source=icunow_link_material-icon&utm_medium=cpc&utm_campaign=material-mix\">http://icunow.co.kr/%EB%A8%B8%ED%8B%B0%EB%A6%AC%EC%96%BC-%EB%94%94%EC%9E%90%EC%9D%B8%EC%9D%84-%EC%9C%84%ED%95%9C-%EC%83%89-%EC%A1%B0%ED%95%A9%EC%9D%84-%EB%A7%8C%EB%93%A4%EC%96%B4%EC%A3%BC%EB%8A%94-material-mixer/?utm_source=icunow_link_material-icon&utm_medium=cpc&utm_campaign=material-mix</a>>\n[디자인]\n<a href=\"https://principles.design/\">https://principles.design/</a>\n<a href=\"http://icunow.co.kr/%EC%97%90%EC%96%B4%EB%B9%84%EC%97%94%EB%B9%84%EC%9D%98-%EB%94%94%EC%9E%90%EC%9D%B8%EC%9D%80-%EB%8B%A4%EC%96%91%ED%95%9C-%EB%94%94%EC%9E%90%EC%9D%B8-%EA%B8%B0%EC%A4%80%EB%93%A4%EC%9D%84-%ED%95%9C/\">http://icunow.co.kr/%EC%97%90%EC%96%B4%EB%B9%84%EC%97%94%EB%B9%84%EC%9D%98-%EB%94%94%EC%9E%90%EC%9D%B8%EC%9D%80-%EB%8B%A4%EC%96%91%ED%95%9C-%EB%94%94%EC%9E%90%EC%9D%B8-%EA%B8%B0%EC%A4%80%EB%93%A4%EC%9D%84-%ED%95%9C/</a>\n[표지]\n<a href=\"http://www.lowpolygonart.com/\">http://www.lowpolygonart.com/</a>\n일러스트\nhttps://undraw.co/illustrations</a>"
+  },
+  {
+    "type": "image",
+    "x": 1032,
+    "y": 2979,
+    "w": 480,
+    "h": 147,
+    "src": "eb26b86a19.png",
+    "caption": "이 책을 구매하신 분들이 함께 구매하신 상품입니다 전제선력 장H뮤니 담기 POWERPOINT REBOOT 파위포인트 리 무트 길보다 기본 16,200원 : 스 킬러霜 프레센테이션 Using Bible 킬러 프레센테미션 巳ibl巳(첨중의 니 using 16,020원 근|월814엏쯸|쾸 •瀰|Ⅱ籾四目 리별 비주별 씜&#39;닝 파위포인트 16,200원 Wth me표인트곈16 파위포인트 2016(돈시 16,200원 “諪테01션 -팩•쟁미의 프레센테미션 by 파위포인트(CD 1 쟝포 17,100원 storytelling data 데이터 스토리텔림(메이 콘 데미터과햨 시리즈) 22,500원"
+  },
+  {
+    "type": "image",
+    "x": 1032,
+    "y": 3134,
+    "w": 480,
+    "h": 130,
+    "src": "107a714bf2.png",
+    "caption": "장파의뺀트 1일Ojt돈1k 감파위포인트 쟉법의 7 16,200원 보고M 0기회1鬱 000 .11.1 파위포인트 보고서 디자 인 기훌(프로 프레센터 16,200원 POWERPOINT DESIGN 세벌의 파위포인트 디자 0 ^ 어 13,000원 心가1|힐5인는|l 인포-기래픽 Jl입표민!틓: 인포그래픽 ,시Ⅲ 파위포 인트(누구나 14,400원 피우堪인트 2013 파위포인트 2013(회사 실무에 힐를 주는) 14,400원 파위포인트 201 3 tor Beginner(IT 000k巳00k 10,000원"
+  },
+  {
+    "type": "text",
+    "x": 1032,
+    "y": 3272,
+    "w": 600,
+    "content": "도형빼기: 중첩된 부분에서 나중에 선택한 도형을 뺀다.\n도형빼기로 누끼도 딸 수 있음(단, 노가다)\n점편집 조절점 추가: CTR+클릭\n일괄 글꼴 바꾸기: 홈 - 바꾸기 - 글꼴 바꾸기\n&#160;\n&#160;"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 3563,
+    "w": 480,
+    "h": 198,
+    "src": "45bedbe6bd.png",
+    "caption": "유료 같은 큄러티의 무료 이미지 사이트 1. Pixabay (https://pixabay.com/) 겁색으로 쉴게 이미지를 수 있는 사이 트몌요 이미지 사이즈를 설-접할 수 있는데, 고월리티 이미지들이 많이 있답니다 2. Gratisography ( ) 유니크한 레이아웃과 이미지가 많아서 어떠한 기교도 필요없이 이미지 한-장만으로 시선클 수 있기에 핵심 포인트 한-장 만들따나 표지 만 들따 제격! 3. New Old Stock (nos.Evnsnd.co/) 저작권 기간이 끝난 사진틀, 빈티지한 사-진이 필 요할 따 제격! 4. Ⅲ,1 Free http://wwvv.imcreator.com/free 이름부터 Fr巳巳라고 안심클 주는 MFREE 카테고리별 감성-적 사-진 찿아볼 따 제격! 그리고 [무료 이미지 사이트] 저보다 월씬 더 잘 -정리해주신 블로그 있어서 공유해요 net/743920"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3769,
+    "w": 600,
+    "content": "<a href=\"http://icunow.co.kr/atlasicons/\">http://icunow.co.kr/atlasicons/</a>\nFont\n<a href=\"https://news.hada.io/topic?id=11835&utm_source=discord&utm_medium=bot&utm_campaign=280\">https://news.hada.io/topic?id=11835&utm_source=discord&utm_medium=bot&utm_campaign=280</a>"
+  }
+];
+const CONTENT_HASH = '523162f5';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스드</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">스드</div>
+<div class="date">2025년 11월 7일 금요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-스드';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 384,
+    "y": 19,
+    "w": 600,
+    "content": "각 문항당 4000바이트"
+  },
+  {
+    "type": "html",
+    "x": 48,
+    "y": 115,
+    "w": 541,
+    "html": "\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid;font-family:Pretendard Thin;font-size:10pt;text-align:center\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#2d2d2d;font-weight:bold\">제목</span></td>\r\n\t\t\t\t\t<td style=\"background-color:white;border:1px solid;font-family:Pretendard Thin;font-size:10pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">[MNO] AI &amp; Data 시대, 함께 Global 제조사와 협상할 구성원을 찾습니다!</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid;font-family:Pretendard Thin;font-size:10pt;text-align:center\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#2d2d2d;font-weight:bold\">모집 기간</span></td>\r\n\t\t\t\t\t<td style=\"background-color:white;border:1px solid;font-family:Pretendard Thin;font-size:10pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">2025.11.10∼2025.11.11</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid;font-family:Pretendard Thin;font-size:10pt;text-align:center\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#2d2d2d;font-weight:bold\">지원 조직</span></td>\r\n\t\t\t\t\t<td style=\"background-color:white;border:1px solid;font-family:Pretendard Thin;font-size:10pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">Smart Device본부 SD마케팅팀</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid;font-family:Pretendard Thin;font-size:10pt;text-align:center\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#2d2d2d;font-weight:bold\">소개</span></td>\r\n\t\t\t\t\t<td style=\"background-color:white;border:1px solid\"><p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">SD마케팅팀은 우리회사에서 유통되는 단말의 수급부터 유통, 마케팅, 판매, A/S까지 단말의 판매와 관련된 다양한 업무를 하고 있습니다.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">삼성, Apple, Meta 등 Global 제조사와의 전략적 협력을 통해, 시장 운영의 중추적인 역할과 더불어 고객중심의 차별화된 단말 마케팅 활동을 주도하고 있습니다.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">AI &amp; Data 시대를 맞이하여 새로운 시각으로 Global 제조사와의 협상할 구성원 여러분을 찾고 있습니다.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">단말과시장 운영과 관련된 경험이 없어도 좋습니다. 같이 일하고 배울 열정만 있으면 충분합니다.</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid;font-family:Pretendard Thin;font-size:10pt;text-align:center\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#2d2d2d;font-weight:bold\">모집직무명</span></td>\r\n\t\t\t\t\t<td style=\"background-color:white;border:1px solid;font-family:Pretendard Thin;font-size:10pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">단말 마케팅 및 수급 전반의 전략 실행</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid;font-family:Pretendard Thin;font-size:10pt;text-align:center\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#2d2d2d;font-weight:bold\">주요 Task</span></td>\r\n\t\t\t\t\t<td style=\"background-color:white;border:1px solid\"><p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- Galaxy, iPhone 등 단말 마케팅</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- RAC 효율화를 위한 제조사 협력</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 단말/USIM의 물류</span><span style=\"font-family:Cambria Math;font-size:11pt;color:#292929\">∙</span><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">재고</span><span style=\"font-family:Cambria Math;font-size:11pt;color:#292929\">∙</span><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">A/S 관리</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid;font-family:Pretendard Thin;font-size:10pt;text-align:center\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#2d2d2d;font-weight:bold\">Job Description</span></td>\r\n\t\t\t\t\t<td style=\"background-color:white;border:1px solid\"><p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">0. 대상 제조사 : 삼성, Apple, Meta, ALT, Xiaomi 등</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">1. 단말 단위 마케팅 시행</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 제조사 협업 통한 단말 단위 마케팅 시행(출시 Promotion 등)</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 전략 단말 마케팅 계획 수립</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 유관부서 단말 관련 지원 활동</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">2. RAC 효율화를 위한 제조사 협력</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 제조사와 Mktg.비용 관련 협의</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 제조사 재원 활용한 영업 지원 정책 수립 및 시행</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">3. 단말/USIM의 물류, 재고, A/S 관리 고도화</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 단말, 유심 재고/공급 관리 및 수요 예측</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 재고, 물류 리스크 모니터링 및 대응</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 제조사, 유통사 협업을 통한 물류, A/S 프로세스 효율화</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid;font-family:Pretendard Thin;font-size:10pt;text-align:center\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#2d2d2d;font-weight:bold\">필요 역량 및 경험</span></td>\r\n\t\t\t\t\t<td style=\"background-color:white;border:1px solid\"><p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 국내</span><span style=\"font-family:Cambria Math;font-size:11pt;color:#292929\">∙</span><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">외 단말 생태계 전반에 대한 이해</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 첨예한 이해관계속에 원하는 바를 이끌어낼 수 있는 협상력</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 전사 유관 조직과의 원활한 Comm. 역량</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid;font-family:Pretendard Thin;font-size:10pt;text-align:center\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#2d2d2d;font-weight:bold\">선발기준</span></td>\r\n\t\t\t\t\t<td style=\"background-color:white;border:1px solid\"><p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 단말 마케팅 전반에 관심이 있는 구성원</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- AI &amp; Data 분석 능력 보유자 우대</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:NanumGothic;font-size:11pt;color:#292929\">- 영어 능통자 우대</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Thin\">SD </span><span lang=\"ko-KR\" style=\"font-family:Pretendard Thin\">마케팅</span></p>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid;font-family:Pretendard Light;text-align:center\"><span style=\"font-family:NanumGothic;color:#2d2d2d;font-weight:bold\">희망</span><span lang=\"en-US\" style=\"font-family:NanumGothic;color:#2d2d2d;font-weight:bold\"> </span><span style=\"font-family:NanumGothic;color:#2d2d2d;font-weight:bold\">업무</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light\">단말 마케팅 및 수급 전략 수립<span lang=\"en-US\">/</span>실행</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid;font-family:Pretendard Light;text-align:center\"><span style=\"font-family:NanumGothic;color:#2d2d2d;font-weight:bold\">Career 전환을 희망하는 사유는 무엇인지요?</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">Career의 회귀이자 확장을 위해 이동을 희망합니다.</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">그간</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">전략</span><span lang=\"en-US\" style=\"font-weight:bold\">/</span><span style=\"font-weight:bold\">투자</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">업무를</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">해오면서</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">조직과</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">저</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">개인</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">모두에게</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">실질적인</span><span lang=\"en-US\" style=\"font-weight:bold\"> Value</span><span style=\"font-weight:bold\">와</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">역량이</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">축적되는</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">일에</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">대한</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">갈증이</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">커져왔습니다</span><span lang=\"en-US\" style=\"font-weight:bold\">. </span>이제는 책상<span lang=\"en-US\"> </span>위<span lang=\"en-US\"> </span>전략이<span lang=\"en-US\"> </span>아닌<span lang=\"en-US\">, </span><span style=\"font-weight:bold\">실질적인 변화를 만드는 일</span>을<span lang=\"en-US\"> </span>하고<span lang=\"en-US\"> </span>싶습니다<span lang=\"en-US\">. </span><span lang=\"en-US\" style=\"font-weight:bold\">SD</span><span style=\"font-weight:bold\">마케팅팀에서</span><span lang=\"en-US\" style=\"font-weight:bold\"> MNO </span><span style=\"font-weight:bold\">마케팅의</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">핵심</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">매개체인</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span>단말을 중심으로 한 제조사-본사-현장 간<span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">협업</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">업무를</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">수행하며</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span>전략을 실행으로 전환하는 경험을 쌓고자 합니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">최근 AI전략실에서 전사 AI 전략을 수립하며 깨달은 바는, AI와 Data 시대에 단말의 전략적 가치가 더욱 커지고 있다는 사실입니다.</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">단말 마케팅은 단순한 판매 지원이 아니라, 제조사&#183;유통&#183;현장&#183;정책을 잇는&#160;데이터 기반 운영 전략이 되어야 한다고 이해하고</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">있습니다</span><span lang=\"en-US\" style=\"font-weight:bold\">. </span>저는 그 과정에서 <span style=\"font-weight:bold\">제조사 협상, 정책 조율, 데이터 분석을 통합적으로 수행할 수 있는 실행형 전략가</span>로 성장하고 싶습니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">그간</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">축적해온</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">전략&#183;협상&#183;현장</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">경험을 융합하여,&#160;제조사와의 줄다리기를 데이터와 논리로 주도하고, 내부 정책을 기민하게 조율하는</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">커리어로</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">확장하고자</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">합니다</span><span lang=\"en-US\" style=\"font-weight:bold\">. </span><span style=\"font-weight:bold\">이제는</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span>페이퍼를<span lang=\"en-US\"> </span>넘어서<span lang=\"en-US\"> </span>실행으로<span lang=\"en-US\"> </span>이어지는<span lang=\"en-US\"> </span>경험을<span lang=\"en-US\"> </span>축적하고<span lang=\"en-US\">, </span>손에<span lang=\"en-US\"> </span>잡히는<span lang=\"en-US\"> </span>성과를<span lang=\"en-US\"> </span>창출하기를<span lang=\"en-US\"> </span>희망합니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid\"><p style=\"font-family:Pretendard Light;margin-top:0pt;margin-bottom:0pt;text-align:center\"><span style=\"font-family:NanumGothic;color:#2d2d2d;font-weight:bold\">어떠한 측면에서 본인이 해당 분야의 적임자라고 생각하는지요?</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;margin-top:0pt;margin-bottom:0pt;text-align:center\"><span style=\"font-family:NanumGothic;color:#2d2d2d;font-weight:bold\">(보유 경험 및 열정 등)</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">저는 Global 제조사 협력 체계를 고도화하고 마케팅 효율을 제고하는 데 요구되는 세 가지 핵심 역량인</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">① 글로벌 파트너 협상 및 제휴 실행 경험</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">② 데이터 기반의 의사결정 지원 및 재무적 관점의 RAC 효율화 능력</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">③ 전사 유관부서와의 조율 및 실행 능력을 보유하고 있습니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;font-weight:bold\">[1] 글로벌 파트너 협상 및 제휴 실행 경험</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">글로벌 파트너(Apple&#183;Deutsche Telekom&#183;PCCW 등)와 JV&#183;IR&#183;M&amp;A 협상을 수행하며, 복수 이해관계자 간 합의를 이끌어낸 실무 감각을 보유하고 있습니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Apple과의 협력에서는 제품 라인업&#183;서비스 연계&#183;마케팅 재원 활용 구조를 논의하는 C-Level 미팅의 <span style=\"font-weight:bold\">의제 선정 및 커뮤니케이션 프로세스</span>를 주도했습니다.</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Deutsche Telekom과의 협업에서는 e-Sports 및 5G 연계 비즈니스 모델 협의를 위한 BLT 워크숍에 실무로 참여하여, <span style=\"font-weight:bold\">공동 캠페인&#183;콘텐츠 교환&#183;마케팅 코스트 쉐어 등 실행 가능한 파트너십 옵션</span>을 도출했습니다.</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">PCCW 그룹과의 협업에서는 통신&#183;미디어&#183;디바이스 영역을 아우르는 협업 프레임 설계 및 사업성 검토를 주도하며, 협상안의 재무적&#183;정책적 타당성을 검증했습니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">이러한 경험은 글로벌 제조사들의 의사결정 프로세스와 전략적 우선순위를 이해하는 기회였습니다. </span>이를<span lang=\"en-US\"> </span>바탕으로 <span style=\"font-weight:bold\">Global 제조사와의 매입 물량/정책 협상에 필요한 전략 커뮤니케이션 및 협상 실행에</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">기여할</span> 수 있습니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;font-weight:bold\">[2] 데이터 기반의 의사결정 지원 및 재무적 관점의 RAC 효율화 능력</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">정교한 Valuation을 기반으로 한 마케팅 및 RAC 효율화 역량을 보유하고 있습니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">저는 수년간의 투자 업무를 통해, 수치 기반의 의사결정 역량을 체득해왔습니다.</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">Peer Multiple 및 DCF Method를 활용한 기업가치 평가</span>는 물론, 투자안 검토 과정에서 시나리오별 손익분기점과 리스크를 정량화하는 분석을 반복해왔습니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">특히 1조 원 규모의 게임사 ‘해긴’ 투자에서는 Valuation 및 신주인수권 가치평가를 담당하며, DCF 및 Multiple Method 기반으로 재무 구조를 분석하고 적정 가치를 산출했습니다.</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이러한 재무적으로 정교한 분석 역량은 마케팅 비용 협의 시 <span style=\"font-weight:bold\">단순한 비용 절감이 아닌, 양사 간 교환 가치와 RAC 효율을 극대화하는 구조 설계 능력</span>으로 확장<span lang=\"en-US\"> </span>될<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있습니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">또한 과거 정책팀의 <span style=\"font-weight:bold\">2G 가입자 Migration TF</span>에서는 가입자 세그먼트 분석과 단계별 Simulation&#183;시나리오 설계를 수행했습니다.</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이는 단말 수요 예측과 재고 관리에 필요한 데이터 분석 및 시뮬레이션 역량과 직결되며,</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이러한 기반 위에서 단말<span lang=\"en-US\">/</span>유심 재고&#183;공급&#183;수요를 정량적으로 분석하고, 판매&#183;물류&#183;A/S 정책 간 상충 요소를 조정하는 <span style=\"font-weight:bold\">운영형 전략을</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">설계하는데</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">기여할</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">수</span> 있습니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;font-weight:bold\">[3] 전사 유관부서와의 조율 및 실행 능력</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">복잡한 프로젝트에서 이해관계가 상충하는 조직 간 합의를 도출하고, 실행으로 연결해온 경험을 보유하고 있습니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">콘텐츠웨이브 출범 과정에서는 국내 방송 3사를 비롯한 다양한 이해관계자들 간의 역학관계를 이해하고, 각자의 이해를 반영한 최적의 협력 구조를 설계했습니다. </span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">wavve 서비스 개선 TF에서는 4사 실무진으로 구성된 조직을</span><span lang=\"en-US\" style=\"font-weight:bold\"> PM</span><span style=\"font-weight:bold\">으로써 리드하며, 우선/긴급 개선과제와 중장기 개선과제를 도출하여 실제 서비스 개선으로 완결시켰습니다.</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span>당시 직접 작성한 400페이지 개선안을 120페이지로 압축하여<span lang=\"en-US\">, </span>CEO<span lang=\"en-US\"> </span>직접<span lang=\"en-US\"> </span>보고 및 이사회 보고안으로 채택되는 등, <span style=\"font-weight:bold\">문제 정의에서 실행까지 완결한 사례</span>를 만들었습니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">AI전략실에서는 AI 4대 사업영역과 3개 R&amp;D 센터의 통합 관점 전략을 수립하며, 서로 다른 목표와 KPI를 가진 조직들 간의 Alignment를 이끌어냈습니다. ICT 위원회 지원 업무를 통해서는 그룹 관점의 ICT 멤버사 Revisit을 지원하며, 더 큰 스케일의 이해관계 조정 경험을 쌓았습니다.</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">또한, Career 초기 서부마케팅본부에서 </span><span lang=\"en-US\" style=\"font-weight:bold\">2</span><span style=\"font-weight:bold\">년차</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">부터</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">이동전화 정책을</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">담당하며, 시장 운영 중심의 팀 구조 속에서도&#160;현장의 목소리와</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">본사</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">정책간의</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">간극을 이해하고 전략으로 해석</span><span lang=\"en-US\" style=\"font-weight:bold\">/</span><span style=\"font-weight:bold\">조율하는 역량을</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">빠르게</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">축적할</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">수</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">있었습니다</span><span lang=\"en-US\" style=\"font-weight:bold\">. </span><span style=\"font-weight:bold\">이</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">과정에서</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">제가</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">자동화한</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">단가표는</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">여전히</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">서부</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">마케팅본부에서</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">활용되고</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">있습니다</span><span lang=\"en-US\" style=\"font-weight:bold\">. </span><span style=\"font-weight:bold\">이를</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">인정</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">받아</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">정책팀으로</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">발령</span><span lang=\"en-US\" style=\"font-weight:bold\">, 2</span><span style=\"font-weight:bold\">년간</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">유선</span><span lang=\"en-US\" style=\"font-weight:bold\"> CRM </span><span style=\"font-weight:bold\">센터</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">운영업무를</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">담당하며</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">유무선</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">사업</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">전반에</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">대한</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">균형</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">잡힌</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">시각과</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">경험을</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">축적했습니다</span><span lang=\"en-US\" style=\"font-weight:bold\">.</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">&#39;<span lang=\"ko-KR\">23년 마케팅전략팀에서는 단말 GTM 및 고객가치 제고 캠페인을 수행하며, </span><span lang=\"ko-KR\" style=\"font-weight:bold\">내부 조직 간 온도차를 조율하고 통합된 전략을 도출하는 실무형 기획자</span><span lang=\"ko-KR\">로 성장했습니다.</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">요컨대, <span style=\"font-weight:bold\">글로벌 제조사들의 전략과 협상 포인트에 대한 이해</span>, 데이터 기반 정량<span lang=\"en-US\"> </span>분석력, 복잡한 이해관계 조율 경험, 그리고 MNO 현장에<span lang=\"en-US\"> </span>대한<span lang=\"en-US\"> </span>깊은<span lang=\"en-US\"> </span>이해를 바탕으로,</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">단말 마케팅 전 과정에서 전략과 실행을 연결하며 실질적인 성과를 창출할 수 있습니다.</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid;font-family:Pretendard Light;text-align:center\"><span style=\"font-family:NanumGothic;color:#2d2d2d;font-weight:bold\">향후 Career Vision은 무엇입니까?</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#f3f3f3;border:1px solid\"><p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이제는 페이퍼 위에서 전략적 개념을 만들어내는 데 그치지 않고,</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">실질적인 실행의 영역을 직접 경험하고 싶습니다.</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">SD마케팅팀에서의 경험과 제가 축적해온 역량을 융합하여,</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">전략적 딜 메이킹 역량과 현장 실행력이 균형을 이루는 마케팅 전문가</span>로 성장하고자 합니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">단말 비즈니스는 제조사 협상력, 물량&#183;재고 관리, 정책&#183;RAC 효율화가 하나로 맞물릴 때 비로소 결과가 만들어지는 영역이라고 생각합니다.</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">저는 이러한 <span style=\"font-weight:bold\">전략–협상–실행의 전 과정을 하나의 프레임으로 설계하고 운영하는 역량</span>을 키워가고자 합니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">단기적으로는<span lang=\"en-US\">,</span> 글로벌 제조사와의 협상, 물량 배정, 정책 조율 등 핵심 운영 과정에 참여하여 데이터 기반 의사결정 구조와 협상 실행 프로세스를 익히고자 합니다.</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">또한, 데이터 기반의 RAC 분석과 마케팅 자원 배분 효율화를 통해</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">단말 사업의 가시적인 성과 향상</span>에 집중하겠습니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">중기적으로는<span lang=\"en-US\">,</span> 시장과 제조사 정책 데이터를 통합적으로 분석하여</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">RAC 효율화와 재원 활용의 최적 밸런스를 찾는 운영형 전략 프레임</span>을 수립하고,</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">내부 조직과 현장의 간극을 해소하는<span lang=\"en-US\"> </span>역할을 수행하겠습니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">궁극적으로는, 미래</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">단말 시장 운영의 한 축을 담당하며,</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span>AI<span lang=\"en-US\"> </span>등 신성장 영역의 전략적 이해를 결합하여<span lang=\"en-US\">,</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Thin;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">제조사 파트너십 전략 수립부터 실제 협상과 운영 실행의 End-to-End를 리드할 수 있는 단말 사업 전문가로 자리매김하는 것이 목표입니다.</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t"
+  },
+  {
+    "type": "text",
+    "x": 648,
+    "y": 115,
+    "w": 559,
+    "content": "본부는 일단 꼴등\nPM\n준영아\n일단 팀장님께 말씀 드려 놓았네\n계획대로 오늘 PM팀으로 CDC가 띄워지면 좋은데, 만에하나 PM팀이 아니라\nQI팀(단말 검증, 준 인프라)으로 띄워질 가능성도 없지는 않는것 같다...\n상황보고 알려줄게!!\n준영아\n오늘 CDC를 SD마케팅팀으로 띄운단다\nPM이었으면 너가 좋아하는 일이랑 더 맞았을것 같긴 한데 TO가 마케팅팀이네;;\n연말이니까 어차피 인력을 SD본부로 뽑아 놓고 연말에 구성원 성향 보고 재배치 하면 되는거 아니냐 어제부터 이야기 하고 있는데 최근 구성원 평가 이슈도 있었고 리더들도 서로 이야기 하기 불편한지 답이 없다~~\n우리팀은 제조사랑 중간에서 매입 물량/ 정책 수준을 두고 줄다리기 하고, 현장에 배정하고 중간에 정책으로 모정팀이랑 부대끼고 그런 역할 하는 팀이야\n최근에는 기획/ 전략은 거의 없었고 시장 운영 관련 오퍼레이션 중심으로만 운영되고 있는게 좀 아쉬운 점이네\n부담 전혀 갖지 말고 너한테 나은 방향으로 고민해보고 판단해라!!\nSD PM팀은 SKT와 ICT Famity의 상품/서비스/기술을 고객 니즈를 반영한 Smart Device에 담아 고객에게 제대로 전하는 Device 상품 기획'을 담당하는 팀입니다.\n기술/서비스/트렌드/시장 등을 두루 망라한 Prouct Roadmap을 바탕으로, 삼성, Apple, Google, Xiaomi ALT 등 국내외 Partner들과 협업하여 SKT만의 차별적인 Device 라인업을 준비하고 운영합니다.\n키워드 | 단말, 삼성, 애플, Google, 제조사, 모델코드, 선탑재, 단말의모든것, 키즈폰, Seg폰, collao, Package, Device, eSIM RSP, ALT"
+  },
+  {
+    "type": "text",
+    "x": 792,
+    "y": 1843,
+    "w": 600,
+    "content": "Career 초기 서부마케팅 본부, 그리고 마케팅전략본부에서의 경험을 통해 현장과 정책의 긴장감을 잘 이해하고 있습니다. 당시 이동전화 정책과 현장 운영의 복잡성, 그리고 제조사-본사-현장 간의 역학관계를 체득하며, MNO 사업에서 단말이 가지는 전략적 중요성을 깊이 체득하게 되었습니다.\n저는 그간 투자부서 및 AI 전략실에서 AI, Game, Metaverse 등 미래 성장 영역의 투자와 전략을 담당하며, Bytedance 및 Metaverse 개발사 인수 등 복잡한 크로스보더 딜을 주도하며 협상력과 실행력을 배양해왔습니다.\n또한 콘텐츠웨이브 출범 과정에서 국내 방송 3사를 비롯한 다양한 이해관계자들 간의 복잡한 역학관계를 조율하고, 최적의 협력 구조를 설계한 경험은 다수의 stakeholde간의 이해를 조정하는 역량을 축적했습니다.\n마케팅전략팀에서의 경험과, 전사 미래전략회의 대응 경험을 통해 전사적 이익 관점에서 내부 정책을 조율할 수 있는 능력을 보유하고 있습니다.\nApple과의 C레벨 워크샵에서는 팀쿡 CEO를 비롯한 주요 임원진을 대상으로 K콘텐츠의 위상과 저력, 양사 간의 협업 포인트를 제안하는 프레젠테이션 자료를 전담했습니다. 이 과정에서 Apple의 프리미엄 전략과 생태계 관점, 그리고 그들이 통신사 파트너에게 기대하는 가치가 무엇인지를 이해할 수 있었습니다.\nDeutsche Telekom과의 임원 워크샵에서는 e스포츠 비즈니스의 매력도와 SKT의 차별화된 역량을 설명하며, 글로벌 통신사들이 신규 사업에서 제조사 및 파트너들과 어떻게 협력 구조를 만들어가는지 학습했습니다.\n이러한 경험은 단순히 자료를 작성하는 수준을 넘어, 글로벌 제조사들의 의사결정 프로세스와 전략적 우선순위를 이해하는 기회였습니다. 삼성, Apple, Xiaomi 등 제조사들과의 물량 및 프로모션 정책 협상 테이블에서, 그들의 언어로 소통하고 Win-Win 구조를 설계할 수 있습니다.\n[주요 수행 업무]&#160;\n_ 2025 AI Summit CEO Keynote 작성\n_ AI 4대 사업영역과 3개 R&D 센터 통합관점의 전사전략 수립 (2~4차 미래전략회의)\n_ ICT 위원회 Module1 지원 - 주요 ICT Asset 대상 그룹 관점 Revisit & Pivot 방안 수립 지원\n_ 게임사 '해긴' 투자 집행(500억) - Valuation 및 DD 전 과정 담당\n_ Apple C레벨 미팅 프레젠테이션 자료 전담\n_ Deutsche Telekom BLT 워크샵 자료 전담\n_ PCCW 그룹과 SKT 사업 제휴를 위한 C레벨 워크샵 자료 전담\n_ wavve 서비스 개선 TF 실무 리드\n_ wavve 추가 투자 유치를 위한 Warner, Comcast 등 Global Media SI 대상 IR 수행\n_ 콘텐츠웨이브 2,000억 투자 유치 - GIC, TPG, IMM, Sequoia 등 Global/Major FI 대상 IM 작성 및 IR 수행\n_ 콘텐츠웨이브 출범을 위한 사업계획 작성\n_ 2G 가입자 Migration - 가입자 Segment 분석 및 단계별 Simulation, 시나리오 설계(2016-2020)\n페이퍼 위에 있는 개념을 만들어내는데서 그치지 않고, 실질적인 실행의 영역을 경험하고 싶습니다.\n핵심 단말 시장 운영에 기여하여 '전략적 딜 메이킹 역량'과 '현장 실행력'을 겸비한 전문가로 커리어를 확장하고 싶습니다."
+  },
+  {
+    "type": "text",
+    "x": 720,
+    "y": 2587,
+    "w": 525,
+    "content": "1. \"이해를 결합해,\" → \"이해를 결합하여,\"\n\n현재: \"AI 등 신성장 영역의 전략적 이해를 결합해,\"\n제안: \"AI 등 신성장 영역의 전략적 이해를 결합하여,\"\n이유: 공식 문서에서는 \"~하여\"가 더 격식 있음\n\n2. 가독성을 위한 쉼표 추가 제안\n\n현재: \"글로벌 제조사와의 협상, 물량 배정, 정책 조율 등 핵심 운영 과정에 참여하여, 데이터 기반 의사결정 구조와 협상 실행 프로세스를 익히고자 합니다.\"\n제안: \"글로벌 제조사와의 협상, 물량 배정, 정책 조율 등 핵심 운영 과정에 참여하여 데이터 기반 의사결정 구조와 협상 실행 프로세스를 익히고자 합니다.\"\n(참여하여 뒤의 쉼표 제거가 더 자연스러움)"
+  }
+];
+const CONTENT_HASH = 'a9734ba0';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

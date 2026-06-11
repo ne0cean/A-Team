@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>미국세법</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">미국세법</div>
+<div class="date">2023년 9월 23일 토요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-미국세법';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 600,
+    "content": "1주차 1차시. U.S. Taxation overview\n다음 설명은 미국 세금 중 어떤 세금에 대한 설명인지를 기술하시오.\n\"This is a federal payroll contribution directed towards both employees and employers to fund Social Security and Medicare.\"\nFederal Insurance Contributions Act (FICA)\n다음 미국 세금 중 직접세가 아닌 것은?\n1Income taxes\n2Estate taxes\n3Gift taxes\n4Sales taxes\nSales tax(판매세)는 간접세이다.\n1주차 2차시. Individual taxation (1)\n미국의 20X1년 개인소득세 확정신고는 1040서식에 따라 20X2년 언제까지 제출되어야 하는가?\n4월 15일\n다음 자료를 이용하여 납세자의 AGI(수정후 소득금액)을 구하시오.\nGross income = $22,000\nAbove the line deductions = $4,000\nItemized deductions = $14,000\n1$4,000\n2$8,000\n3$18,000\n4$22,000\n[해설]\nAdjusted gross income (AGI) = 22,000 - 4,000 = 18,000\n다음 자료를 이용하여 납세자의 Taxable income(과세표준)을 구하시오.\nAdjusted gross income = $30,000 Standard deductions = $12,200 Itemized deductions = $10,000\n1$30,000\n2$20,000\n3$17,800\n4$7,800\n[해설]\nTaxable income = 30,000 - max[12,200 or 10,000] = 17,800\n2주차 1차시. Individual taxation (2)\n다음 설명은 생존배우자(Qualifying widow(er)) 신고지위 요건에 대한 설명이다. 괄호안에 알맞은 숫자를 기술하시오.\n\"The taxpayer may be eligible to use this for (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;)years following the year of death of your spouse.\"\n2\n다음 중 납세자가 신고지위를 'Married filing jointly(기혼합산신고)'로 신고할 수 있는 상황은?\n1Taxpayers who were married but lived apart during the year\n2Taxpayers who were married but lived under a legal separation agreement at the end of the year.\n3Taxpayers who were divorced during the year.\n4Taxpayers who were legally separated but lived together for the entire year.\n[해설]\n납세자가 이혼규정이나 별거규정에 의하여 배우자와 별거하게 되었다면 합산신고를 할 수 없다.\n다음 자료의 납세자(Parker)가 20X1년에 신고할 수 있는 가장 유리한 납세자 신고지위는?\n\"Parker, whose spouse died in 20X1, has not remarried. Parker has lived with his dependent child and provides 100% of the cost of maintaining the household.\"\n1Single\n2Head of household\n3Married filing jointly\n4Qualifying widow(er) with dependent child\n[해설]\n20X1년에는 Married filing jointly, 20X2년에는 Qualifying widow(er)의 신고지위로 신고하는 것이 가장 유리하다.\n2주차 2차시. Individual taxation (3)\n다음 설명은 적격배당(Qualified dividends)의 요건에 대한 설명이다. 괄호안에 알맞은 숫자를 기술하시오.\n\"The dividends must have been paid by a U.S. corporation and the shares must have been owned for more than (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;)days of the holding period.\"\n60\n다음은 종업원의 봉사료(Tips)를 종업원의 총소득에 포함하는 여부에 대한 미국세법 규정이다. 괄호안에 알맞은 금액은?\n\"Employees who receive ( ) or more in tips in any month must report their tips for that month to their employer.\"\n1$5\n2$10\n3$15\n4$20\n[해설]\n1개월 동안의 봉사료 수입이 $20이상인 경우 고용주에게 보고하여야 하며 종업원의 총소득에 포함한다.\n다음은 종업원의 생명보험료를 고용주가 부담하는 경우 생명보험료를 종업원의 총소득에 포함하는 여부에 대한 미국세법 규정이다. 괄호안에 알맞은 금액은?\n\"If an employer pays life insurance premiums on an employee's behalf, any payments for ( )or more in coverage is taxed as income of the employee.\"\n1$10,000\n2$20,000\n3$40,000\n4$50,000\n[해설]\n보험보상금액 중 $50,000를 초과하는 부분에 대하여 고용주가 부담한 보험료는 종업원의 급여로 간주한다.\n3주차 1차시. Individual taxation (4)\n다음 설명은 Net capital loss의 총소득금액 공제에 대한 설명이다. 괄호안에 알맞은 숫자를 기술하시오.\n\"Capital losses that exceed capital gains in a year may be used to offset ordinary taxable income up to $(&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) in any one tax year.\"\n3000\nSchedule C에서 비용으로 공제되는 항목이 아닌것은?\n1Depreciation\n2Federal income tax\n3Salary paid to employee\n4Interest expense\n[해설]\n주정부소득세와 연방정부소득세는 Schedule C에서 공제되지 않는다.\n다음 중 capitl assets이 아닌것은?\n1Stock\n2Bond\n3Inventory\n4Residence\n[해설]\n재고자산은 사업용자산이므로 capital assets이 아니다.\n3주차 2차시. Individual taxation (5)\n다음은 조합지분으로부터의 소득에 대한 설명이다. 괄호안에 알맞은 용어를 기술하시오.\n\"(&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;)activity is any rental activity or any business in which the taxpayer does not materially participate.\"\npassive\n임대소득의 내역을 보고하는 명세서는 무엇인가?\n1Schedule C\n2Schedule D\n3Schedule E\n4Schedule F\n[해설]\n임대소득과 로열티 소득의 내역은 Schedule E에 보고한다.\n농업소득의 내역을 보고하는 명세서는 무엇인가?\n1Schedule C\n2Schedule D\n3Schedule E\n4Schedule F\n[해설]\n농업소득의 내역은 Schedule F에 보고한다.\n4주차 1차시. Individual taxation (6)\n다음은 사회보장연금의 소득금액 포함비율에 대한 설명이다. 괄호안에 알맞은 숫자를 기술하시오.\n\"You’ll be taxed on up to (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) percent of your benefits if your income is $25,000 to $34,000 for an individual or $32,000 to $44,000 for a married couple filing jointly.\"\n50\n수정된 AGI가 $20,000인 독신자(single)인 납세자가 연간 $10,000의 사회보장연금을 수령한 경우 사회보장연금 중 총소득금액에 포함되어야 하는 금액은 얼마인가?\n10\n22,000\n35,000\n48,500\n[해설]\n수정AGI가 $25,000미만이기 때문에 사회보장연금은 소득금액에 포함되지 않는다.\n수정된 AGI가 $50,000인 독신자(single)인 납세자가 연간 $18,000의 사회보장연금을 수령한 경우 사회보장연금 중 총소득금액에 포함되어야 하는 금액은 얼마인가?\n12,700\n29,000\n315,300\n418,000\n[해설]\n수정AGI가 $34,000를 초과하였기 때문에 사회보장연금의 85%가 소득금액에 포함된다. 18,000 x 85% = 15,300\n4주차 2차시. Individual taxation (7)\n다음은 전통적인 IRA의 공제한도에 대한 설명이다. 괄호안에 알맞은 숫자를 기술하시오.￼\"The combined annual contribution limit for Roth and traditional IRAs is $7,000 if you're age (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;)or older.\"\n50\n다음 중 earned income에 해당하지 않는 소득은?\n1Salary\n2Interest\n3Commissions\n4Bonuses\n[해설]\n이자소득과 배당소득은 Earned income에 해당되지 않는다.\n다음 개인퇴직연금 중 자영업자에게만 적용되는 것은?\n1Traditional IRA\n2Roth IRA\n3Educational IRA\n4Keogh Plan\n[해설]\nKeogh Plan은 자영업자에게만 적용되는 개인퇴직연금이다.\n5주차 1차시. Individual taxation (8)\n다음은 위자료의 항목별 공제에 대한 설명이다. 괄호안에 알맞은 연도를 기술하시오.\n\"Alimony payments are deductible to arrive at adjusted gross income (AGI) pursuant to a divorce settlement executed on or before December 31, (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;).\"\n2018\nThe self-employment tax is ?\n1Fully deductible as an itemized deduction.\n2Fully deductible from gross income in arriving at adjusted gross income.\n3One-half deductible from gross income in arriving at adjusted gross income.\n4Not deductible.\n[해설]\nOne half of the self-employment tax is deductible to arrive at adjusted gross income.\nWhich of the following is not an adjustment to arrive at adjusted gross income?\n1Self-employed health insurance\n2Qualified mortgage interest paid\n3Alimony paid pursuant to a divorce settled on or before December 31, 2018\n4Educator expenses\n[해설]\nQualified mortgage interest paid is deductible on Schedule A as an itemized deduction.\n5주차 2차시. Individual taxation (9)\n다음은 표준공제에 대한 설명이다. 괄호안에 알맞은 숫자를 기술하시오.\n\"The additional standard deduction amount for the aged (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) or the blind is $1,300.\"\n65\nWhich one of the following expenditures qualifies as a deductible medical expense for tax purposes?\n1Vitamins for general health not prescribed by a physician.\n2Health club dues.\n3Transportation to physician's office for required medical care.\n4Mandatory employment taxes for basic coverage under Medicare A.\n[해설]\nTransportation to a physician's office for required medical care is a deductible medical expense for tax purposes.\nWhich of the following is not a deduction from adjusted gross income?\n1Medical expenses\n2Taxes you paid\n3Taxes you paid\n4Self-employed health insurance\n[해설]\nSelf-employed health insurance is deductible to arrive at adjusted gross income.\n6주차 1차시. Individual taxation (10)\n다음은 공익성 기부금의 항목별 공제여부에 대한 설명이다. 괄호안에 알맞은 숫자를 기술하시오.\n\"Charitable contributions subject to the 60 percent limit that are not fully deductible in the year made may be carried forward (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) years.\"\n5\nThe deduction by an individual taxpayer for interest on investment indebtedness is?\n1Limited to the investment interest paid during the year.\n2Limited to the taxpayer's interest income for the year.\n3Limited to the taxpayer's net investment income for the year.\n4Not limited.\n[해설]\nThe deduction for interest expense on investment indebtedness is limited to net investment income.\nWhich of the following is not a deduction from adjusted gross income?\n1Interest expense fo student loan\n2Interest expense for residence indebtness\n3Interest expense for investment debt\n4Gifts to charity\n[해설]\nStudent loan interest is deductible to arrive at adjusted gross income.\n6주차 2차시. Individual taxation (11)￼다음은 재해손실 항목별 공제의 최소기준금액(floor)에 대한 설명이다. 괄호안에 알맞은 금액을 기술하시오.￼\"Individuals are required to claim their casualty and theft losses as an itemized deduction. For property held by you for personal use, you must subtract $(&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) from each casualty or theft event\"\n100\nThe burial expenses are?\n1A deduction to arrive at adjusted gross income.\n2Not deductible.\n3A deduction from adjusted gross income, subject to a 2% AGI Floor.\n4A deduction from adjusted gross income.\n[해설]\nThe burial expense are not deductible.\nWhich of the following is not a deduction from adjusted gross income?\n1Estate tax on decedent income\n2Casualty and theft losses\n3Gambling losses\n4Traditional IRA contribution\n[해설]\nTraditional IRA contribution is deductible to arrive at adjusted gross income.\n7주차 1차시. Individual taxation (12)￼다음은 적격사업소득공제의 총액한도에 대한 설명이다. 괄호안에 알맞은 숫자를 기술하시오.￼\"Once the QBI deduction is calculated based on the taxpayer's eligibility, the overall deduction is limited to the lesser of combined QBI or (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;)percent of the taxpayer's taxable income in excess of net capital gain.\"\n20\nWhich of the following is considered a specified service trade or business (SSTB) for purposes of the qualifying business income deduction?\n1Accounting firm\n2Manufacturing company\n3Engineering firm\n4Architectural services\n[해설]\nAccounting services are considered an SSTB for purposes of the qualified business income deduction.\nWhat is the basic deduction calculation for the qualifying business income deduction?\n130% &#215; Qualifying business income (QBI)\n220% &#215; W-2 wages\n320% &#215; Qualifying business income (QBI)\n430% &#215; W-2 wages\n[해설]\nThe basic calculation for the QBI deduction is 20% &#215; QBI. The deduction is subject to limitations.\n7주차 2차시. Individual taxation (13)\n다음은 자녀보육비 세액공제의 공제요건에 대한 설명이다. 괄호안에 알맞은 숫자를 기술하시오.\n\"To be a qualifying child, the child must merely be a dependent of the taxpayer and must be under age (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;).\" 13\nHow may taxes paid by an individual to a foreign country be treated?\n1A deduction from adjusted gross income.\n2Not deductible.\n3As a credit against federal income taxes due.\n4As an adjustment to gross income.\n[해설]\nA taxpayer may claim a credit against federal income taxes due for foreign income taxes paid to a foreign country or a U.S. possession.\nWhich of the following is not a refundable tax credit?\n1Child care credit\n2Earned income credit.\n3Child tax credit.\n4Excess social security paid.\n[해설]\nChild care credit is a non-refundable credit.\n9주차 1차시. Individual taxation (14)\n다음 설명에서 괄호안에 알맞은 세무용어는 무엇인가?\n\"The (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) is a tax designed to insure that taxpayers who take a large number of tax deductions pay a minimum amount of tax.\"\nAMT (Alternative Minimum Tax)\nThe credit for prior year alternative minimum tax liability may be carried\n1Forward for a maximum of five years.\n2Back to the three preceding years or carried forward for a maximum of five years.\n3Back to the three preceding years.\n4Forward indefinitely.\n[해설]\nAlternative minimum tax (AMT) paid can be claimed as a credit against other years if the tax was paid on items that increased AMT that year but will reverse in later years. The credit is carried forward indefinitely.\nWhich of the following is not an adjustment or preference to arrive at alternative minimum taxable income?\n1Individual taxpayer net operating losses.\n2Passive activity losses.\n3Deductible state and local taxes.\n4Deductible contributions to individual retirement accounts.\n[해설]\nDeductible contributions to individual retirement accounts are not an adjustment or preference in calculating a taxpayer's alternative minimum taxable income.\n9주차 2차시. Corporations(1)\n개인과 법인의 일반적인 회계기준의 차이에 대해서 설명하시오.\n개인의 일반적인 회계기준은 현금주의이며, 법인의 일반적인 회계기준은 발생주의이다.\nC corporation의 세무상 특징에 대한 설명 중 틀린 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>Filing Form : Form 1120\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>Shareholders are not subject to tax\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>Entity is subject to tax\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>Income subject to double taxation\n[해설]\nC corporation의 주주는 수령한 배당에 대해서 소득세를 부담하여야 한다.\nSole Proprietorship의 세무상 특징에 대한 설명 중 틀린 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>Filing Form : Form 1040\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>Owners are subject to tax\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>Entity is not subject to tax\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>Income subject to double taxation\n4.&#160;Income subject to double taxation\n[해설]\n개인사업자는 사업체는 과세대상이 아니며 사업주에게 귀속되는 소득만 과세대상이므로 이중과세가 되지는 않는다.\n10주차 1차시. Corporations(2)\n다음은 법인의 배당소득공제율에 대한 설명이다. 괄호안에 알맞은 숫자를 기술하시오.\n\"With a 30% ownership, the percentage for the dividends-received deduction is (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;)%\"\n65\nWhich of the following costs are expensable/amortizable organizational expenditures?\nI. Printing costs to issue the corporate stock\nII. Legal fees for drafting the corporate charter.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>Ⅰ only.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>Ⅱ only.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>Both Ⅰ and Ⅱ.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>Neither Ⅰ nor Ⅱ.\n2.&#160;Ⅱ only.\n[해설]\n법인의 규정 및 정관작성을 위한 법률서비스비용은 창업비에 포함이 되지만 주식발행관련 비용은 창업비에 해당되지 않는다.\nPope, a C corporation, owns 15% of Arden Corporation. Arden paid a $3,000 cash dividend to Pope. What is the amount of Pope's dividends-received deduction?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>$3,000\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>$1,950\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>$1,500\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>$0\n3.&#160;$1,500\n[해설]\nWith a 15% ownership, the percentage for the dividends-received deduction is 50%, or $1,500 (50% &#215; $3,000).\n10주차 2차시. Corporations(3)\n다음 설명에서 괄호안에 알맞은 세무용어는 무엇인가?\n\"For income tax purposes, a (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) is the result when a company's allowable deductions exceed its taxable income within a tax period.\"\nnet operating loss (NOL)\nA C corporation's net operating loss are\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>Carried forward indefinitely until fully utilized.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>Carried back 3 years and forward 5 years.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>Deductible in full from the corporation's ordinary income.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>Deductible from the corporation's ordinary income only to the extent of $3,000.\n&#160;1.&#160;Carried forward indefinitely until fully utilized.\n[해설]\nA C corporation's net operating loss can be carried forward indefinitely\nIf a corporation's charitable contributions exceed the limitation for deductibility in a particular year, the excess\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>Is not deductible in any future or prior year.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>May be carried back or forward for one year at the corporation's election.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>May be carried forward to a maximum of five succeeding years.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>May be carried back to the third preceding year.\n3.&#160;May be carried forward to a maximum of five succeeding years.\n[해설]\nA corporate charitable deduction that exceeds the limit for deduction in one year can be carried over to the succeeding five tax years. It cannot be carried back.\n11주차 1차시. Corporations(4)\n다음 설명에서 괄호안에 알맞은 세무서식은 무엇인가?\n\"(&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;)of Form 1120 is used to reconcile the differences between book income and taxable income.\"\nSchedule M-1\nWould the following expense items be reported on Schedule M-1 of the corporation income tax return showing the reconciliation of income per books with income per return?\nI. Interest incurred on loan to carry U.S. Obligations\nII. Provision for State corporation income tax\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>Ⅰ only.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>Ⅱ only.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>Both Ⅰ and Ⅱ.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>Neither Ⅰ nor Ⅱ.\n4.&#160;Neither Ⅰ nor Ⅱ.\n[해설]\nBecause the interest incurred on loans to carry U.S. obligations and the provision for state corporation income tax are treated the same for both book purposes and tax return purposes, no Schedule M-1 adjustment is required.\nWould the following expense items be reported on Schedule M-1 of the corporation income tax return showing the reconciliation of income per books with income per return?\nI. Interest incurred on loan to carry nontaxable municipal obligations\nII. Provision for Federal corporation income tax\n3.&#160;Both Ⅰ and Ⅱ.\n[해설]\nBecause the interest incurred on loans to carry nontaxable municipal obligations and the provision for federal corporation income tax are treated differently for book and tax purposes, Schedule M-1 adjustment is required.\n11주차 2차시. Corporations(5)\n다음 설명에서 괄호안에 알맞은 세무용어는 무엇인가?\n\"Income taxable but not recorded in book and expenses on book not deductible on tax are entered as (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) in Schedule M-1\"\nAdditions\nCape Co. reported book income of $140,000. Included in that amount was $50,000 for meal expenses. In Cape's Schedule M-1 of Form 1120, which reconciles book income and taxable income, what amount should be reported as taxable income?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>$90,000\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>$115,000\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>$165,000\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>$190,000\n3.&#160;$165,000\n[해설]\n50% of the $50,000 meal expenses are disallowed for tax purposes. Taxable income = $140,000 + 25,000 = $165,000\nIn Year 4, Superior Corp. an accrual-basis calendar year corporation, reported book income of $500,000. Included in that amount was $25,000 of municipal bond interest income. What amount should Superior Corp.'s taxable income be on the Form 1120, U.S. Corporation Income Tax Return for Year 4?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>$475,000\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>$500,000\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>$512,500\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>$525,000\n1.&#160;$475,000\n[해설]\nFor tax purposes, the $25,000 of municipal bond interest income is non-taxable. Taxable income = $500,000 -25,000 = $475,000\n12주차 1차시. Corporations(6)\n다음은 Section 351의 요건에 대한 설명이다. 괄호안에 알맞은 말은 무엇인가?\n\"Section 351 provides that no gain or loss shall be recognized if property is transferred to a corporation by one or more persons solely in exchange for stock in such corporation and immediately after the exchange such person or persons are in (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) of the corporation.\"\nControl\n다음은 Section 351의 3가지 요건 중의 하나인 지배력에 대한 설명이다. 괄호안에 알맞은 숫자는?\n\"Section 351 defines control to mean the ownership of stock possessing at least (&#160;&#160;&#160;&#160;&#160;)percent of the total combined voting power of all classes of stock entitled to vote.\"\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>20\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>50\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>65\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>80\n4.&#160;80\n[해설]\nSection 351 defines control to mean the ownership of stock possessing at least 80 percent of the total combined voting power of all classes of stock entitled to vote.\nAmes and Roth form Homerun, a C corporation. Ames contributes several autographed baseballs to Homerun. Ames purchased the baseballs for $500, and they have a total fair market value of $1,000. Roth contributes several autographed baseball bats to Homerun. Roth purchased the bats for $5,000, and they have a fair market value of $7,000. What is Homerun's basis in the contributed bats and balls?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>$0\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>$5,500\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>$6,000\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>$8,000\n2.&#160;$5,500\n[해설]\nHomerun's basis in the contributed bats and balls is $5,500 [$500 for the baseballs plus $5,000 for the bats], which is the adjusted net book value of the transferors.\n12주차 2차시. Corporations(7)\n다음 설명에서 괄호안에 알맞은 세무용어는 무엇인가?\n\"A (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) is a payment or allowance to a participant or shareholder in a company that is not intended or classified as a distribution to the participant, but which is classified later as a dividend by the Internal Revenue Service (IRS) and thus becomes taxable.\"\nconstructive dividends\nA distribution from a C corporation to a shareholder is treated by the shareholder as which of the following classifications to the extent of the C corporation's current or accumulated earnings and profits?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>Dividend income\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>Nontaxable return of capital.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>Capital gain.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>Capital loss.\n1.&#160;Dividend income\n[해설]\nDistributions from C corporations are considered dividend income (ordinary income) to the extent of the C corporation's current or accumulated earnings and profits.\nA distribution in excess of both earnings and profits and a shareholder's basis in the stock of the corporatio from a C corporation to a shareholder is treated by the shareholder as which of the following classifications?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>Dividend income\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>Nontaxable return of capital.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>Capital gain.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>Capital loss.\n3.&#160;Capital gain.\n[해설]\nAny distribution in excess of both earnings and profits and a shareholder's basis in the stock of the corporation is treated as a capital gain.\n13주차 1차시. Corporations(8)\n다음 설명에서 괄호안에 알맞은 세무용어는 무엇인가?\n\"A (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) is a C corporation in which more than 50% of the value of its outstanding stock is owned (directly or indirectly) by five or fewer individuals and which receives at least 60% of its adjusted ordinary gross income from passive sources.\"\npersonal holding company (PHC)\nWhich of the following groups may elect to file a consolidated corporate return?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>A brother-sister-controlled group.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>A parent corporation and all more than 10 percent-controlled partnerships\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>A parent corporation and all more than 50 percent-controlled subsidiaries.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>Members of an affiliated group.\n4.&#160;Members of an affiliated group.\n[해설]\nAn affiliated group of corporations may elect to be taxed as a single unit, thereby eliminating intercompany gains and losses.\n다음은 연결대상에 대한 설명이다. 괄호안에 알맞은 숫자는?\n\"An affiliated group means that a common parent owns (&#160;&#160;&#160;&#160;&#160;) percent or more of the voting power of all outstanding stock and (&#160;&#160;&#160;&#160;&#160;) percent or more of the value of all outstanding stock of each corporation\"\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>20\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>50\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>65\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>80\n4.&#160;80\n[해설]\nAn affiliated group means that a common parent owns (1) 80 percent or more of the voting power of all outstanding stock and (2) 80 percent or more of the value of all outstanding stock of each corporation.\n13주차 2차시. Partnership(1)\n다음 설명에서 괄호안에 알맞은 세무용어는 무엇인가?\n\"A (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) is a tax document used to report the incomes, losses, and dividends of a business's partners.\"\nSchedule K-1\nPartnership의 세무상 특징에 대한 설명 중 틀린 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>Filing Form : Form 1065\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>Partners are subject to tax\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>Entity is subject to tax\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>Income subject to single taxation\n3.&#160;Entity is subject to tax\n[해설]\nPartnership의 사업체는 과세대상이 아니며 조합원(파트너)에게 귀속되는 소득만 과세대상이므로 이중과세가 되지는 않는다.\n다음은 partnership's tax year에 대한 설명이다. 괄호안에 알맞은 숫자는?\n\"A partnership may elect to have a tax year other than the generally required tax year if the deferral period for the tax year elected does not exceed (&#160;&#160;&#160;&#160;&#160;) months.\"\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>1\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>2\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>3\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>4\n3.&#160;3\n[해설]\nA partnership may elect to have a tax year other than the generally required tax year if the deferral period for the tax year elected does not exceed three months.\n14주차 1차시. Partnership(2)\n다음 설명에서 괄호안에 알맞은 세무용어는 무엇인가?\n\"A (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) is a financial loss within an investment in any trade or business enterprise in which the investor is not a material participant.\"\npassive loss\nBailey contributed land with a fair market value of $75,000 and an adjusted basis of $25,000 to the ABC Partnership in exchange for a 30% interest. The partnership assumed Bailey's $10,000 recourse mortgage on the land. What is Bailey's basis for his partnership interest?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>$15,000\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>$18,000\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>$65,000\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>$75,000\n2.&#160;$18,000\n[해설]\nBailey's basis = 25,000 - 10,000 x 0.7 = 18,000\nStrom acquired a 25 percent interest in Ace Partnership by contributing land having an adjusted basis of $16,000 and a fair market value of $50,000. The land was subject to a $24,000 mortgage, which was assumed by Ace. No other liabilities existed at the time of the contribution. What was Strom's basis in Ace?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>$0\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>$16,000\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>$2,6000\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>$32,000\n정답 :&#160;1.&#160;$0\n[해설]\nStrom's basis in the land ($16,000) carries over as an element of his basis in Ace. The assumption by Ace of Strom's liabilities on the land ($24,000) is treated as a distribution of money to Strom, which reduces his basis temporarily to negative $8,000. Then, through his status as a partner of Ace, Strom is treated as re-assuming 25% of the liability, or $6,000, and this increases his basis temporarily to negative $2,000. Since it is impossible to have negative basis, Strom realizes a gain (usually capital) of $2,000, the amount necessary to bring his basis up to zero.\n14주차 2차시. S-Corporation\n다음 설명에서 괄호안에 알맞은 세무용어는 무엇인가?\n\"A (&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;) is a tax document used to report the incomes, losses, and dividends of an S corporation's shareholders.\"\nSchedule K-1\nS corporation의 세무상 특징에 대한 설명 중 틀린 것은?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>Filing Form : Form 1120S\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>Shareholders are subject to tax\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>Entity is subject to tax\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>Income subject to single taxation\n3.&#160;Entity is subject to tax\n[해설]\nS corporation의 사업체는 과세대상이 아니며 주주에게 귀속되는 소득만 과세대상이므로 이중과세가 되지는 않는다.\nWhich of the following conditions will prevent a corporation from qualifying as an S Corporation?\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">1</a>The corporation has both common and preferred stock.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">2</a>The corporation has one class of stock with different voting rights.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">3</a>One shareholder is an estate.\n<a href=\"https://edustudy.hunet.co.kr/Study/ContentsV3/Main.aspx#\" style=\"font-family:나눔고딕;font-size:10.5pt;background-color:#37393a;font-weight:bold\">4</a>One shareholder is a grantor trust.\n1.&#160;The corporation has both common and preferred stock.\n[해설]\nAn S corporation can only have one class of stock outstanding. Common and preferred stock would constitute two classes of stock."
+  }
+];
+const CONTENT_HASH = '31a61f67';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

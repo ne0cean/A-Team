@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q.Bizm</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Q.Bizm</div>
+<div class="date">2020년 4월 4일 토요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Q-Bizm';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 432,
+    "y": 43,
+    "w": 600,
+    "content": "See the unseen.\n비즈니스 허슬\n모호한 것을 분명하게\n복잡한 것을 단순하게\n이면을 본다. 관통하는 질문을 한다.  1/ 클리핑 2/ 코멘트 & 퀘스천 3/ 커뮤니티, 커뮤니케이션"
+  },
+  {
+    "type": "text",
+    "x": 1488,
+    "y": 139,
+    "w": 556,
+    "content": "안녕하세요 6기 김준영입니다. 제가 시험삼아 페이지를 하나 개설했는데, 쑥스럽지만 구독과 피드백 부탁드리겠습니다. 뉴스 클리핑이 목적인데요, 처음해보는 일인지라 미숙할테니 모쪼록 개인적으로라도 피드백 많이 주시면 좋겠습니다. :)\n다른 목적이 있는 것은 아니고, 회사에서 늘상 하는일이 리서치하고 보고서 쓰는 일인데 그냥 흘려버리기 아까워서 개인적으로 아카이브를 좀 만들어볼까 하는데, 배운게 도둑질이라 간판을 좀 달아봤습니다."
+  },
+  {
+    "type": "image",
+    "x": 1080,
+    "y": 163,
+    "w": 304,
+    "h": 624,
+    "src": "f82d78e22c.png",
+    "caption": "SKT 5:17 ㉧ (Jn血%咀 V (그 V 16,686 views [본사 단독 할인!]탈모, 진행을 막는 것이 중요합니다. till 91%』 국내 유일 탈모 유효성분 전달 홈케어 *NS특가 : bit.Iy/3bybrZX View 2 comments See Translation think think note think note_ 생각 노트 @insidestory—kr &#39;잘 연결된&#39; 이종 비즈니스를 좋아한다. 백반집이 반찬 가게를 같이 한다든가, 정 육점이 고기 크로켓! 장사를 한다든가, 과 일 가게가 생과일주스를 만들어 판다든 가, 야채 가게가 샐러드를 만들어 판다든 가 하는 그런 식. 본업으로 부가 사업을 만 들고 그 부가 사업이 다시 본업에 도움이 되는 케이스. 오후 3:30 • 2020. 3. 28. • Twitter for iPhone O Q Y 우) Liked by 3hr.guide and 375 others Q ㈜ O"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 222,
+    "w": 600,
+    "content": "구글시트에 뉴스 정리\n<a href=\"https://brunch.co.kr/@sijin90/52?fbclid=IwAR1zhXX4eaKL3oqQw0nSaqdA36NXQrS15zUJUmrnxkdZcU8Y7UXjw_Vx6qE\">https://brunch.co.kr/@sijin90/52?fbclid=IwAR1zhXX4eaKL3oqQw0nSaqdA36NXQrS15zUJUmrnxkdZcU8Y7UXjw_Vx6qE</a>\n인풋리스트에 넣어서 카톡방에 뿌리기\n기존 인풋리스트에 댓글달기\n1개의 기사를 올리기 위해, 일반 기사 10~30개, 아티클 5개, 유튜브 영상등 기타 채널을 이것저것본다\n그중 가장 압축적으로 전달이 가능한 것들을 조합한다.\n1/ 클리핑: 페북 > 인스타 > 트위터\n2/ 내 인사이트와 장문의 글, 링크드인 & 미디엄 & 레딧\nTarget과 채널, 목적에 부합하는 계정 타이틀, Logo 제작: Q.Bizm(큐비즘) _ Biz에 대한 입체적 Question, 큐비즘.\n첫 게시글 올리기\n인스타 업로드용 템플릿 만들기.\n하루에 1개 이상 - 해외/국내 각 1개, 매크로와 마이크로\n국내 뉴스 큐레이션 채널도 뚫어야해\n해시태그 개발, \"여러분의 댓글로 저희에게 영감을 주세요.\"\n인스타그램 키우는법\n<a href=\"https://www.youtube.com/watch?v=sxEx0QWcm3c\">https://www.youtube.com/watch?v=sxEx0QWcm3c</a>\n_해시태그 커뮤니티: 자주쓰는 해시태그가 있다.\n_되게 좁은 Targer의 니치 해시태그\n메모멘토 메멘토, 분석력,\n1/ Who I am. Persona 어떻게 보여질 것인가.\n2/ What I do. 나는 무슨일을 하는가.\n3/ How I do it. 내가 어떻게 하는가."
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 786,
+    "w": 600,
+    "content": "[Sales funnel]"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 838,
+    "w": 600,
+    "content": "ㅇ 낸낸내ㄴㄴㅇㅇㅇㄹㅇㄴㄹㅇㅇㅇㅇㄹㅇㄴㄹㄴㅇㄹㅇㅇ목적: 일터에서 얻은 지식을 확장하여, 내 브랜딩을 한다 - 이직, 사업을 위해 혹은 책 출간. 원노트-메모광\n퍼스널 브랜딩/ 사내외 전문가로 포지셔닝/ 성장/ 창업에 도움\n지속적인 아웃풋, 누군가를 가르치는 경험이 나를 성장시킨다.\nICT회사에서 투자유치 담당\n비즈니스가 세상에 가지는 의미를 함께 살피고 묻습니다.\nㅇ 목표: 연내 5만 구독자\nㅇ Value: 주요 이슈에 대한 인사이트와 다른 사람들과 생각 교류\nㅇ Target 아주 좁고 전파력은 좋은 정밀 타겟\nㅇ 네이밍: Grey News, 클리핑이 아닌 도슨트, View, 매그로&마이크로. 메멘토, 메모, 퀘스천.  기대할 수 있는바가 드러나게 - 비즈, 브랜드, 생각노트, \"당신을 앓게 할 질문, 그래서 알게 할 질문\" Q.big 클리핑, 질문하는 늑대, 회색늑대, biz rhapsody\nㅇ 컨셉 : 객관적이지만 약간 인간미 나게, 슈카월드? 3가지의 질문을 던진다. MECE하거나 순차적인 질문.\n큐레이션/ 커뮤니티/ 뉴스나 아티클 클리핑, 코멘트와 함께. 유의미한 질문 던지기.\nㅇ 채널:\n페이스북, 인스타,\n브런치, 블로그, 웹사이트, email, 트위터,\n카톡, 텔레그램,\n틱톡, 유튜브\nque레이션과 que the Q. 큐비즘.  Q.bizism\n기준. 이왕이면 다른 것, 같은 주제면 다른 관점\n환기시키거나 깨닫게 되는 것. 중요한 것. 정치적이지.가치중롭적이지 않은 것\n국내뉴스 하나 해외뉴스 하나.\n우리가 가지는 고유의 서사는\n선택보다는 질문에서 나옵니다.\n선택은 대부분 주어지는반면\n질문은 선택을 이끌어내는 능동.\n매일 새로운 가정을 하고,\n그것에 희망이라 부르며\n그것을 확인 할 시간을 미래라고\nPhase 1. 단순 클리핑 + 질문 3개\nPhase 2. A/B 테스트, 채널별 어프로치별\n오감 브랜딩, 로고는 체스판\nㅇ 속도? 깊이? 이해도/인사이트?\n인터뷰\n<a href=\"https://brunch.co.kr/@kty0613/120\">https://brunch.co.kr/@kty0613/120</a>\n<a href=\"https://www.notion.so/bette-rletter-c7e4926d7e7e4f7d8b1c223c44cd5232\">https://www.notion.so/bette-rletter-c7e4926d7e7e4f7d8b1c223c44cd5232</a>\n<a href=\"https://brunch.co.kr/@kty0613/120\">https://brunch.co.kr/@kty0613/120</a>\nhttp://www.openads.co.kr/nTrend/article/6782/%EA%B5%AD%EB%82%B4-%EB%89%B4%EC%8A%A4%EB%A0%88%ED%84%B0%EB%A5%BC-%EC%8B%B9-%EB%8B%A4-%EB%AA%A8%EC%95%84%EB%B4%A4%EB%8B%A4</a>\n링크가 포함된 글은 평균 그렇지 않은 글의 반 정도로 도달이 떨어진다. 여러가지 형태를 실험해본 결과, 방식에 상관없이 ‘링크가 포함’되었기만 하면 그런 결과를 보이는듯하다.\n이에 따라 통합 채널 형태로 소셜미디어를 운영할 때는 이 부분에 대한 고민이 필요하다. 다만, 최근 페이스북의 자료에 따르면, 앞으로 text 형태의 도달을 감소시키고 링크 형태를 더 중용하겠다는&#160;리포트</a>가 있다. 단 2월 4일까지 확인 결과, 아직 가시적인 결론은 도출되지 않았다.\n3. 공유를 부르는 ‘퀄리티있는 콘텐츠’를 만들어라\n어떤 형태의 ‘퀄리티’일지는 운영자가 판단할 문제다. 다만, 콘텐츠 도달에 가장 높은 지수가 ‘공유’라는 점을 가정한다면, ‘정보’, ‘재미’, ‘감동’ 중 하나, 혹은 2개 이상의 요소를 담은 콘텐츠를 고민해보는게 좋을 듯 text보다 이미지에 집중한 콘텐츠가 더 공유가 잘 된다는 점이다. ￼￼5. 운영 측면에서 다양한 형태를 시도하라\n닐슨 코리안 클릭의&#160;최근 자료</a>에서도 알 수 있듯이, 타깃을 고려한 콘텐츠 운영 시간은 다 다르다. 또한, 산업군, 브랜드별로도 또 차이가 있다. 이에 따라, 정형화된 포스팅 시간대가 아닌 다양한 시기를 고민해볼 필요가 있다. 여기에는 시간이나 요일 모두가 포함된다.\n또한, 포스팅 주기나 양을 변화시켜보는 것도 필요하다. 하루에 1개, 또는 2개가 낫다, 몇 시간에, 며칠에 하나가 낫다… 등 이야기는 많은데 모두 케바케고 계속 바뀌고(!) 있다. 결국, 직접 자기 페이지에 어울리는 방법을 고안해낼 수 밖에 없다. 부연하자면, 페이스북은 지속적으로(보통은 예고도 없이) 변화하고 있다. 실무자가 실험해보고 최신의 결과를 반영하는 것이 유일한 답이겠다.\n6. 형식에 대한 고민이 필요하다\n인게이지먼트를 늘리기 위해서는 ‘형식’에 대한 고민도 지속적으로 필요하다. 여기에는 텍스트 기반, 이미지기반, 영상기반 등의 ‘기본 컨셉’부터, 정보성, 시즈널 이슈성, 자사 관련성, 감성성, 단순흥미성 등의 ‘소재’, 태그, 장소, 사진첩 등의 ‘다양한 요소’에 대한 고민이 모두 포함된다. (다만, 지난 2013년 9월 ‘해쉬태그’가 도달에 오히려 마이너스라는&#160;미쿡의 연구결과</a>도 있었으니 참고)\n이런 고민이 당장 ‘도달’에 도움이 되지 않는다해도 사안에 따라 인게이지먼트에는 분명 플러스가 되는 것을 알 수 있다. 특히, ‘댓글 사진’의 경우에는 현 시점에서도 주목도가 높은 것으로 보인다.\n7. 반응을 대놓고 요청하라\n지난 1월 진행된 ‘블로터닷넷’ 소셜미디어 관련 세미나에서도 나왔던 이야기이지만, 반응을 ‘요청’하는 것도 좋은 방법이다. 예를 들어 ‘좋아요를 누르면 새해복 많이 받으실거에요’나 ‘댓글로 자신에 어울리는 스타일을 말해주세요’ 등 직접적인 행동을 요청하는 형태가 있겠다. 이는 text뿐만이 아니라, 이미지 등에서 ‘선택을 요하는’ 형태의 기획으로도 변용한 활용이 가능하다.\n8. 통합 채널 측면에서 접근하라\n페이스북 콘텐츠의 도달과 인게이지먼트를 높이는 마지막 방법. 마지막에서야 순수하게 운영자의 컨트롤이 가능한 방법인거같다. 운영하는 채널들을 연계해 외부 유입을 늘릴 수 있다. 단순히 배너를 배치하거나 소셜플러그인을 설치하는 방법부터, 콘텐츠에서 인용 등을 통해 유입을 유도하는 방법, 각 채널을 연계해 한쪽에서는 질문을 한쪽에서는 답을 올리는 방법, 이벤트를 연계하는 방법 등이 여기에 해당된다. 손은 좀 가지만 효과는 어느정도 담보가 가능하겠다."
+  },
+  {
+    "type": "text",
+    "x": 864,
+    "y": 859,
+    "w": 600,
+    "content": "ㅇ 핵심 키워드: 비즈니스, 클리핑, 퀘스천(질문)"
+  }
+];
+const CONTENT_HASH = 'b5386a78';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

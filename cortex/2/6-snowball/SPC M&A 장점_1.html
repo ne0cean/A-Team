@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPC M&amp;A 장점</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">SPC M&amp;A 장점</div>
+<div class="date">2020년 4월 15일 수요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-SPC-M-A-장점';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 408,
+    "y": 19,
+    "w": 450,
+    "content": "<a href=\"https://www.asiae.co.kr/article/2015012811041998521\">https://www.asiae.co.kr/article/2015012811041998521</a>\nhttps://www.thebell.co.kr/free/content/ArticleView.asp?key=201907020100004620000289&lcode=00</a>\nhttp://www.ceopartners.co.kr/bbs/board.php?bo_table=bd_03&wr_id=805</a>\n<a href=\"https://financialsolution.tistory.com/93\">https://financialsolution.tistory.com/93</a>"
+  },
+  {
+    "type": "html",
+    "x": 48,
+    "y": 179,
+    "w": 576,
+    "html": "\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">우리가 좋은 물건을 살 때,</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">우리돈이 모자란다면,</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">은행에서 돈을 땡겨 물건을 사는 것이 일단 가장 쉬운 접근이다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">그런데,,</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">M&amp;A에서는</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">SPC라는 친구를 중간에 넣어 그 친구로 하여금 돈을 땡겨 물건(사고 싶은 기업)을 사게 한다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">(사실 M&amp;A뿐 아니라,, 자산유동화나 PF, 선박금융 등 대부분 은행IB와 연관된다)</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">어렵게 풀면,,</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">실질적이 인수자가 대상회사의 주식인수를 위해 SPC를 설립하여,</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">SPC에 인수대금의 일정비율 이상 자금을 쏘고, 그 SPC가 나머지를 차입하게 하는 대출차주가 되게 한다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">근데..SPC가 머냐면... 네이버를 뒤져보니. 아래처럼 되어있다..</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:white;border:1px solid\"><p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Helvetica-Light;color:#979796\">&#160;</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Helvetica-Light;color:#979796\">Ｓpecial Ｐurpose Ｃompany의 약자.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Helvetica-Light;color:#979796;text-decoration:underline\">특수한&#160;목적을 수행하기 위해 일시적으로 만들어지는 일종의 유한회사.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Helvetica-Light;color:#979796\">&#160;</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Helvetica-Light;color:#979796\">민간투자사업의 경우 사업기간(건설기간 및 운영기간) 동안 존속하며 별도법인을 설립하는 이유는 대주단 입장에서는 별도의 자금계정을 통해 자금흐름의 투명성을 확보하고, 출자자의 입장에서는 부외금융의 효과를 통해 모기업의 재무건전성을 확보할 수 있다는 장점이 있음</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Helvetica-Light;color:#979796\">[출처]&#160;</span><a href=\"http://cafe.naver.com/moolenergy/7226\" style=\"font-family:Helvetica-Light\">특수목적법인 이란? (워터에너지 시대)</a><span style=\"font-family:Helvetica-Light;color:#979796\">&#160;|작성자&#160;</span><a href=\"http://cafe.naver.com/moolenergy.cafe?iframe_url=/CafeMemberNetworkView.nhn%3Fm=view%26memberid=rltksk06\" style=\"font-family:Helvetica-Light\">그린멘토</a></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">자.. 그럼 대체 왜.. 이렇게 하는걸까.... WHY???</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">1. Defence to Fall : 파산절연</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">구조화금융 파트에서 본 유동화에서 많이 다뤘듯이, 투자실패에 따른 위험을 SPC수준에서 부담하게 하는 것이 우선 큰 이유다. 망하더라도 SPC만 망하라는.. 이야기.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">근데.. 차입관련해서 우리 안전빵을 좋아하는 뱅크님들이 보증 내지 자금보충을 요구하는 경우가 많으므로, 이 경우 본연의 취지를 살리지 못할 수도 있다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">2. Means of Commuication : 의사결정의 매개체</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">인수금융이란건 덩어리가 크기에 일반적으로 전략적 투자자와 재무적 투자자가 한 팀(컨소시엄)을</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">이루는 경우가 많다. 이 경우 각각 의 투자목적에 맞게 유연한 의사결정을 할 수 있어야 되는데,</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">SPC자체가 합작회사가 되면서, 동시에 인수대상 기업의 모회사가 되므로, 복수의 투자자들의</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">대상회사의 운영 의사결정의 매개체가 될 수 있다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">3. Easy to Exit : 빠지기</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">재무적투자자가 투자자금을 회수할 때, 주요 주주에 대한 변동없이,</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">SPC지분 매각을 통해 투자자금을 간단히 회수할 수 있다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">또한,, 경우에 따라 인수대상 회사의 지분 양도에 대해서 법령상 제한이나 번거로운 인허가 절차가</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">있는 경우가 있는데... 이 경우에도 대상회사의 지분이 아닌 SPC의 지분매각으로 빠질 수가 있는</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">장점이 있다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">정리하자면..</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a;text-decoration:underline\">SPC는 인수금융거래를 수행하기 위한 유용한 수단(Useful Vehicie)</span><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">인 거다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">자 그림으로 한 번 보자..이 그림으로 앞으로 몇 번에 걸쳐 많은 이야길 할 예정인 중요한 그림임.</span></p>\r\n\t\t\t<div style=\"display:inline-block;width:480px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">전략적 투자자 (주)PYM( 내이름 약자임 ㅋㅋ)이...&#160;대상회사 &#160;(주)쇼미더머니 를 인수하고 싶어졌다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">근데 지갑이 좀 가벼우니.. 재무적 투자자(돈 좀 있는 애들.. 유명한 PEF들..)를 껴서</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">팀(컨소시엄)을 만들고 위에서 말한 이유로 SPC1&#160; &#39;힙합&#39;을 만들었다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">여기서 내가 이 글을 읽는 이들에게 기대하는 질문은 두가지다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">1. 난 보통주로 투자했는데</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">재무적투자자= FI(Financial Investor)는 우선주로 투자했다.??</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">뭐지??...</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">이건 쉽게 말하면 난 힙합컬쳐를 사랑해서 목적을 갖고 전략적으로 투자하는건데,,</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">FI들은 돈 버는게 목적인 애들이라,,, 자기 입맛에 맞게 주식으로 바꾸거나 상환하는 등</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">각종 금융스킬을 갖춘 우선주를 선택한거다.(이건 담에 자세히 다룰 예정)</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">2. 뭐냐 SPC2는? 왜 두개냐?</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">꼭 두개가 필요한 건 아니다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">그런데 실제 2개가 있는 경우가 많이 있고 그때마다 질문이 있어서 오늘</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">시원하게 밝힌다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">이건 서로 다른 위험성향(리스크선호도)를 가진 다양한 투자자</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">(안정성을 선호하는 뱅크와 수익성을 선호하는 사채투자자)들에게 돈을 땡기기 위해서다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">자.. 내가 필요한 돈이 100이라고 할 때,,</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">은행에서는 50밖에 못해준다고 한다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">근데 또 은행가들의 특성이 안전성을 중요시 하는지라..</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">뱅크론에 대해서는 선순위를 챙겨달라고 한다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">그럼 방법이&#160; 50을 사채(고수익채: high yield bond)로 조달하되,</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">뱅크론으로 조달하는 50에 대해 선순위를 챙겨주는 거 이거 두개를 충족시키는 방법이 필요하다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">이걸 위해 짜낸 아이디어가 SPC2이다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">그림에서 보면</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">SPC1은 사채 발행을 통해,</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">SPC2는 뱅크론으로 자금조달을 하는데,</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">SPC2에 대한 대주(뱅크)는 대상회사와 합병시 대상회사의 현금흐름으로부터 원리금을</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">우선 변제받게 되고, SPC1에 대한 사채권자는 원리금 갚고 남은 금액으로</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">SPC1에게 배당받은 금액으로 사채원리금을 변제받게 된다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">이처럼 별도의 후순위 약정이 없이도</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">뱅크는 확실히 선순위지위를 보장받게 되는데</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">이걸 유식한 말로 구조적 후순위화(structural subordination)이라고 한다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">이걸 통해 (주)PYM은 뱅크론 차입과 사채발행 두가지 경로를 통해 인수자금조달을 수월히 하는 거다.</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12pt;color:#e7e6e5;background-color:#191a1a\">다음에는 이 그림을 통한 인수전후의 금융에 대해서 살펴본다.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<cite style=\"font-family:Calibri;font-size:9pt;color:#595959;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">출처</span>: &lt;<a href=\"https://m.blog.naver.com/PostView.nhn?blogId=atoll3&amp;logNo=220176535318&amp;proxyReferer=https:%2F%2Fwww.google.com%2F\">https://m.blog.naver.com/PostView.nhn?blogId=atoll3&amp;logNo=220176535318&amp;proxyReferer=https:%2F%2Fwww.google.com%2F</a>&gt; </cite>\r\n\t\t\t<br />\r\n\t\t"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 191,
+    "w": 480,
+    "h": 359,
+    "src": "1fcb3575da.png"
+  }
+];
+const CONTENT_HASH = 'b1d40a67';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

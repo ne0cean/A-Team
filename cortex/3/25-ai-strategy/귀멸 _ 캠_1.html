@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>귀멸 _ 캠</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">귀멸 _ 캠</div>
+<div class="date">2025년 6월 9일 월요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-귀멸-캠';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "html",
+    "x": 75,
+    "y": 117,
+    "w": 1069,
+    "html": "\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\">유피탭스</td>\r\n\t\t\t\t\t<td style=\"width:483;border:1px solid\"><p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://kplst.firstmall.kr/goods/view?no=66\">https://kplst.firstmall.kr/goods/view?no=66</a><span lang=\"en-US\"> </span><span lang=\"en-US\" style=\"font-family:Roboto;font-size:24pt;color:#2f2f2f;background-color:white;font-weight:bold\">135,400</span><span style=\"font-family:Batang;font-size:18.5pt;color:#2f2f2f;background-color:white\">원</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">와이파이모듈은 09s, 11s 두가지로 안정성은 09, 화질은 11 모델이 좋은편</p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">와이파이카메라의 경우 메모리를 빼서 리더기를 사용해야하지만 여의치 않다면 앱에서도 원본영상을 재생, 다운로드할 수 있습니다.</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:366px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:228px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\">리얼캠</td>\r\n\t\t\t\t\t<td style=\"width:483;border:1px solid\"><p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.realcam.co.kr/goods/goods_view.php?goodsNo=1000000552\">https://www.realcam.co.kr/goods/goods_view.php?goodsNo=1000000552</a><span lang=\"en-US\"> </span><span lang=\"en-US\" style=\"font-family:Noto Sans;font-size:12pt;color:#2f2f2f;background-color:white;font-weight:bold\">399,000</span><span style=\"font-family:Malgun Gothic\">원</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">배터리가 연결이 된상태로 유선 연결하셔야 합니다.</p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:326px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:9pt;color:#2f2f2f;background-color:white\">해상도</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:9pt;color:#2f2f2f;background-color:white\">1920x1080P FHD</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:9pt;color:#2f2f2f;background-color:white\">촬영시간</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:9pt;color:#2f2f2f;background-color:white\">WIFI OFF = 480분 WIFI ON =240분</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:9pt;color:#2f2f2f;background-color:white\">프레임</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:9pt;color:#2f2f2f;background-color:white\">30FPS</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:9pt;color:#2f2f2f;background-color:white\">메모리</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:9pt;color:#2f2f2f;background-color:white\">최대 256GB 지원</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:9pt;color:#2f2f2f;background-color:white\">기능</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:9pt;color:#2f2f2f;background-color:white\">적외선 실시간 와이파이 WIFI</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:12pt;color:#10334c;background-color:white;font-weight:bold;text-decoration:underline\">풀HD고화질 / 64GB 기본메모리/ 음성 녹음/ 손쉬운 작동 스위치</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:9pt;color:#2f2f2f;background-color:white\">&#160;</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:12pt;color:#245e32;background-color:white;font-weight:bold\">보조배터리와 연결하여 용량 제한없이 장시간사용</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Noto Sans;font-size:12pt;color:#9d9d9d;background-color:#77b02b\">메모리 교체시 512GB지원 (옵션 선택)</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<cite style=\"font-family:Calibri;font-size:9pt;color:#595959;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">출처</span>: &lt;<a href=\"https://www.realcam.co.kr/goods/goods_view.php?goodsNo=1000000552\">https://www.realcam.co.kr/goods/goods_view.php?goodsNo=1000000552</a>&gt; </cite>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\">스파이캠스</td>\r\n\t\t\t\t\t<td style=\"width:483;border:1px solid\"><p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://m.spycams.co.kr/product/detail.html?product_no=170&amp;cate_no=65&amp;display_group=1\" style=\"font-family:Calibri\">https://m.spycams.co.kr/product/detail.html?product_no=170&amp;cate_no=65&amp;display_group=1</a><span style=\"font-family:Calibri\"> </span><span style=\"font-family:Times;font-size:10.5pt;color:#3a0609;background-color:white;font-weight:bold\">295,000원</span></p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:480px;height:480px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><div style=\"display:inline-block;width:360px;height:252px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:306px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\">준월드</td>\r\n\t\t\t\t\t<td style=\"width:483;border:1px solid\"><p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://spycammall.co.kr/product/md200fhd2/184/category/161/display/1/\">HD-1</a> <span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">이라는 실시간 제품이 </span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">맞을듯 해 보이긴 합니다 </span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">전력이</span> <span style=\"font-family:Malgun Gothic\">공급되는</span> <span style=\"font-family:Malgun Gothic\">한</span> <span style=\"font-family:Malgun Gothic\">계속</span> <span style=\"font-family:Malgun Gothic\">촬영이</span> <span style=\"font-family:Malgun Gothic\">가능하며</span> </p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">핸드폰으로 영상 확인이 가능 합니다</span><span lang=\"en-US\">.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">16G<span style=\"font-family:Malgun Gothic\">기준</span> 3<span style=\"font-family:Malgun Gothic\">일분량</span> <span style=\"font-family:Malgun Gothic\">저장됩니다</span> </p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Variable;font-size:15pt;color:#292929;font-weight:bold\">￦370,000</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\">\t\t\t\t\t<table style=\"border:1px solid\">\r\n\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t<td style=\"background-color:white;border:1px solid\"><br />\r\n\t\t\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Variable;font-size:10.5pt;color:#292929\">WIFI 모듈 캠코더 / 초소형 / FHD고화질 / 원격 컨트롤 / 최대256GB / 4000mAh 배터리</span></p>\r\n\t\t\t\t\t\t\t<br />\r\n\t\t\t\t\t\t\t<table style=\"border:1px solid\">\r\n\t\t\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Pretendard Variable;font-size:12pt;color:#292929\">해상도</span></td>\r\n\t\t\t\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Pretendard Variable;font-size:9pt;color:#292929\">FHD</span></td>\r\n\t\t\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Pretendard Variable;font-size:12pt;color:#292929\">촬영시간</span></td>\r\n\t\t\t\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Pretendard Variable;font-size:9pt;color:#292929\">14시간</span></td>\r\n\t\t\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Pretendard Variable;font-size:12pt;color:#292929\">메모리</span></td>\r\n\t\t\t\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Pretendard Variable;font-size:9pt;color:#292929\">256GB</span></td>\r\n\t\t\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Pretendard Variable;font-size:12pt;color:#292929\">Wifi</span></td>\r\n\t\t\t\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Pretendard Variable;font-size:9pt;color:#292929\">지원</span></td>\r\n\t\t\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Pretendard Variable;font-size:12pt;color:#292929\">배터리</span></td>\r\n\t\t\t\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Pretendard Variable;font-size:9pt;color:#292929\">4000mAh</span></td>\r\n\t\t\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Pretendard Variable;font-size:12pt;color:#292929\">화각</span></td>\r\n\t\t\t\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Pretendard Variable;font-size:9pt;color:#292929\">70도</span></td>\r\n\t\t\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t\t\t</table>\r\n\t\t\t\t\t\t\t<br />\r\n\t\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t</table>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><a href=\"https://spycammall.co.kr/\">스파이캠몰</a></td>\r\n\t\t\t\t\t<td style=\"width:483;border:1px solid\"><p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">혹시 <a href=\"https://spycammall.co.kr/product/md200fhd2/184/category/161/display/1/\">MD200FHD2</a>와 같은 모듈형 스파이캠을 말씀하시는 것이라면 파티션 사이에 설치는 가능할 것으로 보이시나, 모듈형캠코더는 최대 256GB까지의 SD카드를 지원하는 제품으로 해당 용량까지의 영상만을 저장할 수 있습니다. 전력 공급의 경우 제공되는 배터리만으로도 상당한 장시간의 촬영이 가능하나 연결 케이블이 호환되는 외부전력이 있으시다면 연결하셔도 무방<span lang=\"en-US\"> </span><span lang=\"en-US\" style=\"font-family:Pretendard Variable;font-size:15pt;color:#2f2f2f;background-color:white;font-weight:bold\">￦370,000</span></p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\">영<span style=\"font-family:Malgun Gothic\">상천국</span></span></td>\r\n\t\t\t\t\t<td style=\"width:483;border:1px solid\"><p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://m.youngsang6565.com/product/%EC%8B%A4%EC%8B%9C%EA%B0%84-%EA%B0%90%EC%8B%9C%EC%B9%B4%EB%A9%94%EB%9D%BC-%EC%8A%A4%EB%A7%88%ED%8A%B8%ED%8F%B0%EC%9C%BC%EB%A1%9C-%EC%A0%84%EA%B5%AD%EC%96%B4%EB%94%94%EC%84%9C%EB%82%98-%EA%B0%80%EB%8A%A5-%ED%95%A9%EB%8B%88%EB%8B%A4-%EC%8A%A4%EB%A7%88%ED%8A%B8%EB%AA%A8%EB%93%88-%EC%B9%B4%EB%A9%94%EB%9D%BC-%EC%B4%88%EC%86%8C%ED%98%95%EC%B9%B4%EB%A9%94%EB%9D%BC/711/category/55/display/2/\" style=\"font-family:Calibri\">https://m.youngsang6565.com/product/%EC%8B%A4%EC%8B%9C%EA%B0%84-%EA%B0%90%EC%8B%9C%EC%B9%B4%EB%A9%94%EB%9D%BC-%EC%8A%A4%EB%A7%88%ED%8A%B8%ED%8F%B0%EC%9C%BC%EB%A1%9C-%EC%A0%84%EA%B5%AD%EC%96%B4%EB%94%94%EC%84%9C%EB%82%98-%EA%B0%80%EB%8A%A5-%ED%95%A9%EB%8B%88%EB%8B%A4-%EC%8A%A4%EB%A7%88%ED%8A%B8%EB%AA%A8%EB%93%88-%EC%B9%B4%EB%A9%94%EB%9D%BC-%EC%B4%88%EC%86%8C%ED%98%95%EC%B9%B4%EB%A9%94%EB%9D%BC/711/category/55/display/2/</a><span style=\"font-family:Calibri\"> </span><span style=\"font-family:Noto Sans;font-size:12pt;color:#2f2f2f;background-color:white;font-weight:bold\">399,000</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">원</span></p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">128GB</span></p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:241px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\">호신캠</td>\r\n\t\t\t\t\t<td style=\"width:483;border:1px solid\"><p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.hosincam.com/goods/goods_view.php?goodsNo=1000000129\">https://www.hosincam.com/goods/goods_view.php?goodsNo=1000000129</a><span lang=\"en-US\"> </span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Poppins;font-size:15pt;color:#2f2f2f;background-color:white;font-weight:bold\">400,000원</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<cite style=\"font-family:Calibri;font-size:9pt;color:#595959;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">출처</span>: &lt;<a href=\"https://www.hosincam.com/goods/goods_view.php?goodsNo=1000000129\">https://www.hosincam.com/goods/goods_view.php?goodsNo=1000000129</a>&gt; </cite>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><div style=\"display:inline-block;width:360px;height:241px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"text-decoration:line-through\">캠코리아</span></td>\r\n\t\t\t\t\t<td style=\"width:483;border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Malgun Gothic\">취급</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">안함</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.perplexity.ai/search/caejeungyong-sohyeong-kamera-m-mmXyb9ujTOimvbRdbQgJBQ\">캠</a><span lang=\"en-US\"> </span>구매</p>\r\n\t\t\t<br />\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">사이즈</p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">유선<span lang=\"en-US\"> </span>전력<span lang=\"en-US\"> </span>공급</p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">저장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: Wifi or SD</span><span style=\"font-family:Malgun Gothic\">카드</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 32G </span><span style=\"font-family:Malgun Gothic\">이상</span></p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">앱을<span lang=\"en-US\"> </span>통한<span lang=\"en-US\"> </span>실시간<span lang=\"en-US\"> </span>모니터링</p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">충전중<span lang=\"en-US\"> </span>촬영<span lang=\"en-US\"> </span>가능<span lang=\"en-US\"> </span>여부</p>\r\n\t\t"
+  },
+  {
+    "type": "image",
+    "x": 87,
+    "y": 129,
+    "w": 391,
+    "h": 366,
+    "src": "dc360638f6.png"
+  },
+  {
+    "type": "image",
+    "x": 570,
+    "y": 129,
+    "w": 290,
+    "h": 252,
+    "src": "b51bff2e01.png"
+  },
+  {
+    "type": "image",
+    "x": 570,
+    "y": 389,
+    "w": 432,
+    "h": 228,
+    "src": "119ad5dd7f.png"
+  },
+  {
+    "type": "image",
+    "x": 87,
+    "y": 503,
+    "w": 326,
+    "h": 327,
+    "src": "233951411e.png"
+  },
+  {
+    "type": "image",
+    "x": 570,
+    "y": 625,
+    "w": 417,
+    "h": 252,
+    "src": "ebdea4c628.png"
+  },
+  {
+    "type": "image",
+    "x": 87,
+    "y": 838,
+    "w": 480,
+    "h": 480,
+    "src": "00514cd266.png",
+    "caption": "NEW 2025&amp;#039; 국내 최소크기와 모듈타입 중 가장 좋은 화질극강화질 200백만화소 원격실시간 초소형카메라 모듈, 365일 원격실시간 뷰, WIFI지원, DIY 모듈, 언제 어디서라도~"
+  },
+  {
+    "type": "image",
+    "x": 570,
+    "y": 885,
+    "w": 417,
+    "h": 314,
+    "src": "aa75315b1f.png"
+  },
+  {
+    "type": "image",
+    "x": 570,
+    "y": 1207,
+    "w": 432,
+    "h": 306,
+    "src": "bff46cdada.png"
+  },
+  {
+    "type": "image",
+    "x": 87,
+    "y": 1326,
+    "w": 257,
+    "h": 257,
+    "src": "46c5f12092.png"
+  },
+  {
+    "type": "image",
+    "x": 570,
+    "y": 1521,
+    "w": 350,
+    "h": 257,
+    "src": "3b6c3db0ef.png"
+  },
+  {
+    "type": "image",
+    "x": 87,
+    "y": 1591,
+    "w": 238,
+    "h": 238,
+    "src": "6334f50651.png",
+    "caption": "실시간 감시카메라 - 스마트모듈 초소형 디자인 이미지"
+  },
+  {
+    "type": "image",
+    "x": 570,
+    "y": 1786,
+    "w": 327,
+    "h": 181,
+    "src": "f914ed4cb3.png"
+  },
+  {
+    "type": "image",
+    "x": 87,
+    "y": 1837,
+    "w": 194,
+    "h": 194,
+    "src": "0810fb36be.png",
+    "caption": "초소형카메라 실시간CCTV 와이파이 카메라"
+  },
+  {
+    "type": "image",
+    "x": 570,
+    "y": 1975,
+    "w": 446,
+    "h": 292,
+    "src": "2f2fde46a7.png"
+  },
+  {
+    "type": "image",
+    "x": 570,
+    "y": 2275,
+    "w": 340,
+    "h": 241,
+    "src": "4dc73088a0.png"
+  },
+  {
+    "type": "image",
+    "x": 570,
+    "y": 2524,
+    "w": 342,
+    "h": 241,
+    "src": "60a4aae9f9.png"
+  }
+];
+const CONTENT_HASH = 'f953563a';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>유무선 결합 Loyalty P/G</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">유무선 결합 Loyalty P/G</div>
+<div class="date">2017년 2월 2일 목요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-유무선-결합-Loyalty-P-G';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 432,
+    "y": 106,
+    "w": 600,
+    "content": "측정 가능한 지표 규명\n1. 해지율 감소?  2. 재약정 고객 증가?  3. 평균 사용연수↑  4."
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 226,
+    "w": 600,
+    "content": "■ Overview :\nㅇ 유선 가입자 증가 및 이동전화 시장 안정화 기조 下 비용 효율적 마케팅 (기존고객 Retention & Value-up = CRM)\n■ 목표\nㅇ [유무선 Cross-lock in] 유선 혜택/손실로 인한 무선 Retention, 무선 혜택/손실로 인한 유선 Retention.\nㅇ [Value-up] 해지시점에 도달해서 이를 방어하는 측면이 아닌, 사용중에 지속적으로 Value가 높아지는 scheme.\n\n■ 현상 Fact\nㅇ 유무선 결합율이 90% 수준임에도 해지율↑\nㅇ 현재의 결합 상품은, 별도의 위약금이 부과되고 있지 않음.\nㅇ 유무선 모두 위약금/단말할부금이 소멸되면 이탈에 따른 손실에 대한 부담이 사라짐.\n■ 문제점\nㅇ (유선의 종속화) 무선 out 시, 유선이 anker가 되어주어야 하는데. 유선이 같이 딸려나가버림\n-> 유선은 무선 통신사 따라가는 것. 유무선 결합혜택을 강화 할 수록 유선이 무선에 딸려나가버리는 효과를 가중시킬 뿐이다.\n1. 유선 결합 위약금 등 retention 요인이 부족하고\n2. 유선 자체의 혜택 등 이탈에 따른 손실이 없음. 유선만 남아도 딱히 혜택이 없음\nㅇ 타사로 이탈 시, 결합 혜택(할인)에 따른 혜택만 타사의 결합 혜택으로 치환될 뿐 고객 입장에서 크리티컬하게 여겨지는 손해는 발생하지 않음.\nㅇ 위약금 이외의 이탈 barrier가 없음\nㅇ 고객 혜택 제공 및 리텐션 측면에서 TB 시너지 활용 미흡\n■ 개선 Point\nㅇ Cross-lock in : 유선을 사용함에 따른 혜택을 무선에 주고, 무선 사용에 따른 혜택을 유선에.\nㅇ Value는 높아지되 비용은 들지 않는 것? (고객이 뭔가 하도록 해야 함.)\nㅇ 경제적 관점의 이탈장벽 이외의 retention approach가 필요함\nㅇ MNP로 폰을 구매함에 따른 경제적 이익을 상회하는, 유지 혜택 혹은 이탈으로 발생하는 심리적/경제적 비용 설계\n■ 요건\nㅇ 해지 고객의 이용 형태(상품, 채널, 회선 수 등) 기반 Target Seg. 설정 및 이에 Align된 Value Offering\nㅇ 유무선 이용 행태 개선 분석 기반 retention 추진\n-> Giga up-sell 시 유무선 결합 고객의 해지율이 낮다는 단서를 감안하여 offer 및 캠페인 기획\nㅇ 유선 해지에 따른 모바일 Side에서의 해지 연관성이 있다면 유무선 Total Value 관점을 고려\nㅇ 고객에게 무형의 가치를 제공한다는 점에서 유사한\n업종인 카드사 등 외부 가치 결합을 통해 value를 만드는 방법 강구 바람.\nㅇ 유무선간 상호 Cross Lock-in이 가능할 것\n- 이탈률이 높아지는 시점(약정 만료)에 상보적으로 Lock-in\nㅇ [호환성] 상호 호환의 편의성/Value로 인한 Lock-in\nㅇ 물리적 실체나, 실질적인 경험을 통해 Loyalty를 제고할 수 있으면 best\nㅇ Giga/UHD 업셀을 통한 Value-up 활동\nㅇ CR Risk Hedging이 가능하면서 Impact 있는 P/G\nㅇ IPTV까지 PoC로 활용\nㅇ 누구의 로열티 인가? 이동전화(개인), 유선(가족? 가족 중 누구?) Target에 대한 고민 필요.\nㅇ [전환장벽] 장기사용 혜택보다는 이탈에 따른 손실 중심 설계\nㅇ 이탈을 못하게 하는 관점과 VS 굳이 이탈을 하지 않는 관점.\nㅇ OKSUSU/ IPTV 활용\nㅇ 위약금 이외의 전환 장벽/비용. 결착 강화. (이탈시)손해를 설계\nㅇ 경제적 비용 : 위약금, 마일리지, Infra 매몰비용\n- 초고속인터넷 사용량 마일리지, 데이터쿠폰이나 컨텐츠로 교환가능\nㅇ 매몰비용 : 시간, 노력, 애프터마켓 제품 등에 대한 투자비용. 컨텐츠라던지\nㅇ 습관적비용(habitual cost)&#160;: 비슷한 서비스를 제공하는 다른 사이트가 생겨도 굳이 바꿀의향이 없다.\nㅇ 심리적 비용 : Setting 등을 복잡하게 유착, 고도의 개인화가 주는 편의성 제공, (개인적) 애착, 귀찮음\nㅇ 감성적 비용 : 개인적인\nㅇ 무선이 OUT되는데 유선이 허들로 작용, 유선 자체의 무게를 늘리고, 모빌리티를 축소해야한다.\nㅇ 로열티는 어떻게 형성\nA. 애착\nB. 전환장벽\n- 인적 : 단골\n- 심리적 : 귀찮음/두려움\n- 경제적 :\nㅇ 약정기간 종료로 위약금으로 인한 Lock-in효과가 소거되는자리에 다른 Lock-in 요소로 대체되어야 함.\n1. 인프라, P/G 구축\n2. T-able같은 오프라인 행사\n\nClosed-Loop\nIn - Lead관리 - Pro-active - 해지방어\n가입 - 사용 - 해지검토/결정 - 해지\n로열티/전환장벽 생성 - 사전적 방어 - 해지 방어\nOLD WAYS WON'T OPEN NEW DOORS\nMOON SHOT\nINSANITY : DOING THE SAME THING OVER AND OVER AGAIN AND EXPECTING DIFFERENT RESULTS\nBLUE OCEAN CANVAS\n항아리속에 손을 넣을 때는 그냥 쑥 들어가지만, 뭔가를 쥐게 되면 쉽게 뺄 수 없게.\n손에 뭔가를 쥐어줘야 한다. 아니면 고객이 뭔가 항아리안에 넣게 해도 되고.\n1. 마일리지형\n가입 개월 수에 따라 마일리지를 지속적으로 누적\n-> Giga전환, UHD 업글, STB 요금 할인\n-> 데이터로 전환, 옥수수 데이터 제공\n[유무선 Cross 혜택]\n초고속 사용 개월 수에 따라 레인보우 포인트 적립\n장기사용 시 무상기변 혜택 제공\n데이터 마일리지\nㅇ 재판매 고객 대상 가족 나눔데이터 제공 (18개월 이후부터)\nㅇ 재판매 결합고객 대상, 무선에서 자주쓰는 컨텐츠/사이트 데이터 비과금 처리\nㅇ TB끼리 데이터 플러스 : Btv에서 이동전화 데이터 충전\nTB끼리 컨텐츠 플러스 : Btv에서 OKSUSU 컨텐츠 무료제공\nㅇ T데이터 충전형 STB\n제휴 마일리지\n항공, 가전, 공연, 뷰티&패션, Tech포럼 참가, 스포츠마일리지\n[OKSUSU 활용]\nㅇ 옥수수의 영상포털화 : 재판매 고객이 OKSUSU 통해서 유튜브나 트위치를 보면 데이터 무료\n1. 사이드 내의 네트워크효과 : 같은 종류의 참여자들이 많을수록 그 종류의 참여자가 얻는 플랫폼효과 상승\n&#160; &#160; &#160;ex) facebook 이용자 많을 수록 볼게많고 친구많이 등록가능\n&#160; 2. 사이드간의 네트워크 효과 : 한종류의 참여자많으면 다른종류 참여자가 얻는 플랫폼 효과 상승\n&#160; &#160; ex) facebook 이용자 많으면 ->광고업체 이득 // 컨텐츠개발업체 많으면 -> 이용자 이득\n2. 네트워크 효과\n[Network 효과]\n재판매 가입자 클라우드 스토리지 제공 - 클라우드 베리 PC버전 활용\n특정지역에서 공동으로 사용하는 공동 스토리지도 제공\n인터넷을 통해서 이윤추구 (비트코인 채굴) 혹은 컴퓨터 리소스를 제공해서 어려운 난제를 풀게하는 프로젝트\n추천인 코드 마케팅, 추천인이 가입할 경우 혜택 제공 (요금 할인, 와이파이 공유기 무료 사용)\n컨텐츠/문화 상품 공동구매 - 현카 슈퍼콘서트 처럼. 문화 쇼핑몰?? 1인가구를 위한 쇼핑몰\n고객별로 서로 다른 컨텐츠를 무료로 제공하고, 서로 선물할 수 있도록\n[Wi-Fi]\n와이파이 프로필 올리면 할인? : 이웃사촌.\n공동사용 공유기?\n와이파이를 공유하는 것처럼, 사용자간의 관계를 엮어보면 어떨까\n\n와이파이로 이웃과 소통할 수 있게, 프로필화. 퀴즈내서 맞추면 와이파이 개방.\n와이파이를 누르면 자기소개나 작은 프로필이 뜨게끔\n\n와이파이 모네티제이션 : 사용자가 자신이 쓰지 않는 동안 와이파이를 팔 수 있도록 하는\nOKSUSU로 찍은 광고영상을 SKB IPTV/OKSUSU로 해당 상권에 송출할 수 있도록 하는 플랫폼\n현대카드 슈퍼콘서트 등 혜택 - 그러나 우리가 하는게 아니라 고객이 하게, 라이브 방송 BJ?\n\n3. 이탈 장벽 형성\n뭔가 사용자가 추가적인 (저강도의)노력을 통해서 쌓아가도록하고, 이탈 시 소멸되도록 하는 스킴\n개인 맞춤 설정,\n인터넷 속도, 통화, 인터넷방송,\n클라우드 스트리밍.\n볼모\n사진/ 동영상/ 문서 등 컨텐츠 아카이브 제공 ▶ 이탈 시 소멸\n자신의 사진, 영상, Life-log(추억), 메모 등\n영상 클리퍼, 10초만 캡쳐.\n모바일 페이지 클리핑\n무료 제공 컨텐츠\n와이파이 - 미니홈피, 프로필\n자기가 작성한 글들 sns에 ifttt - 클라우드 백업\n모든 문자와 통화내역 백업 log 텍스트, 이미지, 영상\n메모 메시지 문자\n매월 평생소장이 가능한 작품을 자신의 컬렉션에 골라서 넣을 수 있게 한다던지\n왓챠같은 자신의 감상평을 남겨둘 수 있도록 한다던지\n[기타]\nㅇ (단골) 인적 요소 활용 :\n- SKB 행복기사 정기 방문\n- SK매직이랑 엮을거 없을까? 방문케어?\nㅇ 서브스크립션 제휴를 통한 - 랜덤 박스 제공\nㅇ 중독성 있는거 없을까….\n================================================================================\n[물리적 실체/ 실질적 경험 제공형 이벤트]\nㅇ 매월 신청자 중에 추첨해서 시사회 초청\nㅇ Btv시청자 채널 운영, 연말 시청자 시상식\n유선 비가용일 경우 설치기사 통해 포켓파이 권매?\n제3자 약정승계제도 활성화 - 위약금에 대한 부담 완화\n1인가구 초고속 인터넷 공동구매 사이트 - 다방, 직방 연계"
+  },
+  {
+    "type": "text",
+    "x": 864,
+    "y": 226,
+    "w": 600,
+    "content": "[T+B]\n[B타민]\n<a href=\"http://www.skbroadband.com/mypage/btamin/Btamin_View.do\">http://www.skbroadband.com/mypage/btamin/Btamin_View.do</a>\nㅇ 담당자 : SKB 고중경팀 김동원, 정용"
+  },
+  {
+    "type": "text",
+    "x": 864,
+    "y": 370,
+    "w": 600,
+    "content": "ㅇ 유선 재판매 가입자 가입 - 유지 - 해지 현황 자료 확보 필요\nㅇ 유선 데이터 무선 데이터 결합  현황확인\n미용실 전환장벽\n인게이지먼트 관련 사례 리서치\n해외 유무선결합 요금젱\n성의 요철이나 옹성문처럼\n다양한 고객접점을 만들어야"
+  },
+  {
+    "type": "text",
+    "x": 840,
+    "y": 601,
+    "w": 600,
+    "content": "※ 해지방어(스윙 오픈 이후~)\nMNP-OUT 고객 실시간 OB 유무선 DB 생성\n타사 유통망/딜러 통화이력 있는 고객 기변/유선 재약정 offering\n▶ 이탈하는 고객이 누구인가 Target 규명:\n위약금 때문이라기 보다, 위약금이 낮은 고객을 딜러나, 타사에서 집중 공략하기 때문에 이탈률이 높을 것이라는 가정.\n딜러채널 가입고객 해지율↑ ▶ 딜러채널 개인정보 보호로 고객 DB 클렌징 시도. 일제 점검 및 경고장 발송 등\n유무선 결합 풀린 고객 ▶ 가족회선이 남은 경우 재결합, 단독결합 MNP-OUT의 경우?\n약정경과 이전 고객에 대한 재약정 혹은 Lock-In ▶ 유선 약정 끝나기 전에 이동전화 기변 offer\n판매점-가족 구성원의 이동전화 교체와 함께\n딜러-약정만료 시점 고객에게 TM\n가방판-주로 아파트 등 일괄적으로 약정이 만료되는 곳들에 대한 집중 영업.\nMNP-OUT 고객의 경우 타사 CRM센터의 표적이 됨."
+  },
+  {
+    "type": "text",
+    "x": 804,
+    "y": 2035,
+    "w": 570,
+    "content": "1. 마일리지\nㅇ 유선상품 가입 개월 수에 따라 마일리지를 지속적으로 누적\n-> 데이터로 전환, 옥수수 데이터 제공\n-> Giga전환, UHD 업글, STB 요금 할인\nㅇ 초고속 사용 개월 수에 따라 레인보우 포인트 적립\nㅇ 장기사용 시 무상기변 혜택 제공\n2. 컨텐츠 매몰 비용\nㅇ 마이 컬렉션\n매달 1편씩 소장용 무료제공(추첨 혹은 응모방식)\n포켓몬고 같은 소셜/로컬기반 게임요소 도입\nOKSUSU/Btv서 구매한 것들을 저장 ▶ 해지 시 소멸\nㅇ 재판매 가입자 클라우드 스토리지 제공 - 클라우드 베리 PC버전 활용\n- 사진/ 동영상/ 문서 등을 볼모로 잡는...\nㅇ 컨텐츠 중고장터\n고객별로 서로 다른 컨텐츠를 무료로 제공하고, 장터에서 교환 할 수 있도록\n★ 특정지역에서 공동으로 사용하는 공동 스토리지도 제공\n★ BT코인 : 컴퓨터 돌려 놓으면 비트코인 채굴하는 것처럼 쌓이고\n모바일 데이터로 전환 가능. 이 과정에서 Targeting이 가능한 정보 취득\n▶ 컨텐츠 이외의 볼모.\n1. 1인가구 대상 STB+TV 렌털 : 해지 시 TV 회수\n2. 사용개월 수 마다 IoT 상품 체험기회 제공 : 해지 시 회수\n3. 클리핑 : 모바일 페이지, 이미지, 컨텐츠 10초만?\n4.\n클라우드에 뭔가 잡아놔아 할거 같은데"
+  }
+];
+const CONTENT_HASH = '213361c0';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infographic</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Infographic</div>
+<div class="date">2014년 11월 24일 월요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Infographic';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 115,
+    "w": 600,
+    "content": "ㅇ 인포그래픽 제작 사이트\n<a href=\"https://infogr.am/\">https://infogr.am/</a> for chrome ID : pure0cean ★★★\n<a href=\"http://piktochart.com/\">http://piktochart.com/</a> for chrome ID : pure0cean ★★★★\n<a href=\"http://www.easel.ly/\">http://www.easel.ly/</a>\n<a href=\"http://m.blog.naver.com/welldoner/220254281276\" style=\"font-family:맑은 고딕;font-size:9pt\">http://m.blog.naver.com/welldoner/220254281276</a>\nInfographics + 주제어 : 인포그래픽 검색\n비주얼리\n데일리인포그래픽\n인포그래픽웍스\n인포그래픽코리아\n슬로워크\n바이스버사\n인포그램: 인포그래픽 제작 사이트\nㅇ 타이포 그라피 만들기(자동으로 워드 클라우드 제작)\n<a href=\"http://www.tagxedo.com/\">http://www.tagxedo.com/</a> for IE\n<a href=\"http://www.wordle.net/\">http://www.wordle.net/</a>\n<a href=\"http://m.blog.naver.com/yhjyhj90/50171313411\">http://m.blog.naver.com/yhjyhj90/50171313411</a>\nBtvMobile TB Internet IPTV SmartHome NSOK Btv STB B-box SKT SKtelecom\nSaveCard Smartphone iPhone GalaxyNote4 T-eco Tablet CE IMC SP Value-up Clup-T LTE-A 3BandLTE-A\nㅇ 파이차트 그리기\n<a href=\"http://labs.good.is/\">http://labs.good.is/</a>\nㅇ 인포그래픽 참고 사이트\n<a href=\"http://m.blog.naver.com/wooseokjin/220160180934\">http://m.blog.naver.com/wooseokjin/220160180934</a>\n한국인포그래픽 협회 <a href=\"http://www.infographics.or.kr/wpress/\">http://www.infographics.or.kr/wpress/</a>\n<a href=\"http://www.infographicworks.com/\" lang=\"ko-KR\">인포그래픽웍스</a>\n<a href=\"http://visual.ly/\">http://visual.ly/</a> - 세계 최대 인포그래픽 공유 사이트\nhttp://videoinfographic.com/</a> 비디오 인포그래픽스\n<a href=\"http://chartsbin.com/\">http://chartsbin.com/</a>\n진짜 다양한 주제로 여러 차트 및 그래프들이 있는다. 대개(혹은 전부?)가 특정 주제에 대해 국가별로 순위를 매긴 것처럼 보인다. 세계지도를 싹 펼쳐놓고 순위별로 색깔을 달리 해서 보여주는데, 특정 국가에 마우스를 가져다 대면 그 국가의 순위를 보여준다.ㅋㅋ 귀엽게 잘 만들어 놓기도 했지만, 자료의 양이 진짜 방대하다.\n웹페이지에서 볼 때 그래프 아래 있는 메뉴인 References and Data Table을 클릭하면 실제 자료값과 출처를 확인할 수 있어서 좋다,\n<a href=\"http://magazine.good.is/\">http://magazine.good.is/</a> -\n비주얼 웹진 ‘크레인(Crein)’ <a href=\"http://crein.gettyimageskorea.com/index.php\">http://crein.gettyimageskorea.com/index.php</a>\nwww-958.ibm.com IBM비쥬얼라이제이션 : 인포그래픽을 잘 접목시킨 뉴스 매거진\n<a href=\"http://jess3.com/american-express-open-women-owned-businesses/\">http://jess3.com/american-express-open-women-owned-businesses/</a> - 미국 모션 인포그래픽 전문 기업\n<a href=\"http://www.columnfivemedia.com/\">http://www.columnfivemedia.com/</a> - 미국 최대의 인포그래픽 제작 기업\n<a href=\"http://samsungtomorrow.com/category/%EC%9D%B8%ED%8F%AC%EA%B7%B8%EB%9E%98%ED%94%BD\">http://samsungtomorrow.com/category/%EC%9D%B8%ED%8F%AC%EA%B7%B8%EB%9E%98%ED%94%BD</a> - 삼성전자 블로그\n<a href=\"http://blog.sktworld.co.kr/category/T스페셜/인포그래픽\">http://blog.sktworld.co.kr/category/T스페셜/인포그래픽</a> - SK그룹 블로그 인포그래픽 코너\n2일차\nㅇ PPI(Pixel per inch) vs DPI(Dot per inch)\nWep 72ppi\n인쇄물은 300ppi\n\"50% progress bar\"\nㅇ OHP 필름을 활용한 증강현실형 인포그래픽 : 특정 장소를 배경으로 한 인포그래픽이 필요할 때\nUCC로 만드는 것도 가능. -> 문서가 아닌 현실에 구현하는 인포그래픽 e.g. 맨홀뚜껑 파이 그래프\n_____________________________________________________________________________________________________________________________\n<a href=\"http://blog.naver.com/shinpro_mail/50171678617\">http://blog.naver.com/shinpro_mail/50171678617</a>\n<a href=\"http://blog.naver.com/pure3241/50179403455\">http://blog.naver.com/pure3241/50179403455</a>\n<a href=\"http://udarly.com/20195394290\">http://udarly.com/20195394290</a>\n<a href=\"http://udarly.com/20195394290\">http://udarly.com/20195394290</a>\n<a href=\"http://blog.naver.com/obangfact/20208865249\">http://blog.naver.com/obangfact/20208865249</a>\n<a href=\"http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query=%EC%9D%B8%ED%8F%AC%EA%B7%B8%EB%9E%98%ED%94%BD+%ED%88%B4&x=0&y=0\">http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query=%EC%9D%B8%ED%8F%AC%EA%B7%B8%EB%9E%98%ED%94%BD+%ED%88%B4&x=0&y=0</a>\n<a href=\"http://rksns.blog.me/100204823348\">http://rksns.blog.me/100204823348</a>\n1. [우석진블로그] <a href=\"http://www.wooseokjin.com\" lang=\"ko-KR\">http://www.wooseokjin.com</a>\n2. [인포그래픽스] <a href=\"http://info-graphics.kr\">http://info-graphics.kr</a>\n3. [연합뉴스그래픽] <a href=\"http://www.yonhapnews.co.kr/photo09/7120000001.html\">http://www.yonhapnews.co.kr/photo09/7120000001.html</a>\n4. [조선일보인포그래픽] http://inside.chosun.com\n5. [데이타뉴스] http://www.datanews.co.kr\n6. [인포그래픽웍스] http://www.infographicworks.com\n7. [데일리인포그래픽] http://dailyinfographic.com\n8. [VISUALLY] http://visual.ly\n9. [비디오인포그래픽] http://www.videoinfographics.com\n10. [인포그래픽코리아] http://infographickorea.com\n11. [인포크리에이티브] http://www.infocreative.co.kr\n인포그래픽 유용한 사이트 모음\n12. [infogr.am] http://infogr.am\n13. [쿨인포그래픽스] http://www.coolinfographics.com\n14. [인포그래픽월드] http://infographicworld.com\n15. [인포그래픽스쇼케이스] http://www.infographicsshowcase.com\n16. [인포그래픽사이트닷컴] http://infographicsite.com\n17. [인포그래픽스랩] http://infographiclabs.com\n18. [인포그래픽박스] http://www.infographicbox.com\n19. [인포그래픽디자이너] http://www.infographic-designer.nl\n20. [tiffanyfarrant] http://tiffanyfarrant.co.uk\n슬라이드 제작 사이트\n<a href=\"http://icunow.co.kr/powerpoint5/\">http://icunow.co.kr/powerpoint5/</a>\n<a href=\"https://slidebean.com/\">https://slidebean.com/</a>\n<a href=\"https://pasteapp.com/\">https://pasteapp.com/</a>"
+  },
+  {
+    "type": "text",
+    "x": 864,
+    "y": 115,
+    "w": 355,
+    "content": "<a href=\"https://blog.hubspot.com/marketing/free-ppt-infographic-templates-designs-ht#sm.00000996nqea7ldivu26y1ddc9vue\">https://blog.hubspot.com/marketing/free-ppt-infographic-templates-designs-ht#sm.00000996nqea7ldivu26y1ddc9vue</a>\n잡지레이아웃\n배경날리기 : <a href=\"http://clippingmagic.com/\">http://clippingmagic.com/</a>\nhttp://www.demitrio.com</a>\n<a href=\"http://blog.naver.com/isdn2721/220200597706\">http://blog.naver.com/isdn2721/220200597706</a>\nImage source\n<a href=\"https://unsplash.com/grid\">https://unsplash.com/grid</a> 이미지\n<a href=\"http://design-seeds.com\">http://design-seeds.com</a> 색상조합\n<a href=\"http://redjoun.blog.me/220117094141\">http://redjoun.blog.me/220117094141</a>\n파워포인트 전문가 클럽 <a href=\"http://cafe.naver.com/powerpoint\" lang=\"en-US\">http://cafe.naver.com/powerpoint</a>\n수현아빠의 파워포인트 이야기 <a href=\"http://blog.naver.com/radiobj5\" lang=\"en-US\">http://blog.naver.com/radiobj5</a>\n친절한 혜강씨 <a href=\"http://leeehyekang.blog.me/\" lang=\"en-US\">http://leeehyekang.blog.me/</a> - 파워포인트, 인포그래픽\n<a href=\"http://platum.kr/archives/25019\">http://platum.kr/archives/25019</a>\nDribbble <a href=\"https://dribbble.com\">https://dribbble.com</a>\n<a href=\"http://m.blog.naver.com/mrsoulo/220021864618\">http://m.blog.naver.com/mrsoulo/220021864618</a>\n<a href=\"http://www.bloter.net/archives/178354\">http://www.bloter.net/archives/178354</a>\nThe Noun Project http://thenounproject.com</a> 픽토그램\nFlaticon <a href=\"http://www.flaticon.com/\">http://www.flaticon.com/</a> 아이콘, 타이포그래픽\nPPT 이미지로 활용가능\n<a href=\"http://insight.co.kr/view.php?ArtNo=5755\">http://insight.co.kr/view.php?ArtNo=5755</a>\n<a href=\"http://ibrandstudio.com/inspiration/must-have-powerpoint-templates-for-business-presentation\">http://ibrandstudio.com/inspiration/must-have-powerpoint-templates-for-business-presentation</a>\n글자 크기 줄이기 늘이기\nCtrl+Shift+< 로 변경\nCTR + H: 글자 변경\nCTR + M: 슬라이드 추가\nCTR + T: 글꼴 상자\nCTR + SHIFT + G: 그룹 해제\nSHIFT + F9: 눈금선\nSHIFT + S: 중심이동하지 안고 정비율로 도형 확대\nCrtl+shift+D : 페이지 복제\nCtrl + Z 횟수조정\nCtrl + F1 : 리본메뉴 펼치기/접기\n모핑 영상 <a href=\"https://youtu.be/xnFh8vHzwVs\">https://youtu.be/xnFh8vHzwVs</a>\nhttps://support.office.com/en-us/article/Morph-Transition-Tips-and-Tricks-bc7f48ff-f152-4ee8-9081-d3121788024f?ui=en-US&rs=en-US&ad=US</a>\n<a href=\"http://blog.hanwhadays.com/2865\">http://blog.hanwhadays.com/2865</a>\n<a href=\"http://m.post.naver.com/viewer/postView.nhn?volumeNo=1535323&memberNo=6532296#clipNo=23\">http://m.post.naver.com/viewer/postView.nhn?volumeNo=1535323&memberNo=6532296#clipNo=23</a>\n모바일 앱 기획서용 패치(유료)\n<a href=\"http://ppss.kr/archives/25790\">http://ppss.kr/archives/25790</a>\n<a href=\"http://www.powermockup.com/\">http://www.powermockup.com/</a>\n<a href=\"http://opencast.naver.com/EZ892/49/flow\">http://opencast.naver.com/EZ892/49/flow</a>\n디자인 참고사이트\n<a href=\"https://www.behance.net/\" style=\"font-family:957317_10\">https://www.behance.net/</a>"
+  },
+  {
+    "type": "image",
+    "x": 864,
+    "y": 1959,
+    "w": 480,
+    "h": 338,
+    "src": "6564f4d571.png"
+  }
+];
+const CONTENT_HASH = '4ba72e69';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Singapore Biz trip</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Singapore Biz trip</div>
+<div class="date">2018년 9월 20일 목요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Singapore-Biz-trip';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "html",
+    "x": 48,
+    "y": 139,
+    "w": 720,
+    "html": "\r\n\t\t\t<br />\r\n\t\t\t<ul>\r\n\t\t\t\t<br />\r\n\t\t\t\t<div style=\"display:inline-block;width:480px;height:600px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12.5pt;color:#454545;background-color:white;font-weight:bold\">Hotel</span></p>\r\n\t\t\t\t<div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t<div style=\"display:inline-block;width:480px;height:261px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t<li style=\"font-size:10pt\"><span style=\"font-size:10.5pt;color:#333333;background-color:white\">예약 번호:&#160;</span><span style=\"font-size:10.5pt;color:#333333;background-color:white;font-weight:bold\">1246270532</span><span lang=\"en-US\" style=\"font-size:10.5pt;color:#333333;background-color:white;font-weight:bold\"> </span><span style=\"font-size:10.5pt;color:#333333;background-color:white\">│</span><span lang=\"en-US\" style=\"font-size:10.5pt;color:#333333;background-color:white\"> </span><span style=\"font-size:10.5pt;color:#333333;background-color:white\">PIN코드:&#160;</span><span style=\"font-size:10.5pt;color:#333333;background-color:white;font-weight:bold\">1684</span><span style=\"font-size:10.5pt;color:#333333;background-color:white\">&#160;</span></li>\r\n\t\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"background-color:white;border:0px;font-size:10pt\">Hotel Jen Orchardgateway Singapore<span lang=\"en-US\"> </span><span style=\"font-size:12pt;color:#707070;font-weight:bold\">新加坡</span><span style=\"font-family:새굴림;font-size:12pt;color:#707070;font-weight:bold\">乌</span><span style=\"font-family:새굴림;font-size:12pt;color:#707070;font-weight:bold\">节门今旅酒店</span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"background-color:white;border:0px;font-size:10pt\"><span style=\"font-size:10.5pt;color:#383838\">277 Orchard Road #10-01, Orchard, 싱가포르, 238858, Singapore</span><span lang=\"en-US\" style=\"font-size:10.5pt;color:#383838\"> </span><span style=\"font-size:10.5pt;color:#383838;font-weight:bold\">전화:</span>&#160;<span style=\"font-size:10.5pt;color:#383838\">+65 6831 4333</span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">디럭스 킹룸 - 고객:</span><span style=\"font-weight:bold\">&#160;</span><span style=\"font-weight:bold;text-decoration:underline\">KIM JUNYOUNG,Han songhee</span></p>\r\n\t\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span style=\"font-weight:bold\">체크인</span></td>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:right\">2018년 9월 25일 (화)&#160;<span style=\"color:#707070\">(14:00</span><span style=\"color:#707070\">부터)</span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span style=\"font-weight:bold\">체크아웃</span></td>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:right\">2018년 9월 29일 (토)&#160;<span style=\"color:#707070\">(12:00</span><span style=\"color:#707070\">까지)</span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"border:0px\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">요금</p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">(투숙객 1명)</p>\r\n\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t<td style=\"border:0px\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">예상 요금&#160;₩964,598</p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">S{{DEFAULT_CARDS}}#160;<span lang=\"en-US\">1,180</span></p>\r\n\t\t\t\t\t\t</td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">세금&#160;&#160;(7.00%)</td>\r\n\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">₩74,274</td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">숙소 서비스 요금&#160;&#160;(10.00%)</td>\r\n\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">₩96,460</td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"border:0px\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">최종 결제 금액</p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">(세금 포함)</p>\r\n\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t<td style=\"border:0px\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">예상 요금&#160;&#160;₩1,135,332</p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">SGD&#160;통화로1,388.86의 금액이 결제됩니다.</p>\r\n\t\t\t\t\t\t</td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://m.blog.naver.com/PostView.nhn?blogId=rar24&amp;logNo=220476068837&amp;proxyReferer=https%3A%2F%2Fwww.google.co.kr%2Fhttps://raycat.net/3943\">https://m.blog.naver.com/PostView.nhn?blogId=rar24&amp;logNo=220476068837&amp;proxyReferer=https%3A%2F%2Fwww.google.co.kr%2F</a>￼https://raycat.net/3943</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">조식은 19층 라운지와 10층 양쪽에서 다 가능했는데 음식은 비슷하고 19층이 덜 붐빌거라던 직원의 말과는 달리 10층에 음식의 종류가 훨씬 다양하고 상태도 좋았다. 조식이 너무 휼륭해서 거의 한시간 넘게 아침식사를 즐겼다. 그리고 조식 후 커피나 TEA를 휴대용 컵에 담아서 갈 수 있도록 해주어서 매일 잘 이용했음. </p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">체크아웃 후 리프레쉬룸(샤워실) 사용<span lang=\"en-US\"> </span>가능<span lang=\"en-US\">.</span> </p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12.5pt;color:#454545;background-color:white;font-weight:bold\">AIRLINE _ 1,641,900</span></p>\r\n\t\t\t\t<div style=\"display:inline-block;width:480px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t<br />\r\n\t\t\t\t<br />\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12.5pt;color:#454545;background-color:white;font-weight:bold\">-----------------------------------------------------------------------</span></p>\r\n\t\t\t\t<div style=\"display:inline-block;width:480px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12.5pt;color:#454545;background-color:white;font-weight:bold\">준비물</span></p>\r\n\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12.5pt;color:#454545;background-color:white;font-weight:bold\">호텔</span></p>\r\n\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12.5pt;color:#454545;background-color:white;font-weight:bold\">비행기</span></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;font-weight:bold\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-weight:bold\"> [</span><span style=\"font-family:Malgun Gothic;font-weight:bold\">출장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-weight:bold\">] </span><span style=\"font-family:Malgun Gothic\">명함</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic;font-weight:bold\">노트패드</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-weight:bold\">, </span><span style=\"font-family:Malgun Gothic\">펜</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">노트북</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">어댑터</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, HDMI </span><span style=\"font-family:Malgun Gothic\">젠더</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">마우스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, RGB/HDMI</span><span style=\"font-family:Malgun Gothic\">케이블</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, USB, </span><span style=\"font-family:Malgun Gothic\">포인터</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">&amp;</span><span style=\"font-family:Malgun Gothic\">여벌</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">건전지, 법인카드</span></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-weight:bold\"> </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">[</span><span style=\"font-family:Malgun Gothic\">여행</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">필수</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">] </span><span style=\"font-family:Malgun Gothic\">여권</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">비자카드</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">지갑</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">작은</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">가방</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">현금</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">여권사본</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">여행책자</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">프라이어티</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">패스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">카드</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">전자티켓</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">출력본</span><span lang=\"en-US\">,</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-family:Malgun Gothic\">캐리어</span><span lang=\"en-US\">,</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-family:Malgun Gothic\">자물쇠</span><span lang=\"en-US\">,</span><span lang=\"en-US\" style=\"font-weight:bold\">  </span><span style=\"font-family:Malgun Gothic\">여권용</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">사진</span><span lang=\"en-US\">,</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-family:Malgun Gothic\">필기도구</span><span lang=\"en-US\">,</span><span lang=\"en-US\" style=\"font-weight:bold\">  </span><span style=\"font-family:Malgun Gothic\">면세점</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">쇼핑리스트</span></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> [</span><span style=\"font-family:Malgun Gothic\">비행용</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">] </span><span style=\"font-family:Malgun Gothic\">수면베게</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">안대</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">귀마게</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">미스트</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">마스크</span></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-weight:bold\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-weight:bold\"> </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">[</span><span style=\"font-family:Malgun Gothic\">옷</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">] </span><span style=\"font-family:Malgun Gothic\">상</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">하의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">신발</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">모자</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, 벨트, </span><span style=\"font-family:Malgun Gothic\">썬글래스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">썬그리</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">목걸이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">팔찌</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">속옷</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">양말</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">잠옷</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">운동화</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">슬리퍼</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">수영복</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">조리</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">조깅용</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">운동화</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">운동복</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">상하의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, CD</span></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> [</span><span style=\"font-family:Malgun Gothic\">세면도구</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">] </span><span style=\"font-family:Malgun Gothic\">화장품</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">(</span><span style=\"font-family:Malgun Gothic\">썬크림</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">로션</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">), </span><span style=\"font-family:Malgun Gothic\">약품</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">칫솔</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">면도기</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">면도크림</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">클라리소닉</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">폼클렌저</span><span lang=\"en-US\">,</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-family:Malgun Gothic\">물티슈</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">수건</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">세탁물용</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">비닐</span></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> [</span><span style=\"font-family:Malgun Gothic\">전자기기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">] </span><span style=\"font-family:Malgun Gothic\">충전기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">배터리팩</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">핸드폰</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">(</span><span style=\"font-family:Malgun Gothic\">여행어플</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">)</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">셀카봉</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">카메라</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">폰카</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">렌즈</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">어댑터</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">가이드용</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">이어폰</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">유심</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">갈아낄</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">핀</span></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">면세점</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">쇼핑리스트</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> : </span><a href=\"https://search.shopping.naver.com/detail/detail.nhn?nv_mid=12301852248\" style=\"font-family:Malgun Gothic\">최현경</a><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">팀선물</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">위스키</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">해피히포</span><span lang=\"en-US\">, </span><a href=\"https://m.blog.naver.com/b117711/221357090313\" style=\"font-family:Malgun Gothic\">추천리스트</a></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> [</span><span style=\"font-family:Malgun Gothic\">시즌</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">] </span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">  - </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">여름</span><span style=\"font-family:Malgun Gothic\">: </span>모기퇴<span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">치기</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">핸디선풍기</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">우산</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-weight:bold\">  </span><span style=\"font-family:Malgun Gothic\">- </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">겨울</span><span style=\"font-family:Malgun Gothic\">: </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">핫팩</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12.5pt;color:#454545;background-color:white;font-weight:bold\">숙박</span></p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.booking.com/hotel/sg/jen-orchardgateway-singapore.ko.html?aid=964694&amp;app_hotel_id=1134953&amp;checkin=2018-09-25&amp;checkout=2018-09-29&amp;from_sn=android&amp;group_adults=1&amp;group_children=0&amp;label=Share-Z87uZJ%401537434338&amp;no_rooms=1&amp;req_adults=1&amp;req_children=0&amp;room1=A&amp;hp_refreshed_with_new_dates=1\">https://www.booking.com/hotel/sg/jen-orchardgateway-singapore.ko.html?aid=964694&amp;app_hotel_id=1134953&amp;checkin=2018-09-25&amp;checkout=2018-09-29&amp;from_sn=android&amp;group_adults=1&amp;group_children=0&amp;label=Share-Z87uZJ%401537434338&amp;no_rooms=1&amp;req_adults=1&amp;req_children=0&amp;room1=A&amp;hp_refreshed_with_new_dates=1</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.booking.com/hotel/sg/m-social-singapore.ko.html?aid=964694&amp;app_hotel_id=1704897&amp;checkin=2018-09-25&amp;checkout=2018-09-29&amp;from_sn=android&amp;group_adults=1&amp;group_children=0&amp;label=Share-a1NMmb%401537436078&amp;no_rooms=1&amp;req_adults=1&amp;req_children=0&amp;room1=A&amp;hp_refreshed_with_new_dates=1\">https://www.booking.com/hotel/sg/m-social-singapore.ko.html?aid=964694&amp;app_hotel_id=1704897&amp;checkin=2018-09-25&amp;checkout=2018-09-29&amp;from_sn=android&amp;group_adults=1&amp;group_children=0&amp;label=Share-a1NMmb%401537436078&amp;no_rooms=1&amp;req_adults=1&amp;req_children=0&amp;room1=A&amp;hp_refreshed_with_new_dates=1</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">동선</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.google.co.kr/maps/dir/277+Orchard+Road,+%EC%8B%B1%EA%B0%80%ED%8F%AC%EB%A5%B4/M+SOCIAL/@1.2959218,103.8353527,16z/data=!4m14!4m13!1m5!1m1!1s0x31da19972b78b549:0x60b5d80353224b27!2m2!1d103.8390263!2d1.3006643!1m5!1m1!1s0x31da199db6802b85:0x37ad8e9ae39e4654!2m2!1d103.8373128!2d1.2908987!3e0\">https://www.google.co.kr/maps/dir/277+Orchard+Road,+%EC%8B%B1%EA%B0%80%ED%8F%AC%EB%A5%B4/M+SOCIAL/@1.2959218,103.8353527,16z/data=!4m14!4m13!1m5!1m1!1s0x31da19972b78b549:0x60b5d80353224b27!2m2!1d103.8390263!2d1.3006643!1m5!1m1!1s0x31da199db6802b85:0x37ad8e9ae39e4654!2m2!1d103.8373128!2d1.2908987!3e0</a></p>\r\n\t\t\t</ul>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 151,
+    "w": 480,
+    "h": 609,
+    "src": "faa54a22d0.png",
+    "caption": "인천 그• 싱가포르 총 10시간 25분 소요 : 7시간 35분 비행 + 2시간 50분 대21 11:00 09/25 (화) 16: 35 09/25 (화) 19: 25 09/25 (화) 20: 25 09/25 (화) 인천출발 말레이시아항공 0067편, 06시간 35분 소요 항공사예약번호 : WEJ5FX 예약상황 : 01&lt; 쿠알라룸푸르도착 공항에서 02시간 50분 대기 쿠알라룸푸르출발 말레이시아항공 0607편, 01시간 00분 소요 항공사예약번호 : WEJ5FX 예약상황 : 01&lt; 싱가포르도착"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 768,
+    "w": 480,
+    "h": 609,
+    "src": "d35c8035d9.png"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 1385,
+    "w": 360,
+    "h": 200,
+    "src": "b5b4d45512.png"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 1593,
+    "w": 480,
+    "h": 218,
+    "src": "0b7267678c.png"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 1819,
+    "w": 480,
+    "h": 218,
+    "src": "57bc5732eb.png"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 2045,
+    "w": 480,
+    "h": 679,
+    "src": "36fac2afe2.png"
+  },
+  {
+    "type": "html",
+    "x": 1176,
+    "y": 2659,
+    "w": 624,
+    "html": "\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">출국전</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">짐싸기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">알쓸초안</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">책<span lang=\"en-US\"> </span>다운<span lang=\"en-US\">, </span>영화<span lang=\"en-US\"> </span>다운</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">빨래 맡기기</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">엄빠 돈 붙이기</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">화요일</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이동</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">손톱깍기</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">환전</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">면세</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">라운지</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">도착 후 찰스 메세지 보내기</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">알쓸신잡 작성</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">PC최적화</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">영상편집</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">GIC 투자이력 스터디</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">회화 리스트업</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">버핏 서울?골프</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">스타 이즈 본 9일 예매</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">로밍 요금제 변경</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">수요일</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">시현하다 예약</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">목요일</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">아크네</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">GIC미팅 준비</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">금요일</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">아쓸신잡 마감</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">GIC 미팅</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">토요일</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 2732,
+    "w": 480,
+    "h": 698,
+    "src": "e0c0cf0724.png"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 3438,
+    "w": 480,
+    "h": 698,
+    "src": "d3501c2633.png"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 5005,
+    "w": 480,
+    "src": "405a4021f6.png",
+    "h": 679
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 6145,
+    "w": 480,
+    "src": "228f5fddbf.png",
+    "h": 679
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 7284,
+    "w": 480,
+    "src": "fa99950787.png",
+    "h": 679
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 8424,
+    "w": 480,
+    "src": "82d3f3cf7f.png",
+    "h": 679,
+    "caption": "Machine generated alternative text: 운송약과을 참고하01 주십시오- ` 서H 스센터 Cente「 한국 : 1588-2001 / 02-2656-2001 일본 : (Toll-free) 0088•21•2001. (후대전화 및 일부 IP 전화) 06 6264-3311 중국 : 40065-888囮 {로임시비^ 이용 시) 해6-532-8378-7024 미국 및 개 나C I (T이I-free) 1-800-438-5000, (Text Tel eph on이 1-888-898-5525 유럽 I 유럽지역 Toll free 번§는 …를 잠고하01 주시기 바랍니다- • 타 지역에시의 연결 번호는 스조.꾜기를 잠고하여 주시기 바합니다 서비스선터 및 한지지접의 근무시간에 따라 서비스가 자한됳 수 있습니다 Toll-f「ee로 표시된 전화번호는 전화요금물 대한항공며서 부담하는 무료전화입니다- 단, 이용하시는 통선사 요금정잭 [로임 서E 스 등)과 호텔의 사정에 :다라 전화요금이 청구되거나 연결이 제한될 수 있사오니 확이 후 이용하01 수시기 바랍니다 전화번호는 부득이한 사유로 예고 없이 변경될 수 있으니 대한항공 월사이트를 확인하 수시기 바랍니다"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 9564,
+    "w": 480,
+    "src": "c04329c815.png",
+    "h": 679,
+    "caption": "Machine generated alternative text: 법직고지문 Legal Notice 여객의 최종 모적치 또는 도중 착륵지가 출발국 이외의 내의 1개 지점일 경위 동 여객O 사망 또L- 상해 및 수하물 으 분실 또는 손상에 대한 문송인이 책임을 통상적으로 제한8 는 &quot;바르사바협약• 또는 몬트리올 협약••을 적용 받을 수 있습니다 본 항공권에 수록된 •국제선 여객에 내한 책임 제한에 -는한 고지&quot; 및 ”수하물 BH상잭임 한도•를 잠조하시기 바 다 계약조건 1.몬 계약에서 사용되는 용어의 정의는 다음과 같습니다 험공권″0로i 본 •여객 항공권 및 수하불표 • 또는 ″전자 함공권&quot;의 경우 적 용되는 본 여점/그리고 영수吾를 말하는 것으로 본 계약주건 및 상기 알립은 본 함공권의 일부를 구성합니다- ”은송•이란 ”수송 &#39;•을 말하며, 끼운송만•이란 여객 도는 그의 수하물물 본 셰약 조건매 따라 운송하기나 또 운송을 인수하기나 또는 당해 항공 문송 어 수반되는 기타서비스를 행하는 모든 항공 문송인을 일합니다 형공권″이란 운송인 또는 운승인으 대리한 자에 의해 발행 된 전자서식 및 탑습습표를 말하니다- 上h르샤바혙약 &#39;Ole, 1929년 10월12일 •바르사바&quot;에서 체결된 국제함공운송에 관한 일부 규징에 의한 혙串 또는 1955년 9월28일 &quot;헤이그&quot;에서 개성된 바르샤바 협약 중 적용되는 협약들 말하며. &quot;몬트리몰 협약&quot;이란 1999년 5월 28일 몬트리몰에서 개정된 ″국제힝공문송에 있어서의 일부 규칙 통일에 관한 협약•물 칼합니才 2. 본 계약상의 운송이 바르샤바혙약 또는 본트근 을혙약에 정의될 국자찬 운송일 경의 그 운송은 당해 협약에A 정하고 있는 책임 어 과한 규정 및 저 한어 적용을 받습니다- 3. 각 문송인이 행하는 문송 및 기라서비스는 상기한 바에 저촉되지 않는 범위 내에서: (1) 본 항공권에 기재된 규정, (Ⅱ) 유효한 태 리픠 (미 몬 계약 조건에 일무로 되어있는 운송인의 문송약관 및 관련규정 (여객이 요청할 경우 문송인의 사무실에서 열람할 수 있습니다)의 석용몰 받습니다- 단. 디국 또는 캐나다 내의 1개 지점과 미국 및 캐나다 이의의 다국내의 1개 지접간의 운송에 관하 여는 DI국 및 개나다에서 유효한 태리프가 적용됩니다 4. 운송인의 몀칭은 항공권 상의 약호로 표기할 수 있으다 정식 몀칭 및 그 약호는 문송인의 터리프. 문솜약관, 규정 또는 은항 시각 표에 기재되이 있습니다 문속인의 주소는 함공권 상의 운송인의 약호명상의 맞은편아 기재도재 있는 출발공항을 말합니다 여객 과 운송인간의 합의된 도중 작록지는 본 항공권 상에 명시된 드중 작륙지 또는 01객의 여정 상아 계획된 도중 세류지로서 운송인 의 문함시각표에 표시된 지점을 말학니다 본 계약 소건 하에서 2개 이상의 문송인에 의하여 연속적으로 행하여지는 문송은 단일 운송으로 간수합니다 5. 다 항공 운송인의 노선 상의 은송들 위하이 항공권을 발행하는 항공 운송인은 단지 그 항공 문송인의 대리 인으로서 함공귄을 칼 행하는 것 니다 6. 운송인의 며잭 또는 잭임 제한에 관한 제바 규정은 운송인의 대리인 송업원 및 대표자 그리고 운송을 위해 운송인이 사용하는 항공기의 소유자, 그의 대리만, 종업원 및 대표자 모두에가 적용됱 니다- 7. 위타 수하물은 수하물표 소지자에게 인도합니다- 국제선으로 운송되는 수하물에 손상이 발생하였을 경우아는 그 손상 발견 즉시 또는 늦이도 수하불을 수취한 날로무터 7일 이니에 은송인어게 서면으로 이의를 자기하야 하매 지연의 경우에는 수하물을 수추I 하이야 할 탈로부터 21일 이내에 이의를 자기해야 합니다 국제선 운송이 아닌 경우마느 국니I선 대리프 또는 운송약관을 잠조하 시기 BYS&#39;니「h &amp; 본 함공과 문송인의 태리프, 문송약관 또는 관련 규정에 별도로 정한 경우를 세외하고는 본 함공권믄 발행일로부터 1년간 유효 합니다 겨I약 죠거 상의 운총을 위한 운임은 문송개시 전에 변경될 수 있습니다 유효한 문명이 지불되지 않았을 경위 문솜이。 E송을 거셜 할 수 있습니다 9. 문송인은 여객 및 수하물을 적기에 문송하7 위하여 죄선의 노력을 할 의무가 있습니 q. 문항 시각표 뜨는 기타에 표시된 시각은 변경y., 수 있으며 본 계약의 일부름 구섬하지 않슽니다 운송인은 무득이한 경우 통고 없이 문송인 또한 함공2 : 타 운송인 또는 다 항공7 로 대체할 수 있으며 또한 필요한 경우0Ⅱ는 함공권상에 표시된 도중 작록지를 변경하거나 경유하지 않을 수 있습니다- ^게술도 통고 없이 毋될 수 있 으며 . 운송인은 접속문항에 대하여 책익물 지지 끊습니다 10. 여객은 정무가 정한 여행 요간*을 준수하여야 하매 출입국 서류 및 기타 필요 서류를 정확히 작성하여 운송인이 지정한 시각까지 또는 시각이 지정되지 않있을 경우에= 줄국 수소을 완료릴 수 있는 중분한 시간적 01유를 갖고 공함에 도작하이야 합니다- 11. 운송인의 대리 인, 종업원 또는 대표자는 본 져약의 여떠한 규정도 변경하거나 수정하기나 또는 포기할 •권한물 가지지 않습니다, 수하물 배상 책임 한도 사전에 보다 높은 가격이 선고되고 그며 대한 추가 요금이 지물되지 %는 한 수하물의 분실. 지연 또는 손상에 대한 지끰 한드얙은 아라와 같이 자한됩 니다 대부문의 국제선 여행이 해당되는 몬트리몰 협약 적용 구간은 위탁수하들•과 후대수하물를 모두 프함하여 1인담 1 131 SDRP」 니다 바르샤바 혙약 적용 구간은 위락수하물의 경O는 파운드당 디화 약 9℃7까길로그램당 미화 20불), 후다수 하물의 경우는 여객 1인당 디화 400물입니다 미국 내 지징 간 여험 시에는 연방장부 규정 상 항공사의 수하물 해상 책임 한도액은 여객 1인당 최소 미화 引500불입니다 어떤 송류의 물쭉아 대하여는 상기 한도Q닉은 조과하는 가격을 신고할 수도 있습니다 항공사는 파손 또는 *피|되기 쉬운 물품이나 귀중품 또는 고가품며 대하01는 책임을 지지 않습니다- 다만i 미국을 줄발 또는 도작하는 국제선 여성인 경우마는 귀중품 또는 고가품 면색이 식용되지 아니합니다. 자서 한 사항은 해남 힝공사로 문의 하시기 바랍니다-"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 10704,
+    "w": 480,
+    "src": "52beac5286.png",
+    "h": 679,
+    "caption": "Machine generated alternative text: 국제선 여객에 대한 잭임 제한에 관한 고지 여객이 좋발지국 이외의 국가 내에 최송 목적지 또는 도중 착록지를 둔 여행을 할 경우에는 출발지국 또는 목적지국 내의 구간을 포 함한 전차 DI행에 대하여 소우I 바르샤바협약의 규성이 석용될 수 있습니다 동 협약 및 유會한 태리프아 명시되이 있는 특별 운송 계 약에 의해서 01객이 목적지. 출발지 또는 합의된 도중 작륙지를 미국 내에 둔 01행물 하는 경무에, 대한항공 및 당해 특별 계약의 당 사사인 타 운솜이0 여객의 사함 뜨는 부상에 대하여 지는 책함 한도는 대부문의 경우 여객 1인당 미화 75℃00불을 조과하지 않는 범위의 입좋된 손해로 지I한되며. 동 한도까지의 색임은 운송인 즉의 과실을 조건으로 하지 않는 것으로 규점되어 있습니다. 당해 특 별 계약며 당사자가 아닌 문송인에 의하여 01행하는 여객의 경무, 또는 목적지, 줄-발지 또는 힙의된 도중 작륵지를 미국 내0Ⅱ 두지 않는 여형를 하는 여객의 경무, 여객의 사망 또는 부상에 대한 문송인의 책함은 대부문의 경우 여객 1인당 미화 약 10℃00물 또는 20℃00물로 지I한됩 니다 당해 특별 계약의 당사자인 문송인의 몀심은 당해 문송인의 항공권 발미I 사무스에 비치되어 있으며 여객이 요정할 경우매는 열람할 수 있습니다 보험회사의 보험에 가입함으로&quot;d 상기 배상얙에 주가하01 보상을 받을 수 있습니다- 이 보험은 바르사바협약 뜨 는 남해 특별 문송 계약 상&#39;의 운송인의 책임 한도에 의하여 영햠를 칻지 않습니다- 자세한 것은 답슘 힝공사 또느 보 험회사의 국원과 상의하여 수시기 바람니다 1十1. 상기의 잭일한도하 미화 75℃00불은 소송비 빛 제 경비를 포함한 금역입니다 단, 소솜비 및 제 경비를 별도로 제점하는 국가에서 제기된 해상 점구의 경-무-, 그 한도액은 스송비 및 &amp; 경비를 제외한 미화 58,000불 입니「Ⅱ 대한항공의 여객배상책임에 관한 특별 고지 대한함공아 의한 국자 운송의 경무, 대한뼹공 운송약관아 따라 01객으 사망. 부상 또 는 기다 신체 상해시 바르샤바 협약에 규정된 적 임 한도를 적용하지 않습니다 그리나 대한힘공 113,100 SD* 초과하는 배상청구부문며 대해서는 동 협약 20조 (1)힝의 항변권 을 가집니다 EU 국가를 들 도작지로 하는 국저 운송의 경위 대한항공은 田 법률에 따라 여객의 사닏3b, 또는 기다 선체 상해시 보상금 일부를 선지급 합니다 항공편의 초과 예약 항공사는 사전 아고 없이 확약된 항공편마 답슘하지 않은 여객으로 인한 영항을 죄소화 하고, 해당 항공편 다송을 원하는 여객이 좌 석을 이용할 수 있도록 하기 위하여 초과예약을 접수할 수 있습니다 함공사는 며약이 확약된 항공련의 좌석을 제공하기 위하여 최 선믈 다하지만 좌석 졔공이 실다석으로 보장되는 것은 아닙니다 초과예약으로 인한 탑승 물가 미국에서 항공권을 구입하고 여행을 개시하는 경우 본 고지는 적용되지 암습니다〕 항공사의 초과예약으로 인한 좌석부족으로 여I약 이 확약된 항공편아 답송하지 못한 여객에 다한 보상규장이 일부 국가에서 시행됩니다 자세한 사항은 항공사에시 확인하실 수 있습 니다 정무 무과 세금. 이용료 및 요금 안내 이 항공줜 구입 가격에는 항공 운송에 대하여 각국 정부 당국이 부과하는 세퓨 이용료 및 요금이 포학될 수 있습니다. 이 각은 세그 이용료 및 요금은 때머I 따라 함김여행 *BI의 상당 무분을 차지하는 경무도 있으며. 그 금맥은 함공문명에 프함되거나 따로 세금{ *에 표기되기도 합니다 발권 시 지물되지 협은 서금. 이용료 빛 요금은 나중에 징수될 수 있습니「h 예약 등급 준수 고객의 며약 듬급은 항공권을 구입하실 때. 지물하선 가격0Ⅱ 따라 자이가 있으며, 구입하신 항공권의 &quot;CLASS&quot;É!OI 표시되어 있습니 다 항공권 구입 후 아약를 벼경하실 때는 항공권마 표시된 매약 듬금에 맞주이 예약몰 하셔야 하며, 항공권의 예약 들급과 아약기록 의 등급이 다를 경우에는 사액믈 지물하셔아 예약편에 밥스 예약의 취소 아약된 힝공편을 0 용하지 않으실 경무 사전매 예약을 쥐 o하실 수 있습니다- 소해 주십시오` 사전 통보 없이 하당 0Ⅱ악편마 답^ 百하지 않으실 경무 계속 공권상에 명시된 순시대로 사용하지 않 편 뜨는 복편의 예약이 취소될 쿠폰 사용 순서 탑슘용 원몬 또느 전자 쿠폰은 을 경우 함공권은 운송을 위해 수 있습니다 항공권에 명시된 출발지부리 순서다로 사용되어야 합니다 힝 접수월 수 멄으며. 환불 또는 口효로 치리툅니다."
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 11844,
+    "w": 480,
+    "src": "baec8dcf67.png",
+    "h": 679
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 12984,
+    "w": 480,
+    "src": "175c81810d.png",
+    "h": 679
+  }
+];
+const CONTENT_HASH = 'dab00ea2';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bilibili</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Bilibili</div>
+<div class="date">2020년 4월 12일 일요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Bilibili';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "html",
+    "x": 48,
+    "y": 139,
+    "w": 576,
+    "html": "\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://techcrunch.com/2020/04/09/sony-invests-400m-in-chinese-entertainment-platform-bilibili/?renderMode=ie11\">https://techcrunch.com/2020/04/09/sony-invests-400m-in-chinese-entertainment-platform-bilibili/?renderMode=ie11</a></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\">Dean Kim, [10.04.20 22:03]</p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\">소니가 Bilibili 지분 4.98% 취득을 위해 $ 4억을 투자합니다.</p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\">- 누적 사용자 1억 3천만</p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\">- Market cap. 88B</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://en.wikipedia.org/wiki/Bilibili\">https://en.wikipedia.org/wiki/Bilibili</a></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://utopiand-reamers.tistory.com/144\">https://utopiand-reamers.tistory.com/144</a></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Lato;font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">중국 비디오 공유 회사 인 Bilibili Inc.&#160;</span><a href=\"https://www.marketwatch.com/investing/stock/BILI?mod=MW_story_quote\" style=\"font-family:Lato;font-size:13.5pt;background-color:#191a1a;font-weight:bold\">BILI,&#160;+ 2.40 %</a><span style=\"font-family:Lato;font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">&#160;목요일 소니가 미국에 약 4 억 달러를 투자 할 수있는 소니사와 계약을 체결했다고 발표했다.</span><span lang=\"en-US\" style=\"font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\"> </span><span style=\"font-family:Lato;font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">Sony Corp.의 전액 출자 자회사 인 SCA</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">(</span><span style=\"font-family:Malgun Gothic;font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">Sony Corporation of America</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">)</span><span style=\"font-family:Lato;font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">는 새로 발행 된 Bilibili의 클래스 Z 보통주 17,310,696 주를 주당 23.1071 달러에</span><span lang=\"en-US\" style=\"font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\"> </span><span style=\"font-family:Lato;font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">받게되며, 마감시 빌리 빌리의 총 발행 주식의 약 4.98 %를 소유하게됩니다.&#160;6 개월의 </span><a href=\"http://www.lec.co.kr/news/articleView.html?idxno=9051\" style=\"font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">주식</a><span lang=\"en-US\" style=\"font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\"> </span><span style=\"font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">의무보호예수</span><span style=\"font-family:Lato;font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\"> 추가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">(</span>lock-up period of six months<span lang=\"en-US\" style=\"font-family:Malgun Gothic\">)</span><span style=\"font-family:Lato;font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">이 회사는이 거래가 4 월 10 일 또는 그 이전에 마감 될 것으로 예상하고있다. 또한 두 회사는 모바일 게임 및 애니메이션과 관련된 중국 엔터테인먼트 산업의 다양한 기회에 대해 협력 할 계획이다.&#160;빌리 빌리의 미국 상장 주식은 목요일 시판 전 거래에서 7.4 % 상승했다.&#160;올해 S &amp; P 500&#160;</span><a href=\"https://www.marketwatch.com/investing/index/SPX?mod=MW_story_quote\" style=\"font-family:inherit;font-size:13.5pt;background-color:#191a1a;font-weight:bold\">SPX</a><span style=\"font-family:Lato;font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">&#160;만큼 41 % 급증했습니다&#160;</span><a href=\"https://www.marketwatch.com/investing/index/SPX?mod=MW_story_quote\" style=\"font-family:Lato;font-size:13.5pt;background-color:#191a1a;font-weight:bold\">.&#160;+ 1.44 %</a><span style=\"font-family:Lato;font-size:13.5pt;color:#d6d5d2;background-color:#191a1a\">&#160;15 % 감소했습니다.</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">Mergermarket에서 상세검색 rrr </span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\">Bilibili의 가치를 80 억 달러로 평가</p>\r\n\t\t\t<br />\r\n\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#191a1a;border:0px\"><br />\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://email.mg2.substack.com/c/eJxVkctuo0AQRb-G3gX1AzAsemHZ4wQr4MzEcchsUEMXpnkLGhP89cH2bEYqqaRzq1Sqe1Oh4dz2M-_aQaNxgD5WkjseW2FnhSS3JHFtF6khznqAWqiK634E1I1JpVKhVdvcFojnuTbKuZTYzRwnoTJJsC0o8wjQxEpt6RKbuBm6nYnFKBU0KXC4QD-3DaCK51p3g8HWBt0tlc9jo8xhTAYt0tJM23qB3U2YEvVEafxksJ1uS2gMtoV5T1J6miNalX7R0sMxYMH2i71u9lPCQvyPX8PiTMKiHPy6yuXGd4LjhxUWXyy8BvTwPikRhddlTqUvJ_V6_GUfjmfiq0ml7KTu_Nm7yg2Z_37uCvlcXRK198ygHlaxL9YHFZXZCQfZSz-_2ZEv3zJ_-4d8vHe_11H-WX6PGClOMcXYIhSvLGpjk5jfwm0ulVN3WhoWrs_0v6dRzzMQ2izGBhZ5eMDF-3jp9WKRnmNoRFKBfMSiHzneXdZzB7yBaahAa-gfcMmKOa7teGi5I9sl0Ibfzf4BKNGwvA\" style=\"font-family:돋움;font-size:10pt;font-weight:bold\">HWBI #22_중국의 유튜브 &#39;비리비리&#39;</a></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:3pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:14pt;color:#d5d5d5\">텐센트, 알리바바, 소니로부터 투자받은 기업</span></p>\r\n\t\t\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t<td style=\"border:0px;font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f\"><a href=\"http://email.mg2.substack.com/c/eJxVkMGOhCAQRL9GjgYQEQ8c9rK_YVDakV0EAs3s-vfLjKdNSJpUB15VbQbhEfOlUyxIaoG8OKvlPExUTsRqYZkaFXFl2TPAaZzXmCuQVFfvNoMuhtcDNs9qJIdmVFDBgHI6MmUkqF2IiQKX2wBy54K8MIup1kHYQMMT8hUDEK8PxFS64aPjn-0cVw2uL3UtaLbvfotnExPE5KFdxMSGcWiuNG-kBuR0EnykPet_jQpPL8-EthP0fPB_n5CsdzDYf9UAbV1usWVZ2jwbEq8Fglk92Dsm3r28XeOVQAf4KR4QId9iyz5INcqZNI6NraCg3-b_AIhqdF8\">Jonghyun Chun</a></td>\r\n\t\t\t\t\t\t\t<td style=\"border:0px;font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f\"><span style=\"color:#d5d5d5\">Apr 12</span></td>\r\n\t\t\t\t\t\t\t<td style=\"border:0px\"><a href=\"http://email.mg2.substack.com/c/eJxVksuOmzAUhp8m7AYZgwksvKgapYJOiKqmQ9MNMvZJYu7yJQl5-ppkuqhk-fh8vpzLb84MnEc102nUxrMaVCUFjdNwjeK1J2gkgoQkntTVSQH0THbUKAveZOtOcmbkOCwXgjRNiHehyB0m6xOvRY0FSRBKGa_jgIgIp8kJiLeEqZgVEgYOFK6g5nEAr6MXYya9Cr-s8NaNy2wH6Wtba8N46_Oxd5BN0s3XwE3LM848E3pTwPiSyCrcmrEFZzcw5wHHH_Nv3LVZM-L9YRfuNsfw_Wt-q8MCffJH0ZyDoml1NuTdsSwQK1PruIwm3GbyJlm5Rc6_F4czLhoe7h5H4t6Y3EruZX4TZWZ2h5bsN7-k4w_nL3z-U24b8a271jJP_U79iMosvh4u9uf9sp-O3-17uFVvMefVxPVITnM151l1O0crHFvTV3q0ioOr418HPnkPQtp-qW8p3JMUI4xQFGC0jjBBfuDfWTJcu7ifjFhFqD_j_5roKXoCZvzGDuC29Qs6LStne9dyM1cwsLoD8ZLZvP7FUzUzT0AHuOkOjAH1gk77ME5InHoujhhdWgN9ivcXhpHOSQ\"><div style=\"display:inline-block;width:15px;height:20px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div></a></td>\r\n\t\t\t\t\t\t\t<td style=\"border:0px\"><a href=\"http://email.mg2.substack.com/c/eJxVkstyozAQRb_G7ELpwXPBwmWPE1wBZyaO48yGEqgx4iEoEHbw14-wncVUaXW6Vbf73s6YglPbT0HXDsoYB-gTwQPHpy5yXIMHFsee7RliSPIeoGGiDlQ_gtGNaS0ypkQr5w_Y9z3bKALbcjHCec5SAE4xo67rcOJ6GFKOUYqNWSZhIxcgMwjgDP3USjDqoFCqGxZ0uSAb_YpplMIcxnRQLKvMrG007ObCJRVPhCRPC7pRbQVyQdcwbXFGDtOR1FVYtmS3j2i0_qKvq-0lpTF68GtcnnBcVkPY1AVfhU60_7Di8ovG14js3i-CHeOr7hPZy0G87n_Zu_0Jh-IiMnoQN_7sX_kKT38_NyV_rs-p2Ppm1AxuErLlThyr_ICi_KWf3uxjyN_ycP0Hf7x3v5fH4rP6HtGCOKNqkqEd-wz03D_rPXgDXIzNvM9s8wNmrVQg1dxdsB40Zdls-g8wREAQQcjCBLkWsZGJzW_myXPtNJ3iCws1J_KfkUYf5MCUWY4SdHm4Q52n1moabbuaEpAsrYHfo1b327glp6YOAgmXoQaloL9DnT91PNvxDa3DWz29DG4B_gNI2s6P\"><div style=\"display:inline-block;width:11px;height:20px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div></a></td>\r\n\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t</table>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">중국의 테크 기업들은 대게 미국의 카피캣으로 출발했지만, 바이두-알리바바-텐센트(BAT)라는 거대 테크 기업이 다음 세대 스타트업에 지속적으로 투자하고(ex: 메이투안디엔핑, 디디추싱), 알리페이-위챗페이 같은 테크 인프라가 갖추어지고, 테크 기업으로 인재들이 몰려들면서, 그리고 중국의 인터넷은 외부로부터 폐쇄되어 있기 때문에, 중국만의 독자적인 모습을 갖춘 테크 기업들이 탄생하고 있습니다.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://email.mg2.substack.com/c/eJwtUNuOhCAM_Rp5JFxU9IGHTSbzGwakjuwoGCiz698vs07SpO1petpzZoPwiOnUR8xISoY0eaf7USrWK-J06_jQDcTnaUkAu_GbxlSAHMVufjboY3gv8HEcOrJqyQRXqpuF5U6ptrYCmDGLs7aTval79cxkivMQZtDwgnTGAGTTK-KRG_nViHsNG-OTBlPHdI77B3D2U0wOsH5CwxoaebfeNfLGWyWkFJJ4LZhgrOWCqVZ0jHL6a4bw2vr9QNe0bH8ImovNaObnm50kvYBB-l0C1HG-wCpwqnkvweM5QTB2A3dpx8usfyl4HqAD_OQNECFdYDVE9kPXj6TecbG6FvR6VqY_tex7vA\" style=\"font-family:돋움;font-size:12pt\">[관련 책 추천] AI 슈퍼파워</a></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">대표적으로 틱톡을 만든 바이트댄스(Bytedance)가 BAT의 바이두를 넘어설 만큼 성장해서 페이스북을 위협하고 있으며, 공동구매 모델을 개척한 핀둬둬(Pinduoduo)가 이커머스 2등이었던 징동(JD)을 넘어섰으며, 알리바바의 허마셴셩(Hema Fresh)는 100개가 넘는 매장을 두고 30분 내 배송인프라를 구축했습니다.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://email.mg2.substack.com/c/eJxVUttuhSAQ_JrDmwYv3B548Fz6GwZhT6VVNApt_fuC5tg0MWtmZ2d2gdXKw_u0bHKeVo_CCktrjaSiYpgyZGRtCk44smv7XABGZQfplwBoDt1gtfJ2cklQCMEJ6iXr6ifvKlCF0doYpStWFVRRXKgCah51sU2rgrHgNEj4gmWbHKBB9t7P66VqLuVb_EYwNoy5nsYI_KLcOlj3uXPkcYuhqWMQRYJRQq4k5e5Z9eJ54q88wWuCew5nJ928PB73BKudPmFzilOxYClHspfZ3lYcZntlEorbWZ4sBM_-4cPtfk6Gz8l2yP7M2L_BG5rC7WTToA3OdB96ZXdROjnfRangQV-3ET0JdCXrOkyxFsjKEpcY10WJWV0SnBf5j-Lua6Dj7M2lxuN7ma-hW73Sn-nm0SKfoHz-ERxEej2S8eHb-B-Ds35rwaluAHPshD-WaH9iv80gHXyvA3gPy5GMi1JRTqhAsY-Z4jY52W_R6RfATbSP\" style=\"font-family:돋움;font-size:12pt\">[미디엄] 중국 - 3세대 스타트업, 두 개의 인터넷, 그리고 Chuhai (出海)</a></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">저는 한자&amp;중국어를 하나도 모르긴 하지만, 한때 &#39;차이나스토리&#39;라는 중국 테크 관련 트레바리 클럽에 참여한 적이 있고, 이때 알게된 걸 직접 체험해보고 싶어서 상하이에 갔다온 적이 있을 정도로 중국 테크 기업에 관심이 많습니다. 지금도 SCMP등을 통해 계속해서 정보를 찾아보고 있죠.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">그래서, 앞으로 하나둘씩 중국의 테크 기업을 소개해드리려고 합니다. 오늘 소개할 기업은 중국의 유튜브라 불리는&#160;</span><a href=\"http://email.mg2.substack.com/c/eJwlUMGOhSAM_Bo5EkBFPHDYy_sNg1Cf7CIaKM_17xfXpE2TaaYzU2sQ3nu69LFnJCVDmrzTcmwHJgfidOe46hXxeVoSwGZ80JgKkKPMwVuDfo83gY-j6smqB24BZsdMNw7KtgtrOQejQFrVj3JpyS0zmeI8RAsaPpCuPQIJekU8ctN-NeJV6zxPOvvg76Z23ypEvBZMMNZxwYZO9Ixy-mtU_AS5Heiajm1vQXOZMxr7c5NI0gsYpN8lQl3nB6zOpzq3Ej1eE0QzB3BPKHy-8O8RrwN0hDMHQIT0gDVpK1UvR1J13F7fEfV61Ut_-jlv7g\" style=\"font-family:돋움;font-size:12pt\">비리비리(Bilibili)</a><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">입니다.</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:10pt;color:#d5d5d5;font-weight:bold\">중국의 유튜브, 비리비리</span></p>\r\n\t\t\t\t\t<a href=\"http://email.mg2.substack.com/c/eJxVUUtu5SAQPM1jh8XX4AWLKNJcw-LT9mNig8fgJM7pg59XIyEoFU110eVthTnvp9lyqegosI8xmH7givQKBSMC1VKjWMZpB1htXEzdD0Db4ZbobY05XQ_oMGiJnoY6r6XjQJwLtlGa6zBpx7SgHEBQdLUZ7REiJA8GPmE_cwK0mGetW3nwtwf705YPqSuHK9X6j87ntVFxtTO0c4Lqn1fJuMQ11gd7n5pgzQ38uwF_m3MOreTWZPJSlZdu29zhP6AC7BiIdM2uwM5ajgVXgAdJNbbBceZAqUGLrvDOrvYnJ_tVbiNN4_78C75clRcUwjmrlcc9lwQL4hR2KgD2ahJE9FTTiY2qp99Ckm5LM4qGEUaIoIwowRpJu2-r0-fSr1sND0HWmf03BbSbCWzt_h4J2nW5yeZmbOd6pFjPEZJ1C4Q7pXrH-hp6PTcwCb7KArXCfpMtOt5r2Q-o9Qm55ZvM82xKv97AruY\">\t\t\t\t\t\t<div style=\"display:inline-block;width:480px;height:325px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\t\t\t\t\t</a><p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">지난 4월 10일, 소니가&#160;</span><a href=\"http://email.mg2.substack.com/c/eJwlUMGOhSAM_Bo5EkBFPHDYy_sNg1Cf7CIaKM_17xfXpE2TaaYzU2sQ3nu69LFnJCVDmrzTcmwHJgfidOe46hXxeVoSwGZ80JgKkKPMwVuDfo83gY-j6smqB24BZsdMNw7KtgtrOQejQFrVj3JpyS0zmeI8RAsaPpCuPQIJekU8ctN-NeJV6zxPOvvg76Z23ypEvBZMMNZxwYZO9Ixy-mtU_AS5Heiajm1vQXOZMxr7c5NI0gsYpN8lQl3nB6zOpzq3Ej1eE0QzB3BPKHy-8O8RrwN0hDMHQIT0gDVpK1UvR1J13F7fEfV61Ut_-jlv7g\" style=\"font-family:돋움;font-size:12pt\">비리비리</a><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">에 4억 달러의 전략적 투자를 완료하며 지분의 약 5%를 보유하게 되었습니다. 하지만 비리비리에 관심을 가지는 건 소니뿐만이 아닌데요. 주주 명부를 보시면 텐센트와 타오바오(알리바바)의 이름을 보실 수 있습니다. 과연 어떤 기업이길래 텐센트, 알리바바, 소니 모두 투자한 것일까요?</span></p>\r\n\t\t\t\t\t<a href=\"http://email.mg2.substack.com/c/eJxVUUtu5SAQPM1jh4X5GFiwiCLNNSw-bT8mNngMTuKcPvh5NRKiS013ddHlbYU576fZcqnoKLCPMZhBM0kGiYLhoVdCoVjGaQdYbVxM3Q9A2-GW6G2NOV0NvdZKoKchSisfejaQXinHpdOBEk4nyUA6awm6xoz2CBGSBwOfsJ85AVrMs9atPNjbg_5px4fUlcOVav1H5_PaUnG1M7Q4QfXPq2Rc4hrrg75PjbDmBv7dgL3NOYdWcnNScbGKi7dd7vAfUAF2DEQ45xXHTRjDnEnAWvQK2-AYdSClVrwrrLOr_cnJfpVbSOO4P_-CL1XlBT2R2gkRMFekxzwwitXgKGZ8opYLBsqKUVL-TQfdbWlG0VBCCeE9JZJTQbq--7YqfS7DutXw4GSd6X9bQLuZwNbu75GgPZc72dSMLa5HivUcIVm3QLhdqretr6XXcwOT4KssUCvsd7JZxwYlBo3anJCbv8k8z8b0C44krfo\">\t\t\t\t\t\t<div style=\"display:inline-block;width:480px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\t\t\t\t\t</a><p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://email.mg2.substack.com/c/eJwlUNGOhCAM_Jrl0QAK4gMP97K_YRDqyi0igeKdf3_smTTpZJp2OmMNwuvIl05HQVIL5Nk7Lad-pHIkTg-OKaGIL_OaAXbjg8ZcgaS6BG8N-iN-Ftg0KUE2Pa7MCLlKLrlaODMDl1IsI3PSLQxWQT4ys6nOQ7Sg4YR8HRFI0BtiKo_-68GfrVIwWPfunRs22W7-hNIg66dBUOI1p5zSgXE6DlzQjnW_RsUzyD2hewx0f_Gu1KWgse_OHjvJegWD3XeN0MblJpuHufW9Ro_XDNEsAdxtD-88_r_FK4GO8FMCIEK-yea5l0rIiTQdd7Rgot6udukPYCtyCg\" style=\"font-family:돋움;font-size:12pt\">[플래텀] 해적, 컨텐츠 왕이 되다...&#39;비리비리&#39;, 소니로부터 4800억 투자유치</a></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">비리비리는 2009년 일본 애니메이션,만화,게임 등을 다루는 동영상 커뮤니티 사이트로 시작했습니다. 이후 2010년에 일본 애니메이션 판권을 사들이면서 흔히 덕후라고 불리는 사람들에게 사랑받는 커뮤니티가 되죠. 또한 일본의 게임을 퍼블리싱 해오면서 게임 커뮤니티로써도 영향력을 발휘해왔으며, 작년에는 리그오브레전드 결승전 독점 중계권을 따기도 했습니다.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">애니,만화,게임 외에도 하나둘씩 카테고리를 넓혀나가 음악, 패션, 엔터테인먼트, 전자제품 등 수많은 커뮤니티를 형성했으며, 트위치같이 생중계&amp;채팅창 시스템 또한 도입하면서, 결국은 유튜브와 같은 모습을 띄게 된 것이죠.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">최근에는 코로나 사태를 위해 CCTV 뉴스와 협력하기도 하고, 우리나라의 온라인 개학처럼 상하이시의&#160;</span><a href=\"http://email.mg2.substack.com/c/eJwlUMtuxCAM_JrlRkReJDlw2Et_IzLgbNwlEAHZNn9f0ki2LI8foxkDGV8hnmoPKbMjYZzJKjm1g5ADs6qz9diPjNK8RMQNyKkcD2T7oR0ZyBT8dVBP09izVUk9iEn2AGCHwY4Splpg14-trnXbSWAXzQyHJfQGFX4wnsEjc2rNeU-P9vlovkq8I4dEUJmwlU6Toyu5xgJg4uB5WBYyBI7vMXzIYiwID96RR24cpFTWyPO0gn-tQIxUIxohuroRQ9f0oqqrXxj9x8ltz_bRie3VVOnQKYN5X7wsqgUhV9-HxzJON1h0z6Vuh6d8zuhBO7S3Jfn28F9hPndUHn-Sw5wx3mDxqZVjLydWeGwoZnq1nuXTH24VhuY\" style=\"font-family:돋움;font-size:12pt\">온라인 클래스 제공</a><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">을 맡기도 하면서 계속해서 영향력을 넓혀가고 있습니다.</span></p>\r\n\t\t\t\t\t<a href=\"http://email.mg2.substack.com/c/eJxVUdtu5SAM_JqTt0SES4AHHqpK-xuRASeHbQLZQNqmX19y8rQSwqPBHhuPg4Jz2k-zpVyaI-M-Bm8GzSQZZOMN970Sqgl5nHbEFcJiyn5gsx12CQ5KSPEq6LVWonka5vjkueJUEkko5xMg42QaYELHlHbN1WaEwweMDg1-4n6miM1inqVs-cHeHvRPPc7HLh82F3AfnUtrpcIKM9Y4YXHPK2VcwhrKg75PVbCkCv7dgL3NKfmacmtScamKS7de9nAfWBD3Fomw1ineWgDWciax1aJXLXjLqEUpteJdZh2s8JMifOV7kKpxf_4FX1PlFxSDAi45tAysbzkddAu1ReugJ07SXky9HzXV30KLbotzEwwllBDeUyI5FaTru29Q8XMZ1q34ByfrTP_bQrObCaF0f4-I9TnfZJ1mrHE9YijniBHsgv52qdy2vpZezg1NxK-8YCm432S1jg1KDLqpfXyq_kbzPKvSL50IruY\">\t\t\t\t\t\t<div style=\"display:inline-block;width:480px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\t\t\t\t\t</a><p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">비리비리의 성장세는 수치로 확인하면 더욱 놀랍습니다</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">비리비리의 작년 매출은 $973m으로 전년 대비 64 % 증가했으며, 이중 모바일 게임이 $517m으로 전년 대비 23% 증가, 라이브 &amp; 부가서비스가 $235m으로 180% 증가, 광고가 $117m으로 76% 증가, 마지막으로 커머스가 $103m으로 403% 증가했습니다. (게임은 퍼블리싱, 라이브는 LOL 생중계 등, 광고는 광고 카테고리가 따로 마련되어 있음, 커머스는 앱 내 물건을 판매하고 있음).</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">주목할 점은 상대적으로 게임 매출 비중이 줄어들고 있으며, 라이브와 커머스 매출이 크게 늘고 있다는 점인데요. 중국이 자국 내 게임산업에 강력한 규제를 진행하면서 비리비리가 많은 타격을 받을 것으로 예상되었지만, 매출을 다변화하며 위기를 벗어나는 모양새입니다.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">비리비리의 2019년 MAU는 1.3억 명으로 전년대비 40% 증가했고, DAU 또한 3천8백만 명으로 전년대비 41% 증가한 수치를 보였습니다. 일 평균 시청 시간은 77분이나 된다고 하네요.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">또 한가지 놀라운 것은 이용자 중 90년대 이후 세대의 비중이 78%를 차지하고 있다는 것으로, 중국의 Z세대(중국에선 쥬링허우라고 부름)가 사랑하는 플랫폼임을 알 수 있습니다 (미국의 스냅챗과 같은 포지션).</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">그리고 비리비리의 정회원이 되기 위해선 퀴즈를 풀어야 하는데요, 작년 대비 정회원 수가 50%나 늘었다고 합니다. 참고로 이 퀴즈 시스템의 존재가 건전한 커뮤니티를 형성하는데 큰 역할을 한다고 하네요.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://email.mg2.substack.com/c/eJwlUMtuhDAM_JrNbVESII9DDr30N1BIzJIWAk2cpfx9Q5FsjTSWPZ5xFuG1pdPsW0ZSMqQheCN0K6mQxJvOM9UrEvIwJYDVhsVgKkD2Mi7BWQxbvBaY1qon84VUMt5KzxztrZajE1QKKTqYrNKKXDKDLT5AdGDgDencIpDFzIh7frQfD_5Z6ziOxs0h2hARUgQ8LLq5cdtahy1tVV9xDEu4-vnTPTllulIkGE45pR3jVHa8pw1rfq2K70WsO_pHR9cXb3IZM1r3fd0jyUxgsfkqEeo432S1N1RcSwx4DhDtuIC_neMd1b8RPHcwEY68ANY_b7LG0QrVC02qjt9qZtHMZ730B0ZcepI\" style=\"font-family:돋움;font-size:12pt\">[CIW] Gen-Z platform Bilibili monthly paying users doubled in Q4 2019</a></p>\r\n\t\t\t\t\t<a href=\"http://email.mg2.substack.com/c/eJxVUcFu5SAM_JqXWyJCIMCBQ1VpfyMyYPLYJpANpG369SUvp5UQHg322HgsFJzTfuot5dIcGfcpOD2qQZBRNE4z10sum5AnvyOuEBZd9gOb7TBLsFBCildBr5TkzVNz6RQlClAySjlwIGqUxHsGjA7e8OZqM8HhAkaLGj9xP1PEZtHPUrb8GN4e9E891sUuHyYXsB-dTWulwgoz1uix2OeVMi1hDeVB330VLKmCfzcY3uaUXE25NSm_VPmlWy9z2A8siHuLhBtjJWsNwNCyQWCreC9bcGagBoVQknV56GCFnxThK9-DVI378y_4miq_oPPgeipsSzz4luEoWmW9bBEUUdaNaPw4CTF8C0W6Lc5N0JRQQlhPiWCUk67vvkHGz2Vct-IejKwz_W8Lza49Qun-HhHrc77JOs1U43rEUM4JI5gF3e1SuW19Lb2cG-qIX3nBUnC_yWrdMEo-qqb2can6G_XzrEq_6aGvxg\">\t\t\t\t\t\t<div style=\"display:inline-block;width:480px;height:562px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\t\t\t\t\t</a><a href=\"http://email.mg2.substack.com/c/eJxVUdtu5SAM_JrDWyICJMADD1Wl_Y2Ii5PDNoFscNqmX19y8rQSwiNjj82Mtwhz3k-z5YLkKLCPMZhBc0kHSYIRoVO9IrGM0w6w2rgY3A8g2-GW6C3GnK6GTmvVk2dt7BgNnfPQTYNTlGs3ce2dC1pqmCi5xoz2CBGSBwOfsJ85AVnME3ErD_72YH_q8SG15XAFrf9ofV5rKq52hhonQP-8SsYlrhEf7H2qhJgr-HcD_jbnHGrJzcn6i7W_eOvlDv8BCLA3QHvnvBKNs5Y3gktodN-pxgbHmQMptRJt4a1d7U9O9qvci1SO-_Mv-NqqvGAAYDBQ3VBFbSMU8EZJ6xodrBYCnOoGOUpBvxUX7ZZmEg2jjFJRJZOC9bTt2m-r0ucyrBuGh6DrzP5TgexmAovt3yNBfS53sm4z1rgeKeI5QrJugXC7hLetL9Hx3MAk-CoLIMJ-J6t1fFD9oEmdE3L1N5nnWZl-AWAvr18\"><div style=\"display:inline-block;width:480px;height:600px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div></a><p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://email.mg2.substack.com/c/eJwlUEluxCAQfM1wtFi8wIFDLvmGxdLjIcFgQePEvw8TSy11d5V6qXIGYcvl0keuSFqFsgavZyUWOi_E69EzOUkS6vosALsJUWNpQI5mY3AGQ07vAaaUnMhLT5Y_BRdMWa_UMhrrFgeKGSWAj8Z78j6zmuYDJAcaTihXTkCifiEe9SE-Hvyzh415G5Lp9ODy3oEzoMk7bKbXnDMpJ74wTgUJmlNO6dibZeQTHdjwa2Q647wf6B8j3Tc-1GYrGvf9XkaKfoLB4asl6HS9wa5n7XlvKeC1QjI2gr-l4u3N_-d4HaAT_NQIiFBusOsXs5xmRfodn7tJSb-uvukP4fB19g\" style=\"font-family:돋움;font-size:12pt\">[이미지출처] 인문학도가 생각하는 인문투자론</a></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">비리비리는 동영상을 소비한다는 측면에서 유튜브와 비슷하지만, 자세히 살펴보면 유튜브와 다른 점이 많습니다. 1) 영상 추천 알고리즘이 핵심인 유튜브와는 달리, 비리비리는 카테고리별 커뮤니티가 핵심이고 2) 유튜브 매출의 대부분이 광고인 것과 다르게, 비리비리는 매출을 다변화시키고 있으며 3) CCTV, 상하이 시와의 협력 같이 정부 기관과 협력하는 모습 또한 보여줍니다.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:10.5pt;color:#3f3f3f;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:12pt;color:#d5d5d5\">이처럼 중국의 테크 기업들은 얼핏 보면 미국 기업과 크게 다를 바 없어 보이지만, 자세히 들여다보면 중국만의 독자적인 모습을 갖춘 경우가 많습니다. 앞으로도 종종 이러한 특징을 가진 중국의 테크 기업들을 소개해드리는 시간을 가지도록 하겠습니다!</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<cite style=\"font-family:Calibri;font-size:9pt;color:#595959;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">출처</span>: &lt;<a href=\"https://mail.naver.com/#%7B%22fClass%22%3A%22read%22%2C%22oParameter%22%3A%7B%22charset%22%3A%22%22%2C%22prevNextMail%22%3Atrue%2C%22threadMail%22%3Atrue%2C%22listScrollPosition%22%3A0%2C%22mailSN%22%3A%2272171%22%2C%22previewMode%22%3A2%7D%7D\">https://mail.naver.com/#%7B%22fClass%22%3A%22read%22%2C%22oParameter%22%3A%7B%22charset%22%3A%22%22%2C%22prevNextMail%22%3Atrue%2C%22threadMail%22%3Atrue%2C%22listScrollPosition%22%3A0%2C%22mailSN%22%3A%2272171%22%2C%22previewMode%22%3A2%7D%7D</a>&gt; </cite>\r\n\t\t\t<br />\r\n\t\t"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 151,
+    "w": 15,
+    "h": 20,
+    "src": "a3909b49f6.png"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 179,
+    "w": 11,
+    "h": 20,
+    "src": "a1630364b0.png"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 207,
+    "w": 480,
+    "h": 284,
+    "src": "c54409b99c.png"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 499,
+    "w": 480,
+    "h": 178,
+    "src": "86748f7dae.png"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 685,
+    "w": 480,
+    "h": 308,
+    "src": "44ceeb31ef.png"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 1001,
+    "w": 480,
+    "h": 490,
+    "src": "2e25c45f5f.png"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 1499,
+    "w": 480,
+    "h": 541,
+    "src": "e6475ecee3.png"
+  }
+];
+const CONTENT_HASH = '5b31801c';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>
