@@ -6,121 +6,379 @@
 <title>AT/DT_수요자 입장</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">AT/DT_수요자 입장</span>
-  
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">AT/DT_수요자 입장</div>
+<div class="date"></div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">AT/DT_수요자 입장<br>		<br>		<br>	<br>	<br>		<br>			<br>AICC 솔루션 판매 김욱태 팀장 쪽 현황 파악<br>			<br>AICC - 이진오 팀장 미팅, STT 성능이슈 및 대응 방안 - 고가혁에서 이슈 제기 예정? 확인. A.X 등 모델 활용 계획<br>			<br>T클로드 내년 과금 시작하게 되면 어떻게 할건지? A.X 전환 or 그냥 돈내고 쓸건지?<br>			<br>백영민<br>			<br>정종근<br>			<br>박소희 팀장 - AI챗봇 요금제 문의가 적지 않을 것 같은데, '요금제 에이전트'기능 제외되어도 무방한지?<br>			<br>구자경 팀장 - 협의중이라고 들었는데, 6월 이후 AI Layer에 AI챗봇 어떻게 들어가는건지?<br>			<br>________________________________________________________________<br>			<br><br>			<br>전체 Picture 정리 - B/E, Data, BSS 관점 - 내 올해 과제<br>			<br>현황 진단/이슈 파악 - T3S 중심, AT/DT와 에이닷도 포괄적으로 연계되어 있으므로 다 봐야함<br>			<br>AI사업 추진회의 배석 요청 - 유승훈 팀장<br>			<br>모든 조직 업무분장 만들기+조직도 암기<br>			<br><br>			<br>1/ 현안 및 이슈<br>			<br>2/ 보고자료 공유 요청, 회의 배석 요청은 누구한테?<br>			<br><br>			<br>AI챗봇 OBT는 보고가 6월 중순까지 밀림<br>			<br><br>			<br>변추 AT/DT센터 담당 유지환님_____<br>			<br>3대 중점 추진 사항<br>			<br>1/ NONA(Next BSS) TF - 본사업 착수(2월), 통합 Architecture 설계(9월), '28년 6월 오픈<br>			<br>  - 향후 스윙이 잘 Mig. 가능한 구조로 설계되고 있는가?<br>			<br>2/ 전사 Data Platform 통합(Gravity)/ AI Readable 데이터 기반 구축<br>			<br>  - 9개 데이터 인프라 통합, AI Readable 데이터 구축, 데이터/모델 서비스 개발<br>			<br>3/ AT/DT 마스터 플랜<br>			<br>  - 마스터플랜 수립(3월), 과제 실행 및 성과 관리(12월), MAP 1.5 연내 런칭, AICC 진화 가속화?<br>			<br>4/ Infra 클라우드화: Data Lake(온프레미스) ▶ AWS<br>			<br>5/ 안정 및 운영 효율화<br>			<br> - BSS IT Infra EoS 대응/무장애, 상품/서비스 TTM을 통한 전사 경쟁력 강화<br>			<br> - GPU 구매 거버넌스 - AWS 및 Lamda 활용 등(EOS; End of Service) 기준으로 너무 보수적으로 유지/전환<br>			<br><br>			<br>■ MNO AT 본부 - 배병찬 본부장<br>			<br>└ T서비스기획팀 구자경 팀장 - T3S 총괄(T월드/ TDS, T멤버십)<br>			<br>└ MNO AT추진팀 석장군 팀장 - MAMF<br>			<br>└ MNO 마케팅팀 이영준 팀장 - 오프라인 매장(스마트 플래너, T화면공유 상담서비스, 개인화)<br>			<br><br>			<br>■ AT/DT센터<br>			<br>└ AT/DT 전략팀 유승훈 팀장/이상윤님 + AT/DT 사업추진회의(담당: 권병기)<br>			<br>				<br>- 현안: 4월 AICC<br>				<br>- 중장기 이슈: 산발적으로 진행중인 플랫폼 레이어 통합<br>			<br>			<br>ㅇ AT Platform실 권해성 실장<br>			<br>└ AICC팀 이진호 팀장<br>			<br>ㅇ AT서비스개발실 전계범 실장<br>			<br>└ T서비스개발팀 김기한님: <br>			<br>				<br>- T전화 '채티' - 리소스 없어서 페이드 아웃, 5월 이후 종료 이슈 - 조현덕 담당쪽에서 개발 담당 했었음<br>				<br>- 에이닷 T서비스 'T 에이전트' - T월드에 있는 챗봇을 웹뷰로 띄우는 형태<br>				<br>- T월드 내 '상담 챗봇' = T에이전트? 이걸 5월에 대체<br>				<br>위 세 가지를 새로 만든(에이닷) 챗봇으로 대체 계획 중이나, 의사결정 지연 -> 위에 두개 브랜치도 같이 발목이 잡힌 상황<br>			<br>			<br>└ MNO AI Agent팀 박소희 팀장<br>			<br>				<br>- 6/18 OBT 개시, 채티는 논의 중, T에이전트는 7월 4주차 Target으로 대체 준비 중<br>				<br>- 4/17 MNO사업부장 통합 오픈 승인<br>				<br>- MNO Chatbot을 박병관 본부장/GPAA AI Tech Product 본부와 함께 구축<br>				<br>- NLU/ TSL/ A.X-박소희 팀장 4/16(금)미팅 예정<br>				<br>- 챗봇은 일반(Hybird NLU+RAG/로밍(NLU)으로 개편<br>				<br>- TSL과 원모델은 무슨 차이? LNU? 얩- 현재는 ML모델 + 에이닷 모델을 트리거링에 활용 중(원모델은 아직), MLS??<br>				<br>- 권해성 실장 ▶ 전계범 실장<br>				<br>- 로밍 에이전트 - Telco LLM 활용 중(NLU 기반) 문서현/김시원 // 요금제 에이전트 // TDS 에이전트<br>				<br>위 세 가지 에이전트는 일반/로밍 에이전트 2개의 방(?)으로 통합<br>			<br>			<br>    - AICC는 TSL 사용, 상담사들이 조회하는 KMS, MKIS의 내용을 LLM 기반으로 서빙 중<br>			<br>    - 챗봇과 AI Layer를 상보적으로 활용 하려는 계획<br>			<br>    - 에이전트는 4월에 고객 조사 및 보고 예정 ▶ 하반기에 메인 LLM으로 활용 가능?(TSL ▶ A.X 기반)<br>			<br>*고객Care팀 안남무 - O/I 보고(AICC 포함) - ISSUE(고객센터-타채널 상담 내용 공유X, B유선 데이터 연동 미흡, 인력 감축 가속화)<br>			<br>ㅇ AT Data실 최민성 팀장 - 원모델<br>			<br>ㅇ AT Infra실<br>			<br>ㅇ 정보보호실<br>			<br>ㅇ Next BSS TF<br>			<br><br>			<br>4개 Layer<br>			<br>스윙을 다 갈아엎는 비즈니 서포트 시스템 bss를 다 갈아엎는 게 있고 이거 갈아엎는 게 있고 <br>			<br>그 얘네들이 모이는 전사의 데이터 레이크 데이터 체계를 다 갈아엎는 갤럭시 갤럭시가 있고 <br>			<br>그리고 이것들을 중간에 인터프리트 해주는 레이어를 만드는 게 있고 <br>			<br>ai 레이어를 만드는 게 있고 우리 서비스가 우리는 이제 프로젝트명으로 ai 레이어로 형태적인 부분을 했던 거고<br>			<br><br>			<br><br>			<br>				<br>					Agent<br>					활용 모델<br>					모델 선정/활용 배경<br>				<br>				<br>					MNO Agent<br>					NLU + A.X + GPT 혼용<br>										<br>						<br>- MNO Agent는 Hallucination을 용납할 수 없으므로 NLU 기반으로 구축<br>						<br>- A.X/GPT는 Intent 분석 및 답변 생성에 활용 ▶ TSL로 대체 예정<br>					<br>					<br>				<br>				<br>					에이닷<br>					Multi agent<br>					<br><br>					<br>				<br>			<br>		<br>		<br>			<br>전체 PoC - 유통망(스마트 플래너, 스윙), T3S, 고객센터, 넘넘, SKB, T전화, 에이닷, 외부 버티컬...<br>		<br>		<br>			<br>확보 필요문서 - 폴더와 이메일 확인 후 확정 -> 요청<br>			<br>MAP(MNO AI Platform) <br>			<br>MAMF<br>			<br>AI Layer - 구자경 팀장, 확보 완료<br>			<br>원모델 - LLM 기반  추천<br>			<br>에이닷에 활용 중, T3S에 바로 활용 어려워 개발 필요하나 인력 부족<br>			<br>AT/DT 마스터플랜 자료 - 유승훈 팀장<br>			<br>TSL(Telco Specific LLM) 이건 또 어디서함?<br>			<br>고객 여정 플랫폼?(장현기 센터장)<br>			<br><br>			<br>_______________________________<br>			<br><br>			<br>에이닷 - MNO 연계현황<br>			<br>				<br>- 1월부터 상담 데이터 등은 에이닷 에이전트에 넘어가고 있음,<br>				<br>반대로 에이전트 정보를 MNO로 넘겨주는 것 설계 필요<br>				<br>- 챗봇의 (상담) 내용이나, MNO API 활용은 진행 중<br>			<br>			<br><br>			<br>AT/DT D/L Session<br>			<br><br>			<br>1/ 조직 및 R&R<br>			<br>BSS, MAP, AICC 업무 추진<br>			<br>*Map(MNO AI Platfom) - 미들과 AI 붙이는, <br>			<br>개발 전담(기획은 MNO로 이전)<br>			<br><br>			<br>2/ Next BSS ~'28.2H<br>			<br>				<br>- 전사 데이터 인프라 통합<br>				<br>- AI Readable 데이터 구축<br>				<br>- 통합 관점 모델/서비스 개발<br>			<br>			<br><br>			<br>3/ AT/DT 마스터플랜<br>			<br>				<br>- MNO사업 효율성 강화 & 추가 BM발굴 기반 구축<br>				<br>- AT/DT 기반 전사 O/E 지원<br>			<br>			<br><br>			<br>4/ Data/Infra</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note-AT-DT-수요자-입장';
+const SAVE_KEY = 'board-AT-DT-수요자-입장';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 360,
+    "y": 19,
+    "w": 600,
+    "content": "전체 PoC - 유통망(스마트 플래너, 스윙), T3S, 고객센터, 넘넘, SKB, T전화, 에이닷, 외부 버티컬..."
+  },
+  {
+    "type": "html",
+    "x": 48,
+    "y": 115,
+    "w": 781,
+    "html": "\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">AICC <span lang=\"ko-KR\">솔루션</span> <span lang=\"ko-KR\">판매</span> <span lang=\"ko-KR\">김욱태</span> <span lang=\"ko-KR\">팀장</span> <span lang=\"ko-KR\">쪽</span> <span lang=\"ko-KR\">현황</span> <span lang=\"ko-KR\">파악</span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">AICC - <span lang=\"ko-KR\">이진오</span> <span lang=\"ko-KR\">팀장</span> <span lang=\"ko-KR\">미팅</span>, STT <span lang=\"ko-KR\">성능이슈</span> <span lang=\"ko-KR\">및</span> <span lang=\"ko-KR\">대응</span> <span lang=\"ko-KR\">방안</span> - <span lang=\"ko-KR\">고가혁에서</span> <span lang=\"ko-KR\">이슈</span> <span lang=\"ko-KR\">제기</span> <span lang=\"ko-KR\">예정</span>? <span lang=\"ko-KR\">확인</span>. A.X <span lang=\"ko-KR\">등</span> <span lang=\"ko-KR\">모델</span> <span lang=\"ko-KR\">활용</span> <span lang=\"ko-KR\">계획</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">T<span lang=\"ko-KR\">클로드</span> <span lang=\"ko-KR\">내년</span> <span lang=\"ko-KR\">과금</span> <span lang=\"ko-KR\">시작하게</span> <span lang=\"ko-KR\">되면</span> <span lang=\"ko-KR\">어떻게</span> <span lang=\"ko-KR\">할건지</span>? A.X <span lang=\"ko-KR\">전환</span> or <span lang=\"ko-KR\">그냥</span> <span lang=\"ko-KR\">돈내고</span> <span lang=\"ko-KR\">쓸건지</span>?</p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">백영민</p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">정종근</p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">박소희<span lang=\"en-US\"> </span>팀장<span lang=\"en-US\"> - AI</span>챗봇<span lang=\"en-US\"> </span>요금제<span lang=\"en-US\"> </span>문의가<span lang=\"en-US\"> </span>적지<span lang=\"en-US\"> </span>않을<span lang=\"en-US\"> </span>것<span lang=\"en-US\"> </span>같은데<span lang=\"en-US\">, &#39;</span>요금제<span lang=\"en-US\"> </span>에이전트<span lang=\"en-US\">&#39;</span>기능<span lang=\"en-US\"> </span>제외되어도<span lang=\"en-US\"> </span>무방한지<span lang=\"en-US\">?</span></p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">구자경<span lang=\"en-US\"> </span>팀장<span lang=\"en-US\"> - </span>협의중이라고<span lang=\"en-US\"> </span>들었는데<span lang=\"en-US\">, 6</span>월<span lang=\"en-US\"> </span>이후<span lang=\"en-US\"> AI Layer</span>에<span lang=\"en-US\"> AI</span>챗봇<span lang=\"en-US\"> </span>어떻게<span lang=\"en-US\"> </span>들어가는건지<span lang=\"en-US\">?</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">________________________________________________________________</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p data-tag=\"to-do,remember-for-later\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">전체<span lang=\"en-US\"> Picture </span>정리<span lang=\"en-US\"> - B/E, Data, BSS </span>관점<span lang=\"en-US\"> - </span>내<span lang=\"en-US\"> </span>올해<span lang=\"en-US\"> </span>과제</p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">현황<span lang=\"en-US\"> </span>진단<span lang=\"en-US\">/</span>이슈<span lang=\"en-US\"> </span>파악<span lang=\"en-US\"> - T3S </span>중심<span lang=\"en-US\">, AT/DT</span>와<span lang=\"en-US\"> </span>에이닷도<span lang=\"en-US\"> </span>포괄적으로<span lang=\"en-US\"> </span>연계되어<span lang=\"en-US\"> </span>있으므로<span lang=\"en-US\"> </span>다<span lang=\"en-US\"> </span>봐야함</p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">AI<span lang=\"ko-KR\">사업</span> <span lang=\"ko-KR\">추진회의</span> <span lang=\"ko-KR\">배석</span> <span lang=\"ko-KR\">요청</span> - <span lang=\"ko-KR\">유승훈</span> <span lang=\"ko-KR\">팀장</span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">모든 조직 업무분장 만들기+조직도 암<span lang=\"ko-KR\">기</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">1/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">현안</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">및</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">이슈</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">2/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">보고자료</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">공유</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">요청</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">회의</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">배석</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">요청은</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">누구한테</span><span style=\"font-family:Malgun Gothic\">?</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">AI</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">챗봇</span><span style=\"font-family:Malgun Gothic\"> OBT</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">는</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">보고가</span><span style=\"font-family:Malgun Gothic\"> 6</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">월</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">중순까지</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">밀림</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">변추<span lang=\"en-US\"> AT/DT</span>센터<span lang=\"en-US\"> </span>담당<span lang=\"en-US\"> </span>유지환님<span lang=\"en-US\" style=\"font-family:Malgun Gothic\">_____</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">3</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">대</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">중점</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">추진</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">사항</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">1/ NONA(Next BSS) TF - </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">본사업</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">착수</span><span style=\"font-family:Malgun Gothic\">(2</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">월</span><span style=\"font-family:Malgun Gothic\">), </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">통합</span><span style=\"font-family:Malgun Gothic\"> Architecture </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">설계</span><span style=\"font-family:Malgun Gothic\">(9</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">월</span><span style=\"font-family:Malgun Gothic\">), &#39;28</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">년</span><span style=\"font-family:Malgun Gothic\"> 6</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">월</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">오픈</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">  - </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">향후</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">스윙이</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">잘</span><span style=\"font-family:Malgun Gothic\"> Mig. </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">가능한</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">구조로</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">설계되고</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">있는가</span><span style=\"font-family:Malgun Gothic\">?</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">2/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">전사</span><span style=\"font-family:Malgun Gothic\"> Data Platform </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">통합</span><span style=\"font-family:Malgun Gothic\">(Gravity)/ AI Readable </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">데이터</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">기반</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">구축</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">  - 9</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">개</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">데이터</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">인프라</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">통합</span><span style=\"font-family:Malgun Gothic\">, AI Readable </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">데이터</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">구축</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">데이터</span><span style=\"font-family:Malgun Gothic\">/</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">모델</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">서비스</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">개발</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">3/ AT/DT </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">마스터</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">플랜</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">  - </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">마스터플랜</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">수립</span><span style=\"font-family:Malgun Gothic\">(3</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">월</span><span style=\"font-family:Malgun Gothic\">), </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">과제</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">실행</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">및</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">성과</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">관리</span><span style=\"font-family:Malgun Gothic\">(12</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">월</span><span style=\"font-family:Malgun Gothic\">), MAP 1.5 </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">연내</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">런칭</span><span style=\"font-family:Malgun Gothic\">, AICC </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">진화</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">가속화</span><span style=\"font-family:Malgun Gothic\">?</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">4/ Infra </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">클라우드화</span><span style=\"font-family:Malgun Gothic\">: Data Lake(</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">온프레미스</span><span style=\"font-family:Malgun Gothic\">) </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">▶</span><span style=\"font-family:Malgun Gothic\"> AWS</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">5/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">안정</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">및</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">운영</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">효율화</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\"> - BSS IT Infra EoS </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">대응</span><span style=\"font-family:Malgun Gothic\">/</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">무장애</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">상품</span><span style=\"font-family:Malgun Gothic\">/</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">서비스</span><span style=\"font-family:Malgun Gothic\"> TTM</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">을</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">통한</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">전사</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">경쟁력</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">강화</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\"> - GPU </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">구매</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">거버넌스</span><span style=\"font-family:Malgun Gothic\"> - AWS </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">및</span><span style=\"font-family:Malgun Gothic\"> Lamda </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">활용</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">등</span><span style=\"font-family:Malgun Gothic\">(EOS; End of Service) </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">기준으로</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">너무</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">보수적으로</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">유지</span><span style=\"font-family:Malgun Gothic\">/</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">전환</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-weight:bold\">■</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-weight:bold\"> MNO AT </span><span style=\"font-family:Malgun Gothic;font-weight:bold\">본부</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-weight:bold\"> - </span><span style=\"font-family:Malgun Gothic;font-weight:bold\">배병찬</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-weight:bold\"> </span><span style=\"font-family:Malgun Gothic;font-weight:bold\">본부장</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">└</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> T</span><span style=\"font-family:Malgun Gothic\">서비스기획팀</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">구자경</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">팀장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - T3S </span><span style=\"font-family:Malgun Gothic\">총괄</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">(T</span><span style=\"font-family:Malgun Gothic\">월드</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/ TDS, T</span><span style=\"font-family:Malgun Gothic\">멤버십</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">)</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">└</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> MNO AT</span><span style=\"font-family:Malgun Gothic\">추진팀</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">석장군</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">팀장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - MAMF</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">└</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> MNO </span><span style=\"font-family:Malgun Gothic\">마케팅팀</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">이영준</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">팀장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - </span><span style=\"font-family:Malgun Gothic\">오프라인</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">매장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">(</span><span style=\"font-family:Malgun Gothic\">스마트</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">플래너</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, T</span><span style=\"font-family:Malgun Gothic\">화면공유</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">상담서비스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">개인화</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">)</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">■</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> AT/DT</span><span style=\"font-family:Malgun Gothic\">센터</span></p>\r\n\t\t\t<p data-tag=\"remember-for-later\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">└</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> AT/DT </span><span style=\"font-family:Malgun Gothic\">전략팀</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">유승훈</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">팀장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">이상윤님</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> + AT/DT </span><span style=\"font-family:Malgun Gothic\">사업추진회의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">(</span><span style=\"font-family:Malgun Gothic\">담당</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: </span><span style=\"font-family:Malgun Gothic\">권병기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">)</span></p>\r\n\t\t\t<ul>\r\n\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Malgun Gothic\">현안</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: 4</span><span style=\"font-family:Malgun Gothic\">월</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> AICC</span></li>\r\n\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Malgun Gothic\">중장기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">이슈</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: </span><span style=\"font-family:Malgun Gothic\">산발적으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">진행중인</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">플랫폼</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">레이어</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">통합</span></li>\r\n\t\t\t</ul>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> AT Platform</span><span style=\"font-family:Malgun Gothic\">실</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">권해성</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">실장</span></p>\r\n\t\t\t<p data-tag=\"remember-for-later\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">└</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> AICC</span><span style=\"font-family:Malgun Gothic\">팀</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">이진호</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">팀장</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> AT</span><span style=\"font-family:Malgun Gothic\">서비스개발실</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">전계범</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">실장</span></p>\r\n\t\t\t<p data-tag=\"remember-for-later\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">└</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> T</span><span style=\"font-family:Malgun Gothic\">서비스개발팀</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">김기한님</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: </span></p>\r\n\t\t\t<ul>\r\n\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">T</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">전화</span><span style=\"font-family:Malgun Gothic\"> &#39;</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">채티</span><span style=\"font-family:Malgun Gothic\">&#39; - </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">리소스</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">없어서</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">페이드</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">아웃</span><span style=\"font-family:Malgun Gothic\">, 5</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">월</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">이후</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">종료</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">이슈</span><span style=\"font-family:Malgun Gothic\"> - </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">조현덕</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">담당쪽에서</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">개발</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">담당</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">했었음</span></span></li>\r\n\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Malgun Gothic\">에이닷</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> T</span><span style=\"font-family:Malgun Gothic\">서비스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> &#39;T </span><span style=\"font-family:Malgun Gothic\">에이전트</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">&#39; - T</span><span style=\"font-family:Malgun Gothic\">월드에</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">있는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">챗봇을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">웹뷰로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">띄우는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">형태</span></li>\r\n\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">T</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">월드</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">내</span><span style=\"font-family:Malgun Gothic\"> &#39;</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">상담</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">챗봇</span><span style=\"font-family:Malgun Gothic\">&#39; = T</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">에이전트</span><span style=\"font-family:Malgun Gothic\">? </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">이걸</span><span style=\"font-family:Malgun Gothic\"> 5</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">월에</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">대체</span></span></li>\r\n\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">위</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">세</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">가지를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">새로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">만든</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">(</span><span style=\"font-family:Malgun Gothic\">에이닷</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">) </span><span style=\"font-family:Malgun Gothic\">챗봇으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대체</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">계획</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">중이나</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">의사결정</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">지연</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> -&gt; </span><span style=\"font-family:Malgun Gothic\">위에</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">두개</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">브랜치도</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">같이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">발목이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">잡힌</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">상황</span></p>\r\n\t\t\t</ul>\r\n\t\t\t<p data-tag=\"remember-for-later\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">└</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> MNO AI Agent</span><span style=\"font-family:Malgun Gothic\">팀</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">박소희</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">팀장</span></p>\r\n\t\t\t<ul>\r\n\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">6/18 OBT </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">개시</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">채티는</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">논의</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">중</span><span style=\"font-family:Malgun Gothic\">, T</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">에이전트는</span><span style=\"font-family:Malgun Gothic\"> 7</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">월</span><span style=\"font-family:Malgun Gothic\"> 4</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">주차</span><span style=\"font-family:Malgun Gothic\"> Target</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">으로</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">대체</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">준비</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">중</span></span></li>\r\n\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">4/17 MNO</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">사업부장</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">통합</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">오픈</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">승인</span></span></li>\r\n\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">MNO Chatbot</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">을</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">박병관</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">본부장</span><span style=\"font-family:Malgun Gothic\">/GPAA AI Tech Product </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">본부와</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">함께</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">구축</span></span></li>\r\n\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">NLU/ TSL/ A.X-</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">박소희</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">팀장</span><span style=\"font-family:Malgun Gothic\"> 4/16(</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">금</span><span style=\"font-family:Malgun Gothic\">)</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">미팅</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">예정</span></span></li>\r\n\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Malgun Gothic\">챗봇은</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">일반</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">(Hybird NLU+RAG/</span><span style=\"font-family:Malgun Gothic\">로밍</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">(NLU)</span><span style=\"font-family:Malgun Gothic\">으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">개편</span></li>\r\n\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">TSL</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">과</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">원모델은</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">무슨</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">차이</span><span style=\"font-family:Malgun Gothic\">? LNU? </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">얩</span><span style=\"font-family:Malgun Gothic\">- </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">현재는</span><span style=\"font-family:Malgun Gothic\"> ML</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">모델</span><span style=\"font-family:Malgun Gothic\"> + </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">에이닷</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">모델을</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">트리거링에</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">활용</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">중</span><span style=\"font-family:Malgun Gothic\">(</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">원모델은</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">아직</span><span style=\"font-family:Malgun Gothic\">), MLS??</span></span></li>\r\n\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Malgun Gothic\">권해성</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">실장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">▶</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">전계범</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">실장</span></li>\r\n\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Malgun Gothic\">로밍</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">에이전트</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - Telco LLM </span><span style=\"font-family:Malgun Gothic\">활용</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">중</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">(NLU </span><span style=\"font-family:Malgun Gothic\">기반</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">) </span><span style=\"font-family:Malgun Gothic\">문서현</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">김시원</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> // </span><span style=\"font-family:Malgun Gothic\">요금제</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">에이전트</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> // TDS </span><span style=\"font-family:Malgun Gothic\">에이전트</span></li>\r\n\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">위</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">세</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">가지</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">에이전트는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">일반</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">로밍</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">에이전트</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 2</span><span style=\"font-family:Malgun Gothic\">개의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">방</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">(?)</span><span style=\"font-family:Malgun Gothic\">으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">통합</span></p>\r\n\t\t\t</ul>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">    - AICC</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">는</span><span style=\"font-family:Malgun Gothic\"> TSL </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">사용</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">상담사들이</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">조회하는</span><span style=\"font-family:Malgun Gothic\"> KMS, MKIS</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">의</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">내용을</span><span style=\"font-family:Malgun Gothic\"> LLM </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">기반으로</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">서빙</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">중</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">    - </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">챗봇과</span><span style=\"font-family:Malgun Gothic\"> AI Layer</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">를</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">상보적으로</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">활용</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">하려는</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">계획</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">    - </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">에이전트는</span><span style=\"font-family:Malgun Gothic\"> 4</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">월에</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">고객</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">조사</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">및</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">보고</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">예정</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">▶</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">하반기에</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">메인</span><span style=\"font-family:Malgun Gothic\"> LLM</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">으로</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">활용</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">가능</span><span style=\"font-family:Malgun Gothic\">?(TSL </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">▶</span><span style=\"font-family:Malgun Gothic\"> A.X </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">기반</span><span style=\"font-family:Malgun Gothic\">)</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">*</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">고객</span><span style=\"font-family:Malgun Gothic\">Care</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">팀</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">안남무</span><span style=\"font-family:Malgun Gothic\"> - O/I </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">보고</span><span style=\"font-family:Malgun Gothic\">(AICC </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">포함</span><span style=\"font-family:Malgun Gothic\">) - ISSUE(</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">고객센터</span><span style=\"font-family:Malgun Gothic\">-</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">타채널</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">상담</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">내용</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">공유</span><span style=\"font-family:Malgun Gothic\">X, B</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">유선</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">데이터</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">연동</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">미흡</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">인력</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">감축</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">가속화</span><span style=\"font-family:Malgun Gothic\">)</span></p>\r\n\t\t\t<p data-tag=\"remember-for-later\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> AT Data</span><span style=\"font-family:Malgun Gothic\">실</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">최민성</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">팀장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - </span><span style=\"font-family:Malgun Gothic\">원모델</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> AT Infra</span><span style=\"font-family:Malgun Gothic\">실</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">정보보호실</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">ㅇ</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> Next BSS TF</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">4</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">개</span><span style=\"font-family:Malgun Gothic\"> Layer</span></p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">스윙을 다 갈아엎는 비즈니 서포트 시스템 bss를 다 갈아엎는 게 있고 이거 갈아엎는 게 있고 </p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그 얘네들이 모이는 전사의 데이터 레이크 데이터 체계를 다 갈아엎는 갤럭시 갤럭시가 있고 </p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그리고 이것들을 중간에 인터프리트 해주는 레이어를 만드는 게 있고 </p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ai 레이어를 만드는 게 있고 우리 서비스가 우리는 이제 프로젝트명으로 ai 레이어로 형태적인 부분을 했던 거고</p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">Agent</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Malgun Gothic\">활용</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">모델</span></td>\r\n\t\t\t\t\t<td style=\"width:524;border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Malgun Gothic\">모델</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">선정</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">활용</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">배경</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">MNO Agent</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">NLU + A.X + GPT </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">혼용</span></span></td>\r\n\t\t\t\t\t<td style=\"width:524;border:1px solid\">\t\t\t\t\t<ul>\r\n\t\t\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">MNO Agent</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">는</span><span style=\"font-family:Malgun Gothic\"> H</span><span lang=\"ko-KR\">allucination</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">을</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">용납할</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">수</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">없으므로</span><span style=\"font-family:Malgun Gothic\"> NLU </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">기반으로</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">구축</span></span></li>\r\n\t\t\t\t\t\t<li style=\"font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">A.X/GPT</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">는</span><span style=\"font-family:Malgun Gothic\"> Intent </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">분석</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">및</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">답변</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">생성에</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">활용</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">▶</span><span style=\"font-family:Malgun Gothic\"> TSL</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">로</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">대체</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">예정</span></span></li>\r\n\t\t\t\t\t</ul>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span style=\"font-family:Malgun Gothic\">에이닷</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">Multi agent</span></span></td>\r\n\t\t\t\t\t<td style=\"width:524;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t"
+  },
+  {
+    "type": "text",
+    "x": 888,
+    "y": 115,
+    "w": 415,
+    "content": "확보 필요문서 - 폴더와 이메일 확인 후 확정 -> 요청\nMAP(MNO AI Platform)\nMAMF\nAI Layer - 구자경 팀장, 확보 완료\n원모델 - LLM 기반  추천\n에이닷에 활용 중, T3S에 바로 활용 어려워 개발 필요하나 인력 부족\nAT/DT 마스터플랜 자료 - 유승훈 팀장\nTSL(Telco Specific LLM) 이건 또 어디서함?\n고객 여정 플랫폼?(장현기 센터장)\n_______________________________\n에이닷 - MNO 연계현황\n\n1월부터 상담 데이터 등은 에이닷 에이전트에 넘어가고 있음,\n반대로 에이전트 정보를 MNO로 넘겨주는 것 설계 필요\n챗봇의 (상담) 내용이나, MNO API 활용은 진행 중\nAT/DT D/L Session\n1/ 조직 및 R&R\nBSS, MAP, AICC 업무 추진\n*Map(MNO AI Platfom) - 미들과 AI 붙이는,\n개발 전담(기획은 MNO로 이전)\n2/ Next BSS ~'28.2H\n\n전사 데이터 인프라 통합\nAI Readable 데이터 구축\n통합 관점 모델/서비스 개발\n3/ AT/DT 마스터플랜\n\nMNO사업 효율성 강화 & 추가 BM발굴 기반 구축\nAT/DT 기반 전사 O/E 지원\n4/ Data/Infra"
+  }
+];
+const CONTENT_HASH = '677811b7';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -133,33 +391,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

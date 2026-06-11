@@ -6,121 +6,394 @@
 <title>AI</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">AI</span>
-  
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">AI</div>
+<div class="date"></div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">AI<br>		<br>		<br>	<br>	<br>		<br>			<br><a href="https://news.hada.io/topic?id=17018&utm_source=discord&utm_medium=bot&utm_campaign=280" target="_blank">https://news.hada.io/topic?id=17018&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>			<br><br>			<br><a href="https://news.hada.io/topic?id=18713&utm_source=discord&utm_medium=bot&utm_campaign=280" target="_blank">https://news.hada.io/topic?id=18713&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>			<br><br>			<br><a href="https://news.hada.io/topic?id=17940&utm_source=discord&utm_medium=bot&utm_campaign=280" target="_blank">https://news.hada.io/topic?id=17940&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>			<br><br>			<br><a href="https://news.hada.io/topic?id=19188&utm_source=discord&utm_medium=bot&utm_campaign=280" target="_blank">https://news.hada.io/topic?id=19188&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>			<br><br>			<br><a href="https://byline.network/2024/11/5-233/" target="_blank">AI 에이전트의 시대</a><br>			<br><br>			<br><a href="https://news.hada.io/topic?id=20570&utm_source=discord&utm_medium=bot&utm_campaign=280" target="_blank">https://news.hada.io/topic?id=20570&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>			<br><br>			<br>옵시디언 <a href="https://news.hada.io/topic?id=17896&utm_source=discord&utm_medium=bot&utm_campaign=280" target="_blank">https://news.hada.io/topic?id=17896&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>			<br>-<br>			<br><a href="https://brunch.co.kr/@ywkim36/171" target="_blank">https://brunch.co.kr/@ywkim36/171</a><br>			<br><br>			<br>기계가 문제를 해결하는 시대, 중요한건 두 가지<br>			<br>Input과 Output,<br>			<br>문제와 아젠다를 프롬프트화 하는 Input에 대한 능력<br>			<br>산출된 답변/Output을 판별하는 능력<br>			<br><br>			<br>현 시점에서, 내가 할 수 있고, 해야만 하고, 하고 싶은 단 하나의 질문은 이런 것이다. Likely hopely <br>			<br>랭귀지 모델이, 월드 모델의 역할을 대체 할 수 있는가.<br>			<br>이것이 AI 버블과 또 한번의 겨울을 예단 할 수 있는 유일한 Cue.<br>			<br><br>			<br>이건 일종의 기계-인간의 거대한 하울링, 순환참조, 에코<br>			<br><br>			<br><br>			<br>인간이 하루에 생성하는 데이터가 ㅌㅌ 엑사바이트<br>			<br>그런데 벌써 학습시킬 데이터가 없다는건 무슨 의미인가.<br>			<br>고양이나 헐벗은 사람들의 동영상 뿐이라는 것이다.<br>			<br><br>			<br>AI의 가장 위험한 점은, 인간이 생각해낸 것들로 학습한.<br>			<br>우리가 인터넷에 쏟아낸 것들을 토대로한 지능이라는 점이다.<br>			<br>우리의 모든 편견, 약점, <br>			<br><br>			<br>데이터화 몇 가지 요건이 갖춰지면<br>			<br>AI는 인간과는 전혀 다른 방식으로 학습이 가능하다.<br>			<br>즉, 인간을 대체하는게 아니라 초월. 할 수 있는 영역이 분명히 존재한다.<br>			<br>이를 테면 암 진단 및 예측.<br>			<br><br>			<br><br>			<br>타이탄을 살라먹은 제우스 처럼<br>			<br>인류의 종말은, 자신들이 창조한 AI에 의한 것이라면<br>			<br>퍽 드라마틱하지 않은가.<br>			<br><br>			<br><br>			<br><br>			<br><br>			<br>오라클 래리 엘리슨 회장의 컨퍼런스 콜 중 Q&A. 좋은 인사이트들<br>			<br>——<br>			<br>애널리스트들의 AI 관련 질문이 엘리슨에 집중됐는데요. 엘리슨은 거침없이 의견을 피력했습니다.<br>			<br><br>			<br>▶️(언제 AI 수익화가 시작되느냐?) 사람들이 AI를 별도로 판매하는 것으로 생각한다는 걸 안다. 하지만 따로 파는 게 아니다. 우리의 애플리케이션은 주로 AI 애플리케이션이 될 것이다. 사실상 모든 것이다. 어떻게 모든 것에 대해 별도로 요금을 청구할 수 있을까. 그런 질문을 들으면 당황스럽다. <br>			<br><br>			<br>▶️(AI 투자가 지속할 것인가?) AI 시장에서 경쟁하고자 하는 기업이 진짜 프런티어 모델을 출시하기 위해 써야 하는 진입 가격은 약 1000억 달러다. 이 게임을 하려면 4~5년에 걸쳐 투자해야 하는 돈이다. 엄청난 돈이고, 더 줄어들지 않는다. 아마도 이것은 몇 개 기업과 한 국가가 앞으로 5년 이상, 아마도 10년 동안 싸워야 할 기술적 우위를 확보하기 위한 계속되는 싸움이다. 그래서 이 사업은 점점 더 커지고 있다. 둔화나 변화는 없다.<br>			<br><br>			<br>▶️(AI 언어 훈련이 곧 끝나는 게 아닌가?) 이렇게 말하겠다. 많은 사람이 아이를 대학에 보내고 나면 끝이라고 생각한다. '교육은 끝났다. 4년 동안 교육을 받았고, 그 아이를 직장에 보내면 이제 추론을 하게 될 것이다'라고 한다. 그러나 그건 사실이 아니다. 이 경쟁은 영원히 계속될 것이다. 헬스 케어를 보면 사진 스캔을 통해 암을 발견하는 모델이 있고 혈액 검사를 통해 찾는 모델도 있다. 매우 특수화된 모델들이 많고 그렇게 점점 더 많은 응용 프로그램을 보게 될 것이다. 당신이 앞으로 5년, 10년을 본다면 '이제 필요한 모든 모델을 훈련시켰고 추론만 하면 된다'라고 걱정하지 않을 것이다. <br>			<br><br>			<br>엘리슨은 그러면서 "우리는 지금 162개의 데이터센터를 갖고 있다. 나는 전 세계적으로 1000개나 2000개 넘는 오라클 데이터센터를 갖게 될 것으로 예상하며, 그중 많은 곳은 개별 은행이나 통신 회사, 기술 회사 또는 국가, 주권 클라우드, 그 비슷한 것에 전체를 빌려주는 식이 될 것"이라고 설명했습니다.<br>			<br><br>			<br>AI 투자가 정점을 찍을 수 있다는 우려를 불식시키는 얘기였었습니다. 번스타인의 마크 모어들러 애널리스트는 엘리슨이 AI 수익화에 답한 뒤 "래리. 당신이 그런 식으로 설명한 첫 번째 사람인 것 같아요. 고마워요. 아주 잘 이해가 되네요"라고 말했습니다.<br>			<br><br>			<br><a href="https://www.hankyung.com/article/202409110943i" target="_blank">https://www.hankyung.com/article/202409110943i</a><br>			<br><br>			<br><br>			<br><br>			<br>CSO도 전선을 넓히지 말자고 하셨고,<br>			<br>전략 프레임의 시작점을 AI전체 시장에서 시작하면, 이야기의 앞 단이 너무 무거워지고 길어진다.<br>			<br><br>			<br>우리가 Target하는 것은 AI 시장의 4가지 레이어 중에서<br>			<br>			<br>Consumer AI다.라는 컨센서스를 찍어서 다시한번 환기하고.<br>			<br>이 Consumer AI 시장의 고객을 이해하고 앞으로 어떻게 흘러갈지에 대한 시나리오 플래닝 및 백캐스팅으로 전략을 도출한다는 프레임을 잡고 시작하면 좋을 것 같다.<br>			<br><br>			<br>Consumer AI 시장의 전개 양상과 고객은, 우리가 지금까지 가설적으로 밀고 있는(가설이라기보다 시나리오 플래닝)<br>			<br>1/AI Native 서비스 중심 시장 확대 - AI Agent가 점점 고도화되면서 유료 시장이 열릴 가능성<br>			<br>혹은,<br>			<br>2/ AI 적용을 통한 기존 서비스 고도화 - AI Agent 자체가 커머디티화 되고 고객들은 Agent 자체에 돈을 지불하지는 않을 가능성(T맵과 T전화의 사례)<br>			<br>3/ AI가 적용된 서비스군의 구독 형태(구글 서비스들 처럼)<br>			<br>4/ 중기(3년)이내에는 이 시장에서 밸류캡쳐가 어려울 가능성<br>			<br>Task를 수행해주는 Agent 시장일 열리기에는 기술적/ 시장의 성숙도 측면에서 너무 먼, 대화형 인터페이스에 그칠 가능성<br>			<br><br>			<br>이 각 시나리오 모두에 대응 가능한 전략 방향은 무엇인지, 이에대한 키 퀘스천들을 조직 단위까지 뽑아야함.<br>			<br>그리고 우리 내부 조직별로 어떤 준비를 해야 하는지를 후술<br>			<br><br>			<br>e.g. AI Agent로 돈을 못 받게 되더라도, AI와 통신, 3rd party 상품을 패키징해서 밸류캡쳐 하는 방안 - 에이닷 유니버스<br>			<br>Target이 먼저가 아니라, 무엇. 어떤 걸 제공할건지가 선행되어야함.<br>			<br>암 진단이라든지, 고객의 Pain point가 빈번하거나 혹은 강한, 빈도와 강도 측면의 프레임으로 시장을 봐야함.<br>			<br>범용적인 대화형 Agent가 아니라 아주 서페시픽한 Scene에 특화되어있는 마이크로 Agent들의 세계관을 구축해야 할 수 있음.<br>			<br>빈도측면에서 챗Gpt와 퍼플렉시티가 유료로 돈을 받을 수 있는 것임. 검색이라는 아주 빈번하고 일상적인 활동을 보조해주기 때문에, 하루종일 가장 많이 사용하는게 폰보다 pc인데 이 pc환경에서 가장 빈번한 활동인 검색과 정보처리를 돕기 때문임. 빈도.<br>			<br><br>			<br>강도/빈도 측면에서 시간/돈/에너지 절감<br>			<br><br>			<br>돈을 벌고 있는 서비스에 AI를 적용하고, 거기서 수수료를 받는걸 생각해 볼 필요가 있음.<br>			<br>(포지셔닝) 챗GPT, 퍼플렉시티랑 경쟁이 가능할 것인가?<br>			<br><br>			<br>ChatGPT 플러그인들 중 상위 앱들을 볼 필요가 있음.<br>			<br><br>			<br>이에 대한 현 시점의 고객 스테이트를 검증하기 위해 고객 설문 필요<br>			<br> - 노트/ 생산성 앱이 되는건 어때? 태스크별로 입력하면 분류해주는<br>			<br><br>			<br>사전부검 - 에이전트 시장에서 실패한다면 왜? 이걸 키 퀘스천으로. 좀 도발적인가?<br>			<br><br>			<br>증기기관도,<br>			<br><a href="https://www.hellodd.com/news/articleView.html?idxno=70717" target="_blank">https://www.hellodd.com/news/articleView.html?idxno=70717</a><br>			<br><br>			<br><br>			<br><br>		<br>		<br>			<br>샌드버드 같은 모델? B2B2C 모델 - 프라이머리는 AI B2B2C 모델로<br>			<br>버티컬은 수수료 모델<br>			<br><br>			<br>Commerce Agent: octocom<br>			<br><br>			<br>- 작년 4월 설립<br>			<br>- 제품 구매 고민부터 결정, 추가 제안까지 고객의 쇼핑 경험을 엔드투엔드로 지원해주는 Agent 개발<br>			<br><br>			<br>1/ Octocom은 이커머스 기업을 타겟하여 고객 서비스를 자동화해주는 회사<br>			<br><br>			<br>고객사인 온라인 스토어의 매출을 극대화해주기 위한 목표를 가지고 서비스의 모든 기능을 개발<br>			<br><br>			<br>2/ 놀라운 건 단 2주 만에 AI Agent를 구축해준다는 것(GPT-4 기반)<br>			<br><br>			<br>이커머스 플랫폼에만 집중하는 전략을 통해 해당 분야에 맞게 개발 작업을 모듈화하여 개발 시간을 단축<br>			<br><br>			<br>3/ 작년 10월 $290K(한화 약 4억 원) 규모의 pre-seed 투자를 받으며, 설립된지 약 1년 여 만에 아래와 같은 지표 시현<br>			<br><br>			<br>- 실시간으로 문의의 87% 처리<br>			<br>- 고객사 매달 약 570시간 절약<br>			<br>- CVR(전환율) 32% 증가<br>			<br><br>			<br>4/ 비용은 월 구독제로, 고객 기업의 CS 문의 개수별로 비용을 차등화하였습니다. 또한 왓츠앱, 인스타그램과 같은 SNS 플랫폼에 서비스를 구축할 시 추가 과금<br>			<br><br>			<br>5/ 프로덕트의 컨셉은 총 3가지로,<br>			<br><br>			<br>- Customer support: 배송 상태, 환불 및 반품, 단순 문의에 대한 응대<br>			<br>- Shopping Consultant: 제품 추천, 비교, 제품 관련 문의에 대한 응대<br>			<br>- Intelligent Upselling: 고객의 장바구니 및 구매 내역 데이터, 활동 기록을 기반으로 관심사 제품을 추천/제안<br>			<br><br>			<br>6/ 위 3가지 컨셉이 순서대로 고객 만족도 향상, 매출 발생 유도, 매출 증대(주문 금액 향상)의 역할을 하면서, 고객사의 매출 극대화를 위한 전략으로서 활용<br>			<br><br>			<br>즉, 오프라인 매장에서의 인간 영업 사원의 판매 로직 전체를 Agent가 담당<br>			<br><br>			<br>AI가 사이드 제품을 추천할 때, 제품을 함께 사용했을 때의 효과 + 증가하는 비용을 상쇄할 만한 내용(5만 원 초과로 인한 배송비 무료)을 함께 제공하여, 소비자의 심리적 허들을 낮추고 있음<br>			<br><br>			<br>7/ 기존에 제품 홈페이지를 통해서 제품의 장점이나 특징, 쿠폰 및 혜택 등에 대한 정보를 소비자가 직접 받아들였던 것에서, 이제는 AI Agent가 대화 맥락에 따라 해당 내용을 소비자에게 대신 전달해주면서 전반적인 UX가 변화<br>			<br><br>			<br>즉 온라인에 영업 사원이 없던 게 아니라, 기존 웹사이트 방식의 정적인 온라인 영업 사원이 대화 형태의 인간 형태를 띠는 동적인 영업 사원으로 바뀜<br>			<br><br>			<br><a href="https://www.octocom.ai/" target="_blank">https://www.octocom.ai/</a></div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note-AI';
+const SAVE_KEY = 'board-AI';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 115,
+    "w": 600,
+    "content": "<a href=\"https://news.hada.io/topic?id=17018&utm_source=discord&utm_medium=bot&utm_campaign=280\">https://news.hada.io/topic?id=17018&utm_source=discord&utm_medium=bot&utm_campaign=280</a>\n<a href=\"https://news.hada.io/topic?id=18713&utm_source=discord&utm_medium=bot&utm_campaign=280\">https://news.hada.io/topic?id=18713&utm_source=discord&utm_medium=bot&utm_campaign=280</a>\n<a href=\"https://news.hada.io/topic?id=17940&utm_source=discord&utm_medium=bot&utm_campaign=280\">https://news.hada.io/topic?id=17940&utm_source=discord&utm_medium=bot&utm_campaign=280</a>\n<a href=\"https://news.hada.io/topic?id=19188&utm_source=discord&utm_medium=bot&utm_campaign=280\">https://news.hada.io/topic?id=19188&utm_source=discord&utm_medium=bot&utm_campaign=280</a>\n<a href=\"https://byline.network/2024/11/5-233/\">AI 에이전트의 시대</a>\n<a href=\"https://news.hada.io/topic?id=20570&utm_source=discord&utm_medium=bot&utm_campaign=280\">https://news.hada.io/topic?id=20570&utm_source=discord&utm_medium=bot&utm_campaign=280</a>\n옵시디언 <a href=\"https://news.hada.io/topic?id=17896&utm_source=discord&utm_medium=bot&utm_campaign=280\" lang=\"en-US\">https://news.hada.io/topic?id=17896&utm_source=discord&utm_medium=bot&utm_campaign=280</a>\n-\n<a href=\"https://brunch.co.kr/@ywkim36/171\">https://brunch.co.kr/@ywkim36/171</a>\n기계가 문제를 해결하는 시대, 중요한건 두 가지\nInput과 Output,\n문제와 아젠다를 프롬프트화 하는 Input에 대한 능력\n산출된 답변/Output을 판별하는 능력\n현 시점에서, 내가 할 수 있고, 해야만 하고, 하고 싶은 단 하나의 질문은 이런 것이다. Likely hopely\n랭귀지 모델이, 월드 모델의 역할을 대체 할 수 있는가.\n이것이 AI 버블과 또 한번의 겨울을 예단 할 수 있는 유일한 Cue.\n이건 일종의 기계-인간의 거대한 하울링, 순환참조, 에코\n인간이 하루에 생성하는 데이터가 ㅌㅌ 엑사바이트\n그런데 벌써 학습시킬 데이터가 없다는건 무슨 의미인가.\n고양이나 헐벗은 사람들의 동영상 뿐이라는 것이다.\nAI의 가장 위험한 점은, 인간이 생각해낸 것들로 학습한.\n우리가 인터넷에 쏟아낸 것들을 토대로한 지능이라는 점이다.\n우리의 모든 편견, 약점,\n데이터화 몇 가지 요건이 갖춰지면\nAI는 인간과는 전혀 다른 방식으로 학습이 가능하다.\n즉, 인간을 대체하는게 아니라 초월. 할 수 있는 영역이 분명히 존재한다.\n이를 테면 암 진단 및 예측.\n타이탄을 살라먹은 제우스 처럼\n인류의 종말은, 자신들이 창조한 AI에 의한 것이라면\n퍽 드라마틱하지 않은가.\n오라클 래리 엘리슨 회장의 컨퍼런스 콜 중 Q&A. 좋은 인사이트들\n——\n애널리스트들의 AI 관련 질문이 엘리슨에 집중됐는데요. 엘리슨은 거침없이 의견을 피력했습니다.\n▶️(언제 AI 수익화가 시작되느냐?) 사람들이 AI를 별도로 판매하는 것으로 생각한다는 걸 안다. 하지만 따로 파는 게 아니다. 우리의 애플리케이션은 주로 AI 애플리케이션이 될 것이다. 사실상 모든 것이다. 어떻게 모든 것에 대해 별도로 요금을 청구할 수 있을까. 그런 질문을 들으면 당황스럽다.\n▶️(AI 투자가 지속할 것인가?) AI 시장에서 경쟁하고자 하는 기업이 진짜 프런티어 모델을 출시하기 위해 써야 하는 진입 가격은 약 1000억 달러다. 이 게임을 하려면 4~5년에 걸쳐 투자해야 하는 돈이다. 엄청난 돈이고, 더 줄어들지 않는다. 아마도 이것은 몇 개 기업과 한 국가가 앞으로 5년 이상, 아마도 10년 동안 싸워야 할 기술적 우위를 확보하기 위한 계속되는 싸움이다. 그래서 이 사업은 점점 더 커지고 있다. 둔화나 변화는 없다.\n▶️(AI 언어 훈련이 곧 끝나는 게 아닌가?) 이렇게 말하겠다. 많은 사람이 아이를 대학에 보내고 나면 끝이라고 생각한다. '교육은 끝났다. 4년 동안 교육을 받았고, 그 아이를 직장에 보내면 이제 추론을 하게 될 것이다'라고 한다. 그러나 그건 사실이 아니다. 이 경쟁은 영원히 계속될 것이다. 헬스 케어를 보면 사진 스캔을 통해 암을 발견하는 모델이 있고 혈액 검사를 통해 찾는 모델도 있다. 매우 특수화된 모델들이 많고 그렇게 점점 더 많은 응용 프로그램을 보게 될 것이다. 당신이 앞으로 5년, 10년을 본다면 '이제 필요한 모든 모델을 훈련시켰고 추론만 하면 된다'라고 걱정하지 않을 것이다.\n엘리슨은 그러면서 \"우리는 지금 162개의 데이터센터를 갖고 있다. 나는 전 세계적으로 1000개나 2000개 넘는 오라클 데이터센터를 갖게 될 것으로 예상하며, 그중 많은 곳은 개별 은행이나 통신 회사, 기술 회사 또는 국가, 주권 클라우드, 그 비슷한 것에 전체를 빌려주는 식이 될 것\"이라고 설명했습니다.\nAI 투자가 정점을 찍을 수 있다는 우려를 불식시키는 얘기였었습니다. 번스타인의 마크 모어들러 애널리스트는 엘리슨이 AI 수익화에 답한 뒤 \"래리. 당신이 그런 식으로 설명한 첫 번째 사람인 것 같아요. 고마워요. 아주 잘 이해가 되네요\"라고 말했습니다.\n<a href=\"https://www.hankyung.com/article/202409110943i\">https://www.hankyung.com/article/202409110943i</a>\nCSO도 전선을 넓히지 말자고 하셨고,\n전략 프레임의 시작점을 AI전체 시장에서 시작하면, 이야기의 앞 단이 너무 무거워지고 길어진다."
+  },
+  {
+    "type": "text",
+    "x": 864,
+    "y": 115,
+    "w": 600,
+    "content": "샌드버드 같은 모델? B2B2C 모델 - 프라이머리는 AI B2B2C 모델로\n버티컬은 수수료 모델\nCommerce Agent: octocom\n- 작년 4월 설립\n- 제품 구매 고민부터 결정, 추가 제안까지 고객의 쇼핑 경험을 엔드투엔드로 지원해주는 Agent 개발\n1/ Octocom은 이커머스 기업을 타겟하여 고객 서비스를 자동화해주는 회사\n고객사인 온라인 스토어의 매출을 극대화해주기 위한 목표를 가지고 서비스의 모든 기능을 개발\n2/ 놀라운 건 단 2주 만에 AI Agent를 구축해준다는 것(GPT-4 기반)\n이커머스 플랫폼에만 집중하는 전략을 통해 해당 분야에 맞게 개발 작업을 모듈화하여 개발 시간을 단축\n3/ 작년 10월 $290K(한화 약 4억 원) 규모의 pre-seed 투자를 받으며, 설립된지 약 1년 여 만에 아래와 같은 지표 시현\n- 실시간으로 문의의 87% 처리\n- 고객사 매달 약 570시간 절약\n- CVR(전환율) 32% 증가\n4/ 비용은 월 구독제로, 고객 기업의 CS 문의 개수별로 비용을 차등화하였습니다. 또한 왓츠앱, 인스타그램과 같은 SNS 플랫폼에 서비스를 구축할 시 추가 과금\n5/ 프로덕트의 컨셉은 총 3가지로,\n- Customer support: 배송 상태, 환불 및 반품, 단순 문의에 대한 응대\n- Shopping Consultant: 제품 추천, 비교, 제품 관련 문의에 대한 응대\n- Intelligent Upselling: 고객의 장바구니 및 구매 내역 데이터, 활동 기록을 기반으로 관심사 제품을 추천/제안\n6/ 위 3가지 컨셉이 순서대로 고객 만족도 향상, 매출 발생 유도, 매출 증대(주문 금액 향상)의 역할을 하면서, 고객사의 매출 극대화를 위한 전략으로서 활용\n즉, 오프라인 매장에서의 인간 영업 사원의 판매 로직 전체를 Agent가 담당\nAI가 사이드 제품을 추천할 때, 제품을 함께 사용했을 때의 효과 + 증가하는 비용을 상쇄할 만한 내용(5만 원 초과로 인한 배송비 무료)을 함께 제공하여, 소비자의 심리적 허들을 낮추고 있음\n7/ 기존에 제품 홈페이지를 통해서 제품의 장점이나 특징, 쿠폰 및 혜택 등에 대한 정보를 소비자가 직접 받아들였던 것에서, 이제는 AI Agent가 대화 맥락에 따라 해당 내용을 소비자에게 대신 전달해주면서 전반적인 UX가 변화\n즉 온라인에 영업 사원이 없던 게 아니라, 기존 웹사이트 방식의 정적인 온라인 영업 사원이 대화 형태의 인간 형태를 띠는 동적인 영업 사원으로 바뀜\n<a href=\"https://www.octocom.ai/\">https://www.octocom.ai/</a>"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1539,
+    "w": 600,
+    "content": "우리가 Target하는 것은 AI 시장의 4가지 레이어 중에서"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 1583,
+    "w": 334,
+    "h": 188,
+    "src": "6e4cca6307.png"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1779,
+    "w": 600,
+    "content": "Consumer AI 시장의 전개 양상과 고객은, 우리가 지금까지 가설적으로 밀고 있는(가설이라기보다 시나리오 플래닝)\n1/AI Native 서비스 중심 시장 확대 - AI Agent가 점점 고도화되면서 유료 시장이 열릴 가능성\n혹은,\n2/ AI 적용을 통한 기존 서비스 고도화 - AI Agent 자체가 커머디티화 되고 고객들은 Agent 자체에 돈을 지불하지는 않을 가능성(T맵과 T전화의 사례)\n3/ AI가 적용된 서비스군의 구독 형태(구글 서비스들 처럼)\n4/ 중기(3년)이내에는 이 시장에서 밸류캡쳐가 어려울 가능성\nTask를 수행해주는 Agent 시장일 열리기에는 기술적/ 시장의 성숙도 측면에서 너무 먼, 대화형 인터페이스에 그칠 가능성\n이 각 시나리오 모두에 대응 가능한 전략 방향은 무엇인지, 이에대한 키 퀘스천들을 조직 단위까지 뽑아야함.\n그리고 우리 내부 조직별로 어떤 준비를 해야 하는지를 후술\ne.g. AI Agent로 돈을 못 받게 되더라도, AI와 통신, 3rd party 상품을 패키징해서 밸류캡쳐 하는 방안 - 에이닷 유니버스\nTarget이 먼저가 아니라, 무엇. 어떤 걸 제공할건지가 선행되어야함.\n암 진단이라든지, 고객의 Pain point가 빈번하거나 혹은 강한, 빈도와 강도 측면의 프레임으로 시장을 봐야함.\n범용적인 대화형 Agent가 아니라 아주 서페시픽한 Scene에 특화되어있는 마이크로 Agent들의 세계관을 구축해야 할 수 있음.\n빈도측면에서 챗Gpt와 퍼플렉시티가 유료로 돈을 받을 수 있는 것임. 검색이라는 아주 빈번하고 일상적인 활동을 보조해주기 때문에, 하루종일 가장 많이 사용하는게 폰보다 pc인데 이 pc환경에서 가장 빈번한 활동인 검색과 정보처리를 돕기 때문임. 빈도.\n강도/빈도 측면에서 시간/돈/에너지 절감\n돈을 벌고 있는 서비스에 AI를 적용하고, 거기서 수수료를 받는걸 생각해 볼 필요가 있음.\n(포지셔닝) 챗GPT, 퍼플렉시티랑 경쟁이 가능할 것인가?\nChatGPT 플러그인들 중 상위 앱들을 볼 필요가 있음.\n이에 대한 현 시점의 고객 스테이트를 검증하기 위해 고객 설문 필요\n- 노트/ 생산성 앱이 되는건 어때? 태스크별로 입력하면 분류해주는\n사전부검 - 에이전트 시장에서 실패한다면 왜? 이걸 키 퀘스천으로. 좀 도발적인가?\n증기기관도,\n<a href=\"https://www.hellodd.com/news/articleView.html?idxno=70717\">https://www.hellodd.com/news/articleView.html?idxno=70717</a>"
+  }
+];
+const CONTENT_HASH = '308770d1';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -133,33 +406,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

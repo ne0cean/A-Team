@@ -6,121 +6,386 @@
 <title>사이드 프로젝트</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">사이드 프로젝트</span>
-  
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">사이드 프로젝트</div>
+<div class="date"></div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">사이드 프로젝트<br>		<br>		<br>	<br>	<br>		<br>			<br>창업가, 기업가<br>			<br>사내: 상품 만드는 팀에서 기획자/ 경전/ 인공지능<br>			<br>사외: <br>			<br><br>			<br>아마존  플라이휠로 성장 루틴 만들기-운동/ 공부<br>			<br>인풋의 아웃풋화, 아웃풋의 인풋화<br>			<br><a href="https://brunch.co.kr/@moneyfire/264" target="_blank">https://brunch.co.kr/@moneyfire/264</a><br>			<br><br>			<br><br>			<br>				<br>					기본기<br>					<br>MS office<br>					<br>리서치<br>					<br>영어<br>					<br>수학<br>					<br>포토샵/프리미어/일러스트레이터, 제플린/피그마/스케치/<br>					<br>노션<br>					<br>생활코딩<br>					<br>과학, 예슐, 역사, 문학, 그림<br>					<br>야구, 농구, 배구, 테니스, 골프, 서핑/수영<br>					<br>					<br>영어-마이써니(해커스)<br>					<br><a href="https://mysuni.sk.com/suni-main/" target="_blank">집</a><a href="https://mysuni.sk.com/suni-main/lecture/college/CLG00006/channels" target="_blank">글로벌 칼리지</a><br>					<br>어학(영어) 채널<br>					<br>				<br>				<br>					응용기<br>					<br>인공지능/머신러닝 - 코딩, 데이터 분석,<br>					<br>UX, 퍼포먼스 마케팅<br>					<br>AI CPA, 재무, 회계<br>					<br>					<br>인공지능-마이써니<br>					<br>파이낸셜-그룹 강의<br>					<br>				<br>				<br>					필살기<br>					<br><br>					<br>					<br><br>					<br>				<br>			<br>			<br>데이터 리터러시 - <a href="https://www.youtube.com/channel/UCgs9OUuELtT94lDnucLeZIA/videos?app=desktop" target="_blank">https://www.youtube.com/channel/UCgs9OUuELtT94lDnucLeZIA/videos?app=desktop</a><br>			<br>■ Start-up CSO/CMO로써 필요한 능력 배양 <br>			<br>ㅇ 분석능력: 머신러닝, R, G/A, Growth hacker<br>			<br>ㅇ 운영능력: 마케팅, 재무/회계<br>			<br>ㅇ 라면 & 소시지(안전판): 특허 출원, 브런치<br>			<br><br>			<br><br>			<br>집단면역이라는 집단최면,<br>			<br><br>			<br>남은 시나리오는 세 가지.<br>			<br>1/ 스페인 독감과 같은 자연소멸<br>			<br>2/ COVID-19와의 공존<br>			<br>3/ 백신에 의존한 집단면역<br>			<br><br>			<br>3의 시나리오를 보자.<br>			<br>정부가 제시하는 70%라는 수치는 1명의 감염자가 3명에게 전파한다는, COVID-19 창궐 초기 데이터에 기반한 감염 재생산 지수 3에 근거한다. 3명 중 2명에게 항체를 형성시켜 1이하로 억제한다는 수치적 목표인 2/3=66.6%를 70%로 넉넉하게 올림 한 수치다. <br>			<br><br>			<br>문제는, 이 재생산지수 자체가 다분히 가변적이라는데 있다.<br>			<br>집계에 따르면 COVID-19 재생산 지수는 0.7~6.3의 넓은 폭을 가진다.<br>			<br>슈퍼 전파자를 떠올려 보면 이 수치가 얼마나 연약한 근거에 기반한 것인지 알 수 있다.<br>			<br>국가와 기관에 따라 집단멱역을 위한 항체 보유 인구를 90%까지 상정하고 있다.<br>			<br><br>			<br>70%가 맞다고 치고, 몇 가지 공개된 수치를 보자.<br>			<br>_ 영유아와 고위험군을 제외한 접종 가능한 성인의 90%에 접종할 경우의 커버리지는 인구의 76.5%<br>			<br>_ 접종 시, 항체 형성률은 1차 96%, 2차 99%<br>			<br>_ 감염 예방 효과가 95%를 상회하는 백신은 현재 존재 하지 않으며, 발병 예방을 95% 보장 할 뿐, 타인 전파를 95% 예방하는 것은 아니다.<br>			<br>_ 보고된 항체 유지 기간은 6개월~8개월<br>			<br>_ 현재 접종 완료율은 19% 이하로 세계에서 91번째<br>			<br>이 모든 건, 돌파 감염을 유발하는 변이 바이러스를 고려하지 않고, 타국에서 유입되는 바이러스가 없는 배타적인 환경을 가정했을 때 유효함.<br>			<br><br>			<br>결국, COVID-19를 독감과 같은 지위로 상정하고, 열심히 백신을 맞고 일상으로 돌아가야 한다. 문제는 시점인데, 지금의 접종률로는 어림 없다.<br>			<br><br>			<br>기본권을 침해하는 차단방역의 장기화는 바이러스보다 무해한가. <br>			<br>우리를 앓게 하는 것은 바이러스 그 자체인가, 과잉면역반응과도 같은 방역인가.<br>			<br><br>			<br>허지웅의 인스타 글을 보고 느낀 건,<br>			<br>우리 나라 사람들처럼 말 잘 듣는 사람들이 없다는 것.<br>			<br>선만 그어주면, 서로가 서로를 감시하고 힐난하는데 주저하지 않는다.<br>			<br>우리는 자성이 강해서 뭉치기도 잘 뭉치지만, 조금만 극성이 다르면 맹렬하게 분극화 되니까.<br>			<br><br>			<br><br>			<br>1/ 집단면역, 인구의 70%가 항체를 보유하는 일은 가능한가. <br>			<br><br>			<br><br>			<br>2/<br>			<br>인구의 70%가 항체를 보유하게 되면 집단면역을 달성할 수 있나?<br>			<br>70%의 근거는 1사람의 감염자가 3명에게 전파한다는 코로나 재생산 지수 3<br>			<br>3명 가운데 2명이 면역을 확보하면 더 이상 감염자가 증가하지 않는다는 가정에서 출발함<br>			<br><br>			<br><br>			<br>37.10%(+0.96)<br>			<br>1차 접종률<br>			<br><br>			<br>13.76%(+0.11)<br>			<br>접종 완료율<br>			<br><br>			<br>백신은 2가지 기능을 수행한다,<br>			<br>1/ 감염자의 발병 예방 및 중증도 전이 예방 효과<br>			<br>2/ 타인에 대한 전파 예방 효과<br>			<br>그런데 전파 예방효과는 발병 예방 효과를 하회하고 있다.<br>			<br><br>			<br><br>			<br>백신은 확실한 효과가 있다.<br>			<br>단, 중증으로 , 2차 감염<br>			<br><br>			<br><br>			<br>1년 전에는 코로나는 토착화 될 것이다.라는 말을<br>			<br>반신반의했다. <br>			<br><br>			<br><br>			<br><br>			<br>돈, 성장, 인터스텔라 연결<br>			<br><br>			<br>콘텐츠 판매/크리에이터<br>			<br>				<br>- 수익형 블로그<br>				<br>- PPT 템플릿, 원노트 사용법<br>				<br>- 인터뷰이<br>			<br>			<br>물건 판매/오픈 마켓<br>			<br>재능 판매<br>			<br>모임 운영<br>			<br><br>			<br><컨텐츠 사업> <br>			<br>전자책 만들기<br>			<br>웹소설<br>			<br>웹툰<br>			<br>이모티콘 만들기<br>			<br>스톡사진 판매<br>			<br>모바일 앱 개발<br>			<br>네이버 카페 운영<br>			<br>유튜브 채널 운영<br>			<br>블로그 포스팅 알바<br>			<br>블로그 체험단<br>			<br><br>			<br><제휴 마케팅> <br>			<br>CPA 마케팅<br>			<br>쿠팡 파트너스<br>			<br>네이버 애드포스트<br>			<br>구글 애드센스<br>			<br>다음 애드핏<br>			<br>아마존 익스프레스 어필리에이트<br>			<br>아이허브 어필리에이트<br>			<br><br>			<br><유통 사업><br>			<br>해외 구매대행<br>			<br>코스트코 구매대행<br>			<br>빈티지 중고 판매<br>			<br>1인 소자본 무역<br>			<br><br>			<br><상담 사업><br>			<br>온라인 타로 상담<br>			<br>온라인 역술 상담<br>			<br>심리 상담업<br>			<br>연애 컨설팅<br>			<br>사업 컨설팅<br>			<br><br>			<br><대행 사업><br>			<br>전단지 배포대행업<br>			<br>분양 대행<br>			<br>온라인 광고 대행<br>			<br>언론사 홍보 대행<br>			<br>골프장 예약 대행<br>			<br><br>			<br><임대 사업><br>			<br>에어비엔비<br>			<br>자동차 빌려주기<br>			<br>자전거 빌려주기<br>			<br>고가장비 빌려주기<br>			<br>명품의류 및 악세사리 대여<br>			<br>면접 정장 대여<br>			<br>컨테이너 창고 임대<br>			<br><br>			<br><중개 사업><br>			<br>광고주, 마케터 중개업<br>			<br>장기 렌트 딜러<br>			<br>1인 대출 중개업<br>			<br>1인 휴대폰 판매 딜러<br>			<br><br>			<br><br>			<br>노션, 포토샵, 프리미어 프로<br>		<br>		<br>			<br>퍼포먼스 마케팅<br>			<br>상품만드는 역량<br>			<br>hr 데이터분석 기반 서비스 어프로치<br>			<br>와이어프레임<br>			<br><br>			<br>동네 사람 연결- 넥스트도어<br>			<br>디지털 전환, 데이터, 소개팅 어플 후<br>			<br><br>		<br>		<br>			<br>모 비공개 커뮤니티에서 스타트업 창업자들이 추천한 서비스들<br>			<br>Canva, Datawrapper, Buffer, Semrush, Ahrefs, Integromat, Zapier, Cartfuel, Clickup, Descript, Katra, Snov, Missive, Shipstation, iiitent, miro, paperform <br>			<br><br>			<br>1) <a href="https://www.canva.com/" target="_blank">https://www.canva.com/</a> - 협업 디자인 도구 <br>			<br>2) <a href="https://www.datawrapper.de/" target="_blank">https://www.datawrapper.de/</a> - 시각화용 차트/테이블 그리기 <br>			<br>3) <a href="https://buffer.com/" target="_blank">https://buffer.com/</a> - 소셜 미디어 도구 <br>			<br>4) <a href="https://ko.semrush.com/" target="_blank">https://ko.semrush.com/</a> - SEO & 콘텐츠 마케팅 <br>			<br>5) <a href="https://ahrefs.com/" target="_blank">https://ahrefs.com/</a> - SEO 도구 <br>			<br>6) <a href="https://www.integromat.com/" target="_blank">https://www.integromat.com/</a> - 워크플로우 자동화 <br>			<br>7) <a href="https://zapier.com/" target="_blank">https://zapier.com/</a> - 워크플로우 자동화 <br>			<br>8 ) <a href="https://www.cartfuel.io/" target="_blank">https://www.cartfuel.io/</a> - 인바운드 마케팅 도구인 HubSpot 에 쉽 게 결제 붙여주는 도구 <br>			<br>9) <a href="https://clickup.com/" target="_blank">https://clickup.com/</a> - 프로젝트 플래닝 도구  <br>			<br>10) <a href="https://www.descript.com/" target="_blank">https://www.descript.com/</a> - 오디오 / 비디오 에디팅 협업 도구  <br>			<br>11) <a href="https://kartra.com/" target="_blank">https://kartra.com/</a> - 마케팅 플랫폼<br>			<br>12) <a href="https://snov.io/" target="_blank">https://snov.io/</a> - 세일즈 자동화 도구 <br>			<br>13) <a href="https://missiveapp.com/" target="_blank">https://missiveapp.com/</a> - 팀이 공유하는 이메일 인박스 / 채팅 도구 <br>			<br>14) <a href="https://www.shipstation.com/" target="_blank">https://www.shipstation.com/</a> - 이커머스 판매자들을 위한 배송 소프트웨어 <br>			<br>15) <a href="https://www.iiintent.io/" target="_blank">https://www.iiintent.io/</a> - 매출 성장을 돕는 마케팅 도구  <br>			<br>16) <a href="https://miro.com/" target="_blank">https://miro.com/</a> - 온라인 화이트 보드 협업 도구  <br>			<br>17) <a href="https://paperform.co/" target="_blank">https://paperform.co/</a> - 온라인 폼 작성 도구<br>		<br>		<br>			<br>로얄승마클럽은 연간 회원제(400만원)와 함께 10회 강습권(60만원), 당일권(5만원) 프로그램도 운영 중이다. 나파밸리승마클럽은 월회원 레슨비 포함해 60만원을 내면 화~일요일 매일 강습을 받을 수 있다. 쿠폰은 레슨비를 포함해 1회 6만원.<br>			<br><br>			<br>신갈승마클럽은 10회 이용 쿠폰이 50만원이다. 1일 회원은 5만원. 야간승마도 가능하다. 이 밖에 마구간, 용인승마클럽, 김포승마클럽, 양지승마클럽 등이 수도권 주변에서 많이 알려진 승마클럽이다.<br>			<br><br>			출처: <<a href="https://www.mk.co.kr/news/business/view/2008/05/311478/" target="_blank">https://www.mk.co.kr/news/business/view/2008/05/311478/</a>></div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note-사이드-프로젝트';
+const SAVE_KEY = 'board-사이드-프로젝트';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "html",
+    "x": 48,
+    "y": 139,
+    "w": 1020,
+    "html": "\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">창업가</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">기업가</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">사내</span><span lang=\"en-US\">: </span><span style=\"font-family:Malgun Gothic\">상품</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">만드는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">팀에서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">기획자</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/ </span><span style=\"font-family:Malgun Gothic\">경전</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/ </span><span style=\"font-family:Malgun Gothic\">인공지능</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">사외</span><span lang=\"en-US\">: </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:9pt\">아마존</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:9pt\">  </span><span style=\"font-family:Malgun Gothic;font-size:9pt\">플라이휠로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:9pt\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt\">성장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:9pt\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt\">루틴</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:9pt\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt\">만들기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:9pt\">-</span><span style=\"font-family:Malgun Gothic;font-size:9pt\">운동</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:9pt\">/ </span><span style=\"font-family:Malgun Gothic;font-size:9pt\">공부</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:9pt\">인풋의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:9pt\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt\">아웃풋화</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:9pt\">, </span><span style=\"font-family:Malgun Gothic;font-size:9pt\">아웃풋의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:9pt\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt\">인풋화</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://brunch.co.kr/@moneyfire/264\">https://brunch.co.kr/@moneyfire/264</a></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">기본기</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">MS office</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">리서치</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-weight:bold\">영어</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-weight:bold\">수학</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">포토샵</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">프리미어</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">일러스트레이터</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">제플린</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">피그마</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">스케치</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">노션</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">생활코딩</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">과학</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">예슐</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">역사</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">문학</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">그림</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">야구</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">농구</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">배구</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">테니스</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">골프</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">서핑</span><span lang=\"en-US\">/</span><span style=\"font-family:Malgun Gothic\">수영</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">영어</span><span lang=\"en-US\">-</span><span style=\"font-family:Malgun Gothic\">마이써니</span><span lang=\"en-US\">(</span><span style=\"font-family:Malgun Gothic\">해커스</span><span lang=\"en-US\">)</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://mysuni.sk.com/suni-main/\" style=\"font-family:Malgun Gothic\">집</a><a href=\"https://mysuni.sk.com/suni-main/lecture/college/CLG00006/channels\" style=\"font-family:Malgun Gothic\">글로벌 칼리지</a></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:notosanskr;color:#95908a;font-weight:bold\">어학(영어) 채널</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">응용기</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">인공지능</span><span lang=\"en-US\">/</span><span style=\"font-family:Malgun Gothic\">머신러닝</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - </span><span style=\"font-family:Malgun Gothic\">코딩</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">데이터</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">분석</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">,</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:9pt\">UX, 퍼포먼스 마케팅</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">AI CPA, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">재무</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">회계</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">인공지능</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">-</span><span style=\"font-family:Malgun Gothic\">마이써니</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">파이낸셜</span><span lang=\"en-US\">-</span><span style=\"font-family:Malgun Gothic\">그룹</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">강의</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">필살기</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">데이터</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">리터러시</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - </span><a href=\"https://www.youtube.com/channel/UCgs9OUuELtT94lDnucLeZIA/videos?app=desktop\">https://www.youtube.com/channel/UCgs9OUuELtT94lDnucLeZIA/videos?app=desktop</a></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Symbol\">■</span><span lang=\"en-US\"> Start-up CSO/CMO</span>로써<span lang=\"en-US\"> </span>필요한<span lang=\"en-US\"> </span>능력<span lang=\"en-US\"> </span>배양<span lang=\"en-US\"> </span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>분석능력<span lang=\"en-US\">: </span>머신러닝<span lang=\"en-US\">, R, G/A, Growth hacker</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>운영능력<span lang=\"en-US\">: </span>마케팅<span lang=\"en-US\">, </span>재무<span lang=\"en-US\">/</span>회계</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>라면<span lang=\"en-US\"> &amp; </span>소시지<span lang=\"en-US\">(</span>안전판<span lang=\"en-US\">): </span>특허<span lang=\"en-US\"> </span>출원<span lang=\"en-US\">, </span>브런치</p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">집단면역이라는<span lang=\"en-US\"> </span>집단최면<span lang=\"en-US\">,</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">남은<span lang=\"en-US\"> </span>시나리오는<span lang=\"en-US\"> </span>세<span lang=\"en-US\"> </span>가지<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">1/ <span lang=\"ko-KR\">스페인</span> <span lang=\"ko-KR\">독감과</span> <span lang=\"ko-KR\">같은</span> <span lang=\"ko-KR\">자연소멸</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">2/ COVID-19</span><span lang=\"ko-KR\">와의</span> <span lang=\"ko-KR\">공존</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">3/ <span lang=\"ko-KR\">백신에</span> <span lang=\"ko-KR\">의존한</span> <span lang=\"ko-KR\">집단면역</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">3</span><span lang=\"ko-KR\">의</span> <span lang=\"ko-KR\">시나리오를</span> <span lang=\"ko-KR\">보자</span>.</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">정부가<span lang=\"en-US\"> </span>제시하는<span lang=\"en-US\"> 70%</span>라는<span lang=\"en-US\"> </span>수치는<span lang=\"en-US\"> 1</span>명의<span lang=\"en-US\"> </span>감염자가<span lang=\"en-US\"> 3</span>명에게<span lang=\"en-US\"> </span>전파한다는<span lang=\"en-US\">, COVID-19 </span>창궐<span lang=\"en-US\"> </span>초기<span lang=\"en-US\"> </span>데이터에<span lang=\"en-US\"> </span>기반한<span lang=\"en-US\"> </span>감염<span lang=\"en-US\"> </span>재생산<span lang=\"en-US\"> </span>지수<span lang=\"en-US\"> 3</span>에<span lang=\"en-US\"> </span>근거한다<span lang=\"en-US\">. 3</span>명<span lang=\"en-US\"> </span>중<span lang=\"en-US\"> 2</span>명에게<span lang=\"en-US\"> </span>항체를<span lang=\"en-US\"> </span>형성시켜<span lang=\"en-US\"> 1</span>이하로<span lang=\"en-US\"> </span>억제한다는<span lang=\"en-US\"> </span>수치적<span lang=\"en-US\"> </span>목표인<span lang=\"en-US\"> 2/3=66.6%</span>를<span lang=\"en-US\"> 70%</span>로<span lang=\"en-US\"> </span>넉넉하게<span lang=\"en-US\"> </span>올림<span lang=\"en-US\"> </span>한<span lang=\"en-US\"> </span>수치다<span lang=\"en-US\">. </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">문제는</span><span lang=\"en-US\">,</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">재생산지수</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">자체가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">다분히</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">가변적이라는데</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">있다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">집계에</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">따르면</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> COVID-19 </span><span style=\"font-family:Malgun Gothic\">재생산</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">지수는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 0.7~6.3</span><span style=\"font-family:Malgun Gothic\">의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">넓은</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">폭을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">가진다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">슈퍼</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">전파자를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">떠올려</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">보면</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">수치가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">얼마나</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">연약한</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">근거에</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">기반한</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">것인지</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">알</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">수</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">있다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">국가와</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">기관에</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">따라</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">집단멱역을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">위한</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">항체</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">보유</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">인구를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 90%</span><span style=\"font-family:Malgun Gothic\">까지</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">상정하고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">있다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">70%<span lang=\"ko-KR\">가</span> <span lang=\"ko-KR\">맞다고</span> <span lang=\"ko-KR\">치고</span>, <span lang=\"ko-KR\">몇</span> <span lang=\"ko-KR\">가지</span> <span lang=\"ko-KR\">공개된</span> <span lang=\"ko-KR\">수치를</span> <span lang=\"ko-KR\">보자</span>.</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">_ <span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">영유아와</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">고위험군을</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">제외한</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">접종</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">가능한</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">성인의</span><span style=\"font-family:Malgun Gothic\"> 90%</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">에</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">접종할</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">경우의</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">커버리지는</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">인구의</span><span style=\"font-family:Malgun Gothic\"> 76.5%</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">_<span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">접종</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">시</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">항체</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">형성률은</span><span style=\"font-family:Malgun Gothic\"> 1</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">차</span><span style=\"font-family:Malgun Gothic\"> 96%, 2</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">차</span><span style=\"font-family:Malgun Gothic\"> 99%</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">_ <span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">감염</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">예방</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">효과가</span><span style=\"font-family:Malgun Gothic\"> 95%</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">를</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">상회하는</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">백신은</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">현재</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">존재</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">하지</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">않으며</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">발병 예방을</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\"> 95% </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">보장</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">할</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">뿐</span><span style=\"font-family:Malgun Gothic\">,</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\"> 타인 전파를</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\"> 95% </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">예방하는</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">것은</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">아니다</span><span style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">_ <span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">보고된</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">항체</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">유지</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">기간은</span><span style=\"font-family:Malgun Gothic\"> 6</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">개월</span><span style=\"font-family:Malgun Gothic\">~8</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">개월</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">_ <span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">현재</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">접종</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">완료율은</span><span style=\"font-family:Malgun Gothic\"> 19% </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">이하로</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">세계에서</span><span style=\"font-family:Malgun Gothic\"> 91</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">번째</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">모든</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">건</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">돌파</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">감염을</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">유발하는</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">변이</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">바이러스를</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">고려하지</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">않고</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">타국에서</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">유입되는</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">바이러스가</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">없는</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">배타적인</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">환경을</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">가정했을</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">때</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">유효함</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">결국</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, COVID-19</span><span style=\"font-family:Malgun Gothic\">를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">독감과</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">같은</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">지위로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">상정하고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">열심히</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">백신을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">맞고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">일상으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">돌아가야</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">한다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">. </span><span style=\"font-family:Malgun Gothic\">문제는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">시점인데</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">지금의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">접종률로는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">어림</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">없다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">기본권을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">침해하는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">차단방역의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">장기화는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">바이러스보다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">무해한가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">. </span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">우리를</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">앓게</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">하는</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">것은</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">바이러스</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">그</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">자체인가</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">과잉면역반응과도</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">같은</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">방역인가</span><span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">허지웅의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">인스타</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">글을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">보고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">느낀</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">건</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">,</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">우리</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">나라</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">사람들처럼</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">말</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">잘</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">듣는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">사람들이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">없다는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">것</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">선만</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">그어주면</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">서로가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">서로를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">감시하고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">힐난하는데</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">주저하지</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">않는다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">우리는<span lang=\"en-US\"> </span>자성이<span lang=\"en-US\"> </span>강해서<span lang=\"en-US\"> </span>뭉치기도<span lang=\"en-US\"> </span>잘<span lang=\"en-US\"> </span>뭉치지만<span lang=\"en-US\">, </span>조금만<span lang=\"en-US\"> </span>극성이<span lang=\"en-US\"> </span>다르면<span lang=\"en-US\"> </span>맹렬하게<span lang=\"en-US\"> </span>분극화<span lang=\"en-US\"> </span>되니까<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">1/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">집단면역</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">인구의</span><span style=\"font-family:Malgun Gothic\"> 70%</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">가</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">항체를</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">보유하는</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">일은</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">가능한가</span><span style=\"font-family:Malgun Gothic\">. </span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">2/</p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">인구의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 70%</span><span style=\"font-family:Malgun Gothic\">가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">항체를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">보유하게</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">되면</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">집단면역을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">달성할</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">수</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">있나</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">?</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">70%</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">의</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">근거는</span><span style=\"font-family:Malgun Gothic\"> 1</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">사람의</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">감염자가</span><span style=\"font-family:Malgun Gothic\"> 3</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">명에게</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">전파한다는</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">코로나</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">재생산</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">지수</span><span style=\"font-family:Malgun Gothic\"> 3</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">3</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">명</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">가운데</span><span style=\"font-family:Malgun Gothic\"> 2명이 면역을 확보하면 더 </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">이상</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">감염자가</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">증가하지</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">않는다는</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">가정에서</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">출발함</span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">37.10%(+0.96)</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">1</span><span style=\"font-family:Malgun Gothic\">차</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">접종률</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">13.76%(+0.11)</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">접종</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">완료율</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">백신은</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 2</span><span style=\"font-family:Malgun Gothic\">가지</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">기능을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">수행한다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">,</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">1/ <span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">감염자의</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">발병</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">예방</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">및</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">중증도</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">전이</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">예방</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">효과</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">2/ <span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">타인에</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">대한</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">전파</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">예방</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">효과</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">그런데</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">전파</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">예방효과는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">발병</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">예방</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">효과를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">하회하고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">있다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">백신은</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">확실한</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">효과가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">있다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">단</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">중증으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> , 2</span><span style=\"font-family:Malgun Gothic\">차</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">감염</span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">1<span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">년</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">전에는</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">코로나는</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">토착화</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">될</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">것이다</span><span style=\"font-family:Malgun Gothic\">.</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">라는</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">말을</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">반신반의했다</span><span lang=\"en-US\">. </span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">돈</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">성장</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">인터스텔라</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">연결</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">콘텐츠</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">판매</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">크리에이터</span></p>\r\n\t\t\t<ul>\r\n\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">수익형</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">블로그</span></li>\r\n\t\t\t\t<li style=\"font-family:Calibri\"><span lang=\"en-US\">PPT <span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">템플릿</span>, <span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">원노트</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">사용법</span></span></li>\r\n\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">인터뷰이</span></li>\r\n\t\t\t</ul>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">물건</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">판매</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">오픈</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">마켓</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">재능</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">판매</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">모임</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">운영</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">&lt;</span><span style=\"font-family:Malgun Gothic\">컨텐츠</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">사업</span><span style=\"font-family:Malgun Gothic\">&gt; </span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">전자책</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">만들기</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">웹소설</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">웹툰</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">이모티콘</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">만들기</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">스톡사진</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">판매</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">모바일</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">앱</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">개발</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">네이버</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">카페</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">운영</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">유튜브</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">채널</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">운영</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">블로그</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">포스팅</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">알바</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">블로그</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">체험단</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">&lt;</span><span style=\"font-family:Malgun Gothic\">제휴</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">마케팅</span><span style=\"font-family:Malgun Gothic\">&gt; </span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">CPA </span><span style=\"font-family:Malgun Gothic\">마케팅</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">쿠팡</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">파트너스</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">네이버</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">애드포스트</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">구글</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">애드센스</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">다음</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">애드핏</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">아마존</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">익스프레스</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">어필리에이트</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">아이허브</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">어필리에이트</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">&lt;</span><span style=\"font-family:Malgun Gothic\">유통</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">사업</span><span style=\"font-family:Malgun Gothic\">&gt;</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">해외</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">구매대행</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">코스트코</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">구매대행</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">빈티지</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">중고</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">판매</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">1</span><span style=\"font-family:Malgun Gothic\">인</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">소자본</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">무역</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">&lt;</span><span style=\"font-family:Malgun Gothic\">상담</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">사업</span><span style=\"font-family:Malgun Gothic\">&gt;</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">온라인</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">타로</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">상담</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">온라인</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">역술</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">상담</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">심리</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">상담업</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">연애</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">컨설팅</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">사업</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">컨설팅</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">&lt;</span><span style=\"font-family:Malgun Gothic\">대행</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">사업</span><span style=\"font-family:Malgun Gothic\">&gt;</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">전단지</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">배포대행업</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">분양</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대행</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">온라인</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">광고</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대행</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">언론사</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">홍보</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대행</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">골프장</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">예약</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대행</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">&lt;</span><span style=\"font-family:Malgun Gothic\">임대</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">사업</span><span style=\"font-family:Malgun Gothic\">&gt;</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">에어비엔비</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">자동차</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">빌려주기</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">자전거</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">빌려주기</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">고가장비</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">빌려주기</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">명품의류</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">및</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">악세사리</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대여</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">면접</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">정장</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대여</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">컨테이너</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">창고</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">임대</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">&lt;</span><span style=\"font-family:Malgun Gothic\">중개</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">사업</span><span style=\"font-family:Malgun Gothic\">&gt;</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">광고주</span><span style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">마케터</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">중개업</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">장기</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">렌트</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">딜러</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">1</span><span style=\"font-family:Malgun Gothic\">인</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대출</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">중개업</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">1</span><span style=\"font-family:Malgun Gothic\">인</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">휴대폰</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">판매</span><span style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">딜러</span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">노션</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">포토샵</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">프리미어</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">프로</span></p>\r\n\t\t"
+  },
+  {
+    "type": "text",
+    "x": 720,
+    "y": 163,
+    "w": 388,
+    "content": "퍼포먼스 마케팅\n상품만드는 역량\nhr 데이터분석 기반 서비스 어프로치\n와이어프레임\n동네 사람 연결- 넥스트도어\n디지털 전환, 데이터, 소개팅 어플 후"
+  },
+  {
+    "type": "text",
+    "x": 1440,
+    "y": 163,
+    "w": 600,
+    "content": "로얄승마클럽은 연간 회원제(400만원)와 함께 10회 강습권(60만원), 당일권(5만원) 프로그램도 운영 중이다. 나파밸리승마클럽은 월회원 레슨비 포함해 60만원을 내면 화~일요일 매일 강습을 받을 수 있다. 쿠폰은 레슨비를 포함해 1회 6만원.\n신갈승마클럽은 10회 이용 쿠폰이 50만원이다. 1일 회원은 5만원. 야간승마도 가능하다. 이 밖에 마구간, 용인승마클럽, 김포승마클럽, 양지승마클럽 등이 수도권 주변에서 많이 알려진 승마클럽이다.\n출처: <<a href=\"https://www.mk.co.kr/news/business/view/2008/05/311478/\">https://www.mk.co.kr/news/business/view/2008/05/311478/</a>>"
+  },
+  {
+    "type": "text",
+    "x": 1176,
+    "y": 379,
+    "w": 132,
+    "content": "모 비공개 커뮤니티에서 스타트업 창업자들이 추천한 서비스들\nCanva, Datawrapper, Buffer, Semrush, Ahrefs, Integromat, Zapier, Cartfuel, Clickup, Descript, Katra, Snov, Missive, Shipstation, iiitent, miro, paperform\n1) <a href=\"https://www.canva.com/\">https://www.canva.com/</a> - 협업 디자인 도구\n2) <a href=\"https://www.datawrapper.de/\">https://www.datawrapper.de/</a> - 시각화용 차트/테이블 그리기\n3) <a href=\"https://buffer.com/\">https://buffer.com/</a> - 소셜 미디어 도구\n4) <a href=\"https://ko.semrush.com/\">https://ko.semrush.com/</a> - SEO & 콘텐츠 마케팅\n5) <a href=\"https://ahrefs.com/\">https://ahrefs.com/</a> - SEO 도구\n6) <a href=\"https://www.integromat.com/\">https://www.integromat.com/</a> - 워크플로우 자동화\n7) <a href=\"https://zapier.com/\">https://zapier.com/</a> - 워크플로우 자동화\n8 ) <a href=\"https://www.cartfuel.io/\">https://www.cartfuel.io/</a> - 인바운드 마케팅 도구인 HubSpot 에 쉽 게 결제 붙여주는 도구\n9) <a href=\"https://clickup.com/\">https://clickup.com/</a> - 프로젝트 플래닝 도구\n10) <a href=\"https://www.descript.com/\">https://www.descript.com/</a> - 오디오 / 비디오 에디팅 협업 도구\n11) https://kartra.com/</a> - 마케팅 플랫폼\n12) <a href=\"https://snov.io/\">https://snov.io/</a> - 세일즈 자동화 도구\n13) <a href=\"https://missiveapp.com/\">https://missiveapp.com/</a> - 팀이 공유하는 이메일 인박스 / 채팅 도구\n14) <a href=\"https://www.shipstation.com/\">https://www.shipstation.com/</a> - 이커머스 판매자들을 위한 배송 소프트웨어\n15) <a href=\"https://www.iiintent.io/\">https://www.iiintent.io/</a> - 매출 성장을 돕는 마케팅 도구\n16) <a href=\"https://miro.com/\">https://miro.com/</a> - 온라인 화이트 보드 협업 도구\n17) <a href=\"https://paperform.co/\">https://paperform.co/</a> - 온라인 폼 작성 도구"
+  }
+];
+const CONTENT_HASH = '39031887';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -133,33 +398,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

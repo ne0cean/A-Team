@@ -6,128 +6,441 @@
 <title>日新又日新_Crape Cake</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">日新又日新_Crape Cake</span>
-  <span class="t-date">2019년 5월 22일 수요일</span>
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">日新又日新_Crape Cake</div>
+<div class="date">2019년 5월 22일 수요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">日新又日新_Crape Cake<br>		<br>		<br>	<br>	<br>		<br>			<br>				<br>SHA(Shareholders Agreement) 주주간 계약서/ ssa</div>
-<div class="block block-image" data-idx="1"><img src="../../attachments/d156422628.png" alt="日新又日新_Crape Cake" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-text" data-idx="2" contenteditable="true">구주매출  : 기존 주주가 이미 보유하고 있는 주식 지분 중 일부를 일반인들에게 공개적으로 파는 것<br>				<br><a href="https://m.blog.naver.com/creon_blog/221296548190" target="_blank">https://m.blog.naver.com/creon_blog/221296548190</a><br>				<br><br>				<br>리픽싱 <a href="https://m.blog.naver.com/PostView.nhn?blogId=hiwonjae&logNo=221251348658&proxyReferer=https%3A%2F%2Fwww.google.com%2F" target="_blank">https://m.blog.naver.com/PostView.nhn?blogId=hiwonjae&logNo=221251348658&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a><br>				<br><br>				<br>채권 수익률 <a href="https://m.blog.naver.com/PostView.nhn?blogId=dream_asset&logNo=50114073168&proxyReferer=https%3A%2F%2Fwww.google.com%2F" target="_blank">https://m.blog.naver.com/PostView.nhn?blogId=dream_asset&logNo=50114073168&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a><br>				<br><a href="https://www.mk.co.kr/opinion/columnists/view/2010/10/588384/" target="_blank">https://www.mk.co.kr/opinion/columnists/view/2010/10/588384/</a><br>				<br><br>				<br>국국구ㄱㄱㄱㅇㅇㅇㅇㅇㅇㄱㅇㄹㅇ<a href="https://m.blog.naver.com/creon_blog/221296548190" target="_blank">https://m.blog.naver.com/creon_blog/221296548190</a><br>				<br>구주매출 ㅇㅇ<br>				<br><br>				<br><a href="https://content.surfit.io/video/KYVg3/KpXL2/17353440405d5c43a88fa63.webm" target="_blank">https://content.surfit.io/video/KYVg3/KpXL2/17353440405d5c43a88fa63.webm</a><br>				<br>이런거 어떻게 만들지?<br>				<br><br>				<br>Blacklined version 법률용어<br>				<br><br>				<br><a href="https://m.blog.naver.com/PostView.nhn?blogId=kasanlaw&logNo=220985938721&categoryNo=24&proxyReferer=&proxyReferer=https%3A%2F%2Fwww.google.com%2F" target="_blank">https://m.blog.naver.com/PostView.nhn?blogId=kasanlaw&logNo=220985938721&categoryNo=24&proxyReferer=&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a></div>
-<div class="block block-image" data-idx="3"><img src="../../attachments/d5773c1456.png" alt="日新又日新_Crape Cake" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-text" data-idx="4" contenteditable="true">왜상<br>				<br><br>				<br>RFI, RFP (Request for Information, Request for Proposal)'<br>				<br><br>				<br><a href="https://parkwoojong.tistory.com/22" target="_blank">https://parkwoojong.tistory.com/22</a> CDD(Commercial DD)<br>				<br><br>				<br>표면이율<br>				<br>채권의 권면에 기재된 이율로 1년간 지급될 이자를 액면으로 나눈 것을 의미합니다.<br>				<br>할인채와 이표채의 경우 이 표면이율이 과세(세금계산)의 기준이 됩니다.<br>				<br>액면 만원 당 1년에 500원의 이자를 지급하는 경우 이자율은 5% 입니다.<br>				<br>복리채의 경우, 표면이율의 복리에 의해 만기금액이 정해지고, 과세의 기준이 되므로 단리 및 할인채에 비해 과표가 복리로 증가하는 효과가 있습니다.<br>				<br><br>				<br>PPM(Pay Per Month)/ PPV(Pay Per View)<br>				<br><br>				<br>WPM (Weekly Progress Memo)<br>				<br><br>				<br><a href="https://www.youtube.com/watch?v=j-nL0fPAaME&feature=youtu.be" target="_blank">https://www.youtube.com/watch?v=j-nL0fPAaME&feature=youtu.be</a><br>				<br>누끼<br>				<br><a href="https://youtu.be/j-nL0fPAaME" target="_blank">https://youtu.be/j-nL0fPAaME</a><br>				<br><a href="https://youtu.be/nlI5t5uPXTQ" target="_blank">https://youtu.be/nlI5t5uPXTQ</a><br>				<br><a href="https://youtu.be/cVztVX1gA-A" target="_blank">https://youtu.be/cVztVX1gA-A</a></div>
-<div class="block block-image" data-idx="5"><img src="../../attachments/ded459dc2b.png" alt="日新又日新_Crape Cake" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-image" data-idx="6"><img src="../../attachments/27737508c2.png" alt="日新又日新_Crape Cake" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-text" data-idx="7" contenteditable="true">거래액(GMV, Gross Merchandise Volume)은 특정 기간 해당 플랫폼 내에서 상품이 거래된 총금액<br>				<br><br>				<br>DA(Display AD)/ SA(Search AD)<br>				<br><br>				<br>EBITDA에 관해서는 감가상각비가 비현금성 비용이므로, 실제로는 비용이 아니라고 보는 방식인데 이것에 대해 강한 어조로 비난한다.<br>				<br>“터무니 없는 생각입니다. 사실 감가상각비는 매우 나쁜 비용입니다. 자산을 구입하면서 돈을 먼저 지출했지만, 그 자산에서 이득을 아직 얻지 못했기 때문입니다.”<br>				<br><a href="https://brunch.co.kr/@aidenswmo/2" target="_blank">https://brunch.co.kr/@aidenswmo/2</a><br>				<br><br>				<br>※ 손익계산서 요약<br>				<br>-. 매출액 = 판매금액<br>				<br>-. 매출총이익 = 매출액 - 매출원가<br>				<br>-. 영업이익 = 매출총이익 - 판관비<br>				<br>-. 세전이익 = 매출총이익 + 영업외수익 - 영업외비용<br>				<br>-. 당기순이익 = 세전이익 - 법인세&#160;<br>				<br><br>				<br>실사의 범위에 제한은 없으며, 통상적으로 영업 실사(Commercial DD, CDD), 법률 실사(Legal DD, LDD), 재무 실사(Financial DD, FDD), 세무 실사(Tax DD, TDD) 등 인수자가 필요하다고 판단하는 모든 것이 대상이라고 보면 됩니다.<br>				<br><br>				<br>슬랙이 direct listing 방법으로 기업공개예정 <a href="https://lm.facebook.com/l.php?u=https%3A%2F%2Fwww.cnbc.com%2F2019%2F02%2F04%2Fslack-confidentially-files-to-go-public.html&h=AT3bGMrevk0ENNVrkhX9sQKNDldMb1X94RvJMvG6Q5C2MUpxR-kLPSkG7HaNuKe1cHDNy7jCirff589Y2Cx5vqDPgzdexmBDYZjwx19IDVWo8EvLGVTs-J3OBuo-0ipLGzPWkzOpQtvxlRFrxDuGDK_OsJMPJBNlIi_RuBU" target="_blank">https://www.cnbc.com/2019/02/04/slack-confidentially-files-to-go-public.html</a> <br>				<br>디렉트리스팅은 스포티파이가 지난해 택했던 방법으로 정식 IPO가 아님. 신주발행을 하지 않고 기존 주주들의 주식을 공개시장을 통해 매매할 수 있도록 공개하는 것. <br>				<br>현금이 충분해 IPO로 현금조달을 할 필요가 없는데 대신 기존 투자자들의 엑싯을 시켜줘야 할 때 쓸 수 있는 방법. 큰 비용을 들여서 로드쇼까지 하며 IPO를 할 필요가 없다고. 주주들의 락업도 없음.<br>				<br><br>				<br>달러와 원화 빨리 변환하기 - <a href="https://brunch.co.kr/@designforhuman/19" target="_blank">https://brunch.co.kr/@designforhuman/19</a><br>				<br><br>				<br>Hurdle rate 기준수익률 <a href="https://www.investopedia.com/terms/h/hurdlerate.asp" target="_blank">https://www.investopedia.com/terms/h/hurdlerate.asp</a><br>				<br>펀드 등의 출자자가 펀드운영기관에 요구하는 수익률을 의미한다. 벤처투자조합 등에 있어서는 일반조합원(Limited partner; LP)이 벤처캐피탈인 업무집행조합원(General partner; GP)에게 요구하는 수익률을 의미한다.<br>				<br><br>				<br>영업 실사(Commercial DD, CDD), 법률 실사(Legal DD, LDD), 재무 실사(Financial DD, FDD), 세무 실사(Tax DD, TDD) <br>				<br><a href="http://hsalbert.blogspot.com/2017/10/due-diligence.html" target="_blank">http://hsalbert.blogspot.com/2017/10/due-diligence.html</a><br>				<br><br>				<br>Limited Partnership Agreement(이하'LPA')<br>				<br><br>				<br>캐피탈 콜(Capital call)이란 투자를 할 때 목표한 투자자금을 한 번에 투자하는 것이 아니라 일부 자본을 조성해 투자를 집행하고, 추가적인 자본 수요가 발생할 때마다 집행하는&#160;방식<br>				<br><br>				<br>GP LP<br>				<br><br>				<br><a href="https://youtu.be/TJFs4Z429hk" target="_blank">https://youtu.be/TJFs4Z429hk</a> 쉐도잉 하지말고 번역기를 활용하라<br>				<br><br>				<br>Premier Pro : ㅇㅇ여영영ㅇㅇㅇㅇ여영영사상상펴편펹편집집ㅇㅇMovie editing <br>				<br><a href="https://www.youtube.com/watch?v=XACXMF_91KE" target="_blank">https://www.youtube.com/watch?v=XACXMF_91KE</a><br>				<br><a href="https://www.youtube.com/watch?v=YE-ol9ekxhk" target="_blank">https://www.youtube.com/watch?v=YE-ol9ekxhk</a><br>				<br><br>				<br>LOI(Letter of Intent) 투자의향서<br>				<br>LOC(Letter of Commitment) 투자확약서<br>				<br><a href="http://snacker.hankyung.com/article/3050" target="_blank">http://snacker.hankyung.com/article/3050</a><br>				<br><br>				<br>Call option(매수권) Put Option(매도권)<br>				<br><br>				<br>과세이연 = 기업의 원활한 현금흐름을 위해 납부 시점을 연기, A를 판 후 B를 구입한 경우 B를 최종 매각한 시점에 <br>				<br>차익과세 유예분과 부동산 B의 양도 차익<br>				<br>의제배당 = 재무회계상의 기준과 달리 법인세법상 과세된 잉여금이 주주에게 이전되는 모든 것을 배당으로 간주하는데, 이러한 배당을 의제배당이라 한다.<br>				<br>기업회계에서 배당은 주주총회의 결의에 따라 미처분이익잉여금의 일부를 주주에게 현금으로 지급하는 현금배당만을 의미한다. 따라서 장부상 회계처리하는 경우에는 이러한 현금배당을 배당수익으로 인식하고 그 밖의 주식배당이라든 무상증자의 경우에는 배당으로 인식하지 아니한다.<br>				<br>반면에 상법상의 배당이라 함은 과세된 잉여금이 주주에게 이전되는 것을 의미한다. 주주에게 이전만 된다면 그 형식은 불문한다. 따라서, 현금배당 이외에도 주식배당, 자본전입, 주식매입으로 인한 과세된 잉여금의 주주에게 이전되는 것은 모두 배당으로 보게 된다.<br>				<br>법인세법도 이러한 상법의 내용을 준용하게 되었다. 따라서 법인세신고하는 경우에 재무회계에 있어서 배당과 법인세법에서의 배당이 일치하지 않게 된 것이다.<br>				<br>이러한 재무회계상의 배당이 아닌 것이 법인세법상의 배당이 되는 것을 배당으로 간주하여 법인세 등이 과세되는데 이를 의제배당이라 한다.<br>				<br><br>				<br>적격분할/ 비적격분할<br>				<br><a href="http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&code=07-04-01-02&table=t0201000_k001_new" target="_blank">http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&code=07-04-01-02&table=t0201000_k001_new</a><br>				<br><br>				<br>● 분할요건에 따른 구분&#160;<br>				<br><br>				<br>2009.12.31 법인세법상 분할세무에 대하여 개정을 한 이후에는 다음 각각의 요건을 갖춘 분할(적격분할)과 그러하지 아니한 분할(비적격분할)로 나누어 그 과세방법을 달리하고 있다.(<a href="http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&code=07-04-01-02&table=t0201000_k001_new#" target="_blank">法法</a> 46②)&#160;<br>				<br><br>				<br>1. 분할등기일 현재 5년 이상 사업을 계속하던 내국법인이 다음 각각의 요건을 갖추어 분할하는 경우일 것(분할합병의 경우에는 소멸한 분할합병의 상대방법인 및 분할합병의 상대방법인이 분할등기일 현재 1년 이상 사업을 계속하던 내국법인일 것)&#160;<br>				<br>(1) 분리하여 사업이 가능한 독립된 사업부문을 분할하는 것일 것&#160;<br>				<br>(2)분할하는 사업부문의 자산 및 부채가 포괄적으로 승계될 것. 다만, 공동으로 사용하던 자산, 채무자의 변경이 불가능한 부채 등 분할하기 어려운 자산과 부채 등으로서&#160;<a href="http://javascript:content_link('t0201000','2014',%20'38-7'" target="_blank">38-7.</a>;)에서 정하는 것은 제외한다.&#160;<br>				<br>(3) 분할법인 등만의 출자에 의하여 분할하는 것일 것&#160;<br>				<br><br>				<br>2.분할법인 등의 주주가 분할신설법인 등으로부터 받은 분할대가의 전액(분할합병의 경우에는 100분의 80 이상)이 주식으로서 그 주식이 분할법인 등의 주주가 소유하던 주식의 비율에 따라 배정(분할합병의 경우에는&#160;<a href="http://javascript:content_link('t0201000','2014',%20'38-10'" target="_blank">38-10.</a>;)에서 정하는 바에 따라 배정한 것을 말한다)되고&#160;<a href="http://javascript:content_link('t0201000','2014',%20'38-10'" target="_blank">38-10.</a>;)에서 정하는 분할법인 등의 주주가 분할등기일이 속하는 사업연도의 종료일까지 그 주식을 보유할 것&#160;<br>				<br><br>				<br>3.분할신설법인 등이 분할등기일이 속하는 사업연도의 종료일까지 분할법인 등으로부터 승계받은 사업을 계속할 것&#160;<br>				<br><br>				<br>2.의 지분의 연속성 요건은 ⅰ) 분할대가 중 분할신주 교부비율 ⅱ) 분할신주의 주주별 배정 ⅲ) 분할법인 지배주주 등의 주식 계속보유 요건 등이 모두 충족되어야 한다.&#160;<br>				<br><br>				<br>주) 1. 및 3.의 요건은 2009.12.31 개정 전의 특례대상 분할 및 특례배제대상 분할의 구분요건과 같으며, 2.의 요건은 종전에 분할대가를 교부할 경우 그 95% 이상을 주식으로 교부할 것만을 정하고 있었으며 분할신주의 배정방법이나 지배주주 등의 주식계속보유요건 등은 정하고 있지 않았음.&#160;<br>				<br><br>				출처: <<a href="http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&code=07-04-01-02&table=t0201000_k001_new" target="_blank">http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&code=07-04-01-02&table=t0201000_k001_new</a>> <br>				<br><br>				<br><br>				<br>물적분할/ 인적분할<br>				<br><a href="https://silvernecklace.tistory.com/488" target="_blank">https://silvernecklace.tistory.com/488</a><br>				<br>인적분할(人的分割, spin-off) - 세포분열 처럼 복제하듯 쪼개지는 것<br>				<br>기존 주주는 양쪽의 지분을 기존과 동일하게 가져간다. Hard-fork<br>				<br><br>				<br>물적분할(物的分割, split-off) - 존속기업 산하에 100% 자회사를 설립<br>				<br><br>				<br>총액매출인식/ 순액(수수료)매출인식<br>				<br><a href="http://m.blog.daum.net/hibis119/244?categoryId=6" target="_blank">http://m.blog.daum.net/hibis119/244?categoryId=6</a><br>				<br><br>				<br>유상증자 = 자본금 충당을 위해 신주발행<br>				<br>넓게 나누어서 3가지 방식이 있는데,<br>				<br>- 주주배정방식: 기존 주주한테 신주인수권을 주어&#160;<a href="https://namu.wiki/w/%ED%99%94%ED%8F%90" target="_blank">돈</a>을 납입시켜 증자를 하는 방법. 사실 가장 좋은 방법이다.&#160;그 회사 전망이 좋다면.<br>				<br>- 일반공모방식: 그 회사의 주주가 아니라 일반 대중한테&#160;<a href="https://namu.wiki/w/%EA%B8%B0%EC%97%85%EA%B3%B5%EA%B0%9C" target="_blank">기업공개</a>&#160;하듯&#160;<a href="https://namu.wiki/w/%EC%A3%BC%EC%8B%9D" target="_blank">주식</a>을 공모하는 방법. 기존 주주들은&#160;엄청나게 싫어한다. 자기가 가지고 있던&#160;<a href="https://namu.wiki/w/%EC%A3%BC%EC%8B%9D" target="_blank">주식</a>의 가치가 희석되기 때문이다. 기존 주주들이 회사의 신주를 사주지 않을 것 같을 때(즉 회사가 신뢰를 잃었을 때) 회사가 선택하는 방식이다. 단,&#160;<a href="https://namu.wiki/w/%EA%B8%B0%EC%97%85%EA%B3%B5%EA%B0%9C" target="_blank">기업공개</a>를 위해 실시하는 일반공모는 예외로 쳐주는 게 보통이다.<br>				<br>- 제3자배정방식: 경영진이 이해관계가 있거나 어떤 특수한 제3자를 정해 이를 대상으로 유상증자하는 것. 믿을 수 있는 사람이면 좋은데,&#160;<a href="https://namu.wiki/w/%EC%83%81%EC%9E%A5%ED%8F%90%EC%A7%80" target="_blank">상장폐지</a>를 모면하려는 케이스로 실시되는 케이스가 많다. 중소기업이 대기업에게 3자배정 유상증자를 하면 호재로 작용하는 경우가 많다.<br>				<br>유상증자를 할 때,&#160;<a href="https://namu.wiki/w/%EC%A3%BC%EC%8B%9D" target="_blank">주식</a>을 액면발행과 시가발행할 수 있는데, 액면발행은 말 그대로 주식의&#160;<a href="https://namu.wiki/w/%EC%95%A1%EB%A9%B4%EA%B0%80" target="_blank">액면가</a>를 기준으로 신주를 발행하는 것이고, 시가발행은 현재 시장가격에 일정부분&#160;할인(유상증자를 하면 주식 물량부담이 늘어 주가가 떨어진다.&#160;<a href="https://namu.wiki/w/%EA%B6%8C%EB%A6%AC%EB%9D%BD" target="_blank">권리락</a>도 감안해야 하고)이 되는데, 그 할인방식도 크게 세 가지다.<br>				<br>무상증자 = 주식을 무상으로 기존주주들에게 나눠주어 자본금을 늘리는 방식<br>				<br><br>				<br>IRR(Internal Rate of Return) = <br>				<br>투자로 지출되는 현금의 현재가치와 그 투자로 유입되는 미래 현금유입액의 현재가치가 동일하게 되는 수익률’을 의미합니다. 이 말인 즉슨, (현재 현금투자액) > (미래 현금유입액의 현재가치)도 아니고 (현재 현금투자액) < (미래 현금유입액의 현재가치)도 아닌 “[현재 현금투자액] = [미래 현금유입액의 현재가치]” 를 만드는 ‘수익률’<br>				<br>IRR은 사실은 현재가치의 할인율을 구하는 것<br>				<br><a href="http://snacker.hankyung.com/article/3015" target="_blank">http://snacker.hankyung.com/article/3015</a><br>				<br>영업양수도<br>				<br>자산양수도<br>				<br><a href="https://m.blog.naver.com/PostView.nhn?blogId=kalavine&logNo=220531378968&proxyReferer=https%3A%2F%2Fwww.google.com%2F" target="_blank">https://m.blog.naver.com/PostView.nhn?blogId=kalavine&logNo=220531378968&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a><br>				<br>전환사채(Convertible Bond) - 보통주 전환 권리를 가진 회사채<br>				<br>신주인수권부사채(Bond With Warrant) - 정해진 가격에 정해진 수량의 신주를 살 수 있는 권리(신주 인수권)가 포함된 회사채<br>				<br>Refixing(전환가 하향조정) : CB의 전환가액을 하향조정하는 옵션 - 신주를 싸게 인수 할 수 있게 하는 조항.<br>				<br>CB 발행 기업은 최초 전환가보다 최대 30% 낮은 가격까지 전환가를 하향 조정할 수 있다. 다만 CB 발행 후 감자(자본금 감액)나 신주 할인 발행(유상증자 paid-in capital increase)이 이뤄진 경우 CB 액면가까지 낮출 수 있다.&#160;<br>				<br>RCPS(전환상환우선주) = <br>				<br>보통주에 상환권과 전환권, 우선권을 부여<br>				<br>우선주에&#160;(1) 안전장치(상환권)와 (2) 수익률 개선장치(전환권)라는 두가지 옵션이 추가되어 상황에 따라 투자 원금을 보호하거나, 수익을 더 높일 수 있습니다. 자동차에 비유하자면 상환권은 에어백, 전환권은 터보엔진과 같은 역할을 합니다. 회사의 성장이 더디어 기대하는 수익 달성이 어려운 경우에는 상환권을 통해 채권과 같이 원금+이자를 돌려받고(에어백을 통한 안전마진 확보), 회사의 성장이 빠른 경우에는 배당+주식가격 상승(터보엔진의 출력개선)을 누릴 수 있습니다. 이러한 장점 때문에 전문투자자인 벤처캐피탈 또한 초기기업 투자 시 보통주보다 RCPS를 선호합니다.<br>				<br><br>				<br>대표적인 투자자 보호 조항들로,<br>				<br>Tag along(공동매도참여권) 대주주 지분이 Exit 할 때 투자자도 동일 조건으로 매각이 가능하도록 하는 조건<br>				<br>Drag along(공동매도요구권) 투자자가 다른 주주 지분 끌어들여서 경영권 프리미엄이 붙는 지분을 비싸게 매각 할 수 있는 조건<br>				<br><br>			<br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			출처: <<a href="http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&code=07-04-01-02&table=t0201000_k001_new" target="_blank">http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&code=07-04-01-02&table=t0201000_k001_new</a>> <br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>		<br>		<br>			<br><a href="https://smartstore.naver.com/dufamily/products/4334617193?NaPm=ct%3Djw6dcft4%7Cci%3D74693447e71189acb946b1470b2d8964052bfbdd%7Ctr%3Dslsl%7Csn%3D846379%7Cic%3D%7Chk%3Daa83e7eedfef6300a5e4a8681ce49c5bca457acf" target="_blank">https://smartstore.naver.com/dufamily/products/4334617193?NaPm=ct%3Djw6dcft4%7Cci%3D74693447e71189acb946b1470b2d8964052bfbdd%7Ctr%3Dslsl%7Csn%3D846379%7Cic%3D%7Chk%3Daa83e7eedfef6300a5e4a8681ce49c5bca457acf</a><br>			<br><br>			<br><a href="https://smartstore.naver.com/dddkong/products/3964578125?NaPm=ct%3Djw6dcv8o%7Cci%3D71a4d52fa8546ebbb74b335692b842ddfbfd62f4%7Ctr%3Dslsl%7Csn%3D781097%7Cic%3D%7Chk%3D592b2959f587d33267450aa4d988a861221fa7a2" target="_blank">https://smartstore.naver.com/dddkong/products/3964578125?NaPm=ct%3Djw6dcv8o%7Cci%3D71a4d52fa8546ebbb74b335692b842ddfbfd62f4%7Ctr%3Dslsl%7Csn%3D781097%7Cic%3D%7Chk%3D592b2959f587d33267450aa4d988a861221fa7a2</a><br>			<br><br>			<br><a href="https://smartstore.naver.com/blueapplechina/products/3556494497?NaPm=ct%3Djw6dbo14%7Cci%3Db6e782def0ab143de60c3dd5c06756456fd25bd4%7Ctr%3Dslsl%7Csn%3D556324%7Cic%3D%7Chk%3Dd89e0818393c291a0654ba795f0ab2797b87fb2f" target="_blank">https://smartstore.naver.com/blueapplechina/products/3556494497?NaPm=ct%3Djw6dbo14%7Cci%3Db6e782def0ab143de60c3dd5c06756456fd25bd4%7Ctr%3Dslsl%7Csn%3D556324%7Cic%3D%7Chk%3Dd89e0818393c291a0654ba795f0ab2797b87fb2f</a><br>			<br><br>			<br><a href="https://jikgoopark.com/mall/view/goodsNo/1222835?NaPm=ct%3Djw6d7m74%7Cci%3D02a97a671b0d78816c2c368f404c0177ba693e04%7Ctr%3Dslsl%7Csn%3D805036%7Chk%3D248516a113da356afbf85770705f362322145841" target="_blank">https://jikgoopark.com/mall/view/goodsNo/1222835?NaPm=ct%3Djw6d7m74%7Cci%3D02a97a671b0d78816c2c368f404c0177ba693e04%7Ctr%3Dslsl%7Csn%3D805036%7Chk%3D248516a113da356afbf85770705f362322145841</a><br>			<br><br>			<br><a href="http://general-philip.com/shop/item.php?it_id=n1527177788788&NaPm=ct%3Djw6dfpv4%7Cci%3Dfb5e35ea3bf0da0989fa8faeca45154ea119ceb1%7Ctr%3Dslsl%7Csn%3D693495%7Chk%3Df61cb788cd12d0b60e6c4105485e96ae9f2ffc58" target="_blank">http://general-philip.com/shop/item.php?it_id=n1527177788788&NaPm=ct%3Djw6dfpv4%7Cci%3Dfb5e35ea3bf0da0989fa8faeca45154ea119ceb1%7Ctr%3Dslsl%7Csn%3D693495%7Chk%3Df61cb788cd12d0b60e6c4105485e96ae9f2ffc58</a><br>		<br>		<br>			<br><a href="https://www.youtube.com/watch?v=1zEgmusx1aE" target="_blank">https://www.youtube.com/watch?v=1zEgmusx1aE</a><br>			<br><br>			<br><a href="https://www.youtube.com/watch?v=-DoBvjvBAFY" target="_blank">https://www.youtube.com/watch?v=-DoBvjvBAFY</a><br>			<br><br>			<br><a href="https://www.youtube.com/watch?v=JVM58Uar-o8" target="_blank">https://www.youtube.com/watch?v=JVM58Uar-o8</a><br>			<br><br>			<br><a href="https://www.youtube.com/watch?v=SQ9d2Dlzgz4" target="_blank">https://www.youtube.com/watch?v=SQ9d2Dlzgz4</a><br>			<br><br>			<br><a href="https://www.youtube.com/results?search_query=%EB%B0%B8%EB%A5%98%EC%97%90%EC%9D%B4%EC%85%98+%EB%A9%80%ED%8B%B0%ED%94%8C" target="_blank">https://www.youtube.com/results?search_query=%EB%B0%B8%EB%A5%98%EC%97%90%EC%9D%B4%EC%85%98+%EB%A9%80%ED%8B%B0%ED%94%8C</a><br>			<br><br>			<br><br>		<br>		<br>			<br><a href="http://startup-wiki.kr/" target="_blank">startup-wiki.kr</a> 참여형 스타트업 용어사전(beta)<br>			<br>경제지표 해설 <a href="http://www.bok.or.kr/portal/bbs/P0000605/view.do?nttId=10049120&menuNo=200462&pageIndex=1" target="_blank">http://www.bok.or.kr/portal/bbs/P0000605/view.do?nttId=10049120&menuNo=200462&pageIndex=1</a></div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note--Crape-Cake';
+const SAVE_KEY = 'board--Crape-Cake';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 432,
+    "y": 19,
+    "w": 600,
+    "content": "<a href=\"http://startup-wiki.kr/\" style=\"font-family:Montserrat;font-size:12pt;font-weight:bold\">startup-wiki.kr</a> 참여형 스타트업 용어사전(beta)\n경제지표 해설 <a href=\"http://www.bok.or.kr/portal/bbs/P0000605/view.do?nttId=10049120&menuNo=200462&pageIndex=1\">http://www.bok.or.kr/portal/bbs/P0000605/view.do?nttId=10049120&menuNo=200462&pageIndex=1</a>"
+  },
+  {
+    "type": "text",
+    "x": 72,
+    "y": 115,
+    "w": 600,
+    "content": "SHA(Shareholders Agreement) 주주간 계약서/ ssa"
+  },
+  {
+    "type": "image",
+    "x": 72,
+    "y": 159,
+    "w": 480,
+    "h": 148,
+    "src": "d156422628.png",
+    "caption": "SPA 협상 본격적으로 실사가 진행되고 나서 매수인이 주식인수계약서 (영문으로는 Share Purchase Agreement 또는 Stock Purchase Agreement, &quot;SPA&quot;라고 함) 초안을 작성하여 매도인즉에 전달하계 됩니다. (기존주주가 보유한 구주의 매각이 아니고, 매각대상 회사가 발행하는 신주에 대한 외국인 직접투자의 경우, Share Subscription Agreement, Stock Subscription Agreement, 또는 &quot;SSA 라고 하는데 계약구조는 신주발행에 따른 상법상 요건 등을 제외 하고는 SPA와 유사합니다.)"
+  },
+  {
+    "type": "text",
+    "x": 72,
+    "y": 315,
+    "w": 600,
+    "content": "리픽싱 <a href=\"https://m.blog.naver.com/PostView.nhn?blogId=hiwonjae&logNo=221251348658&proxyReferer=https%3A%2F%2Fwww.google.com%2F\">https://m.blog.naver.com/PostView.nhn?blogId=hiwonjae&logNo=221251348658&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a>\n채권 수익률 <a href=\"https://m.blog.naver.com/PostView.nhn?blogId=dream_asset&logNo=50114073168&proxyReferer=https%3A%2F%2Fwww.google.com%2F\">https://m.blog.naver.com/PostView.nhn?blogId=dream_asset&logNo=50114073168&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a>\n<a href=\"https://www.mk.co.kr/opinion/columnists/view/2010/10/588384/\">https://www.mk.co.kr/opinion/columnists/view/2010/10/588384/</a>\n국국구ㄱㄱㄱㅇㅇㅇㅇㅇㅇㄱㅇㄹㅇ<a href=\"https://m.blog.naver.com/creon_blog/221296548190\">https://m.blog.naver.com/creon_blog/221296548190</a>\n구주매출 ㅇㅇ\n<a href=\"https://content.surfit.io/video/KYVg3/KpXL2/17353440405d5c43a88fa63.webm\">https://content.surfit.io/video/KYVg3/KpXL2/17353440405d5c43a88fa63.webm</a>\n이런거 어떻게 만들지?\nBlacklined version 법률용어\n<a href=\"https://m.blog.naver.com/PostView.nhn?blogId=kasanlaw&logNo=220985938721&categoryNo=24&proxyReferer=&proxyReferer=https%3A%2F%2Fwww.google.com%2F\">https://m.blog.naver.com/PostView.nhn?blogId=kasanlaw&logNo=220985938721&categoryNo=24&proxyReferer=&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a>"
+  },
+  {
+    "type": "image",
+    "x": 72,
+    "y": 819,
+    "w": 319,
+    "h": 82,
+    "src": "d5773c1456.png",
+    "caption": "결과만 요약하자면, 다음과 같다. Liver (간) 27%, Brai n (되) 19%, Skeletal Muscle (근골격) 18%, Kidney s (신장) 10%, Heart (심장) 7%, other organs (그 외 의 장기) 19%."
+  },
+  {
+    "type": "text",
+    "x": 72,
+    "y": 909,
+    "w": 600,
+    "content": "RFI, RFP (Request for Information, Request for Proposal)'\n<a href=\"https://parkwoojong.tistory.com/22\">https://parkwoojong.tistory.com/22</a> CDD(Commercial DD)\n표면이율\n채권의 권면에 기재된 이율로 1년간 지급될 이자를 액면으로 나눈 것을 의미합니다.\n할인채와 이표채의 경우 이 표면이율이 과세(세금계산)의 기준이 됩니다.\n액면 만원 당 1년에 500원의 이자를 지급하는 경우 이자율은 5% 입니다.\n복리채의 경우, 표면이율의 복리에 의해 만기금액이 정해지고, 과세의 기준이 되므로 단리 및 할인채에 비해 과표가 복리로 증가하는 효과가 있습니다.\nPPM(Pay Per Month)/ PPV(Pay Per View)\nWPM (Weekly Progress Memo)\n<a href=\"https://www.youtube.com/watch?v=j-nL0fPAaME&feature=youtu.be\">https://www.youtube.com/watch?v=j-nL0fPAaME&feature=youtu.be</a>\n누끼\n<a href=\"https://youtu.be/j-nL0fPAaME\">https://youtu.be/j-nL0fPAaME</a>\n<a href=\"https://youtu.be/nlI5t5uPXTQ\">https://youtu.be/nlI5t5uPXTQ</a>\n<a href=\"https://youtu.be/cVztVX1gA-A\">https://youtu.be/cVztVX1gA-A</a>"
+  },
+  {
+    "type": "image",
+    "x": 72,
+    "y": 1353,
+    "w": 220,
+    "h": 200,
+    "src": "ded459dc2b.png"
+  },
+  {
+    "type": "image",
+    "x": 300,
+    "y": 1353,
+    "w": 220,
+    "h": 200,
+    "src": "27737508c2.png"
+  },
+  {
+    "type": "text",
+    "x": 72,
+    "y": 1561,
+    "w": 600,
+    "content": "거래액(GMV, Gross Merchandise Volume)은 특정 기간 해당 플랫폼 내에서 상품이 거래된 총금액\nDA(Display AD)/ SA(Search AD)\nEBITDA에 관해서는 감가상각비가 비현금성 비용이므로, 실제로는 비용이 아니라고 보는 방식인데 이것에 대해 강한 어조로 비난한다.\n“터무니 없는 생각입니다. 사실 감가상각비는 매우 나쁜 비용입니다. 자산을 구입하면서 돈을 먼저 지출했지만, 그 자산에서 이득을 아직 얻지 못했기 때문입니다.”\n<a href=\"https://brunch.co.kr/@aidenswmo/2\">https://brunch.co.kr/@aidenswmo/2</a>\n※ 손익계산서 요약\n-. 매출액 = 판매금액\n-. 매출총이익 = 매출액 - 매출원가\n-. 영업이익 = 매출총이익 - 판관비\n-. 세전이익 = 매출총이익 + 영업외수익 - 영업외비용\n-. 당기순이익 = 세전이익 - 법인세&#160;\n실사의 범위에 제한은 없으며, 통상적으로 영업 실사(Commercial DD, CDD), 법률 실사(Legal DD, LDD), 재무 실사(Financial DD, FDD), 세무 실사(Tax DD, TDD) 등 인수자가 필요하다고 판단하는 모든 것이 대상이라고 보면 됩니다.\n슬랙이 direct listing 방법으로 기업공개예정 <a href=\"https://lm.facebook.com/l.php?u=https%3A%2F%2Fwww.cnbc.com%2F2019%2F02%2F04%2Fslack-confidentially-files-to-go-public.html&h=AT3bGMrevk0ENNVrkhX9sQKNDldMb1X94RvJMvG6Q5C2MUpxR-kLPSkG7HaNuKe1cHDNy7jCirff589Y2Cx5vqDPgzdexmBDYZjwx19IDVWo8EvLGVTs-J3OBuo-0ipLGzPWkzOpQtvxlRFrxDuGDK_OsJMPJBNlIi_RuBU\">https://www.cnbc.com/2019/02/04/slack-confidentially-files-to-go-public.html</a>\n디렉트리스팅은 스포티파이가 지난해 택했던 방법으로 정식 IPO가 아님. 신주발행을 하지 않고 기존 주주들의 주식을 공개시장을 통해 매매할 수 있도록 공개하는 것.\n현금이 충분해 IPO로 현금조달을 할 필요가 없는데 대신 기존 투자자들의 엑싯을 시켜줘야 할 때 쓸 수 있는 방법. 큰 비용을 들여서 로드쇼까지 하며 IPO를 할 필요가 없다고. 주주들의 락업도 없음.\n달러와 원화 빨리 변환하기 - <a href=\"https://brunch.co.kr/@designforhuman/19\">https://brunch.co.kr/@designforhuman/19</a>\nHurdle rate 기준수익률 <a href=\"https://www.investopedia.com/terms/h/hurdlerate.asp\" lang=\"ko-KR\">https://www.investopedia.com/terms/h/hurdlerate.asp</a>\n펀드 등의 출자자가 펀드운영기관에 요구하는 수익률을 의미한다. 벤처투자조합 등에 있어서는 일반조합원(Limited partner; LP)이 벤처캐피탈인 업무집행조합원(General partner; GP)에게 요구하는 수익률을 의미한다.\n영업 실사(Commercial DD, CDD), 법률 실사(Legal DD, LDD), 재무 실사(Financial DD, FDD), 세무 실사(Tax DD, TDD)\nhttp://hsalbert.blogspot.com/2017/10/due-diligence.html</a>\nLimited Partnership Agreement(이하'LPA')\n캐피탈 콜(Capital call)이란 투자를 할 때 목표한 투자자금을 한 번에 투자하는 것이 아니라 일부 자본을 조성해 투자를 집행하고, 추가적인 자본 수요가 발생할 때마다 집행하는&#160;방식\nGP LP\n<a href=\"https://youtu.be/TJFs4Z429hk\">https://youtu.be/TJFs4Z429hk</a> 쉐도잉 하지말고 번역기를 활용하라\nPremier Pro : ㅇㅇ여영영ㅇㅇㅇㅇ여영영사상상펴편펹편집집ㅇㅇMovie editing\n<a href=\"https://www.youtube.com/watch?v=XACXMF_91KE\">https://www.youtube.com/watch?v=XACXMF_91KE</a>\n<a href=\"https://www.youtube.com/watch?v=YE-ol9ekxhk\">https://www.youtube.com/watch?v=YE-ol9ekxhk</a>\nLOI(Letter of Intent) 투자의향서\nLOC(Letter of Commitment) 투자확약서\nhttp://snacker.hankyung.com/article/3050</a>\nCall option(매수권) Put Option(매도권)\n과세이연 = 기업의 원활한 현금흐름을 위해 납부 시점을 연기, A를 판 후 B를 구입한 경우 B를 최종 매각한 시점에\n차익과세 유예분과 부동산 B의 양도 차익\n의제배당 = 재무회계상의 기준과 달리 법인세법상 과세된 잉여금이 주주에게 이전되는 모든 것을 배당으로 간주하는데, 이러한 배당을 의제배당이라 한다.\n기업회계에서 배당은 주주총회의 결의에 따라 미처분이익잉여금의 일부를 주주에게 현금으로 지급하는 현금배당만을 의미한다. 따라서 장부상 회계처리하는 경우에는 이러한 현금배당을 배당수익으로 인식하고 그 밖의 주식배당이라든 무상증자의 경우에는 배당으로 인식하지 아니한다.\n반면에 상법상의 배당이라 함은 과세된 잉여금이 주주에게 이전되는 것을 의미한다. 주주에게 이전만 된다면 그 형식은 불문한다. 따라서, 현금배당 이외에도 주식배당, 자본전입, 주식매입으로 인한 과세된 잉여금의 주주에게 이전되는 것은 모두 배당으로 보게 된다.\n법인세법도 이러한 상법의 내용을 준용하게 되었다. 따라서 법인세신고하는 경우에 재무회계에 있어서 배당과 법인세법에서의 배당이 일치하지 않게 된 것이다.\n이러한 재무회계상의 배당이 아닌 것이 법인세법상의 배당이 되는 것을 배당으로 간주하여 법인세 등이 과세되는데 이를 의제배당이라 한다.\n적격분할/ 비적격분할\nhttp://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&code=07-04-01-02&table=t0201000_k001_new</a>\n● 분할요건에 따른 구분&#160;\n2009.12.31 법인세법상 분할세무에 대하여 개정을 한 이후에는 다음 각각의 요건을 갖춘 분할(적격분할)과 그러하지 아니한 분할(비적격분할)로 나누어 그 과세방법을 달리하고 있다.(法法</a> 46②)&#160;\n1. 분할등기일 현재 5년 이상 사업을 계속하던 내국법인이 다음 각각의 요건을 갖추어 분할하는 경우일 것(분할합병의 경우에는 소멸한 분할합병의 상대방법인 및 분할합병의 상대방법인이 분할등기일 현재 1년 이상 사업을 계속하던 내국법인일 것)&#160;\n(1) 분리하여 사업이 가능한 독립된 사업부문을 분할하는 것일 것&#160;\n(2)분할하는 사업부문의 자산 및 부채가 포괄적으로 승계될 것. 다만, 공동으로 사용하던 자산, 채무자의 변경이 불가능한 부채 등 분할하기 어려운 자산과 부채 등으로서&#160;38-7.</a>에서 정하는 것은 제외한다.&#160;\n(3) 분할법인 등만의 출자에 의하여 분할하는 것일 것&#160;\n2.분할법인 등의 주주가 분할신설법인 등으로부터 받은 분할대가의 전액(분할합병의 경우에는 100분의 80 이상)이 주식으로서 그 주식이 분할법인 등의 주주가 소유하던 주식의 비율에 따라 배정(분할합병의 경우에는&#160;38-10.</a>에서 정하는 바에 따라 배정한 것을 말한다)되고&#160;38-10.</a>에서 정하는 분할법인 등의 주주가 분할등기일이 속하는 사업연도의 종료일까지 그 주식을 보유할 것&#160;\n3.분할신설법인 등이 분할등기일이 속하는 사업연도의 종료일까지 분할법인 등으로부터 승계받은 사업을 계속할 것&#160;\n2.의 지분의 연속성 요건은 ⅰ) 분할대가 중 분할신주 교부비율 ⅱ) 분할신주의 주주별 배정 ⅲ) 분할법인 지배주주 등의 주식 계속보유 요건 등이 모두 충족되어야 한다.&#160;\n주) 1. 및 3.의 요건은 2009.12.31 개정 전의 특례대상 분할 및 특례배제대상 분할의 구분요건과 같으며, 2.의 요건은 종전에 분할대가를 교부할 경우 그 95% 이상을 주식으로 교부할 것만을 정하고 있었으며 분할신주의 배정방법이나 지배주주 등의 주식계속보유요건 등은 정하고 있지 않았음.&#160;\n출처: <http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&code=07-04-01-02&table=t0201000_k001_new</a>>\n물적분할/ 인적분할\nhttps://silvernecklace.tistory.com/488</a>\n인적분할(人的分割, spin-off) - 세포분열 처럼 복제하듯 쪼개지는 것\n기존 주주는 양쪽의 지분을 기존과 동일하게 가져간다. Hard-fork\n물적분할(物的分割, split-off) - 존속기업 산하에 100% 자회사를 설립\n총액매출인식/ 순액(수수료)매출인식\nhttp://m.blog.daum.net/hibis119/244?categoryId=6</a>\n유상증자 = 자본금 충당을 위해 신주발행\n넓게 나누어서 3가지 방식이 있는데,\n주주배정방식: 기존 주주한테 신주인수권을 주어&#160;돈</a>을 납입시켜 증자를 하는 방법. 사실 가장 좋은 방법이다.&#160;그 회사 전망이 좋다면.\n일반공모방식: 그 회사의 주주가 아니라 일반 대중한테&#160;기업공개</a>&#160;하듯&#160;주식</a>을 공모하는 방법. 기존 주주들은&#160;엄청나게 싫어한다. 자기가 가지고 있던&#160;주식</a>의 가치가 희석되기 때문이다. 기존 주주들이 회사의 신주를 사주지 않을 것 같을 때(즉 회사가 신뢰를 잃었을 때) 회사가 선택하는 방식이다. 단,&#160;기업공개</a>를 위해 실시하는 일반공모는 예외로 쳐주는 게 보통이다.\n제3자배정방식: 경영진이 이해관계가 있거나 어떤 특수한 제3자를 정해 이를 대상으로 유상증자하는 것. 믿을 수 있는 사람이면 좋은데,&#160;상장폐지</a>를 모면하려는 케이스로 실시되는 케이스가 많다. 중소기업이 대기업에게 3자배정 유상증자를 하면 호재로 작용하는 경우가 많다.\n유상증자를 할 때,&#160;주식</a>을 액면발행과 시가발행할 수 있는데, 액면발행은 말 그대로 주식의&#160;액면가</a>를 기준으로 신주를 발행하는 것이고, 시가발행은 현재 시장가격에 일정부분&#160;할인(유상증자를 하면 주식 물량부담이 늘어 주가가 떨어진다.&#160;권리락</a>도 감안해야 하고)이 되는데, 그 할인방식도 크게 세 가지다.\n무상증자 = 주식을 무상으로 기존주주들에게 나눠주어 자본금을 늘리는 방식\nIRR(Internal Rate of Return) =\n투자로 지출되는 현금의 현재가치와 그 투자로 유입되는 미래 현금유입액의 현재가치가 동일하게 되는 수익률’을 의미합니다. 이 말인 즉슨, (현재 현금투자액) > (미래 현금유입액의 현재가치)도 아니고 (현재 현금투자액) < (미래 현금유입액의 현재가치)도 아닌 “[현재 현금투자액] = [미래 현금유입액의 현재가치]” 를 만드는 ‘수익률’\nIRR은 사실은 현재가치의 할인율을 구하는 것\nhttp://snacker.hankyung.com/article/3015</a>\n영업양수도\n자산양수도\nhttps://m.blog.naver.com/PostView.nhn?blogId=kalavine&logNo=220531378968&proxyReferer=https%3A%2F%2Fwww.google.com%2F</a>\n전환사채(Convertible Bond) - 보통주 전환 권리를 가진 회사채\n신주인수권부사채(Bond With Warrant) - 정해진 가격에 정해진 수량의 신주를 살 수 있는 권리(신주 인수권)가 포함된 회사채\nRefixing(전환가 하향조정) : CB의 전환가액을 하향조정하는 옵션 - 신주를 싸게 인수 할 수 있게 하는 조항.\nCB 발행 기업은 최초 전환가보다 최대 30% 낮은 가격까지 전환가를 하향 조정할 수 있다. 다만 CB 발행 후 감자(자본금 감액)나 신주 할인 발행(유상증자 paid-in capital increase)이 이뤄진 경우 CB 액면가까지 낮출 수 있다.&#160;\nRCPS(전환상환우선주) =\n보통주에 상환권과 전환권, 우선권을 부여\n우선주에&#160;(1) 안전장치(상환권)와 (2) 수익률 개선장치(전환권)라는 두가지 옵션이 추가되어 상황에 따라 투자 원금을 보호하거나, 수익을 더 높일 수 있습니다. 자동차에 비유하자면 상환권은 에어백, 전환권은 터보엔진과 같은 역할을 합니다. 회사의 성장이 더디어 기대하는 수익 달성이 어려운 경우에는 상환권을 통해 채권과 같이 원금+이자를 돌려받고(에어백을 통한 안전마진 확보), 회사의 성장이 빠른 경우에는 배당+주식가격 상승(터보엔진의 출력개선)을 누릴 수 있습니다. 이러한 장점 때문에 전문투자자인 벤처캐피탈 또한 초기기업 투자 시 보통주보다 RCPS를 선호합니다.\n대표적인 투자자 보호 조항들로,\nTag along(공동매도참여권) 대주주 지분이 Exit 할 때 투자자도 동일 조건으로 매각이 가능하도록 하는 조건\nDrag along(공동매도요구권) 투자자가 다른 주주 지분 끌어들여서 경영권 프리미엄이 붙는 지분을 비싸게 매각 할 수 있는 조건\n출처: <http://www.etaxkorea.net/sub/haesul/haesul_juje_Comment_content.php?year=2014&code=07-04-01-02&table=t0201000_k001_new</a>>"
+  },
+  {
+    "type": "text",
+    "x": 984,
+    "y": 4552,
+    "w": 600,
+    "content": "<a href=\"https://www.youtube.com/watch?v=1zEgmusx1aE\">https://www.youtube.com/watch?v=1zEgmusx1aE</a>\n<a href=\"https://www.youtube.com/watch?v=-DoBvjvBAFY\">https://www.youtube.com/watch?v=-DoBvjvBAFY</a>\n<a href=\"https://www.youtube.com/watch?v=JVM58Uar-o8\">https://www.youtube.com/watch?v=JVM58Uar-o8</a>\n<a href=\"https://www.youtube.com/watch?v=SQ9d2Dlzgz4\">https://www.youtube.com/watch?v=SQ9d2Dlzgz4</a>\n<a href=\"https://www.youtube.com/results?search_query=%EB%B0%B8%EB%A5%98%EC%97%90%EC%9D%B4%EC%85%98+%EB%A9%80%ED%8B%B0%ED%94%8C\">https://www.youtube.com/results?search_query=%EB%B0%B8%EB%A5%98%EC%97%90%EC%9D%B4%EC%85%98+%EB%A9%80%ED%8B%B0%ED%94%8C</a>"
+  },
+  {
+    "type": "text",
+    "x": 972,
+    "y": 5230,
+    "w": 600,
+    "content": "https://smartstore.naver.com/dufamily/products/4334617193?NaPm=ct%3Djw6dcft4%7Cci%3D74693447e71189acb946b1470b2d8964052bfbdd%7Ctr%3Dslsl%7Csn%3D846379%7Cic%3D%7Chk%3Daa83e7eedfef6300a5e4a8681ce49c5bca457acf</a>\nhttps://smartstore.naver.com/dddkong/products/3964578125?NaPm=ct%3Djw6dcv8o%7Cci%3D71a4d52fa8546ebbb74b335692b842ddfbfd62f4%7Ctr%3Dslsl%7Csn%3D781097%7Cic%3D%7Chk%3D592b2959f587d33267450aa4d988a861221fa7a2</a>\nhttps://smartstore.naver.com/blueapplechina/products/3556494497?NaPm=ct%3Djw6dbo14%7Cci%3Db6e782def0ab143de60c3dd5c06756456fd25bd4%7Ctr%3Dslsl%7Csn%3D556324%7Cic%3D%7Chk%3Dd89e0818393c291a0654ba795f0ab2797b87fb2f</a>\nhttps://jikgoopark.com/mall/view/goodsNo/1222835?NaPm=ct%3Djw6d7m74%7Cci%3D02a97a671b0d78816c2c368f404c0177ba693e04%7Ctr%3Dslsl%7Csn%3D805036%7Chk%3D248516a113da356afbf85770705f362322145841</a>\nhttp://general-philip.com/shop/item.php?it_id=n1527177788788&NaPm=ct%3Djw6dfpv4%7Cci%3Dfb5e35ea3bf0da0989fa8faeca45154ea119ceb1%7Ctr%3Dslsl%7Csn%3D693495%7Chk%3Df61cb788cd12d0b60e6c4105485e96ae9f2ffc58</a>"
+  }
+];
+const CONTENT_HASH = 'c264ee06';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -140,33 +453,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

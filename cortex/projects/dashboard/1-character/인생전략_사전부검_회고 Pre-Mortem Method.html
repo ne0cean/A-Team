@@ -6,121 +6,481 @@
 <title>인생전략/사전부검/회고 Pre-Mortem Method</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">인생전략/사전부검/회고 Pre-Mortem Method</span>
-  
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">인생전략/사전부검/회고 Pre-Mortem Method</div>
+<div class="date"></div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">인생전략/사전부검/회고 Pre-Mortem Method<br>		<br>	<br>	<br>		<br>			<br>				<br>[인생전략] <br>				<br>1단계 - 나에게 훌륭한 삶이란 무엇인지 정의<br>				<br>2단계 - 목적을 수립 <br>				<br>3단계 - 인생의 비전 수립<br>				<br>4단계 - 주당 168시간을 어떻게 사용하는지 포트폴리오를 분석 <br>				<br>5단계 - 삶의 만족도 기준을 설정 <br>				<br>6단계 - 처음 다섯 단계의 결과를 통합하고 인생에서의 선택과 잠재적 변화를 결정 <br>				<br>7단계 - 선택을 실행에 옮기기 위한 계획 수립￼+ 인생 전략의 초기 버전 정리<br>				<br><br>				<br>백캐스팅backcasting/ 사전부검/ 회고/ <a href="https://www.instagram.com/reel/DTCKbAUEVxP/?igsh=Y2Z2ZnBwMHNudTgx" target="_blank">쿠엔틴의</a> 자기혐오의 밤: 이번달 혼술 특히 집에서 하면 망함<br>				<br><br>				<br>Preview(미리보기)와 Review(돌아보기), TIL 작성, Strategic realignment<br>				<br><br>				<br>주간/ 월간/ 분기/ 연간 평가 할 수 있는 질문 목록 작성, 이거랑, 콘텐츠 제작을 클럽으로 만들어 볼까?<br>				<br>미래일기, 기사 써보기<br>				<br>10분 후, 10일 후, 10년 후,<br>				<br>Macro & micro<br>				<br>				<br><br>				<br>				<br><br>				<br>돈/시간/에너지를 목표에 맞게 배분/사용하고 있는지 점검<br>				<br>각각의 상관관계에 맞계 6개 Pillar를 배치/구조화<br>				<br>만약 일이 가장 최우선이면, 거기에 맞게 다른 모든게 OKR의 이니셔티브가 되는 식<br>				<br>필생의 사랑, 필생의 업<br>				<br>지금으로부터 3개월 후에, 목표달성에 실패 했다면 왜? - 시작하지 않아서<br>				<br><br>				<br>핵심 회고 질문으로 나 다시 보기&#160;<br>				<br>					<br>- 나의 팀원들은 얼마나 성장(개선 필요 역량 및 강점 역량)했는가?&#160;<br>					<br>- 나는 그 성장에 어떤 역할을 했고, 얼마만큼 기여했는가?<br>					<br>- 나와 나의 팀은 얼마나 의미 있는 결과를 만들어냈나?<br>					<br>- 나는 얼마나 의미 있는 성장을 이뤘는가?<br>					<br>- 나의 전문성은 얼마나 축적되었는가? 그것을 보이는 결과로 만들어냈는가?<br>					<br>- 나는 가족들과 주변 사람들에게 얼마나 따뜻했는가?<br>					<br>- 나의 건강은 나아졌는가?<br>					<br>- 나는 행복한가? 나의 긍정성과 회복탄력성은 강해졌는가?<br>				<br>				<br><br>				출처: <<a href="https://publy.co/content/7022?fr=home&c_id=featured" target="_blank">https://publy.co/content/7022?fr=home&c_id=featured</a>> <br>				<br><br>				<br>#1 4Ls&#160;<br>				<br>					<br>- Likes: 경험에서 좋았던 점이나 성과를 작성합니다.<br>					<br>- Learned: 성공적이거나 실패한 경험에서 얻은 교훈을 중심으로 작성합니다.<br>					<br>- Lacked: 경험에서 부족했던 점이나 개선이 필요한 부분을 작성합니다. (효율성, 역량, 자원 등 부족한 측면도 포함합니다.)<br>					<br>- Longed for: 더 나은 결과를 얻기 위해 바랐던 부분을 작성합니다.<br>				<br>				<br><br>				출처: <<a href="https://publy.co/content/7550?fr=search&sc=all%3Af1d705affbdb47e1d66c01581ab8fdfb%3Asets_2599&id=2599" target="_blank">https://publy.co/content/7550?fr=search&sc=all%3Af1d705affbdb47e1d66c01581ab8fdfb%3Asets_2599&id=2599</a>> <br>				<br>#2 KPT<br>				<br>					<br>- Keep:&#160;지속하고 싶은 내용을 작성합니다.<br>					<br>- Problem:&#160;개선이 필요한 내용을 작성합니다.<br>					<br>- Try:&#160;구체적으로 시도할 내용을 작성합니다.<br>				<br>				<br>- <br>일과 후 자기전에 리뷰를 합니다. 계획대로 수행했는지 체크하고 6가지 질문에 간단히 답했습니다.&#160;<br>				<br>					<br>- 오늘의 한 줄평 - 회고를 위한 몸풀기 질문. 이 답변은 오늘이 어떤 하루였는지 나중에 기억하기에도 좋다.<br>					<br>- 잘한 점 - 특히 잘한 점 한 가지를 적는다. 이 답변은 나의 강점, 내가 좋다고 판단하는 기준이 무엇인지 알 수 있다.<br>					<br>- 못한 점 - 스스로 약하다고 생각되는 점에 대해 생각해본다.<br>					<br>- 개선할 점 - 못한 점을 어떻게 개선할 수 있는지에 대해 적는다. 개선을 할지 말지, 얼마나 개선할지에 대해서 적을 수도 있다. 모든 단점을 개선할 수는 없다.<br>					<br>- 배운 점 - 위 내용에 대한 정리일 수도 있고 일화가 될 수도 있다. 다른 질문에 적지 못한 내용을 '배움'이라는 키워드로 묶는다. 없으면 패스하기도 함.<br>					<br>- 감사한 일 - 감사에 대해 생각하면 마음을 평온하게 만드는 데에 도움이 된다. 하루를 마무리하기 좋은 질문이다.<br>				<br>				<br>				<br><br>				출처: <<a href="https://eopla.net/magazines/14210" target="_blank">https://eopla.net/magazines/14210</a>> <br>				<br><br>				<br>▶ 구글 캘린더와 함께 짚어볼 질문들<br>				<br>1. 얼마나 많은 사람을 만났나요? 어떤 대화를 나누었나요?<br>				<br>2. 매달 가장 기억에 남는 일은 무엇인가요? 왜 기억에 남나요?<br>				<br>3. 어디로 여행을 갔나요? 누구와 함께 갔나요?&#160;<br>				<br>4. 어떤 공연, 영화, 드라마를 보았나요? 기억에 남는 장면은 무엇인가요?<br>				<br><br>				<br><br>				<br>▶&#160;SNS/모바일 앱과 함께 짚어볼 질문들<br>				<br>1. 몇 편의 글을 썼나요? 가장 좋은 글은 무엇인가요? 왜 그 글을 뽑았나요?<br>				<br>2. 건강을 위해 어떤 활동을 했나요? 효과는 어떤가요?<br>				<br>3. 수입과 지출은 어느 정도인가요?&#160;<br>				<br><br>				<br><br>				<br>&#160;▶&#160;나의 취향에 대해 생각해볼 질문들<br>				<br>1. 가장 많은 시간을 쏟은 활동은 무엇인가요?<br>				<br>2. 가장 좋아한 장소/시간/사람/음식/노래/물건은 무엇인가요?<br>				<br>3. 가장 듣기 좋았던 말은 무엇인가요?<br>				<br><br>				<br><br>				<br>▶&#160;나의 성과에 대해 생각해볼 질문들<br>				<br>1. 얼마나 일했나요? 적당한 수준이었나요?<br>				<br>2. 어떤 프로젝트를 진행했나요? 그 결과는 어땠나요? 무엇을 배웠나요?<br>				<br>3. 어떤 책을 읽었나요? 얼마나 많은 책을 읽었나요?&#160;<br>				<br>4. 얼마나 공부했나요? 어떤 변화가 있었나요?<br>				<br>5. 가장 자랑스러운 결과물은 무엇인가요? 왜 그 결과물을 뽑았나요?<br>				<br>6. 내게 큰 영감을 준 레퍼런스는 무엇인가요? 혹은 누구인가요?<br>				<br>7. 오래 기억하고 싶은 실패는 무엇인가요?<br>				<br>8. 가장 행복했던 순간은 언제인가요?<br>				<br><br>				출처: <<a href="https://brunch.co.kr/@minjungbora/44" target="_blank">https://brunch.co.kr/@minjungbora/44</a>> <br>				<br><br>				<br>팀 회고 <a href="https://publy.co/content/7022?s=a1trts" target="_blank">https://publy.co/content/7022?s=a1trts</a><br>				<br><a href="https://publy.co/set/2107?fr=search&sc=all%3A975e0ea4f66e7eebb93656f5212d1e55%3Asets_2107" target="_blank">2022년 리더의 한 해 돌아보기: 연간&#160;</a>회고법<br>				<br><a href="https://publy.co/content/7369?s=lv458q" target="_blank">https://publy.co/content/7369?s=lv458q</a><br>				<br><a href="https://publy.co/set/2438?fr=search&sc=all%3A975e0ea4f66e7eebb93656f5212d1e55%3Asets_2438" target="_blank">요즘&#160;</a>팀장의 프로젝트&#160;회고: 1시간 프로젝트 개선점 찾는 신호등&#160;회고법<br>				<br><br>				<br><br>				<br>팀 회고에서 사용할 수 있는 질문 모음<br>				<br>1.지난 기간 동안 가장 큰 성공 경험은 무엇이었나요? 그 경험에서 얻은 인사이트는 무엇인가요? 2.지난 기간 동안 가장 어려웠던 도전은 무엇이었나요? 어떻게 극복했고, 어떤 것을 배웠나요? 3.팀 내에서 서로 협력하거나 소통하는데 어려웠던 점은 무엇인가요? 이를 개선하기 위한 방안은 무엇일까요? 4.지난 기간 동안 팀원들의 역할이나 책임에 대한 인식은 어땠나요? 앞으로 어떻게 개선해야 할까요? 5.팀의 목표 달성을 위해 어떤 자원이나 지원이 필요하다고 생각하나요? 6.자신의 역량을 향상시키기 위해 어떤 노력을 기울였나요? 앞으로 어떤 역량을 개발하고 싶은가요? 7.지금까지의 프로젝트에서 가장 기억에 남는 순간은 무엇인가요? 그 이유는 무엇인가요? 8.우리 팀의 강점과 약점은 무엇이라고 생각하나요? 앞으로 어떻게 발전시켜 나갈 수 있을까요? 9.앞으로의 프로젝트에서 시도해보고 싶은 새로운 방법이나 아이디어가 있나요? 그 이유는 무엇인가요? 10.우리 팀의 업무 프로세스에서 개선이 필요하다고 생각하는 부분은 무엇인가요? 어떻게 개선할 수 있을까요?<br>				<br><br>				출처: <<a href="https://careerly.co.kr/comments/81958" target="_blank">https://careerly.co.kr/comments/81958</a>> <br>				<br><br>				<br>나의 내일을 위한 주간 회고 질문<br>				<br>					<br>- 지난 주 동안 일상에서 가장 즐거웠던 순간은 언제였나요?<br>				<br>				<br>					<br>- 지난 주에 어떤 어려움이 있었나요? 그것을 어떻게 극복했나요?<br>				<br>				<br>					<br>- 지난 주 동안 공부하거나 배운 것이 있나요? 무엇인가요?<br>				<br>				<br>					<br>- 지난 주에는 어떤 새로운 경험을 해보았나요?<br>				<br>				<br>					<br>- 지난 주에 내가 이룬 작은 성취는 무엇인가요?<br>				<br>				<br>					<br>- 지난 주에는 내가 가장 중요하게 생각한 가치는 무엇이었나요?<br>				<br>				<br>					<br>- 지난 주에 내가 더 많은 시간을 쏟았던 것은 무엇이었나요? 그것이 내게 어떤 의미가 있었나요?<br>				<br>				<br>					<br>- 지난 주 동안 건강을 유지하기 위해 노력한 것이 있나요? 어떤 노력을 했나요?<br>				<br>				<br>					<br>- 지난 주 동안 가족, 친구, 동료 등 다른 사람들과 소통하면서 느낀 감정은 어땠나요?<br>				<br>				<br>					<br>- 이번 주에 내가 더 잘해야할 것은 무엇인가요? 그것에 대해 어떤 계획을 세웠봤나요?<br>				<br>				<br><br>				<br>나의 내일을 위한 월간 회고 질문 리스트<br>				<br>(토글을 열어 원하는 질문에 나만의 답변을 적어주세요.)<br>				<br>이번 달 동안 나는 어떤 일을 할 때 가장 행복했나요? 그 이유는 무엇인가요?<br>				<br>이번 달 동안 내가 성장한 부분은 무엇인가요? 그것이 어떻게 나에게 도움이 되었나요?<br>				<br>이번 달 동안 내가 새로 시도한 것 중에서 가장 큰 도전은 무엇이었나요? 그것을 어떻게 극복햇나요?<br>				<br>이번 달 동안 내가 가장 힘들었던 순간은 무엇이었나요? 그것을 어떻게 극복했나요?<br>				<br>이번 달 동안 내가 가장 집중했던 일은 무엇이었나요? 그것이 나에게 어떤 결과를 가져왔나요?<br>				<br>이번 달 동안 내가 무엇을 배웠나요? 그것이 나의 인생에 어떤 영향을 미칠까요?<br>				<br>이번 달 동안 내가 자주 반복하는 나쁜 습관은 무엇이었나요? 그것을 고치기 위해 어떤 노력을 했나요?<br>				<br>이번 달 동안 나는 어떤 목표를 달성하기 위해 노력했나요? 그것을 위해 어떤 계획을 세웠나요?<br>				<br><br>				출처: <<a href="https://eager-pansy-5cb.notion.site/6db01b25fe0943288f587f2a27317537?p=02959b41c17849a0bfcda543d9dcd5c0&pm=s" target="_blank">https://eager-pansy-5cb.notion.site/6db01b25fe0943288f587f2a27317537?p=02959b41c17849a0bfcda543d9dcd5c0&pm=s</a>> <br>				<br><br>				<br>1. 회고 준비하기<br>				<br>15가지 회고 질문을 하기 전에&#160;먼저 월 별로 새롭게 만났던 사람, 경험 등을 먼저 정리해봐요!<br>				<br>[양식] 1월 - 새로운 만남/연결 1. 2. - 새로운 인풋 1. 2. - 새로운 경험/실패 1. 2. [예시] 1월 - 새로운 만남/연결 1. 사이드 프로젝트에서 만난 제인님 2. 테니스 동아리에서 만난 소향, 지수, 민석 - 새로운 인풋 1. 프로젝트 리더 역할을 대비하기 위해 본 책(000) 2. 온라인강의 구매 (수강률 10%) - 새로운 경험/실패 1. 테니스 동아리를 시작했지만 회사 프로젝트와 병행하기 힘듬 2. 사이드 프로젝트를 위해 온라인 강의 끊었지만 거의 듣지 못함 3. 회사 신규 프로젝트 목표설정과 방향이 잘못됨<br>				<br>월 별로 정리해보니 23년이 훅 지나가지 않았나요? 그럼 시간, 환경, 사람별 회고 질문을 만나볼까요?<br>				<br>&#160;<br>				<br>2. [23년 놓쳤던 시간] 회고하기<br>				<br>1. 업무, 개인 관심사/취미, 인간관계에 있어 시간을 얼마나 배분했나요? 100을 기준으로 비중을 나눠보세요! 23년을 돌아보며 보낸 시간에 대해 만족하시나요? 2. 올해 가장 잘 보냈다고 생각되는 순간을 생각해 보세요. 그 순간이 가치 있는 시간이라고 드는 이유는 무엇인가요? 3. 올해 시간과 에너지를 잃었다고 느꼈던 시기가 있었나요? 다시 돌아간다면 어떻게 다르게 행동할까요? 4. 한 해 동안 시간 관리나 우선순위에 대한 인식이 어떻게 바뀌었나요? (바뀐 부분이 없다면) 다가오는 24년에는 개선할 부분은 없을까요? 5. 올해 배운 시간, 에너지 관리에 관한 배움을 통해 24년은 어떻게 시간관리를 바꾸면 좋을까요? <br>				<br>&#160;<br>				<br>3. [23년 놓쳤던 환경] 회고하기<br>				<br>1. 지난 한 해 동안 여러분의 집, 업무환경이 개인의 삶과 업무 생산성에 긍정적으로 작용했나요? 2. 습관이나 루틴에 상당한 변화를 가져오는 환경 변화가 있었나요? (이사, 이직, 새로운 습관/루틴, 식습관 등) 어떻게 내 습관, 루틴, 태도가 변했나요? 3. 올해 여러분이 주로 속했던 문화적, 사회적 환경(회사, 동호회, 취미활동 등)이 여러분의 생각과 행동에 어떤 영향을 미쳤나요? 4. 여러분의 환경(물리적 환경, 사회적 환경 등 포함)을 개선하는데 어떤 노력을 했나요? (매일 청소, 외부활동을 줄임 등) 5. 24년은 어떻게 환경을 바꿔나가면 좋을까요? 어떤 습관과 태도를 가지면 좋을까요?<br>				<br>&#160;<br>				<br>4. [23년 놓쳤던 사람] 회고하기<br>				<br>1. 지난 한 해 동안 당신의 삶에 가장 큰 영향을 미친 사람들은 누구였나요? 당신에게 어떤 영향을 미쳤나요? 2. 당신의 관점이나 라이프스타일에 큰 영향을 준 새로운 관계가 있나요? 어떻게 영향을 주었나요? 3. 지난 한 해 동안 인간관계에 어떤 변화(만나는 빈도, 갈등, 화해 등)가 있었나요? 이번 변화를 통해 무엇을 배웠나요? 4. 어떤 관계를 우선순위에 두었나요? 올바른 선택이었나요? 그 이유는 무엇인가요? 5. 23년 배운 사람들과의 관계를 통해 24년은 어떤 방향으로 나아가면 좋을까요? (우선순위, 태도 등)<br>				<br><br>				출처: <<a href="https://maily.so/neversleep/posts/bb519de1" target="_blank">https://maily.so/neversleep/posts/bb519de1</a>> <br>				<br><br>				<br>2. 4F 방법<br>				<br>4F란 다음을 의미해요. 기존 회고와 다른 점은, 사실(Fact)를 작성하여 객관적인 것만 먼저 나열하는 단계를 포함해요. 그리고 그것에 대한 느낌(Feeling)과 교훈(Finding)을 작성하면서 주관적으로 생각해봐요. 향후에 할 수 있는 개선된 행동(Future action)을 작성하며, 구체적으로 발전해 나갈 수 있는 방법을 생각해요.<br>				<br>•<br>				<br>사실(Fact): 일어난 일에 대한 객관적인 기록<br>				<br>•<br>				<br>느낌(Feeling): 상황에 대한 감정적인 반응<br>				<br>•<br>				<br>교훈(Finding): 경험을 통해 배울 수 있었던 것<br>				<br>•<br>				<br>향후 행동(Future action): 향후 할 수 있는 개선된 행동<br>				<br>3. KPT 방법<br>				<br>KPT란 다음을 의미해요. 긍정적인 결과를 확인하고 계속 유지해야 할 것(Keep), 아쉬웠던 점으로 문제 삼아야 할 것(Problem), 문제를 극복하기 위해 시도되어야 할 것(Try). 간단한 항목들을 점검하여 빠르고 효율적으로 시간을 돌아보고 개선시킬 수 있어요.<br>				<br>•<br>				<br>Keep: 좋은 결과를 만들었고, 계속 유지해나가야 할 것<br>				<br>•<br>				<br>Problem: 아쉬운 결과를 만들었고, 앞으로 개선되어야 할 것<br>				<br>•<br>				<br>Try: 문제를 파악하고, 이를 해결하기 위한 구체적인 개선방안<br>				<br>4. 5가지 질문<br>				<br>KPT방법보다 조금 세분화된 방법으로, 1) 잘한 것 2) 잘못한 것 3) 배운 것 4) 아직 남은 문제와 의문점 5) 개선점에 대한 대답으로 회고하는 방법이에요. 문제 삼아야 할 것(Problem)을 잘못한 것과 이를 통해 배운 것, 그리고 해결해야할 문제로 세분화하여 더 분석적으로 회고를 진행할 수 있어요.<br>				<br>•<br>				<br>잘한 것은 무엇인가?<br>				<br>•<br>				<br>잘못한 것은 무엇인가?<br>				<br>•<br>				<br>무엇을 배웠는가?<br>				<br>•<br>				<br>해결해야할 문제/남아있는 의문은 무엇인가?<br>				<br>•<br>				<br>어떻게 개선할 것인가?<br>				<br><br>				출처: <<a href="https://memoir.oopy.io/623e54af-04f3-4bc8-83f2-41dcab4a843d" target="_blank">https://memoir.oopy.io/623e54af-04f3-4bc8-83f2-41dcab4a843d</a>> <br>				<br><br>				<br><br>				<br>1. 건강 (육체적, 정신적)<br>				<br>- 운동, 수면, 식습관 등 건강 생활 습관은 어떤가요?<br>				<br>- 나의 스트레스나 우울감 등 정신건강 상태는?<br>				<br>- 건강 증진을 위해 노력한 점이나 개선이 필요한 점은 무엇인가요?<br>				<br>&#160;<br>				<br>2. 관계<br>				<br>- 가족, 친구, 연인 등과의 관계는 어떤가요?<br>				<br>- 나는 어떤 관계에서 행복감을 느끼나요?<br>				<br>- 관계 개선을 위해 노력한 점이나 반성할 점이 있을까요?<br>				<br>&#160;<br>				<br>3. 재정<br>				<br>- 수입과 지출의 균형이 잡혀있나요?<br>				<br>- 저축이나 투자 등의 계획을 통제하고 있나요?<br>				<br>- 재정 관리에 있어 잘한 점과 개선할 점은 무엇인가요?<br>				<br>&#160;<br>				<br>4. 자아실현<br>				<br>- 꿈, 목표, 열정 등을 이루기 위해 어떤 노력을 하고 있나요?<br>				<br>- 자기계발이나 새로운 기술 습득을 한 것은 무엇인가요?<br>				<br>- 더 나은 성장과 발전을 위해 내게 필요한 것은 무엇이라 생각하세요?<br>				<br>&#160;<br>				<br>5. 여가 및 취미<br>				<br>- 내가 즐거워하는, 혹은 회복이 되는 활동은 무엇인가요?<br>				<br>- 여가 시간을 보내는 방식에 만족하나요?<br>				<br>- 더 활력을 얻기 위해 필요한 것이 있을까요?<br>				<br>&#160;<br>				<br>6. 기여와 봉사<br>				<br>- 가족, 지역사회, 사회에 기여한 바가 있나요?<br>				<br>- 다른 사람을 위해 한 일이 있나요? 그 행동은 어떤 의미를 갖나요?<br>				<br>- 더 나은 세상을 위해 어떤 기여를 하고 싶으신가요?<br>				<br><br>				출처: <<a href="https://eopla.net//magazines/14336" target="_blank">https://eopla.net//magazines/14336</a>> <br>				<br><br>				<br>OKR 회고는 스프린트 회고와 마찬가지로 조직을 애자일하게 움직이는 데 도움이 될 수 있습니다. OKR을 중심으로 활발하게 토론하면서 이번 분기에 배운 것을 다음 분기에 빠르게 실행할 수 있기 때문입니다.<br>				<br><br>				<br>스프린트 회고의 기본 골격을 이루는 네 가지 질문은&#160;(1) 지난 주기 무엇을 잘 해냈나 (2) 다음 기회가 주어진다면 다른 방식으로 접근해야 할 일은 무엇인가 (3) 무엇을 배웠나 (4) 여전히 잘 이해하지 못하고 있는 문제가 있나&#160;등입니다. 이 질문들을 토대로 다음 분기의 OKR 설정에 참고할 만한 답을 구할 수 있는, 보다 구체적인 질문들을 구성해볼 수 있습니다. 분기말뿐 아니라, 매주/매월 체크인을 거치면서 더욱 기민하게 대처할 수도 있고요.<br>				<br><br>				출처: <<a href="https://lemonbase.com/blog/okr-retrospective/" target="_blank">https://lemonbase.com/blog/okr-retrospective/</a>> <br>				<br><br>				<br>					<br>- 목표가 조직이 의도했던 방향에 따라 설정되었나?<br>					<br>- 높은 우선순위에 집중했나?<br>					<br>- 목표가 조직 전체에 전달되었나?<br>					<br>- 조직 구성원 모두에게 동기를 부여하거나 영감을 주는 목표였나?<br>					<br>- 목표에 따라 문화와 역학관계 측면에서 변화한 부분이 있나?<br>				<br>				<br>					<br>- 충분히 도전적이되, 아예 포기하고 싶지는 않은 핵심 결과를 설정했나?<br>					<br>- 목표에 미달한 핵심 결과가 있다면, 그 이유는 무엇인가?<br>					<br>- 너무 낮은/높은 기준을 적용한 것은 아닌가?<br>					<br>- 측정값을 명확하게 확인할 수 있었나?<br>					<br>- 매주 핵심 결과 달성에 집중할 수 있었나?<br>					<br>- 잘못 설정된 핵심 결과 달성에 매달리진 않았나?<br>				<br>				<br><br>				출처: <<a href="https://lemonbase.com/blog/okr-retrospective/" target="_blank">https://lemonbase.com/blog/okr-retrospective/</a>> <br>				<br><br>				<br>- 목표(Objectives)가 정말 우리의 높은 우선순위였는가? 아니라면, 그 이유는 무엇이라고 생각하는가?<br>				<br>- 도전적이되 아예 포기하고 싶지는 않은 핵심 결과(Key Results)였는가? 아니라면, 그 이유는 무엇이라고 생각하는가?<br>				<br>- 나의 일이 목표 및 핵심 결과와 연결되어 있는가? 아니라면, 그 이유는 무엇이라고 생각하는가?<br>				<br><br>				출처: <<a href="https://lemonbase.com/blog/okr-retrospective/" target="_blank">https://lemonbase.com/blog/okr-retrospective/</a>> <br>				<br><br>				<br>Q. 6개월 동안 한 일을 자세하게 적어봅시다.<br>				<br>Q. 스스로를 칭찬하고 싶은, 잘 해낸 일(사건)은 무엇인가요?<br>				<br>Q. 내내 마음에 걸렸던, 아쉬운 일(사건)은 무엇인가요?<br>				<br>Q. 성취감이 크고 즐거웠던 일은 무엇인가요? 어떻게 나의 무기로 만들 수 있을까요?<br>				<br>Q. 아무리 해도 어렵고 두려운 일은 무엇인가요? 어떻게 보완할 수 있을까요?<br>				<br>Q. 직장 외 시간을 건강하게 보냈나요? 그렇다면 하반기는 어떻게 보내고 싶나요?<br>				<br>Q. 내가 이 직장에 다니는 이유는 무엇인가요?<br>				<br>Q. 이 일을&#160;통해 이루고 싶은 목표는 무엇인가요?<br>				<br><br>				출처: <<a href="https://www.jobplanet.co.kr/contents/news-4885/%E2%80%9C%EB%A7%99%EC%86%8C%EC%82%AC%20%EB%B2%8C%EC%8D%A8%E2%80%A6%22%20%EC%83%81%EB%B0%98%EA%B8%B0%20%EB%A7%88%EB%AC%B4%EB%A6%AC%ED%95%98%EB%8A%94%20%EC%85%80%ED%94%84%20%ED%9A%8C%EA%B3%A0%EB%B2%95" target="_blank">https://www.jobplanet.co.kr/contents/news-4885/%E2%80%9C%EB%A7%99%EC%86%8C%EC%82%AC%20%EB%B2%8C%EC%8D%A8%E2%80%A6%22%20%EC%83%81%EB%B0%98%EA%B8%B0%20%EB%A7%88%EB%AC%B4%EB%A6%AC%ED%95%98%EB%8A%94%20%EC%85%80%ED%94%84%20%ED%9A%8C%EA%B3%A0%EB%B2%95</a>> <br>				<br><br>				<br>				<br><a href="https://blog.toktokhan.dev/%EB%98%91%EA%B0%9C-%ED%8C%80%EC%9D%98-pm-%EB%94%94%EC%9E%90%EC%9D%B4%EB%84%88-%EA%B0%9C%EB%B0%9C%EC%9E%90%EA%B0%80-%ED%9A%8C%EA%B3%A0%ED%95%98%EB%8A%94-%EB%B0%A9%EB%B2%95-2-2e200db1bfc3" target="_blank">https://blog.toktokhan.dev/%EB%98%91%EA%B0%9C-%ED%8C%80%EC%9D%98-pm-%EB%94%94%EC%9E%90%EC%9D%B4%EB%84%88-%EA%B0%9C%EB%B0%9C%EC%9E%90%EA%B0%80-%ED%9A%8C%EA%B3%A0%ED%95%98%EB%8A%94-%EB%B0%A9%EB%B2%95-2-2e200db1bfc3</a><br>				<br><br>				<br><br>				<br>				<br>				<br><br>				<br>				<br>질문 빙고<br>				<br>				<br><br>				<br><br>				<br><a href="https://www.youtube.com/watch?v=ledUBXY7Vfo" target="_blank">생각좀</a> 하면서 살자<br>			<br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br>좋은 질문을 통해 객관적으로 지난 한 해의 나를 돌아보자.<br>			<br><br>			출처: <<a href="https://publy.co/content/7022?fr=home&c_id=featured" target="_blank">https://publy.co/content/7022?fr=home&c_id=featured</a>> <br>			<br><br>			<br>			<br><br>			출처: <<a href="https://publy.co/content/7550?fr=search&sc=all%3Af1d705affbdb47e1d66c01581ab8fdfb%3Asets_2599&id=2599" target="_blank">https://publy.co/content/7550?fr=search&sc=all%3Af1d705affbdb47e1d66c01581ab8fdfb%3Asets_2599&id=2599</a>> <br>			<br>			<br><br>			출처: <<a href="https://eopla.net/magazines/14210" target="_blank">https://eopla.net/magazines/14210</a>> <br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			출처: <<a href="https://brunch.co.kr/@minjungbora/44" target="_blank">https://brunch.co.kr/@minjungbora/44</a>> <br>			<br><br>			<br><br>			<br><br>			<br><br>			출처: <<a href="https://careerly.co.kr/comments/81958" target="_blank">https://careerly.co.kr/comments/81958</a>> <br>			<br><br>			<br>(토글을 열어 원하는 질문에 나만의 답변을 적어주세요.)<br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			출처: <<a href="https://eager-pansy-5cb.notion.site/6db01b25fe0943288f587f2a27317537?p=02959b41c17849a0bfcda543d9dcd5c0&pm=s" target="_blank">https://eager-pansy-5cb.notion.site/6db01b25fe0943288f587f2a27317537?p=02959b41c17849a0bfcda543d9dcd5c0&pm=s</a>> <br>			<br><br>			<br><br>			출처: <<a href="https://maily.so/neversleep/posts/bb519de1" target="_blank">https://maily.so/neversleep/posts/bb519de1</a>> <br>			<br><br>			<br><br>			출처: <<a href="https://memoir.oopy.io/623e54af-04f3-4bc8-83f2-41dcab4a843d" target="_blank">https://memoir.oopy.io/623e54af-04f3-4bc8-83f2-41dcab4a843d</a>> <br>			<br><br>			<br><br>			<br><br>			출처: <<a href="https://eopla.net//magazines/14336" target="_blank">https://eopla.net//magazines/14336</a>> <br>			<br><br>			<br><br>			<br><br>			출처: <<a href="https://lemonbase.com/blog/okr-retrospective/" target="_blank">https://lemonbase.com/blog/okr-retrospective/</a>> <br>			<br><br>			<br>조직(회사와 팀)의 목표(Objectives)에 대한 질문<br>			<br>핵심 결과(Key Results)에 대한 질문<br>			<br><br>			출처: <<a href="https://lemonbase.com/blog/okr-retrospective/" target="_blank">https://lemonbase.com/blog/okr-retrospective/</a>> <br>			<br><br>			<br><br>			출처: <<a href="https://lemonbase.com/blog/okr-retrospective/" target="_blank">https://lemonbase.com/blog/okr-retrospective/</a>> <br>			<br><br>			<br><br>			출처: <<a href="https://www.jobplanet.co.kr/contents/news-4885/%E2%80%9C%EB%A7%99%EC%86%8C%EC%82%AC%20%EB%B2%8C%EC%8D%A8%E2%80%A6%22%20%EC%83%81%EB%B0%98%EA%B8%B0%20%EB%A7%88%EB%AC%B4%EB%A6%AC%ED%95%98%EB%8A%94%20%EC%85%80%ED%94%84%20%ED%9A%8C%EA%B3%A0%EB%B2%95" target="_blank">https://www.jobplanet.co.kr/contents/news-4885/%E2%80%9C%EB%A7%99%EC%86%8C%EC%82%AC%20%EB%B2%8C%EC%8D%A8%E2%80%A6%22%20%EC%83%81%EB%B0%98%EA%B8%B0%20%EB%A7%88%EB%AC%B4%EB%A6%AC%ED%95%98%EB%8A%94%20%EC%85%80%ED%94%84%20%ED%9A%8C%EA%B3%A0%EB%B2%95</a>> <br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>		<br>		<br>			<br>Learned: 성공적이거나 실패한 경험에서 얻은 교훈을 중심으로 작성합니다.<br>			<br>Lacked: 경험에서 부족했던 점이나 개선이 필요한 부분을 작성합니다. (효율성, 역량, 자원 등 부족한 측면도 포함합니다.)<br>			<br>Longed for: 더 나은 결과를 얻기 위해 바랐던 부분을 작성합니다.<br>			<br>Problem:&#160;개선이 필요한 내용을 작성합니다.<br>			<br>Try:&#160;구체적으로 시도할 내용을 작성합니다.<br>			<br>잘한 점 - 특히 잘한 점 한 가지를 적는다. 이 답변은 나의 강점, 내가 좋다고 판단하는 기준이 무엇인지 알 수 있다.<br>			<br>못한 점 - 스스로 약하다고 생각되는 점에 대해 생각해본다.<br>			<br>개선할 점 - 못한 점을 어떻게 개선할 수 있는지에 대해 적는다. 개선을 할지 말지, <br>			<br>향후 행동(Future action)<br>			<br>감사한 일 - 감사에 대해 생각하면 마음을 평온하게 만드는 데에 도움이 된다. 하루를 마무리하기 좋은 질문이다.<br>			<br><br>			<br>가능한 정략적으로<br>			<br><br>			<br><br>			<br>병신과 일하는 당신도 ㅂㅅ 입니다. 그걸 인정하세요.</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note-인생전략-사전부검-회고-Pre-Mortem-Method';
+const SAVE_KEY = 'board-인생전략-사전부검-회고-Pre-Mortem-Method';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 742,
+    "y": 100,
+    "w": 600,
+    "content": "Learned: 성공적이거나 실패한 경험에서 얻은 교훈을 중심으로 작성합니다.\nLacked: 경험에서 부족했던 점이나 개선이 필요한 부분을 작성합니다. (효율성, 역량, 자원 등 부족한 측면도 포함합니다.)\nLonged for: 더 나은 결과를 얻기 위해 바랐던 부분을 작성합니다.\nProblem:&#160;개선이 필요한 내용을 작성합니다.\nTry:&#160;구체적으로 시도할 내용을 작성합니다.\n잘한 점 - 특히 잘한 점 한 가지를 적는다. 이 답변은 나의 강점, 내가 좋다고 판단하는 기준이 무엇인지 알 수 있다.\n못한 점 - 스스로 약하다고 생각되는 점에 대해 생각해본다.\n개선할 점 - 못한 점을 어떻게 개선할 수 있는지에 대해 적는다. 개선을 할지 말지,\n향후 행동(Future action)\n감사한 일 - 감사에 대해 생각하면 마음을 평온하게 만드는 데에 도움이 된다. 하루를 마무리하기 좋은 질문이다.\n가능한 정략적으로\n병신과 일하는 당신도 ㅂㅅ 입니다. 그걸 인정하세요."
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 115,
+    "w": 600,
+    "content": "[인생전략]\n1단계 - 나에게 훌륭한 삶이란 무엇인지 정의\n2단계 - 목적을 수립\n3단계 - 인생의 비전 수립\n4단계 - 주당 168시간을 어떻게 사용하는지 포트폴리오를 분석\n5단계 - 삶의 만족도 기준을 설정\n6단계 - 처음 다섯 단계의 결과를 통합하고 인생에서의 선택과 잠재적 변화를 결정\n7단계 - 선택을 실행에 옮기기 위한 계획 수립￼+ 인생 전략의 초기 버전 정리\n백캐스팅backcasting/ 사전부검/ 회고/ 쿠엔틴의</a> 자기혐오의 밤: 이번달 혼술 특히 집에서 하면 망함\nPreview(미리보기)와 Review(돌아보기), TIL 작성, Strategic realignment"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 339,
+    "w": 600,
+    "content": "주간/ 월간/ 분기/ 연간 평가 할 수 있는 질문 목록 작성, 이거랑, 콘텐츠 제작을 클럽으로 만들어 볼까?\n미래일기, 기사 써보기\n10분 후, 10일 후, 10년 후,\nMacro & micro"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 443,
+    "w": 480,
+    "h": 360,
+    "src": "771b0d631d.png",
+    "caption": "Forecasting and Backcasting PowerPoint and Google Slides Template - PPT Slides"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 811,
+    "w": 480,
+    "h": 284,
+    "src": "68366d45b8.png",
+    "caption": "Backcasting | Department of the Prime Minister and Cabinet (DPMC)"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1103,
+    "w": 600,
+    "content": "돈/시간/에너지를 목표에 맞게 배분/사용하고 있는지 점검\n각각의 상관관계에 맞계 6개 Pillar를 배치/구조화\n만약 일이 가장 최우선이면, 거기에 맞게 다른 모든게 OKR의 이니셔티브가 되는 식\n필생의 사랑, 필생의 업\n지금으로부터 3개월 후에, 목표달성에 실패 했다면 왜? - 시작하지 않아서\n핵심 회고 질문으로 나 다시 보기&#160;\n\n나의 팀원들은 얼마나 성장(개선 필요 역량 및 강점 역량)했는가?&#160;\n나는 그 성장에 어떤 역할을 했고, 얼마만큼 기여했는가?\n나와 나의 팀은 얼마나 의미 있는 결과를 만들어냈나?\n나는 얼마나 의미 있는 성장을 이뤘는가?\n나의 전문성은 얼마나 축적되었는가? 그것을 보이는 결과로 만들어냈는가?\n나는 가족들과 주변 사람들에게 얼마나 따뜻했는가?\n나의 건강은 나아졌는가?\n나는 행복한가? 나의 긍정성과 회복탄력성은 강해졌는가?\n출처: <<a href=\"https://publy.co/content/7022?fr=home&c_id=featured\">https://publy.co/content/7022?fr=home&c_id=featured</a>>\n#1 4Ls&#160;\n\nLikes: 경험에서 좋았던 점이나 성과를 작성합니다.\nLearned: 성공적이거나 실패한 경험에서 얻은 교훈을 중심으로 작성합니다.\nLacked: 경험에서 부족했던 점이나 개선이 필요한 부분을 작성합니다. (효율성, 역량, 자원 등 부족한 측면도 포함합니다.)\nLonged for: 더 나은 결과를 얻기 위해 바랐던 부분을 작성합니다.\n출처: <<a href=\"https://publy.co/content/7550?fr=search&sc=all%3Af1d705affbdb47e1d66c01581ab8fdfb%3Asets_2599&id=2599\">https://publy.co/content/7550?fr=search&sc=all%3Af1d705affbdb47e1d66c01581ab8fdfb%3Asets_2599&id=2599</a>>\n#2 KPT\n\nKeep:&#160;지속하고 싶은 내용을 작성합니다.\nProblem:&#160;개선이 필요한 내용을 작성합니다.\nTry:&#160;구체적으로 시도할 내용을 작성합니다.\n\n일과 후 자기전에 리뷰를 합니다. 계획대로 수행했는지 체크하고 6가지 질문에 간단히 답했습니다.&#160;\n\n오늘의 한 줄평 - 회고를 위한 몸풀기 질문. 이 답변은 오늘이 어떤 하루였는지 나중에 기억하기에도 좋다.\n잘한 점 - 특히 잘한 점 한 가지를 적는다. 이 답변은 나의 강점, 내가 좋다고 판단하는 기준이 무엇인지 알 수 있다.\n못한 점 - 스스로 약하다고 생각되는 점에 대해 생각해본다.\n개선할 점 - 못한 점을 어떻게 개선할 수 있는지에 대해 적는다. 개선을 할지 말지, 얼마나 개선할지에 대해서 적을 수도 있다. 모든 단점을 개선할 수는 없다.\n배운 점 - 위 내용에 대한 정리일 수도 있고 일화가 될 수도 있다. 다른 질문에 적지 못한 내용을 '배움'이라는 키워드로 묶는다. 없으면 패스하기도 함.\n감사한 일 - 감사에 대해 생각하면 마음을 평온하게 만드는 데에 도움이 된다. 하루를 마무리하기 좋은 질문이다.\n출처: <<a href=\"https://eopla.net/magazines/14210\">https://eopla.net/magazines/14210</a>>\n▶ 구글 캘린더와 함께 짚어볼 질문들\n1. 얼마나 많은 사람을 만났나요? 어떤 대화를 나누었나요?\n2. 매달 가장 기억에 남는 일은 무엇인가요? 왜 기억에 남나요?\n3. 어디로 여행을 갔나요? 누구와 함께 갔나요?&#160;\n4. 어떤 공연, 영화, 드라마를 보았나요? 기억에 남는 장면은 무엇인가요?\n▶&#160;SNS/모바일 앱과 함께 짚어볼 질문들\n1. 몇 편의 글을 썼나요? 가장 좋은 글은 무엇인가요? 왜 그 글을 뽑았나요?\n2. 건강을 위해 어떤 활동을 했나요? 효과는 어떤가요?\n3. 수입과 지출은 어느 정도인가요?&#160;\n&#160;▶&#160;나의 취향에 대해 생각해볼 질문들\n1. 가장 많은 시간을 쏟은 활동은 무엇인가요?\n2. 가장 좋아한 장소/시간/사람/음식/노래/물건은 무엇인가요?\n3. 가장 듣기 좋았던 말은 무엇인가요?\n▶&#160;나의 성과에 대해 생각해볼 질문들\n1. 얼마나 일했나요? 적당한 수준이었나요?\n2. 어떤 프로젝트를 진행했나요? 그 결과는 어땠나요? 무엇을 배웠나요?\n3. 어떤 책을 읽었나요? 얼마나 많은 책을 읽었나요?&#160;\n4. 얼마나 공부했나요? 어떤 변화가 있었나요?\n5. 가장 자랑스러운 결과물은 무엇인가요? 왜 그 결과물을 뽑았나요?\n6. 내게 큰 영감을 준 레퍼런스는 무엇인가요? 혹은 누구인가요?\n7. 오래 기억하고 싶은 실패는 무엇인가요?\n8. 가장 행복했던 순간은 언제인가요?\n출처: <<a href=\"https://brunch.co.kr/@minjungbora/44\">https://brunch.co.kr/@minjungbora/44</a>>\n팀 회고 https://publy.co/content/7022?s=a1trts</a>\n<a href=\"https://publy.co/set/2107?fr=search&sc=all%3A975e0ea4f66e7eebb93656f5212d1e55%3Asets_2107\" style=\"font-family:Pretendard;background-color:#191a1a;font-weight:bold\">2022년 리더의 한 해 돌아보기: 연간&#160;</a>회고법\n<a href=\"https://publy.co/content/7369?s=lv458q\">https://publy.co/content/7369?s=lv458q</a>\n<a href=\"https://publy.co/set/2438?fr=search&sc=all%3A975e0ea4f66e7eebb93656f5212d1e55%3Asets_2438\" style=\"font-family:Pretendard;background-color:#191a1a;font-weight:bold\">요즘&#160;</a>팀장의 프로젝트&#160;회고: 1시간 프로젝트 개선점 찾는 신호등&#160;회고법\n팀 회고에서 사용할 수 있는 질문 모음\n1.지난 기간 동안 가장 큰 성공 경험은 무엇이었나요? 그 경험에서 얻은 인사이트는 무엇인가요? 2.지난 기간 동안 가장 어려웠던 도전은 무엇이었나요? 어떻게 극복했고, 어떤 것을 배웠나요? 3.팀 내에서 서로 협력하거나 소통하는데 어려웠던 점은 무엇인가요? 이를 개선하기 위한 방안은 무엇일까요? 4.지난 기간 동안 팀원들의 역할이나 책임에 대한 인식은 어땠나요? 앞으로 어떻게 개선해야 할까요? 5.팀의 목표 달성을 위해 어떤 자원이나 지원이 필요하다고 생각하나요? 6.자신의 역량을 향상시키기 위해 어떤 노력을 기울였나요? 앞으로 어떤 역량을 개발하고 싶은가요? 7.지금까지의 프로젝트에서 가장 기억에 남는 순간은 무엇인가요? 그 이유는 무엇인가요? 8.우리 팀의 강점과 약점은 무엇이라고 생각하나요? 앞으로 어떻게 발전시켜 나갈 수 있을까요? 9.앞으로의 프로젝트에서 시도해보고 싶은 새로운 방법이나 아이디어가 있나요? 그 이유는 무엇인가요? 10.우리 팀의 업무 프로세스에서 개선이 필요하다고 생각하는 부분은 무엇인가요? 어떻게 개선할 수 있을까요?\n출처: <<a href=\"https://careerly.co.kr/comments/81958\">https://careerly.co.kr/comments/81958</a>>\n나의 내일을 위한 주간 회고 질문\n\n지난 주 동안 일상에서 가장 즐거웠던 순간은 언제였나요?\n\n지난 주에 어떤 어려움이 있었나요? 그것을 어떻게 극복했나요?\n\n지난 주 동안 공부하거나 배운 것이 있나요? 무엇인가요?\n\n지난 주에는 어떤 새로운 경험을 해보았나요?\n\n지난 주에 내가 이룬 작은 성취는 무엇인가요?\n\n지난 주에는 내가 가장 중요하게 생각한 가치는 무엇이었나요?\n\n지난 주에 내가 더 많은 시간을 쏟았던 것은 무엇이었나요? 그것이 내게 어떤 의미가 있었나요?\n\n지난 주 동안 건강을 유지하기 위해 노력한 것이 있나요? 어떤 노력을 했나요?\n\n지난 주 동안 가족, 친구, 동료 등 다른 사람들과 소통하면서 느낀 감정은 어땠나요?\n\n이번 주에 내가 더 잘해야할 것은 무엇인가요? 그것에 대해 어떤 계획을 세웠봤나요?\n나의 내일을 위한 월간 회고 질문 리스트\n(토글을 열어 원하는 질문에 나만의 답변을 적어주세요.)\n이번 달 동안 나는 어떤 일을 할 때 가장 행복했나요? 그 이유는 무엇인가요?\n이번 달 동안 내가 성장한 부분은 무엇인가요? 그것이 어떻게 나에게 도움이 되었나요?\n이번 달 동안 내가 새로 시도한 것 중에서 가장 큰 도전은 무엇이었나요? 그것을 어떻게 극복햇나요?\n이번 달 동안 내가 가장 힘들었던 순간은 무엇이었나요? 그것을 어떻게 극복했나요?\n이번 달 동안 내가 가장 집중했던 일은 무엇이었나요? 그것이 나에게 어떤 결과를 가져왔나요?\n이번 달 동안 내가 무엇을 배웠나요? 그것이 나의 인생에 어떤 영향을 미칠까요?\n이번 달 동안 내가 자주 반복하는 나쁜 습관은 무엇이었나요? 그것을 고치기 위해 어떤 노력을 했나요?\n이번 달 동안 나는 어떤 목표를 달성하기 위해 노력했나요? 그것을 위해 어떤 계획을 세웠나요?\n출처: <<a href=\"https://eager-pansy-5cb.notion.site/6db01b25fe0943288f587f2a27317537?p=02959b41c17849a0bfcda543d9dcd5c0&pm=s\">https://eager-pansy-5cb.notion.site/6db01b25fe0943288f587f2a27317537?p=02959b41c17849a0bfcda543d9dcd5c0&pm=s</a>>\n1. 회고 준비하기\n15가지 회고 질문을 하기 전에&#160;먼저 월 별로 새롭게 만났던 사람, 경험 등을 먼저 정리해봐요!\n[양식] 1월 - 새로운 만남/연결 1. 2. - 새로운 인풋 1. 2. - 새로운 경험/실패 1. 2. [예시] 1월 - 새로운 만남/연결 1. 사이드 프로젝트에서 만난 제인님 2. 테니스 동아리에서 만난 소향, 지수, 민석 - 새로운 인풋 1. 프로젝트 리더 역할을 대비하기 위해 본 책(000) 2. 온라인강의 구매 (수강률 10%) - 새로운 경험/실패 1. 테니스 동아리를 시작했지만 회사 프로젝트와 병행하기 힘듬 2. 사이드 프로젝트를 위해 온라인 강의 끊었지만 거의 듣지 못함 3. 회사 신규 프로젝트 목표설정과 방향이 잘못됨\n월 별로 정리해보니 23년이 훅 지나가지 않았나요? 그럼 시간, 환경, 사람별 회고 질문을 만나볼까요?\n&#160;\n2. [23년 놓쳤던 시간] 회고하기\n1. 업무, 개인 관심사/취미, 인간관계에 있어 시간을 얼마나 배분했나요? 100을 기준으로 비중을 나눠보세요! 23년을 돌아보며 보낸 시간에 대해 만족하시나요? 2. 올해 가장 잘 보냈다고 생각되는 순간을 생각해 보세요. 그 순간이 가치 있는 시간이라고 드는 이유는 무엇인가요? 3. 올해 시간과 에너지를 잃었다고 느꼈던 시기가 있었나요? 다시 돌아간다면 어떻게 다르게 행동할까요? 4. 한 해 동안 시간 관리나 우선순위에 대한 인식이 어떻게 바뀌었나요? (바뀐 부분이 없다면) 다가오는 24년에는 개선할 부분은 없을까요? 5. 올해 배운 시간, 에너지 관리에 관한 배움을 통해 24년은 어떻게 시간관리를 바꾸면 좋을까요?\n&#160;\n3. [23년 놓쳤던 환경] 회고하기\n1. 지난 한 해 동안 여러분의 집, 업무환경이 개인의 삶과 업무 생산성에 긍정적으로 작용했나요? 2. 습관이나 루틴에 상당한 변화를 가져오는 환경 변화가 있었나요? (이사, 이직, 새로운 습관/루틴, 식습관 등) 어떻게 내 습관, 루틴, 태도가 변했나요? 3. 올해 여러분이 주로 속했던 문화적, 사회적 환경(회사, 동호회, 취미활동 등)이 여러분의 생각과 행동에 어떤 영향을 미쳤나요? 4. 여러분의 환경(물리적 환경, 사회적 환경 등 포함)을 개선하는데 어떤 노력을 했나요? (매일 청소, 외부활동을 줄임 등) 5. 24년은 어떻게 환경을 바꿔나가면 좋을까요? 어떤 습관과 태도를 가지면 좋을까요?\n&#160;\n4. [23년 놓쳤던 사람] 회고하기\n1. 지난 한 해 동안 당신의 삶에 가장 큰 영향을 미친 사람들은 누구였나요? 당신에게 어떤 영향을 미쳤나요? 2. 당신의 관점이나 라이프스타일에 큰 영향을 준 새로운 관계가 있나요? 어떻게 영향을 주었나요? 3. 지난 한 해 동안 인간관계에 어떤 변화(만나는 빈도, 갈등, 화해 등)가 있었나요? 이번 변화를 통해 무엇을 배웠나요? 4. 어떤 관계를 우선순위에 두었나요? 올바른 선택이었나요? 그 이유는 무엇인가요? 5. 23년 배운 사람들과의 관계를 통해 24년은 어떤 방향으로 나아가면 좋을까요? (우선순위, 태도 등)\n출처: <<a href=\"https://maily.so/neversleep/posts/bb519de1\">https://maily.so/neversleep/posts/bb519de1</a>>\n2. 4F 방법\n4F란 다음을 의미해요. 기존 회고와 다른 점은, 사실(Fact)를 작성하여 객관적인 것만 먼저 나열하는 단계를 포함해요. 그리고 그것에 대한 느낌(Feeling)과 교훈(Finding)을 작성하면서 주관적으로 생각해봐요. 향후에 할 수 있는 개선된 행동(Future action)을 작성하며, 구체적으로 발전해 나갈 수 있는 방법을 생각해요.\n•\n사실(Fact): 일어난 일에 대한 객관적인 기록\n•\n느낌(Feeling): 상황에 대한 감정적인 반응\n•\n교훈(Finding): 경험을 통해 배울 수 있었던 것\n•\n향후 행동(Future action): 향후 할 수 있는 개선된 행동\n3. KPT 방법\nKPT란 다음을 의미해요. 긍정적인 결과를 확인하고 계속 유지해야 할 것(Keep), 아쉬웠던 점으로 문제 삼아야 할 것(Problem), 문제를 극복하기 위해 시도되어야 할 것(Try). 간단한 항목들을 점검하여 빠르고 효율적으로 시간을 돌아보고 개선시킬 수 있어요.\n•\nKeep: 좋은 결과를 만들었고, 계속 유지해나가야 할 것\n•\nProblem: 아쉬운 결과를 만들었고, 앞으로 개선되어야 할 것\n•\nTry: 문제를 파악하고, 이를 해결하기 위한 구체적인 개선방안\n4. 5가지 질문\nKPT방법보다 조금 세분화된 방법으로, 1) 잘한 것 2) 잘못한 것 3) 배운 것 4) 아직 남은 문제와 의문점 5) 개선점에 대한 대답으로 회고하는 방법이에요. 문제 삼아야 할 것(Problem)을 잘못한 것과 이를 통해 배운 것, 그리고 해결해야할 문제로 세분화하여 더 분석적으로 회고를 진행할 수 있어요.\n•\n잘한 것은 무엇인가?\n•\n잘못한 것은 무엇인가?\n•\n무엇을 배웠는가?\n•\n해결해야할 문제/남아있는 의문은 무엇인가?\n•\n어떻게 개선할 것인가?\n출처: <<a href=\"https://memoir.oopy.io/623e54af-04f3-4bc8-83f2-41dcab4a843d\">https://memoir.oopy.io/623e54af-04f3-4bc8-83f2-41dcab4a843d</a>>\n1. 건강 (육체적, 정신적)\n운동, 수면, 식습관 등 건강 생활 습관은 어떤가요?\n나의 스트레스나 우울감 등 정신건강 상태는?\n건강 증진을 위해 노력한 점이나 개선이 필요한 점은 무엇인가요?\n&#160;\n2. 관계\n가족, 친구, 연인 등과의 관계는 어떤가요?\n나는 어떤 관계에서 행복감을 느끼나요?\n관계 개선을 위해 노력한 점이나 반성할 점이 있을까요?\n&#160;\n3. 재정\n수입과 지출의 균형이 잡혀있나요?\n저축이나 투자 등의 계획을 통제하고 있나요?\n재정 관리에 있어 잘한 점과 개선할 점은 무엇인가요?\n&#160;\n4. 자아실현\n꿈, 목표, 열정 등을 이루기 위해 어떤 노력을 하고 있나요?\n자기계발이나 새로운 기술 습득을 한 것은 무엇인가요?\n더 나은 성장과 발전을 위해 내게 필요한 것은 무엇이라 생각하세요?\n&#160;\n5. 여가 및 취미\n내가 즐거워하는, 혹은 회복이 되는 활동은 무엇인가요?\n여가 시간을 보내는 방식에 만족하나요?\n더 활력을 얻기 위해 필요한 것이 있을까요?\n&#160;\n6. 기여와 봉사\n가족, 지역사회, 사회에 기여한 바가 있나요?\n다른 사람을 위해 한 일이 있나요? 그 행동은 어떤 의미를 갖나요?\n더 나은 세상을 위해 어떤 기여를 하고 싶으신가요?\n출처: <<a href=\"https://eopla.net//magazines/14336\">https://eopla.net//magazines/14336</a>>\nOKR 회고는 스프린트 회고와 마찬가지로 조직을 애자일하게 움직이는 데 도움이 될 수 있습니다. OKR을 중심으로 활발하게 토론하면서 이번 분기에 배운 것을 다음 분기에 빠르게 실행할 수 있기 때문입니다.\n스프린트 회고의 기본 골격을 이루는 네 가지 질문은&#160;(1) 지난 주기 무엇을 잘 해냈나 (2) 다음 기회가 주어진다면 다른 방식으로 접근해야 할 일은 무엇인가 (3) 무엇을 배웠나 (4) 여전히 잘 이해하지 못하고 있는 문제가 있나&#160;등입니다. 이 질문들을 토대로 다음 분기의 OKR 설정에 참고할 만한 답을 구할 수 있는, 보다 구체적인 질문들을 구성해볼 수 있습니다. 분기말뿐 아니라, 매주/매월 체크인을 거치면서 더욱 기민하게 대처할 수도 있고요.\n출처: <https://lemonbase.com/blog/okr-retrospective/</a>>\n목표가 조직이 의도했던 방향에 따라 설정되었나?\n높은 우선순위에 집중했나?\n목표가 조직 전체에 전달되었나?\n조직 구성원 모두에게 동기를 부여하거나 영감을 주는 목표였나?\n목표에 따라 문화와 역학관계 측면에서 변화한 부분이 있나?\n\n충분히 도전적이되, 아예 포기하고 싶지는 않은 핵심 결과를 설정했나?\n목표에 미달한 핵심 결과가 있다면, 그 이유는 무엇인가?\n너무 낮은/높은 기준을 적용한 것은 아닌가?\n측정값을 명확하게 확인할 수 있었나?\n매주 핵심 결과 달성에 집중할 수 있었나?\n잘못 설정된 핵심 결과 달성에 매달리진 않았나?\n출처: <https://lemonbase.com/blog/okr-retrospective/</a>>\n목표(Objectives)가 정말 우리의 높은 우선순위였는가? 아니라면, 그 이유는 무엇이라고 생각하는가?\n도전적이되 아예 포기하고 싶지는 않은 핵심 결과(Key Results)였는가? 아니라면, 그 이유는 무엇이라고 생각하는가?\n나의 일이 목표 및 핵심 결과와 연결되어 있는가? 아니라면, 그 이유는 무엇이라고 생각하는가?\n출처: <https://lemonbase.com/blog/okr-retrospective/</a>>\nQ. 6개월 동안 한 일을 자세하게 적어봅시다.\nQ. 스스로를 칭찬하고 싶은, 잘 해낸 일(사건)은 무엇인가요?\nQ. 내내 마음에 걸렸던, 아쉬운 일(사건)은 무엇인가요?\nQ. 성취감이 크고 즐거웠던 일은 무엇인가요? 어떻게 나의 무기로 만들 수 있을까요?\nQ. 아무리 해도 어렵고 두려운 일은 무엇인가요? 어떻게 보완할 수 있을까요?\nQ. 직장 외 시간을 건강하게 보냈나요? 그렇다면 하반기는 어떻게 보내고 싶나요?\nQ. 내가 이 직장에 다니는 이유는 무엇인가요?\nQ. 이 일을&#160;통해 이루고 싶은 목표는 무엇인가요?\n출처: <<a href=\"https://www.jobplanet.co.kr/contents/news-4885/%E2%80%9C%EB%A7%99%EC%86%8C%EC%82%AC%20%EB%B2%8C%EC%8D%A8%E2%80%A6%22%20%EC%83%81%EB%B0%98%EA%B8%B0%20%EB%A7%88%EB%AC%B4%EB%A6%AC%ED%95%98%EB%8A%94%20%EC%85%80%ED%94%84%20%ED%9A%8C%EA%B3%A0%EB%B2%95\">https://www.jobplanet.co.kr/contents/news-4885/%E2%80%9C%EB%A7%99%EC%86%8C%EC%82%AC%20%EB%B2%8C%EC%8D%A8%E2%80%A6%22%20%EC%83%81%EB%B0%98%EA%B8%B0%20%EB%A7%88%EB%AC%B4%EB%A6%AC%ED%95%98%EB%8A%94%20%EC%85%80%ED%94%84%20%ED%9A%8C%EA%B3%A0%EB%B2%95</a>>"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 6587,
+    "w": 469,
+    "h": 624,
+    "src": "a96c717b65.png"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 7219,
+    "w": 480,
+    "h": 360,
+    "src": "624c89d8ce.png"
+  },
+  {
+    "type": "image",
+    "x": 536,
+    "y": 7219,
+    "w": 480,
+    "h": 361,
+    "src": "da52945773.png"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 7588,
+    "w": 480,
+    "h": 360,
+    "src": "2679b757cf.png"
+  },
+  {
+    "type": "image",
+    "x": 536,
+    "y": 7588,
+    "w": 480,
+    "h": 359,
+    "src": "17a5005b7c.png"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7956,
+    "w": 600,
+    "content": "<a href=\"https://www.youtube.com/watch?v=ledUBXY7Vfo\">생각좀</a> 하면서 살자\n좋은 질문을 통해 객관적으로 지난 한 해의 나를 돌아보자.\n출처: <<a href=\"https://publy.co/content/7022?fr=home&c_id=featured\">https://publy.co/content/7022?fr=home&c_id=featured</a>>"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 8080,
+    "w": 480,
+    "h": 111,
+    "src": "a90890b50c.png"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8199,
+    "w": 600,
+    "content": "출처: <<a href=\"https://publy.co/content/7550?fr=search&sc=all%3Af1d705affbdb47e1d66c01581ab8fdfb%3Asets_2599&id=2599\">https://publy.co/content/7550?fr=search&sc=all%3Af1d705affbdb47e1d66c01581ab8fdfb%3Asets_2599&id=2599</a>>"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 8303,
+    "w": 480,
+    "h": 247,
+    "src": "00deae744d.png"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8558,
+    "w": 600,
+    "content": "출처: <<a href=\"https://eopla.net/magazines/14210\">https://eopla.net/magazines/14210</a>>\n출처: <<a href=\"https://brunch.co.kr/@minjungbora/44\">https://brunch.co.kr/@minjungbora/44</a>>\n출처: <<a href=\"https://careerly.co.kr/comments/81958\">https://careerly.co.kr/comments/81958</a>>\n(토글을 열어 원하는 질문에 나만의 답변을 적어주세요.)\n출처: <<a href=\"https://eager-pansy-5cb.notion.site/6db01b25fe0943288f587f2a27317537?p=02959b41c17849a0bfcda543d9dcd5c0&pm=s\">https://eager-pansy-5cb.notion.site/6db01b25fe0943288f587f2a27317537?p=02959b41c17849a0bfcda543d9dcd5c0&pm=s</a>>\n출처: <<a href=\"https://maily.so/neversleep/posts/bb519de1\">https://maily.so/neversleep/posts/bb519de1</a>>\n출처: <<a href=\"https://memoir.oopy.io/623e54af-04f3-4bc8-83f2-41dcab4a843d\">https://memoir.oopy.io/623e54af-04f3-4bc8-83f2-41dcab4a843d</a>>\n출처: <<a href=\"https://eopla.net//magazines/14336\">https://eopla.net//magazines/14336</a>>\n출처: <https://lemonbase.com/blog/okr-retrospective/</a>>\n조직(회사와 팀)의 목표(Objectives)에 대한 질문\n핵심 결과(Key Results)에 대한 질문\n출처: <https://lemonbase.com/blog/okr-retrospective/</a>>\n출처: <https://lemonbase.com/blog/okr-retrospective/</a>>\n출처: <<a href=\"https://www.jobplanet.co.kr/contents/news-4885/%E2%80%9C%EB%A7%99%EC%86%8C%EC%82%AC%20%EB%B2%8C%EC%8D%A8%E2%80%A6%22%20%EC%83%81%EB%B0%98%EA%B8%B0%20%EB%A7%88%EB%AC%B4%EB%A6%AC%ED%95%98%EB%8A%94%20%EC%85%80%ED%94%84%20%ED%9A%8C%EA%B3%A0%EB%B2%95\">https://www.jobplanet.co.kr/contents/news-4885/%E2%80%9C%EB%A7%99%EC%86%8C%EC%82%AC%20%EB%B2%8C%EC%8D%A8%E2%80%A6%22%20%EC%83%81%EB%B0%98%EA%B8%B0%20%EB%A7%88%EB%AC%B4%EB%A6%AC%ED%95%98%EB%8A%94%20%EC%85%80%ED%94%84%20%ED%9A%8C%EA%B3%A0%EB%B2%95</a>>"
+  }
+];
+const CONTENT_HASH = 'ea9d75b1';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -133,33 +493,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

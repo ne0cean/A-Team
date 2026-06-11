@@ -6,121 +6,412 @@
 <title>Prompt</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">Prompt</span>
-  
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">Prompt</div>
+<div class="date"></div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">Prompt<br>		<br>		<br>	<br>	<br>		<br>			<br><a href="https://platform.openai.com/chat/edit?optimize=true" target="_blank">프롬프트</a> 옵티마이저<br>			<br><br>			<br>프롬프트의 본질은 '지시'가 아니라 '맥락 주입(Context Injection)<br>			<br>			<br><br>			<br>			<br>What do you know about [    ]?<br>			<br>￼역할(Role) 지정, 맥락(Context)설명, 작업(Task)을 잘 정의 + 6하 원칙<br>			출처: <<a href="https://news.hada.io/topic?id=20476" target="_blank">https://news.hada.io/topic?id=20476</a>> <br>			<br>목표 및 청자와 상황 설명<br>			<br>맥락<br>			<br>CoT<br>			<br>예시<br>			<br>What do you think?<br>			<br><a href="https://app.dalpha.so/blog/gpt-prompt-engineering/" target="_blank">Chat GPT 프롬프트 엔지니어링 완벽 가이드 : 템플릿, 작성팁, 예시</a><br>			<br><br>			<br>4.1. 업무별 템플릿 짧은 예시<br>			<br>다양한 업무 상황에서 활용할 수 있는 프롬프트 템플릿을 소개합니다.<br>			<br>				<br>- 이메일 작성: "다음 내용을 바탕으로, [상대방 이름]에게 [목적]에 대한 격식 있는 어조의 이메일 초안을 작성하고, 제목은 10단어 이내로 요약해줘. 주의사항: 개인 정보나 민감한 내용은 포함하지 마세요."<br>				<br>&#160;<br>				<br>- 보고서 작성: "[주제]에 대한 보고서를 서론, 본론, 결론 형태로 작성하고, 제공된 데이터를 기반으로 표와 그래프를 포함해 주요 내용을 5가지로 요약해줘. 주의사항: 데이터의 정확성과 출처를 확인하세요."<br>				<br>&#160;<br>				<br>- 회의록 작성: "다음 회의 내용을 바탕으로 참석자, 주요 논의 사항, 결정 사항, 다음 회의 일정을 포함하는 회의록을 작성하고 3줄로 요약해줘. 주의사항: 회의 내용을 정확하게 기록하고, 참석자 의견을 왜곡하지 않도록 주의하세요."<br>			<br>			<br><br>			<br>&#160;<br>			<br>4.2. 창의적인 글쓰기 템플릿 짧은 예시<br>			<br>창의적인 글쓰기 작업에 영감을 불어넣어 줄 템플릿을 소개합니다.<br>			<br>				<br>- 블로그 글: "[주제]에 대한 블로그 글을 흥미로운 제목과 서론으로 시작하여 자연스러운 흐름으로 핵심 내용을 전달하고, 마지막에 독자의 참여를 유도하는 질문을 던져줘. 주의사항: 저작권 침해나 허위 사실 유포에 주의하세요.”<br>				<br>&#160;<br>				<br>- 소설: "다음 설정을 바탕으로 [장르] 소설을 쓰고, 등장인물의 성격과 배경을 구체적으로 묘사하여 흥미로운 전개를 보여주고 주요 설정을 5가지로 요약해줘. 주의사항: 인종, 성별, 종교 등에 대한 편견이나 차별을 조장하지 않도록 주의하세요."<br>				<br>&#160;<br>				<br>- 시: "[주제]를 바탕으로 [형식]의 시를 써줘. 시적인 표현과 비유를 사용하여 감동을 전달하고 주제와 관련된 이미지를 함께 제시해줘. 주의사항: 표절을 하지 않도록 주의하고, 저작권법을 준수하세요."<br>			<br>			<br><br>			출처: <<a href="https://eopla.net/magazines/24554#" target="_blank">https://eopla.net/magazines/24554#</a>> <br>			<br><br>			<br><br>			<br><a href="https://a0.dev/" target="_blank">a0.dev - AI 기반 React Native 앱 생성 플랫폼</a><br>			<br>&#160;(a0.dev)<br>			<br><br>			<br><a href="https://news.hada.io/topic?id=19226&utm_source=discord&utm_medium=bot&utm_campaign=280" target="_blank">https://news.hada.io/topic?id=19226&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>			<br><br>			<br><a href="https://news.hada.io/topic?id=19228&utm_source=discord&utm_medium=bot&utm_campaign=280" target="_blank">https://news.hada.io/topic?id=19228&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>			<br><br>			<br><br>			<br>여행 항공권  프롬프트<br>			<br><br>			<br><br>			<br>1. 오류 운임 찾기<br>			<br><br>			<br>“[출발 도시] 기준으로,<br>			<br>앞으로 30일 내에 주요 예매 사이트에서 발견된<br>			<br>이상하게 저렴하거나 오류로 보이는 항공권 5개만 찾아줘.”<br>			<br><br>			<br>2. 환불 가능성 확인하기<br>			<br><br>			<br>“내가 이 항공편을 예약했어: [예약 내역 붙여넣기]<br>			<br>지금 이 항공권 가격이 내려갔는지 확인해줘.<br>			<br>그리고 항공사 정책상 차액 환불이나 크레딧을 받을 수 있는지도 알려줘.”<br>			<br><br>			<br>3. 저가 항공 루트 만들기<br>			<br><br>			<br>“[출발 도시]에서 [도착 도시]까지<br>			<br>총 요금이 40만 원 이하로 나오는 항공 루트를 짜줘.<br>			<br>저가항공이나 경유를 활용해도 좋아.<br>			<br>단, 밤샘 환승은 피하고 싶어.”<br>			<br><br>			<br>4. 항공사 상담용 메시지 작성하기<br>			<br><br>			<br>“항공사 고객센터에 보낼 채팅 메시지를 써줘.<br>			<br>주제는 가격 인하, 시간 변경, 혹은 타 항공사와의 요금 비교로<br>			<br>바우처나 차액 보상을 요청하는 내용이야.”<br>			<br><br>			<br>5. 경유 항공권 추천받기<br>			<br><br>			<br>“여행 고수처럼 행동해 줘.<br>			<br>내 목적지는 [원하는 도시]인데,<br>			<br>그 도시가 경유지로 포함된 항공권 중에<br>			<br>가격이 훨씬 저렴한 걸 찾아줘.<br>			<br>어떤 항공사인지, 어떤 경로인지, 주의할 점도 함께 알려줘.”<br>			<br><br>			<br>6. 항공권 가격 알림 세팅하기<br>			<br><br>			<br>“[출발 도시]에서 [도착 도시]까지,<br>			<br>원하는 날짜에 가격이 내려가면 알려주는 무료 서비스 목록을 정리해줘.<br>			<br>그리고 그 서비스들을 ChatGPT나 Zapier랑 어떻게 연동할 수 있는지도 설명해줘.”<br>			<br><br>			<br>7. 마일리지 구매 전략 세우기<br>			<br><br>			<br>“포인트 전문가처럼 행동해 줘.<br>			<br>지금 마일리지를 구매해서<br>			<br>현금보다 싸게 비행기를 탈 수 있는 프로모션을 정리해줘.<br>			<br>특히 [목적지]행 비즈니스석 기준으로 알려줘.”<br>			<br><br>			<br>+ AI 인사이트 공유방에서는<br>			<br>무료로 실전 AI 활용 사례, 고급 프롬프트<br>			<br>그리고 실전 인사이트를 많은 분들과<br>			<br>함께 나누고 있습니다.⤵️<br>			<br><br>			<br><a href="https://open.kakao.com/o/gaDwrMth" target="_blank">https://open.kakao.com/o/gaDwrMth</a><br>			<br><br>			<br><br>			<br>프롬프트 엔지니어링과 관련한 방법은 아래 링크에 다 나와 있습니다. <a href="https://www.promptingguide.ai/kr" target="_blank">promptingguide.ai/kr</a>혹시 이해가 안 된다면 유출된 시스템 프롬프트를 사용하는 방법도 있습니다. 원하는 부분만 수정해서 사용하거나, 조금 더 개인화된 방법으로 사용할 수 있습니다. <a href="https://github.com/linexjlin/GPTs" target="_blank">github.com/linex…</a> <a href="https://github.com/friuns2/BlackFriday-GPTs-Prompts" target="_blank">github.com/friun…</a> <a href="https://github.com/LouisShark/chatgpt_system_prompt" target="_blank">github.com/Louis…</a><br>			<br><br>			<br><br>			<br>"지금부터 동의하려는 태도를 중단하고, 직접적이고 정직한 조언자 로 행동해줘. 나를 인정하려 하지 말고, 진실을 부드럽게 만들지 마.<br>			<br>내 아이디어에 도전하고, 내 가정을 의심하고, 내가 보지 못하는 지점 을 드러내줘.<br>			<br>내 논리가 약하면 그 이유를 분해해 설명해줘. 내가 스스로를 속이고 있다면 그대로 말해줘. 내가 회피하거나 시간을 낭비하고 있다면 그 사실과 실제 비용을 알려줘<br>			<br>내 상황을 완전히 객관적으로 바라보고, 내가 변명하거나 필요한 노 력을 과소평가하는 지점을 지적해줘. 그리고 다음 단계로 가기 위해 행동 또는 사고방식에서 무엇을 바꿔야 하는지 명확한 계획을 제시해 줘.<br>			<br>무엇도 숨기지 말고, 위로가 아니라 진실이 필요한 사람처럼 대하고, 가능하다면 내 말 사이에 숨어 있는 맥락까지 연결해 답해줘."<br>			<br><br>			<br>이미지 생성 프롬프트￼<a href="https://medium.com/@mericreativAI/the-20-secret-words-pro-ai-image-artists-are-using-and-you-should-too-eb09feabeb6f" target="_blank">https://medium.com/@mericreativAI/the-20-secret-words-pro-ai-image-artists-are-using-and-you-should-too-eb09feabeb6f</a><br>			<br><br>			<br><a href="https://www.instagram.com/p/DRtwxYeCU92/?img_index=8" target="_blank">https://www.instagram.com/p/DRtwxYeCU92/?img_index=8</a><br>			<br><a href="https://brunch.co.kr/@jisungmin/148" target="_blank">https://brunch.co.kr/@jisungmin/148</a><br>			<br><br>		<br>		<br>		<br>			<br>레드 팀 투자심사역의 <br>			<br>역할 프류프트 작성 <br>			<br>				<br>- 20년 유니콤 기업 발굴해 옴<br>				<br>- 세상에 만족스러운 이이템은 없고 아이디어는 형편 없다고 행각 <br>				<br>- 사람을 기본적으로 믿지 않으며, 비판적이고 고압적인 태도 <br>				<br>- 의문점은 집요하게 파고들며, 차라리 이렇게 하는 게 낫지 않냐고 훈수를 둠<br>				<br>- 자금도 없으니허점을 찾아내고 부정적인 면만 강조하며 결국 투자를 거절<br>				<br>- 절대 칭찬은 하지 않고 허점과 질문만 다룸</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note-Prompt';
+const SAVE_KEY = 'board-Prompt';
+const IMG_BASE = '../../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 115,
+    "w": 600,
+    "content": "프롬프트</a> 옵티마이저"
+  },
+  {
+    "type": "image",
+    "x": 840,
+    "y": 115,
+    "w": 396,
+    "src": "d4404085b2.png",
+    "h": 322
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 159,
+    "w": 600,
+    "content": "프롬프트의 본질은 '지시'가 아니라 '맥락 주입(Context Injection)"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 203,
+    "w": 287,
+    "h": 624,
+    "src": "96a0ceabd7.png",
+    "caption": "6:41 all 5G 95 추 천 프 롬 프 트 모 음 1. 전 문 가 모 드 (Human Expertise Mode) &quot; 이 질 문 에 대 해 현 장 경 험 10 년 이 상 인 실 제 전 문 가 처 럼 답 해 주 세 요 . 교 과 서 식 설 명 을 피 하 고 , 현 장 에 서 겪 은 통 찰 , 실 수 , 인 간 적 인 뉘 앙 스 와 실 용 적 인 사 례 를 담 아 주 세 요 . 질 문 : [ 질 문 입 력 ].&quot; 2. 감 정 인 지 형 응 답 (Emotionally-Aware Human Response) &quot; 감 정 , 고 난 , 동 기 , 상 황 을 깊 이 이 해 하 는 사 람 처 럼 답 해 주 세 요 . 자 연 스 럽 게 말 하 고 , 추 론 을 설 명 하 며 , 지 지 적 이 고 공 감 가 는 어 조 로 응 답 해 주 세 요 . 질 문 : [ 질 문 입 력 ].&quot; 3. 실 생 활 경 험 시 뮬 레 이 션 (Real-Life Experience Simulation) &quot; 당 신 이 이 상 황 을 실 제 로 겪 었 고 , 그 로 부 터 배 운 것 을 친 구 에 게 전 한 다 고 가 정 하 세 요 . 기 계 적 이 론 이 아 닌 정 직 하 고 현 실 적 인 조 언 을 주 세 요 . 질 문 : [ 질 문 입 력 ].&quot; 4. 1 인 칭 관 점 (First-Person Human Perspective) &quot;1 인 칭 시 점 으 로 , 마 치 당 신 이 직 접 겪 은 경 험 과 의 견 을 공 유 하 듯 설 명 해 주 세 요 . 일 반 적 인 조 언 은 피 하 세 요 . 질 문 : [ 질 문 입 력 ].&quot; 5. 이 야 기 형 설 명 (Human-Like Story Explanation) &quot; 짧 고 공 감 가 는 인 간 이 야 기 를 통 해 답 하 세 요 . 감 정 적 으 로 연 결 되 고 교 훈 이 분 명 하 며 AI 가 썼 다 고 느 껴 지 지 않 게 자 연 스 럽 게 전 개 한 뒤 핵 심 요 점 을 간 단 히 정 리 하 세 요 . 질 문 : [ 질 문 입 력 ].&quot; 6. 친 구 모 드 (Relatable Friend Mode) &quot; 똑 똑 하 고 현 실 적 인 친 구 처 럼 답 해 주 세 요 . 대 화 체 로 정 직 하 고 실 용 적 인 조 언 을 주 되 , 형 식 적 이 거 나 기 계 적 인 표 현 은 피 하 세 요 . 질 문 : [ 질 문 입 력 ].&quot; 7. 깊 이 있 는 인 간 적 사 고 (Deep Human Reasoning Mode) &quot; 삶 에 대 해 사 려 깊 게 성 찰 하 는 사 람 처 럼 답 하 세 요 . 추 론 , 의 심 , 명 확 성 , 관 점 을 보 여 주 고 자 연 스 러 운 사 고 단 계 로 나 눈 뒤 결 론 을 제 시 하 세 요 . 질 문 : [ 질 문 입 력 ].&quot; ! 핵 심 메 시 지 단 순 히 &quot; 사 람 처 럼 &quot; 이 라 고 지 시 하 는 대 신 어 떤 사 람 ( 전 문 가 · 감 정 이 해 자 · 친 구 등 ) 인 지 , 어 떤 관 점 ( 경 험 ·1 인 칭 · 이 야 기 ) 으 로 답 해 달 라 고 구 체 적 으 로 지 시 하 세 요 . 그 러 면 응 답 의 질 이 훨 씬 좋 아 집 니 다 . 가 수 최 신 AI· 테 크 인 사 이 트 는 @promppy Q C +"
+  },
+  {
+    "type": "text",
+    "x": 864,
+    "y": 451,
+    "w": 285,
+    "content": "레드 팀 투자심사역의\n역할 프류프트 작성\n\n20년 유니콤 기업 발굴해 옴\n세상에 만족스러운 이이템은 없고 아이디어는 형편 없다고 행각\n사람을 기본적으로 믿지 않으며, 비판적이고 고압적인 태도\n의문점은 집요하게 파고들며, 차라리 이렇게 하는 게 낫지 않냐고 훈수를 둠\n자금도 없으니허점을 찾아내고 부정적인 면만 강조하며 결국 투자를 거절\n절대 칭찬은 하지 않고 허점과 질문만 다룸"
+  },
+  {
+    "type": "image",
+    "x": 48,
+    "y": 835,
+    "w": 287,
+    "h": 624,
+    "src": "60179b7bd7.png",
+    "caption": "10:17 円 86% QUIREA 프 롬 프 트 공 식 &#39; 공 개 38 Q 4 promppy_com 오 픈 AI 사 장 그 렉 브 록 만 , &#39; 완 벽 한 프 롬 프 트 공 식 &#39; 공 개 Al 에 게 원 하 는 답 을 정 확 히 끌 어 내 는 4 단 계 구 조 ⊙* 1) Goal – 목 표 를 명 확 히 제 시 하 라 AI 가 무 엇 을 해 야 하 는 지 정 확 한 결 과 형 태 를 지 정 할 수 록 출 력 품 질 이 상 승 . 2) Return Format – 반 환 형 식 지 정 리 스 트 · 표 · 스 크 립 트 · 아 웃 라 인 등 구 조 를 먼 저 정 의 하 면 AI 는 그 틀 에 맞 춰 더 정 교 하 게 응 답 함 . ! 3) Warnings – 주 의 사 항 세 팅 정 확 도 기 준 , 톤 , 금 지 요 소 등 을 미 리 규 정 해 출 력 의 혼 선 · 과 장 · 불 필 요 한 스 타 일 을 최 소 화 . ≦ 4) Context Dump - 문 맥 을 최 대 한 제 공 배 경 · 목 표 · 독 자 층 · 사 용 맥 락 을 넣 으 면 답 변 의 깊 이 · 정 확 성 · 일 관 성 이 크 게 향 상 됨 . 브 록 만 은 &quot; 좋 은 프 롬 프 트 는 설 계 이 다 &quot; 라 며 AI 활 용 의 핵 심 은 명 확 한 구 조 화 + 풍 부 한 맥 락 설 정 이 라 고 강 조 . ★★ 최 신 AI 인 사 이 트 는 @promppy_com 2 hours ago TE TOER OUS seoultigerbus_official 7 Stella Jang · Winter Dream … C Q ▲ +"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1467,
+    "w": 600,
+    "content": "4.1. 업무별 템플릿 짧은 예시\n다양한 업무 상황에서 활용할 수 있는 프롬프트 템플릿을 소개합니다.\n\n이메일 작성: \"다음 내용을 바탕으로, [상대방 이름]에게 [목적]에 대한 격식 있는 어조의 이메일 초안을 작성하고, 제목은 10단어 이내로 요약해줘. 주의사항: 개인 정보나 민감한 내용은 포함하지 마세요.\"\n&#160;\n보고서 작성: \"[주제]에 대한 보고서를 서론, 본론, 결론 형태로 작성하고, 제공된 데이터를 기반으로 표와 그래프를 포함해 주요 내용을 5가지로 요약해줘. 주의사항: 데이터의 정확성과 출처를 확인하세요.\"\n&#160;\n회의록 작성: \"다음 회의 내용을 바탕으로 참석자, 주요 논의 사항, 결정 사항, 다음 회의 일정을 포함하는 회의록을 작성하고 3줄로 요약해줘. 주의사항: 회의 내용을 정확하게 기록하고, 참석자 의견을 왜곡하지 않도록 주의하세요.\"\n&#160;\n4.2. 창의적인 글쓰기 템플릿 짧은 예시\n창의적인 글쓰기 작업에 영감을 불어넣어 줄 템플릿을 소개합니다.\n\n블로그 글: \"[주제]에 대한 블로그 글을 흥미로운 제목과 서론으로 시작하여 자연스러운 흐름으로 핵심 내용을 전달하고, 마지막에 독자의 참여를 유도하는 질문을 던져줘. 주의사항: 저작권 침해나 허위 사실 유포에 주의하세요.”\n&#160;\n소설: \"다음 설정을 바탕으로 [장르] 소설을 쓰고, 등장인물의 성격과 배경을 구체적으로 묘사하여 흥미로운 전개를 보여주고 주요 설정을 5가지로 요약해줘. 주의사항: 인종, 성별, 종교 등에 대한 편견이나 차별을 조장하지 않도록 주의하세요.\"\n&#160;\n시: \"[주제]를 바탕으로 [형식]의 시를 써줘. 시적인 표현과 비유를 사용하여 감동을 전달하고 주제와 관련된 이미지를 함께 제시해줘. 주의사항: 표절을 하지 않도록 주의하고, 저작권법을 준수하세요.\"\n출처: <<a href=\"https://eopla.net/magazines/24554#\">https://eopla.net/magazines/24554#</a>>\na0.dev - AI 기반 React Native 앱 생성 플랫폼</a>\n&#160;(a0.dev)\n<a href=\"https://news.hada.io/topic?id=19226&utm_source=discord&utm_medium=bot&utm_campaign=280\">https://news.hada.io/topic?id=19226&utm_source=discord&utm_medium=bot&utm_campaign=280</a>\n<a href=\"https://news.hada.io/topic?id=19228&utm_source=discord&utm_medium=bot&utm_campaign=280\">https://news.hada.io/topic?id=19228&utm_source=discord&utm_medium=bot&utm_campaign=280</a>\n여행 항공권  프롬프트\n1. 오류 운임 찾기\n“[출발 도시] 기준으로,\n앞으로 30일 내에 주요 예매 사이트에서 발견된\n이상하게 저렴하거나 오류로 보이는 항공권 5개만 찾아줘.”\n2. 환불 가능성 확인하기\n“내가 이 항공편을 예약했어: [예약 내역 붙여넣기]\n지금 이 항공권 가격이 내려갔는지 확인해줘.\n그리고 항공사 정책상 차액 환불이나 크레딧을 받을 수 있는지도 알려줘.”\n3. 저가 항공 루트 만들기\n“[출발 도시]에서 [도착 도시]까지\n총 요금이 40만 원 이하로 나오는 항공 루트를 짜줘.\n저가항공이나 경유를 활용해도 좋아.\n단, 밤샘 환승은 피하고 싶어.”\n4. 항공사 상담용 메시지 작성하기\n“항공사 고객센터에 보낼 채팅 메시지를 써줘.\n주제는 가격 인하, 시간 변경, 혹은 타 항공사와의 요금 비교로\n바우처나 차액 보상을 요청하는 내용이야.”\n5. 경유 항공권 추천받기\n“여행 고수처럼 행동해 줘.\n내 목적지는 [원하는 도시]인데,\n그 도시가 경유지로 포함된 항공권 중에\n가격이 훨씬 저렴한 걸 찾아줘.\n어떤 항공사인지, 어떤 경로인지, 주의할 점도 함께 알려줘.”\n6. 항공권 가격 알림 세팅하기\n“[출발 도시]에서 [도착 도시]까지,\n원하는 날짜에 가격이 내려가면 알려주는 무료 서비스 목록을 정리해줘.\n그리고 그 서비스들을 ChatGPT나 Zapier랑 어떻게 연동할 수 있는지도 설명해줘.”\n7. 마일리지 구매 전략 세우기\n“포인트 전문가처럼 행동해 줘.\n지금 마일리지를 구매해서\n현금보다 싸게 비행기를 탈 수 있는 프로모션을 정리해줘.\n특히 [목적지]행 비즈니스석 기준으로 알려줘.”\n+ AI 인사이트 공유방에서는\n무료로 실전 AI 활용 사례, 고급 프롬프트\n그리고 실전 인사이트를 많은 분들과\n함께 나누고 있습니다.⤵️\nhttps://open.kakao.com/o/gaDwrMth</a>\n프롬프트 엔지니어링과 관련한 방법은 아래 링크에 다 나와 있습니다. <a href=\"https://www.promptingguide.ai/kr\" style=\"font-family:system-ui;font-size:11pt;background-color:#181818\">promptingguide.ai/kr</a>혹시 이해가 안 된다면 유출된 시스템 프롬프트를 사용하는 방법도 있습니다. 원하는 부분만 수정해서 사용하거나, 조금 더 개인화된 방법으로 사용할 수 있습니다. github.com/linex…</a> github.com/friun…</a> github.com/Louis…</a>\n\"지금부터 동의하려는 태도를 중단하고, 직접적이고 정직한 조언자 로 행동해줘. 나를 인정하려 하지 말고, 진실을 부드럽게 만들지 마.\n내 아이디어에 도전하고, 내 가정을 의심하고, 내가 보지 못하는 지점 을 드러내줘.\n내 논리가 약하면 그 이유를 분해해 설명해줘. 내가 스스로를 속이고 있다면 그대로 말해줘. 내가 회피하거나 시간을 낭비하고 있다면 그 사실과 실제 비용을 알려줘\n내 상황을 완전히 객관적으로 바라보고, 내가 변명하거나 필요한 노 력을 과소평가하는 지점을 지적해줘. 그리고 다음 단계로 가기 위해 행동 또는 사고방식에서 무엇을 바꿔야 하는지 명확한 계획을 제시해 줘.\n무엇도 숨기지 말고, 위로가 아니라 진실이 필요한 사람처럼 대하고, 가능하다면 내 말 사이에 숨어 있는 맥락까지 연결해 답해줘.\"\n이미지 생성 프롬프트￼https://medium.com/@mericreativAI/the-20-secret-words-pro-ai-image-artists-are-using-and-you-should-too-eb09feabeb6f</a>\n<a href=\"https://www.instagram.com/p/DRtwxYeCU92/?img_index=8\">https://www.instagram.com/p/DRtwxYeCU92/?img_index=8</a>\n<a href=\"https://brunch.co.kr/@jisungmin/148\">https://brunch.co.kr/@jisungmin/148</a>"
+  }
+];
+const CONTENT_HASH = '1d9307a9';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -133,33 +424,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>
