@@ -64,11 +64,27 @@ function graphGet(url, token) {
 
 async function getAllPages(sectionId, token) {
   const pages = [];
-  let url = `${GRAPH_BASE}/sections/${sectionId}/pages?$select=id,title,parentSection&$top=100`;
+  const PAGE_SIZE = 100;
+  let skip = 0;
+  let url = `${GRAPH_BASE}/sections/${sectionId}/pages?$select=id,title,parentSection&$top=${PAGE_SIZE}&$skip=${skip}`;
+
   while (url) {
     const data = await graphGet(url, token);
-    pages.push(...(data.value || []));
-    url = data['@odata.nextLink'] || null;
+    const batch = data.value || [];
+    pages.push(...batch);
+
+    // Follow nextLink if provided
+    if (data['@odata.nextLink']) {
+      url = data['@odata.nextLink'];
+      skip = null; // nextLink takes over
+    } else if (batch.length === PAGE_SIZE) {
+      // Graph API sometimes omits nextLink even when more pages exist
+      // (observed when result count == $top exactly). Use $skip fallback.
+      skip += PAGE_SIZE;
+      url = `${GRAPH_BASE}/sections/${sectionId}/pages?$select=id,title,parentSection&$top=${PAGE_SIZE}&$skip=${skip}`;
+    } else {
+      url = null;
+    }
   }
   return pages;
 }
@@ -116,25 +132,39 @@ const sectionsData = await graphGet(
 const sections = sectionsData.value || [];
 if (!JSON_MODE) console.log(`[audit] InterStellar 섹션 수: ${sections.length}`);
 
-// Also check section groups
+// Recursively expand section groups (handles nested section groups like 3_Archive > 1,2,3...)
+async function expandSectionGroup(sgId, pathPrefix, token, out) {
+  // Direct sections in this group
+  const secsData = await graphGet(
+    `${GRAPH_BASE}/sectionGroups/${sgId}/sections?$select=id,displayName`,
+    token
+  );
+  for (const s of secsData.value || []) {
+    s._group = pathPrefix;
+    out.push(s);
+  }
+  // Nested sub-section groups
+  const subSgData = await graphGet(
+    `${GRAPH_BASE}/sectionGroups/${sgId}/sectionGroups?$select=id,displayName`,
+    token
+  );
+  for (const subSg of subSgData.value || []) {
+    const nestedPath = `${pathPrefix}/${subSg.displayName}`;
+    await expandSectionGroup(subSg.id, nestedPath, token, out);
+  }
+}
+
 const sgData = await graphGet(
   `${GRAPH_BASE}/notebooks/${INTERSTELLAR_ID}/sectionGroups?$select=id,displayName`,
   token
 );
 const sectionGroups = sgData.value || [];
-if (sectionGroups.length > 0 && !JSON_MODE) {
-  console.log(`[audit] 섹션 그룹 수: ${sectionGroups.length}`);
+if (sectionGroups.length > 0) {
+  if (!JSON_MODE) console.log(`[audit] 섹션 그룹 수: ${sectionGroups.length}`);
   for (const sg of sectionGroups) {
-    const sgSections = await graphGet(
-      `${GRAPH_BASE}/sectionGroups/${sg.id}/sections?$select=id,displayName`,
-      token
-    );
-    for (const s of sgSections.value || []) {
-      s._group = sg.displayName;
-      sections.push(s);
-    }
+    await expandSectionGroup(sg.id, sg.displayName, token, sections);
   }
-  if (!JSON_MODE) console.log(`[audit] 전체 섹션 (그룹 포함): ${sections.length}`);
+  if (!JSON_MODE) console.log(`[audit] 전체 섹션 (중첩 그룹 포함): ${sections.length}`);
 }
 
 // Load local IDs
