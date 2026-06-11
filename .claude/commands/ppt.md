@@ -87,11 +87,15 @@ AskUserQuestion 도구 호출:
 > 스타일:
 > **1. Consulting (McKinsey급)** — 컨설팅 보고서, 전략 제안, 투자 유치
 > **2. Creative (8테마 선택)** — 제품 발표, 마케팅, 교육, 브랜드
+> **3. HTML Presentation** — 동적 웹 프레젠테이션 (단일 HTML, 브라우저 실행, 공유 용이)
 >
 > Creative 테마 (스타일 2 선택 시):
 > A. Dark Editorial | B. Consulting Clean | C. Executive Deep
 > D. Midnight Blue | E. Warm Earth | F. Nordic Frost
 > G. Mono Sharp | H. Sage Green
+>
+> HTML 테마 (스타일 3 선택 시):
+> A. Dark (기본 — 사업보고/전략) | B. Light (컨설팅/교육) | C. Executive (임원보고)
 
 ---
 
@@ -103,7 +107,7 @@ AskUserQuestion 도구 호출:
 > 유형    : {보고형|기획형|교육형|설득형}
 > 청중    : {청중}
 > 슬라이드: {N}장
-> 테마    : {dark_editorial|consulting_clean|executive_deep}
+> 테마    : {dark_editorial|consulting_clean|html_dark|html_light|html_executive|...}
 > 데이터  : {있음 / 없음 — [DATA] 처리}
 > ---------------------
 > 이대로 생성할까요? (예/아니오)
@@ -135,7 +139,22 @@ python scripts/ppt/generate_via_intake.py \
 
 **주의**: `--data` 값에 `$` 기호 사용 금지 (쉘 변수 치환됨). `$50K` → `50K` 또는 `50천달러`로 표기.
 
-### QA Gate (자동)
+### HTML 모드 (웹 프레젠테이션)
+
+테마 **3. HTML Presentation** 선택 시 — ppt-strategist로 JSON 스펙 생성 후 **html-writer 에이전트** 호출:
+
+```
+html-writer 에이전트 호출:
+  입력: content/ppt/YYYY-MM-DD-{slug}/spec.json
+  출력: content/ppt/YYYY-MM-DD-{slug}/index.html
+  테마: html_dark(A) | html_light(B) | html_executive(C)
+```
+
+html-writer가 spec.json → 단일 self-contained HTML 생성.
+QA Gate(`qa-pptx.py`) 생략 — HTML 전용 완성도 검증은 html-writer 내부에서 수행.
+생성 후 안내: `브라우저에서 index.html을 열면 바로 실행됩니다. ← → 키보드로 네비게이션.`
+
+### QA Gate (자동 — Consulting/Creative 모드)
 생성 후 `qa-pptx.py`가 자동 실행. B등급(70점) 미만이면 파일 삭제 + 오류 출력.
 통과 시 QA 점수 표시. 생성 완료 후 → `/design-score` 제안.
 
