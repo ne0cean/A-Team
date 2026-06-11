@@ -873,44 +873,21 @@ export default {
         return new Response(JSON.stringify({ ok: true, path: filePath, markdown: `![${fileName}](${filePath})` }), { headers });
       }
 
-      // GET /api/cortex/search?q=keyword — search file/folder names + content
+      // GET /api/cortex/search?q=keyword — D1 full-text search
       if (path === '/api/cortex/search' && method === 'GET') {
-        const q = url.searchParams.get('q')?.toLowerCase();
+        const q = (url.searchParams.get('q') || '').trim();
         if (!q) return new Response('[]', { headers });
 
-        // GitHub Code Search (content search)
-        try {
-          const csRes = await fetch(
-            `https://api.github.com/search/code?q=${encodeURIComponent(q)}+repo:${REPO}+in:file+path:cortex/`,
-            { headers: { ...ghHeaders, Accept: 'application/vnd.github.v3.text-match+json' } }
-          );
-          if (csRes.ok) {
-            const csData = await csRes.json();
-            const results = (csData.items || []).slice(0, 30).map(i => ({
-              name: i.name,
-              path: i.path,
-              type: 'file',
-              snippet: i.text_matches?.[0]?.fragment || '',
-            }));
-            return new Response(JSON.stringify(results), { headers });
-          }
-        } catch (_) { /* fallthrough to path search */ }
+        const like = `%${q}%`;
+        const rows = await env.DB.prepare(
+          'SELECT path, title, body, pillar FROM cortex_search WHERE title LIKE ? OR body LIKE ? LIMIT 30'
+        ).bind(like, like).all();
 
-        // Fallback: git tree API path filter
-        const treeUrl = `https://api.github.com/repos/${REPO}/git/trees/master?recursive=1`;
-        const treeRes = await fetch(treeUrl, { headers: ghHeaders });
-        if (!treeRes.ok) return new Response('[]', { headers });
-        const treeData = await treeRes.json();
-
-        const results = (treeData.tree || [])
-          .filter(i => i.path.startsWith('cortex/') && i.path.toLowerCase().includes(q))
-          .slice(0, 30)
-          .map(i => ({
-            name: i.path.split('/').pop(),
-            path: i.path,
-            type: i.type === 'tree' ? 'dir' : 'file',
-            snippet: '',
-          }));
+        const results = (rows.results || []).map(r => {
+          const idx = r.body?.toLowerCase().indexOf(q.toLowerCase()) ?? -1;
+          const snippet = idx >= 0 ? r.body.slice(Math.max(0, idx - 40), idx + 120) : r.body?.slice(0, 120) || '';
+          return { name: r.path.split('/').pop(), path: `cortex/${r.path}`, type: 'file', pillar: r.pillar, snippet };
+        });
 
         return new Response(JSON.stringify(results), { headers });
       }
@@ -940,33 +917,18 @@ export default {
           }
         }
 
-        // Notes search (GitHub Code Search API — file contents)
+        // Notes search — D1 full-text search
         let noteResults = [];
         try {
-          const codeSearchUrl = `https://api.github.com/search/code?q=${encodeURIComponent(q)}+repo:${REPO}+in:file+path:cortex/`;
-          const codeRes = await fetch(codeSearchUrl, {
-            headers: { ...ghHeaders, 'Accept': 'application/vnd.github.v3.text-match+json' }
+          const like = `%${q}%`;
+          const noteRows = await env.DB.prepare(
+            'SELECT path, title, body, pillar FROM cortex_search WHERE title LIKE ? OR body LIKE ? LIMIT 20'
+          ).bind(like, like).all();
+          noteResults = (noteRows.results || []).map(r => {
+            const idx = r.body?.toLowerCase().indexOf(q.toLowerCase()) ?? -1;
+            const snippet = idx >= 0 ? r.body.slice(Math.max(0, idx - 40), idx + 120) : r.body?.slice(0, 120) || '';
+            return { name: r.path.split('/').pop(), path: `cortex/${r.path}`, type: 'file', snippet };
           });
-          if (codeRes.ok) {
-            const codeData = await codeRes.json();
-            noteResults = (codeData.items || []).slice(0, 20).map(i => ({
-              name: i.name,
-              path: i.path,
-              type: 'file',
-              snippet: i.text_matches?.[0]?.fragment || ''
-            }));
-          } else {
-            // fallback: path-only search
-            const treeUrl = `https://api.github.com/repos/${REPO}/git/trees/master?recursive=1`;
-            const treeRes = await fetch(treeUrl, { headers: ghHeaders });
-            if (treeRes.ok) {
-              const treeData = await treeRes.json();
-              noteResults = (treeData.tree || [])
-                .filter(i => i.path.startsWith('cortex/') && i.path.toLowerCase().includes(q))
-                .slice(0, 20)
-                .map(i => ({ name: i.path.split('/').pop(), path: i.path, type: i.type === 'tree' ? 'dir' : 'file' }));
-            }
-          }
         } catch {}
 
         return new Response(JSON.stringify({ schedule: schedResults.slice(0,20), notes: noteResults }), { headers });
