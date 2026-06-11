@@ -478,4 +478,121 @@ count-up: `data-target="23.4"` (소수점 포함 시) / `data-suffix="%"` / `dat
 - [ ] JS `<script>` 태그 인라인
 - [ ] 총 슬라이드 수 = spec.json `slides[]` 배열 길이
 - [ ] `slide-counter` 초기값 = "1 / N"
-- [ ] 반-AI 라이팅 위반 없음 (`governance/skills/ppt/anti-ai-writing.md` 기준)
+- [ ] 반-AI 라이팅 위반 없음 (아래 섹션 7 기준)
+
+---
+
+## 7. 반-AI 라이팅 인라인 체크리스트
+
+> html-writer가 슬라이드 HTML 생성 전 각 슬라이드에 대해 아래 항목 검증. 위반 발견 시 자동 수정 후 진행.
+
+### 헤드라인 규칙
+- **금지**: 주제만 쓴 순수 명사형 ("현황", "분석", "전략", "소개", "개요")
+- **필수**: 결론/주장/수치가 포함된 문장형
+  - X: "매출 현황"
+  - O: "Q1 매출 [DATA]억원 — 목표 대비 [DATA: ±X%]"
+- **금지 표현** (발견 즉시 제거/교체): 다양한, 상당한, 혁신적, 지속적으로, 여러, 획기적, 효과적인, 전략적으로, 기반으로
+
+### 불릿 규칙
+- 슬라이드당 불릿 최대 3개 — 초과 시 자동으로 상위 3개만 유지
+- 불릿당 최대 30자 (한글 기준) — 초과 시 핵심만 추출해 단축
+- 각 불릿은 명사형 또는 수치 종결 (동사 어미 금지: "~합니다", "~됩니다")
+
+### 데이터 규칙
+- 수치 없으면 `[DATA: 지표명]` 형식 플레이스홀더 사용 — 임의 숫자 생성 절대 금지
+- 단위 + 기간 + 비교 기준 명시: "23억원 (전기 대비 +7%)" 형식
+
+### 레이아웃 다양성
+- 동일 레이아웃 3장 연속 금지 (cover/closing 제외)
+- 권장 시퀀스: cover → agenda → section_break → single/bullets → two_column → data_table/stats_grid → quote → closing
+
+---
+
+## 8. 3 디자인 시스템 정의
+
+html-preview 에이전트가 시안 생성 시, html-writer가 전체 생성 시 사용.
+`design_system` 파라미터로 1/2/3 중 하나를 전달받아 해당 CSS 토큰 적용.
+
+### 시스템 1: Editorial Dark
+
+```
+배경: #0a0a0a (거의 순수 검정)
+보조배경: #141414
+텍스트: #fafafa
+보조텍스트: #888888
+강조: #e11d48 (크림슨 레드)
+강조2: #fb7185
+경계: #2a2a2a
+폰트: 헤드라인=Georgia/serif, 본문=system-ui
+특징: 대형 세리프 헤드라인, 최소 요소, 수직 리듬 강조
+```
+
+```css
+[data-ds="1"] {
+  --bg:#0a0a0a; --bg2:#141414; --bg3:#1a1a1a;
+  --text:#fafafa; --text2:#888888;
+  --accent:#e11d48; --accent2:#fb7185; --accent-glow:rgba(225,29,72,0.12);
+  --border:#2a2a2a;
+  --font-head: Georgia, 'Times New Roman', serif;
+  --font-body: system-ui, sans-serif;
+  --weight-head: 700;
+  --title-size: clamp(2.2rem, 5vw, 4rem);
+}
+```
+
+### 시스템 2: Corporate Light
+
+```
+배경: #f8f9fa (오프화이트)
+보조배경: #ffffff
+텍스트: #111827
+보조텍스트: #6b7280
+강조: #0ea5e9 (스카이블루)
+강조2: #38bdf8
+경계: #e5e7eb
+폰트: 모두 sans-serif (가독성 최우선)
+특징: 화이트 배경, 수평 데이터 레이아웃, 비즈니스 전문성
+```
+
+```css
+[data-ds="2"] {
+  --bg:#f8f9fa; --bg2:#ffffff; --bg3:#eff6ff;
+  --text:#111827; --text2:#6b7280;
+  --accent:#0ea5e9; --accent2:#0284c7; --accent-glow:rgba(14,165,233,0.1);
+  --border:#e5e7eb;
+  --font-head: 'Noto Sans KR', system-ui, sans-serif;
+  --font-body: 'Noto Sans KR', system-ui, sans-serif;
+  --weight-head: 800;
+  --title-size: clamp(1.8rem, 3.5vw, 3rem);
+}
+```
+
+### 시스템 3: Cinematic
+
+```
+배경: #0d0d0d
+보조배경: #1a0a00 (따뜻한 다크)
+텍스트: #f5f0e8 (크림)
+보조텍스트: #a89880
+강조: #f97316 (버닝 오렌지)
+강조2: #fb923c
+경계: #2d1f0e
+폰트: 헤드라인=굵은 확장 폰트, 본문=모노
+특징: 비대칭 레이아웃, 사이드 텍스트, 영화 포스터 구도, 드라마틱
+```
+
+```css
+[data-ds="3"] {
+  --bg:#0d0d0d; --bg2:#1a0a00; --bg3:#120800;
+  --text:#f5f0e8; --text2:#a89880;
+  --accent:#f97316; --accent2:#fb923c; --accent-glow:rgba(249,115,22,0.15);
+  --border:#2d1f0e;
+  --font-head: 'Noto Sans KR', system-ui, sans-serif;
+  --font-body: 'Courier New', 'Noto Sans KR', monospace;
+  --weight-head: 900;
+  --title-size: clamp(2.5rem, 6vw, 5rem);
+}
+```
+
+> **Anti-Generic 금지 색상** (designer.md 준수):
+> `#6366f1` 인디고, `#8b5cf6` 퍼플, `#a855f7` 바이올렛 — 위 3개 시스템에서 모두 사용 금지.

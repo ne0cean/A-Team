@@ -141,18 +141,42 @@ python scripts/ppt/generate_via_intake.py \
 
 ### HTML 모드 (웹 프레젠테이션)
 
-테마 **3. HTML Presentation** 선택 시 — ppt-strategist로 JSON 스펙 생성 후 **html-writer 에이전트** 호출:
+테마 **3. HTML Presentation** 선택 시 — 아래 4단계 순서로 실행:
 
+**Step A — 스펙 생성**:
+```
+ppt-strategist 에이전트 호출:
+  출력: content/ppt/YYYY-MM-DD-{slug}/spec.json
+```
+
+**Step B — 디자인 시안 생성 + 브라우저 오픈**:
+```
+html-preview 에이전트 호출:
+  입력: content/ppt/YYYY-MM-DD-{slug}/spec.json
+  출력: content/ppt/YYYY-MM-DD-{slug}/preview.html
+
+브라우저 오픈:
+  start content/ppt/YYYY-MM-DD-{slug}/preview.html
+```
+
+**Step C — 디자인 선택** (AskUserQuestion):
+```
+3가지 디자인 시안을 확인하셨나요?
+1. Editorial Dark  — 고대비 다크, 세리프 헤드라인, 크림슨
+2. Corporate Light — 화이트 배경, 전문적, 스카이블루
+3. Cinematic       — 풀블리드 다크, 드라마틱, 오렌지
+```
+
+**Step D — 전체 생성**:
 ```
 html-writer 에이전트 호출:
   입력: content/ppt/YYYY-MM-DD-{slug}/spec.json
+  design_system: {선택번호 1|2|3}
   출력: content/ppt/YYYY-MM-DD-{slug}/index.html
-  테마: html_dark(A) | html_light(B) | html_executive(C)
 ```
 
-html-writer가 spec.json → 단일 self-contained HTML 생성.
-QA Gate(`qa-pptx.py`) 생략 — HTML 전용 완성도 검증은 html-writer 내부에서 수행.
-생성 후 안내: `브라우저에서 index.html을 열면 바로 실행됩니다. ← → 키보드로 네비게이션.`
+html-writer가 anti-AI 라이팅 체크 자동 수행 후 단일 self-contained HTML 생성.
+생성 후: `브라우저에서 index.html을 열면 바로 실행됩니다. ← → 키보드로 네비게이션.`
 
 ### QA Gate (자동 — Consulting/Creative 모드)
 생성 후 `qa-pptx.py`가 자동 실행. B등급(70점) 미만이면 파일 삭제 + 오류 출력.
