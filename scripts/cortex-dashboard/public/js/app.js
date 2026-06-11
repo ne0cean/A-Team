@@ -2138,7 +2138,21 @@ function moveSOItem(section, idx, dir) {
 
 function toggleSOActive(i) { standingData.standing[i].active = !standingData.standing[i].active; saveStandingData(); render(); }
 function editSOText(i, text) { if(text.trim()) standingData.standing[i].text = text.trim(); saveStandingData(); render(); }
-function delSO(i) { standingData.standing.splice(i, 1); saveStandingData(); renderStandingOrders(); render(); }
+async function delSO(i) {
+  const backup = standingData.standing[i];
+  standingData.standing.splice(i, 1);
+  renderStandingOrders(); render();
+  // PATCH 사용: 버전 충돌·크기 차단 우회, 서버에서 직접 원자적 삭제
+  const res = await fetch(`${API}/api/standing-orders/patch`, {
+    method: 'POST', headers: AUTH,
+    body: JSON.stringify({ section: 'standing', action: 'delete', index: i })
+  });
+  if (!res.ok) {
+    standingData.standing.splice(i, 0, backup); // 롤백
+    renderStandingOrders(); render();
+    showToast('삭제 실패 — 재시도해주세요', true);
+  }
+}
 function parseSoDate(raw) {
   if (!raw?.trim()) return null;
   // Strip trailing parenthetical suffixes like (토), (일), (1교시) etc.
