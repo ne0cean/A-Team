@@ -16,7 +16,7 @@
 
 | Date | Score | Chains | Gaps | Patched | Notes |
 |------|-------|--------|------|---------|-------|
-| (초기값 — /mesh 첫 실행 시 자동 채워짐) | | | | | |
+| 2026-06-11 | 98/100 | 16/16 정상 | 2 | 4 (chain-suggester, mesh-monthly, vibe-mesh, daily-brief path) | 초기 설치 |
 
 ## 체인 레지스트리
 
