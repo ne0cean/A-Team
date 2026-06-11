@@ -283,3 +283,16 @@ else
 
   echo "━━━━━━━━━━━━━━━"
 fi
+
+# Mesh 체크 (30일 이상 경과 시)
+MESH_HEALTH="$HOME/Projects/a-team/governance/mesh-health.md"
+if [ -f "$MESH_HEALTH" ]; then
+  LAST_MESH=$(grep "^| 20" "$MESH_HEALTH" | tail -1 | awk -F'|' '{print $2}' | tr -d ' ')
+  if [ -n "$LAST_MESH" ]; then
+    MESH_AGE_SEC=$(( $(date +%s) - $(date -j -f "%Y-%m-%d" "$LAST_MESH" +%s 2>/dev/null || echo 0) ))
+    MESH_AGE=$(( MESH_AGE_SEC / 86400 ))
+    [ "$MESH_AGE" -ge 30 ] && echo "→ /mesh (메시 점검 ${MESH_AGE}일 경과)"
+  else
+    echo "→ /mesh (첫 메시 점검 필요)"
+  fi
+fi

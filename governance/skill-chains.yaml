@@ -1,0 +1,139 @@
+# Skill Chain Registry — A-Team Mesh System
+#
+# 각 체인은 맥락 감지 → 자동 다음 스텝 제안 파이프라인을 정의한다.
+# chain-suggester.sh (Stop 훅)이 실행 후 analytics.jsonl에서 마지막 커맨드를 읽어
+# trigger_after에 매칭되는 체인을 찾고 다음 스텝을 제안한다.
+#
+# 필드:
+#   id             — 고유 식별자
+#   name           — 사람이 읽을 수 있는 이름
+#   trigger_after  — 이 커맨드가 실행된 후 체인 감지
+#   steps          — 순서대로 실행할 커맨드 목록 (/ 없이)
+#   auto_advance   — true면 자동 실행, false면 제안만
+#   description    — 체인 설명
+
+chains:
+
+  # ── 빌드/개발 파이프라인 ──────────────────────────────────────────
+
+  - id: build-ship
+    name: "빌드 → 배포"
+    description: "TDD 완료 후 코드 품질 → PR 리뷰 → 배포 → 검증까지"
+    trigger_after: [tdd, craft]
+    steps: [tdd, craft, review, ship, land]
+    auto_advance: false
+
+  - id: discovery-build
+    name: "아이디어 → 빌드"
+    description: "아이디어 검증 후 설계 → 계획 → 구현 파이프라인"
+    trigger_after: [office-hours, brainstorm, blueprint]
+    steps: [blueprint, autoplan, plan-eng, tdd]
+    auto_advance: false
+
+  - id: debug-loop
+    name: "버그 → 수정 → 검증"
+    description: "근본 원인 분석 후 TDD로 수정, 리뷰 후 배포"
+    trigger_after: [investigate]
+    steps: [investigate, tdd, review, ship]
+    auto_advance: false
+
+  - id: prd-to-build
+    name: "PRD → 빌드"
+    description: "PRD 완성 후 엔지니어링 계획 → TDD 구현"
+    trigger_after: [prd, webapp-prd, dashboard-prd]
+    steps: [plan-eng, tdd, craft, ship]
+    auto_advance: false
+
+  # ── 콘텐츠/마케팅 파이프라인 ─────────────────────────────────────
+
+  - id: content-pipeline
+    name: "인텔 → 콘텐츠 → 배포"
+    description: "시장 인텔 수집 후 콘텐츠 생성 → 멀티포맷 변환 → 소셜 → 배포"
+    trigger_after: [intel, marketing-research]
+    steps: [intel, marketing-generate, marketing-repurpose, marketing-social, marketing-publish]
+    auto_advance: false
+
+  - id: content-quick
+    name: "콘텐츠 빠른 배포"
+    description: "콘텐츠 생성 후 바로 배포"
+    trigger_after: [marketing-generate]
+    steps: [marketing-generate, marketing-repurpose, marketing-publish]
+    auto_advance: false
+
+  # ── 품질/보안 파이프라인 ──────────────────────────────────────────
+
+  - id: quality-gate
+    name: "배포 후 품질 검증"
+    description: "배포 후 랜딩 검증 → QA → 보안 감사"
+    trigger_after: [ship]
+    steps: [land, qa, cso]
+    auto_advance: false
+
+  - id: security-audit
+    name: "보안 감사 체인"
+    description: "CSO 이후 적대적 리뷰 → PR 검토"
+    trigger_after: [cso]
+    steps: [cso, adversarial, review]
+    auto_advance: false
+
+  - id: pre-deploy-check
+    name: "배포 전 전체 검증"
+    description: "PR 리뷰 → 어드버설 → CSO → 배포"
+    trigger_after: [review]
+    steps: [review, adversarial, cso, ship]
+    auto_advance: false
+
+  # ── 지식 관리 파이프라인 ──────────────────────────────────────────
+
+  - id: retro-improve
+    name: "회고 → 개선 등록"
+    description: "회고 완료 후 개선사항 등록 → 타 프로젝트 흡수"
+    trigger_after: [retro, cold-review]
+    steps: [retro, cold-review, improve, absorb]
+    auto_advance: false
+
+  - id: insight-loop
+    name: "인사이트 → OKR → 대시보드"
+    description: "인사이트 리포트 → OKR 갱신 → 대시보드 시각화"
+    trigger_after: [insights, dashboard]
+    steps: [insights, okr, dashboard]
+    auto_advance: false
+
+  - id: mesh-maintain
+    name: "메시 유지보수"
+    description: "메시 감사 후 개선 등록 → 흡수"
+    trigger_after: [mesh]
+    steps: [mesh, improve, cold-review]
+    auto_advance: false
+
+  # ── 세션 파이프라인 ───────────────────────────────────────────────
+
+  - id: session-close
+    name: "세션 마무리"
+    description: "세션 종료 후 디브리핑 → 동기화"
+    trigger_after: [end]
+    steps: [end, debrief, sync]
+    auto_advance: false
+
+  - id: session-start-warm
+    name: "세션 시작 (워밍업)"
+    description: "vibe/pickup 후 일간 브리핑"
+    trigger_after: [vibe, pickup]
+    steps: [vibe, daily-brief]
+    auto_advance: false
+
+  # ── 리서치 파이프라인 ─────────────────────────────────────────────
+
+  - id: research-to-content
+    name: "리서치 → 인텔 → 콘텐츠"
+    description: "autoresearch 후 intel 수집 → 콘텐츠 생성"
+    trigger_after: [autoresearch]
+    steps: [autoresearch, intel, marketing-generate]
+    auto_advance: false
+
+  - id: benchmark-optimize
+    name: "벤치마크 → 최적화"
+    description: "성능 측정 후 최적화 → 재측정"
+    trigger_after: [benchmark]
+    steps: [benchmark, optimize, benchmark]
+    auto_advance: false
