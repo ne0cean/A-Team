@@ -2092,11 +2092,15 @@ async function saveStandingData() {
     body: JSON.stringify(standingData)
   });
   if (res.status === 409) {
-    // Version conflict — reload from server to get latest _version, then retry
+    // Version conflict — fetch fresh server data as base, overlay user-edited sections
     const fresh = await fetch(`${API}/api/standing-orders`);
     const freshData = await fresh.json();
-    // Merge: keep client's structural changes but adopt server _version
-    standingData._version = freshData._version;
+    // Server-managed fields (happy_friday, holidays) are preserved from freshData.
+    // User-edited fields are taken from client standingData.
+    const USER_SECTIONS = ['standing','weekly_recurring','monthly_recurring','monthly','yearly','vision','instagram','input_backlog'];
+    const merged = Object.assign({}, freshData);
+    USER_SECTIONS.forEach(k => { if (standingData[k] !== undefined) merged[k] = standingData[k]; });
+    standingData = merged;
     const res2 = await fetch(`${API}/api/standing-orders`, {
       method:'POST', headers: AUTH,
       body: JSON.stringify(standingData)
