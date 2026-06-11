@@ -3,7 +3,7 @@
 > 프로젝트 컨텍스트·커맨드 목록: **AGENTS.md** | 상세 규칙: **governance/rules/** (TRIGGER-INDEX.md 온디맨드)
 
 ## 데이터 보호 (절대 금지)
-`cortex/areas/life/ritual-routine/` 파일 전체 replace·삭제 금지. 수정 전 .bak 필수.
+`cortex/areas/5-life-xlab/ritual-routine/` 파일 전체 replace·삭제 금지. 수정 전 .bak 필수.
 YYYY-MM.json / standing-orders.json / day-frames.json / vision-roadmap.json — 덮어쓰기 금지.
 
 ## 세션 진입 (의무)
