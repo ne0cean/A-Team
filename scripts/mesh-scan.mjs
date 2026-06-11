@@ -104,27 +104,30 @@ function scanHooks() {
 
   // 모든 훅 스크립트 수집
   const allHookScripts = [];
+  let chainSuggesterRegistered = false;
+
   for (const [event, eventHooks] of Object.entries(hooks)) {
     for (const hookGroup of (Array.isArray(eventHooks) ? eventHooks : [])) {
       for (const hook of (hookGroup.hooks || [])) {
-        if (hook.command) {
-          // 커맨드에서 스크립트 경로 추출
-          const parts = hook.command.split(' ');
-          const scriptPath = parts.find(p => p.includes('/') && (p.endsWith('.sh') || p.endsWith('.js') || p.endsWith('.py') || p.endsWith('.mjs')));
-          if (scriptPath) {
-            const ok = exists(scriptPath);
-            allHookScripts.push({ event, command: hook.command, scriptPath, ok });
-            if (!ok) {
-              gaps.push({ id: `hook-missing-${scriptPath.split('/').pop()}`, type: 'missing_hook_script', target: scriptPath, severity: 'P1', auto_patchable: false });
-            }
+        if (!hook.command) continue;
+        const cmd = hook.command;
+
+        // chain-suggester 등록 여부 (명령어 문자열 전체에서 확인)
+        if (cmd.includes('chain-suggester')) chainSuggesterRegistered = true;
+
+        // 커맨드에서 스크립트 경로 추출 (따옴표 제거)
+        const parts = cmd.replace(/"/g, '').replace(/'/g, '').split(/\s+/);
+        const scriptPath = parts.find(p => p.includes('/') && (p.endsWith('.sh') || p.endsWith('.js') || p.endsWith('.py') || p.endsWith('.mjs')));
+        if (scriptPath) {
+          const ok = exists(scriptPath);
+          allHookScripts.push({ event, command: cmd, scriptPath, ok });
+          if (!ok) {
+            gaps.push({ id: `hook-missing-${scriptPath.split('/').pop()}`, type: 'missing_hook_script', target: scriptPath, severity: 'P1', auto_patchable: false });
           }
         }
       }
     }
   }
-
-  // chain-suggester 등록 여부
-  const chainSuggesterRegistered = allHookScripts.some(h => h.command.includes('chain-suggester'));
   if (!chainSuggesterRegistered) {
     gaps.push({ id: 'chain-suggester-unregistered', type: 'missing_hook', target: 'chain-suggester Stop 훅 미등록', severity: 'P0', auto_patchable: true });
   }
@@ -166,8 +169,8 @@ function scanLaunchd() {
     const exitCode = lineMatch ? parseInt(lineMatch[2]) : null;
     const running = pid !== null;
     const isRunning = pid && pid !== '-';
-    // 실행 중(PID 있음)이거나 종료 후 exit 0이면 정상
-    const ok = running && (isRunning || exitCode === 0);
+    // 실행 중(PID 있음)이거나 종료 후 exit 0/78(on-demand 정상)이면 OK
+    const ok = running && (isRunning || exitCode === 0 || exitCode === 78);
 
     // node PATH 문제 감지
     const hasNodePathIssue = plistContent.includes('<string>node</string>') && !plistContent.includes('.nvm') && !plistContent.includes('/usr/local/bin/node');
