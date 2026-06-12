@@ -250,6 +250,18 @@ console.log(`처리 대상: ${tasks.length}개 누락 페이지${DRY_RUN ? ' [DR
 
 let done = 0, skipped = 0, failed = 0;
 for (const t of tasks) {
+  // Fast pre-check using audit title — avoids API call for already-fetched pages
+  if (t.title && t.title !== '(unknown)') {
+    const flatPath = resolveDestDir(t.sectionPath);
+    const destDir = join(ARCHIVE_BASE, flatPath);
+    const safe = safeFilename(t.title);
+    const mdPath = join(destDir, `${safe}.md`);
+    if (existsSync(mdPath)) {
+      skipped++;
+      continue;
+    }
+  }
+
   console.log(`[${t.sectionPath}] "${t.title}"`);
   try {
     const created = await fetchPage(t.pageId, t.sectionPath, token);
