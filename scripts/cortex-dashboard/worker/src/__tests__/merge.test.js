@@ -28,12 +28,20 @@ describe('mergeMonthData — scalar fields', () => {
 });
 
 describe('mergeMonthData — array field restoration', () => {
-  it('restores array when incoming is empty but server has items', () => {
+  it('restores non-carried items when incoming is empty but server has items', () => {
     const serverItems = [{ text: 'Morning run', done: true, url: '' }];
     const existing = { days: { '8': { ritual: serverItems } } };
     const incoming = { days: { '8': { ritual: [] } } };
     mergeMonthData(existing, incoming);
     expect(incoming.days['8'].ritual).toEqual(serverItems);
+  });
+
+  it('does NOT restore _carried items when incoming is empty', () => {
+    const serverItems = [{ text: 'Task', done: false, _carried: true }];
+    const existing = { days: { '9': { outcome: serverItems } } };
+    const incoming = { days: { '9': { outcome: [] } } };
+    mergeMonthData(existing, incoming);
+    expect(incoming.days['9'].outcome).toEqual([]);
   });
 
   it('restores array when incoming key is absent', () => {
@@ -52,12 +60,12 @@ describe('mergeMonthData — array field restoration', () => {
   });
 });
 
-describe('mergeMonthData — done=true preservation', () => {
-  it('preserves done=true when stale client sends done=false', () => {
+describe('mergeMonthData — client intent respected (no done=true lock)', () => {
+  it('allows client to uncheck: done=true server, done=false incoming → stays false', () => {
     const existing = { days: { '8': { work: [{ text: 'Deploy', done: true, url: '' }] } } };
     const incoming = { days: { '8': { work: [{ text: 'Deploy', done: false, url: '' }] } } };
     mergeMonthData(existing, incoming);
-    expect(incoming.days['8'].work[0].done).toBe(true);
+    expect(incoming.days['8'].work[0].done).toBe(false);
   });
 
   it('does not change done=false when server also has done=false', () => {
@@ -74,11 +82,11 @@ describe('mergeMonthData — done=true preservation', () => {
     expect(incoming.days['8'].ritual[0].done).toBe(true);
   });
 
-  it('preserves other item properties when restoring done=true', () => {
+  it('trusts client when incoming has done=false (uncheck scenario)', () => {
     const existing = { days: { '8': { work: [{ text: 'Deploy', done: true, url: 'https://example.com' }] } } };
     const incoming = { days: { '8': { work: [{ text: 'Deploy', done: false, url: 'https://example.com' }] } } };
     mergeMonthData(existing, incoming);
-    expect(incoming.days['8'].work[0]).toMatchObject({ text: 'Deploy', done: true, url: 'https://example.com' });
+    expect(incoming.days['8'].work[0]).toMatchObject({ text: 'Deploy', done: false, url: 'https://example.com' });
   });
 });
 
@@ -91,11 +99,11 @@ describe('mergeMonthData — dynamic field detection (no whitelist)', () => {
     expect(incoming.days['5'].new_category).toEqual(serverItems);
   });
 
-  it('handles done=true preservation for unknown array field', () => {
+  it('trusts client done state for unknown array field', () => {
     const existing = { days: { '5': { future_cat: [{ text: 'Future item', done: true }] } } };
     const incoming = { days: { '5': { future_cat: [{ text: 'Future item', done: false }] } } };
     mergeMonthData(existing, incoming);
-    expect(incoming.days['5'].future_cat[0].done).toBe(true);
+    expect(incoming.days['5'].future_cat[0].done).toBe(false);
   });
 });
 

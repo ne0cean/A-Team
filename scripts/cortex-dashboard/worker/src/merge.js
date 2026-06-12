@@ -44,19 +44,12 @@ export function mergeMonthData(existing, incoming) {
       if (!serverDay[key].length) continue;
 
       if (!incomingDay[key]?.length) {
-        // Incoming is empty / missing — restore server's array
-        incomingDay[key] = serverDay[key];
-      } else {
-        // Both sides have items — preserve done=true per matching text
-        const serverByText = new Map(serverDay[key].map(i => [i.text, i]));
-        incomingDay[key] = incomingDay[key].map(item => {
-          const serverItem = serverByText.get(item.text);
-          if (serverItem?.done === true && item.done === false) {
-            return { ...item, done: true };
-          }
-          return item;
-        });
+        // Incoming is empty — restore server's non-carried items only
+        // _carried items are ephemeral: if client cleared them, respect that
+        const toRestore = serverDay[key].filter(i => !i._carried);
+        if (toRestore.length) incomingDay[key] = toRestore;
       }
+      // else: client sends explicit data — trust it completely
     }
   }
   return incoming;
