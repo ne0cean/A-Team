@@ -1598,6 +1598,7 @@ async function loadWorkoutLog() {
       delete data._recovered_at;
     }
     workoutLog = data;
+    renderWorkoutBar(); // race-condition fix: loadMonth보다 늦게 완료되면 재렌더 필수
   } catch (e) {
     console.error('[workout] loadWorkoutLog failed:', e);
     // workoutLog 기존 값 유지 — 실패 시 덮어쓰지 않음
