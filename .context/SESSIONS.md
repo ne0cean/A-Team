@@ -1,5 +1,12 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-13] Standing Orders 날짜 오류 수정
+
+**완료**: git pull --rebase (12커밋), 서울 재발견 7/28 D1 삭제, AI핸즈온 TUE→THU 오류 식별
+**이슈**: AI핸즈온 텍스트 미수정 (패널에서 직접 수정 필요)
+**빌드**: ✅ tsc --noEmit
+
+
 ## [2026-06-08] OneNote 3-type 분류 확정 + Board 이미지/캡션 수정
 
 **완료**:

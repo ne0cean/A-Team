@@ -73,6 +73,13 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-13) — Standing Orders 날짜 오류 수정
+
+- **a-team git pull --rebase**: origin/master 12커밋 업데이트 (palette 버그 수정, workout-bar KST 수정, mesh 100/100)
+- **Standing Orders 전수 점검**: 모든 섹션 요일·날짜 검증 완료
+- **서울 재발견 7/28 제거**: 잘못 추가된 날짜 D1 PATCH로 삭제 (`6/16, 6/30, 7/14, 8/11, 8/25` 확정)
+- **AI핸즈온 레이블 오류 식별**: "TUE (이효민)" → 실제 날짜 모두 목요일(THU). 텍스트 수정 필요 (미완)
+
 ## Last Completions (2026-06-11) — OneNote 전수 실사 + Traffic & Banking 복원
 
 - **pagination 버그 수정**: `$top=100` 경계에서 nextLink 누락 → `$skip` 폴백 추가. Dashbaord 100 → **137개** 정확 조회
@@ -239,6 +246,7 @@
 ## Next Tasks
 
 ### High Priority
+- [ ] **AI핸즈온 Standing Order 텍스트 수정** — "TUE (이효민)" → "THU (이효민)"으로 Standing Orders 패널에서 직접 수정
 - [x] **workout 백업 복구 확인** — 6/1~12 전부 존재, 유실 없음 (2026-06-12)
 - [x] **`POST /api/reset-day-types {"ym":"2026-06"}`** 실행 — cleared:0, 이미 깨끗 (2026-06-12)
 - [ ] **OneNote 663개 갭 fetch (토큰 갱신 필요)** — `python3 scripts/onenote-auth.py` 후 `node scripts/onenote-fetch-missing.mjs --from-audit .context/onenote-audit-2026-06-11.json` → migrate → D1 재빌드. Rate limit 주의: 이미지 많으면 느림. 감사 파일: `.context/onenote-audit-2026-06-11.json`
