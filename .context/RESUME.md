@@ -1,8 +1,8 @@
 ---
 mode: normal
 status: deferred
-created: 2026-06-11T00:00:00+0900
-task: auto-resume — Pre-flight Gate 항목 1 완료
+created: 2026-06-13T00:00:00+0900
+task: auto-resume — AI핸즈온 TUE→THU + SQLite 실시간 연결
 ---
 
 # RESUME — 세션 자동 저장 (auto-save-on-stop)
@@ -11,13 +11,16 @@ task: auto-resume — Pre-flight Gate 항목 1 완료
 - CURRENT.md Next Tasks 확인 후 최우선 항목부터 시작
 
 ## 완료
-- [x] **verify-data.mjs 자동 호출** — `scripts/cortex-dashboard/deploy.sh` 신규 생성 (wrangler deploy + verify-data.mjs 자동화)
-- [x] **Pre-flight Gate: standing-orders 확인** — happy_friday=[06-26,06-30], holidays=[지방선거06-03, 현충일06-06, HappyFriday06-26, 06-30] ✅
+- [x] **verify-data.mjs 자동 호출** — `scripts/cortex-dashboard/deploy.sh` 신규 생성
+- [x] **Pre-flight Gate: standing-orders 확인** — happy_friday=[06-26,06-30] ✅
+- [x] **AI핸즈온 TUE → THU 수정** — standing-orders.json + D1 PATCH(index=8) 완료 (2026-06-13)
+- [x] **log-event.mjs → SQLite 실시간 연결** — analytics-sqlite.mjs insert 병행 호출 (2026-06-13)
 
-## 미완료 Next Tasks (사용자 결정 필요)
-- [ ] **monthly_recurring 삭제 정상 동작** — 앱에서 직접 검증 (날짜 오름차순 정렬 상태에서 삭제 시 맞는 항목 지워지는지)
-- [ ] **launchd 설치** — [Mac 귀가 후] `bash scripts/confluence-sync/install-mac-autostart.sh`
-- [ ] **OneNote fetch** — [Mac 귀가 후] `python3 scripts/onenote-auth.py`
+## 미완료 Next Tasks (사용자 결정/외부 작업 필요)
+- [ ] **monthly_recurring 삭제 정상 동작** — 앱에서 직접 검증
+- [ ] **OneNote fetch** — `python3 scripts/onenote-auth.py` (대화형 인증 필요)
+- [ ] **Vision Board 근접 캡션** — 사용자 결정 필요
+- [ ] **ONENOTE-MIGRATION-SPEC.md 갱신** — 3-type 아키텍처 + docMode 규칙 반영
 - [ ] **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
 - [ ] **Confluence PAT 발급** — VDI에서 프로필 > Personal Access Tokens 확인
 - [ ] **Confluence 역변환기 + daemon** — 안정화 후 구현 재개
@@ -26,10 +29,10 @@ task: auto-resume — Pre-flight Gate 항목 1 완료
 
 ---AGENT_STATUS---
 EXIT_SIGNAL: NEEDS_INPUT
-TASKS_COMPLETED: deploy.sh 생성 + Pre-flight Gate 항목 1
-FILES_MODIFIED: 2
-TESTS_STATUS: SKIPPED
+TASKS_COMPLETED: AI핸즈온 TUE→THU + D1 PATCH + log-event SQLite 연결
+FILES_MODIFIED: 4
+TESTS_STATUS: MANUAL_VERIFIED
 WORK_TYPE: dispatch
-RECOMMENDATION: 나머지 태스크 모두 VDI/사용자 결정 필요. 추가 자율 실행 불가.
-LAST_CHECKED: 2026-06-12 (auto-resume)
+RECOMMENDATION: 나머지 태스크 모두 대화형 인증/사용자 결정 필요. 추가 자율 실행 불가.
+LAST_CHECKED: 2026-06-13 (auto-resume)
 ---END---

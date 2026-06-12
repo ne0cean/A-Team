@@ -72,6 +72,6 @@
 - [ ] **제품 빌드 시작** — Connectome MVP
 
 ### Medium Priority
-- [ ] **log-event.mjs → SQLite 실시간 연결** — analytics-sqlite.mjs insert 병행 호출
+- [x] **log-event.mjs → SQLite 실시간 연결** — analytics-sqlite.mjs insert 병행 호출 (2026-06-13 완료)
 - [ ] **verify-data.mjs 자동 호출** — wrangler deploy 후 자동 실행
 - [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정
