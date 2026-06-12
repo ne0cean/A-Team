@@ -251,14 +251,21 @@ console.log(`처리 대상: ${tasks.length}개 누락 페이지${DRY_RUN ? ' [DR
 let done = 0, skipped = 0, failed = 0;
 for (const t of tasks) {
   // Fast pre-check using audit title — avoids API call for already-fetched pages
+  // Verifies onenote_id to prevent false skip when title collision occurs
   if (t.title && t.title !== '(unknown)') {
     const flatPath = resolveDestDir(t.sectionPath);
     const destDir = join(ARCHIVE_BASE, flatPath);
     const safe = safeFilename(t.title);
     const mdPath = join(destDir, `${safe}.md`);
     if (existsSync(mdPath)) {
-      skipped++;
-      continue;
+      try {
+        const content = readFileSync(mdPath, 'utf8');
+        if (content.includes(`onenote_id: "${t.pageId}"`)) {
+          skipped++;
+          continue;
+        }
+        // File exists but different onenote_id — title collision, proceed to fetch
+      } catch { /* proceed to fetchPage */ }
     }
   }
 
