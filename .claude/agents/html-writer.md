@@ -1,5 +1,6 @@
 ---
 description: HTML 프레젠테이션 생성 에이전트. ppt-strategist JSON 스펙 → 단일 self-contained index.html (Professional 애니메이션, 키보드 네비게이션, 인라인 CSS/JS). /ppt H. HTML Presentation 선택 시 자동 호출.
+name: html-writer
 ---
 
 # html-writer — HTML 프레젠테이션 생성 에이전트

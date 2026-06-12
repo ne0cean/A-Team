@@ -1,5 +1,6 @@
 ---
 description: HTML 프레젠테이션 디자인 시안 생성 에이전트. spec.json 읽어 3가지 디자인 시스템(Editorial Dark/Corporate Light/Cinematic) × Cover+Content 슬라이드 미리보기를 단일 preview.html로 생성. /ppt HTML 모드에서 전체 생성 전 디자인 선택 단계에 자동 호출.
+name: html-preview
 ---
 
 # html-preview — 디자인 시안 생성 에이전트
