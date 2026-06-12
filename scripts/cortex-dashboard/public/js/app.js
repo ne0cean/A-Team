@@ -559,22 +559,17 @@ function getCatItemsForRender(d, dayData, cat) {
   const catType = catMeta?.type || 'routine';
 
   if (catType === 'todo') {
-    // Manual items stored per-day (no _frame/_carried flags)
-    const stored = (dayData[cat] || []).filter(i => !i._frame && !i._carried);
     const today = new Date().getDate();
     const templateItems = catMeta?.items || [];
+    const normText = t => (t || '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
-    // Today and future: carry undone items from prev day (cascade)
-    if (!templateItems.length && d >= today) {
+    // Carry undone items from prev day (all todo categories, including template-path days)
+    if (d >= today) {
       const prevDay = monthData.days?.[String(d - 1)];
       if (prevDay) {
-        // Include _carried for cascade: prev day's undone items (manual + carried)
-        // Also exclude items matching prev day's frame template (routine items that lost _frame marker)
         const prevDow = new Date(currentYear, currentMonth - 1, d - 1).getDay();
         const prevFt = prevDay.day_type || (prevDow === 0 ? 'block' : prevDow === 6 ? 'flow' : 'weekday');
-        const normText = t => (t || '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
         const prevFrameTexts = new Set((framesData?.[prevFt]?.categories?.[cat]?.items || []).map(ti => normText(typeof ti === 'object' ? ti.text : String(ti))));
-        // Rejection list: texts explicitly deleted by user — never re-carry
         const rejectKey = `_carry_rejects_${cat}`;
         const rejected = new Set((dayData[rejectKey] || []).map(normText));
         // Remove stale _carried items whose source is now done in prevDay
@@ -599,26 +594,33 @@ function getCatItemsForRender(d, dayData, cat) {
             const toAdd = newCarried.map(i => ({ text: i.text, url: i.url || '', done: false, _carried: true }));
             const existing = (dayData[cat] || []).filter(i => !i._frame);
             ensureDay(d)[cat] = [...existing, ...toAdd];
-            _pendingCarrySave = true; // save deferred — called once after render()
+            _pendingCarrySave = true;
           }
         }
       }
-      return (ensureDay(d)[cat] || []).filter(i => !i._frame);
     }
 
-    if (!templateItems.length) return stored;
+    // Re-read after potential carry modification
+    const stored = (ensureDay(d)[cat] || []).filter(i => !i._frame && !i._carried);
+    const carriedItems = (ensureDay(d)[cat] || []).filter(i => i._carried);
 
-    // Merge: template as base (with done state from stored), manual-only items appended
+    if (!templateItems.length) {
+      return [...stored, ...carriedItems];
+    }
+
+    // Merge: manual + carried (not in template) first, then template items
+    const templateTexts = new Set(templateItems.map(ti => normText(typeof ti === 'object' ? (ti.text || '') : String(ti))));
     const storedByText = new Map(stored.map(i => [i.text, i]));
-    const result = templateItems.map(ti => {
+    const templateResult = templateItems.map(ti => {
       if (typeof ti === 'object' && ti.type === 'separator') return { ...ti, _frame: true };
       const base = typeof ti === 'object' ? { text: ti.text || '', url: ti.url || '' } : { text: String(ti), url: '' };
       const s = storedByText.get(base.text);
       if (s) storedByText.delete(base.text);
       return { ...base, done: s ? s.done : false, url: s?.url || base.url, _frame: true };
     });
-    storedByText.forEach(item => result.push(item)); // manual-only additions
-    return result;
+    const manualOnly = [...storedByText.values()];
+    const carriedNotInTemplate = carriedItems.filter(i => !templateTexts.has(normText(i.text)));
+    return [...manualOnly, ...carriedNotInTemplate, ...templateResult];
   }
 
   // Routine: live from template
