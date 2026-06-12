@@ -590,7 +590,7 @@ function getCatItemsForRender(d, dayData, cat) {
           }
         }
         const prevUndone = (prevDay[cat] || []).filter(i =>
-          !i.done && !i._frame && !i._carried && !prevFrameTexts.has(normText(i.text)) && !rejected.has(normText(i.text))
+          !i.done && !i._frame && !prevFrameTexts.has(normText(i.text)) && !rejected.has(normText(i.text))
         );
         if (prevUndone.length > 0) {
           const existingTexts = new Set((dayData[cat] || []).map(i => normText(i.text)));
