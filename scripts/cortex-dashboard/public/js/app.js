@@ -1014,14 +1014,19 @@ async function toggleItem(d, cat, idx, itemText) {
     const _text = _norm(itemText || '');
     const stored = _text && (dayData[cat] || []).find(i => _norm(i.text) === _text);
     if (stored) {
+      const wasChecked = stored.done;
       stored.done = !stored.done;
+      // Signal intentional uncheck — merge.js preserves server done:true unless this flag is set
+      if (wasChecked) stored._unchecked = true;
     } else if (_text) {
       // _frame item not yet in D1 — add as stored copy
       if (!dayData[cat]) dayData[cat] = [];
       dayData[cat].push({ text: _text, url: '', done: true });
     } else {
       if (!dayData[cat]?.[idx]) return;
+      const wasChecked = dayData[cat][idx].done;
       dayData[cat][idx].done = !dayData[cat][idx].done;
+      if (wasChecked) dayData[cat][idx]._unchecked = true;
     }
   } else {
     const key = `_rdone_${cat}`;

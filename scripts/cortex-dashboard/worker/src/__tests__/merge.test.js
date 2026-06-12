@@ -60,12 +60,26 @@ describe('mergeMonthData — array field restoration', () => {
   });
 });
 
-describe('mergeMonthData — client intent respected (no done=true lock)', () => {
-  it('allows client to uncheck: done=true server, done=false incoming → stays false', () => {
+describe('mergeMonthData — done:true preservation (stale-save protection)', () => {
+  it('preserves server done=true when stale client sends done=false (no _unchecked flag)', () => {
     const existing = { days: { '8': { work: [{ text: 'Deploy', done: true, url: '' }] } } };
     const incoming = { days: { '8': { work: [{ text: 'Deploy', done: false, url: '' }] } } };
     mergeMonthData(existing, incoming);
+    expect(incoming.days['8'].work[0].done).toBe(true);
+  });
+
+  it('allows intentional uncheck when _unchecked=true flag is present', () => {
+    const existing = { days: { '8': { work: [{ text: 'Deploy', done: true, url: '' }] } } };
+    const incoming = { days: { '8': { work: [{ text: 'Deploy', done: false, url: '', _unchecked: true }] } } };
+    mergeMonthData(existing, incoming);
     expect(incoming.days['8'].work[0].done).toBe(false);
+  });
+
+  it('removes _unchecked flag after merge (not persisted to D1)', () => {
+    const existing = { days: { '8': { work: [{ text: 'Deploy', done: true }] } } };
+    const incoming = { days: { '8': { work: [{ text: 'Deploy', done: false, _unchecked: true }] } } };
+    mergeMonthData(existing, incoming);
+    expect(incoming.days['8'].work[0]._unchecked).toBeUndefined();
   });
 
   it('does not change done=false when server also has done=false', () => {
@@ -82,11 +96,11 @@ describe('mergeMonthData — client intent respected (no done=true lock)', () =>
     expect(incoming.days['8'].ritual[0].done).toBe(true);
   });
 
-  it('trusts client when incoming has done=false (uncheck scenario)', () => {
-    const existing = { days: { '8': { work: [{ text: 'Deploy', done: true, url: 'https://example.com' }] } } };
-    const incoming = { days: { '8': { work: [{ text: 'Deploy', done: false, url: 'https://example.com' }] } } };
+  it('trusts client check: server done=false, incoming done=true → stays true', () => {
+    const existing = { days: { '8': { work: [{ text: 'Deploy', done: false, url: 'https://example.com' }] } } };
+    const incoming = { days: { '8': { work: [{ text: 'Deploy', done: true, url: 'https://example.com' }] } } };
     mergeMonthData(existing, incoming);
-    expect(incoming.days['8'].work[0]).toMatchObject({ text: 'Deploy', done: false, url: 'https://example.com' });
+    expect(incoming.days['8'].work[0].done).toBe(true);
   });
 });
 
@@ -99,9 +113,9 @@ describe('mergeMonthData — dynamic field detection (no whitelist)', () => {
     expect(incoming.days['5'].new_category).toEqual(serverItems);
   });
 
-  it('trusts client done state for unknown array field', () => {
+  it('respects intentional uncheck (_unchecked=true) for unknown array field', () => {
     const existing = { days: { '5': { future_cat: [{ text: 'Future item', done: true }] } } };
-    const incoming = { days: { '5': { future_cat: [{ text: 'Future item', done: false }] } } };
+    const incoming = { days: { '5': { future_cat: [{ text: 'Future item', done: false, _unchecked: true }] } } };
     mergeMonthData(existing, incoming);
     expect(incoming.days['5'].future_cat[0].done).toBe(false);
   });
