@@ -1015,6 +1015,20 @@ async function toggleItem(d, cat, idx, itemText) {
     if (pos === -1) dayData[key].push(idx); else dayData[key].splice(pos, 1);
   }
   await save(); render();
+  // Explicitly run carry for d+1 — render() only processes the visible week, so d+1
+  // may be outside the view (e.g. today is Saturday, tomorrow is next week).
+  // This ensures check→uncheck on day D immediately propagates to D+1 carry state.
+  const _nextD = d + 1;
+  const _dim = new Date(currentYear, currentMonth, 0).getDate();
+  if (_nextD <= _dim) {
+    const _nextDayData = ensureDay(_nextD);
+    for (const _c of CATS) {
+      if (getDayCatType(_nextD, _nextDayData, _c) === 'todo') {
+        getCatItemsForRender(_nextD, _nextDayData, _c);
+      }
+    }
+    if (_pendingCarrySave) { _pendingCarrySave = false; save(); }
+  }
   requestAnimationFrame(() => { window.scrollTo(0, _sy); const m = document.getElementById('main'); if (m) m.scrollTop = _mx; });
 }
 
