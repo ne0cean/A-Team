@@ -32,6 +32,7 @@
 - **mergeMonthData done:true 보존**: stale save race condition 근본 수정. `_unchecked:true` 플래그로 intentional uncheck 구분. 44 tests PASS, 배포 완료.
 - **toggleItem d+1 carry**: 주 마지막 날(토) 체크/언체크 시 D+1 carry 재계산 강제 실행
 - **getCatItemsForRender dedup**: stored-stored, stored-carried 중복 항목 자동 제거 + 빈 텍스트 제거
+- **orphaned _carried 고아 항목 제거**: stale removal 로직을 `prevDoneTexts` → `prevUndoneTexts` 교체. prevDay에 undone으로 없으면 제거 (D+2 이상 고아 항목 자동 처리). 배포 완료.
 - **D13/D14/D15 데이터 정리**: 중복 제거 + stale _carried 항목(D12 done) 제거 + D13 done 복원
 - **POSTMORTEM-2026-06-13.md**: 재발 방지 4개 규칙 기록
 
