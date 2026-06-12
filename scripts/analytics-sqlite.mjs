@@ -36,7 +36,7 @@ function getDB() {
       data        TEXT,
       imported_at TEXT DEFAULT (datetime('now'))
     );
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_unique ON events(ts, event, skill);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_unique ON events(ts, event, COALESCE(skill, ''));
     CREATE INDEX IF NOT EXISTS idx_ts    ON events(ts);
     CREATE INDEX IF NOT EXISTS idx_event ON events(event);
     CREATE INDEX IF NOT EXISTS idx_skill ON events(skill);
