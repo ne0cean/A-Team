@@ -27,18 +27,19 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-13) — Cortex Palette carry/check 버그 수정
+
+- **mergeMonthData done:true 보존**: stale save race condition 근본 수정. `_unchecked:true` 플래그로 intentional uncheck 구분. 44 tests PASS, 배포 완료.
+- **toggleItem d+1 carry**: 주 마지막 날(토) 체크/언체크 시 D+1 carry 재계산 강제 실행
+- **getCatItemsForRender dedup**: stored-stored, stored-carried 중복 항목 자동 제거 + 빈 텍스트 제거
+- **D13/D14/D15 데이터 정리**: 중복 제거 + stale _carried 항목(D12 done) 제거 + D13 done 복원
+- **POSTMORTEM-2026-06-13.md**: 재발 방지 4개 규칙 기록
+
 ## Last Completions (2026-06-13) — PMI + 벤치마킹 P0 완료
 
-- **P0 benchmark synthesis 5개 액션 완료**: ACI Syntax Validator 훅 + events.jsonl 이벤트 소싱 + analytics SQLite(4,812 이벤트) + .claude/skills/ 10파일 + zzz-heartbeat launchd
-- **html-preview/html-writer frontmatter 수정**: name 필드 누락 → 582 PASS 복원 (541→582)
+- **P0 benchmark synthesis**: ACI Syntax Validator 훅 + events.jsonl + analytics SQLite + .claude/skills/ 10파일 + zzz-heartbeat launchd. 582 tests PASS.
 - **confluence-sync launchd 등록**: `com.cortex.confluence-sync` 가동
-- **settings.json 훅 추가 필요** (수동): PreToolUse aci-syntax-validator.py, Stop session-event-logger.sh
-
-## Last Completions (2026-06-13) — Standing Orders 날짜 오류 수정
-
-- **a-team git pull --rebase**: origin/master 12커밋 업데이트
-- **서울 재발견 7/28 제거**: D1 PATCH로 삭제 (`6/16, 6/30, 7/14, 8/11, 8/25` 확정)
-- **AI핸즈온 레이블 오류 식별**: "TUE (이효민)" → 실제 날짜 모두 목요일(THU) — 미완
+- **AI핸즈온 THU 수정 + 서울 재발견 7/28 제거** D1 PATCH 완료
 
 ## Last Completions (2026-06-11) — OneNote 전수 실사
 
@@ -65,7 +66,7 @@
 ## Next Tasks
 
 ### High Priority
-- [x] **AI핸즈온 Standing Order 텍스트 수정** — "TUE (이효민)" → "THU (이효민)" (2026-06-13 완료, D1 PATCH 포함)
+- [ ] **파레트 체크 브라우저 직접 검증** — mergeMonthData done:true 보존 배포됨. 체크 후 탭 이동 → 체크 유지 확인
 - [ ] **OneNote 663개 갭 fetch** — 토큰 갱신(`python3 scripts/onenote-auth.py`) 후 진행
 - [ ] **Vision Board 근접 캡션** — html 카드 proximity 기반 캡션 연결 (사용자 결정 필요)
 - [ ] **ONENOTE-MIGRATION-SPEC.md 갱신** — 3-type 아키텍처 + docMode 규칙 반영
@@ -73,6 +74,5 @@
 - [ ] **제품 빌드 시작** — Connectome MVP
 
 ### Medium Priority
-- [x] **log-event.mjs → SQLite 실시간 연결** — analytics-sqlite.mjs insert 병행 호출 (2026-06-13 완료)
 - [ ] **verify-data.mjs 자동 호출** — wrangler deploy 후 자동 실행
 - [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정
