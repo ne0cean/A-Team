@@ -602,7 +602,16 @@ function getCatItemsForRender(d, dayData, cat) {
 
     // Re-read after potential carry modification
     const stored = (ensureDay(d)[cat] || []).filter(i => !i._frame && !i._carried);
-    const carriedItems = (ensureDay(d)[cat] || []).filter(i => i._carried);
+    const storedTexts = new Set(stored.map(i => normText(i.text)));
+    let carriedItems = (ensureDay(d)[cat] || []).filter(i => i._carried);
+
+    // Dedup: if same text exists as stored AND carried, drop the carried copy (stored takes precedence)
+    const dupCarried = carriedItems.filter(i => storedTexts.has(normText(i.text)));
+    if (dupCarried.length) {
+      ensureDay(d)[cat] = (ensureDay(d)[cat] || []).filter(i => !i._carried || !storedTexts.has(normText(i.text)));
+      carriedItems = carriedItems.filter(i => !storedTexts.has(normText(i.text)));
+      _pendingCarrySave = true;
+    }
 
     if (!templateItems.length) {
       return [...stored, ...carriedItems];
