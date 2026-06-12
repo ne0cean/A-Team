@@ -1605,8 +1605,14 @@ async function loadWorkoutLog() {
   }
 }
 
+function localDateStr() {
+  // UTC 기준이 아닌 로컬(KST) 날짜 — UTC+9이므로 오전 9시 전 UTC날짜≠로컬날짜 버그 방지
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
 function renderWorkoutBar() {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateStr();
   const wo = workoutLog[todayStr] || [];
   const WORKOUT_GROUPS = [
     { label: '전면', parts: [], color: 'blue' },
@@ -1635,7 +1641,7 @@ function renderWorkoutBar() {
 }
 
 async function toggleWorkout(part) {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateStr();
   if (!workoutLog[todayStr]) workoutLog[todayStr] = [];
   const wo = workoutLog[todayStr];
   const idx = wo.indexOf(part);
