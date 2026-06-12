@@ -1,10 +1,11 @@
 # CURRENT — A-Team 글로벌 툴킷
 
-## Pre-flight Gate — 2026-06-12 (debrief)
-- [ ] 파레트 체크/체크해제/되살림 브라우저 직접 검증 (merge.js 2차 수정 배포됨, 사용자 확인 필요)
-- [ ] 파레트 Worker 수정 시 `merge.js` 먼저 확인 — done 상태 override, _carried 복원 함정
-- [x] [Mac] launchd 설치: `bash scripts/confluence-sync/install-mac-autostart.sh` (2026-06-13 완료)
+## Pre-flight Gate — 2026-06-13 (debrief)
+- [ ] **파레트 체크 브라우저 직접 검증** — mergeMonthData done:true 보존 로직 배포됨. 체크 → 다른 탭 갔다옴 → 체크 유지되는지 확인
+- [ ] **D1 직접 수정 전 필수**: "사용자 브라우저 열려있나?" 확인 → 열려있으면 닫은 후 진행
+- [ ] **체크 날아간다는 신고**: 코드 보기 전에 `GET /api/month`로 실제 done 상태 먼저 확인
 - [ ] 자격증명 확인 순서: 작업 전 `.env.*` / `cortex/.onenote-token.json` 먼저 grep — 사용자에게 발급 요청 전 필수
+- [ ] 파레트 Worker 수정 시 `merge.js` 먼저 확인 — done:true 보존 로직, _unchecked 플래그 이해 후 수정
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
