@@ -64,7 +64,7 @@
 ## Next Tasks
 
 ### High Priority
-- [ ] **AI핸즈온 Standing Order 텍스트 수정** — "TUE (이효민)" → "THU (이효민)"
+- [x] **AI핸즈온 Standing Order 텍스트 수정** — "TUE (이효민)" → "THU (이효민)" (2026-06-13 완료, D1 PATCH 포함)
 - [ ] **OneNote 663개 갭 fetch** — 토큰 갱신(`python3 scripts/onenote-auth.py`) 후 진행
 - [ ] **Vision Board 근접 캡션** — html 카드 proximity 기반 캡션 연결 (사용자 결정 필요)
 - [ ] **ONENOTE-MIGRATION-SPEC.md 갱신** — 3-type 아키텍처 + docMode 규칙 반영
