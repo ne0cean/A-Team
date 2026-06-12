@@ -15,6 +15,7 @@
 import { appendFileSync, existsSync, mkdirSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { spawnSync } from 'child_process';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dir, '..');
@@ -50,3 +51,8 @@ const event = {
 };
 
 appendFileSync(LOG_PATH, JSON.stringify(event) + '\n', 'utf8');
+
+// SQLite 실시간 삽입 (실패해도 JSONL 기록은 유지)
+try {
+  spawnSync('node', [resolve(__dir, 'analytics-sqlite.mjs'), 'insert', JSON.stringify(event)], { stdio: 'ignore' });
+} catch {}
