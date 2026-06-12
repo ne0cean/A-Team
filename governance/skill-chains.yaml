@@ -19,9 +19,21 @@ chains:
   - id: build-ship
     name: "빌드 → 배포"
     description: "TDD 완료 후 코드 품질 → PR 리뷰 → 배포 → 검증까지"
+    pattern: sequential
     trigger_after: [tdd, craft]
-    steps: [tdd, craft, review, ship, land]
     auto_advance: false
+    context_schema:
+      tdd.passed: boolean
+      review.approved: boolean
+    steps:
+      - cmd: craft
+        condition: "tdd.passed == true"
+        on_fail: investigate
+      - cmd: review
+      - cmd: ship
+        condition: "review.approved == true"
+        on_fail: null
+      - cmd: land
 
   - id: discovery-build
     name: "아이디어 → 빌드"
@@ -33,9 +45,17 @@ chains:
   - id: debug-loop
     name: "버그 → 수정 → 검증"
     description: "근본 원인 분석 후 TDD로 수정, 리뷰 후 배포"
+    pattern: sequential
     trigger_after: [investigate]
-    steps: [investigate, tdd, review, ship]
     auto_advance: false
+    steps:
+      - cmd: tdd
+        condition: "investigate.root_cause_found == true"
+        on_fail: null
+      - cmd: review
+        condition: "tdd.passed == true"
+        on_fail: tdd
+      - cmd: ship
 
   - id: prd-to-build
     name: "PRD → 빌드"
@@ -64,9 +84,10 @@ chains:
 
   - id: quality-gate
     name: "배포 후 품질 검증"
-    description: "배포 후 랜딩 검증 → QA → 보안 감사"
+    description: "배포 후 랜딩/QA/CSO 동시 검증 (병렬 패턴)"
+    pattern: parallel
     trigger_after: [ship]
-    steps: [land, qa, cso]
+    parallel_steps: [land, qa, cso]
     auto_advance: false
 
   - id: security-audit
@@ -132,8 +153,16 @@ chains:
     auto_advance: false
 
   - id: benchmark-optimize
-    name: "벤치마크 → 최적화"
-    description: "성능 측정 후 최적화 → 재측정"
+    name: "벤치마크 → 최적화 루프"
+    description: "성능 점수 80 달성까지 최적화 반복 (루프 패턴, 최대 3회)"
+    pattern: loop
     trigger_after: [benchmark]
-    steps: [benchmark, optimize, benchmark]
+    exit_condition: "benchmark.score >= 80"
+    max_loops: 3
     auto_advance: false
+    context_schema:
+      benchmark.score: integer
+    steps:
+      - cmd: optimize
+      - cmd: benchmark
+        output_key: benchmark

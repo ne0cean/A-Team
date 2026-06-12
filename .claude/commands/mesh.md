@@ -27,10 +27,12 @@ description: /mesh — Mesh Health. 스킬·에이전트·훅·체인 연결 전
 | 호출 | 동작 |
 |------|------|
 | `/mesh` | 전체 — chains + audit + patch + report |
-| `/mesh chains` | 체인 레지스트리 조회 + 상태 |
+| `/mesh chains` | 체인 레지스트리 조회 + v2 스키마 검증 |
 | `/mesh audit` | 연결 상태 감사만 (패치 없음) |
 | `/mesh patch` | 자동 패치만 실행 |
 | `/mesh reset` | chain-state.json 초기화 (체인 리셋) |
+| `/mesh trace` | mesh-trace.jsonl 분석 (체인 완주율, 실패 조건 Top 3) |
+| `/mesh ctx` | 현재 체인 상태 + 컨텍스트 표시 |
 
 ---
 
@@ -41,11 +43,24 @@ node scripts/mesh-scan.mjs --chains
 ```
 
 각 체인의 스텝들이 실제 커맨드 파일로 존재하는지 확인한다.
-고장난 스텝 (`.claude/commands/<name>.md` 없음) → 빨간 표시.
+- v2 스키마 검증: pattern/conditions/on_fail 필드 유효성
+- 고장난 스텝 (`.claude/commands/<name>.md` 없음) → 빨간 표시
+- parallel/loop/hierarchical 패턴 배지 표시
 
-현재 활성 체인 상태:
+현재 활성 체인 + 컨텍스트:
 ```bash
-cat .context/chain-state.json 2>/dev/null || echo "(체인 없음)"
+node scripts/mesh-engine.mjs --status
+```
+
+컨텍스트 업데이트 (스텝 완료 후 결과 기록):
+```bash
+node scripts/mesh-engine.mjs --set-context tdd.passed=true tdd.coverage=87
+node scripts/mesh-engine.mjs --set-context craft.score=85
+```
+
+Trace 분석 (체인 완주율, 자주 실패하는 조건):
+```bash
+node scripts/mesh-scan.mjs --trace
 ```
 
 **체인 레지스트리 조회**:

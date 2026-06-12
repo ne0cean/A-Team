@@ -60,21 +60,25 @@ function scanChains() {
   const results = [];
 
   for (const chain of chains) {
-    const steps = chain.steps || [];
-    const stepStatus = steps.map(step => {
+    const cmds = getChainCmds(chain);
+    const stepStatus = cmds.map(step => {
       const cmdFile = join(commandsDir, `${step}.md`);
       const ok = exists(cmdFile);
       return { step, ok, path: cmdFile };
     });
 
     const brokenSteps = stepStatus.filter(s => !s.ok);
+    const schemaIssues = validateChainSchema(chain);
+
     results.push({
       id: chain.id,
       name: chain.name,
+      pattern: chain.pattern || 'sequential',
       trigger_after: chain.trigger_after || [],
       steps: stepStatus,
       broken: brokenSteps.length,
-      health: steps.length > 0 ? Math.round(((steps.length - brokenSteps.length) / steps.length) * 100) : 0,
+      schema_issues: schemaIssues,
+      health: cmds.length > 0 ? Math.round(((cmds.length - brokenSteps.length) / cmds.length) * 100) : 0,
     });
   }
 
@@ -305,12 +309,106 @@ function printReport(chainResult, hookResult, launchdResult, autoresearchResult,
   return allGaps;
 }
 
+// ── v2: 체인 스텝 정규화 (string 또는 object 모두 처리) ─────────────
+
+function getChainSteps(chain) {
+  const steps = chain.steps || [];
+  return steps.map(s => typeof s === 'string' ? { cmd: s } : s).filter(Boolean);
+}
+
+function getChainCmds(chain) {
+  // parallel_steps 또는 steps에서 cmd 목록 추출
+  if (chain.parallel_steps) return chain.parallel_steps;
+  return getChainSteps(chain).map(s => s.cmd || s.chain).filter(Boolean);
+}
+
+// ── v2: 체인 스키마 검증 ──────────────────────────────────────────
+
+function validateChainSchema(chain) {
+  const issues = [];
+  const validPatterns = ['sequential', 'parallel', 'loop', 'hierarchical'];
+
+  if (chain.pattern && !validPatterns.includes(chain.pattern)) {
+    issues.push(`unknown pattern: ${chain.pattern}`);
+  }
+
+  if (chain.pattern === 'loop') {
+    if (!chain.exit_condition && !chain.max_loops) {
+      issues.push('loop 패턴: exit_condition 또는 max_loops 필요');
+    }
+  }
+
+  if (chain.pattern === 'parallel') {
+    if (!chain.parallel_steps && (!chain.steps || !chain.steps.length)) {
+      issues.push('parallel 패턴: parallel_steps 또는 steps 필요');
+    }
+  }
+
+  // steps의 각 object 스텝 검증
+  const steps = getChainSteps(chain);
+  for (const step of steps) {
+    if (!step.cmd && !step.chain) {
+      issues.push(`스텝에 cmd 또는 chain 없음: ${JSON.stringify(step)}`);
+    }
+    if (step.condition && typeof step.condition !== 'string') {
+      issues.push(`condition은 문자열이어야 함: ${JSON.stringify(step.condition)}`);
+    }
+  }
+
+  return issues;
+}
+
+// ── v2: mesh-trace.jsonl 분석 ──────────────────────────────────────
+
+function analyzeTrace() {
+  const traceFile = join(REPO_ROOT, '.context/mesh-trace.jsonl');
+  if (!exists(traceFile)) {
+    return { available: false };
+  }
+
+  const lines = read(traceFile).trim().split('\n').filter(Boolean);
+  if (!lines.length) return { available: true, entries: 0 };
+
+  const entries = lines.map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+
+  // 체인별 통계
+  const byChain = {};
+  for (const e of entries) {
+    const chain = e.chain || 'unknown';
+    if (!byChain[chain]) byChain[chain] = { total: 0, done: 0, on_fail: 0, conditions: {} };
+    byChain[chain].total++;
+    if (e.done) byChain[chain].done++;
+    if (e.on_fail) byChain[chain].on_fail++;
+    if (e.condition) {
+      const cond = e.condition;
+      if (!byChain[chain].conditions[cond]) byChain[chain].conditions[cond] = { pass: 0, fail: 0, skip: 0 };
+      if (e.condition_result === true) byChain[chain].conditions[cond].pass++;
+      else if (e.condition_result === false) byChain[chain].conditions[cond].fail++;
+      else byChain[chain].conditions[cond].skip++;
+    }
+  }
+
+  // 가장 자주 실패하는 조건
+  const failingConditions = [];
+  for (const [chainId, stats] of Object.entries(byChain)) {
+    for (const [cond, counts] of Object.entries(stats.conditions)) {
+      if (counts.fail > 0) {
+        failingConditions.push({ chain: chainId, condition: cond, fail: counts.fail, pass: counts.pass });
+      }
+    }
+  }
+  failingConditions.sort((a, b) => b.fail - a.fail);
+
+  return { available: true, entries: entries.length, byChain, failingConditions, last_entry: entries[entries.length - 1]?.ts };
+}
+
 // ── 메인 ──────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
 const modeChains = args.includes('--chains');
 const modeHooks = args.includes('--hooks');
 const modeReport = args.includes('--report') || args.length === 0;
+const modeTrace = args.includes('--trace');
 
 const chainResult = scanChains();
 const hookResult = scanHooks();
@@ -318,13 +416,43 @@ const launchdResult = scanLaunchd();
 const autoresearchResult = scanAutoresearch();
 const health = calcHealthScore(chainResult, hookResult, launchdResult);
 
+if (modeTrace) {
+  const trace = analyzeTrace();
+  if (!trace.available) {
+    console.log('[Mesh] mesh-trace.jsonl 없음 — 체인 실행 후 생성됩니다');
+  } else if (!trace.entries) {
+    console.log('[Mesh] mesh-trace.jsonl 비어 있음');
+  } else {
+    console.log(`\n━━━ Mesh Trace 분석 (${trace.entries}개 기록) ━━━`);
+    console.log(`마지막 기록: ${trace.last_entry}`);
+    console.log('\n── 체인별 실행 통계 ──');
+    for (const [chainId, stats] of Object.entries(trace.byChain)) {
+      const completeRate = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
+      console.log(`  ${chainId}: ${stats.total}회 실행, 완주 ${stats.done}회 (${completeRate}%), on_fail ${stats.on_fail}회`);
+    }
+    if (trace.failingConditions.length > 0) {
+      console.log('\n── 자주 실패하는 조건 Top 3 ──');
+      trace.failingConditions.slice(0, 3).forEach((fc, i) => {
+        console.log(`  ${i+1}. [${fc.chain}] "${fc.condition}" — 실패 ${fc.fail}회, 통과 ${fc.pass}회`);
+      });
+      console.log('\n→ 위 조건들을 기준으로 체인 설계 개선 권장');
+    }
+    console.log('━━━━━━━━━━━━━━━━━━━\n');
+  }
+}
+
 if (modeChains) {
-  console.log('\n── Skill Chains ──');
+  console.log('\n── Skill Chains (v2) ──');
   for (const chain of chainResult.chains) {
     const stepsStr = chain.steps.map(s => `${s.ok ? '' : '❌'}/${s.step}`).join(' → ');
-    console.log(`${chain.broken === 0 ? '✅' : '⚠️'} [${chain.id}] ${chain.name}`);
+    const patternBadge = chain.pattern !== 'sequential' ? ` [${chain.pattern}]` : '';
+    const schemaBadge = chain.schema_issues.length > 0 ? ` ⚠️schema` : '';
+    console.log(`${chain.broken === 0 ? '✅' : '⚠️'} [${chain.id}]${patternBadge}${schemaBadge} ${chain.name}`);
     console.log(`   트리거: ${chain.trigger_after.join(', ')}`);
     console.log(`   ${stepsStr}`);
+    if (chain.schema_issues.length > 0) {
+      chain.schema_issues.forEach(issue => console.log(`   ⚠️ ${issue}`));
+    }
   }
   if (chainResult.activeChain) {
     console.log(`\n현재 활성: ${JSON.stringify(chainResult.activeChain, null, 2)}`);
