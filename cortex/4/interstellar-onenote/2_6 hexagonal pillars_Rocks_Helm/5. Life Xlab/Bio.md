@@ -1,0 +1,13 @@
+---
+title: "Bio"
+notebook: "InterStellar"
+section_group: "2_6 hexagonal pillars_Rocks_Helm"
+section: "5. Life Xlab"
+onenote_id: "0-acf09201d6724037bad90b779101bccc!1-733661839CC53BA5!7918"
+level: 0
+order: ""
+created: "2014-07-27T08:28:40.253Z"
+modified: "2014-07-27T08:28:40.253Z"
+---
+
+<!-- OneNote 원본에서 복원됨 (onenote-fetch-missing.mjs) -->
