@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가질 수 있으면, 가져도 될 것 같거든. 그걸 조심해야하는데.</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">가질 수 있으면, 가져도 될 것 같거든. 그걸 조심해야하는데.</div>
+<div class="date">2017년 10월 1일 일요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-가질-수-있으면-가져도-될-것-같거든-그걸-조심해야하는데-';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 493,
+    "content": "가질 수 있으면, 가져도 될 것 같거든. 그걸 조심해야하는데.\n난 너무 많이 가졌었다.\n변수는 나다.\n방법론에 있어서는 아님말고, 하지만 그 결과에 대해서는 무겁고 진지하게, 때로는 처절하게 받아들일 수 있는 사람이길 바래.\n=================================\n좋은 것이 옳은 것일 수는 없다.\n그런 면에서 깨어있을 수 있으면 한다.\n맵고 짜고 Danger,\n금주 3개월 후\n혼술 3개월 차\n1_\n모든 걸 말 할 순 없고,\n말하면 약점이 되고,\n취하면 추하다.\n2_\n내가 마주한 상황과 나 자신에 대해 가장 잘 아는 사람은 결국 나 뿐이더라.\n3_\n누군가 위로하는거,\n그거 부담이다.\n위로보다 응원하는게\n훨씬 편안하다.\n내 위로는 내가 하는편이 좋다.\n그래서,\n나랑 이야기하고\n나랑 취한다.\n예측불가하지만\n그것이 불안하지 않은사람. 오히려 기대가 되는사람.\n누군가에게 이용당한다면, 그건 다 네가 좋아하고 의존하는 것들에서 비롯돈다. 흔하게는 돈이고 나아가서는 돈으로 살 수 있는 것들. 그 모든 것이 나를 종속 시킨다. 처자식 핑계. 비루한 남편과 아비를 둔 처자식이 무슨 죄인가. 네가 누리려는 것들이 너를 누릴 것이다. 아쉬울 것이 없는 사람이 되어라. 언제든 모든 걸 버릴 수 있는 사람이어라. 휘발해버릴 것처럼 공허하고,  숨멎은 것처럼 고요해라.\n내가 아는 모든 나쁜일은 누군가의 행복에서 비롯되었어.\n그래, 마음이 자라는데는 시간이 필요하지.\n근데, 여긴. 불모지야. 애쓰지마.\n큰 홈을 들이지않고도 뭔가 할 수 있는 거야말로, 진짜 큰 홈이다.\n해피엔딩이 좋아. 왜냐면, 포기하지 않았다는 뜻이니까.\n사랑해달라고징징대지마. 사랑해버려.\n싸워. 네 격에 맞는 싸움을 해.\n=======================================\n어릴적 친구집에 놀러가면, 가난하거나 우환이 있는집의 TV에는 공통점이 있었다.\n경찰청 사람들,\n범죄, 스릴러, 재연프로그램 등 부정적 에너지가 충만한 프로그램이\n소설, 아픈 사람이 너무 많이 나와서 괴롭다.\n====================\n그냥 머리 좋은 사람들이 좋다.\n노력가들의 보상심리는 가끔 너무 쉽게 피해의식으로 전이되는데.\n피곤하다.\n보상은 노력이 아니라 성과에 대한 것이다.\n노력으로 공부를 잘 했으면 계속 공부를 하시지 대체 왜...\n회사생활, 조직생활이 안 맞는 사람들이 있다.\n본인들은 모른다.\n원래 회사는 ㅈ같은 곳이라는 취지의 책이나 SNS글에 공감하며 비관한다.\n=======================\n\"무엇이 변하고, 무엇이 변하지 않는가.\"\n매번 변화하는 사람과 달라\n매번 변화를 따라가야하는 사람. 힘들어.\n사실, 위로가 필요한 사람이 아니라, 응원하고 싶은 사람이 더 좋지. 항상 위로가 필요한 사람, 버거워. 사실.\n불행을 덜어내는 일과, 행복해지는 일은 선형적인 관계에 있지 않다. 즉, 두 가지를 다른 일로 다른 노력을 필요로 한다.\n그것은 통각과 쾌락의 중추가 다른 것과 같은 이치다.\n대체, 얼마나 많은 악행이\n처자식을 빌미로 행해진단 말인가.\n비겁자의 처자식은 무슨 죄를 지었나.\n=================================\n나약함이 욕심을 품으면 쉽게 악해진다.\n그래서 나약한 사람이 두렵다.\n==============================\n뉴욕에서 아침마다 마신 이 Wisky Barrel-Aged Cold Brew\n는 한 잔에 14달러다.\n취향은 그런 것이다.\n많은 경우 소비를 수반하며,\n경제력과 사회적 지위, 영민함, 열정, 독특함 등\n개인의 매력을 어필 할 수 있는 매개로 활용된다.\n때문에, 가난은 취향을 허락치 않는다.\n계급이동의 사다리가 사라져가는 시대.\n사람들은 수평적 계층화를 시도하기 시작했다.\n한 끼 식사나 커피값 정도면 자신의 취향과 남다름, 그래서 우월함을\n'전시' 할 수 있는 #소확행.의 시대. 그렇게 사람들은 점점 소소해지고 있다.\n내가 무엇을 입고, 먹고, 마시고, 소유하든 그게 나는 아니다.\n그것이 취향에서 빌어오는 해리티지의 한계다.\n취향 권하는 사회,\n멜론TOP100을 듣는 남자로 산다는 것.\n무시무시한 무시를 당하기도 한다.\n취향은 편향의 다른 이름이다.\n그런 까닭에, 그 누구도 취향이 없을 수 없다.\n다만, 자신의 취향을 가꿔나가는 일과\n그것을 커뮤니케이션 하는 것은 완전히 다른 일이다.\n취향을 드러내고 또 바라보는 시선은\n호오가 아닌 선호여야함에도\n우열이 아닌 다름의 문제임에도\n많은 경우 우위를 가늠한다.\n많은 기획자와 마케터들이\n자신의 취향에 도취되어 캠페인,\n공감에 실패한다.\n넓이를 횡으로 보면 깊이가 된다.\n다시는 멜론TOP100을 무시하지마라.\n힙스터야.\n갱스터 배상\nㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ\n취향은 나의 어제로부터 온다. 경험에서 비롯\n취향은 개인이 가진 기호의 역사이며 그래서 그 무엇보다 강력한 자아의 증표가 된다.\n한비자는 가르쳤다.\n나의 호오를 알게되면, 그걸 이용해서 나를 휘두르는 사람이 생긴다고.\n무엇을 좋아하는지보다,\n왜 그걸 좋아하는지가 궁금하다.\n취향은 그것을 공유하는 사람들간의 관계를 포괄한다. 자신과 같은 대상에 열광하고 환호하는 대상들이 곁에 있다는 것은 그 자체로 뜨거운 확신의 연대가 된다. 다른 팬에게 투영된 자신의 특질을 발견하고 공감하며 스스로의 정체성을 확인하는 과정을 즐긴다.\n[준영,] [오전 7:39] 내 취향 중에 확실 한게 있다면 이 뿐이다.\n원리와 구조, 동기와 의도\n이 것들에 대한 호기심.\n[준영,] [오전 7:40] 어떤 것을 취하는지가 아니라\n왜 그 것을 취하는지를 보는 것.\n[준영,] [오전 7:41] 어떤 것을 취하는지로 그 것을 취하는지가 아니라 왜 그것을 취하는지로 그 사람을 본다.\n[준영,] [오전 7:41] 어떤 것에 취해있는지가 아니라\n왜 그것에 취하게 되는지로 그 사람을 본다.\n[준영,] [오전 7:42] 어떤 것에 취해있는지가 아니라\n왜 그것에 취하게 되는지로 그 제품을 본다.\n[준영,] [오전 7:42] 궁금한건 그 뿐이다.\n상대적으로 소득이 낮은이들이 비싼 쇠붙이를 목과 손목에 휘감는데 애쓰는 것은 위장이다. 시계는 그것에 속박되는 이들을 위한 것이다.\n여전히 그것을 드러내는 일은 지양할 것이다.\n무색과 무취의 취향.\n열렬히 사랑하고 깊히 빠져들어 껴안고 애무하다가도,\n언제든 내려두고 돌아설 수 있을 것.\n모든 것이라는 것은, 결국 아무 것도 아니라는 뜻이고,\n나는 아무 것도 아니고 싶다.\n몇번 고상한 취향을 기진 이들이 풍기는\n독한 향기에 반박하며\n취향이 그렇게 중요해?라 물은 적이 있다.\n사실 그건 이런 뜻이다.\n얼마나 많은 이들이,\n스스로의 취향에 사로잡혀\n스스로의 취향에 매몰된채\n그를 강요하는 것을 일삼아 했고\n힙한 것에 매몰되어\n일을 그르쳤는가.\n자신의 취향의 날카로움에\n이해 할 수 있고, 그래서 인정 할 수 있는 것.\n이런 당연함은 이야기 거리가 아니다.\n내가 선호하지 않는 것을\n고객들이 선호할 수 있다.\n이 것을 아주 간단히 무시하게 되는 것이\n취향의 함정.\n스스로의 선호를 드러내지 않는 것이\n죽은 사람들이 남긴 글에서 배운 까닭이다.\n힙스터 패는 갱스터\n어떠한 가치관을 가지는 것과,\n그것을 드러내는 것은 완전히 다른 영역이다.\n가치관을 커뮤니케이션 하는 것. 그것을 태도라고 한다.\n==============================\n인정 할 수는 없지만, 이해 할 수는 있다.\n이해 할 수는 없지만, 인정 할 수는 있다.\n우리가 나누는 대부분의 이야기는\n이 두 가지 영역에서 이뤄진다.\n이해도 인정도 가능한 영역은 지루하고\n이해하지만 인정할 수 없는 것은 배격하고\n인정하지만 이해할 수 없는 것들.\n여기에 우리가 사랑하고 매료되는 많은 것이 있다.\n어딘지 모르게,\n불가해한 사람.\n알 것 같으면서도\n여전히 궁금한 사람.\n그런 사람이 좋다.\n===========================\n인도에 다녀온지 벌써 10년 째라니, 믿기지 않는다.\n내 삶의 의미가 무엇이냐 자문하던 스물 셋이\n왜 삶에 의미가 있어야 하느냐 되묻는 서른 셋이 되었다.\n악명높은 회사원\n농사를 짓고 시를 짓는 일이\n다 무슨 의미가 있는 것인가?\n=======================================\n기득권을 가진 많은 이들이 착각하고 있다.\n보상은\n노력에 대한 것이 아니라.\n성과에 대한 것이다.\n노력했다는 것으로 인정을 바랄 수 있겠으나,\n그 어떤 보상도 요구할 수 없다.\n과거에 자신이 노력했다는 것\n즉, 학업적 성취\n이건 사회적인 기여나 후생이나 가치를 창출하는게 아니다.\n그런데 그 자체로 보상을 바라니까\n양아치가 되는거야.\n그래서 진짜 깨어있는 사람들이\n자신은 운이 좋았다고 말을 하는 거라고 생각한다.\n노오력에 대한\n그리고 학벌은 노력의 증거일지 모르나, 성과가 아니다.\n올해도 얼마나 많은 이들이\n바램인지 바람인지 모를 것들을\n잔뜩 불어 넣었는지, 노오란 볼이 빵빵하다.\n벌써 몇 년 째, 꼭 같은 것을\n매년 소원이랍시고 비는 일이 이제는 민망하다.\n네게 말고 내게 빈다.\n행복에 천착하지 마라\n나를 행복하게 하는 그 소소하고 사사롭다는 것들에 집착하지 말아라.\n완벽주의가 인생을 망치는\n가장 완벽한 방법인 것처럼\n해야 할 일들보다\n하지 않아야 할 일들에 더욱 신경써라.\n초조해하지 말아라.\n비겁한 판단, 비굴한 행동, 스스로를 속이는 일을\n몇 번\n그러니까,\n나를 너무나 쉽게 행복하게 하는 것 들을\n제어해라.\n어른이 되고 나니 그것들을 제어 할 필요도 없었고,\n해서 제어하지 않아도 되었는데.\n돌아보니 그런 소소한 행복과 쾌락과, 일탈들이\n삶에서 정말 중요한 것들\n가질 수 있다고 다 가져선 안 된다.\n정말 중요한 무언가를 놓치지 않아야 할 때\n네 손이 비어있어야만 한다.\n별로인 사람들을 게워내라.\n별로인 사람들은 별로인 결과와\n또 다른 별로인 사람들을 내 삶에 끌어들인다."
+  },
+  {
+    "type": "text",
+    "x": 600,
+    "y": 139,
+    "w": 600,
+    "content": "만약 어떤 물체가 눈치채지도 못할 만큼 빠른 속도로 손상을 회복하는 능력을 가졌다면\n사람들은 그걸 '단단하다.' 상처 입지 않는다 라고 여길 거야.\n나는 상처입고 싶지 않는 단단함 '경도'보다는\n그런 단단함을 가지고 싶은거야.\n그런 유연성.\n언제까지\n인생은 속도보다 방향이라고\n찡찡대며 눌러 앉아있을 순 없잖아.\n방향이 정해졌다면 다시 속도.\n빨리가려면 혼자가고\n멀리가려면 함께가라."
+  }
+];
+const CONTENT_HASH = '727ac27f';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

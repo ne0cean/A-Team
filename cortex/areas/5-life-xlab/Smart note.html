@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart note</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Smart note</div>
+<div class="date">2015년 1월 11일 일요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Smart-note';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 360,
+    "y": 19,
+    "w": 229,
+    "content": "목적 :\n내가 성공할 방식에 대해 기록한다.\n1) One note ms mvp되기\n2) 원노트 활용으로 강의 다니기\n목표 : 몇 부 팔렸으면 좋겠어?"
+  },
+  {
+    "type": "text",
+    "x": 648,
+    "y": 19,
+    "w": 253,
+    "content": "다음은 스마트홈에 대한 책을 쓰자\n호로자식의 엔노트, 웰다잉 프로젝트\n어린이 서적3"
+  },
+  {
+    "type": "text",
+    "x": 960,
+    "y": 19,
+    "w": 600,
+    "content": "50만부 이상 판매를 목표로"
+  },
+  {
+    "type": "text",
+    "x": 960,
+    "y": 91,
+    "w": 600,
+    "content": "내가 원노트로 책을 쓴 과정까지\n책에 기록하기"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 115,
+    "w": 600,
+    "content": "경쟁자 키워드 : 노트, 바인더, 프랭클린다이어리, 선배들의 업무방식, 에버노트, 솜노트, 노트, 메모, 스케쥴, 시간관리 등\nhttp://romadd2.tistory.com/7"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 172,
+    "w": 565,
+    "content": "나같은 민간인이 쓴 자기계발 베스트셀러 분석하기\n스마트 노트(원노트, 에버노트, 구글 드라이브)\n시간/자기관리 + 메모 + App활용법에 관한 노트\nㅇ 다윈의 노트 http://social.lge.co.kr/lg_story/the_blog/culture/darwin_creativity/</a>\n에버노트도 같이 넣는건 어때??\n구글 드라이브 <a href=\"http://www.itworld.co.kr/howto/92482\">http://www.itworld.co.kr/howto/92482</a>\n무엇을 노트해야 하는지를 소개하면서\n그 다음에 소프트웨어 사용법을 적는거얌\n논문도 참고해야해\n제품 기획서 컨셉 잡기\n기존의  어떤 문제와 불편을 해결하는가\n타겟은?\n서점의 서가에 가서 내 책이 어디에 꽃힐것인지를 정하라\n적은 내안에 있다. 책 보기\n연산군이 아니 왕의남자 와 같은\n기존에 있는 주제에 관한 기존에 없던 컨셉\n아이디어를 컨셉화 하는 방법\n\n조사한다. - 비슷한 책, 판매고, 저자와 목차 분석\n인터뷰한다. - 주변부터 먼 사람까지, 아이디어에 대한 느낌을 듣기만 하라.\n자료를 수집한다.\n트렌드를 추적한다. - 스쳐가는 유행이 아닌 트렌드\n공부한다. - 현재의 수준으로는 한권의 책을 쓸 수 없다.\n책과 논문과 강연, 인터넷을 통해 최고를 만든다.\n목록을 만든다. - 모든 자료를 체계화/카테고리화\n전략을 짠다. -\n제목과 목차를 작성한다. - 제목이 곧 컨셉이다.\n베스트 셀러를 분석하라\n굿바이, 프랭클린\n헬로, 원노트\n굿바이, 에버노트\n헬로, 원노트\n꿈에는 낭만이 수반되고,\n목표에는 계획이 수반된다.\n꿈? 당치 않다. 마땅히 이뤄야 할\n목표라 불러야 옳다.\n언어에는 주술적 힘이 있다,\n관념을 말로, 글로 표현해라.\n이뤄진다.\n<a href=\"http://www.huffingtonpost.kr/2014/06/09/story_n_5471250.html\">http://www.huffingtonpost.kr/2014/06/09/story_n_5471250.html</a>\n1. 소개 및 메모의 주요성\nSmart note의 중요성\n2. 노트 기능\n3. 용례 인터뷰 -> 성공 사례\n컨셉과 타겟 독자를 뭘로?\n자기계발서를 가장한 SW실용서\n(폰을 가장한 pdf)\n기록하라. 이뤄질 것이다.\n말과 글에는 주술적 힘이 있다.\n왜, 사세요?\n왜 살아가는가.\n일기든 블로그든 무엇이든 좋다.\n당신의 항로는 기록되어야만 한다.\n빽빡한 사각의 틀에 당신의 시간을 구겨넣지말라\n인간은 그리고 우리는 불확실성 때문에 산다.\n바이오리듬\n인간이다.\n에버노트는 지워라.\n일 잘하는 상위 1%를 위한\n단 하나의 노트, MS One Note\n메모광이 아닌 억만장자는 없다.\n세상이 바뀌었다.\n내가 부모라면 일기가 아니라\n노트를 쓰게하겠다. 자신의 항해도를 그리게 하겠다.\n엔딩노트\n옥의 질은 옥이 아니라 ‘티’가 결정한다.\n디테일이 생명이다.\n일하면서 책 쓰기 책 구매\n<a href=\"http://ppss.kr/archives/36841\" style=\"font-family:맑은 고딕\">http://ppss.kr/archives/36841</a>\n메일로 메신저로 오는 업무지시와\n업 무관련 내용을 복사해서\n당신의 종이 노트에 옮길 수 있다면 좋겠지만\n세상은 아직 그렇게 까지 스마트 해지지는 않았다.\n그게 당신이 클라우드 노트를 써야하는 이유다.\n선배들을 이기는 업무력의 비밀\n칠판의 메모를 사진으로 찍으면 그만이다.\n목차를 인포그래픽으로  좀 질서정연하게\n손정의 회장은 트위터를 처음 사용해\n필기는 최초의 외부저장매체다.\n고도화된 노트는 제2의 두뇌다.\n책 쓰기 스케줄 정하기\n덕지덕지 붙어 있는 포스트 잇이 의미하는 것은…..\n주제는 : One note에 메모방법 융합 시키고 시간관리 방법 + 취업 업무 여행 책쓰기에 활용\n\nOne note의 기능과 활용법\n\n용례 페이지\n책 포맷 : 전자출판, 인쇄본\n취업 준비생, 직장인 타겟\n메모관련 모든 서적 조사\n<a href=\"http://ppss.kr/archives/35191\">http://ppss.kr/archives/35191</a>\n내 인생에 대한 자서전이 되기도\n내 하루, 그리고 내 인생의 지도로 활용한다.\n나만의 여행 히스토리 관리\n<a href=\"http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query=%EC%B1%85+%EC%93%B0%EB%8A%94\">네이버 \"책 쓰는\"</a>\n<a href=\"http://cafe.naver.com/stsclub\">책 쓰는 블로그</a>\n<a href=\"http://cafe.naver.com/bookuniversity/34192\">책쓰기코칭협회</a>\n<a href=\"http://search.naver.com/search.naver?where=nexearch&query=%EB%82%B4+%EC%9D%B8%EC%83%9D%EC%9D%98+%EC%B2%AB+%EC%B1%85%EC%93%B0%EA%B8%B0&ie=utf8&sm=tab_she&qdt=0\">내 인생의 첫 책쓰기</a>\n메모관련 서적 책 쓰는법 출간 하는법  재환이형 도움 받기\n나를 향해 써라\n밀리언셀러를만드는\n<a href=\"http://m.blog.naver.com/khhan21/220244684563\">http://m.blog.naver.com/khhan21/220244684563</a>\n<a href=\"http://photohistory.tistory.com/m/post/10689\">http://photohistory.tistory.com/m/post/10689</a>\n<a href=\"http://biz.chosun.com/site/data/html_dir/2015/01/08/2015010800776.html\">2015년 출판 트렌드</a>\nㅇ 참고도서 (책 쓰기 + 메모 + 스케쥴링, 시간관리)\n<a href=\"http://book.naver.com/bookdb/book_detail.nhn?bid=4372952\">http://book.naver.com/bookdb/book_detail.nhn?bid=4372952</a> 책 구매\n책쓰는 사장\n내가 쓰는 나의 책\n김병완의 책 쓰기 혁명\n당신의 책으로 당신을 말하라\n글쓰기 공작소\n책 쓰는 블로그\n출판 마케팅 실전 전략서\n출판 마케팅 실무노트\n함께 쓰는 출판 마케팅\n메모의 기술\n<a href=\"http://m.blog.naver.com/yardofjesus/3017209267530\">http://m.blog.naver.com/yardofjesus/3017209267530</a>\n<a href=\"http://m.cafe.naver.com/cosmania/3737667\">http://m.cafe.naver.com/cosmania/3737667</a>\n<a href=\"http://m.blog.naver.com/kanebo2942/140211049669\">http://m.blog.naver.com/kanebo2942/140211049669</a>\n<a href=\"http://m.blog.daum.net/2070114/83\">http://m.blog.daum.net/2070114/83</a>\n하이퍼포머를 위한 궁극의 노트Sw\nMS ONe note\n원노트는 나에게 자비스이자 집사. 멘토. 기억창고이 외장형 전뇌\n그리고 내 삶의 지도다.\n<a href=\"http://m.blog.naver.com/happynut/220085245694\">http://m.blog.naver.com/happynut/220085245694</a>\n에버노트 서적 벤치마크\n네이버 포스트 쓸까?\n<a href=\"http://m.post.naver.com/viewer/postView.nhn?volumeNo=26825\">http://m.post.naver.com/viewer/postView.nhn?volumeNo=26825</a>\n<a href=\"http://m.book.daum.net/mobile/detail/book.do?bookid=BOK00022253608YE\">http://m.book.daum.net/mobile/detail/book.do?bookid=BOK00022253608YE</a>\n<a href=\"http://search.naver.com/search.naver?where=nexearch&query=%EC%8A%A4%EB%A7%88%ED%8A%B8+%EC%9B%8C%ED%81%AC&sm=top_hty&fbm=0&ie=utf8\">http://search.naver.com/search.naver?where=nexearch&query=%EC%8A%A4%EB%A7%88%ED%8A%B8+%EC%9B%8C%ED%81%AC&sm=top_hty&fbm=0&ie=utf8</a>\n<a href=\"http://m.news.naver.com/read.nhn?mode=LSD&mid=sec&sid1=101&oid=008&aid=0002384459\">http://m.news.naver.com/read.nhn?mode=LSD&mid=sec&sid1=101&oid=008&aid=0002384459</a>\n타겟은 편집자\n그 다음이 독자"
+  },
+  {
+    "type": "text",
+    "x": 984,
+    "y": 187,
+    "w": 600,
+    "content": "번역해서, 해외에도 팔자"
+  },
+  {
+    "type": "text",
+    "x": 672,
+    "y": 200,
+    "w": 237,
+    "content": "유기적인 나만의 간트차트를 만들어야\n프랭클린 다이어리 분석"
+  },
+  {
+    "type": "html",
+    "x": 672,
+    "y": 307,
+    "w": 532,
+    "html": "\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><a href=\"http://news.naver.com/main/read.nhn?mode=LSD&amp;mid=sec&amp;oid=025&amp;aid=0002582228&amp;sid1=001\">http://news.naver.com/main/read.nhn?mode=LSD&amp;mid=sec&amp;oid=025&amp;aid=0002582228&amp;sid1=001</a></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t"
+  },
+  {
+    "type": "text",
+    "x": 624,
+    "y": 385,
+    "w": 317,
+    "content": "원노트는 사고하고 글쓰고 말하는 것 이외에는 별다른 기술이 없는 우리 문과생들에게 필요한 궁극의 소프트웨어다.\n메모하지 않는\n남들과 같은 Tool을 쓴다는 것은 이미 그 시작부터\n남들과 같은 툰에 갇힌다는 것."
+  },
+  {
+    "type": "text",
+    "x": 648,
+    "y": 673,
+    "w": 600,
+    "content": "<a href=\"http://blog.naver.com/nagori2?Redirect=Log&logNo=40209145643\">http://blog.naver.com/nagori2?Redirect=Log&logNo=40209145643</a>"
+  }
+];
+const CONTENT_HASH = 'b529cec1';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>제1절 마케팅의 의의</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">제1절 마케팅의 의의</div>
+<div class="date">2016년 12월 1일 목요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-제1절-마케팅의-의의';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 600,
+    "content": "1. 마케팅 개념의 성립과정\n영국에서 출발한 산업혁명은 공업의 급속한 발전으로 미국에서 꽃을 피우게 되었다. 20세기에 들어오면서 대규모기업에 의한 자본과 생산의 깁중화에 따라 독접 자본이 형성되고, 독점지위에 있는 거대기업과 피독점지위에 있는 중소기업 간에 치열한 시장경쟁이 전개되기 시작하였다. 이때, 등장한 테일러(F. W. Taylor)의 과학적 관리법은 당시에 만연하던 근로자들의 만성적 태업과 경영자들의 주먹구구식의 표류관리 문제를 해결하고 생산성을 획기적으로 향상시키는 계기가 되었고, 포트(H. Ford)에 의해 주창된 포드시스템은 생산과정의 표준화, 단순화, 전문화를 통해 생산합리화와 대량생산체제가 확립하는 계기가 되었다.\n대량생산체제의 확립과 함께 거대한 자본력을 가진 기업들이 설비투자를 확대해나감에 따라 기업 간의 시장쟁탈전은 점점 격화되어, 수요의 창조가 기업의 중요한 과제가 되었다.\n기업의 경영자들은 경쟁의 돌파구로서 자사의 제품을 경쟁사 제품과 차별화하는 방안을 강구하게 되었고, 이를 위하여 상표를 고안하여 전국적인 규모로 알리는 광고가 전략적 수단으로 등장하게 되었다. 이러한 광고의 확대와 제품차별화 및 상표의 등장으로 인하여 기업은 가격경쟁으로부터 비가격경쟁으로 전환하게 되었다. 또한, 기업 간의 치열한 경쟁과 제품이나 서비스의 초과공급 또는 공급포화 상황은 판매자중심시장(seller's market)이 구매자중심시장(buyer's market)으로 전환되는 계기가 되었다.\n이제 경영자들은 생산된 제품이나 서비스의 판매고 증대를 통한 이윤극대화가 어렵다는 것을 인식하게 되었으며, 수요의 창조가 기업의 중요한 과제가 되었다. 즉, 경영자들에게 소비자지향적인 사고에 의하여 「소비자는 왕」이라는 의식이 싹트기 시작하였고, 만든 제품을 판매하는 정책에서 팔릴 수 있는 제품을 만들어서 판매한다는 정책적 변경도 일어나기 시작하였다. 소비자의 필요나 욕구를 탐지하기 위한 시장조사가 중요시 되었고, 소비자만족이 기업의 장기적 이윤추구를 위한 전제조건이 됨을 인식하기 시작하게 된 것이다. 오늘날의 마케팅 개념은 바로 이러한 상황에서 등장하게 된 것이다.\n제2차 세계대전 이후 기업은 거대한 고정설비의 합리적 활용과 기술혁신에 의한 산업구조의 변혁이 급속하게 진행되어 이에 대한 투자를 회수하기 위해서는 장기적 마케팅활동이 요청되었다. 이에 따라 기업의 행동을 계획, 조직, 통제하고, 기업의 전반적 활동을 마케팅 중심으로 통합하는 통합적 마케팅 연구가 시작되었고, 이것이 관리적 마케팅으로 진전을 보게 되었다.\n관리적 마케팅(managerial marketing)은 경영자행동의 광점에서 마케팅의 제활동을 종합하고, 이를 계획, 조직, 통제하는 마케팅관리론의 전개라고 할 수 있다. 즉, 관리적 접근에 의하여 마케팅을 계획, 조직, 지휘, 통제하는 기능에 중점을 두는 마케팅관리의 연구가 수행되었다. 여기에서 관리적 관점에서 목적달성을 위한 마케팅 제수단의 종합적 관리와 마케팅을 중심으로 한 경영활동의 통합, 조정 및 경영 자의 책임으로서의 고객지향이라는 현대 마케팅을 수행하기 위한 철학적 사고, 즉 마케팅 컨셉트(marketing concept)가 대두하게 된 것이다.\n마케팅 기술혁신이나 고도성장을 배경으로 하여 그 발전을 더해감에 따라 개별경제인 기업의 목적달성에 근거한 현대 마케팅은 사회적으로 부정적인 측면이 나타나기 시작하였다. 즉, 자연환경을 파괴하는 공해, 대체 불가능한 자원의 낭비, 소비조장 등의 사회적 문제를 낳게 하였다. 이는 마케팅이 경험과학으로서 경제성장의 일익을 담당하였고 우리들의 생활수준의 향상을 담당하였으나, 사회적 복지의 희생, 환경파괴 등 사회적 문제를 파생시켰다는 것이다. 여기에서 기업, 소비자, 사회의 제문제를 해결해야 된다는 사회지향적 마케팅(societal marketing)이 등장하게 되었다. 이는 지금까지의 마케팅관리론이 개별기업적 관점에서 이익지향적이고 개별소비자의 단기적 욕구충족에 편중된 것인데 반해, 사회지향적 마케팅은 같은 개별기업적 관점에 있으면서도 사회지향적이고 인간환경지향성에 그 초점을 두고 있다.\n2. 마케팅의 개념\n(1) 현대적 마케팅의 시작\n미국을 기준으로\n1940-50년대의 경제부흥기\n1960-70년대의 고도성장기\n1980-90년대의 감량경영기\n2000년대의 안정성장기\n(2) 생산시대 이후의 마케팅 시대\n마케팅의 역사\n1870~1930년대 생산시대\n1930~1950년대 판매시대\n1950년대~ 마케팅 시대\n많은 마케팅 역사가들의 일치된 견해, 가장 많은 교과서에 등장하는 구분.\n밑줄을 그어야 할 부분은 판매시대,\n1929년 10월 뉴욕증권시장의 주가폭락은 20세기의 제1차 세계대공황으로 발전, 주요 선진자본주의국들은 자국의 시장부족과 실업증대를 해결하기 위해 식민지와 종속국을 묶어 자급자족적인 블록경제를 형성함으로써 블록 상호간의 무역거래를 사실상 중단시켰다. 이리하여 세계시장은 점점 더 축소되었고 경쟁이 치열해지면서 각국 경제의 회복은 더욱 어렵게 되었다.\n이러한 세계적인 경제 공항으로 인하여 소비침체와 기술 및 과학이 점차 발전하였고 특히 제2차 세계 대전이 끝난 직후 전쟁 관련 기술의 상용화로 제품 제조 기술이 비약적으로 발전하여, 시장 공급이 시장 수요를 앞지르기 시작하였다. 이 시기는 생산에 대한 문제보다 계속해서 생산되는 제품의 시장 소비를 촉진하는 것이 기업의 주요 관심사였다. 그래야만 대량 생산 시스템을 계속 유지할 수 있었기 때문이다. 이러한 압력에 의해 기업은 강력한 판매 드라이브 즉, 강력한 판매 조직의 운영과 촉진 정책 특히 광고를 비롯한 대량 판촉을 실시하여 제품 재고의 소화에 전력을 기울였다. 이 시기는 마케팅에서 Hard-sell이 지배하던 시기로 아직 시장은 팔 수 있는 빈 공간이 많다는 것이 기본 가정이었다.\n예를 들면 한때 세일즈맨이 우상으로 자리 잡았던 시대로 세일즈 볼륨을 통한 이익의 추구가 주 관심사였다. 마케팅의 역할이 영업 또는 판매를 지원하고 활성화시키는데 그 역할이 정의되었고, 광고의 초기 기법이나 철학이 탄생한 시기이기도 하다. 현재 우리나라 기업의 경우 특히, 서비스업 보다는 제조업이나 유형재를 다루는 기업들 상당수가 마케팅을 이러한 관점으로 보는 경향이 있다.\n즉 이러한 시대에는 제품의 대량생산도 가능하고 품질도 생산자마다 거의 비슷해서 각 기업마다 제품을 구매하라고 부추기기 위해 신문과 방송을 포함한 각종 미디어를 이용하여 홍보, 광고 및 판촉을 열심히 하였다. 즉 기업은 시장에 나가서 촉진믹스를 이용하여 일단 생산된 제품은 판매.처분하고 보자는 심리가 가득 찬 시대였다. 현재 우리가 마케팅이라고 하면 영업이나 광고를 떠올리게 된 역사적 배경이 바로 이 시대적 여파였다고 해도 과언이 아니다. 마케팅의 개념이 영업이나 광고로 포장돼 얼굴이 알려지고 또 인식되기 시작한 시대다.\n넷째, 마케팅 시대(1950~현재 : Consumer Orientation)다. 20세기 현대 마케팅의 가장 중요한 인물로는 마케팅 관리시대를 연 엘더슨(Wroe Alderson)을 꼽는데(Jones & Shaw, 2002), 그는 설명과 분류 수준에 머물러 있던 마케팅 지식을 이론으로 발전케 했다는 평가를 받고 있다. 한편, 마케팅 실무 측면에서는 혁신제품에 대한 모방 및 정보 공유의 속도가 빨라지면서 소비자는 경쟁 제품간의 차이가 줄어들고 동일한 제품군 안에 있는 다양한 제품들 간의 우열을 분별하기 점점 어려워져, 드디어 절대적인 우위를 가진 상표를 찾는다는 것을 포기하기에 이른다. 이른바 진리(truth)가 아닌 인식(perception)의 시대가 다가오고 있었고, 그것을 실무적으로 가장 먼저 포착한 사람이 David Ogilvy(1963)였으며, 바로 뒤 현재까지 마케팅계를 지배하고 있는 Positioning 시대를 Al Rise와 Jack Trout가 열게 된 것이다.\n(3) 산업혁명 이후의 마케팅 시대\n그리고 또 다른 학자들은 산업혁명 이후 시기부터 마케팅의 역사는 시작되었다고 주장한다.\n첫째, 마케팅 발생의 시대(1900~1920)이다. 영국에서 산업혁명이 일어난 시기로써 생산량이 급속도로 증대하였꼬 이 영향은 미국에서도 일어났다. 이 영향은 미국에서도 일어났다. 이 시기에 마케팅의 기본개념이 발생하였다.\n둘째, 고압적 마케팅 시대(1920~1930)이다. 1차 세계대전 이후의 시기이다. 생산기술 합리화(단순화, 전문화, 표준화)로 대량 생산체제가 확립되었고 판매에 치중한 시기로써 만들기만 하면 판매되던 공급자 중심의 시대다. 즉 푸쉬(push)마케팅의 시대다.\n셋째, 저압적 마케팅 시대(1930~1950)이다. 1929년 세계 대 공황이 일어남에 따라 도산기업이 속출하고 소비자의 필요와 욕구가 중시되었다. 즉 소비자 중심으로 시장이 재편되는 시기이다. 이시기를 풀(pull) 마케팅의 시대라고도 한다.\n넷째, 관리적 마케팅 시대(1950~현재)이다. 1973년.1979년 석유 파동과 함께 자원부족, 실어증가, 인플레이션 그리고 환경오염 등 다양한 사회문제가 발생하였다. 이에 따라 자연보호에 앞장서는 그린 마케팅 등 각종 사회적 이슈에 따라 기업의 마케팅 정책이 수립되는 시대이다.\n여섯째, 전략적 마케팅 시대(1980~현재)이다. 불필요한 제품 생산으로 원가상승현상이 일어났고 다품종 소량생산 등 기업의 입장에서는 장기적 관점의 전략마케팅이 필요한 시기다.\n일곱째, 인지마케팅 시대(1990~현재, Marketing with Cognitive Science)이다. 다시 말해 현대 마케팅은 소비자의 마음을 어떻게 잡는가 하는 것에 점점 몰두하고 있으며, 이러한 이유로 인지심리학의 많은 이론들이 마케팅에 채용되고 있다. 이제 마케팅은 인지과학을 접목한 인지마케팅의 시대로 접어들었다."
+  }
+];
+const CONTENT_HASH = '25a3d4df';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

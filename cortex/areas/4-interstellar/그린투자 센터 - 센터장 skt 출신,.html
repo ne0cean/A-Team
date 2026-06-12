@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>그린투자 센터 - 센터장 skt 출신,</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">그린투자 센터 - 센터장 skt 출신,</div>
+<div class="date">2021년 10월 3일 일요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-그린투자-센터-센터장-skt-출신-';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 600,
+    "content": "그린투자 센터 - 센터장 skt 출신,\n센터에 2개 이진모 그룹장, 권형균 그룹장 2명.\n이그룹장 - 대체육이나 애그리컬쳐 테크\n권그룹장 - 신재생에너지, 수소밸류 체인, 탄소저감 기술, 에너지 솔루션, 스마트 그리드 등\n질문: 재무적 이익, 사업 영역의 확장, 미래 성장동력 확보 등? 조직의 목표\n팀장님 요건과 별개로 어떤 사림이 필요 하신건지? - 무조건 나다\n레퍼첵은 비서2실 이상훈 PL , 이상봉 팀장\n(광고) 김준영이 FA 시장에 풀렸습니다.\n4년간 모신 팀장님이 회사를 옮기시게 되면서, 자유의 몸이 되었습니다.\n저는 팀장님이 좋고, 팀장님이랑 일 하는게 정말 좋았습니다. (화천대유 부럽지 않았음)\n올해 초 술자리에서 팀장님이 울먹이며 회고하신 \"도둑질 빼고 다 해드릴게요.\"라는 말은 ─ 취해서 한 말이라고 기억 안나는 척 했지만 ─ 정확히는 \"사람 죽이는 거, 그리고 제가 죽는 거 빼고는 다 해드릴게요.\"였습니다. 진심이었고, 지켰습니다. 그러나 이제, 이 언약을 드릴만한 새 리더를 찾습니다.\n제 포트폴리오 입니다.\n모두 단독으로 기획/작업한 문서들입니다. (오퍼 주시면 대내/외비를 제외한 Full deck을 공유해드립니다.)\n[문서=성과]는 아니지만 제가 어떤 칼을 가지고 있는지에 대해서 가장 명징하게 보여줄 수 있는게 문서라고 생각합니다. 성과와 그에 대한 기여는 얼마든지 블러핑이 가능하지만, 제가 남긴 문서는 거짓말 못 하니까요.\n1/ 음악 사업 제안\n멜론 매각 후 수년이 지나, 새로운 음악 스트리밍 서비스를 준비하던 조직에 조인하기 위한 목적으로 만들었습니다. 듣기로는 해당 조직 거의 모든 구성원에게 회람되었고, 제 이름을 알게 되었다고 합니다. 실제 서비스에 반영된 것들도 있는 것으로 알고 있습니다. 서비스 기획 실무를 한번도 해본 적 없는 제가, 결국 해당 조직으로 이동하지는 못 했지만, 후에 투자유치 롤을 가지고 회사에 조인하게 된 전무님이 사업 아이디어 게시판에 업로드된 이 Deck을 보고 저를 픽했습니다. 그가 이 회사에서 가장 먼저 뽑은 직원이었습니다. (갑자기 나 새로 오는 전무인데 뫄뫄스에서 좀 보자고 메일보내서 당황했더라는;;)\n2/\n당시 드림어스 대표로 내정되신 이기영 대표님은, 감사하게도 저를 데려가지는 못하는 이유를 직접 면담을 잡아서 말씀 해주셨습니다. 원래 탈락자에게 그런 배려는 없죠. 이기영 대표님은 1년차 때 주니어 점프업 과제 멘토셨는데, 우리 본부 2년차 선배들의 산출물에 대해 상당히 박한 평가를 해서 선배들이 엄청 열받아 했던데 반해, 내 과제(동기들 미안, 내가 다 했으니까 내꺼라고 할게)에 대해서는, 좋은 평가 이상의 코멘트를 주셨습니다. 1년차를 이동 건의???\n이 회사에서 처음 내게 조언다운 조언을 해준 분이었습니다. 저는 메모광이니까 당연히 10년전 조언도 이와 같이 보관하고 있습니다.\n&#160;\n1. 언제나 영어, 결국에는 영어\n2. 회사 밖에 관련업에 종사하는 아는 사람 많이 만들기\n3. 서비스와 관련된 블로깅, 트위팅 등을 통해, 온라인에 개인브랜드 만들기\n4. 상품기획과 상관이 없더라도, 현재 일하는 부서에 나와 같이 일하는 동료들(주로 선배나 보스)에게 OOO는 어떤 사람이냐 했을 때, 인간적으로 따뜻한 평가, 업무적으로 남다른 평가가 나올 수 있어야 함\n10년 전에 해 주신 이 조언인데 아직도 뼈가 분쇄되네….\nC.&#160;&#160;&#160;&#160;&#160; Follow-up\nl&#160; 완성도나 치밀함이 돋보였고, 특히 1-2년내 당사에 현안으로 등장할 가능성이 높은 Biz SMS/MMS 이슈에 대해 깊은 고민을 보여주었습니다.\nl&#160; 다른 기준으로 한번 더 판단해봐야겠지만, RCS의 B2B플랫폼화하는 서비스기획에 이 정도 열의를 가지고 있는 구성원이라면 조직이동을 통해, 본인이 열의를 가진 프로젝트를 직접 해보게끔 하는 것도 좋을 것 같습니다.\nl&#160; 이동과 관련한 마케팅부문 기존의 HR원칙이 있겠습니다만, ① 본인이 희망하는지와 ② 역량이 상품본부가 원하는 수준을 넘어서는지 판단하는 절차를 다시 거친다는 전제조건하에, 올 연말에 이동가능대상이 될 수 있는지 검토되었으면 합니다.\n&#160;\n&#160;\n상품기획본부 이기영 올림\n3/ 센터장이 청담동 스타일, 사내에서 처음으로 개인 브랜드가 생겼습니다.\n4/\n환쟁이로써의 제 필모그래피를 시작하게 만들어준 문서입니다. Deutsche Telekom과의 대규모 임원 워크샾에서 사용된 자료입니다. 한국이 페이커 보유국이며, 우리회사는 페이커보유사다. 이게 얼마나 개쩌는 일이며, e스포츠 밸류체인이 이러 저러하고 우리는 이런 플레이를 하려고해. 함께하겠니?라는 내용입니다. 워크샾 익일 마케팅전략본부장이 해당 문서를 공유 요청해왔고, 마케팅전략본부 내에 회람하며 앞으로 문서를 이렇게 만들라는 가이드로 내렸습니다. 인프라 부문장???은 자신이 피칭할 문서를 이 문서처럼 만들라고 지시해서 실무자로부터 공유 요청을 받았습니다. 본래 7년차면 한창 파트장한테 문서 첨삭&고나리질 당할 짬인데, 내 문서가 친정 조직에 가이드로 배포 되다니. 직장생활 하면서 가장 짜릿한 모멘트 중 하나입니다.\n3/ Apple\n메인 청자가 Apple의 팀쿡이었던 만큼 중압감 속에서도 굉장히 신나게 작업했던 문서입니다. 요지는 K콘텐츠가 얼마나 개쩌는 것인지에 대한 것이었고, 그래서 애플 너희랑 이런 걸 함께 해보면 잼있을거 같아.\n개인적으로는 Keynote 미만 잡이라고 생각하고 있을 그들에게 MS의 PPT로 작업한 키노트를 보여 준다는게 재미있었고, 심미성에 가중치를 높게 잡고 작업했습니다.\n4/ 웨이브 서비스 개선\n방송3사 차장님들과 팀 선배 두 분을 모시고 운영한 TF의 산출물 입니다. 팀장님이 TF 리드를 막내인 저에게 맡기셔서 조금 중압감을 느꼈었는데, 한달 후에 임원 레벨을 통해서 TF를 너무 빡세게 굴리는 것 같다는 방송사의 클레임이 들어와서 좀 난처했습니다;; 그래서 (원래 그럴 생각이었지만) 중간보고와 최종보고의 모든 장표를 직접 만들었습니다.\nTarget 청중들이 만족 하셨냐구요.\n가감 없는 코멘트 전문입니다.\n상무님: \"오늘 너무 기분 좋네요. 내용 형식 발표 다 좋았습니다.\"\n팀장님: \"보고서를 보고 눈물이 나보긴 첨이군\" \"난 아마존 투자유치 이런게 수펙스상 받는것도 좋은데, 이런게 받는 세상이 왔으면 좋겠다\" -> 후보로 안올리겠다는 말. 흥칫뿡!\nS본부 부장님: \"아, 오랜만에 일 잘 하는 사람이 일하는거 보니까 너무 기분이 좋네요.\", \"웨이브 부장도 웨이브에 과분하고 그룹장으로 와야됩니다.\"\nM본부 부장님: \"저희 회사 지금 경력직 채용중입니다. ㅎㅎ\"\n우리 팀장님은 오탈자가 아니라 어퍼스토로피 방향까지도 첨삭하는 분인데.\n340페이지 통틀어서 처음으로 팀장님이 단 한 건의 수정도 요구 하지 않은 문서입니다.\n팀장님은 나에게 좀처럼 칭찬은 안 하시니, 멋대로 이제 하산해도 된다는 의미로 받았습니다.\n팀장님의 나에 대한 평가는 이렇습니다. \"사람들이, Dean이 일을 잘 한다는 편견이 있어\"\n5/ 구독\n거짓말해서 미안합니다. 맞습니다. 이 Deck 제가 작성한거 맞아요. 익명으로 업로드한 이유는, 모두가 Vice 없이 제 제안을 평가해주길 바랬고. 어찌보면 다른 조직에서 하는 일에 대한 혼신의 힘을 다한 참견인데, 그걸 곱게 봐줄리 없다고 생각했습니다. 작년 12월, 일도 없고 너무 심심한데, 회사에서 한다는 구독의 방향성이 너무 걱정되었거든요.\n독자적으로 작업한 문서는 헤아릴 수 없이 많지만,\n이상이 제 입장에서 후회나 미련이 가장 적은 산출물들입니다.\n김준영에 대한 새로운 사실들\n_ PT 제작보다는 발표를 더 잘 합니다.\n_ PPT보다 엑셀을 더 잘 다룹니다.\n이 젊은 제다이가 새로운 마스터를 찾습니다.\n저는 10년 전 최종 5개 회사에 합격하고, 그 중 가장 좋은 대우를 약속한 이 회사를 선택했습니다.\n※자랑주의※ 심지어 삼성역에 본사가 있는 모 회사는 최종면접에 40분 지각하고도 합격했습니다.\n이번에도 그랬으면 좋겠습니다.\n포트폴리오 정리하면서 느낀건데, 이제 저는 \"저 일 잘해요, 써보세요\"라며 전략/기획 부서 기웃거리던 5년 전의 주니어가 아닙니다.\nValuation 한다는 놈이 제 스스로의 가치 평가도 못 한다는 건 난센스 잖아요.\n스무살의 저는 마케터가 되어야겠다고 생각했고, (좀 이상하지만) 이 회사에서의 타이틀은 여튼 마케터로 커리어를 시작했습니다. 저는, 자기 자신조차 팔지 못 하는 마케터가 좋은 마케터라고 생각하지 않습니다. (그런데 아직도 미혼)\n세상에 싸고, 좋은 것은 없습니다.\n값어치를 해드리겠습니다.\n매력도와 SKT가 어떤 플레이를 하려고 하는지에 대해 설명한 자료입니다.\n2/ Apple社와의 C레벨 임원 미팅에서 팀쿡 CEO를 비롯한 주요 임원진을 대상으로,\nK콘텐츠의 위상과 저력, 양사간의 협업 포인트를 제안한 자료입니다.\n[Report] - 일반적인 보고서 입니다.\n3/ 음악 스트리밍 사업의 방향성에 대한 제안 자료입니다.\n4/ 웨이브 서비스 개선안의 요약본 입니다.\n[개인 제안서] - 개인적으로 사내 제안 게시판을 통해 제안 했던 내용입니다.\n5/ 구독 경제의 비즈니스적 의의와 Telco가 이를 어떻게 접근해야 하는지에 대한 제안을 담았습니다.\n6/ Flo 런칭 이전, 새로운 음악 스트리밍 서비스의 방향성과 서비스 스킴에 대한 제안입니다.\n7/ SKT Private Placement 그룹 구성원들의 문서 퀄리티를 표준화 할 수 있는 가이드를 제작하라는 지시를 받아 작성한 문서 프로토콜 입니다.\n이상의 자료들은 제가 단독으로 작업한 문서의 일부로,\n문서에 담을 콘텐츠에 대한 기획 및 문서 작업 능력에 대해 가늠하시기에 가장 적절한 자료들 입니다.\n그럼, 10시에 뵙겠습니다."
+  },
+  {
+    "type": "text",
+    "x": 888,
+    "y": 163,
+    "w": 600,
+    "content": "SKT 미디어콘텐츠팀이(가) 예약된 Zoom 회의에 귀하를 초대합니다.\nZoom 회의 참가\n<a href=\"https://us02web.zoom.us/j/87345898767\">https://us02web.zoom.us/j/87345898767</a>\n주제: Zoom meeting invitation - SKT 김준영님의 Zoom 회의\n시간: 2021년 10월 4일  10:00 오후 서울\n회의 ID: 873 4589 8767\n한 번의 탭으로 오디오 회의에 참가\n+13462487799,,87345898767# 미국 (Houston)\n+16699006833,,87345898767# 미국 (San Jose)\n위치에 따라 전화 걸기\n+1 346 248 7799 미국 (Houston)\n+1 669 900 6833 미국 (San Jose)\n+1 929 205 6099 미국 (New York)\n+1 253 215 8782 미국 (Tacoma)\n+1 301 715 8592 미국 (Washington DC)\n+1 312 626 6799 미국 (Chicago)\n회의 ID: 873 4589 8767\n현지 번호 찾기: <a href=\"https://us02web.zoom.us/u/kQtyiZnna\">https://us02web.zoom.us/u/kQtyiZnna</a>"
+  }
+];
+const CONTENT_HASH = '0aa717bb';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

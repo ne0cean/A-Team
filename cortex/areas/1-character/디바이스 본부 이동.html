@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>디바이스 본부 이동</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">디바이스 본부 이동</div>
+<div class="date">2016년 11월 21일 월요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-디바이스-본부-이동';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 126,
+    "w": 600,
+    "content": "\"전화를 하라\"\nㅇ Target :\n목표수정 : 상기단? - 키맨 발굴\nIA서비스1팀 - 서비스 기획/운영\nㅇ T.D.L\n\n팀장, 김군석M 편지쓰기 / 주말 작업 월요일 제출\n사내공모 작성 + 호출오류/개인식별 솔루션 PPT // 주말 작업 완료\n맞트레이드 : 신성환, 김현희 + ? 알아보기\nPUSH : 김군석M을 회유할 수 있는 Key맨들 컨택\n조성욱, 노준, 팀장, 김미경, 배형님, Sd, 이기서, 이치현, 박상현\n박일환 단장, 김성한 본부장, 배종필 PL, 이기서, 손세진 팀장\n? : 황정호\nPULL : 안현민M, 박휘원, 박성현\n\n(맞트레이드 : 신성환, 김현희 + ?)\n성현이형 부탁해서 디바이스 본부장한테 끌어달라고 말하기\n부문장급 - 디바이스 부문장(?)급 땡겨줘야 가능함.\n=============================================\n안녕하세요 매니저님,\n제가 입사 후 서부에 배치되고, 발령받을 수 있는 팀들의 면면에 대해서 매니저님께 여쭤봤던 일이 떠오릅니다. 그 때 각 팀의 장단점에 대해 상세히 말씀해주시곤, CV추진팀에 대해서는 '비추'라는 코멘트를 남겨 주셨었죠. 그 CV추진팀에서 1년차 생활을 보내며, '비추'의 함의를 몸소 헤아리기 시작한게 엊그제 같은데, 어느새 서부에서 4년을 보내고 옆팀에서 1년의 시간을 보내게 되었네요.\n본사로 돌아온 저희 주니어들이 업무가 어느 정도 손에 익고서 겪는 공통적인 성장통 같은 것이 있습니다. 3~4년 간 늘 바래왔던 기착역에 도착해서 느끼는 이상과 현실의 괴리. 그리고 현장에서 생각했던 것이 어쩌면 심리적 방어기제 혹은 신기루 같은 것이 아니었을까 하는 생각을 하게 됩니다. 저 반짝이는 별을 보고 달려왔는데, 그 별에 당도해서 보니 사실 그것이 스스로 만든 인공위성이었다는 느낌이요.\n하지만, 제가 지금 드리려는 말은 직장인이라면 언제고 어느 때고 마주할 수 있는 권태에 관한 볼멘소리는 아닙니다.\n매니저님이 알고 계셨을지 모르지만, 저는 입사 당시부터 상품에 대한 열망이 있었습니다. 하지만 저희 기수를 선발 할 당시에는 해당 조직과 직군이 정비되지 않은 상태였었습니다. 그 후로 회사에서 상품과 플랫폼 조직이 신설되고, 방향성이 변화하는 모습을 묵묵히 지켜보면서 언젠가 저도 해당 조직에서 기여할 수 있을 것이라는 기대감을 품었고, 지역팀에서도 \"네가 애플 키노트를 왜 보냐\"는 선배의 핀잔에도 나름의 스터디를 해왔었습니다.\n숱하게 제출했던 Input supexs 제안들, 매해 도맡아 했었던 junior 점프업 과제, 그리고 올해 2회에 걸친 T-icon 수상 등 도 그러한 갈증에 대한 나름의 해소 방안이었습니다. 그리고 되지 않을 것을 알면서도 관련 조직의 사내공모를 새벽까지 뜬눈으로 작성하던 순간들, 상마본 TF에서 열정을 가지고 임했음에도 결국 정책팀에 배속되고 감기몸살과 함께 꼬박 이틀을 앓았던 지난 겨울… 모든 것을 잃은 것 마냥 황망한 마음 뿐이었습니다.\nDevice 지원단으로의 이동을 희망합니다.\n그리고 해당 조직에서 서비스 기획업무를 담당하기를 희망합니다.\n이제는 제게도 한 번쯤 기회가 주어졌으면 합니다.\n우리 생활가치부문에서 정말 자랑스러운 선배들 틈에서, 많은 것을 배우며 성장하는 것도 충분히 보람된 일입니다. 하지만 우리 조직에서 몇 년을 더 있게 되면, 향후에 이동을 생각해 보았을 때, 이미 쌓아온 커리어나 백그라운드를 버리게되는 제 입장에서나, 이동의 희망하는 조직에서도 저를 받기 부담스러울 수 있을거라는 우려는 매니저님도 잘 헤아려 주실 것이라 믿습니다.\n그리고 만약 제가 회사에 상품 업무를 통해 기여할 수 있다면. 지금 이 시기에 관련 역량을 쌓을 기회를 얻는 것이 개인과 회사입장에서 볼 때에도 합치되는 방향성이라고 믿습니다.\n저에게도 회사는 삶에서 아주 큰 의미입니다. 그런데 저는 더 이상 우리부문에서의 저 자신에게 아무런 기대가 되질 않습니다. 더 이상 스스로의 미래가 궁금하지도, 기대되지도 않는다는 것이 이토록 무서운 것 인줄 몰랐습니다.\n회사의 방향에 어긋나는 일에 대해서 떼 쓰고자 하는 것은 아님을 말씀드리고 싶습니다.\n이미 스스로의 업무에 의미를 부여하기 힘든 저와 같은 부적응자 대신에, 디바이스 부문에서 우리 마케팅부문으로 복귀 및 전입하기를 희망하는 인력들이 있는 것으로 알고있습니다. 게다가 다행한 것은 현재 제가 담당하고 있는 CRM 업무는 선배들이 그래왔고, 제가 그랬듯이 충분히 대체가 가능한 job이라는 점입니다.\n저의 넋두리 읽어주셔서 감사 드립니다.\n모쪼록 기회를 주셨으면 하고 간절히 바래봅니다.\n추운 겨울이지만, 감히 저도 매니저님도 따뜻한 소식 듣게 될 것을 바래봅니다.\n==============================================\n팀장님,\n처음 제가 팀에 발령 나서 찾아온 날 기억 하실런지 모르겠습니다. 처음 제가 드린 말씀은 정말 죄송스럽게도 상품쪽에 관심이 있고 그쪽으로 보내주셨으면 한다는 말이었습니다. 그럼에도 팀장님은 그럴 수 있다고 이해해주시고 전화를 걸어서 알아봐 주셨습니다.\n저는 아직도 가끔 그날을 떠올립니다. 그 날 다른 조직 보내달라던 저의 치기 어린 말을 수용해주신 팀장님의 모습을 보면서, 정말 잘 모셔야겠다고 다짐하고, 그간 나름대로 주어진 업무에 열심히 할 수 있었던 것 같습니다.\n\n그에 대해서 정말 감사하다는 말씀을 드리고 싶었습니다.\n팀장님도 알고 계실지 모르겠지만, 저는 아직도 상품에 대한 열망을 놓지 않고 있고, 여전히 관심을 가지고 꾸준히 스터디며 나름의 방식으로 이에 대한 역량을 축적하기 위해 분투하고 있습니다.\n유선팀이 새로 생긴다고 들었습니다. 헌데, 제가 이 조직에서 몇 년을 더 있게 되면, 향후에 이동할 수 있게  되더라도 이미 과장급 연차가 된 입장에서 저 자신의 커리어 측면에서도, 또 제가 이동하려는 조직에서도 에메하고 부담스러운 위치일 거라고 생각합니다. 실제 선배들의 조언도 그러하구요.\n입사 5년차인  이 시기에 상품관련 커리어와 역량을 쌓을 기회를 얻는 것이 개인과 회사입장에서도 좋을 것이라고 생각합니다.\n제게 있어서 가장 중요한 것은 '기회'인데 그 기회라는 것이 시의 적절하게 주어지지 않는다면, 영영 그 기회를 잃게 될 것이 두렵습니다. 마케팅 부문에서의 제 미래에가 더 이상 기대가 되지 않고, 그 때문에 심적으로 힘들기도 합니다.\n팀장님은 기회가 될 때마다 저에게 \"재미있게 하라\"는 말씀을 해주셨지요. 일에 있어서 재미라는 것은, 열의를 가지고 임하고며 사람들과 좋은 관계를 통해 만들어갈 수 있다고 말씀하셨고, 지난 시간동안 그 말씀을 되새기며 노력 해왔습니다.\n또한, 자신의 일에 대해 스스로 의미부여가 가능해야 재미를 느낄 수 있다고 생각합니다. 그리고 저에게 의미있는 영역은 상품이구요.\nDevice 지원단으로의 이동을 희망합니다.\n인력 수요가 상당히 많다는 것을 확인했고, 마케팅에서 파견간 인력 중에 복귀하길 원하는 인력들이 있어, 맞트레이드가 가능하기 때문에 부문 입장에서도 인력이 유출될 염려는 적습니다. 다행히 제가 맡고 있는 R&R도 제 이전 선배들이 그랬고, 제가 그러했듯 쉽게 대체가 가능한 업무이기도 하구요.\n처음 뵙고 말씀 드렸을 때, 또 기회가 있을 것이라는 팀장님의 말씀처럼 지금이 그 적기라고 생각합니다.\n다시 한번 간곡히 부탁드립니다."
+  },
+  {
+    "type": "text",
+    "x": 720,
+    "y": 174,
+    "w": 465,
+    "content": "1:1 바터 대상에 올라 가 있다는건  오후 05:43\n팀장님 말씀을 믿어야 하는 상황입니다.\n부문외 이동 요청이 여러 부문에서 많다 보니\n(뜻밖에도.)\n부문별로 TO 및 인건비 총액 관리 차원에서\n일단은 문 닫고 서로 간보는 모드가 되었다고 해요\n더구나 디바이스 단은\n단장님 거취가 어찌 될지 의문이라   오후 05:44\n그 얘기는 현재 모양대로 조직이 있을지도 의문이라\n어떤 설에 따르면\n누구..등 현재 러닝 중인 제품군을 제외하고는 인원을 대폭 줄인다는 설도 있어요\n그러나.\n한편으로는\n유선 모듈이 팀을 하나 꾸려서 나간다는 얘기도 있어서\n매니저님이 전에 말한대로\n그 일이 정말 적성에 맞지 않는 다면\n팀장님께 다시 한번 면담을 요청 하셔서\n[NUGU 호출 오류 해결 및 개인 식별 방안]\n문제 : 음성인식 성공률 65% 수준\n음성의 범위를\n망치를 든 사람에게는 모든 것이 못으로 보인다.\n음성을 통한 해결방법에 천착하기 보다는\n음성 이외의 보조적 호출 방법 및 개인 식별 방법을 찾아야 한다.\n추가적인 기술 개발을 기다리기보다 현존하는 센싱 기술 내에서 해결해야 하며, 대부분의 센싱 기술은 인간의 오감을 인공적으로 구현 및 확장한 사례다.\n오감에 대응하는 센싱 기술 현황\n촉각 - 접촉 및 모션 온도변화, 미각 - 접촉, 시각 - 빛의 파장, 후각 - 분자, 청각 - 공기의 진동\n적외선 센서, 비가청 음향 등 인간이 지각하지 못하는 영역의 센서도 있음.\n이 들 중 원거리에서 실시간으로 Wake-up 메시지를 수신 및 해석 할 수 있는 것은 시각과 촉각, 시각, 청각이며\n이를 기술적으로 대응시켜 보면\n시각 - 카메라, 모션인식\n청각 - 사람의 음성, 핑거스냅, 박수, 노크 등 사람이 내는 모든 물리적 소리\n촉각 - 물리적 버튼 조작 (e.g. 리모컨 등)\n음성은 사람의 성대의 울림 뿐만 아니라,\n모든 소리를 포괄하는 개념으로 확장 - 핑거스냅, 박수, 노크 등의 방법\n시각은 카메라, 모션인식\n촉각은 별도의 컨트롤러를 소지\n일반적으로 사람이 누군가를 부를 때는\n\n이름을 부르거나 - 호출명\n고개를 돌려 응시한다\n손짓을 한다.\n단, 이 때에 고려해야 할 사항은 원거리에서, 정확한 표현이 가능하며, 별도의 디바이스를 통하지 않고 사람의 행위만으로 가능해야함\n1) 청각 - 핑거스냅, 박수, 노크 등의 방법\n2) 시각 - 고개를 돌려 응시하는 시선을 활용하는 방법\n현존하는 안구 추적 기술은 1.Video분석 2. 콘택트렌즈 3.센서부착\n이 중 NUGU에 적용 가능한 기술은 Video분석 방식이 유일함\nNUGU 본체에 고성능 카메라 모듈을 탑재하여 원거리에서 사람의 안구를 트래킹하다가, 아리아를 응시하고 음성 명령을 내리는 경우에만 반응하도록 구현.\nNUGU 실사용 사례를 살펴보면 대부분 거실 협탁이나, TV테이블 위에 올려놓고 사용하는 Scene이 대부분임. 이를 고려하면 최대 180도를 커버할 수 있는 카메라로 충분함.\n\n3) 손짓(모션인식)을 활용하는 방법\n동작인식을 위해서는 별도의 고성능 모션인식 모듈이 필요하므로\n손목 등에 착용하는 방식의 모션인식 센서를 활용해서\n(e.g. 손목을 특정 각도 이상으로 꺽으면 호출 신호 송출)\n단, 웨어러블 디바이스를 개발해야하고, 고객 입장에서는 이를 구매 및 착용해야 한다는 부담.\n[끝]"
+  },
+  {
+    "type": "text",
+    "x": 1248,
+    "y": 174,
+    "w": 256,
+    "content": "“When the only tool you have is a hammer, every problem begins to resemble a nail.”\n“If the only tool you have is a hammer, you tend to see every problem as a nail.”\n“If you only have a hammer, you tend to see every problem as a nail.”\n손에 든 연장이 망치 뿐이라면 당신에게는 모든 문제가 못 처럼 보일 것이다.\n“He that is good with a hammer tends to think everything is a nail.”\n“He that is good with a hammer thinks everything is a nail.”\n망치질을 잘 하는 사람은 모든 것을 못으로 보는 경향이 있다.\n“To the man who only has a hammer in the toolkit, every problem looks like a nail.”\n“When all you own is a hammer, every problem starts looking like a nail.”\n“If the only tool you have is a hammer, you are likely to perceive every problem as a nail”\n당신이 할 줄 아는게 망치질밖에 없다면, 모든 문제가 못처럼 보일 것이다."
+  },
+  {
+    "type": "text",
+    "x": 1248,
+    "y": 1062,
+    "w": 232,
+    "content": "카메라 모듈 탑재로 인한 디바이스 가격 상승에도 불구.\n가정 내에서 사진을 찍어달라는 명령, 아이의 영상을 촬영해달라는 명령 등 음성 입출력 기기로써의 NUGU를 카메라를 통한 영상촬영 장비로 기능/서비스 확장이 가능해지는 장점이 있음.\n안면인식을 통한 개인화 구현 가능\n시선 추적을 통한 게임\n<a href=\"https://www.google.co.kr/amp/techholic.co.kr/archives/28902/amp\">https://www.google.co.kr/amp/techholic.co.kr/archives/28902/amp</a>"
+  }
+];
+const CONTENT_HASH = '6313997a';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

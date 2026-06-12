@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>제주 여행</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">제주 여행</div>
+<div class="date">2017년 4월 25일 화요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-제주-여행';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 696,
+    "y": 123,
+    "w": 600,
+    "content": "■ 항공\n4/30 김포 20:25 - 제주 21:35\n5/03 제주 12:05 - 김포 13:15\n[Web발신]\n승객명: 김/준영,김/소연\n대한항공예약번호:  (5950-9232)\n--------------------\n항공: KE1263\n출발지: 서울(GIMPO)\n일시: 30APR 20:25\n도착지: 제주(JEJU)\n일시: 30APR 21:35\n좌석: Y (일반석)\n--------------------\n항공: KE1282\n출발지: 제주(JEJU)\n일시: 03MAY 12:05\n도착지: 서울(GIMPO)\n일시: 03MAY 13:15\n좌석: Y (일반석)\n--------------------\n*결제 완료되셨습니다.\n항공편 출발 1시간전까지 전원 신분증 지참하여 해당 항공사 카운터로 가시기 바랍니다.\n(소인&유아:등본 또는 의료보험증)\n*예약후 동반자변경불가.동일여정 이용해야합니다.\n*탑승자분들의 한글 성함 필수 재확인부탁드립니다. 틀린 경우 탑승불가합니다.\n*결제후 변경&취소시 항공사 패널티부과됩니다. 재결제시점 유류할증료 변경될 수 있습니다.\n*결제 후 좌석배정은 해당항공사로 요청 부탁드립니다.\n*주말 취소요청시 항공사로 선 요청 하시고 영업시간에 재연락 부탁드립니다.\n*여행센터 영업시간 외 취소 요청시, 대한항공 & 아시아나항공 영업시간은(AM 05:30~PM 22:00)입니다. 참고 부탁드립니다.\n*국가유공자, 장애복지카드, 제외제주도민, 제주도민의경우 신분증 및 증빙자료 지참하셔야 합니다.\n-SK패밀리카드-\n1599-1144(평일 09:00~18:00)"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 589,
+    "content": "○ 기간 : 4/30(화)~5/3(수)\n■</a> 항공  ■</a> 렌트 ■</a> 숙박 <a href=\"http://www.hiddencliff.kr/front/kr/index.asp\">히든 클리프 홈페이지</a> <a href=\"https://search.naver.com/search.naver?where=nexearch&query=%EC%A0%9C%EC%A3%BC%ED%81%B4%EB%A6%AC%ED%94%84%ED%98%B8%ED%85%94&ie=utf8&sm=tab_she&qdt=0\">히든</a> 클리프\n○ 준비물 :\n강남 수영복, 김포프라이어티패스,\nㅇ 여행 필수 : 여행책자, 책, 스킨, 로션, 물티슈 , 면도기\n인스타. 성훈, 박휘, 셩형, 재상\n○ 일정\n숙소-플레이스 서귀포시 성산읍\n30일 저녁\n식사 - 우진해장국\n호텔이동"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 463,
+    "w": 589,
+    "content": "1일\n아침 - 더플레이스 조식 or"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 535,
+    "w": 589,
+    "content": "2일\n숙소 - 히든클리프. 서귀포 상예동\n아침 - 호텔조식, 델문도, 바다다\n점심 - 조개까는날\n오후 - 테라로사, 친봉산장, 곰막 횟집\n저녁 - 풀장\n우도\n상천리\n해물라면, 흑돼지, 올댓제주, 복자씨 연탄구이, 해녀의집 전복죽. 문어숙회. 기린R\n중문 순옥이네명가\n우도 화양과국수군, 코코마마,\n오설록, 미엘드세화, 소자38, 랍다카페\n3일\n숙소 - 히든클리프. 서귀포 상예동\n아침 - 공항인근이나 가는길 맛집. 성훈이네\n면세점 쇼핑\n점심 - 뱅기\n사형제 횟집 - 제주시 한림읍\n유동커피 - 서귀포\n테라로사 - 서귀포\n바람벽에 흰당나귀 - 제주시 구좌\n이색경험\n친봉산장 마시멜로 - <a href=\"http://m.blog.naver.com/PostView.nhn?blogId=o0ing&logNo=220970296123&categoryNo=\">http://m.blog.naver.com/PostView.nhn?blogId=o0ing&logNo=220970296123&categoryNo=</a>\n올댓제주\n복자씨 연탄구이\n- 건축투어 : 상천리 건축투어\n<a href=\"http://tikle.sktelecom.com/Glossary/GlossaryView.aspx?ItemID=12685\">http://tikle.sktelecom.com/Glossary/GlossaryView.aspx?ItemID=12685</a>\n<a href=\"https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=1&ie=utf8&query=%EC%A0%9C%EC%A3%BC+%EA%B1%B4%EC%B6%95\">https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=1&ie=utf8&query=%EC%A0%9C%EC%A3%BC+%EA%B1%B4%EC%B6%95</a>\n- 이색 건축물 기행\n<a href=\"http://news.mk.co.kr/newsRead.php?no=236899&year=2017\">http://news.mk.co.kr/newsRead.php?no=236899&year=2017</a>\n제주 맛집\n<a href=\"http://sharehows.com/jejuisland-restaurant-map\">http://sharehows.com/jejuisland-restaurant-map</a>\n<a href=\"http://m.insight.co.kr/view.php?ArtNo=7329&ReplyYN=\" style=\"font-family:Calibri\">http://m.insight.co.kr/view.php?ArtNo=7329&ReplyYN=</a>\n<a href=\"http://sharehows.com/jejuisland-restaurant-map\" style=\"font-family:Calibri\">http://sharehows.com/jejuisland-restaurant-map</a>\nㅇ\n1. 맛나식당(갈치조림)\n- 성산쪽에 있으며 대략 아침에 가서 웨이팅 걸어놓고 드시는걸 추천. 웨이팅 좀 있습니다(길면 한시간)\n아침 일찍가시는걸 추천합니다.(메뉴는 알아서 이모님이 고등어,갈치 섞어서 하라고 해주십니다. 이모님 추천이 갑)\n2. 순옥이네 물회\n- 티비에 나왔다는데 그이후로 변하긴 했는데 역시나 제주도 물회에 있어선 만족스럽습니다.\n뚝배기는 비추천하고 전복죽&순옥이네물회 추천\n3. 남춘식당(고기국수,김밥)\n- 개인적으로 제주도 3대국수(올래,자매,삼대?)의 웨이팅있는 고기국수집보다 훨씬 맛있었습니다.\n김밥도 고기김밥인데 친구랑 둘이가서 한줄시키려고 봤더니 세줄이 없어졌습니다.\n4. 대성아구찜\n- 말 그대로 아구찜입니다. 죄다 제주사투리만 들립니다. 3시까지밖에 영업안하고 통아구찜을\n분해해줍니다. 개인적으로 아구대창찜 좋아합니다. 다먹고 공기밥이랑 김이랑 비벼주는데\n정말 별미입니다.\n5. 사랑분식\n- 동문시장에 있는곳인데, 옛날 떡볶이 맛이고 사장님이 좀 대충대충한다 싶은데 정 엄청많으신\n분입니다. 하두 많이가서 맨날 만두한접시씩 서비스주시고 처음와도 만원정도 시키면 서비스주십니다.\n예전엔 웨이팅 없었는데 입소문나서 웨이팅 있는거같습니다.(티비 나온듯요?)\n6. 시골길(낙지볶음)\n- 낙지볶음집인데 여기도 재료없다고 맨날 문닫습니다. 그런만큼 맛은 보장합니다.\n청국장&소면이랑 같이주는데 진짜 기가막힙니다.\n7. 회\n- 회는 보통 횟집 많이가시는데 제기준에선 동문시장에 회부분 가시면 보통 성인남자 둘이서 3만원짜리\n하나 사시면 적당히 먹습니다. 다만 야채를 안줘서 앞에 가게에서 1500원정도주고 사면 됩니다.\n8. 올레안뜰(흑돼지돈까스)\n- 가격 대비 크기가 미치는곳...\n매운돈까스시키고 햄버거빵 주는데 그걸로 햄버거 만들어먹어도 좋습니다.\n9.함덕 모닥식탁\n돌문어커리를 보통 시켜드시며 딱새우커리도 있습니다. 분위기좋은 카페&밥집입니다.\n연인끼리 데이트하기 좋은곳.\n10. 샐리와 이메다\n카페이며 딱새우떡볶이, 청포도에이드가 맛있음 여자들이 좋아하는곳(분위기 좋음)\n11.재연식당\n엄마정식 시키면됌 생선구이,제육볶음등 개많이나옴\n제육볶음 맛집으로도 유명함 가격 저렴류\n12.커피로드 아이야\n성산에 있으며 한옥카페로 성산일출봉&바다가 보이는 찻집\n13. 종합강의실\n- 제대 뒤쪽으로 두루치기 1인분 5천원 왕맛!\n14. 제주 월정리갈비밥\n- 월정리에선 나름 유명하고 일본 갈비덮밥느낌인데 좀 다른맛?강추합니다."
+  },
+  {
+    "type": "text",
+    "x": 696,
+    "y": 827,
+    "w": 600,
+    "content": "■ 렌트"
+  },
+  {
+    "type": "text",
+    "x": 696,
+    "y": 879,
+    "w": 600,
+    "content": "■ 숙박"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2383,
+    "w": 589,
+    "content": "요리하는목수 30센티 버거\n부두식당 갈치조림\n서귀포 돈사촌 흑돈가본점 흑돼지\n서귀포 삼보식당 항구횟집\n서귀포 천지연 폭포\n쌍둥이횟집 고등어회\n경미네집 문어라면\n가시리마을 명문사거리식당 몸국\n성산일출봉 삼대국수회관\n오라숲소리 공항근처 한정식\n춘심이네 갈치조림\n상춘재 멍게성게비빔밥 추어탕\n어사촌도야지\n운정이네 갈치구이 오분자기\n동북해녀촌 회국수\n천짓골 돔베고기\n명진전복 전복구이\n명진전복 전복돌솥밥\n월정리로와 한라봉요거트스무디\n늘봄흑돼지\n올래국수\n춘심이네 본점 갈치구이\n오는정 김밥\n김희선 몸국\n덕성원 꽃게짬뽕 찹쌀탕수육\n뽈살집 특수고기\n맛나식당 갈치조림\n해광식당 전복칼국수\n중앙식당 성게보말국 고등어구이\n황금어장 회\nㅇ 4/30일 숙박은 어디서? - 차 없는데 짐은? 렌탈을 따로 할까?\n롯데 씨티호텔, 라마다, 신라 스테이, 제주 플레이스 호텔\n<a href=\"https://store.naver.com/hotels/#/item?hotelId=hotel:Shilla_Stay_Jeju&destination_kor=%EC%8B%A0%EB%9D%BC%EC%8A%A4%ED%85%8C%EC%9D%B4%20%EC%A0%9C%EC%A3%BC&nxQuery=%EC%A0%9C%EC%A3%BC%20%EC%8B%A0%EB%9D%BC%20%EC%8A%A4%ED%85%8C%EC%9D%B4\">https://store.naver.com/hotels/#/item?hotelId=hotel:Shilla_Stay_Jeju&destination_kor=%EC%8B%A0%EB%9D%BC%EC%8A%A4%ED%85%8C%EC%9D%B4%20%EC%A0%9C%EC%A3%BC&nxQuery=%EC%A0%9C%EC%A3%BC%20%EC%8B%A0%EB%9D%BC%20%EC%8A%A4%ED%85%8C%EC%9D%B4</a>\n민박\n<a href=\"http://m.blog.naver.com/PostView.nhn?blogId=akrudghks143&logNo=220984406510\">http://m.blog.naver.com/PostView.nhn?blogId=akrudghks143&logNo=220984406510</a>\n<a href=\"http://naver.me/FD5t4VnG\">http://naver.me/FD5t4VnG</a>"
+  }
+];
+const CONTENT_HASH = '740bd1a9';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

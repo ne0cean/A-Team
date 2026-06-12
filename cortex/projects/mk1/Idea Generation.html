@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Idea Generation</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Idea Generation</div>
+<div class="date">2015년 11월 10일 화요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Idea-Generation';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 384,
+    "y": 43,
+    "w": 600,
+    "content": "구글/카카오 상품 서비스\n<a href=\"https://www.google.co.kr/about/products/\">https://www.google.co.kr/about/products/</a>\nㅇ 당사 R&C 정리\nㅇ 목적\n1) 플랫폼 비즈\n2) 데이터 트래픽"
+  },
+  {
+    "type": "text",
+    "x": 888,
+    "y": 67,
+    "w": 330,
+    "content": "카카오 교통, 홈서비스, 배달 등 다양한 O2O 사업 진출을 고려\n3C 기반의 생활 가치 혁신 플랫폼\nㅇ 3C : 컨텐츠, 커뮤니티, 커머스\nㅇ 관심 및 선호도가 높은 영역\n- 엔터테인먼트 : 게임, 영화, 음악, 만화, 웹툰\n- 미디어\n- 뉴스\n- 스포츠\n- 패션\n- 연애 :\n- 미용/뷰티 : 헤어, 네일\nㅇ 생활 필수 영역\n- 교통\n- 쇼핑\n- 홈\n- 보안\n- 교육\n- 금융 : 은행, 증권,\n- 부동산\n- 책\n- 날씨\n- 메모\n- 자동차\n- 캘린더\n- 사진\n- 지도\n- 차 : 정비소 정보,\n생활밀착형 O2O 온디맨드 P2P서비스\n운송, 홈서비스, 배달\n이동형 실시간 방송\n방금 그곡\nT.P.O\nㅇ 지하철에서 앞 사람이 언제 내릴지 알고 싶다.\nㅇ\nㅇ 배터리 : 에너지원\nㅇ 액정 : 터치 및 입력, 유리\nㅇ 각종 센서들 : 자이로, 터치\nㅇ 이어폰 단자\nㅇ 충전/데이터 단자\nㅇ 배터리 커버\nㅇ 칩셋 - 컴퓨터\nㅇ 카메라\nㅇ 블루투스/NFC\nㅇ WiFi"
+  },
+  {
+    "type": "text",
+    "x": 1344,
+    "y": 91,
+    "w": 469,
+    "content": "[봐주세요/보여줘요] 단순 질문 탭\n[해주세요] 대가를 주고 요청하는 탭\n프로필 타임라인 탭\n\n거래를 위해 레퓨테이션, 신뢰도 관리 -> 프로필의 당위성\n이성당 빵 좀 사다주세요\n은행 대기표 좀 뽑아주세요\n배달 -> 배달 안하는 빵가게 같은거 사다달라고 하기\n음주운전 단속 하는지 봐주세요\n[대기] 줄 대신 서주세요"
+  },
+  {
+    "type": "html",
+    "x": 48,
+    "y": 115,
+    "w": 720,
+    "html": "\r\n\t\t\t<ol>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>구글<span lang=\"en-US\"> </span>상품<span lang=\"en-US\"> </span>플랫폼</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> 3D - </span>면<span lang=\"en-US\">, </span>시간<span lang=\"en-US\">, </span>공간</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>의식주</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>오감</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>과거에<span lang=\"en-US\"> </span>충족되었지만<span lang=\"en-US\">, </span>지금을<span lang=\"en-US\"> </span>충족해주는<span lang=\"en-US\"> </span>상품이<span lang=\"en-US\"> </span>없는<span lang=\"en-US\"> </span>니즈<span lang=\"en-US\"> - </span>온고지신<span lang=\"en-US\">/ </span>입고창신</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">2<span lang=\"ko-KR\">마디로</span> <span lang=\"ko-KR\">설명가능해야</span> <span lang=\"ko-KR\">한다</span>.</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>사용자<span lang=\"en-US\"> </span>가치에<span lang=\"en-US\"> </span>초점을<span lang=\"en-US\"> </span>맞추라</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> 10</span>배<span lang=\"en-US\"> </span>개선을<span lang=\"en-US\"> </span>목표로<span lang=\"en-US\"> </span>삼아라</p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>내놓고<span lang=\"en-US\"> </span>개선하라<span lang=\"en-US\">(ship and iterate)</span></p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>일을<span lang=\"en-US\"> </span>공개적으로<span lang=\"en-US\"> </span>진행하라<span lang=\"en-US\">(</span>클라우드<span lang=\"en-US\"> </span>소싱<span lang=\"en-US\">)</span></p>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>사명의식을<span lang=\"en-US\"> </span>가져라</p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">ㅇ</span><span lang=\"en-US\"> </span>단 하나의 가치를 매우 뛰어난 방법으로 제공한다 Delivers on a singular value proposition in a world-class way (예: Google, Headspace)</p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">ㅇ</span><span lang=\"en-US\"> </span>단순하고, 직관적이며, 필요를 예측한다 Simple, intuitive, and anticipates needs (예: Waze)</p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">ㅇ</span><span lang=\"en-US\"> </span>기대를 뛰어넘는다 Exceeds expectations (예: Sonos의 소비자 서비스)</p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">ㅇ</span><span lang=\"en-US\"> </span>정서적인 공감을 얻는다 Emotionally resonates (예: 테슬라 모델 S)</p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">ㅇ</span><span lang=\"en-US\"> </span>사람들의 삶을 좋은 방향으로 바꾼다 Changes the user’s life for the better (아이폰 6+)</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<br />\r\n\t\t\t\t<li><p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">Key Deliverables (</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">핵심</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">결과물</span><span style=\"font-family:맑은 고딕\">)</span></p>\r\n\t\t\t\t<ol>\r\n\t\t\t\t\t<li style=\"list-style-type:lower-alpha;font-size:10pt\"><span style=\"font-family:맑은 고딕\">현재</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">추구하고</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">있는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">프로젝트</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">결과물은</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\">?</span></li>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">(</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">예를</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">들어</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">새로운</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">기술</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">플랫폼</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">혹은</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">새로운</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">제품</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">서비스</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">라인</span><span style=\"font-family:맑은 고딕\">?)</span></p>\r\n\t\t\t\t</ol>\r\n\t\t\t\t</li>\r\n\t\t\t\t<li><p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">Opportunity Screening Criteria (</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">기회</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">선택</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">조건</span><span style=\"font-family:맑은 고딕\">)</span></p>\r\n\t\t\t\t<ol>\r\n\t\t\t\t\t<li style=\"list-style-type:lower-alpha;font-size:10pt\"><span style=\"font-family:맑은 고딕\">기회들을</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">탐색할</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">때</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">고려해야</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">할</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">주요</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">사업적인</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">요건들</span></li>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">(</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">예를</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">들어</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">새로운</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">기술의</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">추구</span><span style=\"font-family:맑은 고딕\">/</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">제약</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">조건</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">찾기</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">혹은</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">수익성이나</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">시장</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">점유율</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">등</span><span style=\"font-family:맑은 고딕\">)</span></p>\r\n\t\t\t\t</ol>\r\n\t\t\t\t</li>\r\n\t\t\t\t<li><p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">Possible Lead Users in Target Market (</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">목표시장에서의</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">선도</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">사용자</span><span style=\"font-family:맑은 고딕\">)</span></p>\r\n\t\t\t\t<ol>\r\n\t\t\t\t\t<li style=\"list-style-type:lower-alpha;font-size:10pt\"><span style=\"font-family:맑은 고딕\">어떤</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">회사나</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">개인이</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">시장을</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">선도하는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> Needs</span><span style=\"font-family:맑은 고딕\">를</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">가지고</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">있는가</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\">?</span></li>\r\n\t\t\t\t</ol>\r\n\t\t\t\t</li>\r\n\t\t\t\t<li><p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">Possible Lead Users in Analogous Market (</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">유사</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">시장에서의</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">선도</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">사용자</span><span style=\"font-family:맑은 고딕\">)</span></p>\r\n\t\t\t\t<ol>\r\n\t\t\t\t\t<li style=\"list-style-type:lower-alpha;font-size:10pt\"><span style=\"font-family:맑은 고딕\">다른</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">분야의</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">어떤</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">사용자들이</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">목표시장과</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">비슷하지만</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">더</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">극단적으로</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">발전된</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">형태의</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> Needs</span><span style=\"font-family:맑은 고딕\">를</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">가지고</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">있는가</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\">?</span></li>\r\n\t\t\t\t</ol>\r\n\t\t\t\t</li>\r\n\t\t\t\t<li><p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">Possible Outcome from the Lead Users (</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">선도</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">사용자들로부터</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">나올</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">수</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">있는</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">결과</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">예측</span><span style=\"font-family:맑은 고딕\">)</span></p>\r\n\t\t\t\t<ol>\r\n\t\t\t\t\t<li style=\"list-style-type:lower-alpha;font-size:10pt\"><span style=\"font-family:맑은 고딕\">위에</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">찾아낸</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">각각의</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">사용자들로부터</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">배울</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">수</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">있는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">것들은</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">무엇이</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">있을까</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\">?</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span></li>\r\n\t\t\t\t</ol>\r\n\t\t\t\t</li>\r\n\t\t\t\t<br />\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">ㅇ</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">공유경제</span><span lang=\"en-US\" style=\"font-weight:bold\"> - </span><span style=\"font-weight:bold\">기본적으로</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">남는것</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">유휴</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">부도</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">좌석</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">이런걸</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">서로</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">연결함으로써</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">자원활용을</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">효율화</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">하는거</span><span lang=\"en-US\" style=\"font-weight:bold\">.</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">ㅇ</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">자가</span><span lang=\"en-US\" style=\"font-weight:bold\"> R&amp;C</span></p>\r\n\t\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"background-color:silver;border:1px solid;font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt;text-align:center\"><span style=\"font-weight:bold\">Theme</span></td>\r\n\t\t\t\t\t\t<td style=\"background-color:silver;border:1px solid;font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt;text-align:center\">시연 내용</td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"background-color:white;border:1px solid;font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt;text-align:center\"><span style=\"font-weight:bold\">AI (인공지능)</span></td>\r\n\t\t\t\t\t\t<td style=\"background-color:white;border:1px solid\"><p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\">- Smart Box II, T-map 음성 UX</p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\">- Smart Home 용 감성 로봇</p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\">- 개인화 Eggo Mate 서비스</p>\r\n\t\t\t\t\t\t</td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"background-color:white;border:1px solid;font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt;text-align:center\"><span style=\"font-weight:bold\">미디어</span></td>\r\n\t\t\t\t\t\t<td style=\"background-color:white;border:1px solid\"><p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\">- T-AR for HMD &amp; Google Tango</p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\">- Play RTC</p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\">- 360도 VR 미디어</p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\">- True Realtime Mobile Live Streaming</p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\">+Smart Caster</p>\r\n\t\t\t\t\t\t</td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"background-color:white;border:1px solid;font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt;text-align:center\"><span style=\"font-weight:bold\">IoT</span></td>\r\n\t\t\t\t\t\t<td style=\"background-color:white;border:1px solid\"><p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\">- ThingPlug Platform 및 관련 솔루션</p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\">- Z-Wave Bridge 및 스마트홈 서비스</p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\">- 내재화 BLE SoC 및 관련 디바이스</p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\">- Smart Factory 솔루션</p>\r\n\t\t\t\t\t\t</td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"background-color:white;border:1px solid;font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt;text-align:center\"><span style=\"font-weight:bold\">생활가치</span></td>\r\n\t\t\t\t\t\t<td style=\"background-color:white;border:1px solid\"><p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\"><span style=\"color:black\">- 차세대 ICT 인프라</span></p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\"><span style=\"color:black\">- 지능형 NW Platform</span></p>\r\n\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\"><span style=\"color:black\">- T Lens 및 침입탐지 솔루션</span></p>\r\n\t\t\t\t\t\t</td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">1. Lo-call</p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">2. <span lang=\"ko-KR\">스케치톡</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">3. <span lang=\"ko-KR\">비대면채널</span> <span lang=\"ko-KR\">인증센터</span>(<span lang=\"ko-KR\">핀테크</span>)</p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">4. <span lang=\"ko-KR\">컬러링</span> <span lang=\"ko-KR\">리워드</span> <span lang=\"ko-KR\">광고플랫폼</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">5. <span lang=\"ko-KR\">세상의</span> <span lang=\"ko-KR\">모든</span> <span lang=\"ko-KR\">자리</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">6. P2P <span lang=\"ko-KR\">이사중계</span> <span lang=\"ko-KR\">서비스</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">7. 1<span lang=\"ko-KR\">인가구</span> <span lang=\"ko-KR\">원룸단위</span> <span lang=\"ko-KR\">게시판</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">8. <span lang=\"ko-KR\">세상의</span> <span lang=\"ko-KR\">모든</span> <span lang=\"ko-KR\">메뉴</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">9. <span lang=\"ko-KR\">빈자리</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">10. <span lang=\"ko-KR\">매직데이</span> <span lang=\"ko-KR\">서브스크립션</span> <span lang=\"ko-KR\">커머스</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">11. <span lang=\"ko-KR\">소분</span> <span lang=\"ko-KR\">공동구매</span> <span lang=\"ko-KR\">플랫폼</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">12. 중고 의류 <span lang=\"ko-KR\">교환</span> <span lang=\"ko-KR\">플랫폼</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">13. <span lang=\"ko-KR\">쿡방</span> <span lang=\"ko-KR\">레시피</span> <span lang=\"ko-KR\">배달</span> <span lang=\"ko-KR\">서비스</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">14. <span lang=\"ko-KR\">주거공간</span> <span lang=\"ko-KR\">공유</span> <span lang=\"ko-KR\">서비스</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">15. <span lang=\"ko-KR\">상업</span> <span lang=\"ko-KR\">부동산</span> <span lang=\"ko-KR\">중계</span> <span lang=\"ko-KR\">플랫폼</span> (<span lang=\"ko-KR\">지오비전</span> <span lang=\"ko-KR\">활용</span>)</p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">16. <span lang=\"ko-KR\">스마트</span> <span lang=\"ko-KR\">밴드</span> - Real Game Activity tarcker</p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">17. <span lang=\"ko-KR\">실버</span> Seg. (<span lang=\"ko-KR\">스마트</span> <span lang=\"ko-KR\">액자</span>)</p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">  - <span lang=\"ko-KR\">소통</span>/<span lang=\"ko-KR\">안전</span> <span lang=\"ko-KR\">중점</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">  - <span lang=\"ko-KR\">설치식</span> Device + <span lang=\"ko-KR\">포터블</span> Device </p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">18. AR + <span lang=\"ko-KR\">스마트폰</span> Game <span lang=\"ko-KR\">플랫폼</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">19. <span lang=\"ko-KR\">증강현실</span> <span lang=\"ko-KR\">그래피티</span>/<span lang=\"ko-KR\">낙서장</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">20. T<span lang=\"ko-KR\">싱글</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">21. [<span lang=\"ko-KR\">장애인</span>] <span lang=\"ko-KR\">흰지팡이</span> GPS</p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">22. <span lang=\"ko-KR\">청각장애인용</span> Comm. <span lang=\"ko-KR\">보조기구</span> (<span lang=\"ko-KR\">웨어러블</span> <span lang=\"ko-KR\">형태</span>)</p>\r\n\t\t\t\t<br />\r\n\t\t\t</ol>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t"
+  }
+];
+const CONTENT_HASH = '7ae4b6f7';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DS School</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">DS School</div>
+<div class="date">2018년 4월 8일 일요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-DS-School';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 115,
+    "w": 600,
+    "content": "첫 번째 수업에 대하여\n첫 수업에서는 간단한 소개, 그리고 캐글 경진대회 중 하나인&#160;<a href=\"https://www.kaggle.com/c/titanic\" style=\"font-weight:bold\">Titanic: Machine Learning from Disaster</a>&#160;에 도전합니다. 타이타닉 데이터를 활용하여, 유사한 해상 사고에서 생존자와 사망자를 예측하는 경진대회입니다.\n첫 수업은 프로그래밍을 하지 않고 오직 엑셀을 통한 정적 분석만으로 예측 모델을 만들고, 이후 강사인 제가 간단한 프로그래밍을 통해 예측 모델을 만드는 법을 시연할 계획입니다. (첫 수업은 엑셀을 사용하지만,&#160;<a href=\"https://www.google.com/sheets/about/\">구글 스프레드시트</a>를 사용할 예정이므로 별도의 엑셀 프로그램을 설치하실 필요는 없습니다!\n[1주차]\n<a href=\"https://www.kaggle.com/titanic\">https://www.kaggle.com/titanic</a>\n<a href=\"https://www.google.co.kr/search?q=%ED%8C%90%EB%8B%A4%EC%8A%A4&oq=%ED%8C%90%EB%8B%A4%EC%8A%A4&aqs=chrome..69i57j0l5.1604j0j7&sourceid=chrome&ie=UTF-8\">판다스 구글링</a>\n판다스 <a href=\"https://datascienceschool.net/view-notebook/b85212ea4040408e8ebd6d3495f2c91b/\">https://datascienceschool.net/view-notebook/b85212ea4040408e8ebd6d3495f2c91b/</a>\n원 패스워드\n<a href=\"https://support.google.com/docs/answer/181110?co=GENIE.Platform%3DDesktop&hl=ko\">구글 스프레드시트 단축키</a>\n==============\n안녕하세요, DS School의 강성희입니다.\n저번 수업 다들 수고하셨습니다. ㅎㅎ\n타이타닉 노트북을 공유받길 바라는 분들이 많아서, 노트북을 공유하도록 하겠습니다. 실행을 위해서는 파이썬 + 관련 툴킷이 필요한데, 컴퓨터에 파이썬이 설치되어 있지 않은 분들을 위해, 조만간 다시 메일로 설치 방법을 공지하겠습니다. (앞서 말씀 드린 대로, 다음 수업일 전에 파이썬을 꼭 설치하시길 부탁드립니다!)\n살펴보시고 궁금한 점이 있다면 언제든지 질문 주세요. ㅎㅎ\n또한 저번 수업에서 나온 이론에 대한 부연 설명을 첨부합니다.\n의사결정나무(Decision Tree): 인공지능 알고리즘 중 가장 직관적이고(=사람이 이해하기 쉽고), 트리(Tree) 모델의 기본이 되는 알고리즘입니다. 한국어 자료는&#160;<a href=\"http://ai-times.tistory.com/77\" style=\"font-size:12pt\">이</a> 글이 가장 쉽게 설명되어 있습니다.&#160;\n인공지능 수업: 인공지능 이론에 대해서 따로 공부하고 싶은 분들은, Andrew Ng 교수가 진행하는 Coursera의&#160;<a href=\"https://www.coursera.org/learn/machine-learning\" style=\"font-family:arial;font-size:12pt\">Machine Learning</a>&#160;코스를 강력 추천합니다. 초심자를 대상으로 하는 수업이기 때문에, 굉장히 따라가기 쉽습니다. 영어 수업이지만 발음이 굉장히 쉽고, 자막도 정확하기 때문에 큰 무리 없이 들으실 수 있을 겁니다.&#160;\n이상입니다. 다음 수업은 공지한대로 파이썬을 활용해 타이타닉 생존자를 예측하는 모델을 직접 만듭니다. 더 자세히는, 1)&#160;파이썬</a>(Python), 2)&#160;<a href=\"http://pandas.pydata.org/\" style=\"font-family:arial;font-size:12pt\">Pandas</a>, 3) 아주 약간의&#160;Scikit-Learn</a>을 배운 뒤, 저번 수업에서 제가 구현한 모델을 그대로 따라하는 실습을 합니다.\n1주차와 마찬가지로 사전에 학습해야 할 것은 없습니다. 다만 혹시나 예습을 원하는 분들은&#160;<a href=\"https://wikidocs.net/book/1\" style=\"font-size:12pt\">점프</a> 투 파이썬을 4장까지 실습해오시면 좀 더 수월하게 따라오실 수 있을 겁니다. (파이썬이 설치되어 있지 않은 분들도&#160;웹</a> 페이지에서 예습을 하실 수 있습니다) 만일 파이썬이 익숙한 분들은&#160;10 minutes to pandas</a>를 미리 훑어보고 오시면 좋습니다.\n===================\n파이썬&#160;설치&#160;방법을 공유합니다. 앞서 말씀 드린대로,&#160;파이썬과 관련 툴킷을&#160;설치하는데 다소 시간이 걸리기 때문에, 강의 시작 전에 미리 컴퓨터에&#160;설치하는것을 권장 드리고 있습니다.\n파이썬을&#160;설치하지 않고 강의에 참석하실 경우,&#160;설치&#160;시간이 오래 걸려 수업을 잘 따라오지 못하는 상황을 많이 보았습니다. 때문에 다소 불편하시더라도 시간을 내서 꼭&#160;설치&#160;부탁드립니다.\n(설치가 안 되는 분들은 저에게 메일을 보내주시면 제가&#160;설치를 도와드리도록 하겠습니다)\n설치 방법은 크게 두 가지입니다.\n1) 현재 컴퓨터에 파이썬이 설치되어 있지 않고, 설치 후에도 파이썬을 데이터사이언스 목적 외 용도로 사용할 예정이 없다: 이 경우는&#160;<a href=\"https://www.continuum.io/downloads\" style=\"font-size:12pt\">아나콘다</a>(Anaconda)라는 툴을 통해&#160;설치하시는 것을 권장합니다. (아나콘다를 사용하면 파이썬이 자동으로 설치되며, 관련 툴 또한 자동으로 설치가 됩니다)&#160;설치&#160;방법은 동영상으로 첨부합니다. 타이타닉의 train.csv, test.csv가 사용자 폴더 (가령 아이디가 shaynekang이라면 MacOS는 /Users/shaynekang, 윈도우는&#160;C:/Users/shaynekang)에 있다는 가정 하에 잘 동작합니다.\n2) 컴퓨터에 파이썬이 설치되어 있으며, 파이썬과 콘솔(터미널, 명령 프롬프트), pip를 사용하는 법을 안다. 또한 데이터사이언스 목적 외에도 다양한 용도(ex: 웹 개발)로 사용할 예정이다: 이 경우는 아나콘다가 아닌 pip 패키지를 통해 관련 툴킷을&#160;설치하시는 게 좋습니다. (그래야 다른 패키지와 충돌이 일어나지 않습니다) 콘솔에서 다음의 패키지들을 pip로&#160;설치해주시면 됩니다.\npip install numpy\npip install scipy\npip install pandas\npip install scikit-learn\npip install matplotlib\npip install seaborn\npip install jupyter\n3) 현재 컴퓨터에 파이썬이 설치되어 있지 않지만, 콘솔과 pip을 사용하는 법을 모른다.&#160;이&#160;경우는 1) 번을 따라하시는 걸 권장합니다. 2) 번을 따라할 수도 있지만 파이썬 - pip - 데이터사이언스 툴킷을 설치하는 과정에 에러가 많이 발생하기 때문에, 초심자 분들은 설치하기 많이 어렵습니다. 때문에 1번을 추천드리구요, 하지만 그럼에도 불구하고 2) 번을 하고 싶다면&#160;파이썬을</a> 다운로드&#160;및 설치한 뒤 2) 번을 그대로 따라하시면 됩니다.\n혹시나&#160;설치가 되지 않는 분들은 연락 주세요. 제가&#160;설치를 도와드리겠습니다. ㅎㅎ\n이상입니다. 더 궁금한 게 있다면 언제든지 연락 주세요.\n그럼 다음 수업에서 뵙겠습니다. 즐거운 하루 보내세요~!"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1719,
+    "w": 600,
+    "content": "<a href=\"https://drive.google.com/file/d/0BwxuHmMb3nZmU0RUSTdlNnpfbUU/view?usp=drive_web\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1791,
+    "w": 600,
+    "content": "안녕하세요!\n다들 무사히 파이썬을 설치실거라 기대하지만, 혹시나 설치가 잘 안 되는 분들을 위해 몇몇 에러에 대한 해결법을 이메일로 공유합니다. 혹시나 이 에러에 해당하지 않는 분들은 저에게 따로 말씀해주시면 문제를 해결해드리겠습니다.\n1.&#160;설치는 다 되었지만, train.csv를 읽는 부분에서 에러가 난다: 에러 메시지가&#160;FileNotFoundError&#160;라고 나온다면, train.csv를 읽을 수 없어서 생긴 문제일 가능성이 높습니다.\n이 에러가 날 경우에는, train.csv 파일을 적합한 폴더에 넣어주고 적합한 경로를 지정해주면 파일을 읽어올 수 있습니다.\n1) train.csv의 위치: train.csv를 읽어오기 가장 좋은 위치는 내 사용자 폴더입니다. 가령 제 사용자 아이디가 shaynekang 이라면 Windows 기준&#160;C:/Users/shaynekang, MacOS 기준&#160;/Users/shaynekang&#160;입니다. (보통은 파일 탐색기에서 C드라이브에 '사용자'라는 폴더로 보입니다)&#160; 해당 폴더에&#160;train.csv를 넣어주시면 정상적으로 읽어오실 수 있습니다.\n2) train.csv를 읽어오는 경로를 잡기: 만일 1번의 방법으로 읽어올 수 없거나, train.csv 파일이 다른 폴더에 위치해 있다면 파이썬 코드에서 경로를 지정해줘야 합니다. 경로를 지정하는 방식은 크게 절대경로 방식과 상대경로 방식이 있습니다.\n-&#160;절대경로 방식: 파일이 위치해 있는 전체 경로를 설정해주는 겁니다. 가령 파일이 다운로드(Downloads) 폴더에 있으면 Windows 기준&#160;C:/Users/shaynekang/Downloads/train.csv&#160;가 되고, MacOS 기준&#160;/Users/shaynekang/Downloads/train.csv&#160;가 됩니다. 해당 경로를 마고하여 pd.read_csv 코드를 변경해주시면 됩니다. (ex: pd.read_csv(\"C:/Users/shaynekang/Downloads/train.csv\")) 주의할 점은 파일 경로는 보통 역슬래시(\\)가 포함되는데, 파이썬에서 경로를 읽어올 때는 모든 역슬래시(\\)를 슬래시(/)로 바꿔줘야 합니다.\n위와 같이 파일 탐색기에서 경로가 나오는 부분(ex: 다운로드)을 클릭하면 전체 경로가 나옵니다.\n(ex: C:\\Users\\shaynekang\\Downloads)\n위 경로에서 역슬래시(\\) 만 슬래시(/)로 바꾸어서 넣어주면 정상적으로 로딩될 것입니다.\n-&#160;상대경로 방식: 파일이 위치해 있는 상대적인 경로를 설정해주는 겁니다. 이 경우는 노트북 파일의 위치가 중요합니다. (.ipynb 확장자로 저장됩니다) 가령 노트북 파일이 바탕화면에 저장되어 있고, (C:/Users/shaynekang/Desktop에 저장되어 있는 titanic.ipynb) train.csv가 다운로드 폴더 (C:/Users/shaynekang/Downloads/)에 저장되어 있다면,&#160; pd.read_csv 코드를&#160;pd.read_csv(\"../Downloads/train.csv\")&#160;로 변경해주시면 됩니다. (../ 는 이전 폴더라는 의미이고, Downloads/는 다운로드 폴더에 있다는 의미입니다)\n2.&#160;설치는 다 되었는데, 쥬피터 노트북을 실행하면 아무것도 뜨지 않는다: 이건 최신 버그인데, 몇몇 최신 브라우저(크롬, 사파리, etc)에서 쥬피터 노트북을 자동으로 씌우는 스크립트를 막아놔서 생기는 문제입니다.&#160;경우는 당황하지 마시고, 동영상에 있는 아나콘다 네비게이터(Anaconda Navigator)가 아닌,&#160;쥬피터 노트북(Jupyter Notebook)이라는 프로그램을 찾아서 실행해주시면 됩니다.\n혹시나 이 외의 문제로 인해서 설치가 되지 않는 분들은 말씀 주세요~!\n===================================\n[2주차]\n쥬피터 노트북 http://localhost:8888/tree</a>\nOdd. 함수 예시 보는법\n-----------------------------------------------------------------------------\n저번주 수업 다들 수고하셨습니다. ㅎㅎ\n저번주 수업 자료를 공유받길 바라는 분들이 많아서, 노트북을 공유하도록 하겠습니다. 살펴보시고 궁금한 점이 있다면 언제든지 질문 주세요. ㅎㅎ\n또한 저번 수업에서 나온 몇몇 추가 자료를 공유합니다.\n<a href=\"https://wikidocs.net/book/1\" style=\"font-size:12pt;font-weight:bold\">점프</a> 투 파이썬: 한국어로 된 가장 쉽고 간결한 파이썬 튜토리얼입니다. 앞으로 모르거나 기억이 안 나는 파이썬 문법이 있다면 이 페이지를 참고하시면 됩니다. 파이썬을 조금 더 잘 다루고 싶은 분들은 별도로 시간을 내서 5장까지 학습하시는 걸 권장 드립니다.\n10 Minutes to pandas</a>: Pandas 공식 홈페이지 튜토리얼입니다. 10분이라고는 하지만 실제로는 1~2시간 걸린다는 걸 감안해주세요. 마찬가지로 모르거나 기억이 안 나는 Pandas 문법이 있다면 이 페이지를 참고하시면 됩니다.\n다음 수업은&#160;타이타닉을 넘어서, 캐글의&#160;<a href=\"https://www.kaggle.com/c/bike-sharing-demand\" style=\"font-family:arial;font-size:12pt;font-weight:bold\">Bike&#160;Sharing Demand</a>&#160;경진대회에 참석합니다. 날짜, 온도, 풍속 데이터를 활용해 시간당 자전거 대여 횟수를 예측하는 경진대회입니다.\n어려워 보일 수 있지만, 원리는 타이타닉과 거의 유사합니다. 부담 갖지 말고, 타이타닉 문제를 복습하겠다는 생각으로 도전하면 좋은 결과 낼 수 있을 거라 믿습니다. ㅎㅎ\n그럼 다음 수업에 뵙겠습니다. 즐거운 하루 보내시길 바랍니다~!\n===============================================\n[3주차]\nBike sharing demand\n마이너스 나오는 이유 -강성희 파이콘 검색 rr\nhttp://trollclip.net/play-troll-clip--Trpo3pS7qMsjQ.html</a>\n데이터 분석 팁\nRAW데이터 자체를 쭉 보고, 시각화를 하면서 데이터를 이해한다.\n케글의 discussion과 kernels를 참고해라\n#\"wind speed\" column의 none 값을 채워넣기\ntrain_wind_nonzero = 6.0032\nfor i in range(10885):\n&#160; &#160; train_wind=train.loc[i,\"windspeed\"]\n&#160; &#160; if train_wind == 0:\n&#160; &#160; &#160; &#160; train.loc[i,\"windspeed\"] = train_wind_nonzero\n&#160; &#160; else:&#160; &#160;\n&#160; &#160; &#160; &#160; train_wind_nonzero = train_wind\n&#160; &#160; &#160; &#160;&#160;\ntrain.head(116)\n결국 값을 보정하거나 빼거나\n컬럼을 쪼개거나 추가하거나 빼거나 하는 방식으로 성능을 향상시키고\n그걸 from sklearn.model_selection import cross_val_score로 검증\nTrain data와 test data를 나누는 기준이 되는 컬럼은 빼는게 좋다.\nDay of week One hot incording\nCasual & regiseted를 나눠서 분석한 후에 합치기\n=================================================\n저번&#160;수업 다들 수고하셨습니다. ㅎㅎ\n마찬가지로 수업 자료를 공유받길 바라는 분들이 많아서 노트북을 공유합니다. 살펴보시고 궁금한 점이 있다면 언제든지 질문 주세요. ㅎㅎ\n또한 저번 수업에서 나온 몇몇 추가 자료를 공유합니다.\n<a href=\"http://seaborn.pydata.org/\" style=\"font-family:arial;font-size:12pt;font-weight:bold\">Seaborn: statistical data visualization</a>: 파이썬 시각화 패키지입니다.&#160;<a href=\"https://matplotlib.org/\" style=\"font-family:arial;font-size:12pt\">matplotlib</a>이라는 다른 시각화 패키지를 조금 더 쓰기 편하게 감싼(wrapping) 거라고 보시면 됩니다. 이번 수업에서는 countplot, barplot 등을 포함한 몇몇가지를 다뤘지만, 실제로는 굉장히 다양한 시각화가 가능합니다. 시간 날 때&#160;<a href=\"http://seaborn.pydata.org/examples/index.html\" style=\"font-family:arial;font-size:12pt\">Example Gallery</a>를 살펴보시면 큰 영감을 얻을 수 있을 겁니다.\nRandomForest: 의사결정나무(DecisionTree)를 보완한 새로운 알고리즘을 배웠죠. 상세한 이론에 대한 설명은&#160;<a href=\"http://swalloow.tistory.com/92\" style=\"font-size:12pt\">이</a> 링크가 가장 잘 되어있습니다. RandomForestRegressor의 세부 옵션에 관한 설명은&#160;이</a> 링크를 참조하시면 됩니다.\n만일 제가 빼먹었거나, 이론적으로 더 궁금한 사항이 있다면 언제든지 이메일 주세요. ㅎㅎ\n다음 수업에서는&#160;<a href=\"https://www.kaggle.com/c/bike-sharing-demand\" style=\"font-family:arial;font-size:12pt;font-weight:bold\">Bike Sharing Demand</a>&#160;수업을 조금 더 깊게 들어갑니다. 더 많은 분석과 실험, 제출(submission)을 해보고, 마지막으로는 제가 그동안 배운 내용들 + 몇몇 새로운 내용들을 총망라하여 Bike Sharing Demand 경진대회의 상위 5% ~ 25% 에 들 수 있는 노하우를 공유하도록 하겠습니다.\n이상입니다. 그럼 즐거운 하루 보내시고, 다음 수업에서 뵙겠습니다~!\n=================================================================\n안녕하세요! 강성희입니다.\n다들 마지막 수업 수고하셨습니다! 저번과 마찬가지로 쥬피터 노트북을 공유하도록 하겠습니다. 살펴보시고 더 궁금한 점이 있다면 언제든지 질문 주세요. ㅎㅎ\n이번 강연에서 나온 이론적인 부분을 더 잘 알고 싶다면, 다음을 참조하시면 됩니다.\n하이퍼패러미터 튜닝(Hyperparameter Tuning): 그리드 서치(Grid Search)는&#160;이</a> 글을, 랜덤 서치(Random Search)는&#160;이</a> 글의 'Hyperparameter optimization' 부분을 참조하시면 됩니다.\n이제와서 생각해보니 4주가 정말 짧은 기간이네요. 언제나 그렇지만, 더 많은 걸 알려드리고 싶었는데 매 번 시간이 부족한 것 같습니다. ^^; 그래도 데이터를 다루는데 필요한 기본적인 것들은 전부 가르쳐 드렸다는 생각에 개인적으로는 만족하고 있습니다. 앞으로도 공부하거나 일 하시면서 궁금한 점이 있다 면 언제든지 이메일로 질문 주세요. ㅎㅎ\n앞서 말씀 드린대로, 지금까지의 과정은 1) 데이터라는게 생각보다 어렵지 않다, 2) 데이터를 다루는 기본적인 노하우만 있으면 누구든지 따라할 수 있다. 라는 걸 알려드리고 싶었구요, 만일 이 분야에 조금 더 진지하게 취업이나 이직, 전직을 고민하고 있는 분들에게는&#160;<a href=\"https://www.dsschool.co.kr/suggestions\" style=\"font-size:12pt\">판다스반</a> 또는 딥러닝반&#160;수강을 추천 드리고 있습니다.\n판다스반과 딥러닝반은&#160;입문반 수업을 잘 복습하신다면 무난하게 따라올 수 있게 구성되어 있습니다. 또한 두 개는 별개의 수업이므로, 판다스반과 딥러닝반을 따로 들어도 되고 두 개를 동시에 들어도 됩니다.\n또한 저희는 주로 페이스북을 통해 강연을 홍보하는데요,\n페이스북 후기를 남겨주시면&#160;판다스반/딥러닝반 모두 10% 할인. (판다스반 594,000 원 -> 534,600 원, 딥러닝반&#160;1,043,000 원 -> 938,700 원)\n영상 인터뷰를 진행하시고 (조교와 일정 조율) 후기도 동시에 작성하시면 판다스반 / 딥러닝반 모두 20% 할인. (판다스반 594,000 원 ->&#160;475,720 원, 딥러닝반&#160;1,043,000 -> 834,440 원)\n을 해드리고 있습니다. 후기를 남길 분들은&#160;<a href=\"http://bit.ly/interviewdsschool\" style=\"font-size:12pt\">다음의</a> 링크를 참고해서 남겨주세요!\n만일 타임라인에 적을 내용이 마땅히 생각나지 않는다면, 다음에 예시에 대한 답변을 올려주시면 될 것 같습니다. ㅎㅎ\n그럼 4주간 수고하셨고, 다음 수업에서에서 뵙길 기원하겠습니다~!\nPS) 혹시 이미 판다스반이나 딥러닝반을 수강 신청 하신 분들도, 후기를 남긴 뒤 저희(<a href=\"mailto:admin@wowinsights.net\" style=\"font-family:arial;font-size:12pt\">admin@wowinsights.net</a>)에게 링크를 보내주시면 할인된 가격으로 다시 결제해드리고 있습니다. 다들 많은 후기 남겨주시길 바랍니다. ㅎㅎ\n==============================================================\n안녕하세요~! DS School의 강성희입니다.\n다들 열심히 복습 하고 계신가요? 입문반에서 배웠던 내용중에 더 궁금한 내용, 현업에서 적용하다가 모르는 부분이 생긴다면 언제든지 저에게 메일 주세요. ㅎㅎ\n많은 분들이 입문반 이후에도 어떻게 하면 데이터를 분석하는 스킬을&#160;쌓을&#160;수 있는지 궁금해하시는 것 같습니다. 때문에 간략한 How to Next를 공유하고자 합니다. 크게 1) 파이썬, 2) 관련 툴킷(Pandas, Seaborn), 3) 인공지능 알고리즘 학습, 4) 실전 경험 등으로 나누어서 설명 드리겠습니다.\n1. 파이썬: 자주 말씀 드리지만, 가장 좋은 시작은&#160;<a href=\"https://wikidocs.net/book/1\" style=\"font-size:12pt\">점프</a> 투 파이썬입니다. 데이터 분석을&#160;편하게 하고 싶다면 4장까지의 내용에 익숙해지시는 걸 추천드리구요, 4장 이후는 지금 당장 배워야 할 내용은 아니라고 생각합니다. 일단 전반적으로 툴(파이썬, Pandas, etc)을&#160;능수능란하게 다룬 뒤에, 실제 서비스에 알고리즘을&#160;적용하고 싶을&#160;경우 4장 이후의 내용(클래스 등등)을&#160;다루시면 좋습니다.\n2. 관련 툴킷: 판다스는 앞서 말씀드린대로&#160;10 Minutes to Pandas</a>가 가장 좋은 시작입니다. 제가 수업에서 다룬 것 보다 조금 더 깊은 내용을&#160;다루고 있고, 한 번 훑어보는데 오랜 시간이 걸리지 않습니다. 시간 내서 스윽 훑어보시는걸 추천 드립니다.\n판다스의 경우에는 문법을 배우는 건 어렵지 않지만, 판다스를 응용하는 능력에 따라 실력이 좌우됩니다. 그런고로 가능한 많은 실습을 해보는 걸 권장 드리구요, 특히나 1) 여러 개의 데이터를 하나로 합쳐서 쓰는 방법, 2) 한글 인코딩, 3) 데이터베이스에서 바로 SQL을 사용해 데이터를 가져와 판다스로 읽는 방법 등이 현장에서 자주 쓰입니다. 이런 부분들을 미리 배워두시면 좋습니다.\n혹시나 이런 부분들을 찾아서 배우는게 익숙하지 않거나, 빠른 시간 내에 판다스를 배우고 싶은 분들은 이번 기회에&#160;<a href=\"http://dsschool.co.kr/suggestions\" style=\"font-size:12pt\">판다스반</a>을 수강하시는 것도 권장해 드립니다. (위 내용을 집중적으로 다루고 있습니다) 수업을 듣게 된다면 판다스에 한에서는 현장에서 즉시전력으로 투입될 수 있는 실력을 얻게 되실겁니다.\nSeaborn의 경우 재미있는 시각화 툴이 많지만, 사실 저희가 실질적으로 사용하는 것은 많지 않습니다. 제가 수업에서 알려드린 1) countplot, 2) barplot, 3) pointplot, 4) distplot, 5) scatterplot 이 전부라고 보시면 되구요, 이 다섯 개에 익숙해주는 것이 가장 중요합니다. 앞서 설명한 판다스 수련법과 동일하게, 임의의 데이터를 가져와 원하는대로 시각화 시켜보는 것부터 추천드립니다.\n다섯 개의 시각화 기능에 익숙해지셨으면, 그 다음에는 Seaborn의&#160;<a href=\"http://seaborn.pydata.org/examples/index.html\" style=\"font-family:arial;font-size:12pt\">Gallery</a>를 스윽 훑어보시는걸 추천드립니다. Gallery에 있는 기능을&#160;전부 다 사용할 일은 제로라고 보시면 됩니다. 그러니 일일이 외워서 쓰실 필요 없구요, 그냥 \"아 Seaborn에는 이런 기능이 있구나~~\"라는 차원에서 훑어보시는게 좋습니다. (그리고 나중에 필요하면 가져다 쓰면 되겠죠)\n3. 인공지능 알고리즘 학습: 이번 수업에서 많이 다루지 않은 부분인데, 그 이유는 1주차에 설명드린대로 인공지능 알고리즘 수업은 굉장히 많은 대체제가 있습니다. 가장 먼저 추천드리는 건 언제나 Andrew Ng 교수가 진행하는&#160;<a href=\"https://www.coursera.org/learn/machine-learning\" style=\"font-family:arial;font-size:12pt\">Coursera</a>의 Machine Learing&#160;수업입니다. 제가 굉장히 많은 인공지능 수업을&#160;들어봤는데, 이 수업이 가장 쉬우면서도 이론적인 부분을&#160;자세하게 설명하고 있습니다.\n조금 더 디테일하고 광범위한 분야를 다루고 싶다면, 같은 Andrew Ng 교수가 진행한&#160;<a href=\"http://videolectures.net/stanfordcs229f07_machine_learning/\" style=\"font-family:arial;font-size:12pt\">CS229</a>수업을&#160;추천합니다. 그리고 혹시나 딥러닝에 관심이 많은 분들은, 컴퓨터 비전쪽은 스탠포드의&#160;<a href=\"http://cs231n.stanford.edu/\" style=\"font-family:arial;font-size:12pt\">CS231n</a>을, 자연어 처리(텍스트)는 스탠포드의&#160;<a href=\"http://web.stanford.edu/class/cs224n/\" style=\"font-family:arial;font-size:12pt\">CS224n</a>을추천 드립니다.\n4. 실전 경험: 이전에 저희가 진행했던 시각화를 활용한 분석 노하우 등은, 사실 이를 가르쳐주는 정규 수업은 존재하지 않습니다. (심지어 대학원 랩실에서도 거의 가르쳐주지 않는다고 보시면 됩니다) 보통은 이 쪽을&#160;전문적으로 하는 회사에 들어가서 많이 배우게 되는데요, 만일 회사에서 배울 수 없다면 제일 좋은 것은 역시&#160;<a href=\"https://www.kaggle.com/\" style=\"font-size:12pt\">캐글</a>입니다.\n저는 개인적으로, 학습 목적으로는 현재 진행중인 경진대회보다는 끝난 경진대회를 참여하는 것을&#160;추천 드립니다. 이유는 1) 몇몇 경진대회는 학습 목적으로 적합하지 않은 경우가 있는데, 현재 진행중인 경진대회에서는 이를 파악하기가 어렵습니다. 2) 끝난 경진대회는 언제나 Top Kaggler들이 자신들의 솔루션을공유하는데, 이 솔루션을&#160;보고 배우는 것이 큰 도움이 됩니다. 추천하는 경진대회는 다음과 같습니다.\n-&#160;<a href=\"https://www.kaggle.com/c/word2vec-nlp-tutorial\" style=\"font-family:arial;font-size:12pt;font-weight:bold\">Bag of Words Meets Bags of Popcorn</a>: 캐글의 자연어(텍스트) 처리 튜토리얼 중에 하나입니다. 가장 핫한 자연어처리 알고리즘인 Word2Vec을&#160;집중적으로 다루고 있습니다. 홈페이지에 디테일한 튜토리얼이 있으므로, 차근차근 따라하면서 학습하시면 됩니다.\n-&#160;<a href=\"https://www.kaggle.com/c/home-depot-product-search-relevance\" style=\"font-family:arial;font-size:12pt;font-weight:bold\">Home Depot Product Search Relevance</a>: Home Depot 이라는 회사에서 개최한 자연어처리 경진대회입니다. 검색어를 넣으면 그에 일치하는 상품을&#160;찾아주는 검색엔진 경진대회이며, 다른 자연어처리 경진대회에 비해 많은 참가자가 참석하였으며, 그만큼 다양한 솔루션이 공유되고 있습니다.&#160;<a href=\"http://blog.kaggle.com/2016/05/18/home-depot-product-search-relevance-winners-interview-1st-place-alex-andreas-nurlan/\" style=\"font-family:arial;font-size:12pt\">1</a>등과&#160;2</a>등, 그리고&#160;<a href=\"http://blog.kaggle.com/2016/06/01/home-depot-product-search-relevance-winners-interview-3rd-place-team-turing-test-igor-kostia-chenglong/\" style=\"font-family:arial;font-size:12pt\">3</a>등의 솔루션이 각각&#160;공개되어 있습니다.\n-&#160;<a href=\"https://www.kaggle.com/c/digit-recognizer\" style=\"font-family:arial;font-size:12pt;font-weight:bold\">Digit Recognizer</a>: 캐글의 이미지 경진대회입니다. 일명 MNIST 데이터셋이라고, 우편번호 필기체 데이터셋에서 숫자 0에서부터 9까지를 맞추는 경진대회입니다. 가장 쉬운 이미지 경진대회이며, 많은 곳에서 튜토리얼로 사용되고 있습니다. 이미지 처리에 관심 있는 분들은 이 경진대회의&#160;<a href=\"https://www.kaggle.com/c/digit-recognizer#tutorial\" style=\"font-size:12pt\">튜토리얼</a>을&#160;하나하나 따라하는 것을&#160;추천 드립니다.\n-&#160;<a href=\"https://www.kaggle.com/c/noaa-right-whale-recognition\" style=\"font-family:arial;font-size:12pt;font-weight:bold\">NOAA Right Whale Recognition</a>: 이미지 경진대회인데, 일명 돌고래의 Face Recognition이라고 보시면 됩니다. 캐글 내에서 가장 유명한 이미지 경진대회 중 하나이며, 많은 솔루션과 노하우들이 공개되어 있습니다. 우승을&#160;차지한&#160;<a href=\"http://deepsense.io/\" style=\"font-family:arial;font-size:12pt\">deepsense.io</a>&#160;가 압도적인 점수차로 1등을&#160;차지한 것으로도 유명합니다. 솔루션은&#160;<a href=\"https://blog.deepsense.ai/deep-learning-right-whale-recognition-kaggle/\" style=\"font-size:12pt\">이</a> 곳에 공개되어 있습니다.\n-&#160;<a href=\"https://www.kaggle.com/c/two-sigma-financial-modeling\" style=\"font-family:arial;font-size:12pt;font-weight:bold\">Two Sigma Financial Modeling Challenge</a>: 투 시그마(<a href=\"https://www.twosigma.com/\" style=\"font-family:arial;font-size:12pt\">Two Sigma</a>) 라는 세계적으로 유명한 헤지펀드 회사에서 주최한 경진대회입니다. 주식거래나 시스템 트레이딩, 또는 이를 활용한 다양한 알고리즘(비트코인 자동 트레이딩 등)에 관심 있는 분들은 큰 공부가 될 것입니다.&#160;<a href=\"http://blog.kaggle.com/2017/05/25/two-sigma-financial-modeling-challenge-winners-interview-2nd-place-nima-shahbazi-chahhou-mohamed/\" style=\"font-family:arial;font-size:12pt\">2</a>등과&#160;5</a>등의 솔루션이 공개되어 있습니다.\n-&#160;<a href=\"https://www.kaggle.com/c/instacart-market-basket-analysis/\" style=\"font-family:arial;font-size:12pt;font-weight:bold\">Instacart Market Basket Analysis</a>: 인스타카트(Instacart) 라는 식음료 배달 스타트업에서 주최한 경진대회입니다. 고객이 특정 상품을&#160;구매했을&#160;때, 해당 상품을&#160;재구매할것인지 여부를 맞추는 경진대회라고 보시면 됩니다. 저희가 이번 입문반에서 진행한 Titanic이나 Bike Sharing Demand 경진대회와 유사하지만, 데이터가 좀 더 많고 다양한 컬럼을&#160;다루고 있습니다.\n-&#160;<a href=\"https://www.kaggle.com/c/airbnb-recruiting-new-user-bookings\" style=\"font-family:arial;font-size:12pt;font-weight:bold\">Airbnb New User Bookings</a>: 에어비엔비(AirBnB)에서 주최한 경진대회입니다. 신규 사용자의 첫 번째 숙소 예약을&#160;맞추는 경진대회이며, 이 경진대회는 특이하게 AirBnB의 데이터사이언스 팀의 리쿠르팅을&#160;목적으로 주최하였습니다. (=좋은 성적을&#160;올릴 경우 에어비엔비에 Job Interview를 할 수 있는 기회가 주어집니다)&#160;<a href=\"http://blog.kaggle.com/2016/03/17/airbnb-new-user-bookings-winners-interview-2nd-place-keiichi-kuroyanagi-keiku/\" style=\"font-family:arial;font-size:12pt\">2</a>등과&#160;<a href=\"http://blog.kaggle.com/2016/03/07/airbnb-new-user-bookings-winners-interview-3rd-place-sandro-vega-pons/\" style=\"font-family:arial;font-size:12pt\">3</a>등의 솔루션이 공개되어 있습니다.\n이상입니다.&#160;앞으로&#160;좋은 내용 자주 공유하도록 하겠습니다. ㅎㅎ\n그럼 즐거운 하루 보내세요~!"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6875,
+    "w": 600,
+    "content": "<a href=\"https://drive.google.com/file/d/0BwxuHmMb3nZmU0RUSTdlNnpfbUU/view?usp=drive_web\">"
+  }
+];
+const CONTENT_HASH = 'f87b003f';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

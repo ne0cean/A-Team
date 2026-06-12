@@ -6,141 +6,542 @@
 <title>타이탄의 도구들</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">타이탄의 도구들</span>
-  <span class="t-date">2017년 5월 25일 목요일</span>
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">타이탄의 도구들</div>
+<div class="date">2017년 5월 25일 목요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">타이탄의 도구들<br>		<br>		<br>	<br>	<br>		<br>			<br>삶의 유일한 배움은 마이크로micro에서 매크로macro를 찾아내는 것이다.”<br>			<br><br>			<br>• 유발 하라리의 《사피엔스》, 찰스 멍거의 《불쌍한 찰리 이야기》, 로버트 치알다니의 《설득의 심리학》, 빅터 프랭클의 《죽수용소에서》, 헤르만 헤세의 《싯다르타》를 다른 책들보다 훨씬 더 칭찬하고 더 많이 인용한다.<br>			<br>• 유발 하라리의 《사피엔스》, 찰스 멍거의 《불쌍한 찰리 이야기》, 로버트 치알다니의 《설득의 심리학》, 빅터 프랭클의 《죽<br>			<br>명상록<br>			<br>잠자리를 정리하라<br>			<br><br>			<br>아르킬로코스의 명언을 마음에 품고 산다. “우리는 기대하는 수준까지 올라가는 게 아니라, 훈련한 수준까지 떨어진다.”<br>			<br><br>			<br>명상하라 헤드스페이스Headspace나 캄Calm등의 앱ap<br>			<br><br>			<br>아침일기</div>
-<div class="block block-image" data-idx="1"><img src="../../attachments/7ff4dbce8a.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-text" data-idx="2" contenteditable="true">책 창의성을 지휘하라<br>			<br><br>			<br>당장 시작하지 못하는 가장 큰 이유는 게으름 때문이 아니라 ‘두려움’ 때문이라는 것을. 실패하면 인생을 망칠 수도 있다는 불안<br>			<br><br>			<br>해지기 시작했다.”<br>			<br>피터 틸도 맞장구를 친다. “다음에 등장할 빌 게이츠는 운영체제를 개발하지 않을 것이다. 다음에 등장할 래<br>			<br>제를 개발하지 않을 것이다. 다음에 등장할 래리 페이지나 세르게이 브린은 검색 엔진을 만들지 않을 것이다. 그리고 다음에 등장<br>			<br>마크 주커버그는 소셜 네트워크를 창조하지 않을 것이다. 당신이 그들을 멋지게 모방했다는 건 그들에게서 아무것도 배우지 못했다는<br>			<br><br>			<br>첫째, ‘내가 매일 떠올리는 문제들 중 아직 아무도 해결하지 못한 것은 무엇인가?’<br>			<br><br>			<br>독점하라<br>			<br><br>			<br>매일 10분 10개의 아이디어<br>			<br><br>			<br>. “첫 걸음을 떼는 게 너무 힘들게 느껴지는 아이디어는 버려라. 그건 갖고 있을수록 계속 머릿속만 복잡해진다. <br>			<br><br>			<br>아이디어는 무조건 많아야 하고, 아이디어의 실행 플랜은 무조건 간단해야 한다. <br>			<br><br>			<br>내가 새롭게 만들 수 있는 낡은 아이디어 10가지<br>			<br>• 내가 직접 발명할 수 있는 우스꽝스러운 물건 10가지(인공지능 변기 같은<br>			<br>• 내가 쓸 수 있는 10권의 책<br>			<br>• 구글, 아마존, 트위터 등을 이용한 사업 아이디어 10가지<br>			<br>• 내가 아이디어를 보낼 수 <br>			<br>사람 10명<br>			<br>• 내가 촬영할 수 있는 팟캐스트나 동영상 아이디어 10가지</div>
-<div class="block block-image" data-idx="3"><img src="../../attachments/abab3f8d87.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-text" data-idx="4" contenteditable="true">서촌 한옥마을에 살자<br>			<br><br>			<br>모든 투자는 ‘사람’에게 하는 것이다. <br>			<br><br>			<br>수준 높은 모임에 참석하라<br>			<br>조언했다. “초대받지 않았지만 내가 가고 싶은 모임엔 최대한 참석해서 어떻게 하면 그 자리에 있는 사람들에게 도움이 될지 방법을 찾아야한다<br>			<br><br>			<br>강력한 의견, 유연한 수용<br>			<br><br>			<br>평범한 사람들의 보편적 인정과 동의<br>			<br>그걸 뛰어남이라고<br>			<br>독창성은 소수만 깨달은 것을<br>			<br>아는것이다.<br>			<br><br>			<br>자멸적 습관<br>			<br><br>			<br>성과를 내는 날을  성과를 내지 못하는 날보다 많이 만들것<br>			<br>사랑, 즐거움<br>			<br><br>			<br>기본기 세개를 엮어라<br>			<br>글쓰기. 아이디어.  ?<br>			<br><br>			<br>1000명의 유료팬을 만들어라<br>			<br><br>			<br> 작가 아나이스 닌Anais Nin의 글을 발견하고는 크게 고개를 끄덕였다.<br>			<br>“인생은 용기의 양에 따라 줄어들거나, 늘어난다.</div>
-<div class="block block-image" data-idx="5"><img src="../../attachments/53b88dc1a9.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-image" data-idx="6"><img src="../../attachments/2cb3ff7a90.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-image" data-idx="7"><img src="../../attachments/29f8608dad.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-image" data-idx="8"><img src="../../attachments/8c73ece52a.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-image" data-idx="9"><img src="../../attachments/1127b11376.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-image" data-idx="10"><img src="../../attachments/ed71b1b109.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-text" data-idx="11" contenteditable="true">멋진일. 감사리스트</div>
-<div class="block block-image" data-idx="12"><img src="../../attachments/34360a0732.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-image" data-idx="13"><img src="../../attachments/e1be98e872.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-text" data-idx="14" contenteditable="true">Deloading</div>
-<div class="block block-image" data-idx="15"><img src="../../attachments/36a7b68abc.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-image" data-idx="16"><img src="../../attachments/03ef4f2e97.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-image" data-idx="17"><img src="../../attachments/c5c7c53171.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-image" data-idx="18"><img src="../../attachments/a3390e543f.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-image" data-idx="19"><img src="../../attachments/ae03ffb605.png" alt="타이탄의 도구들" loading="lazy" onerror="this.style.display='none'"></div>
-<div class="block block-text" data-idx="20" contenteditable="true">케톤식이요법<br>			<br><br>			<br>윔 호프 호홉법<br>			<br><a href="https://spanish-adventure-with-tito.tistory.com/entry/%EB%A9%B4%EC%97%AD%EB%A0%A5-%EB%86%92%EC%9D%B4%EB%8A%94-%EB%B2%95-%EC%9C%94-%ED%98%B8%ED%94%84-%ED%98%B8%ED%9D%A1%EB%B2%95-4%EB%8B%A8%EA%B3%84-%EA%B7%80%EB%84%A4%EC%8A%A4-%ED%8E%A0%ED%8A%B8%EB%A1%9C%EC%9D%98-%EC%9B%B0%EB%B9%99%EC%8B%A4%ED%97%98%EC%8B%A4" target="_blank">https://spanish-adventure-with-tito.tistory.com/entry/%EB%A9%B4%EC%97%AD%EB%A0%A5-%EB%86%92%EC%9D%B4%EB%8A%94-%EB%B2%95-%EC%9C%94-%ED%98%B8%ED%94%84-%ED%98%B8%ED%9D%A1%EB%B2%95-4%EB%8B%A8%EA%B3%84-%EA%B7%80%EB%84%A4%EC%8A%A4-%ED%8E%A0%ED%8A%B8%EB%A1%9C%EC%9D%98-%EC%9B%B0%EB%B9%99%EC%8B%A4%ED%97%98%EC%8B%A4</a></div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note-타이탄의-도구들';
+const SAVE_KEY = 'board-타이탄의-도구들';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 12,
+    "y": 122,
+    "w": 600,
+    "content": "삶의 유일한 배움은 마이크로micro에서 매크로macro를 찾아내는 것이다.”\n• 유발 하라리의 《사피엔스》, 찰스 멍거의 《불쌍한 찰리 이야기》, 로버트 치알다니의 《설득의 심리학》, 빅터 프랭클의 《죽수용소에서》, 헤르만 헤세의 《싯다르타》를 다른 책들보다 훨씬 더 칭찬하고 더 많이 인용한다.\n• 유발 하라리의 《사피엔스》, 찰스 멍거의 《불쌍한 찰리 이야기》, 로버트 치알다니의 《설득의 심리학》, 빅터 프랭클의 《죽\n명상록\n잠자리를 정리하라\n아르킬로코스의 명언을 마음에 품고 산다. “우리는 기대하는 수준까지 올라가는 게 아니라, 훈련한 수준까지 떨어진다.”\n명상하라 헤드스페이스Headspace나 캄Calm등의 앱ap\n아침일기"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 346,
+    "w": 351,
+    "h": 624,
+    "src": "ba29e3291b.png",
+    "caption": "아침에 대답해야 하는 내용: 내가 감사하게 여기는 것들 ㉦- ㉣- ㉭- 오늘을 기분 좋게 만드는 것은? ㉦- ㉣- ㉭- 오늘의 다짐 ㉦- ㉣- ㉭- 밤에 써야 하는 내용: 오늘 있었던 굉장한 일 3가지 ㉦- ㉣- ㉭- 오늘을 어떻게 더 좋은 날로 만들었나? ㉦- ㉣- ㉭- 40/443"
+  },
+  {
+    "type": "text",
+    "x": 12,
+    "y": 978,
+    "w": 600,
+    "content": "책 창의성을 지휘하라\n당장 시작하지 못하는 가장 큰 이유는 게으름 때문이 아니라 ‘두려움’ 때문이라는 것을. 실패하면 인생을 망칠 수도 있다는 불안\n해지기 시작했다.”\n피터 틸도 맞장구를 친다. “다음에 등장할 빌 게이츠는 운영체제를 개발하지 않을 것이다. 다음에 등장할 래\n제를 개발하지 않을 것이다. 다음에 등장할 래리 페이지나 세르게이 브린은 검색 엔진을 만들지 않을 것이다. 그리고 다음에 등장\n마크 주커버그는 소셜 네트워크를 창조하지 않을 것이다. 당신이 그들을 멋지게 모방했다는 건 그들에게서 아무것도 배우지 못했다는\n첫째, ‘내가 매일 떠올리는 문제들 중 아직 아무도 해결하지 못한 것은 무엇인가?’\n독점하라\n매일 10분 10개의 아이디어\n. “첫 걸음을 떼는 게 너무 힘들게 느껴지는 아이디어는 버려라. 그건 갖고 있을수록 계속 머릿속만 복잡해진다.\n아이디어는 무조건 많아야 하고, 아이디어의 실행 플랜은 무조건 간단해야 한다."
+  },
+  {
+    "type": "text",
+    "x": 12,
+    "y": 1282,
+    "w": 600,
+    "content": "내가 새롭게 만들 수 있는 낡은 아이디어 10가지\n• 내가 직접 발명할 수 있는 우스꽝스러운 물건 10가지(인공지능 변기 같은\n• 내가 쓸 수 있는 10권의 책\n• 구글, 아마존, 트위터 등을 이용한 사업 아이디어 10가지\n• 내가 아이디어를 보낼 수\n사람 10명\n• 내가 촬영할 수 있는 팟캐스트나 동영상 아이디어 10가지"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 1446,
+    "w": 351,
+    "h": 624,
+    "src": "a989f9aacc.png",
+    "caption": "• 중간 상인을 없앨 수 있는 업계 10곳 • 다른 사람들은 종교처럼 떠받들지만 나는 동의 하지 않는 10가지 물건-이나 가치 (대학 진학, 내 집 마련, 메이저리그, 스마트폰 등) • 내가 예전에 쓴 짧은 메모나 게시물을 이용해 돈을 벌 수 있는 10가지 방법 • 친구가 되고 싶은 전혀 모르는 사람 10명 (그런 다음 그 들과 연락하는 첫 번째 단계가 무엇일지 모색한다) • 어제 배운 것 10가지 • 오늘 평소와 다르게 할 수 있는 일 10가지 • 시간을 절약할 수 있는 10가지 방법 전혀 다른 이야기를 찾아내라 결국 모든 아이디어는 &#39;이야기를 위해 존재한다. 큰 성공을 거둔 인물들의 공통점 중 하나는 많은 사람 들을 사로잡는 매력적인 이야기를 가졌다는 것이다. 아이디어는 이야기의 입구와도 같다. 세스 고딘은 이렇게 말했다. “우리는 잠잘 곳도, 먹을 것도 풍족 한 곳에 사는데 자꾸만 잘못된 것들을 떠올리는 악 순환에 빠지곤 한다. 얼마나 많이 거절당했는지, 일 이 제대로 풀리지 않은 경우가 얼마나 많았는지를 시도 때도 없이 떠올린다. 누군가의 마음을 상하게 하거나 배신하거나 실망시켰던 일들 또한 기회만 되면 떠올린다. 대체 왜 그래야 할까? 왜 그것들을 기억해야 할까? 그런 기억들이 우리를 더 나은 사 66/443"
+  },
+  {
+    "type": "text",
+    "x": 12,
+    "y": 2078,
+    "w": 600,
+    "content": "서촌 한옥마을에 살자\n모든 투자는 ‘사람’에게 하는 것이다.\n수준 높은 모임에 참석하라\n조언했다. “초대받지 않았지만 내가 가고 싶은 모임엔 최대한 참석해서 어떻게 하면 그 자리에 있는 사람들에게 도움이 될지 방법을 찾아야한다\n강력한 의견, 유연한 수용\n평범한 사람들의 보편적 인정과 동의\n그걸 뛰어남이라고\n독창성은 소수만 깨달은 것을\n아는것이다.\n자멸적 습관\n성과를 내는 날을  성과를 내지 못하는 날보다 많이 만들것\n사랑, 즐거움\n기본기 세개를 엮어라\n글쓰기. 아이디어.  ?\n1000명의 유료팬을 만들어라\n작가 아나이스 닌Anais Nin의 글을 발견하고는 크게 고개를 끄덕였다.\n“인생은 용기의 양에 따라 줄어들거나, 늘어난다."
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 2462,
+    "w": 351,
+    "h": 624,
+    "src": "2061f4a441.png",
+    "caption": "• 중간 상인을 없앨 수 있는 업계 10곳 • 다른 사람들은 종교처럼 떠받들지만 나는 동의 하지 않는 10가지 물건-이나 가치 (대학 진학, 내 집 마련, 메이저리그, 스마트폰 등) • 내가 예전에 쓴 짧은 메모나 게시물을 이용해 돈을 벌 수 있는 10가지 방법 • 친구가 되고 싶은 전혀 모르는 사람 10명 (그런 다음 그 들과 연락하는 첫 번째 단계가 무엇일지 모색한다) • 어제 배운 것 10가지 • 오늘 평소와 다르게 할 수 있는 일 10가지 • 시간을 절약할 수 있는 10가지 방법 전혀 다른 이야기를 찾아내라 결국 모든 아이디어는 &#39;이야기를 위해 존재한다. 큰 성공을 거둔 인물들의 공통점 중 하나는 많은 사람 들을 사로잡는 매력적인 이야기를 가졌다는 것이다. 아이디어는 이야기의 입구와도 같다. 세스 고딘은 이렇게 말했다. “우리는 잠잘 곳도, 먹을 것도 풍족 한 곳에 사는데 자꾸만 잘못된 것들을 떠올리는 악 순환에 빠지곤 한다. 얼마나 많이 거절당했는지, 일 이 제대로 풀리지 않은 경우가 얼마나 많았는지를 시도 때도 없이 떠올린다. 누군가의 마음을 상하게 하거나 배신하거나 실망시켰던 일들 또한 기회만 되면 떠올린다. 대체 왜 그래야 할까? 왜 그것들을 기억해야 할까? 그런 기억들이 우리를 더 나은 사 66/443"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 3094,
+    "w": 351,
+    "h": 624,
+    "src": "24bccb95f1.png",
+    "caption": "을 선택할 것인지, 더 큰 가능성을 놓치고 있는 것 은 아닌지의 여부로 결정된다는 사실을 생생하게 알게 된다.&quot; 나는 배거본더가 되기로 결정했고, 유럽행 편도 티켓을 끊었다. 모험의 지도를 그리면서 물리적이고 심리적인 짐들을 지워나가기 시작했다. 아무런 재앙 = 일어나지 않았다. 대신 아주 새로운 날들이 펼쳐 졌다. 회사는 예전보다 더 잘 굴러7갔다. 1년이 넘는 시간 동안 아무 걱정 없이 회사가 부쳐주는 돈으로 전 세계를 여행할 수 있었다. 강력한 행동을 끌어내는 Q&amp;A 두려움 때문에 점프를 하지 못하고 있다면 아래의 질문을 읽고 답을 적어보라. 답을 열심히 생각하지 마라. 그냥 생각나는 대로 쏟아내는 것이 더 효과적 이다. 답을 적은 후에는 절대 그 답을 편집하지 마 라. 길게 쓰는 것을 목표로 삼아라. 한 질문에 몇 분 정도는 사용토록 하라. 1. 당신의 악몽, 즉 당신이 지금 생각하고 있는 일을 행동에 옮길 때 발생할 수 있는 최악의 상황 을 정의하라. 당신에게 꼭 필요한 큰 변화를 추구했 을 때 따를 것 같은 의심과 두려움, &#39;만약&#39;의 상황은 무엇인가? 매우 구체적으로 떠올려본다. 삶이 끝장 나는가? 1~10까지 평가한다면? 이런 일들이 실제로 211/443"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 3726,
+    "w": 351,
+    "h": 624,
+    "src": "4902c6d240.png",
+    "caption": "일어날 가능성은 얼마나 되는가? 2. 최악의 시나리오가 현실이 되었을 때 거기서 탈출하는 데는 시간이 얼마나 걸릴 것 같은가? 어 떤 단계를 거치면 가장 빠르게 회복해 예전 상태로 돌아갈 수 있을까? 아니면 최악의 상황에서도 여전 히 나는 상황을 다시 통제하는 힘을 발휘해 새로운 길을 열 수는 없을까? 3. 반면에, 인생에 긍정적인 영향을 끼칠 좀 더 가능성이 큰 시나리오가 가져다줄 성과는 무엇인가? 최악의 시나리오를 파악한 후에는 좀 더 가능성이 크거나 긍정적인 성과에 대해 생각해본다. 그것은 내부적일 수도(자신감과 자존감의 고취 등,, 외부적일 수도 있다. 1~10으로 평가할 때 어느 정도인가? 일정 수준의 좋은 성과가 나올 가능성이 얼마나 되는가? 당신보 다 덜 똑똑한 사람이 해낸 전례가 있는 일인가? 4. 오늘 직장에서 해고된다면 생계는 어떻게 유지 할 것인가? 다른 선택권을 시험해보기 위해 직장을 그만둔다면, 그 선택권이 별로였을 때 다시 예전 직 장이나 커리어로 되돌아올 수 있는 방법은 무엇인 가? 5. 두려움 때문에 미루고 있는 일이 무엇인가? 사 람들이 가장 두려워하는 일은 꼭 해야만 하는 일인 경우가 많다. 꼭 해야 할 행동을 하지 못하게 막는 212/443"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 4358,
+    "w": 351,
+    "h": 624,
+    "src": "2a45c6b025.png",
+    "caption": "것은, 알 수 없는 결과에 대한 두려움이다. 최악의 상황을 정의해보고 받아들이고 행동을 하라. 이마에 새겨 넣어야 할 정도로 중요한 이 말을 다시 한 번 반복하겠다. 우리가 가장 두려워하는 일은 우리가 꼭 해야만 하는 일인 경우가 많다. 성공은 그 사람 이 얼마나 많은 불편한 대화를 기꺼이 할 준비가 되어 있는지로 측정된다. 매일 두려운 일을 하나씩 하겠다고 다짐하라. 나는 일면식도 없는 유명 인사 나 CEO들을 접촉해 조언을 구하는 일을 열정적으 로 해나갔다. 처음엔 정말 어려웠지만 이제는 자연 스러운 습관이 되었다. 6. 행동을 연기함으로써 금전적•감정적•물리적으로 어떤 대가를 치르고 있는가? 우리는 행동에 따르는 잠재적인 단점만 생각해선 안 된다. 행동하지 않음 에 따르는 끔찍한 비용 또한 구체적으로 측정할 줄 알이야 한다. 지금 당신을 열광하게 하는 목표를 추 구하지 않는다면 1년, 5년, 10년 후 어떤 모습일까? 어쩔 수 없이 앞으로 10년이라는 소중한 시간 동안 전혀 성취감을 느끼지 못하는 일을 계속 해야만 한 다면? 10년 후가 실망과 후회로 가득한 길이 되리라 는 사실을 100퍼센트 확신할 수 있다면 당장 뾰족 한 대안이 떠오르지 않는다 해도, 지금 때려치워라. 때려치우는 것도 하나의 가치 있는 행동이다. 213/443"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 4990,
+    "w": 351,
+    "h": 624,
+    "src": "139efe8edb.png",
+    "caption": "7. 언젠가 꼭 할 것이지만 때를 기다리고 있는 것 은 무엇인가? 장담하건대 &#39;좋은 타이밍은 없다. 당 신은 그저 다른 사람들과 마찬가지로 무서울 뿐이 다. 행동하지 않음에 따르는 비용을 측정하고, 가장 두려운 실수가 실제로 일어날 가능성은 낮다는 사 실을 깨닫고, 남보다 앞서가는 사람들이 가진 중요 한 습관을 길러라. 바로 &#39;실천&#39;이다. 강한 사람들은 미리 연습한다 《월든》의 작가 헨리 데이비드 소로는 말했다. “우리 가 얻을 수 있는 부유함은 우리가 기꺼이 내려놓巨 수 있는 물건의 숫자에 비례한다.&quot; 두려움을 내려놓을 수 있는 또 다른 방법은 두려 움을 &#39;리허설&#39; 해보는 것이다. 분기에 한 번씩 정기 적으로 최악의 시나리오를 자신에게 조금씩 주입시 키는 것이다. 네이비 실NavySEALs을 지휘했던 조코 윌링크는 내게 이렇게 말했다. “네이비 실이 최강의 팀이 된 것은 평소에 극한 상황을 설정해 계속 훈련했기 때문이 다. 그러면 고통과 절망, 두려움 같은 감각들이 둔 해진다. 그래야 진짜 상황이 닥쳤을 때 훌륭하게 대 처한다. 평소 이런 훈련을 하면 실전에서는 생각지 도 못한 힘이 생겨나기도 한다.&quot; 앞에서 나는 철학자 세네카의 책을 읽다가 머릿 214/443"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 5622,
+    "w": 351,
+    "h": 624,
+    "src": "fdaeb8a415.png",
+    "caption": "용할 수 있는 모든 &#39;지산*을 적어놓은 다음 그 리 스트에 맞춰 영화를 만드는 것을 의미한다. 그의 이 야기는 이렇게 시작된다. “나는 내가 가진 것들을 모두 살펴보았다. 친구 카를로스가 멕시코에 목장을 갖고 있었다. 악당이 숨어 있을 만한 장소로 딱이었다. 키를로스의 사촌 은 술집 주인이었다. 술집은 으레 첫 싸움이 펼쳐지 는 장소 아닌가? 나쁜 남자들이 모이는 곳이니까. 그의 또 다른 사촌은 버스 한 대를 소유하고 있었 다. 그래서 버스에서 벌어지는 액션을 영화 중간에 삽입했다. 그에게는 핏불 테리어도 있었다. 그래서 그 개도 출연시켰다. 나의 또 다른 친구는 야생에서 우연히 잡은 거북이를 키우고 있었다. 거북이도 출 연할 수 있게 시나리오를 수정했다. 촬영을 위해 동 물을 다루는 전문가를 따로 섭외한 것처럼 보이면 영화의 가치가 올라간다.&quot; 로버트는 거의 빈털터리였지만 이처럼 오직 자신 에게 주어진 것들만을 바탕으로 시나리오를 수정하 고 영회를 만들었다. 총 제작비는 7,000달러가 들었 다. 그는 이 영화를 7만 달러만 주면 언제든 팔아치 울 생각이었다. 그런데 뜻밖에도 컬럼비아 영화사가 배급권을 사들여 개봉했고, 급기야 선댄스 영화제에 서 상까지 받았다. 그는 수상식장에서 이렇게 말했 238/443"
+  },
+  {
+    "type": "text",
+    "x": 12,
+    "y": 6254,
+    "w": 600,
+    "content": "멋진일. 감사리스트"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 6298,
+    "w": 351,
+    "h": 624,
+    "src": "d646bf32ff.png",
+    "caption": "22 최고의 성과를 창출하는 사운드트랙 이 책의 서두에서 살펴본 바와 같이 타이탄들의 80 퍼센트 이상은 어떤 방식으로든 아침 명상을 한다. 그렇다면 나머지 20퍼센트는? 그들도 대부분 명상 과 비슷한 활동을 한다. 그 가운데 가장 흔한 패턴 은 집중력을 높이기 위해, 더 큰 성과를 위해 노래 한 곡이나 앨범 하나를 반복해서 듣는 것이었다. 그 들의 작업장에선 항상 다음과 같은 음악이 울려퍼 진다. • 암벽 등반의 떠오르는 젊은 스타 알렉스 호놀드 Al”。nn。1는 영화 〈라스트 모히칸〉의 사운드 트랙을 들 으며 컨디션을 점검한다. • 《여행의 기술》을 쓴 를프 포츠는 영화 〈사이드 웨이〉 〈웨딩 크래서〉 〈금발이 너무해〉의 음악을 만 든 작곡가 롤프 켄트*의 &#39;젠 이펙트 111 e / en Effect )르 일 하기 전 30분간 들어놓는다. 오토매틱의 CEO 매트 뮬렌웨그는 에이셉 로키 의 &#39;에브리데이Ev町day꽈 드레이크Drake의 &#39;원 댄스 A$AP Rocky 들으며 머릿속을 정리한다. • 세계 최고의 여성 장애물 달리기 선수인 아멜리 아 분은 스매싱 펌킨스의 &#39;투나잇 투나잇 Tonight Tonight 의 &#39;킵 유어 아이스 오픈 니드투브리드 NEEDTOBREATHE Keep Your Eyes 308/443"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 6930,
+    "w": 351,
+    "h": 624,
+    "src": "61f9f045af.png",
+    "caption": "*의 광팬이다. • 수학자이자 셰프인 크리스 영*은 폴 오켄폴 의 &#39;Live at the Rojan in Shanghai&#39;와 피트 Paul Oakenfold 통p예e仆n괵 &#39;EssentialMix&#39;에서 영감을 얻는다. • 유튜브의 철학자로 불리는 유명 저널리스트 제 이슨 실바dasonSflvae 한스 짐머가 만든 영화 〈인셉션〉 의 사운드트랙 &#39;타임—&#39;을 사랑한다. • 구글 임원 출신인 크리스 사카는 비우어-의 &#39;할렘 셰이크 &#39;, 제이 지와 칸에 웨스트가 함께 Harlem Shake 부르고 비욘세가 피처링한 &#39;리프트 수 Ü-Lfft0ff&#39;가 들어 져 있으면 엄청난 양의 이메일을 처리할 수 있다. 통상 타이탄들은 창의적인 작업을 할 때 앨범 한 두 개와 영화 한두 편을 고른다. 특히 베스트셀러를 많이 펴낸 작가들은 대부분 밤 11시에서 4시에 일 하는데, 집중력이 극대화되는 시간이기 때문이다. 그들의 가장 큰 특징은 같은 영화 와 음악 (종종 음성을 소거한) 을 계속 반복해서 듣거나, 들어놓는니는 것이다. 100 번도 넘게 본 영화가 있고 1,000번도 넘게 들은 음 악도 있다. 그들이 선택한 영화와 음악은 독창적인 작업, 즉 혼자만이 할 수 있는 작업에서 오는 고립 감을 훌륭하게 상쇄시켜준다. 이는 단순한 습관인 것처럼 보이지만, 당신도 꼭 가지면 좋을 습관이다. 한 편의 영화와 한 곡의 음 309/443"
+  },
+  {
+    "type": "text",
+    "x": 12,
+    "y": 7562,
+    "w": 600,
+    "content": "Deloading"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 7606,
+    "w": 351,
+    "h": 624,
+    "src": "d5a9553aab.png",
+    "caption": "쏟고 있다. 아멜리아는 비가 오고 추운 날에 달리기 연습하 는 걸 좋아한다. 자신의 경쟁자들은 그런 날씨에는 연습을 하지 않는다는 걸 알기 때문이다. 그녀는 이 렇게 말했다. “나는 세상에서 가장 빠르지 않다. 단 누구보다 역경은 잘 견딘다.&quot; 아멜리아만의 비법과 전술 아멜리아를 가장 지구력이 강한, 가장 역경을 잘 견 디는 최고의 선수로 만들어준 6가지 비법과 전술에 대해 소개해보자. 기수분해 젤라틴 + 비트 가루 :예전에 손상된 결합 조직을 회복시키려고 젤라틴을 섭취한 적이 있는데, 젤라틴을 찬물에 섞으면 갈매기 똥 같은 질 감이 되기 때문에 장기간 계속 먹기가 힘들었다. 그 런데 아멜리아가 물에 잘 섞이는 그레이트 레이크 사의 가수분해 젤라틴(녹색 라쀄을 소개해준 덕에 Great Lakes 내 미각과 관절이 구원받았다. 비트엘리트-같은 비트 가루를 1큰술 넣으면 젤라틴에서 소 발굽을 핥는 듯한 맛이 나는 걸 막을 수 있기 때문에 상황 이 180도 달라진다. 아멜리아는 경기 전이나 연습 전에 지구력을 향상시킬 목적으로 비트엘리트를 사 용하지만, 나는 그보다 훨씬 더 적극적으로 활용하 고 있다. 이걸로 시큼한 저탄수회물 젤리를 만들어 347/443"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 8238,
+    "w": 351,
+    "h": 624,
+    "src": "eed067c6a4.png",
+    "caption": "03 기록을 깨려면 온열 요법을 실시하라 론다 퍼시벌 패트릭*박사는 솔크 생물학 연구소*에서 임상 실험과 노 화 연구를 진행했고, 세인트 주드 아동병원 St. Jude Children&#39;s 에서 암과 미토콘드리아성 대사, 세포 소멸 Research Hospital 등을 집중 연구했다. 최근에는 비타민D가 뇌에서 세로토닌 생성을 조절할 수 있는 메커니즘과, 이것 이 조기 사망 및 신경정신 장애와 관련이 있다는 다양한 가능성을 내비치는 중요한 논문들을 발표했 다. 새롭게 떠오르는 체온 1도의 중요성 패트릭 박사를 이 책에서 소개하는 가장 큰 이유는 그가 &#39;온열 요법&#39; 전문가이기 때문이다. 온열 요법(계획 적인열노출,은 성장 호르몬 수치를 높이고 지구력을 대폭 형방시킨다. 일주일에 최소 4번 정도 운동이나 스트 레칭 후 71~77도의 온도에서 20분간 사우나를 하면 탁월한 효괴를 얻을 수 있다. 최소한 근육통은 크게 감소한다. 패트릭 박사는 지구력과 성장 호르몬에 초점을 맞춘 몇 가지 관찰 결과에 대해 이렇게 말한다. “한 연구를 통해, 운동을 한 뒤 일주일에 두 번, 30분씩 3주 동안 사우나를 하면 체력이 고갈될 때까지 달 352/443"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 8870,
+    "w": 351,
+    "h": 624,
+    "src": "0200c8cde8.png",
+    "caption": "릴 수 있는 시간이 기준점보다 32퍼센트 늘어난다 는 사실이 입증되었다. 이 특정한 실험에서는 32퍼 센트의 달리기 지구력 향상뿐 아니라 혈장량 7.1퍼 센트 증가, 적혈구 수 3.5퍼센트 증가 등의 결과도 나왔다.&quot; 그는 또한 섭씨 80도에서 20분간 사우나를 하고 30분 동안 열을 식한 뒤 다시 20분간 사우나를 하 면 성장 호르몬 수치가 기준치보다 두 배로 증가한 다고 설명한다. 반면에 섭씨 100도의 건열 사우나에 15분간 있다가 30분 동안 몸을 식히고 다시 사우나 를 15분 동안 하면 성장 호르몬이 5배 증가한다. 대 개의 경우 사우나를 마친 뒤에도 성장 호르몬 효과 가 두어 시간 정도 지속된다. 은욕과 사우나의 효과 온우浴도 성장 호르몬을 기준치보다 증가시키며, 사 우나와 온욕 모두 부상을 치료하는 역할을 하는 프 로락틴pr。la다m이 대량으로 분비되도록 한다는 연구 결 과가 있다. 나는 평소 뜨거운 욕조나 사우나에 20분 정도 들어가 있는데, 그 정도 시간만으로도 내 심박 동수를 크게 높일 수 있다. 니이놀핀dyn。叩hm이 분비되는 몇 분 동안은 불쾌감이 느껴져서 얼른 나가고 싶은 마음이 들지만 꾹 눌러 참는다(하지마 현기증이나 어지럼증이 일어나서 그런 건 아니다, 대개의 경우 이런 354/443"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 9502,
+    "w": 351,
+    "h": 624,
+    "src": "8d71847f93.png",
+    "caption": "를 신체 기능 형방을 위한 훌륭한 도구로 활용한다. 몸이 추위에 노출되면 면역 기능이 개선된다. 지방 손실이 늘어나며 기분이 극적으로 고조된다. 화가 빈센트 반 고호는 자신의 귀를 자른 뒤에 들어간 정신병원에서 하루 두 번씩 냉수욕을 하라는 처방 을 받기도 했다. 빔 호프는 이렇게 말했다. “찬 공기에 노출되면 일상에서 내가 겪는 모든 문제가 차분히 가라앉는 느낌이다. 근사한 냉기에 나를 노출시키면... 훌륭한 정화 능력이 발휘된다.&quot; 빔은 무서울 정도로 극단적인 냉기에 도전하지만 우리는 샤워를 할 때 (한번은 얼음이 언 호수에서 수영을 하다가 망막이 언 적도 있었다), 냉수로 &#39;마무리&#39;하는 수준에서 시작할 수 있다. 샤워 의 마지막 30~60초 정도를 완전히 찬물로만 하는 것이다. 나발 라바칸트, 조시 웨이츠킨, 그리고 내가 이 방법을 적극 활용하고 있다. 조시는 그의 어린 아들 책에게도 찬물 샤워를 시킨다. 책은 &#39;참을 수 없을&#39; 정도가 되면 &#39;너무 좋아!&#39;라고 말하도록 교육 을 받았고, 또래아이들보다 훨씬 건강하다. 찬물 샤워는 특히 운동을 한 후에 효과적이다. 앞 에서 설명한 &#39;온열요법&#39;과 함께 교대로 반복하면 금 상첨화다. 추위에 신체를 노출하는 운동은 우리의 심폐기능 363/443"
+  },
+  {
+    "type": "image",
+    "x": 12,
+    "y": 10134,
+    "w": 351,
+    "h": 624,
+    "src": "6ef5ec45b1.png",
+    "caption": "07 실력을 키울 생각이 없으면 포기하라 폴 레베스크 는 &#39;트리플H&#39;라는 이름으로 Paul Levesque, @TripleH 더 유명한 전직 프로 레슬러다. 그는 WYVE World Wrestling 에서 14차례나 세계 챔피언 자리에 올랐고, Entertainment 현재 WYVE의 탤런트, 라이브 이벤트, 크리에이티브 담당 수석부사장이기도 하다. 그에게는 세 명의 자녀가 있다. 그는 평소 밤 10 시부터 새벽 한 시 사이에 헬스장에서 운동을 한다. 그러고는 새벽 6시에 일어나 하루 일과를 시작한다. 새벽 한 시까지 운동을 했음에도 왜 그렇게 빨리 하루를 시작하느냐는 질문에 그는 이렇게 답했다. “아이들 때문이다. 아이들은 부모가 하라는 대로 하 지 않는다. 자신들이 본 대로 할 뿐이다. 따라서 어 른은 아이들의 본보기가 될 수밖에 없다. 운동을 하 는 모습, 일찍 일어나는 모습은 아이들에게 좋은 자 극을 준다.&quot; 이주 간단한 운동의 힘 폴은 매일 밤 여러 도시에서 벌어지는 경기에 참가 하느라 1년에 260일 이상 집을 떠나 생활한 적도 있다. 장기간 여행과 출장을 하게 되면 생활 리듬이 깨지게 마련이다. 자기 관리와 통제도 점점 느슨해 진다. 그래서 그는 간단하지만 강력한 규칙 하나를 372/443"
+  },
+  {
+    "type": "text",
+    "x": 12,
+    "y": 10766,
+    "w": 600,
+    "content": "케톤식이요법\n윔 호프 호홉법\nhttps://spanish-adventure-with-tito.tistory.com/entry/%EB%A9%B4%EC%97%AD%EB%A0%A5-%EB%86%92%EC%9D%B4%EB%8A%94-%EB%B2%95-%EC%9C%94-%ED%98%B8%ED%94%84-%ED%98%B8%ED%9D%A1%EB%B2%95-4%EB%8B%A8%EA%B3%84-%EA%B7%80%EB%84%A4%EC%8A%A4-%ED%8E%A0%ED%8A%B8%EB%A1%9C%EC%9D%98-%EC%9B%B0%EB%B9%99%EC%8B%A4%ED%97%98%EC%8B%A4</a>"
+  }
+];
+const CONTENT_HASH = '9312f8b7';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -153,33 +554,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

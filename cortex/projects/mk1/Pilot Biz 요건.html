@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pilot Biz 요건</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Pilot Biz 요건</div>
+<div class="date">2019년 1월 13일 일요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Pilot-Biz-요건';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 408,
+    "y": 43,
+    "w": 600,
+    "content": "Exit 안전판 조기확보\n계속해서 영위할 사업"
+  },
+  {
+    "type": "text",
+    "x": 1224,
+    "y": 91,
+    "w": 445,
+    "content": "대세상승장인 분야로 초기 단계에 들어가는 게 사업의 성패를 좌우해요. 제때 들어가면 여러 가지 기회가 맞물려 돌아가지만 늦게 들어가면 아무리 대단한 사람이라도 성공하기 어렵죠."
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 600,
+    "content": "한문장으로 비즈모델을 표현 가능해야한다.\n페인킬러나 비타민을 포함한.\n비즈니스 백서 작성\n메니페스토, 기업문화 및 철학\n버블과 문제들 어떻게 찾을 수 있을까?\nhttps://acquiredentrepreneur.tistory.com/m/27?fbclid=IwAR12mxGoxIj1Nj5YVkV3xOouhA7sUlgQc7MGyOYnsqKnx5taXlZbwHF0X2s</a>\n목적: 기반 다지기\n글로벌리 마진률 높은 산업 조사\n현금창출 능력 (Early Monetization)\n최소한의(현재가진+확보가능한) 자원으로 Start 가능\nPEST, 적시성\n버블을 찾아 공략하라\n마진률과 유휴자원 두 가지 버블\n칫솔 테스트\n유휴자원을 활용하라\n적정기술\n초고속 성장 스타트업들 벤치마크\n글로벌 확장성\n통신/ 에너지/ 운송 세가지가 역사를 바꾼다\n디스럽티브\n사람들이 좋아하는것\n투스브러쉬\n시공간\n내가 좋아하는\n변하지 않는 것을 공략하는 변하는 것.\n버블을공략할것\n할 수 있을것.\n추후 본원적 비즈와 연결되어야 한다\n시간 - 산업혁명 이래로 사람들의 시간은 단순 화폐가치로 등치되고 있다.\n많은 시간이 돈으로 치환되지는 않으나, 남의 시간을 살 때는 시간에 따른 요율을 적용한다.\n각자의 시간, 또 각자의 TPO에 따른 시간의 가치는 다르다.\n공간 - 주거비용과 소수에 의한 시장 왜곡\n관계와 연대 - 세상은 너무나 복잡해져서 분업화에 따른 파편화로 누가 누굴위해 무엇을 하고, 누가 희생되는지 알 수 없게 되어버렸다. 악의 평범성.\nIPO나 매각이 쉬울 것\n5G에  따른 변화, 블록체인, 모빌리티\n무엇이 변하고, 무엇이 변하지 않을 것인가\n플랫폼을 만들고 사람들이 채우게 하라\n유튜브, 옷디자인 올리고 투표로 제작\nAPI 경제 - 모든것을 분해한다.\n인터넷처럼 산업 자체가 성장할것. 크로마토그래피\n블록체인, 이머징\n홀로렌즈 공간을 바꾼다\nhttp://thenextweb.com/entrepreneur/2013/11/17/launch-startup-without-knowing-line-code/#!pxAz6</a>\n인터넷처럼 폭발저 성장하는 거시환경\n<a href=\"https://brunch.co.kr/@daeminpark/15\">https://brunch.co.kr/@daeminpark/15</a>\n<a href=\"http://toozajournal.tistory.com/698\">http://toozajournal.tistory.com/698</a>\n<a href=\"http://www.ttimes.co.kr/view.html?no=2018102514027745663\">http://www.ttimes.co.kr/view.html?no=2018102514027745663</a>\n<a href=\"https://m.news.naver.com/read.nhn?mode=LSD&mid=sec&sid1=101&oid=421&aid=0003520695\">https://m.news.naver.com/read.nhn?mode=LSD&mid=sec&sid1=101&oid=421&aid=0003520695</a>\n<a href=\"https://brunch.co.kr/@zamong/45?fbclid=IwAR3ANCVP5hmFFw2I3v4Hgy8-uUkaJQobevlAt8FxCrdlaag2_W-NkUbye2s\">https://brunch.co.kr/@zamong/45?fbclid=IwAR3ANCVP5hmFFw2I3v4Hgy8-uUkaJQobevlAt8FxCrdlaag2_W-NkUbye2s</a>\n<a href=\"https://brunch.co.kr/@zamong/45?fbclid=IwAR13ckll-AFsWJGy8bxgUYaCBN83oxHhiPLWzFjAaHTnpnTJGimSVrVMulQ\">https://brunch.co.kr/@zamong/45?fbclid=IwAR13ckll-AFsWJGy8bxgUYaCBN83oxHhiPLWzFjAaHTnpnTJGimSVrVMulQ</a>\n광고(네이버), 정기 회원제(넷플릭스), 부분 유료화 (레진코믹스), 콘텐츠 관련 독점 제품 판매(<a href=\"https://play.google.com/store/apps/details?id=com.hollacompany.hollabanana2&hl=ko\" style=\"font-family:medium-content-serif-font;font-size:13.5pt;background-color:white\">홀딱바나나</a>), 무료 상품 소개 콘텐츠와 상품 비교(<a href=\"https://www.newhak.com/\" style=\"font-family:medium-content-serif-font;font-size:13.5pt;background-color:white\">뉴학</a>), 패키지 구매(<a href=\"http://tlx.co.kr/\" style=\"font-family:medium-content-serif-font;font-size:13.5pt;background-color:white\">TLX PASS</a>), 상품 검색 및 주문/예약(배달의 민족)."
+  },
+  {
+    "type": "text",
+    "x": 912,
+    "y": 139,
+    "w": 600,
+    "content": "<a href=\"http://m.econovill.com/news/articleView.html?idxno=354167\" style=\"font-family:맑은 고딕\">드랍쉬핑</a>"
+  },
+  {
+    "type": "text",
+    "x": 816,
+    "y": 163,
+    "w": 600,
+    "content": "트레바리도 플랫폼\n화해도 구렇고\n새로운 것을 익숙한 방식으로, 익숙한 것을 새로운 방식으로"
+  },
+  {
+    "type": "text",
+    "x": 936,
+    "y": 247,
+    "w": 600,
+    "content": "미션을 달성하고, 소멸하는\n함께 문을 닫을 수 있는 기업을 만들고 싶다."
+  },
+  {
+    "type": "text",
+    "x": 840,
+    "y": 307,
+    "w": 600,
+    "content": "<a href=\"https://educast.com/course/startup/RS36\">https://educast.com/course/startup/RS36</a>\n<a href=\"http://www.ttimes.co.kr/view.html?no=2017070316287784778\">http://www.ttimes.co.kr/view.html?no=2017070316287784778</a>\n<a href=\"http://m.chosun.com/svc/article.html?sname=news&contid=2019070800197&fbclid=IwAR2uJ3kPxG2LQJbYmCODBwkIAyWecPltuxJ-kUZLGhZ6Rrl1p-jQiZJ-e6c&Dep0=m.facebook.com&utm_source=m.facebook.com&utm_medium=unknown&utm_campaign=news#Redyho\">http://m.chosun.com/svc/article.html?sname=news&contid=2019070800197&fbclid=IwAR2uJ3kPxG2LQJbYmCODBwkIAyWecPltuxJ-kUZLGhZ6Rrl1p-jQiZJ-e6c&Dep0=m.facebook.com&utm_source=m.facebook.com&utm_medium=unknown&utm_campaign=news#Redyho</a>"
+  },
+  {
+    "type": "text",
+    "x": 1512,
+    "y": 307,
+    "w": 450,
+    "content": "Sector는?\n\"기존에는 유전자 편집에 수만 달러의 비용이 들었지만, 크리스퍼 유전자 편집기술(CRISPR-Cas9)의 등장으로 앞으로는 같은 작업을 하면 30달러밖에 들지 않는다\""
+  },
+  {
+    "type": "text",
+    "x": 864,
+    "y": 797,
+    "w": 445,
+    "content": "일본 공유차\n<a href=\"https://news.v.daum.net/v/20190618104051484?f=m&fbclid=IwAR0Jxfar7kTnHgl1MQ-p6h1743I8yUZVaYtUrSVtJp-P7gs6uKHv_YwuFf4\">https://news.v.daum.net/v/20190618104051484?f=m&fbclid=IwAR0Jxfar7kTnHgl1MQ-p6h1743I8yUZVaYtUrSVtJp-P7gs6uKHv_YwuFf4</a>\n<a href=\"https://www3.nhk.or.jp/news/html/20190617/k10011955511000.html?fbclid=IwAR2oLm95BF4HB92JyKzJvzUON_hkQ0INtDZruU7wVEMTy8dJ5fBvH2klFdc\">커피 콩 부족</a>\n그때는 맞고 지금은 틀린것은 무엇인가\n한번도 묻지 아낳았던 질문을 하라"
+  },
+  {
+    "type": "text",
+    "x": 1248,
+    "y": 1133,
+    "w": 600,
+    "content": "산업경제와 달라진 환경에 적응 필요…디지털,&#160;네트워크,&#160;플랫폼,&#160;데이터에 집중해야&#160;\nWalmart, Exxon, Ford Motor Company&#160;등 규모,&#160;수직 통합,&#160;폐쇄형 물리적 시스템의 장점을 내세운 기업들의 시대는 저물어가고 있음\n&#160;\n&#160;-&#160;산업시대의 논리에 충실한 이들 기업의 실제 자산은 융통성이 없고,&#160;이동 또는 판매하는 데 많은 비용이\n&#160; &#160;소요되며,&#160;보유하고 있는 것 자체가 부담이 되는 경우도 발생\n&#160;\n&#160;-&#160;오늘날 고객과 투자자가 좋아하는 기업들은 물리적 자산 대신 소프트웨어,&#160;데이터,기타 기술을 창출하는\n&#160; &#160;업체들&#160;\n&#160;\n&#160;-&#160;특히 네트워크 또는 플랫폼 기반 비즈니스의 인기가 높아지면서,&#160;공유경제의 대표적 기업인&#160;Uber와\n&#160; &#160;AirBnB의 가치는 기업공개 시점에서&#160;General Motors나&#160;Marriott를 능가할 것으로 예상\n오늘날의 자동화 기반 경제가 과거의 산업 경제와 다른 점은 다음과 같은&#160;3가지 주요 트렌드의 상호작용을 통해 파악 가능&#160;\n&#160;\n&#160;-&#160;첫째,&#160;물리적 상품에서 디지털 상품으로 이동:&#160;산업 시대의 기업은 석유에서부터 세탁기,&#160;트럭에 이르는\n&#160; &#160;물리적 상품의 제조,&#160;유통,&#160;마케팅,&#160;판매에 중점을 둔 반면 플랫폼 중심의 회사는 소프트웨어,&#160;인공지능,\n&#160; &#160;네트워크에 집중\n&#160;\n&#160;-&#160;둘째,&#160;제품과 서비스에서 플랫폼,&#160;네트워크,&#160;데이터로 전환:&#160;플랫폼 기업들은 기존 회사와 달리 친구,&#160;사\n&#160; &#160;진,&#160;알고리즘,&#160;자동차,&#160;주택 및 데이터 등 자신의 자산을 다른 사람들이 활용할 수 있도록 장려하며\n&#160; &#160;Facebook, Airbnb, Uber, Pinterest, Yelp, eBay, Amazon, Apple&#160;등이 이 같은 추세에 부응&#160;\n&#160;\n&#160;-&#160;셋째,&#160;가치 창출의 원천이 석유에서 데이터로 전환&#160;:&#160;과거에는 기업의 자산을 측정하고 관리할 수있는 실\n&#160; &#160;행 가능한 시스템으로&#160;GAAP과&#160;CAPM이 대표적이었지만,&#160;오늘날 데이터 생산과 관련한 자산 가치는 이를\n&#160; &#160;통한 측정이 어려우며 오히려 무형적이고 측정하기 어려운 자산이 오늘날 기업 성장의 기초가&#160;&#160;되고 있음\n새로운 기업 시스템 도입을 위한&#160;5가지 접근 방식 제안&#160;\n이런 가운데,&#160;플랫폼,&#160;네트워크,&#160;인공지능 등을 기반으로 한 새로운 기업 시스템을 도입하기 위해서는 다음과 같은 접근 방법이 필요&#160;\n&#160;\n&#160;-&#160;첫째,&#160;자산의 소유권과 제조를 제3자에게 아웃소싱할 것&#160;&#160;\n&#160;\n&#160;-&#160;둘째,&#160;네트워크 및 개방형 프레임 워크를 기반으로 비즈니스를 구축할 것&#160;\n&#160;\n&#160;-&#160;셋째,&#160;비즈니스 모델을 다양화하고 변화를 주도할 것\n&#160;\n&#160;-&#160;넷째, GAAP&#160;회계를 대체할 수 있는 새로운 회계 프레임 크를 고려할 것&#160;\n&#160;\n&#160;-&#160;다섯째,&#160;오늘날의 기계학습 및 대안적인 데이터 세트를 활용할 것"
+  },
+  {
+    "type": "text",
+    "x": 1248,
+    "y": 2177,
+    "w": 600,
+    "content": "출처: <https://mail.naver.com/#%7B%22fClass%22%3A%22read%22%2C%22oParameter%22%3A%7B%22charset%22%3A%22%22%2C%22prevNextMail%22%3Atrue%2C%22threadMail%22%3Atrue%2C%22listScrollPosition%22%3A0%2C%22mailSN%22%3A%2262112%22%2C%22previewMode%22%3A2%7D%7D</a>>"
+  },
+  {
+    "type": "text",
+    "x": 144,
+    "y": 2360,
+    "w": 600,
+    "content": "제품, 영역, 자산legacy 엣지"
+  },
+  {
+    "type": "text",
+    "x": 1008,
+    "y": 3149,
+    "w": 459,
+    "content": "새로운 비즈니스를 내어놓으려는 창업자들은 창업 초기 제품이나 서비스를 만들고 고도화하는 데 집중합니다.&#160; 하지만 중요한 것은 핵심 오디언스를 찾아내고 제품 출시 전부터 이 오디언스를 자산화해야 합니다. 홈페이지를 미디어처럼 대하고 내가 만들고자 하는 제품,서비스의 소비자층을 위한 콘텐츠를 집중적으로 올리는 일을 제품,서비스 개발과 병행해야 하는데요.&#160; 인력이 많지 않으니 이런 일들은 뒤로 미뤄지는 경우가 많지만, 서비스를 이미 출시한 후에 마케팅을 고민하는 일은 사실은 우선순위가 바뀐 경우입니다.&#160; 콘텐츠를 통해 핵심 오디언스와의 연결 고리를 만드는 것이 실패의 확율을 줄이기 때문입니다.\n출처: <<a href=\"http://magazine.contenta.co/2018/08/%EB%B8%8C%EB%9E%9C%EB%93%9C%EC%A0%80%EB%84%90%EB%A6%AC%EC%A6%98-%EB%B8%8C%EB%9E%9C%EB%93%9C-%EC%99%80-%EB%AF%B8%EB%94%94%EC%96%B4/\">http://magazine.contenta.co/2018/08/%EB%B8%8C%EB%9E%9C%EB%93%9C%EC%A0%80%EB%84%90%EB%A6%AC%EC%A6%98-%EB%B8%8C%EB%9E%9C%EB%93%9C-%EC%99%80-%EB%AF%B8%EB%94%94%EC%96%B4/</a>>"
+  },
+  {
+    "type": "text",
+    "x": 1032,
+    "y": 3509,
+    "w": 600,
+    "content": "<a href=\"https://m.blog.naver.com/PostView.nhn?blogId=durandot&logNo=221488640600&proxyReferer=undefined&fbclid=IwAR393_U2bWV4qyD6CPcqRXRhgEgAaM7oE07-z3brpGe8LyrGjL4RmaVbryM\">간단한 앱 서비스 제작도 3,500만원씩 하는 이유</a>"
+  },
+  {
+    "type": "text",
+    "x": 168,
+    "y": 3695,
+    "w": 600,
+    "content": "고객과 데이타에 대한 집중이 오늘날 아마존을\n있게 만들었군요\n우리기업의 고객은 과연 누구인가?\n고객은 무엇을 좋은 하는가?\n고객은 무엇을 싫어 하는가?\n에  솔루션을 해결해 나가려는 노력을 한다면\n지금은 미미하게 출발하지안 향후에 좋은 기업으로\n발돋음 할 것으로 확신합니다\n(1) 진짜 기업가 정신 : 어떤 마음가짐을 가지고 사업을 시작해야 하나?\n좋은 쪽으로건, 나쁜 쪽으로건 부풀려지는 사업 이야기가 아니라, 진짜 사업의 모습과 그 사업을 만들어가는 진짜 기업가의 본질에 대해서 이해해야 한다. 창업 전에 이를 이해하는 것에는 세계적으로 유명한 투자자인 폴 그레이엄 에세이만한 것이 없는 같은데 그 중에서도 특히 추천할만한 세 가지를 골랐다.\n<폴그레이엄 에세이</a>>\n\n스타트업, 어떻게 시작해야 하나? (How to Start a Startup?)\n\n원문 : http://paulgraham.com/start.html</a>\n번역 :&#160;http://www.jimmyrim.com/159</a>\n\n스타트업에게 말해주고픈 13가지 (Startups in 13 Sentences)\n\n원문 :&#160;http://paulgraham.com/13sentences.html</a>\n번역 :&#160;http://www.jimmyrim.com/160</a>\n\n내 안에서 찾는 스타트업 아이디어 (Organic Startup Ideas)\n\n원문 : http://paulgraham.com/organic.html</a>\n번역 : http://www.jimmyrim.com/164</a>\n\n이와 함께 프라이머 권도균 대표님께서 쓰신 ‘권도균의 스타트업 경영 수업’을 꼭 읽어보시길 권한다.\n\n권도균의 스타트업 경영 수업 : http://book.naver.com/bookdb/book_detail.nhn?bid=9366875</a>\n\n(2) 린 스타트업 : 사업을 어떻게 시작해야 하나?\n기업가 정신을 마음에 담았다면, 이제 진짜 무엇인가를 해나가야 하는데, 그 방법 중에 에릭 리스의 도서 ‘린 스타트업’에서 이야기 하는 전략보다 더 나은 것은 나는 아직 배우지 못했다.\n\n린 스타트업\n\n원서 :&#160;https://www.amazon.com/Lean-Startup/dp/0307887898</a>\n번역서 : http://book.naver.com/bookdb/review.nhn?bid=7044697</a>\n관련 글 : 린스타트업이란 무엇인가?&#160;http://platum.kr/archives/3123</a>\n\n해당 도서는 가급적이면 원서를 읽으시길 추천한다.\n(3) 데이터 기반 의사 결정 : 사업을 어떻게 운영해 나가야 하나\n‘눈을 감고 운전할 수는 없다’는 문장에는 100% 공감하면서도, 실제로 사업을 하다 보면 눈을 감고 운전을 하고 있는 자신을 발견하게 된다. 사업을 객관적으로 바라보고 올바른 방향으로 나아기 위해서는 과학적인, 데이터 기반의 의사 결정이 필요하다. 전통적으로 ‘계량 경영학’이라고 통칭되던 것들이 창업 세계에서는 ‘린 분석’이나 ‘그로스 해킹’이라는 개념으로 구체화 되었다.\n\n린 분석\n\n원서 : https://www.amazon.com/Lean-Analytics-Better-Startup-Faster/dp/1449335675</a>\n번역서 :&#160;http://book.naver.com/bookdb/book_detail.nhn?bid=7399481</a>\n\n그로스 해킹\n\n그로스 해킹이란? : http://platum.kr/archives/19323</a>\n그로스 해킹 적용 사례 : http://platum.kr/archives/21320</a>\n도서 ‘그로스 해킹 – 성장의 시대를 위한 안내서’ :&#160;http://book.naver.com/bookdb/book_detail.nhn?bid=11480792</a>\n\n그로스 해킹에 대한 위 두 글은 본인이 작성한 글로, 글에서 언급되는 ‘프라이스톤스’는 현재 ‘로켓펀치’의 전신인 회사다.&#160;‘그로스 해킹 – 성장의 시대를 위한 안내서’는 본인이 집필한 책이다.\n(4) 진짜 사업계획서와 진짜 프레젠테이션 : 사업을 어떻게 소개할 것인가?\n1. 진짜 사업계획서\n우리가 보통 ‘사업계획서’라고 할 때 흔히 떠올리는 두꺼운 책 같은 사업계획서는 현재의 창업 환경과는 맞지 않다. 진짜 좋은 사업계획서는 아주 간결하게 사업에 대해서 전달해야 하는데, 구글 등에 투자했던 세계적으로 유명한 세쿼이아 벤처캐피털은 발표 슬라이드 15에서 20장 이내로 다음 항목들을 언급할 것을 추천한다.\n<Sequoia Capital – Writing a Business Plan</a>>\n\n회사의 목적 (Company purpose) : 회사의 목적을 명확하게 이야기 해야 한다.\n풀고자 하는 문제 (Problem ) : 가장 중요한 내용이다. 큰 문제를 해결할 수록 큰 가치(돈)를 만들 수 있다.\n문제의 해결 방법 (Solution) : 문제를 해결하는 방법을 언급한다.\n왜 지금인지 (Why now) : 아주 중요한 문제다. 사업 아이템은 반드시 적절한 시기를 만나야 꽃을 피울 수 있다. ‘배달의 민족’ 같은 모바일 기반 배달 정보 제공 사업을 아직 스마트폰이 대중화되기 전인 2000년대 초 중반에 시작한다면 성공할 수 있을까?\n시장의 크기 (Market size ) : 투자가는 합리적이기 때문에 작은 시장에는 투자하지 않는다. 위에서 언급한 풀고자 하는 문제와 직결되는 내용이다.&#160;TAM, SAM, SOM이라는 시장 분석 방법에 대해서 이해해야 한다.\n경쟁 상황과 경쟁 우위 (Competition) : 경쟁자들을 언급하는것 뿐만이 아니라 왜 우리가 이 사업을 가장 잘 할 수 있는 사람인지 설득할 수 있어야 한다. 어떤 형태로든 경쟁자는 반드시 존재할 수 밖에 없는데, 그들보다 우리가 더 잘할 수 있는 강력한 무엇인가가 있어야 한다.\n제품 (Product) : 구체적으로 만들고자 하는 제품에 대한 설명이다.\n사업 모델 (Business model) : 어떻게 돈을 버는지 언급한다.\n팀 (Team) : 창업자를 포함한 주요 구성원과 자문단(Advisors)들을 언급한다.\n재무 계획 (Financials) : 재무 상태에 대한 언급과 함께 투자 희망 금액을 언급한다.\n\n이중에서도 가장 중요한 것 한 가지는 ‘문제’다. 문제가 잘못 정의되면&#160;뒤에 나오는 모든 이야기들은 무의미한 것이 된다. &#160;처음 사업계획서를 작성할 때 ‘제품’에 대해서 대부분의 분량을 할애하는 경우가 많은데, 이는 정말 잘못된 것이다. ‘문제’와 ‘해결 방법’만 옳은 방향으로 정의되면, 그것의 구체적인 형태인 ‘제품’의 형태는 여러번 바뀌면서 성공을 향해 나아갈 수 있다. 이것은 린 스타트업 전략과도 연결되는 이야기다.\n2. 진짜 프레젠테이션\n프레젠테이션에 대해서는 이야기 하는 정말 많은 책들이 있지만, 그 모든 내용들에서 공통적으로 강조하는 것은 ‘이야기가 있는가?’이다. 프레젠테이션에는 반드시 이야기가 녹아 있어야 한다. 수많은 우수한 사업 소개 프레젠테이션 사례 중 굳이 하나를 선택하라면, 나는 늘 2010년 테크크런치 디즈럽트에 혜성같이 등장하여 우승한 Qwiki</a> (2013년 야후!가 인수)를 꼽는다.\n\nQwiki 발표 영상\n\n프레젠테이션에서 ‘이야기’의&#160;중요성을 제대로 파악하기 위해, 마케팅 구루 세스 고딘의 TED 에서 발표 내용도 꼭 보시길 권한다.\n\n세스 고딘 – 우리가 이끄는 부족\n\n그리고 좋은 프레젠테이션 슬라이드를 만들기 위해서는 가와사키의 10/20/30 법칙을 꼭 이해해야 한다.\n\n가이 가와사키 –&#160;파워포인트의 10/20/30 법칙\n\n(5) 법률과 계약서 : 사업을 어떻게 지켜나가야 할까?\n사업을 키워가는 일 못지 않게, 그 만들어진 것들을 지키기 위한 노력들이 필요하다. 사업이 그 아이템 자체의 한계로 무너지는 경우 외에, 가장 많은 문제가 발생하는 것은 사업을 둘러싼 공동 창업자, 직원, 사업 파트너, 투자자 간의 불화다. 이 불화를 사전에 차단하거나, 불화의 영향을 최소화하기 위해서 상호 간의 약속인 ‘법률적 계약’을 잘 맺어야 한다. 이는 특히 ‘좋은 게 좋은 것’이라는 한국적 문화와 맞물려 해외보다 더 큰 문제를 일으키는 것 같다. 계약을 꼭 맺고, 잘 맺는 것은 창업자의 책무 중의 하나다.\n\n정호석의 스타트업 법률가이드\n\n#4 스톡옵션 부여, 제대로 하는 방법 : http://platum.kr/archives/38118</a>\n#7 비밀유지계약서(NDA) 작성 시 필수조항 5가지 : http://platum.kr/archives/39499</a>\n#16 계약서 시리즈 ③텀시트(Termsheet)의 의미와 검토 방법 : http://platum.kr/archives/43639</a>\n\n스타트업이여, 주주 간 계약서’ 꼭 써라! : http://platum.kr/archives/36169</a>\n스타트업 피플이 알아야 할 전환사채 개론 : http://kr.besuccess.com/2015/06/convertible-note/</a>\n회사를 시작하기 전에 조금 더 시간이 허락 된다면, 아래 책과 글들도 읽어보실 것을 권한다.\n\n승려와 수수께끼 : http://book.naver.com/bookdb/book_detail.nhn?bid=7376143</a>\n해커와 화가 : http://book.naver.com/bookdb/book_detail.nhn?bid=7399482</a>\n하드씽 :&#160;http://book.naver.com/bookdb/book_detail.nhn?bid=8501719</a>&#160;(2018년 06월 추가)\n영광의 날들 – 빌 게이츠와 함께 하던 때 :&#160;http://egloos.zum.com/eggry/v/3762248</a>\n우리는 말 안장을 파는게 아니다\n\n원문 :&#160;https://medium.com/@stewart/we-dont-sell-saddles-here-4c59524d650d</a>\n번역문 :&#160;http://blog.naver.com/welchs0102/220316990378</a>\n\n우주선과 레모네이드 :&#160;http://www.ingray.net/2016/07/16/spaceship-and-lemonade/</a>\n로켓펀치의 스타트업 세무/법무/특허 가이드 :&#160;https://www.rocketpunch.com/blog/categories/startup-guide</a>\n출처: <http://www.ingray.net/2016/11/05/5-things-you-should-know-before-starting-your-first-startup/</a>>"
+  },
+  {
+    "type": "text",
+    "x": 1056,
+    "y": 6989,
+    "w": 547,
+    "content": "<a href=\"https://alltopstartups.com/2011/03/16/10-revenue-models-for-startups-you-should-know/\">https://alltopstartups.com/2011/03/16/10-revenue-models-for-startups-you-should-know/</a>"
+  },
+  {
+    "type": "text",
+    "x": 1080,
+    "y": 7411,
+    "w": 600,
+    "content": "<a href=\"https://brunch.co.kr/@puzzle87/266\">https://brunch.co.kr/@puzzle87/266</a>"
+  }
+];
+const CONTENT_HASH = '3de5bb9c';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

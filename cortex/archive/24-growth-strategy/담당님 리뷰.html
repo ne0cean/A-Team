@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>담당님 리뷰</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">담당님 리뷰</div>
+<div class="date">2024년 10월 16일 수요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-담당님-리뷰';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 115,
+    "w": 600,
+    "content": "옵션별로 어프로치를 하지 말자는게 아니고\n그 옵션까지 가는과정을\n다 따로따로 밸류/기능(될지 안될지도 모르는..) 경쟁/타겟을 적어서\n그걸 뭘 가지고 판단하자는건지 안보이는데\n아 이건 말이되는군…이렇게 판단하자는건지\n옵션은 앞에 (기존 에이닷에 하겠다는 것 중심으로 살려서) 적어주고\n광의의 의미에서 고객/경쟁 등에 대해서 정리 (+해당부서 의견도 들어보고)\n이 시장에서 우리가 그래도 우리 경쟁력으로 할만하네 싶은걸 옵션 중에서 고르자는 어프로치로 가자는 말이었음\n프라이머리쪽 정리한 페이지들을 내가 보고한다고 생각하면…바로 버티컬로 넘어가게될때 so what?하지 않겠나요..그래서 고민이 많이 필요함\n밸류나 주요 기능도 저렇게까지 자세히 적을 필요도 없음\n직관적으로 뭐하자는거다 정도로 짧게 치면 되지. 그걸 구현하는건 사업부서의 몫이고.\nGPAA보고서 등 보면,\n그렇게 구체적으로 안 적고 넘어가잖아\n이승훈 팀장, [2024-10-29 오후 6:25]\n내용 흐름\n- 올해 이렇게 진행했다. 해봤더니 이런게 좀 아직이다.\n- 밖에서는 가만히 안 있더라. 내년엔 더 심해질거 같다\n- 그럼 내년에 우린 뭘 해야 하냐 => 그림으로 떼우지 말고, 프라이머리, 버티컬 중 에이닷전화, btv 등, 제휴 버티컬 등 당면한 것들을 적어주고 이에 대한 방향성 정도 티저로 남겨주고, (각각이 뒷 페이지에서 설명이 자세히 되겠지)\n- 프라이머리 중요하니까 얘는 몇장에 걸쳐서 담아주고 => 지금 가입자 확대보다 Fan 및 지속적인 유저가 늘어야 하는데 지금으로는 안될거 같다. 당초에 가져가겠다는 핵심 벨류들이 있는데 이런게 하나라도 구현되어야겠다. 우선순위 등이 필요하니, (여기서 옵션 몇개 던지면 되겠죠) 고객과 경쟁시장을 다시 살펴보고 우리가 잘 할 수 있는 것들도 같이 리뷰해서 정해보겠다.\n- 지금 우리는 고객들을 단순히 연령/성별 정도로 나타내지만 ‘일상의 비서‘라는 니즈에 대해 직업군이나 가치관, 성향이 더 영향을 끼칠거 같다. 그렇게 분류하면 전체 고객군은 어느정도로 분류가 된다. 우리 생각엔 이런이런 고객군들이 일상의비서에 더 관심을 가질 거 같다 (에이닷 서베이 등으로 혹시 규명 가능한지 파악하고 챗gpt 이용 등에 대해서도 백업 자료 있으면 찾으면 됨)\n- agent로 규정해서 시장에 뛰어들 수 있거나 우리가 생각하기에 궁극적인 경쟁자가 될 수 있는 건 세부류 일거 같다. 그게 LLM하는 애들 / 플랫폼 사업자들 / 구독서비스 하는 애들인데, 각각 이런건 잘할테지만 이런건 좀 애매하거나 우리가 나아보인다. 경쟁자들을 보아하니 우리는 이런 부분이 좀 강한거 같다.\n- 그래서 앞서 말한 옵션 들 중에서 이런이런 순서로 빨리 진행하고 고객 커뮤니케이션 등에 대해서도 섬세하게 설계해야 겠다\n- 버티컬은 이미 두가지가 나왔다. (너무 잘못한 점만 까지말고) 이러이런 기대감이 있고 이런 이슈가 좀 존재한다. 우리 생각엔 이 두 버티컬은 각각 이런 부분을 강조해서 프라이머리랑 강하게 연계해야 할거 같다. 그래야 앞서 말한 우리가 경쟁자 보다 나아보이는 부분을 치고 나갈수 있다\n- 앞으로 준비할 버티컬들은 이런 부분들이 강조되어야 할거다. 특히 티맵/spc/현대카드를 여기에 한통으로 넣을수도 있고. 이 관점에서 각 버티컬 1위 사업자들과 제휴해야 한다는 당위성을 같이 설파하면 될듯\n- T우주를 이 부분에 넣고\n- MNO는 크게 n서비스와 t3s가 있다 이건 한장으로 가도 될 거 같습니다. 텔고의 ai화를 넘어서 통신에서의 버티컬 에이전트 역할을 내년엔 강화하자는 내용을 넣고\n- 기술 관련 카고 조직이랑 협업해야 하는 부분, 아직 내년에 더 챙겨야 할 기술적 과제들 적고\n- 각 영역별로 이런 과제들을 잘 챙겨서 내년 말에는 어떤 것을 목표로 하고 3년 후에는 무엇을 목표로 한다..가 나와줘야 함\n- 부가적으로 내년 정도에 ’이건 추가로 논의해야 하지 않나‘싶은 과제들입니다. 하고 설명\n지금과 다르지 않은데 구성은…지금은 내용이 갑자기 좀 하위레벨로 떨어지거나 안그래도 되는 부분에서 디테일해져서\nceo세미나 oi 보고서 등 처럼 한장씩 쳐내는 느낌으로 가는게 나을거 같음\n_____________________________________________________________________________________________\n보고 스케쥴: CEO 세미나 이후, 31-2일\n총평: 고객관점이 아니라 기술, 우리 세상에 빠졌음. Big tech 에이전트를 먼저 쓰고 싶은 사람들은 target이 아니다.\nTarget: 경쟁상대를 big tech로 생각하고 있는 것 같은데 아님\n개요에 목적함수\n보고목적: CSO(성전)입장에서 내년에 에이닷 유니버스 챙겨야/해야 할 것들 정리\n내년에 해야 할 일의 우선순위, 이 방향이 맞을까요를 체크하는 정도\n당장 답을 낼 것/ 답이 없으니 질문으로 던질 것/ 우리가 고민 해야 할 것\n너무 뾰족하게 가지 말고, 고객들이 에이닷을 잘 쓰게 하려면 어떻게 해야 할지. 너무 어렵지 않게.\n유통망에서 당신의 일상의 비서 안먹힌다. LLM을 공짜로 여러가지 써볼 수 있다고 소구 하고 있음.\n이런 세일즈 메시지가 지속가능하지 않은데, 그럼 넥스트가 무엇인가?\nMAU 말고, DAU 100만도 안됨. T전화 덕분에 80만, 가입자가 600만인데\n넥스트를 늘어뜨렸으면 좋겠다. 근데, Big tech가 정의하는 agent는 아니고, 우리는 그 윗단의 기능적인 것 보다는 어시스턴트 정도. 오픈ai나 어댑트랑 동일선상에서 보면 안될 것 같다. 외부를 해비하게 보지 않아도 될 것 같다.\nTask 에이전트도 있지만, 현재 고객들이 보는 Agent. LLM이잖아. 이 기준으로 정리를 해야 할 것 같음.\n국내 서비스들 아숙업 같은 것들 같이 정리해도 좋을 것 같다. 제타(스케터랩) 등\n외부는 해비하게 볼 필요 없고, 그냥 대략적인 정도. 범용 agent는 없고, 서비스 내에 agent, 우리는 범용적인 agent를 원하고 있는 것\n조심: 어디로 가야한다가 암묵적으로 정해졌는데. 너무 부정적으로 까지는 말았으면 함. 더 채우고 개선해야 된다 정도 톤으로 써야한다.\n당면과제/ 내년에 필요할지 논의될 것(추가이슈 - 멀티모달 탑재 여부), 음성인식\n플랫폼 사업자들이 진입하지 않았던 기존 시장, 메모 등이 모아져서. 내년에는 이게 더 구체적으로 들어가야 할 것 같다.\n적어도 한두가지 기능이라도 크롤링해서 모아서 알려주는 것.\n그럼 어떤 사람이 쓸 것 같은지가 타겟으로 나올 것 같고. 어려운 용어들 말고,\nValue: 내가 가진 일상 정보들을 쉽게 알려주고, 쉽게 정리해서 알려주는 것?\n이런 선택지가 여러가지 있었으면 한다.\nLLM Agregator? 잘 모르겠다. 너무 작다. 뒷단에 돌아가야 할 것 같다.\n앞단에 유저에게 보여줄 수 있는 것이 뭘지? 각 세그먼트 별로\n사용자가 동의만 하면 획득한 Data로 가능한 서비스?\n뮤직/증권 에이전트 미디어정도는 ok, 각 플랫폼 들어가지 않고 정리해서 알려주는 플랫폼? 콘텐츠도 예시가 될 수 있음\nAI검색을 국내에서 독보적인 수준으로 디벨롭하는 것도 옵션\n유저차원/ 우리 준비도 차원엣 매치했을 때, 내년에는 멀티 LLM 다음으로 ㅇㅇ였으면 좋겠다는 옵션들\n프레임 자체는 에이닷 유니버스에서 출발 - POC 그림(1/프라이머리 2/ 버티컬 3/MNO(NTF, T3s) 4/제휴 5/ 구독 6번 내년 등장 이슈\n- 데이터, 백엔드 - 연결되었다는 느낌이 올 정도는 되어야 함\nN서비스 - 프라이머리 에이전트에 어떻게 연동/등장 할 것인지\nT3S - LLM 기반으로 변경 예정, 여기서 쌓이는 정보 사용 Scene가 어떻게 프라이머리와 연동 될 것인지\n구독 - 원칙, 단독 상품만 안팔면 된다. 에이닷과의 패키지는 ok\n버티컬은? - 챗GPT에 물어볼법한 날씨같은 것도 막 물어봄. AI는 연동이 되어야.\n제휴: 프라이머리 아이덴티티에 따라, 제휴 상대가 달라질 수 있음 - 답까진 아니어도 숙제\n데이터 제휴도 제휴\n프라이머리 정체성에 따라서 제휴 대상이 달라질 수 있는데, 이것도 옵셔널하게?\n내년 등장 이슈? - 멀티모달 도입, Smart routing, RAG/Orchestration/ MNO 요금제 번들링(에이닷 전화 요금제 등)\n캐릭터(?)\n조직: 개발조직 따로 간다고 선언하시긴 했는데, 컨트롤 타워가 있긴 해야한다. 미션과 역할\n당장 답 낼 것/ 질문 던질 것/ 추후 정리 해야 할 것\n기술적으로 너무 깊게 안들어가도 된다. 작성해서, 죽어도 안되는 것 CASO 조직에 태핑/점검, 우선순위\n수익모델은 안해도 됨.\n백업은 프라이머리의 가설적 데이터는 요청하면 됨\n에이닷유니버스 25년 실행계획\n┗ 목적함수(Recap, Look back)\n- 세부실행전략 or 서비스 포지셔닝\n- 환경(시장, 경쟁)\n- 다른 서비스와의 관계/역할\n- 해결과제(TO-DO)\n11월 ICT 위원회에서 T맵 다이버전스 전략 논의 예정\n- 장소 기반 대규모 업데이트 예정"
+  },
+  {
+    "type": "text",
+    "x": 792,
+    "y": 115,
+    "w": 600,
+    "content": "목적함수? 에이닷이 잘 되는거? 프라이머리? 버티컬?\n보고 Scope\n다른 서비스와의 관계에서 다른 서비스란? LLM?\n해결 과제의 스콥? 내용?\n컨시어지"
+  }
+];
+const CONTENT_HASH = '39ce3599';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

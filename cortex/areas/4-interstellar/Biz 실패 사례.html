@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biz 실패 사례</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Biz 실패 사례</div>
+<div class="date">2015년 4월 5일 일요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Biz-실패-사례';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 65,
+    "y": 139,
+    "w": 600,
+    "content": "세상에서 가장 훌륭했던 실패, 비운의 명기들\n세상에서 가장 훌륭했던 실패, 비운의 명기들\n트렌드, 그 쓸쓸함에 대하여\n사라진 것들은 유구무언. 입은 있지만 할 수 없었다. 말하는 걸 잊은 듯 입술을 꼭 다물었지만 상처를 감춰둔 헐렁한 옷에도 피는 짙어 배어 나왔다. 그러나 역사는 성공보다 실패로 빛난다. 잠시간 빛을 내기 위해 퀴퀴한 침묵의 먼지를 거둬내 다시 한번 말하게 하려 한다. 광폭한 트렌드란 소용돌이에 ‘눈’을 깨 차지 못하고 가장자리로 내몰렸던 하드웨어와 소프트웨어들. 그들의 끝을 구태여 말한다. 그리고 경계한다. 트렌드로 뜨거워진 것들의 차갑게 식을 미래를.\n진행. 서종원 기자 <a href=\"mailto:seo@websmedia.co.kr\" style=\"font-family:Dotum;font-size:9pt\">seo@websmedia.co.kr</a>, 이창민 기자 <a href=\"mailto:whale@websmedia.co.kr\" style=\"font-family:Dotum;font-size:9pt\">whale@websmedia.co.kr</a>, 이태연 기자 <a href=\"mailto:tyl@websmedia.co.kr\" style=\"font-family:Dotum;font-size:9pt\">tyl@websmedia.co.kr</a>\n#1 세상에서 가장 훌륭했던 실패, 비운의 명기들\n#2 모바일 OS의 이유 ‘있는’ 몰락\n#3 페이스북은 조지 오웰의 <1984>를 기억하라\n#4 스마트워치는 개구리다?\n크고 아름답다. 또는 작고 아름답다. 하지만 망했다. 제품의 완성도를 극한까지 끌어올려도 얼마든지 망할 수 있음을 증명하는 사례들. 트렌드 세터에서 안티 트렌드의 나락으로. 전자제품 역사상 ‘가장 훌륭했던 실패작’들에 대한 케이스 스터디.\n글. 이태연 기자 <a href=\"mailto:tyl@websmedia.co.kr\" style=\"font-family:arial;font-size:9pt\">tyl@websmedia.co.kr</a>\n소니 ‘전용 규격 집착’의 서막"
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 631,
+    "w": 600,
+    "content": "1970년대는 영화의 시대였다. <대부(The Godfather, 1972)>의 기록적인 흥행을 <죠스(Jaws, 1975)>가 깨고, 그것을 다시 <스타워즈(Star Wars, 1977)>가 깼다. <엑소시스트(The Exorcist, 1973)>, <록키(Rocky, 1976)>가 이때 개봉했다. TV에 밀려 쇠퇴했던 영화는 오뚜기처럼 부활했다.\n막대한 예산을 투입한 블록버스터 영화들이 잇달아 흥행에 성공하면서, 영화는 TV가 보여줄 수 없는 대규모 엑스트라 동원, 특수효과, 스타 캐스팅으로 다른 차원에 도달했다. 그 영향으로 홈비디오의 시대가 개막한다. 대중은 새로운 엔터테인먼트에 열광했고, VCR(Video Cassette Recorder)이 불티나게 팔리기 시작했다.\n홈비디오 시장을 눈여겨 본 소니는 1974년, 프로토타입 비디오카세트 레코더인 ‘베타(Beta)’를 다른 전자회사들을 모아놓고 시연했다. 당시 소니는 다른 전자회사들이 번거롭게 별도 표준을 만들지 않고 베타 규격을 따르리라 예상했다. 그러나 JVC(Victor Company of Japan)는 새로운 포맷인 ‘VHS(Video Home System)’를 독자 개발했다. 뒤통수를 제대로 맞은 소니는 일본 산업통상부에 항의했지만, 소용이 없었다. 결국, 이름만 들으면 SF 만화에나 나올 법한 ‘비디오테이프 표준 전쟁’이 발발한다.\n베타맥스는 VHS에 비해 크기가 작아서 휴대하기 편리했다. 게다가 화면 노이즈가 적었고, 고속재생, 정지화면 중에도 줄이 가지 않았다. 즉, 크기는 더 작고 화질은 더 뛰어났다. 게다가 VHS보다 일 년 앞서 출시했기 때문에 유리했다. 그런데 망했다. 대체 왜 베타맥스는 소리소문없이 사라진 것일까?"
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 951,
+    "w": 600,
+    "content": "마케팅, 비즈니스 전문가들은 베타맥스의 실패를 ‘기술의 우수성이 사업적 성공을 담보하지 않는’ 사례로 자주 인용한다. 실패의 원인으로 크게 두 가지를 든다. 먼저, 소니가 펼친 ‘배타적 라이선스 정책’이다. 소니 특유의 라이선스 정책 때문에 제작자 입장에서 베타맥스는 VHS보다 매력이 떨어졌다. 공급가가 오르니 소비자가도 상승했다. 심지어 기계도 더 비쌌다.\n두 번째 문제는 더 심각했다. 이 배타적 정책이 성인용 비디오 시장에도 똑같이 적용된 것이다. 소니는 영상물에 폭력적이거나 선정적인 내용을 담지 않을 것을 요구하는 ‘클린 정책’을 펼쳤다. 결국, VHS 쪽이 먼저 포르노 제작사들과 계약해 북미 비디오 시장을 점령했다. 세상에. 저렴한 VHS를 사면 영화도 볼 수 있고, 포르노도 볼 수 있는데, 비싼 베타맥스로는 영화만 봐야 한다니. 답은 정해져 있었다. 1984년 25%를 차지하던 시장점유율이 1986년 7.5%까지 떨어졌고, 결국, 소니는 1988년 VHS 비디오 데크를 제조를 선언하면서 비디오포맷 표준 전쟁에서 패배를 인정한다. 이후 미니디스크(MiniDisc), UMD(Universal Media Disc, PSP용 게임 디스크), 메모리스틱(Memory Stick, ‘SD카드’에 대항해 개발한 독자 규격 메모리 카드)으로 이어진 소니의 ‘전용 규격’에 대한 집착은 블루레이(Blu-ray)가 HD-DVD에 승리함으로써 결국 인정받았다."
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 1231,
+    "w": 600,
+    "content": "■ 베타맥스의 교훈\n‘하드웨어가 아무리 좋아도 콘텐츠 생태계가 형성되지 않으면 망한다’\n시대를 앞서가려면 이 정도는 돼야"
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 1323,
+    "w": 600,
+    "content": "case #2. 큐브(QUBE)\n제작사. 워너 케이블 (Warner Cable)\n유형. 케이블 텔레비전 시스템\n특징. 40년 전에 PPV(pay-per-view)를 서비스한 케이블\n출시. 1977. 12\n1977년 미국 오하이오 주, 콜럼버스에서 한 케이블 서비스가 시작한다. ‘큐브(Qube)’라 불리는 이 서비스를 이용하면 ‘편당 지불 방식(Pay-per-view)’으로 프로그램을 시청할 수 있고, ‘인터랙티브’ 기능으로 경매나 설문조사에 응답할 수 있었다. 심지어 비디오 게임을 플레이할 수 있다. 큐브는 본체와 리모콘을 합친 형태로, 디자인 또한 70년대 제품이라고 생각하기 힘들 정도로 현대적이다.\n큐브는 스티브 로스(Steve Ross) 워너 커뮤니케이션(Warner Communications) 회장이 일본의 한 호텔에서 cctv를 보고 영감을 받아 자회사인 워너 케이블에 개발을 지시했다. 처음에는 워너 브라더스의 영화를 시청자들에게 전달한 방법을 구상한 정도였는데, 일이 커졌다. 큐브의 제작은 파이오니어(Pioneer)사가 맡았고, 서비스는 세계적인 관심을 받으며 개시했다. 당시 PPV 서비스를 제공하는 영화 채널 열 개를 포함해 총 서른 개의 채널을 보유했는데, 그중에는 MTV와 니켈로데온(Nickelodeon)도 있었다. 서비스를 시작한 이후 3만 가구 이상이 큐브를 구독하고, 콜럼버스를 넘어 주변 도시에 진출하는 데 성공했다. 그러나 초기투자비용과 운영비를 감당하지 못해, 당시로서는 천문학적인 규모인 8억 7,500만 달러(한화 약 9500억 원)의 부채에 올라 1984년 사업을 중단했다."
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 1683,
+    "w": 600,
+    "content": "심지어 꼼수도 현대적이었다. 당시 워너 케이블은 아메리칸 익스프레스(American Express)와 협업 중이었는데, 개인 정보를 팔아넘겼다는 의혹을 받았다. 요즘 기업들처럼. 큐브는 구독 가구의 ‘주요 관심사’나 ‘정치적 성향’과 같은 개인 정보를 데이터베이스화했다. 예를 들어 한 프로그램에서 시청자에게 “당신이 이번 총선에서 지지하는 후보는 누구입니까”라고 묻고 리모콘으로 응답을 하면 그 정보를 저장해뒀다가 주변 상점과 정치 세력에 팔아넘긴 것이다."
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 1787,
+    "w": 600,
+    "content": "생각해보자. 1977년은 아직 VCR도 보편적이지 않았던 때다. 비디오나 비디오 대여점도 한참 먼 이야기였다. 그런 시절에 PPV와 쌍방향 미디어를 개시한 것이다. 큐브는 시대를 앞서가도 너무 앞서갔다."
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 1859,
+    "w": 600,
+    "content": "■ 큐브의 교훈\n‘시대를 앞서가는 것도 정도껏 하자’\n세가를 패가망신시킨 장본인"
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 1951,
+    "w": 600,
+    "content": "소닉 더 헤지호그(Sonic the Hegehog)’ 시리즈와 ‘하우스 오브 더 데드(The House of the Dead)’ 시리즈 등을 보유한 전통의 게임 업계 강자 세가(Sega). 그러나 5세대 게임기 경쟁에서 이제 막 게임 업계에 뛰어든 애송이 소니(Sony Computer Entertainment)의 플레이스테이션(Playstation, PS)에 참패한 뒤, 복수의 칼날을 갈았다."
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 2071,
+    "w": 600,
+    "content": "‘새턴’의 패배 원인을 3D 성능 미달로 판단한 세가는, 6세대인 ‘드림캐스트’ 개발에서 그래픽 처리 능력을 우선순위로 뒀다. ‘게임’ 그 자체에 집중한 플레이스테이션을 벤치마킹한 것이다. 오랜 개발 끝에 PS 2보다 1년 이상 앞선 1998년 출시한다. 그리고 이어진 극찬들. 대부분의 매체는 드림캐스트를 10점 만점에 8~9점으로 평가했으며 비즈니스위크(BusinessWeek)지는 드림캐스트를 1999년 최고의 상품 중 하나로 꼽았다. 그럼 6세대 게임기의 승자는 당연히 드림캐스트였을까? 그러면 이 지면에 실리지도 않았겠지. 플레이스테이션 2(PS 2)가 1억 5천만 대 팔린 반면, 드림캐스트는 천만 대가 팔렸다.\n세가는 드림캐스트의 실패 이후 가정용 게임기 시장에서 완전히 철수했고, 아케이드 게임(오락실용 게임)에 집중할 수밖에 없었다. 훌륭한 게임 성능을 가졌다. 게다가 1998년에 이미 모뎀을 내장해서 웹 브라우징과 온라인 기능을 탑재했다. 그럼 무엇 때문에 드림캐스트는 PS2에 졌을까? 답은 단순하다. 드림캐스트는 훌륭한 게임기였다. 다만 경쟁작인 플레이스테이션 2는 역사상 가장 뛰어난 게임기였다.\nPS 2는 역대 가장 많이 팔린 콘솔이다. 보통 5년이면 오래 버틴 게임기 시장에서 출시 13년이 지나서야 단종될 정도였다. 게다가 ‘하위 호환’ 기능으로 기존 플레이스테이션 사용자들을 흡수했다. 또, 2000년 전후는 VHS에서 DVD로 비디오 포맷이 완전히 이동하는 시기였다. DVD의 잠재성을 일찌감치 알아본 소니는 PS 2에 ‘DVD 재생’ 기능을 추가했다. 당시 DVD 플레이어의 가격이 만만치 않았기에, 소비자들의 PS 2 구매 동기는 배가됐다.\n소니의 기막힌 마케팅도 한몫했다. 플레이스테이션 2는 드림캐스트보다 출시가 일 년 이상 늦어졌다. 드림캐스트 발매가 다가오자 불안해진 소니는, PS 2가 드림캐스트보다 열 배 이상의 폴리곤 처리능력을 지녔고, 전반적인 성능 자체가 비교가 되지 않는 수준이라고 광고했고, 이것도 먹혀들었다. 앞서 언급한 ‘하위 호환’ 기능, ‘DVD 재생’에 더한 KO펀치였다.\n얼핏 보면 단순히 PS 2라는 희대의 걸작을 만난 세가가 운이 없었기 때문에 참패했다고 오해하기 쉽다. 그러나 무엇보다 이전까지 세가가 쌓아온 ‘브랜드 이미지’가 이 패배의 결정적 원인이다. 세가는 차세대 게임기를 발매할 때마다 이전 기종을 쓰던 게이머들에 대한 지원을 끊었다. 소니가 PS 2 발매 이후에도 PS 1 게임 소프트를 꾸준히 발매한 것과 대조된다. 이전까지 드러나진 않았지만, ‘세가 게임기는 어차피 사봤자 오래쓰지 못한다’는 인식이 소비자들에게 각인된 것이다."
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 2563,
+    "w": 600,
+    "content": "역사상 가장 아름다운 휴지통"
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 2615,
+    "w": 600,
+    "content": "case #4. 파워맥 G4(Power Macintosh G4 Cube)\n제작사. 애플(Apple)\n유형. 개인용 컴퓨터\n특징. 역사상 가장 아름다운 데스크톱\n출시. 2000.7\n데스크톱 디자인 (또는 전자제품 디자인) 역사상 가장 찬란했던 순간. 컴퓨터라기 보다 하나의 작품에 가까운 아름다운 디자인 덕에 ‘파워맥 G4 큐브’는 현재 뉴욕현대미술관(Museum of Modern Art)에 전시돼 있다. 동시에 최악의 설계로 일 년 만에 생산을 중단해야 했던 애플의 흑역사다.\n1997년 애플로 돌아온 스티브 잡스(Steve Jobs)는 애플을 디자인 기업으로 탈바꿈시키겠다는 생각으로 외부에서 디자이너를 영입하려고 마음먹었다. 애플 내부 산업디자인팀의 수장인 조너선 아이브(Jonathan Ive)는 팀의 역량을 요약한 책자를 만들었다. 이것이 잡스의 마음을 돌려놓는데 성공했고, 이후 잡스와 환상의 짝을 이뤄 애플을 바꿔나갔다. 대표적인 케이스가 98년 한 해 동안 80만 대를 팔아치운 아이맥(iMac) G3. 처음으로 출시된 아이맥인 G3는 본체 색상을 반투명 본디블루로 정했다. ‘베이지색’ 아니면 ‘회색’이던 당시 데스크톱에 대한 인식을 뒤엎은 파격적인 시도였다."
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 2927,
+    "w": 600,
+    "content": "2년 뒤 출시한 파워맥 G4 큐브. 여기에는 조너선 아이브의 디자인적 야심이 배어난다. 본체는 7&#215;7&#215;7인치의 정육각면체에 집약했고, 투명 아크릴판 케이스 속에 들어있다. 케이스 아래는 빈 공간이어서 마치 큐브가 공중에 떠 있는 듯하다. 아이브는 심지어 모든 물리적 버튼과 스위치를 제거했다. 전원 버튼조차 제거했기 때문에 전원부에 손을 스치면 부팅을 시작하고, 다시 건드리면 슬립모드로 전환한다.\n환상적인 디자인에 전문가용 성능. 여기까지 들으면 전자제품 역사상 최고의 걸작임이 틀림없다. 그러나 파워맥 G4 큐브에는 치명적인 단점이 있었다. 바로, 팬이 없다는(fanless) 점이다. 아이맥 G3와 마찬가지로 디자인을 위해 팬을 빼버렸다. 사양이 낮은 아이맥에는 큰 문제가 되지 않았다. 그러나 G4 큐브는 팬 없이 작동하기에는 사양이 지나치게 높았다.\n메인 프로세서인 G4는 당시 매우 높은 사양이었다. 슈퍼컴퓨터에나 쓰이던 128bit 데이터 처리가 가능한 velocity 엔진을 내장해, 450MHz의 클럭으로도 800MHz 펜티엄보다 속도가 두 배 빨랐다. 그만큼 발열이 많은 것은 당연지사. 결국, 팬을 빼버린 결정은 본체 구조에 치명적인 결함이 됐다. 출시 후 돌아온 것은 무수히 많은 A/S 요청과 항의. 고질적인 문제점은 열을 버티지 못한 외부 아크릴판에 금이 가는 것이었다.\n거부할 수 없을 만큼 매혹적인 동시에 치명적으로 위험한 맥. 출시를 앞둔 레티나 맥북 또한 디자인을 위해 팬을 빼버렸다. 과연 이번에는 애플이 G4 큐브의 전철을 밟지 않을 수 있을까.\n■ 파워맥 G4의 교훈\n‘아무리 디자인이 중요해도 팬은 빼지 말자’\n원본 위치 <<a href=\"http://www.ditoday.com/articles/articles_view.html?idno=19549\">http://www.ditoday.com/articles/articles_view.html?idno=19549</a>>"
+  }
+];
+const CONTENT_HASH = 'f5372e7a';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

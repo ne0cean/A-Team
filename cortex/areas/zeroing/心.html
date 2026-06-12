@@ -6,121 +6,386 @@
 <title>心</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">心</span>
-  <span class="t-date">2014년 10월 12일 일요일</span>
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">心</div>
+<div class="date">2014년 10월 12일 일요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">心<br>		<br>		<br>	<br>	<br>		<br>			<br>  마음을 다스리려면 마음을 볼 줄 알아야 한다. 그런 다음 그 마음에 그림을 그릴 줄 알아야 한다. 마음이라는 스케치북에 무엇을 그려 넣느냐에 따라 미래가 움직인다. 성공을 그리면 성공이 오고. 실패를 그리면 실패가 오는 것이다. 마음의 그림 속에는 신비한 마력이 숨어있다. 마음에 그린 그림을 어느 순간에건 현실화된다. 어떤 것을 마음속에 미리 그려보는 것은 이미 그것을 소유한 것과 같다.<br>			<br><br>			<br>  성공하고 싶은 욕구를 그린 마음의 그림은 미래의 성공과 직결된다. 성공의 뿌리는 내부에 있기 때문이다. 마음에 그린 성공의 그림은 훌륭한 자양분이다. 내부세계에 마음의 그림이 흡수되면 그것은 즉시 외부세계에 힘을 발휘한다. 바다 밑을 흐르는 강력한 해류처럼 우리가 인식하지 못하더라도 자동적으로 움직이는 것이다. 마음의 그림은 자연스럽게 우리가 원하는 것을 준다. 혹, 이 진리를 잊어 버려 불리한 상황이 되었더라도 실망하지 말라. 이 방법에는 시효가 없다. 그러므로 힘을 잃지 말고 성공의 그림을 다시 마음의 스케치북에 그리면 된다.<br>			<br><br>			<br>  우리의 의식은 행동 양식을 결정하고 행동 양식은 그에 따른 결과를 그대로 가져온다. 행복을 원한다면 마음의 화판에 행복만을 그려야 할 것이다. 부정적인 상상은 억지로라도 피해야만 한다.<br>			<br>마음은 순수함을 좋아한다. 이것저것 잡동사니 생각들을 마음은 혐오한다. 정신이 하나가 되면 마음 역시 흐트러지지 않는다. 그래서 정신이 지시하는 모든 일을 힘을 다해 이루어 내고야 만다.<br>			<br><br>			<br>  조용히 눈을 감고 생각에 잠겨보자. 마음 속에는 신비한 능력을 가진 스케치북이 들어있다. 이제 당신은 그 스케치북에 원하는 것을 그려 넣는다. 부정적인 생각들을 몰아내고 밝고 희망찬 그림을 그려 넣는 것이다.<br>			<br><br>			<br><br>			<br>긍정확언<br>			<br><나의&#160;가치와&#160;성장><br>			<br>나는&#160;운이&#160;좋은&#160;사람이다.<br>			<br>나는&#160;나날이&#160;점점&#160;더&#160;좋아진다.<br>			<br>내가&#160;하는&#160;선택과&#160;행동은&#160;반드시&#160;성공으로&#160;이어진다.<br>			<br>내게는&#160;인내력과&#160;지속력이&#160;있다.<br>			<br>내게는&#160;좋은것들만&#160;모여든다.<br>			<br>나는&#160;가치있는&#160;사람이다.&#160;나의&#160;길은&#160;중요하다.<br>			<br>내게는&#160;불가능한&#160;일이란&#160;없다.&#160;내게는&#160;원하는&#160;모든&#160;것을&#160;실현할&#160;힘이&#160;있다.<br>			<br>나는&#160;언제나&#160;나&#160;자신을&#160;위한&#160;최고의&#160;선택을&#160;한다.<br>			<br>나는&#160;꿈을&#160;실현할&#160;수&#160;있는&#160;시간,에너지,지혜,돈을&#160;충분히&#160;가지고&#160;있다.<br>			<br>나는&#160;나의&#160;시간과&#160;에너지를&#160;가치&#160;있게&#160;여긴다.<br>			<br>나는&#160;항상&#160;필요한&#160;모든&#160;것을&#160;가진다.<br>			<br>나는&#160;기쁨과&#160;활력,&#160;평화와&#160;사랑이&#160;넘친다.<br>			<br>내가하는&#160;모든&#160;것이&#160;내게&#160;활력과&#160;성장을&#160;가져다준다.<br>			<br>나는&#160;번영과&#160;풍요를&#160;내&#160;삶속으로&#160;수용한다.<br>			<br>모든&#160;것이&#160;완벽한&#160;시간에&#160;완벽한&#160;방식으로&#160;내게로&#160;온다.<br>			<br>내가&#160;사랑하는&#160;일을&#160;하면,&#160;돈과&#160;풍요는&#160;자유롭게&#160;내게로&#160;온다.<br>			<br>나는&#160;내&#160;운명의&#160;주인이다.<br>			<br>나에게는&#160;가치있는&#160;기술과&#160;재능이&#160;넘쳐난다.<br>			<br>나는&#160;내가&#160;하고싶은&#160;것을&#160;알고있으며&#160;그것을&#160;한다.<br>			<br>내게는&#160;기회가&#160;넘쳐나고&#160;빠르게&#160;기회를&#160;알아차린다.<br>			<br>나는&#160;항상&#160;필요하면&#160;무엇이든지&#160;공급받는다.<br>			<br>나는&#160;무한한&#160;방식으로&#160;생각하고&#160;꿈꾼다.<br>			<br>지금&#160;있는&#160;그대로&#160;나&#160;자신을&#160;수용하고&#160;사랑한다.<br>			<br>내&#160;일상은&#160;재미있고&#160;의미깊은&#160;활동으로&#160;충만하다.<br>			<br>나는&#160;나의&#160;창의력과&#160;아이디어를&#160;존중하고&#160;소중히&#160;여긴다.<br>			<br>나는&#160;원하는&#160;것을&#160;가질&#160;수&#160;있다.<br>			<br>나는&#160;내가&#160;창조하는&#160;모든것을&#160;사랑하고&#160;존중한다.<br>			<br>나는&#160;나&#160;자신을&#160;바꿈으로써&#160;주변세상을&#160;변화시킨다.<br>			<br>나는&#160;내가&#160;하는&#160;모든&#160;일에&#160;사랑과&#160;긍정적인&#160;태도를&#160;부여한다.<br>			<br>나는&#160;내가&#160;원하는&#160;것을&#160;쉽게&#160;창조한다.<br>			<br>사람들은&#160;나의&#160;일과&#160;작품을&#160;가치있게&#160;여기고&#160;존중한다.<br>			<br>나는&#160;있는&#160;그대로의&#160;나&#160;자신과&#160;내가&#160;가진&#160;모든것에&#160;감사한다.<br>			<br>나&#160;자신에게&#160;감사한다.<br>			<br>나의&#160;아름다운&#160;인생에&#160;감사한다.<br>			<br>내가주는&#160;모든&#160;선물은&#160;다른사람에게&#160;봉사하고&#160;그들에게&#160;힘을&#160;불어넣는다.<br>			<br>모든&#160;좋은&#160;것이&#160;애쓰지&#160;않아도&#160;쉽게&#160;내게&#160;다가오고&#160;있다.<br>			<br>매일&#160;내&#160;인생은&#160;기적과&#160;마법으로&#160;가득&#160;채워진다.<br>			<br>모든&#160;사람의&#160;성공이&#160;나의&#160;성공에&#160;기여한다.<br>			<br>나는&#160;다른사람에게서&#160;보이는&#160;풍요를&#160;축복한다.<br>			<br>나는&#160;말과&#160;행동에서&#160;최선을&#160;다해&#160;다른&#160;사람에게&#160;봉사한다.<br>			<br>모든&#160;상실에는&#160;반드시&#160;얻음이&#160;있다.<br>			<br>사람들은&#160;나의&#160;일과&#160;작품을&#160;가치있게&#160;여기고&#160;존중한다.<br>			<br>매순간&#160;새로운&#160;기회가&#160;내게로&#160;다가온다.<br>			<br>나는&#160;원하는&#160;것을&#160;알고&#160;그것을&#160;요청하므로&#160;성공한다.<br>			<br>나는&#160;지금&#160;내&#160;삶에&#160;있는&#160;모든&#160;것,&#160;모든&#160;사람,&#160;모든&#160;상황을&#160;아주&#160;좋은것으로&#160;보고&#160;축복한다.<br>			<br>나의&#160;가장&#160;좋은&#160;것이&#160;지금&#160;내게&#160;다가오고&#160;있다.<br>			<br>나는&#160;나의&#160;길이&#160;언제나&#160;완벽하다고&#160;확신한다.<br>			<br>모든&#160;사람은&#160;나를&#160;좋은것으로&#160;연결해주는&#160;황금사슬이다.<br>			<br>예상치&#160;못한,&#160;불가능해&#160;보일&#160;정도로&#160;좋은&#160;일이&#160;지금&#160;일어난다.<br>			<br>나는&#160;과거를&#160;추방하고&#160;매일&#160;놀라운&#160;행복이&#160;다가오는&#160;멋진&#160;현재속에&#160;지금을&#160;산다.<br>			<br>내가&#160;찾는&#160;모든&#160;것이&#160;지금&#160;나를&#160;찾고&#160;있다.<br>			<br>나는&#160;퇴근시간까지&#160;단호하고&#160;끈기있기를&#160;선택한다.<br>			<br>삶은&#160;쉽다.&#160;필요한&#160;무엇이든지&#160;나는&#160;풍요롭게&#160;가진다.<br>			<br>나는&#160;나&#160;자신을&#160;활짝&#160;열고&#160;기꺼이&#160;받는다.<br>			<br>내가&#160;하는&#160;모든&#160;것이&#160;나의&#160;가치와&#160;중요성을&#160;높여준다.<br>			<br>내&#160;인생의&#160;모든&#160;장애물은&#160;사라진다.<br>			<br>나는&#160;항상&#160;나&#160;자신을&#160;칭찬한다.<br>			<br>나는&#160;결정을&#160;잘&#160;하는&#160;사람이다.<br>			<br>나는&#160;삶의&#160;과정을&#160;신뢰하고&#160;마음이&#160;편안하다.<br>			<br>나는&#160;생각을&#160;바꾸면&#160;인생이&#160;바뀐다는&#160;것을&#160;안다.<br>			<br>어떠한고통이라도&#160;이&#160;또한&#160;지나갈&#160;것이며&#160;나는&#160;이&#160;경험을&#160;통해&#160;성장하고&#160;배울&#160;것이다.<br>			<br>나는&#160;스스로를&#160;용서하고&#160;자유롭게&#160;한다.<br>			<br>몇살이든&#160;나는&#160;지금&#160;완벽한&#160;나이이다.<br>			<br>나는&#160;나자신을&#160;돌보며,&#160;배려할&#160;줄&#160;안다.<br>			<br>나는&#160;수월하고&#160;편안하게&#160;삶을&#160;받아들여&#160;하나가&#160;된다.<br>			<br>나는&#160;삶의&#160;물결&#160;위를&#160;애씀&#160;없이&#160;편안하게&#160;흘러간다.<br>			<br>나의&#160;잠자리는&#160;세상에서&#160;가장&#160;안전한&#160;장소이다.<br>			<br>나는&#160;긍정적인&#160;에너지로&#160;가득하다.<br>			<br>나는&#160;나의&#160;지금&#160;모습&#160;이대로도&#160;좋다.<br>			<br>나는&#160;어떠한&#160;변화가&#160;오더라도&#160;나의&#160;재정&#160;상태는&#160;변함없이&#160;안정적이다.<br>			<br>나는&#160;몸에&#160;좋은&#160;음식을&#160;잘&#160;챙겨먹고,&#160;내&#160;몸을&#160;잘&#160;돌본다.<br>			<br>나는&#160;언제나&#160;삶이주는&#160;선물을&#160;기쁘게&#160;받는다.<br>			<br>나는&#160;언제나&#160;나에게서&#160;긍정적인&#160;면을&#160;발견한다.<br>			<br>나는&#160;매일&#160;삶을&#160;더&#160;좋게&#160;만드는&#160;새로운&#160;지식을&#160;배워간다.<br>			<br>나는&#160;이&#160;세상에&#160;빛이되는&#160;소중한&#160;존재이다.<br>			<br>나는&#160;사랑으로&#160;빛나는&#160;존재이다.<br>			<br>내가&#160;살고&#160;있는&#160;이&#160;아름다운&#160;세상에&#160;감사와&#160;경의를&#160;표한다.<br>			<br>나는&#160;내&#160;삶의&#160;목적을&#160;매일매일&#160;실현해&#160;가는&#160;중이다.<br>			<br>나는&#160;나&#160;자신을&#160;사랑하는&#160;일을&#160;더이상&#160;미루지&#160;않고&#160;지금&#160;시작한다.<br>			<br>나는&#160;매일&#160;변화하며&#160;성장한다.<br>			<br>내안에는&#160;성공에&#160;필요한&#160;모든&#160;요소가&#160;이미&#160;갖춰져&#160;있다.<br>			<br>내가&#160;향하는&#160;곳&#160;어디에나&#160;도움이&#160;기다리고&#160;있다.<br>			<br>내게는&#160;시대조차&#160;반드시&#160;내편으로&#160;만들&#160;힘이&#160;있다.<br>			<br><br>			<br><부와&#160;풍요><br>			<br>내게는&#160;항상&#160;나가는&#160;것보다&#160;더&#160;많은&#160;돈이&#160;들어온다.<br>			<br>나는&#160;항상&#160;커지고&#160;있는,&#160;부를&#160;창조하는&#160;나의&#160;능력을&#160;신뢰한다.<br>			<br>돈은&#160;내게&#160;애쓰지&#160;않으도&#160;쉽게&#160;다가온다.<br>			<br>나의&#160;저축은&#160;더&#160;많은&#160;돈을&#160;끌어당기는&#160;자석으로&#160;기능한다.<br>			<br>돈은&#160;애쓰지&#160;않아도&#160;손쉽게&#160;내게로&#160;온다.<br>			<br>내가쓰는&#160;모든&#160;돈은&#160;사회를&#160;부유하게&#160;하고&#160;몇&#160;배로&#160;커져서&#160;내게&#160;돌아온다.<br>			<br>나는&#160;지금&#160;커다랗고&#160;꾸준하며&#160;믿을&#160;수&#160;있는&#160;영구적인&#160;재정적&#160;수입을&#160;가지고&#160;있다.<br>			<br>나는&#160;지금&#160;빠르고&#160;실질적으로&#160;증가하는&#160;나의&#160;재정적&#160;수입에&#160;감사한다.<br>			<br>나는&#160;삶의&#160;모든&#160;면에서&#160;풍요롭다.<br>			<br>나의&#160;모든&#160;돈은&#160;나의&#160;풍요와&#160;기쁨,활력을&#160;키우기&#160;위해&#160;나를위해&#160;움직인다.<br>			<br>나는&#160;풍요로운&#160;인생을&#160;살기로&#160;선택한다.<br>			<br>나는&#160;내가&#160;소비하는&#160;돈에&#160;좋은&#160;기분을&#160;느낀다.<br>			<br>나의&#160;재정적&#160;상황은&#160;매일&#160;매순간&#160;점점&#160;더&#160;좋아진다.<br>			<br>나는&#160;지금&#160;많은&#160;돈을&#160;축적하고&#160;있다.<br>			<br>내&#160;마음은&#160;수익성높은&#160;아이디어를&#160;끌어당기는&#160;강력한&#160;자석이다.<br>			<br>위대한&#160;부가&#160;지금&#160;내게로&#160;흐르고&#160;있다.<br>			<br>나는&#160;쉽고&#160;힘들이지&#160;않고&#160;부를&#160;창조한다.<br>			<br>나는&#160;내가&#160;창조하는&#160;방식으로&#160;성공을&#160;정의한다.<br>			<br>나는&#160;돈을&#160;끌어당기는&#160;자석이다.<br>			<br>나의&#160;번영은&#160;한계가&#160;없다.&#160;나의&#160;성공은&#160;지금&#160;무한하다.<br>			<br>나의&#160;순자산은&#160;나날이&#160;증가한다.<br>			<br>나는&#160;나&#160;자신을&#160;부유한&#160;사람으로&#160;보며&#160;그것이&#160;나&#160;자신이다.<br>			<br>나는&#160;나의&#160;번영을&#160;즐기면서&#160;자유롭게&#160;세상과&#160;나눈다.<br>			<br>내&#160;소득이&#160;지금&#160;점점&#160;더&#160;높이&#160;성장하고&#160;있다.<br>			<br>나는&#160;부를&#160;구축하는&#160;것에&#160;대해&#160;열정적이다.<br>			<br>풍요와&#160;나는&#160;하나이다.<br>			<br>나는&#160;바로&#160;지금&#160;내&#160;삶에서&#160;재정적&#160;풍요를&#160;누릴&#160;자격이&#160;있다.<br>			<br>나의&#160;무한한&#160;풍요는&#160;현실로&#160;이루어진다.<br>			<br>풍요가&#160;나를&#160;둘러싼다.&#160;오늘&#160;나는&#160;나의&#160;몫을&#160;주장한다.<br>			<br>내게는&#160;지금&#160;필요한&#160;것&#160;이상이&#160;있다.&#160;나의&#160;모든&#160;욕구는&#160;충족된다.<br>			<br>나는&#160;지금&#160;성공과&#160;행복,&#160;풍요의&#160;왕도에&#160;있다.&#160;모든&#160;길이&#160;내쪽으로&#160;향한다.<br>			<br>나는&#160;언제나&#160;내가&#160;필요로&#160;하는&#160;모든것을&#160;갖게된다.<br>			<br>내게&#160;필요한&#160;돈은&#160;반드시&#160;수중에&#160;들어온다.<br>			<br><br>			<br>[참고] ‘인생을바꿔주는&#160;풍요의&#160;확언’ ‘루이스헤이의&#160;나를&#160;치유하는생각’<br>		<br>		<br>			<br>無瞋<br>		<br>		<br>			<br>fearless.peerless<br>			<br>Read to lead<br>			<br>Run to learn<br>		<br>		<br>			<br><br>		<br>		<br>			<br>감정의 cache를 빠르게 비워낸다.￼감정은 스티로폼 위에 놓인 쇳물과도 같은 것이다.<br>			<br><br>			<br>모든 순간이 결과다. 그러니 결과가 아니라 과정들을 심상에 그려라. <br>			<br>목적지를 그리지 말고, 여정을 그려라.</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note--';
+const SAVE_KEY = 'board--';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 360,
+    "y": 19,
+    "w": 600,
+    "content": "無瞋"
+  },
+  {
+    "type": "text",
+    "x": 480,
+    "y": 19,
+    "w": 429,
+    "content": "fearless.peerless\nRead to lead\nRun to learn"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 91,
+    "w": 600,
+    "content": "마음을 다스리려면 마음을 볼 줄 알아야 한다. 그런 다음 그 마음에 그림을 그릴 줄 알아야 한다. 마음이라는 스케치북에 무엇을 그려 넣느냐에 따라 미래가 움직인다. 성공을 그리면 성공이 오고. 실패를 그리면 실패가 오는 것이다. 마음의 그림 속에는 신비한 마력이 숨어있다. 마음에 그린 그림을 어느 순간에건 현실화된다. 어떤 것을 마음속에 미리 그려보는 것은 이미 그것을 소유한 것과 같다.\n성공하고 싶은 욕구를 그린 마음의 그림은 미래의 성공과 직결된다. 성공의 뿌리는 내부에 있기 때문이다. 마음에 그린 성공의 그림은 훌륭한 자양분이다. 내부세계에 마음의 그림이 흡수되면 그것은 즉시 외부세계에 힘을 발휘한다. 바다 밑을 흐르는 강력한 해류처럼 우리가 인식하지 못하더라도 자동적으로 움직이는 것이다. 마음의 그림은 자연스럽게 우리가 원하는 것을 준다. 혹, 이 진리를 잊어 버려 불리한 상황이 되었더라도 실망하지 말라. 이 방법에는 시효가 없다. 그러므로 힘을 잃지 말고 성공의 그림을 다시 마음의 스케치북에 그리면 된다.\n우리의 의식은 행동 양식을 결정하고 행동 양식은 그에 따른 결과를 그대로 가져온다. 행복을 원한다면 마음의 화판에 행복만을 그려야 할 것이다. 부정적인 상상은 억지로라도 피해야만 한다.\n마음은 순수함을 좋아한다. 이것저것 잡동사니 생각들을 마음은 혐오한다. 정신이 하나가 되면 마음 역시 흐트러지지 않는다. 그래서 정신이 지시하는 모든 일을 힘을 다해 이루어 내고야 만다.\n조용히 눈을 감고 생각에 잠겨보자. 마음 속에는 신비한 능력을 가진 스케치북이 들어있다. 이제 당신은 그 스케치북에 원하는 것을 그려 넣는다. 부정적인 생각들을 몰아내고 밝고 희망찬 그림을 그려 넣는 것이다.\n긍정확언\n<나의&#160;가치와&#160;성장>\n나는&#160;운이&#160;좋은&#160;사람이다.\n나는&#160;나날이&#160;점점&#160;더&#160;좋아진다.\n내가&#160;하는&#160;선택과&#160;행동은&#160;반드시&#160;성공으로&#160;이어진다.\n내게는&#160;인내력과&#160;지속력이&#160;있다.\n내게는&#160;좋은것들만&#160;모여든다.\n나는&#160;가치있는&#160;사람이다.&#160;나의&#160;길은&#160;중요하다.\n내게는&#160;불가능한&#160;일이란&#160;없다.&#160;내게는&#160;원하는&#160;모든&#160;것을&#160;실현할&#160;힘이&#160;있다.\n나는&#160;언제나&#160;나&#160;자신을&#160;위한&#160;최고의&#160;선택을&#160;한다.\n나는&#160;꿈을&#160;실현할&#160;수&#160;있는&#160;시간,에너지,지혜,돈을&#160;충분히&#160;가지고&#160;있다.\n나는&#160;나의&#160;시간과&#160;에너지를&#160;가치&#160;있게&#160;여긴다.\n나는&#160;항상&#160;필요한&#160;모든&#160;것을&#160;가진다.\n나는&#160;기쁨과&#160;활력,&#160;평화와&#160;사랑이&#160;넘친다.\n내가하는&#160;모든&#160;것이&#160;내게&#160;활력과&#160;성장을&#160;가져다준다.\n나는&#160;번영과&#160;풍요를&#160;내&#160;삶속으로&#160;수용한다.\n모든&#160;것이&#160;완벽한&#160;시간에&#160;완벽한&#160;방식으로&#160;내게로&#160;온다.\n내가&#160;사랑하는&#160;일을&#160;하면,&#160;돈과&#160;풍요는&#160;자유롭게&#160;내게로&#160;온다.\n나는&#160;내&#160;운명의&#160;주인이다.\n나에게는&#160;가치있는&#160;기술과&#160;재능이&#160;넘쳐난다.\n나는&#160;내가&#160;하고싶은&#160;것을&#160;알고있으며&#160;그것을&#160;한다.\n내게는&#160;기회가&#160;넘쳐나고&#160;빠르게&#160;기회를&#160;알아차린다.\n나는&#160;항상&#160;필요하면&#160;무엇이든지&#160;공급받는다.\n나는&#160;무한한&#160;방식으로&#160;생각하고&#160;꿈꾼다.\n지금&#160;있는&#160;그대로&#160;나&#160;자신을&#160;수용하고&#160;사랑한다.\n내&#160;일상은&#160;재미있고&#160;의미깊은&#160;활동으로&#160;충만하다.\n나는&#160;나의&#160;창의력과&#160;아이디어를&#160;존중하고&#160;소중히&#160;여긴다.\n나는&#160;원하는&#160;것을&#160;가질&#160;수&#160;있다.\n나는&#160;내가&#160;창조하는&#160;모든것을&#160;사랑하고&#160;존중한다.\n나는&#160;나&#160;자신을&#160;바꿈으로써&#160;주변세상을&#160;변화시킨다.\n나는&#160;내가&#160;하는&#160;모든&#160;일에&#160;사랑과&#160;긍정적인&#160;태도를&#160;부여한다.\n나는&#160;내가&#160;원하는&#160;것을&#160;쉽게&#160;창조한다.\n사람들은&#160;나의&#160;일과&#160;작품을&#160;가치있게&#160;여기고&#160;존중한다.\n나는&#160;있는&#160;그대로의&#160;나&#160;자신과&#160;내가&#160;가진&#160;모든것에&#160;감사한다.\n나&#160;자신에게&#160;감사한다.\n나의&#160;아름다운&#160;인생에&#160;감사한다.\n내가주는&#160;모든&#160;선물은&#160;다른사람에게&#160;봉사하고&#160;그들에게&#160;힘을&#160;불어넣는다.\n모든&#160;좋은&#160;것이&#160;애쓰지&#160;않아도&#160;쉽게&#160;내게&#160;다가오고&#160;있다.\n매일&#160;내&#160;인생은&#160;기적과&#160;마법으로&#160;가득&#160;채워진다.\n모든&#160;사람의&#160;성공이&#160;나의&#160;성공에&#160;기여한다.\n나는&#160;다른사람에게서&#160;보이는&#160;풍요를&#160;축복한다.\n나는&#160;말과&#160;행동에서&#160;최선을&#160;다해&#160;다른&#160;사람에게&#160;봉사한다.\n모든&#160;상실에는&#160;반드시&#160;얻음이&#160;있다.\n사람들은&#160;나의&#160;일과&#160;작품을&#160;가치있게&#160;여기고&#160;존중한다.\n매순간&#160;새로운&#160;기회가&#160;내게로&#160;다가온다.\n나는&#160;원하는&#160;것을&#160;알고&#160;그것을&#160;요청하므로&#160;성공한다.\n나는&#160;지금&#160;내&#160;삶에&#160;있는&#160;모든&#160;것,&#160;모든&#160;사람,&#160;모든&#160;상황을&#160;아주&#160;좋은것으로&#160;보고&#160;축복한다.\n나의&#160;가장&#160;좋은&#160;것이&#160;지금&#160;내게&#160;다가오고&#160;있다.\n나는&#160;나의&#160;길이&#160;언제나&#160;완벽하다고&#160;확신한다.\n모든&#160;사람은&#160;나를&#160;좋은것으로&#160;연결해주는&#160;황금사슬이다.\n예상치&#160;못한,&#160;불가능해&#160;보일&#160;정도로&#160;좋은&#160;일이&#160;지금&#160;일어난다.\n나는&#160;과거를&#160;추방하고&#160;매일&#160;놀라운&#160;행복이&#160;다가오는&#160;멋진&#160;현재속에&#160;지금을&#160;산다.\n내가&#160;찾는&#160;모든&#160;것이&#160;지금&#160;나를&#160;찾고&#160;있다.\n나는&#160;퇴근시간까지&#160;단호하고&#160;끈기있기를&#160;선택한다.\n삶은&#160;쉽다.&#160;필요한&#160;무엇이든지&#160;나는&#160;풍요롭게&#160;가진다.\n나는&#160;나&#160;자신을&#160;활짝&#160;열고&#160;기꺼이&#160;받는다.\n내가&#160;하는&#160;모든&#160;것이&#160;나의&#160;가치와&#160;중요성을&#160;높여준다.\n내&#160;인생의&#160;모든&#160;장애물은&#160;사라진다.\n나는&#160;항상&#160;나&#160;자신을&#160;칭찬한다.\n나는&#160;결정을&#160;잘&#160;하는&#160;사람이다.\n나는&#160;삶의&#160;과정을&#160;신뢰하고&#160;마음이&#160;편안하다.\n나는&#160;생각을&#160;바꾸면&#160;인생이&#160;바뀐다는&#160;것을&#160;안다.\n어떠한고통이라도&#160;이&#160;또한&#160;지나갈&#160;것이며&#160;나는&#160;이&#160;경험을&#160;통해&#160;성장하고&#160;배울&#160;것이다.\n나는&#160;스스로를&#160;용서하고&#160;자유롭게&#160;한다.\n몇살이든&#160;나는&#160;지금&#160;완벽한&#160;나이이다.\n나는&#160;나자신을&#160;돌보며,&#160;배려할&#160;줄&#160;안다.\n나는&#160;수월하고&#160;편안하게&#160;삶을&#160;받아들여&#160;하나가&#160;된다.\n나는&#160;삶의&#160;물결&#160;위를&#160;애씀&#160;없이&#160;편안하게&#160;흘러간다.\n나의&#160;잠자리는&#160;세상에서&#160;가장&#160;안전한&#160;장소이다.\n나는&#160;긍정적인&#160;에너지로&#160;가득하다.\n나는&#160;나의&#160;지금&#160;모습&#160;이대로도&#160;좋다.\n나는&#160;어떠한&#160;변화가&#160;오더라도&#160;나의&#160;재정&#160;상태는&#160;변함없이&#160;안정적이다.\n나는&#160;몸에&#160;좋은&#160;음식을&#160;잘&#160;챙겨먹고,&#160;내&#160;몸을&#160;잘&#160;돌본다.\n나는&#160;언제나&#160;삶이주는&#160;선물을&#160;기쁘게&#160;받는다.\n나는&#160;언제나&#160;나에게서&#160;긍정적인&#160;면을&#160;발견한다.\n나는&#160;매일&#160;삶을&#160;더&#160;좋게&#160;만드는&#160;새로운&#160;지식을&#160;배워간다.\n나는&#160;이&#160;세상에&#160;빛이되는&#160;소중한&#160;존재이다.\n나는&#160;사랑으로&#160;빛나는&#160;존재이다.\n내가&#160;살고&#160;있는&#160;이&#160;아름다운&#160;세상에&#160;감사와&#160;경의를&#160;표한다.\n나는&#160;내&#160;삶의&#160;목적을&#160;매일매일&#160;실현해&#160;가는&#160;중이다.\n나는&#160;나&#160;자신을&#160;사랑하는&#160;일을&#160;더이상&#160;미루지&#160;않고&#160;지금&#160;시작한다.\n나는&#160;매일&#160;변화하며&#160;성장한다.\n내안에는&#160;성공에&#160;필요한&#160;모든&#160;요소가&#160;이미&#160;갖춰져&#160;있다.\n내가&#160;향하는&#160;곳&#160;어디에나&#160;도움이&#160;기다리고&#160;있다.\n내게는&#160;시대조차&#160;반드시&#160;내편으로&#160;만들&#160;힘이&#160;있다.\n<부와&#160;풍요>\n내게는&#160;항상&#160;나가는&#160;것보다&#160;더&#160;많은&#160;돈이&#160;들어온다.\n나는&#160;항상&#160;커지고&#160;있는,&#160;부를&#160;창조하는&#160;나의&#160;능력을&#160;신뢰한다.\n돈은&#160;내게&#160;애쓰지&#160;않으도&#160;쉽게&#160;다가온다.\n나의&#160;저축은&#160;더&#160;많은&#160;돈을&#160;끌어당기는&#160;자석으로&#160;기능한다.\n돈은&#160;애쓰지&#160;않아도&#160;손쉽게&#160;내게로&#160;온다.\n내가쓰는&#160;모든&#160;돈은&#160;사회를&#160;부유하게&#160;하고&#160;몇&#160;배로&#160;커져서&#160;내게&#160;돌아온다.\n나는&#160;지금&#160;커다랗고&#160;꾸준하며&#160;믿을&#160;수&#160;있는&#160;영구적인&#160;재정적&#160;수입을&#160;가지고&#160;있다.\n나는&#160;지금&#160;빠르고&#160;실질적으로&#160;증가하는&#160;나의&#160;재정적&#160;수입에&#160;감사한다.\n나는&#160;삶의&#160;모든&#160;면에서&#160;풍요롭다.\n나의&#160;모든&#160;돈은&#160;나의&#160;풍요와&#160;기쁨,활력을&#160;키우기&#160;위해&#160;나를위해&#160;움직인다.\n나는&#160;풍요로운&#160;인생을&#160;살기로&#160;선택한다.\n나는&#160;내가&#160;소비하는&#160;돈에&#160;좋은&#160;기분을&#160;느낀다.\n나의&#160;재정적&#160;상황은&#160;매일&#160;매순간&#160;점점&#160;더&#160;좋아진다.\n나는&#160;지금&#160;많은&#160;돈을&#160;축적하고&#160;있다.\n내&#160;마음은&#160;수익성높은&#160;아이디어를&#160;끌어당기는&#160;강력한&#160;자석이다.\n위대한&#160;부가&#160;지금&#160;내게로&#160;흐르고&#160;있다.\n나는&#160;쉽고&#160;힘들이지&#160;않고&#160;부를&#160;창조한다.\n나는&#160;내가&#160;창조하는&#160;방식으로&#160;성공을&#160;정의한다.\n나는&#160;돈을&#160;끌어당기는&#160;자석이다.\n나의&#160;번영은&#160;한계가&#160;없다.&#160;나의&#160;성공은&#160;지금&#160;무한하다.\n나의&#160;순자산은&#160;나날이&#160;증가한다.\n나는&#160;나&#160;자신을&#160;부유한&#160;사람으로&#160;보며&#160;그것이&#160;나&#160;자신이다.\n나는&#160;나의&#160;번영을&#160;즐기면서&#160;자유롭게&#160;세상과&#160;나눈다.\n내&#160;소득이&#160;지금&#160;점점&#160;더&#160;높이&#160;성장하고&#160;있다.\n나는&#160;부를&#160;구축하는&#160;것에&#160;대해&#160;열정적이다.\n풍요와&#160;나는&#160;하나이다.\n나는&#160;바로&#160;지금&#160;내&#160;삶에서&#160;재정적&#160;풍요를&#160;누릴&#160;자격이&#160;있다.\n나의&#160;무한한&#160;풍요는&#160;현실로&#160;이루어진다.\n풍요가&#160;나를&#160;둘러싼다.&#160;오늘&#160;나는&#160;나의&#160;몫을&#160;주장한다.\n내게는&#160;지금&#160;필요한&#160;것&#160;이상이&#160;있다.&#160;나의&#160;모든&#160;욕구는&#160;충족된다.\n나는&#160;지금&#160;성공과&#160;행복,&#160;풍요의&#160;왕도에&#160;있다.&#160;모든&#160;길이&#160;내쪽으로&#160;향한다.\n나는&#160;언제나&#160;내가&#160;필요로&#160;하는&#160;모든것을&#160;갖게된다.\n내게&#160;필요한&#160;돈은&#160;반드시&#160;수중에&#160;들어온다.\n[참고] ‘인생을바꿔주는&#160;풍요의&#160;확언’ ‘루이스헤이의&#160;나를&#160;치유하는생각’"
+  },
+  {
+    "type": "text",
+    "x": 840,
+    "y": 91,
+    "w": 247,
+    "content": "감정의 cache를 빠르게 비워낸다.￼감정은 스티로폼 위에 놓인 쇳물과도 같은 것이다.\n모든 순간이 결과다. 그러니 결과가 아니라 과정들을 심상에 그려라.\n목적지를 그리지 말고, 여정을 그려라."
+  }
+];
+const CONTENT_HASH = '9524866a';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -133,33 +398,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

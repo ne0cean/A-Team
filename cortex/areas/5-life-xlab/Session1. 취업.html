@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session1. 취업</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Session1. 취업</div>
+<div class="date">2015년 3월 14일 토요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Session1-취업';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 65,
+    "y": 139,
+    "w": 600,
+    "content": "1학년 - 책을 많이 읽고, 경험을 쌓아라\n뭘 할건지 정해라\n2학년 -\n3학년 - 대외활동, 필요한 자격증\n4학년 - 가지치기 : 인턴\n[ Smart한 Loser들을 위한 조금 다른 취업전략 _ ① 선발전 ]\n공식적으로 집계된 적은 없지만, 2010년도 즈음부터 서비스 업종에서 가장 큰 폭발적인 시장성장률과 영업이익을 가져간 업종은 대학이었을 것이다. 취업장벽에 가로막힌 대학생들이 졸업을 유예하면서, '9학기' 혹은 '5학년' 등의 히트상품을 어마어마하게 팔았으니까.\n프로의 가장 큰 특성 중 하나는 노동의 대가로 ‘돈’을 받는다는 점이다.\n경제적 능력을 갖추는 것을 유예할 수 있는 유복한 형편이 아니라면 해당 시즌에 취업을 해야 한다.\n취준생, 내 후배들만큼은 그 무간지옥 으로부터 탈출을 돕기 위해 이 글을 쓴다.\n인정하자.\nReality를, Spec을 업그레이드 하기에는 너무 늦었다.\n우린 5학년 아니, 취준생이니까.\n(다시 말하지만 이 글은, 1~3학년을 위한 글이 아니다.)\n우리는 Reality가 아닌 Image,\n이미 모든 제원과 디자인이 확정된, '나'라는 상품을\n보다 매력적으로 보여줄 수 있는 방법에 대해 고민해야 하는 단계이다.\n즉, 이것은 마케팅에 관한 이야기다.\n경영, 재원이 유한하기 때문이다.\n마케팅, 시장이 유한하기 때문이다.\n[ 차별화 - 경쟁은 나를 다시한번 Loser로 만들 뿐이다. ]\n스펙으로 중무장(하고 싶어)한 우리 취준생들의 가장 큰 실수는\n이미 상향 평준화되어 하등 변별력이 없는 spec 자체에 목을 메고 있다는 것이다.\n다윗이 돌팔매가 아니라, 몽둥이를 들었다면 과연 골리앗을 이길 수 있었을까?\n'정석'에 대한 이야기가 아니다. '전략'에 관한 이야기다.\n남들 다 하는 것 못해도 바보지만,\n남들 다 한다고 따라서 하는 것도 바보다.\n우리는 우리가 뛰어나다는 것을 보여주려는 것이 아니다.\n우리가 '다르다'는 것을 보여줘야 하는 것이고 이것이 우리 Loser의 전략이다.\n우월함은 추월 당하기 마련이다. 달라야 한다.\n[ 선택과 집중? 포기와 집중! ]\n모든 전략의 기본은 포기다. 포기해야 선택할 수 있고, 선택해야만 집중할 수 있으며,\n집중해야만 마침내 관통할 수 있다.\n초점을 모아 집중 하되, 리스크 매니지먼트를 위한 포트폴리오 구성을 해야만 한다.\n반드시 원하는 회사에 합격해야만 하지만, 동시에 Plan B를 모색해야 한다.\n꼭 가야만 하는 Top tier 3개기업 + 각 3~5개 산업군별 지원회사 3개(보험용)로 지원 할 회사들의 리스트를 구성하자.\n[1] 선발전 : Targeting _ 취업은 사격이고, 사냥이다.\n꿈에는 낭만이 수반되고,\n목표에는 계획이 따른다.\n타겟 기업 선정이 필요한 이유는 두 가지다.\n첫째, 해당 기업에 맞춰 보다 정교하게 공략할 수 있다.\n둘째, 우리가 가진 시간과 노력이라는 자원은 한정되어 있다. 이 자원을 어떻게 배분할지를 정할 수 있다.\n지원도 하지 않은 사람을 탈락시킬 수는 없는 법이다. 즉, 우리가 회사를 고르고 난 후에야,\n회사도 우리를 고를 수 있는 자격을 갖게 되는 것이다. 한마디로 우리가 '갑'이다.\n내가 원하는 Job position을 사냥에 나서는 것이라는 생각을 갖자.\n그럼, 어떻게 고르느냐,\n답은 자신에게 있다.\n우리가 취업을 통해서 중장기적으로 성취하고자 하는 바를 자문하고 자답하며 그것을 위해 필요한 팩터들을 나열 해보자.\n우리가 어릴적 부터 수 없이 들어왔던 \"커서 뭐가 되고 싶어?\"는 옳은 질문이 아니다.\n\"나는 무엇을 '하고' 싶은가?\"를 물어야 한다.\n1. \"어디에서 어떤 무엇을 하며 어떻게 살아가고 싶은가?\" 이에 대한 답을 줄글로 사고의 흐름에 따라 적어보자.\n2. 직업과 나의 직장이 이러한 삶을 위해 갖춰야 할 요건들을 적어보자.\n예시) 희망 근무지, 연봉 및 복리후생 수준, MBA지원여부, 적성 및 커리어 정합성, 업무강도, 장래성, 기타고려요인1, 2….\n위에서 정한 팩터에 부합하는 회사들을 찾기 위한 정보 탐색은\n귀하의 역량에 맡긴다.\n[ 파레토 법칙은 어디에나 통용된다 ]\n이력서 쓰는 숫자와 열정이 비례할지는 모르겠지만, 열정 자체만으로는 원하는 기업에 합격할 가능성에 별반 영향을 미치지 못한다.\n똑같이 30개의 이력서를 쓴다 해도, 타겟 기업군에 80%의 시간을 할애하고 나머지 기업군에 20%시간을 활용하는 것과, 모든 기업에 똑같은 시간을 할애하는 것은 천양지차다.\n'소수의 기업에 지원'한다는 것과, '소수의 기업에 집중'한다는 것은 완전히 다른 이야기다.\n복수의 기업에 지원하고, 복수의 기업에 합격하라. (합격자 발표 날짜가 상이하기 때문에 꼭 필요하다.)\n누군가 단 1곳의 기업에만 지원했다면, 그 기백과 로열티는 가상하지만 그런 사람을 뽑아선 안된다.\n기본적인 Risk management에 대한 개념이 없는 것이기 때문이다.\n___________________________________________________________________________________________________________________________________\n[ Smart한 Loser들을 위한 조금 다른 취업전략 _ ② 예선전 ]\n모든 전형의 기초 데이터를 제공한다는 의미에서 가장 중요한 첫 단추,\n서류전형 + 인적성을 포괄하는 예선전 공략법을 공유해보자.\n_______________________________________________________________________________________________________"
+  },
+  {
+    "type": "text",
+    "x": 976,
+    "y": 139,
+    "w": 512,
+    "content": "꼰대들이 잘 못하는 분야에서 뛰어나야한다\n그들의 경험이 무의미 무가치 해지는\n전혀 새로운 영역\n평가나 짓누름 간섭에서 자유롭고\n쉽게 그들을 뛰어넘을 수 있다.\n쉽게 변하지 않는 가치 + 기존의 경험이 통용되지 않는 영역\n취업시지ㅡㄴ 나의ㅈ팔로어는 2만5천명\n수 많은 마케팅 에이전시들이 말도안되는 제안으로\n기업들 돈을 받아내던 혼돈의 시기"
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 1663,
+    "w": 600,
+    "content": "축구 골대를 아슬아슬하게 빗나가는 볼과 골이 되는 볼은\n킥이 볼에 닿는 순간의 아주 사소한 각도 차이에 의해 결정된다.\n시작점에서의 아주 작은 차이, 그 디테일이 미래를 바꿔놓는다."
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 1755,
+    "w": 600,
+    "content": "[2] 예선전 _ 나도 잊고 있던 나의 역사를 공부한다.\n서류 전형에서는 자소서와 이력서를 제출한다.\n그러나 우리 Loser들 에게는 두 가지 무기가 더 필요하다.\n'연대표'와 '포트폴리오'\n각각의 서류가 가진 의미를 짚고 넘어가자.\nㅇ 연대표 : 이력서 & 자소서와 포트폴리오 작성을 위한 네비게이션 역할을 한다. (후술 예정)\nㅇ 이력서 : 이미 던져진 주사위다. 선별작업(필터링)을 위한 기초 데이터를 제공한다고 생각하자.\nㅇ 자소서 : 개인 역사서의 요약본, 어짜피 글이다. 흥미로운 글을 써야 면접장에 불러서 한번 보고 싶지 않겠는가.\nㅇ 포트폴리오 : 최근에는 온라인 접수 사이트에 별도의 첨부파일을 제출 가능한 기업이 많다. 제출하는 항목 중 그 무엇도 공란으로 남겨둬선 안된다. 취업은 전면전이다, 가용할 수 있는 모든 무기와 자원을 총 동원해야 한다."
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 1979,
+    "w": 600,
+    "content": "1. 연대표 - 내 스토리의 인덱스 [chronicle]\n이력서나 자소서, 둘 중에 단 하나라도 Impact가 있어야만 한다. 허나, 우리가 007 제임스 본드의 '살인면허' 정도의 자격증(?)을 보유하고 있다면 모를까, 이력서에서 당락을 좌우하는 현격한 차이를 내기는 힘들다."
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 2071,
+    "w": 600,
+    "content": "그렇다면 우리의 승부처는 자소서다. 그 자소서를 위해 필요한 것이 지금 소개하는 '연대표'다. 연대기를 시계열 순으로 요약한 것이 연대표이듯, 내 삶의 주요 에피소드를 나열하는 '내 청춘의 연대표'를 작성하는 것이다. 이것을 제출하지는 않지만, 자소서의 퀄리티를 현격하게 높여줄 수 있는 비기다.\nㅇ 연대표 작성방법 : 내가 가진 스토리의 DB/아카이브를 만드는 작업\n특별한 에피소드나 경험이 있다면 대학 이전도 좋지만, 가능한 대학 재학기간을 중심으로 모든 활동을 적는다.\n1) 엑셀이나 워드에 입학부터 현재까지 모든 월을 적는다.\n2) 월별로 아주 사소한 것이라도 좋다. 일상적이지 않고, 성장의 계기가 되었던 일 등 흥미로운 각종 에피소드를 적어 나간다.\n세세한 에피소드 하나까지 기록하고, 잘 기억이 나지 않는다면 SNS를 뒤져보거나 친구에게 전화해서 물어서라도 적는다.\n대다수의 지원자들이 자소서를 작성하는 Flow는 아래와 같다.\n1) 자소서 문항 분석 및 키워드 추출 → 2) 키워드에 대응하는 스토리나 에피소드 떠올리기 → 3) 생각난 것 중에서 작성\n여기서 문제가 되는 것이 '생각난 것 중에서' 스토리를 추출해낸다는 것이다. 살아온 모든 나날을 기억하지 못하는데, 몇 십분 혹은 몇 시간 동안 반추해본 일들만으로는 최적화된 스토리를 발굴해내기 힘들다. 게다가, 나는 간과했지만 해당 문항에 최적화된 스토리가 분명히 있을 것이다.\n연대표를 활용한 자소서 작성은 어떻게 다를지 짐작이 가는가?\n1) 문항 분석 및 키워드 추출 → 2) 키워드에 대응하는 스토리나 에피소드를 연대표에서 발굴 → 3) 최적화된 스토리를 토대로 자소서 작성\n이렇듯 내 에피소드가 인덱싱 되어 있기 때문에 자소서에 쓸 수 있는 스토리의 풀 자체가 굉장히 풍부해진다.\n글을 잘 쓰고 아니고의 문제가 아니라, 에피소드 자체의 정합성이 달라지고 그것이 자소서의 퀄리티가 되는 것이다.\n게다가, 앞으로 많게는 수십 번 넘게 이력서를 쓸 텐데 매번 이력서상에 주요 활동이나 자격사항을 기간별로 기재할 때 이것이 일목요연하게 정리되어 있으면 굉장히 간편하다.\n2. 이력서 - 기본에 충실하되, 기초적인 항목에서 차별화를 꾀하자\n이력서에 스펙관련 항목들을 삭제하는 기업들이 늘어나는 추세이기도 하고, 앞서 언급한대로 이력서 때문에 합격하는 경우는 없기 때문에 일단 기본에 충실하길 권한다. 하지만, 뻔한 취업준비 Tip을 제시할 것이었다면 이 글을 시작도 하지 않았을 거다. 안심하고 읽어보자. 의외로 기본 항목에서 차별화 할 수 있는 여지가 있다.\n1) 사진 - 누구라도 본능적으로 시선이 간다. 미남이 아니라 훈남(같이 일하고 싶은) 인상이어야 한다. (비록 사진만이라도;;)\n몇 번을 다시 찍어도 좋다. 베스트 샷을 건져내야만 한다. 십 만원이 넘는 가격에 한 시간 정도 스튜디오를 대여해서 개인촬영을 해주는 서비스도 있다.  한국사람들은 모두 입술을 앙다물고 찍는다. 만약 인상이 차가운 편이라면 치아를 드러내고 웃는 모습을 연출해보자. 약점을 강점으로 바꿀 수 있는 의외의 포인트다.\n2) 취미 - 이게 참 난감하다. 진짜 취미를 적자니 너무 평범하고, 있어 보이는 걸 적자니 딱 한번 해본 스킨스쿠버 정도 밖에 생각이 안난다. 여기서도 스토리를 동원할 수 있다. 나에 대해 궁금하게 만드는 스토리형 취미를 적어보자. (e.g. 독서 -> 독서 일기, 영화 관람 -> 영화평 작성하기) 오늘부터 취미를 바꾸면 되지 않는가?\n고래로부터 한국CEO들의 3대 취미는 등산, 골프, 마라톤이었다. 만약 당신이 다음 시즌에도 취업을 준비한다면 까짓거 마라톤 1번 뛰고, 취미란에 마라톤이라고 적자. 요즘 청년 중에 마라톤 뛰는 사람이 있겠는가? 면접관리 당신의 취미란을 본다면 열이면 열 질문을 하게 될 것이다. 그때 자신의 근성을 어필해주시면 되겠다.\n3. 자소서 - 자소서라 쓰고 자소설이라 읽는다.\n[가슴을 쳐야 팔린다.]\n자소서의 목적은 단 하나, 나를 면접장에 부르고 싶도록 만드는 것이다. 독자가 흥미를 느껴야 나를 선택한다. '열정' '패기'이런 단어가 들어간 자소서는 하수의 자소서다. 자소서를 읽는 사람이 그 키워드를 도출 해낼 수 있도록 써야 한다. 그래서 우스개로 자소설이라 하지만 정말 소설처럼 써야 한다. 탈고의 고통을 감내하자, 읽는 사람은 그만큼 즐거울 거고 그만큼 나를 불러서 보고 싶어질 거다.\nㅇ 앞서 언급한대로 연대표를 활용해서 문항 분석 - 키워드 도출 - 연대기의 에피소드와 매칭 - 최적 에피소드 도출 - Plot구성 (도전-실패-극복-배움-입사 후 기여방향)순으로 작성해보자.\nㅇ 성과에 관련된 것이라면 반드시 정량적 숫자들 제시하자.\nㅇ 영어나 한자어를 너무 남용해도 좋지 않지만, 중간중간에 이질적인 단어들이 썩여 있으면 독자가 텐션을 잃지 않을 수 있으니 적절히 안배하자.\nㅇ 합격자소서를 최대한 구해서 반복적으로 읽어보자. 어떠한 \"패턴\"이 보일 것이다. 그 '스토리'가 아니라 '구성'을 벤치마킹 하자.\nㅇ 섹시한 소제목 활용 - 혹시, 채용 담당이 자소서의 모든 항목을 다 읽어본다고 착각하고 있는가? 소제목의 기능은 글 안으로 독자를 끌어들이는 것이다. 소제목만으로도 읽을지 말지를 결정한다는 것이다. 맵고 짠 음식이 맛있듯이, 자극적인 소제목을 뽑는데 시간을 충분히 할애하자.\nㅇ 글자 수는 마지막까지 어휘를 바꿔가면서라도 채워서 쓰길 권한다. 채용담당자도 사람인데 자소서에 빈 곳이 많이 보이면, '성의'를 의심하게 될 수 밖에 없다.\nㅇ 퇴고하고 퇴고하고 또 퇴고한 다음에 한번을 더 퇴고할 것. 마침내 스스로가 정말 만족스러울 때 제출할 것.\nㅇ 반드시 최종 마감기한 1일 전에 서류를 접수하자. 마감 1시간 직전까지 쓴 자소서의 완성도는 보나마나다. 마감에 쫓길 때의 분주함은 '노력'이 아니라 '노답'이다.\nㅇ 누차 언급하지만, 모든 회사가 자소서의 모든 항목을 읽어보지는 않는다. 당신이 채용담당자이고, 단 한 문항을 보고 합격여부를 결정한다면 무슨 항목을 보겠는가? 그렇다. 정말 공들여서 써야 하는건 지원동기와 입사 후 포부 항목이다.\n4. 포트폴리오 - 백지수표\n꼭 포트폴리오가 아니어도 좋다. 추가로 무언가를 제출할 수 있도록 한 기업은 지원자에게 백지수표와도 같은 기회를 주고 있는 것이다. 내가 축적해온 역량을 다양한 포맷으로 충분히 보여줘야만 한다.\nㅇ 지원 직무와 기업에 최적화된 포트폴리오를 작성하는 것을 추천한다.\nㅇ 형식과 포맷은 중요하지 않다. \"내가 무엇을 보여주고 싶은가?\" 이 질문에만 집중해서 가장 효과적인 구성을 고민해보기 바란다.\nㅇ 우리의 문서 작성 능력까지 어필할 수 있다는 것은 덤이다.\nㅇ 파일을 첨부할 수 있도록 구성된 기업에는 반드시 첨부하고, 그렇지 않은 기업은 메일이나 우편을 통해 HR부서에 전달한다.\nㅇ 인적성 검사\n인성과 적성으로 나뉜다. 점수가 투명하게 공개되지 않는 것으로 보아 흑막이 있을 수 있다는 추측을 해본다.\n1) 인성 검사 - 도핑 테스트\n약 빨고 온 지원자가 있는지를 걸러내는 것이 목적이다. Lie scale이란 것이 있어서 서로 대응되는 중복 질문에 다르게 답한 비율이 높으면 해당 인성검사 결과가 폐기된다. 즉, 불합격이다. 상식선 에서 해결이 가능할거라 믿는다. 이를 테면, \"불을 보면 흥분된다.\" 정말 흥분이 되는가?!\n2) 적성 검사 : 사실 단기간에 유의미한 실력향상이 어렵다. 비책은 없지만, 가능성을 조금이라도 높이는 노력은 해보자.\n책 값에 돈 아껴서 크게 된 사람이 있는가. 가능한 많은 문제집을 풀자. 어짜피 문제 은행방식이기 때문에 동종 업계의 경우에는 거의 비슷한 유형의 문제가 출제된다. 똑같은 문제가 나오지는 않는다. 하지만 남들이 책상 위에 시험지와 연필, 지우개만 들고 시작할 때 우리는 자신감와 안정감까지 덤으로 가져 가는 거다.\n____________________________________________________________________________________________________________________________________________________________\n#사례1\n취업준비 당시, CSR이 이슈였다. 각 기업 경제연구소에서 5개정도의 리포트를 다운 받아서 읽어뒀다.\n한 회사의 실무진 면접에서 지원자들이 돌아가면서 발표하는 시간이었고, 선택지 2가지 중 하나가 CSR이었다.\n다들 앉아서 말하거나, 잘 한다 치면 일어서서 발표하는 정도였다.\n나는 A4용지에 보아뱀 비스무리한 그래프 하나를 그려서 들고 설명했다. 프리젠테이션 면접이 아니었지만, 내가 구도를 바꾸면 어떠한가.\n면접관이 칠판을 쓰라고 했다. 3개의 선분으로 구성된 허접한 그래프였지만, 화이트 보드에 갈겨대며 설명하는 나를 모두가 의자를 돌려 쳐다봤다.\n발표시간 1분을 한참 오버한건 문제가 되지 않았다. 자리로 돌아오면서 Game이 끝났다는 확신이 들었다. 단 15분 정도 훑어본 몇 개의 리포트가 전황을 바꿀 수 있는 힘이 되었다.\n#사례2\n자소서에 BM(브랜드 매니저)가 목표라고 적었었다. 실무진 면접에서 브랜드매니저의 정의 - 어떤 일을 하는지 - 어떤 역량이 필요한지 - 입사하면 어떻게 할건지….. 꼬리에 꼬리를 물고 물다 5단콤보 넘게 질문이 들어왔다. 나름 달변이고 뻔뻔하다 자부하는데 전 취업 과정을 통틀어 유일하게 버벅 거렸었다. 하지만 그 덕분에 돌아오는 기차에서 합격할 것이라는 것을 알았다. 면접에서의 압박은 '관심의 표현'이다.\n[ Pole position ]\nF1 그랑프리에는 Pole position이라는 것이 있다.\n예선 타임이 가장 빨랐던 차에 다음 경기 맨 앞 줄의 출발 위치가 주어지는 것이다. 면접도 그렇다.\n예선전 점수가 좋으면 보다 나은 조건으로 결선에 진출 할 수 있다.\n당연하지만, 1차면접의 점수는 최종 임원 면접 시 자료로 제공된다. 이건 아주 중요한 문제다.\n임원도 사람인지라, 그 점수로 인해 지원자에 대한 선입관이 생긴다. 질문의 난이도 부터 당락 여부에도 영향을 미친다.\n때문에 1차 면접에서 가능한 최대한의 점수를 획득해야 한다.\n______________________________________________________________________________________________________________________________________________\n결승전 : 최종면접 _ 운칠기삼\n어쩌면 가장 긴장되는 순간이겠다만, 마음을 비워라.\n이미 여기까지 왔다면 우린 최선을 다한 거다, 이제 스스로의 운과 본능에 맡긴다.\n모든 기업의 최종면접까지 올라간 친구들은 능력면에서 이미 검증된 인재들이다. 단지, 자리가 한정되어있기 때문에 한번 더 관록 있는 임원들의 검증과정을 거치는 것 뿐이다. 그러니 자부심을 느껴라, 회사는 이미 너를 합격시킨 것과 마찬가지다. 당락은 단순히 임원 개인의 취향의 문제일 수 있다.\n어짜피 나가면 아저씨, 사람자식일 뿐이다. 겸손하되 당당하라. 문을 열고 들어가면서 되뇌어라 \"어짜피 다 사람새끼 아닌가.\"\n모든 것을, 최선을 다 했다고 생각하는 순간에도 더 할 수 있는 것이 있다. 준비할 수 있는 것이 있다면 준비해라. 최종면접에서는 별도의 포트폴리오나 문서를 휴대할 수 없다. 그렇다고 방법이 없나? 정장 포켓에 넣을 수 있는 Size, 내용은 Executive summary로 임팩트&컴팩트 있게 준비하면 된다.\n모든 선택과 답변의 결과가 내가 원하는 것일 수는 없다. 이미 뱉어낸 답변이나 선택에 대해 후회하지도 복기하지도 마라, 스스로의 판단을 믿어라.\n#사례 - 좀 많이 늦었습니다만;;\nA는 모기업의 최종 면접에 40분을 늦었다. 결과는 합격.\n삼성동에 본사가 있었는데 스마트폰으로 위치를 잘못 검색해서 왕십리로 갔었다고 한다. → 면접관 에게 바로 전화했다. 당연히 일단 와보라는 답변이다.\n뒤늦게 면접장에 도착하자 맨 마지막 조로 재편성 해주었다. → 그래도 한번 보겠다는 거다. 희망이 있다.\n첫 질문은 누구라도 예상 가능했다. 그래서, 준비 가능했다. \"자네는 왜 늦었나?\"\n솔직하게 그러나 가능한 크고 뻔뻔하게 대답했다. → \"제가 고향이 시골인 촌놈인데, 스마트폰으로 스마트하게 접근 해본다는게 늦었습니다.\"\n내용 자체는 중요하지 않다. 기백과 담을 보여주면 되는 것이다. 여기서 만약 말끝을 흐리며 \"죄송합니다. 다신 이런 일 없을 겁니다.\"라고 말했다면 떨어졌을 거다.\n사실, A가 다른 기업에 1차 합격 혹은 최종합격 되어있었기 때문에 호기로울 수 있었던 것이기도 했을 것이다. 그래서 복수의 기업에 지원해야 한다. 세게 들어오는 직구는 분명 위협적이기만, 잘 때리기만 하면 그 어떤 구질보다 홈런이 되기 쉽지 않은가. 늦었기 때문에, A의 뻔뻔함을 보여줄 기회도 있었던 것이다. 위기의 틈새기에 반드시 기회가 있게 마련이다.\n취업시즌에 대처하는 우리의 자세 - 취업 준비기간의 멘탈/ 생활/ 건강관리\n진정 강한 사람은, 강함을 단련해서라기보다. 실은, 자신의 나약함을 잘 길들여온 것일 테다\n우리 모두가 모두와 싸우는 것이 아닌, 우리 모두가 홀로 싸우는 것이다. 자신을 잘 컨트롤 하는 것이 Key다.\nㅇ 꾸며라 - 운동도하고 외모도 가꿔라. 같은 값이면 다홍치마고, 같은 조건이면 준수한 외모의 사람을 뽑는게 당연하다.\n운동해라 - 건강함은 낯빛에 나타날 뿐더러, 멘탈 관리도 된다.\nㅇ 포기하라. - 시크하게 집중하라, 다른 모든 것들은 아무것도 아니라는 듯이\n취업준비 시즌에는 모든걸 포기하고 올인해라. 친구와 술도 한잔하고, 애경사 다 참석하면서 취업준비 한다는 건 갈급한 마음이 적기 때문이다. 우리가 잘되면 우리를 알아서 찾을 것이다.\n전략은 포기에 관한 것이다. 포기를 한 후에라야 선택을 할 수 있고, 선택을 해야만 집중할 수 있다.\n그리고 그렇게 한 점에 화력을 집중해야만 마침내 관통할 수 있다.\n포기해야만 선택할 수 있고, 선택해야만 집중할 수 있으며, 집중해야만 마침내 관통할 수 있다.\n사람들이 말하는 것처럼 선택이 먼저가 아니다. 선택 이후에 추가적으로 또 다른 것을 선택하려는 것이 인간의 본성이고, 이를 욕심이라 한다. 그것을 반드시 포기한다고 스스로에게 일러두어야만 다시 그것을 선택하고 싶은 미련에서 벗어날 수 있다.\n칭기츠칸 - 나는 내게 거추장 스러운 것은 깡그리 쓸어버렸다.\nㅇ 알바 하지마라\n특히, 군 전역한 남자들 효자 코스프레 하느라고 알바 하지마라. 20년 넘게 용돈 받아쓰다가 취업 전에 잠깐 용돈 벌어 쓴다고 갑자기 효자가 되진 않는다. 부모님께 1~2년만 더 빚지고, 그 시간에 다른 것에 투자해서 더 좋은 회사 취업하고 갚아드려라. 이것이 바로 레버리지 전략(이라 말하고 싶지만, 등골 브레이커 연장 전략이다.)\nㅇ 스트레스 청정 지대\n취업 이외의 것에서 절대 스트레스 받지 않도록 스스로를 관리해라. 먹고 싶은 것 있으면 다 먹고, 스트레스 해소 목록을 만들어서 관리해라. 단 시간점유율이 낮은 것으로. (그래서, 술은 안된다.)\nㅇ 경쟁의 외연을 분명히 해라. - 스터디는 명문대 인근에서\n전장을 정확히 파악해야만 한다. 우리가 원하는 기업의 최종 관문을 통과하기 위해서는 '날고 긴다는' 그들을 제껴야만 한다. 소위 명문대생들이라 하는 그들과 스터디를 해라. 학맥으로 부터 나오는 정보도 많고, 실제 뛰어난 인재들이어서 배울 수 있는 것이 정말 많다. 큰 것과 부딪쳐라, 나도 커진다.\nㅇ 마지막으로, 절망하지 마라.\n\n그 회사를 가선 안되는 리스트를 적어라.\n희망이나 용기를 주는 노래를 들어라 - 말하는대로, Lose your self\n___________________________________________________________________________________________\n+ 뻔한 질문, 그러나 좀 다른 답변\nㅇ 경쟁률?!\n확률은 언제나 50%, 내가 되느냐 마느냐  일 뿐이다. 그리고 정확한 경쟁률은 지원자 1명을 1로 산정해선 안된다. 우리는 숫자 1로 환산 할 수 있는 존재가 아닐뿐더러, 그렇게 평가할 수도 없다. 경쟁률이란 개념은 취업준비생을 객체화시켜 1대 다의 경쟁으로 단순화 시킨 허수다.  나 자신이 회사의 채용 의사결정권자들의 Mind share를 얼마나 차지하는지, 얼마나 인상적인 지원자인를 수치화 할 수 있다면 그것이 바로 개개인의 경쟁력이고, 지원자 개개인의 경쟁력의 총 합이 경쟁률의 모수가 되어야 정확한 경쟁률 산정이 가능하다. 게다가 실제 기업에서는 각 전형마다 다양한 기준으로 지원자들을 그룹화 시키고 그 내에서 경쟁이 이뤄지기 때문에, 실제 서류 전형 이후의 경쟁률은 10대 1 남짓일 것이다. 대신 상위 전형으로 갈수록  경쟁의 강도는 세진다.\nㅇ 회사나 산업의 비전?!\n우문이다.\n첫째, 그 누구도 한 산업의 미래를 쉽게 예단 할 수 없다.\n둘째, 회사의 비전이 언제까지 나의 비전일 수 없고, 나의 비전이 회사의 비전인 것도 아니다.\n결국은, 뭘 해서 밥을 벌어먹어야 스스로가 만족 할지가 중요하다. 비전이라기보다 '자긍'에 관한 문제다.\n한마디로, 비전이 있다고 해서 내가 마약 팔아서 먹고 살지 않는 이유와 똑같……읭?!\nㅇ 스토리? 그래 그거 중요한 거 나도 귀에 못박히게 들었어 근데 스토리가 뭐?!\n먼저 이해해야 할 것(오해를 풀어야 할 것)이 몇 가지 있다.\n첫째, 우리가 일하는 곳에 천재는 필요 없고, 존재하지도 않는다. (여기는 NASA나 세계의 석학들이 연구에 몰두하는 연구실이 아니니까.)\n즉, 일정 수준 이상의 지적 능력을 가졌다면 퍼포먼스에 큰 차이가 나지 않는다. 우리가 하는 일에 필요한 역량이 100이라면, 결론적으로 110의 역량을 가진 사람과 200의 역량을 가진 사람과 변별력이 없다는 의미다.\n둘째, 결국 모든 '소통', '커뮤니케이션'을 통해 이뤄진다. 이러한 소통을 부드럽게 해내는 친화력과 센스가 곧 업무력이다.\n명심하자. 'Attitude가 곧 Performance다.'\n셋째, \"회사는 준비된 인재를 원한다.\" 맞는 말이다. 하지만 이것은 이상이며 현실과의 괴리가 있다는 것을 기업도 잘 알고 있다. 기업은 신입을 뽑아서 바로 전력화가 가능하다고 생각하지 않는다. 어짜피 일은 가르치면 되는 것이고, 그럴만한 '싹수'가 있는지를 더 보게 된다는 거다.\n요컨대, 지원자들은 자신의 역량을 보여주겠다고 하지만, 기업은 성격이나 품성에 주목하게 될 수 밖에 없다는 것이다.\n지원자들의 역량은 비행기에서 내려다보는 빌딩 숲과도 같다. 랜드마크 처럼 높은 빌딩도, 엘리베이터도 없는 낮은 빌딩도 위에서 내려다보면 하나의 사각형으로 보일 뿐 분간하기 어려운 것과도 같다.\n실제로도 일을 잘 해내는데 큰 영향을 미치는 것은 지적 능력이나 학력보다는 성격이나 품성이라는 연구 결과도 많다. 그래서 그러한 자질을 개개인의 일화, 에피소드, 스토리를 통해서 유추해내고자 하는 것이다. 그러니 안심하자. 우리가 진짜라면, 그들도 알아볼 것이다.\n+ 뻔한 질문, 그러나 좀 다른 답변\nㅇ 자소서 첨삭 좀 해주시면 안될까요? _ 제 인생 좀 첨삭 해주시겠쎄여?\n자소서 첨삭은 '작문 능력 배양'정도에 한계를 가질 수 밖에 없다. 우리의 인생이다. 남이 내 인생을 어떻게 첨삭해준단 말인가. 문장의 구조와 배열, 어휘를 교정 해줄 수는 있어도, 스토리나 에피소드 자체를 다른 스토리로 대체하거나 첨삭할 수는 없다. 내 이야기니까, 내 인생이니까 조금 투박하더라도 내가 써야만 하고, 그래서 앞서 언급한 연대표(청춘의 아카이브)가 필요한 것이다.\n스펙은 빙고 게임과도 같은 것이다.\n스펙이 좋아진다는 것은 결국 남과 더 같아진다는 의미일 뿐이다.\n스토리는 다르다, 스토리로 이기는  거다.\n회사안은 전쟁터, 밖은 지옥\n고생 끝!\nㅇ Jargon이라고 한다. 해당 업계에서 통용되는 전문용어가 지원동기와 입사 후 포부에 들어 있다면, 우리가 '준비된 인재'라는 것을 어필하고도 남는다. 30분 정도만 구글링 해보거나 가장 좋은 것은 해당 업계 종사자들의 커뮤니티/ 카페 등에 가입해서 업계 용어와 현재 업계의 이슈를 발굴해내는 것이다.\n[③ 준결승전 _ Smart한 Loser들을 위한 조금 다른 취업전략]\n준결승전 - 1차 면접 (합숙면접) _ 역할 놀이, 컨셉을 잡아라.\n유머, 리더십, 친화력 등등 조직 내에서 '함께 일하고 싶은' 캐릭터의 성향을 내재화 아니, 외재화 해야 한다.\n가상의 캐릭터를 설정하고, 메소드 연기를 한다고 생각하자.\n1) 아이템을 사용해라 - 포인터, 스톱 와치\n2) 태도가 곧 퍼포먼스다. - 인사해라\n3) 조별과제 : 팀워크, 유머가 곧 리더십이자 매력이다.\n4) 토론 : 논쟁이 오가면 조원 모두가 탈락한다고 보면 맞다.\n이기려고 하지 말아라, 상대의 의견에 알파를 더 해서 더 좋은걸 만들어라.\n전투에서 이긴다고, 전쟁에서 승리하는 것은 아니다. 모든 전쟁에는 사람들을 대량으로 죽여가면서까지 얻으려는 바가 있다. 취업 전쟁에서 벌어지는 수많은 전투 중 하나인 면접, 목적은 나의 똑똑함을 어필하는 것이 아니라. '같이 일하기에 좋은 사람인가'를 보여주는 것이다.\n5) 프리젠테이션 면접\n디지털을 넘어 스마트 시대지만, 아직도 아날로그가 최고의 효율을 발휘할 때가 있다. 프리젠테이션 면접에서는 물리적, 시공간상의 제약 탓에 파워포인트나 키노트 대신, OHP 필름이나 전지 한 장을 준다. 글씨를 쓸 때는 한석봉이 되어라. 최대한 시각화 해라. 도식화 할 수 있는 모든 것을, 그려라. 크고 명료하게 말해라. 겸손은 기본이다. 단, 죄송하단말은 절대 하지마라 정말로 자신감/매력 없어 보인다.\n6) 실무진면접 :\nㅇ 모든 면접 유형 중에 변별력이 가장 두드러질 수 밖에 없는 것은 아무래도 실무진 면접이다. 모든 면접을 통틀어 가장 중요하다.\nㅇ 대학생들의 피상적 논리를 하루 종일 숱하게 봐서 질린 사람들이다. 깊이를 보여줘야 한다.\n깊이는 전략이고 꼼수고 우회로가 있을 수 없다. 평소에 쌓인 내공이 있어야만 한다.\nㅇ 나만 압박해온다면? 당황하지 마라. 그린라이트다. 나에게 관심이 있기 때문에 파고드는 것이다.\nㅇ 질문에 답변하기 바쁘겠지만, 질문을 받고 한 템포를 쉬면서 왜 저걸 물어볼지를 생각한 후에 운을 떼라,\n말을 하면서 뒷말을 떠올릴 수는 있지만, 처음 방향을 잘못 잡고 시작하면 돌이킬 수 없다.\nㅇ 느리게 행동하고 느리게 말해라. 차분하다는 인상을 줄 수 있다.\nㅇ 면접복장 - 모험하지마라, 하이리스크 하이 리턴이라면 도전해볼만하지만, 하이 리스크 로우 리턴일 공산이 크다.\nTip. 이건 임원면접까지 해당되는 심리적 스킬이다. 모든 면접관과 면접시간 내내 두루 eye contact하라.\n사람이라면 누구나 자신을 응시하고 있는 상대의 점수를 깍는 행위 자체에 심리적 부담을 느끼게 마련이다.\n간접적으로 감시하는 거다. 다른 지원자들이 말하고 있을 때도 그 지원자와 면접관을 번갈아 가며 눈을 응시하라.\nㅇ 최종면접 Tip\n온 세상에서 나만 떨어진거 아니다. 다음 회사로 직행해라. 한 회사에서 탈락으로 우울한 기분으로 하루를 보내면, 그 다음회사에서도 연쇄적으로 탈락할 가능성이 높다.\n개고생 시작\n\n취업\n작금의 청춘이 처한 위기는 취업난이 아닙니다.\n오히려 그 때문에, 합격만 한다면\n자신의 가치관과 맞지 않는 기업에서 일할 위험.\n자신의 신념에 위배되는 일을 하게될 위험.\n그것이 바로 우리가 처한 진짜 위험입니다.\n유니클로 등 우익기업\n차별적인 기업"
+  }
+];
+const CONTENT_HASH = 'e0b07363';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

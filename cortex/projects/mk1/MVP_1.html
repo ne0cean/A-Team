@@ -6,121 +6,404 @@
 <title>MVP</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">MVP</span>
-  
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">MVP</div>
+<div class="date"></div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">MVP<br>		<br>		<br>	<br>	<br>		<br>			<br><a href="https://brunch.co.kr/@taewookim/66" target="_blank">https://brunch.co.kr/@taewookim/66</a><br>			<br><a href="https://acquiredentrepreneur.tistory.com/151" target="_blank">https://acquiredentrepreneur.tistory.com/151</a><br>			<br><a href="https://disquiet.io/@ranawonder/makerlog/1090?utm_source=stibee&utm_medium=newsletter&utm_campaign=contents-distribution&utm_content=23-01-26-MR-newsletter" target="_blank">https://disquiet.io/@ranawonder/makerlog/1090?utm_source=stibee&utm_medium=newsletter&utm_campaign=contents-distribution&utm_content=23-01-26-MR-newsletter</a><br>			<br><br>			<br><a href="https://brunch.co.kr/@taewookim/68" target="_blank">https://brunch.co.kr/@taewookim/68</a><br>			<br>[[php2020] 4. mysql](<a href="https://www.youtube.com/watch?v=GXaMOxB0gq8&ab_channel=%EC%9C%A0%EB%8B%88%EB%8B%A4%EA%B3%A0)에서" target="_blank">https://www.youtube.com/watch?v=GXaMOxB0gq8&ab_channel=%EC%9C%A0%EB%8B%88%EB%8B%A4%EA%B3%A0)에서</a> 불러와 카카오맵에 마커 표시하기 및 클러스터링 사용하기<br>			<br><br>			<br>			<br>설문이 필요하다면 구글 스프레드시트, 페이퍼폼 등을 활용할 수 있을 것 같고, 유형테스트를 한다면 도다툴을 이용하고, 커뮤니티를 만들어야한다면 네이버 카페, 페이스북 그룹,&#160;<a href="https://circle.so/" target="_blank">circle</a>&#160;같은&#160;솔루션들을 사용할 수&#160;있습니다. 혹은 니즈만 파악할 용도라면 노션, 우피, adalo 등&#160;노코드를 사용하면 좋을 것 같습니다.&#160;<br>		<br>		<br>			<br><a href="https://www.relate.kr/blog/how-to-qualify-leads/" target="_blank">https://www.relate.kr/blog/how-to-qualify-leads/</a><br>			<br><a href="https://brunch.co.kr/@bluemarble/53" target="_blank">https://brunch.co.kr/@bluemarble/53</a><br>		<br>		<br>			<br>			<br><br>			<br>			<br>다음 social<br>			<br>목표: 모바일에서의 컴을 오프라인과 동일하게, 더 낫게. 모두가 ID나 연락처 교환 없이도 바로 연결 되게. 중독을 설계 + 하루 3번 이상 사용. 공급자 사이드를 먼저 빌딩할 것. 대체재가 아닌 보완재로 시작할 것.(e.g.이 근처 오픈챗 다 찾아보기), 앱이 아니라 위젯이 될 것.<br>			<br>상수/제약: 현재 위치기반, 모두가 ID 몰라도 일상 커뮤니케이션처럼 자연스럽게 소통 가능, LLM 접목<br>			<br>현재 위치에서 실시간 영상을 묶어서 보여주는건?<br>			<br>고정된 지역별 익명 채팅방?, 대화방 입장하면 챗 gtp가 반겨주고 말걸어. 기존 톡 히스토리 요약해주고 질문도 해. 질문이 나이스하면 공지로 올려줘. 별풍선 쏴줘. 그 별풍선으로 아바타 꾸밀 수 있어.<br>			<br>Share of 심심함을 차지해야해. 시도 때도 없이 막 무지성으로 들어가는 앱.<br>			<br>지금 여기 있는 사람들은 대체 뭔 생각하고 뭔 이야기 할까? 싶을때 들어가는 앱이어야 해.<br>			<br>딱 들어가면 막 다른 사람들 생각과 연결되는 느낌. 세컨 브레인이 아닌, 월드 브레인.<br>			<br>앱 켜자마자 그냥 딱 현 위치에 있는 채팅방 하나에(로직은 고민해보자) 바로 들어가, 지도 보여주지마 탐색 짜증남. 타임라인 말고 지오/플레이스 필드? <br>			<br>지도 필요 없고, 일단 들어가면 현 위치의 채팅방으로 무조건 입장. 지도는 방 이탈해서 근처 다른방 탐색할때 서브로 이용. <br>			<br>지역 경계를 넘어 이동하면, 영혼 빠져나가는 UI를 보여주면서 다른 채팅방으로 튕겨감. 이거 괜찮나? 아님 지역 벗어나면 "목소리가 닿지 않습니다." 띄우고 읽기만 가능, 쓰기 불가. 그리고 가까운 다른 채팅방을 양 옆으로 살짝살짝 보여주기.<br>			<br>트위터야 말로, 가입만 하면 전 세계의 뇌에 접속 가능했네. 근데 부족해.<br>			<br>텍스트는 유통 속도에 따라서, 타임라인 > 트윗 > 채팅 ><br>			<br>도달 범위에 따라서, 트윗 > 타임라인 > 채팅<br>			<br><br>			<br>트위터든 뭐든지도에 갖다 붙일수있는 웹의 모든 실시간 정보를 채턍방 ui로 보여주는거야, 들어가서 믜<br>			<br><a href="https://onemilliontweetmap.com/?center=18.13720598022064,-77.33585357666017&zoom=12&search=&timeStep=0&timeSelector=0&hashtag1=&hashtag2=sad&sidebar=yes&hashtagBattle=0&timeRange=0&timeRange=25&heatmap=0&sun=0&cluster=1" target="_blank">https://onemilliontweetmap.com/?center=18.13720598022064,-77.33585357666017&zoom=12&search=&timeStep=0&timeSelector=0&hashtag1=&hashtag2=sad&sidebar=yes&hashtagBattle=0&timeRange=0&timeRange=25&heatmap=0&sun=0&cluster=1</a><br>			<br><br>			<br>어떻게가 아니라 무엇. 어떤 버블,<br>			<br>어떤 보편타당한 불편?<br>			<br>1/ 근거리 타인 자체에 대한 호기심<br>			<br>지오 프로필, 명함 서비스로 포지셔닝?<br>			<br>spotting <br>			<br><br>			<br>2/ 근거리 타인이 생성한 콘텐츠, 지역 실시간 정보<br>			<br>지오챗, 시공간피드, 익명 세포챗/피드<br>			<br>커뮤니케이션 커버리지, 한 채팅방당 숫자를 잘 정해야대. 이건 경험치가 있어야될듯<br>			<br>종은 타임라인 횡은 스페이스라인<br>			<br><br>			<br>에어드랍 놀이<br>			<br><br>			<br>팀명 피팅룸, 기능을 계속 갈이입히듯 테스트<br>			<br><br>			<br>트위터든 뭐든지도에 갖다 붙일수있는 웹의 모든 실시간 정보를 채턍방 ui로 보여주는거야, 들어가서 뭐라도 볼게있어야지<br>			<br><br>			<br>소셜로그인 <a href="http://icunow.co.kr/social-login/" target="_blank">소셜</a> 로그인, 기획으로 조금 더 쉽게 풀어낼 수 있는 방법은 없을까? - 지금 써보러 갑니다 (icunow.co.kr)<br>			<br><br>			<br>타이밍. 페이스북이 모바일을 만난 것처럼, <br>			<br>지도챗의 물꼬를 터줄수있는것? GPS의 소비전력이 극소화?<br>			<br><br>			<br>대세상승의 파도, 패드가 아닌 메가 트렌드<br>			<br>로봇과의 LLM과의 소통,<br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br>게임이 되어야해<br>			<br>오픈챗 증강현실게임<br>			<br>틱톡 챌린지처럼 퀘스트<br>			<br><br>			<br>퀘스트 중심 커뮤니케이션, 보물찾기?<br>			<br><br>			<br><br>			<br>최초개설자는 파운더의 지위를 갖는다.<br>			<br>10개 이상의 영지를 가진 파운더는 어느 채팅방이든 입장시 효과.혹은 소개글 노출<br>			<br><br>			<br>ㅇㅇ 이상 대화가 없는 포럼은 지도위에서 사라진다.<br>			<br><br>			<br>1:1유료<br>			<br>초대장시스템?<br>			<br><br>			<br>반경 1km 안의 채팅방에는 모두 참여 가능<br>			<br><br>			<br>캠퍼스 3군데 시범운영?<br>			<br><br>			<br><br>			<br>근처에 있는 사람중 특정 사람들만? 무전기처럼? 딱 누르면 그 사람들 모두에게 말할 수 있게?<br>			<br><br>			<br>근처 차량간 커뮤니케이션?<br>			<br>공통의 경험<br>			<br>시위대<br>			<br>중구 시위방<br>			<br>절전 전쟁<br>			<br><br>			<br>아이러브스클, 클럽하우스<br>			<br>보이스<br>			<br><br>		<br>		<br>			<br>AI&#160;생성&#160;앱 프로토타입 <a href="https://medium.com/@bedros-p/gemini-is-coming-to-makersuite-so-are-stubbs-32248f3924aa" target="_blank">https://medium.com/@bedros-p/gemini-is-coming-to-makersuite-so-are-stubbs-32248f3924aa</a></div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note-MVP';
+const SAVE_KEY = 'board-MVP';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 432,
+    "y": 43,
+    "w": 600,
+    "content": "AI&#160;생성&#160;앱 프로토타입 <a href=\"https://medium.com/@bedros-p/gemini-is-coming-to-makersuite-so-are-stubbs-32248f3924aa\">https://medium.com/@bedros-p/gemini-is-coming-to-makersuite-so-are-stubbs-32248f3924aa</a>"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 600,
+    "content": "<a href=\"https://brunch.co.kr/@taewookim/66\">https://brunch.co.kr/@taewookim/66</a>\nhttps://acquiredentrepreneur.tistory.com/151</a>\nhttps://disquiet.io/@ranawonder/makerlog/1090?utm_source=stibee&utm_medium=newsletter&utm_campaign=contents-distribution&utm_content=23-01-26-MR-newsletter</a>\n<a href=\"https://brunch.co.kr/@taewookim/68\">https://brunch.co.kr/@taewookim/68</a>\n<a href=\"https://www.youtube.com/watch?v=GXaMOxB0gq8&ab_channel=%EC%9C%A0%EB%8B%88%EB%8B%A4%EA%B3%A0\">[php2020] 4. mysql</a>에서 불러와 카카오맵에 마커 표시하기 및 클러스터링 사용하기\n설문이 필요하다면 구글 스프레드시트, 페이퍼폼 등을 활용할 수 있을 것 같고, 유형테스트를 한다면 도다툴을 이용하고, 커뮤니티를 만들어야한다면 네이버 카페, 페이스북 그룹,&#160;<a href=\"https://circle.so/\" style=\"font-family:Pretendard;font-size:13.5pt;background-color:#1c1c20\">circle</a>&#160;같은&#160;솔루션들을 사용할 수&#160;있습니다. 혹은 니즈만 파악할 용도라면 노션, 우피, adalo 등&#160;노코드를 사용하면 좋을 것 같습니다.&#160;"
+  },
+  {
+    "type": "text",
+    "x": 912,
+    "y": 139,
+    "w": 600,
+    "content": "<a href=\"https://www.relate.kr/blog/how-to-qualify-leads/\">https://www.relate.kr/blog/how-to-qualify-leads/</a>\n<a href=\"https://brunch.co.kr/@bluemarble/53\">https://brunch.co.kr/@bluemarble/53</a>"
+  },
+  {
+    "type": "image",
+    "x": 72,
+    "y": 643,
+    "w": 480,
+    "h": 320,
+    "src": "375d9d2c15.png",
+    "caption": "Social Media Apps Bereal And Others Stock Photo - Download Image Now - Social Media, TikTok, Mobile App - iStock"
+  },
+  {
+    "type": "image",
+    "x": 72,
+    "y": 971,
+    "w": 480,
+    "h": 97,
+    "src": "e540f3a225.png",
+    "caption": "Social Media Logo icon set. Facebook, Twitter, Instagram, Bereal, Youtube, WeChat, Snapchat, Reddit, Perescope, Telegram, Pinterest, Tiktok, Vimeo, Reddit logo. Stock Vector | Adobe Stock"
+  },
+  {
+    "type": "text",
+    "x": 72,
+    "y": 1076,
+    "w": 600,
+    "content": "트위터든 뭐든지도에 갖다 붙일수있는 웹의 모든 실시간 정보를 채턍방 ui로 보여주는거야, 들어가서 믜\n<a href=\"https://onemilliontweetmap.com/?center=18.13720598022064,-77.33585357666017&zoom=12&search=&timeStep=0&timeSelector=0&hashtag1=&hashtag2=sad&sidebar=yes&hashtagBattle=0&timeRange=0&timeRange=25&heatmap=0&sun=0&cluster=1\">https://onemilliontweetmap.com/?center=18.13720598022064,-77.33585357666017&zoom=12&search=&timeStep=0&timeSelector=0&hashtag1=&hashtag2=sad&sidebar=yes&hashtagBattle=0&timeRange=0&timeRange=25&heatmap=0&sun=0&cluster=1</a>\n어떻게가 아니라 무엇. 어떤 버블,\n어떤 보편타당한 불편?\n1/ 근거리 타인 자체에 대한 호기심\n지오 프로필, 명함 서비스로 포지셔닝?\nspotting\n2/ 근거리 타인이 생성한 콘텐츠, 지역 실시간 정보\n지오챗, 시공간피드, 익명 세포챗/피드\n커뮤니케이션 커버리지, 한 채팅방당 숫자를 잘 정해야대. 이건 경험치가 있어야될듯\n종은 타임라인 횡은 스페이스라인\n에어드랍 놀이\n팀명 피팅룸, 기능을 계속 갈이입히듯 테스트\n트위터든 뭐든지도에 갖다 붙일수있는 웹의 모든 실시간 정보를 채턍방 ui로 보여주는거야, 들어가서 뭐라도 볼게있어야지\n소셜로그인 소셜</a> 로그인, 기획으로 조금 더 쉽게 풀어낼 수 있는 방법은 없을까? - 지금 써보러 갑니다 (icunow.co.kr)\n타이밍. 페이스북이 모바일을 만난 것처럼,\n지도챗의 물꼬를 터줄수있는것? GPS의 소비전력이 극소화?\n대세상승의 파도, 패드가 아닌 메가 트렌드\n로봇과의 LLM과의 소통,\n게임이 되어야해\n오픈챗 증강현실게임\n틱톡 챌린지처럼 퀘스트\n퀘스트 중심 커뮤니케이션, 보물찾기?\n최초개설자는 파운더의 지위를 갖는다.\n10개 이상의 영지를 가진 파운더는 어느 채팅방이든 입장시 효과.혹은 소개글 노출\nㅇㅇ 이상 대화가 없는 포럼은 지도위에서 사라진다.\n1:1유료\n초대장시스템?\n반경 1km 안의 채팅방에는 모두 참여 가능\n캠퍼스 3군데 시범운영?\n근처에 있는 사람중 특정 사람들만? 무전기처럼? 딱 누르면 그 사람들 모두에게 말할 수 있게?\n근처 차량간 커뮤니케이션?\n공통의 경험\n시위대\n중구 시위방\n절전 전쟁\n아이러브스클, 클럽하우스\n보이스"
+  }
+];
+const CONTENT_HASH = 'c5f23421';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -133,33 +416,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

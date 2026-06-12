@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>군복무 국민연금 추납</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">군복무 국민연금 추납</div>
+<div class="date">2025년 12월 4일 목요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-군복무-국민연금-추납';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "html",
+    "x": 48,
+    "y": 115,
+    "w": 720,
+    "html": "\r\n\t\t\t<img alt=\"유 의 사 항 \n- 추 납 신 청 급 증 으 로 인 해 접 수 처 리 가 지 연 되 고 있 습 니 다 . 상 황 이 안 정 될 때 까 지 한 시 적 으 로 전 자 문 서 지 갑 을 통 한 서 류 제 출 은 \n불 가 합 니 다 . 양 해 부 탁 드 립 니 다 . \n- 혼 인 관 계 증 명 서 ( 상 세 , 주 민 등 록 번 호 모 두 표 시 ) 는 추 납 신 청 필 수 서 류 로 , 증 빙 서 류 미 제 출 ( 미 첨 부 ) 시 신 청 이 불 가 합 니 다 . 반 드 시 증 빙 서 류 \n파 일 을 구 비 한 후 신 청 절 차 를 진 행 하 시 기 바 랍 니 다 . \n※ 2008 년 전 이 혼 , 사 별 이 력 이 있 는 경 우 제 적 등 본 추 가 \n※ 혼 인 관 계 증 명 서 ( 상 세 , 주 민 등 록 번 호 모 두 표 시 ) 는 전 자 가 족 관 계 등 록 시 스 템 (https://efamily.scourt.go.kr △△ ) 에 서 무 료 로 발 급 \n가 능 합 니 다 . \n- 군 복 무 추 납 을 신 청 할 경 우 병 적 증 명 서 또 는 주 민 등 록 초 본 ( 병 역 사 항 포 함 ), 18 세 미 만 사 업 장 가 입 자 로 적 용 제 외 된 근 로 기 간 (2015. 7. \n29. 이 후 ) 을 추 납 신 청 할 경 우 건 강 보 험 자 격 득 실 확 인 서 등 서 류 를 추 가 제 출 하 여 야 합 니 다 . \n※ 군 복 무 기 간 이 타 공 적 연 금 재 직 ( 복 무 ) 기 간 에 해 당 되 는 경 우 에 는 추 납 신 청 이 불 가 합 니 다 .( 장 교 , 부 사 관 등 으 로 복 무 한 기 간 은 군 인 연 금 \n가 입 기 간 이 므 로 신 청 불 가 ) \n신 청 하 신 사 항 은 관 할 지 사 담 당 자 가 유 선 으 로 재 확 인 한 후 확 정 됩 니 다 . 신 청 서 제 출 시 신 청 접 수 만 된 것 으 로 , 담 당 자 의 확 인 을 거 쳐 야 만 \n완 료 처 리 됩 니 다 . \n- 표 출 되 는 신 청 대 상 기 간 은 확 정 된 것 은 아 니 며 , 적 용 제 외 기 간 결 정 등 에 따 라 신 청 대 상 기 간 이 달 라 질 수 있 습 니 다 . \n신 청 이 력 이 있 는 경 우 , 유 선 접 수 가 능 합 니 다 . 관 할 지 사 로 문 의 하 시 기 바 랍 니 다 . \n- 최 대 119 개 월 까 지 신 청 가 능 합 니 다 . \n00 \" width=\"480\" height=\"258\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1ff539429fd9980b349812e5601426fb!1-733661839CC53BA5!8018/$value\" data-src-type=\"image/png\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1ff539429fd9980b349812e5601426fb!1-733661839CC53BA5!8018/$value\" data-fullres-src-type=\"image/png\" />\r\n\t\t\t<p lang=\"ko-KR\" style=\"margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.nps.or.kr/elctcvlcpt/comm/getOHAC0000M5.do?menuId=MN24001072\">https://www.nps.or.kr/elctcvlcpt/comm/getOHAC0000M5.do?menuId=MN24001072</a></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"ko-KR\" data-tag=\"to-do:completed\" style=\"margin-top:0pt;margin-bottom:0pt\"><a href=\"https://efamily.scourt.go.kr/index.jsp\" style=\"font-family:Malgun Gothic\">혼인관계증명서</a><span lang=\"en-US\">(</span><span style=\"font-family:Malgun Gothic\">상세</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">주민등록번호</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">모두표시</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">) </span></p>\r\n\t\t\t<p lang=\"ko-KR\" data-tag=\"to-do:completed\" style=\"margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">가족관계증명서</span></p>\r\n\t\t\t<p lang=\"ko-KR\" data-tag=\"to-do:completed\" style=\"margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">병적증명서</span><span lang=\"en-US\"> or </span><span style=\"font-family:Malgun Gothic\">주민등록초본</span><span lang=\"en-US\">(</span><span style=\"font-family:Malgun Gothic\">병역사항</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">포함</span><span lang=\"en-US\">)</span></p>\r\n\t\t\t<img alt=\"알 림 \n2026 년 부 터 보 험 료 율 인 상 (9.0%→9.5%) 및 \n소 득 대 체 율 상 향 (41.5% →43.0%) 될 예 정 입 니 다 . \n이 로 인 해 , 추 납 신 청 및 납 부 시 기 에 따 라 납 부 할 \n추 납 보 험 료 와 향 후 받 게 될 연 금 액 이 달 라 질 수 \n있 습 니 다 . 신 청 전 공 단 고 객 센 터 (☎1355) 나 \n관 할 지 사 를 통 해 미 리 상 담 받 으 시 기 바 랍 니 다 . \n확 인 \" width=\"402\" height=\"307\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f9f049a2f4438b0f31a68603452e471f!1-733661839CC53BA5!8018/$value\" data-src-type=\"image/png\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f9f049a2f4438b0f31a68603452e471f!1-733661839CC53BA5!8018/$value\" data-fullres-src-type=\"image/png\" />\r\n\t\t\t<br />\r\n\t\t\t<img alt=\"조 회 일 \n2025 년 12 월 09 일 (20:10) \n● 가 입 내 역 등 \n추 납 보 험 료 신 청 대 상 \n2011-09 ~ 2011-12 (4 개 월 ) \n- 신 청 기 간 적 정 여 부 확 인 등 으 로 추 납 대 상 기 간 은 달 라 질 수 있 습 니 다 . \n- 추 납 보 험 료 : [ 신 청 일 이 속 하 는 달 의 기 준 소 득 월 액 X 납 부 기 한 이 속 하 는 달 의 보 험 료 율 ] X \n신 청 개 월 수 \n- 납 부 기 한 은 신 청 일 이 속 하 는 달 의 다 음 달 말 일 입 니 다 . \n추 납 보 험 료 산 정 방 법 \n&lt; 예 시 > 2025 년 12 월 신 청 시 , 납 부 기 한 은 2026 년 1 월 31 일 (2026 년 1 월 보 험 료 율 \n(9.5%) 적 용 ) \n- 월 단 위 최 대 60 회 내 에 서 분 할 신 청 가 능 합 니 다 ( 분 할 이 자 추 가 ). 분 할 납 부 신 청 할 경 우 , \n회 차 별 납 부 기 한 이 속 하 는 달 의 보 험 료 율 이 적 용 됩 니 다 . \n6,370,000 원 \n추 납 신 청 기 준 소 득 월 액 \n- 임 의 가 입 자 , 기 타 임 의 계 속 가 입 자 는 기 준 소 득 월 액 이 상 한 선 을 초 과 할 경 우 상 한 \n기 준 소 득 월 액 이 적 용 됩 니 다 . \n573,300 원 \n- 신 청 일 기 준 월 보 험 료 로 , 매 년 12 월 신 청 또 는 분 할 납 부 를 신 청 하 는 경 우 적 용 되 는 \n연 금 보 험 료 \n보 험 료 와 상 이 합 니 다 . \n- 신 청 기 간 적 정 여 부 확 인 등 을 통 해 확 정 된 추 납 보 험 료 는 지 사 에 서 별 도 안 내 ( 유 선 안 내 \n예 정 ) 합 니 다 . \n가 입 종 별 \n사 업 장 가 입 자 \n지 역 가 입 자 \n임 의 가 입 자 \nO \n임 의 계 속 가 입 자 \" width=\"480\" height=\"356.5\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-88ec6e8f1bba6d053e3e151f51207987!1-733661839CC53BA5!8018/$value\" data-src-type=\"image/png\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-88ec6e8f1bba6d053e3e151f51207987!1-733661839CC53BA5!8018/$value\" data-fullres-src-type=\"image/png\" />\r\n\t\t\t<br />\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#1d1e1e;border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Pretendard GOV;font-size:12.5pt;color:#878684\">접수번호</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#191a1a;border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Pretendard GOV;font-size:12.5pt;color:#838180\">2025-B001-002-101535826</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<img alt=\"처 리 결 과 \n신 청 일 \n2025 년 12 월 09 일 (20:30) \n접 수 번 호 \n2025-B001-002-101535826 \n신 청 접 수 \n처 리 결 과 \n정 상 적 으 로 접 수 되 었 습 니 다 . \n※ 신 청 하 신 사 항 은 관 할 지 사 담 당 자 가 유 선 으 로 재 확 인 한 후 확 정 됩 니 다 . 담 당 자 의 확 인 을 \n거 쳐 야 만 완 료 처 리 됩 니 다 . \n증 빙 서 류 를 제 출 하 고 , 담 당 자 의 확 인 거 쳐 야 만 추 납 보 험 료 납 부 신 청 이 완 료 됩 니 다 . \n- 암 호 화 된 파 일 등 확 인 이 불 가 한 경 우 재 제 출 을 요 청 할 수 있 습 니 다 . \n유 의 사 항 \n추 납 신 청 급 증 으 로 인 해 접 수 처 리 가 지 연 되 고 있 습 니 다 . 상 황 이 안 정 될 때 까 지 한 시 적 으 로 \n전 자 문 서 지 갑 을 통 한 서 류 제 출 은 불 가 합 니 다 . 양 해 부 탁 드 립 니 다 . \n※ 혼 인 관 계 증 명 서 ( 상 세 , 주 민 등 록 번 호 모 두 표 시 ) 는 전 자 가 족 관 계 등 록 시 스 템 ( \nhttps://efamily.scourt.go.kr ) 에 서 무 료 로 발 급 받 으 실 수 있 습 니 다 . 증 명 서 \n수 령 방 법 을 &#39; 전 자 문 서 지 갑 &#39; 으 로 선 택 하 여 발 급 한 후 공 단 으 로 제 출 하 여 주 시 기 바 랍 니 다 . \" width=\"480\" height=\"261\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-bc6428143c159809086433328ff29c7e!1-733661839CC53BA5!8018/$value\" data-src-type=\"image/png\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-bc6428143c159809086433328ff29c7e!1-733661839CC53BA5!8018/$value\" data-fullres-src-type=\"image/png\" />\r\n\t\t\t<br />\r\n\t\t"
+  },
+  {
+    "type": "html",
+    "x": 627,
+    "y": 225,
+    "w": 624,
+    "html": "\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Malgun Gothic;font-size:10pt\"><span lang=\"ko-KR\">군번</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Malgun Gothic;font-size:10pt\"><span lang=\"en-US\">0576107296</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Malgun Gothic;font-size:10pt\"><span lang=\"ko-KR\">전역일자</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Malgun Gothic;font-size:10pt\"><span lang=\"en-US\">2007<span lang=\"ko-KR\">년</span> 12<span lang=\"ko-KR\">월</span> 25<span lang=\"ko-KR\">일</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Malgun Gothic;font-size:10pt\"><span lang=\"ko-KR\">입영일자</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Malgun Gothic;font-size:10pt\"><span lang=\"en-US\">2005<span lang=\"ko-KR\">년</span> 12<span lang=\"ko-KR\">월</span> 26<span lang=\"ko-KR\">일</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t"
+  }
+];
+const CONTENT_HASH = '8cc474ec';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

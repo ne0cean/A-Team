@@ -6,121 +6,379 @@
 <title>모든 것을 잃은 날에도,</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">모든 것을 잃은 날에도,</span>
-  <span class="t-date">2025년 12월 15일 월요일</span>
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">모든 것을 잃은 날에도,</div>
+<div class="date">2025년 12월 15일 월요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">&#128204;  1단계: 절대 탈락 기준 (Fail Fast Criteria)<br>			<br>				<br>					구분<br>					Check point<br>				<br>				<br>					인성/정서<br>					갈등 시 회피&#183;폭발&#183;무시 반복<br>				<br>				<br>					관계/애착 유형<br>					상대를 통제하거나 비난하는 말투, 분노 조절 장애 경향<br>				<br>				<br>					책임감<br>					<br>문제를 타인&#183;환경 탓으로 돌림<br>					<br>'문제 발생 시 지속적 회피/방치' 추가<br>					<br>				<br>				<br>					가족관계<br>					부모 과의존 또는 심각한 단절<br>				<br>				<br>					가족문화<br>					<br>갈등&#183;폭력&#183;비합리적 문화<br>					<br>나의 경계가 존중되지 않거나 상대 가족 내 갈등/폭력 문화 존재 여부<br>					<br>				<br>				<br>					금전 가치관<br>					<br>과도한 부채, 도박성 투자, 극단적 인색/낭비<br>					<br>'금전 관련 투명성 결여/속이는 행위' 추가<br>					<br>				<br>				<br>					중독/습관<br>					약물, 알코올 중독 및 심각한 의존성<br>				<br>				<br>					핵심 가치관<br>					자녀 유무 또는 종교 등 핵심 가치관이 완전히 상반되어 타협 불가<br>				<br>			<br>			<br><br>			<br>&#128204; 2단계: 심층 평가 기준 (In-Depth Core Criteria)<br>			<br>				<br>					항목<br>					Check point<br>				<br>				<br>					성격<br>					감정 기복이 적고 일관성 있으며, 정직하고 신뢰할 수 있는가?<br>				<br>				<br>					케미/편안함 <br>					<br>대화, 안정성, 책임감<br>					<br>함께 있을 때 자연스럽고 편안함을 느끼며, 설렘과 호감이 유지되는가?<br>					<br>				<br>				<br>					소통/갈등 해결<br>					결혼의 성패를 가르는 핵심 능력입니다. (성격과 동등하게)<br>				<br>				<br>					정서적 친밀감<br>					친밀감은 소통/갈등 해결만큼 중요합니다.<br>				<br>				<br>					경제력(태도)<br>					(태도 중심이므로 적절)<br>				<br>				<br>					가치관 일치도<br>					(장기적 방향성을 결정)<br>				<br>				<br>					지적 호기심/대화력<br>					중요하지만, 성격/소통보다 우선순위는 낮습니다.<br>				<br>				<br>					유머/재미<br>					(생활의 윤활유)<br>				<br>				<br>					직업/커리어<br>					(성장 의지가 중요)<br>				<br>				<br>					가족관계<br>					(독립성/경계에 초점)<br>				<br>				<br>					자녀 계획<br>					(결혼의 중대한 목적)<br>				<br>				<br>					책임감/주도성<br>					자신의 역할에 책임을 다하고, 삶을 주도적으로 이끌어가는 의지가 있는가?<br>				<br>				<br>					소통 품질<br>					자신의 생각과 감정을 건강하게 표현하며, 경청하는 능력이 있는가?<br>				<br>				<br>					갈등 해결 능력<br>					갈등 발생 시 대화를 통해 타협하고, 함께 해결책을 찾으려는 태도가 있는가?<br>				<br>				<br>					정서적 친밀감<br>					애정 표현 방식과 스킨십 스타일이 나에게 맞고, 감정적인 교류가 깊은가?<br>				<br>				<br>					가치관 일치도<br>					라이프스타일, 정치 성향, 종교 등 중요한 가치관이 크게 충돌하지 않는가?<br>				<br>				<br>					자녀 계획<br>					자녀 유무, 시기, 양육 방식에 대한 합의가 잘 이루어져 있는가?<br>				<br>				<br>					경제력(태도)<br>					소비 습관이 합리적이고, 돈 관리에 대한 태도와 재정 안정성에 대한 인식이 일치하는가?<br>				<br>				<br>					직업/성장 의지<br>					직업에 대한 지속성이 있으며, 개인적/직업적 성장 의지가 있는가?<br>				<br>				<br>					가족 관계 (독립성)<br>					부모로부터 심리적/경제적 독립성을 확보했고, 나의 사생활을 존중하는 경계 설정이 명확한가?<br>				<br>				<br>					지적 대화력<br>					대화의 깊이와 지적 호기심이 있으며, 사고 방식에 자극을 주는가?<br>				<br>				<br>					유머/재미<br>					유머 코드가 잘 맞고, 함께 있을 때 즐거움과 활력을 주는가?<br>				<br>			<br>			<br><br>			<br>3단계: 조건형 비교 항목 (Tie-breaker & Info)<br>			<br>				<br>					항목<br>					체크 기준<br>				<br>				<br>					나이<br>					라이프 사이클 일치 여부<br>				<br>				<br>					외모<br>					장기적으로 편안한 호감<br>				<br>				<br>					키<br>					개인 선호 충족 여부<br>				<br>				<br>					학벌<br>					교육 배경<br>				<br>				<br>					사고방식/자존감<br>					성장 마인드, 자기 확신 수준<br>				<br>				<br>					거주지<br>					부모님이 서울 거주하면 가점<br>				<br>				<br>					음주<br>					빈도&#183;통제력<br>				<br>				<br>					건강 상태<br>					만성 질환, 정신 건강 이력, 건강 관리 노력<br>				<br>				<br>					종교<br>					신앙 강도, 실천 수준<br>				<br>				<br>					가족 부양 의무<br>					상대 부모 부양 계획/기대치<br>				<br>			<br>		<br>		<br>			<br>모든 것을 잃은 날에도,<br>			<br>모든 것을 얻은 날에도<br>			<br>가장 먼저 찾아가 안길 사람인가.<br>		<br>		<br>			<br>모든 것을 잃어도 서로에게 부끄러움이 적고,<br>			<br>모든 것을 얻어도 서로 나누고 싶은 사람.</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note-모든-것을-잃은-날에도-';
+const SAVE_KEY = 'board-모든-것을-잃은-날에도-';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 373,
+    "y": 20,
+    "w": 600,
+    "content": "모든 것을 잃은 날에도,\n모든 것을 얻은 날에도\n가장 먼저 찾아가 안길 사람인가."
+  },
+  {
+    "type": "text",
+    "x": 629,
+    "y": 32,
+    "w": 600,
+    "content": "모든 것을 잃어도 서로에게 부끄러움이 적고,\n모든 것을 얻어도 서로 나누고 싶은 사람."
+  },
+  {
+    "type": "html",
+    "x": 48,
+    "y": 115,
+    "w": 720,
+    "html": "\r\n\t\t\t<p lang=\"en-US\" style=\"margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Google Sans;font-size:12pt;font-weight:bold\">&#128204;</span><span style=\"font-family:Google Sans;font-size:12pt;font-weight:bold\">  </span>1<span style=\"font-family:Malgun Gothic\">단계</span>: <span style=\"font-family:Malgun Gothic\">절대 탈락 기준</span> (Fail Fast Criteria)</p>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text;font-weight:bold\">구분</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-weight:bold\">Check point</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Malgun Gothic;font-weight:bold\">인성</span><span style=\"font-family:Google Sans Text;font-weight:bold\">/정서</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">갈등 시 회피&#183;폭발&#183;무시 반복</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Malgun Gothic;font-weight:bold\">관계</span><span lang=\"en-US\" style=\"font-weight:bold\">/</span><span style=\"font-family:Malgun Gothic;font-weight:bold\">애착</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-family:Malgun Gothic;font-weight:bold\">유형</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">상대를 </span><span style=\"font-family:Google Sans Text\">통제하거나</span><span style=\"font-family:Google Sans Text\"> </span><span style=\"font-family:Google Sans Text\">비난하는</span><span style=\"font-family:Google Sans Text\"> </span><span style=\"font-family:Google Sans Text\">말투</span><span style=\"font-family:Google Sans Text\">, </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">분노 조절 장애</span><span style=\"font-family:Google Sans Text\"> 경향</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">책임감</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" style=\"margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Google Sans Text\">문제를 타인&#183;환경 탓으로 돌림</span></p>\r\n\t\t\t\t\t<p lang=\"ko-KR\" style=\"margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Google Sans Text;font-weight:bold\">&#39;문제 발생 시 지속적 회피/방치&#39; 추가</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">가족관계</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">부모 과의존 또는 심각한 단절</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">가족문화</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" style=\"margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Google Sans Text\">갈등&#183;폭력&#183;비합리적 문화</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Google Sans Text\">나의 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">경계</span><span style=\"font-family:Google Sans Text\">가 </span><span style=\"font-family:Google Sans Text\">존중되지</span><span style=\"font-family:Google Sans Text\"> </span><span style=\"font-family:Google Sans Text\">않거나</span><span style=\"font-family:Google Sans Text\"> </span><span style=\"font-family:Google Sans Text\">상대</span><span style=\"font-family:Google Sans Text\"> </span><span style=\"font-family:Google Sans Text\">가족</span><span style=\"font-family:Google Sans Text\"> </span><span style=\"font-family:Google Sans Text\">내</span><span style=\"font-family:Google Sans Text\"> </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">갈등/폭력</span><span style=\"font-family:Google Sans Text\"> 문화 </span><span style=\"font-family:Google Sans Text\">존</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">재</span> <span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">여부</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">금전 가치관</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" style=\"margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Google Sans Text\">과도한 부채, 도박성 투자, 극단적 인색/낭비</span></p>\r\n\t\t\t\t\t<p lang=\"ko-KR\" style=\"margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Google Sans Text;font-weight:bold\">&#39;금전 관련 투명성 결여/속이는 행위&#39; 추가</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">중독/습관</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">약물, 알코올 중독 및 심각한 의존성</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Malgun Gothic;font-weight:bold\">핵심</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-family:Malgun Gothic;font-weight:bold\">가치관</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">자녀 유무</span><span lang=\"en-US\" style=\"font-family:Google Sans Text\"> 또는 </span><span style=\"font-family:Google Sans Text;font-weight:bold\">종교</span><span lang=\"en-US\" style=\"font-family:Google Sans Text\"> 등 </span><span lang=\"en-US\" style=\"font-family:Google Sans Text\">핵심</span><span lang=\"en-US\" style=\"font-family:Google Sans Text\"> </span><span lang=\"en-US\" style=\"font-family:Google Sans Text\">가치관이</span><span lang=\"en-US\" style=\"font-family:Google Sans Text\"> </span><span lang=\"en-US\" style=\"font-family:Google Sans Text\">완전히</span><span lang=\"en-US\" style=\"font-family:Google Sans Text\"> </span><span lang=\"en-US\" style=\"font-family:Google Sans Text\">상반되어</span><span lang=\"en-US\" style=\"font-family:Google Sans Text\"> </span><span lang=\"en-US\" style=\"font-family:Google Sans Text\">타협</span><span lang=\"en-US\" style=\"font-family:Google Sans Text\"> </span><span lang=\"en-US\" style=\"font-family:Google Sans Text\">불가</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Google Sans;font-size:12pt;font-weight:bold\">&#128204;</span><span style=\"font-family:Google Sans;font-size:12pt;font-weight:bold\"> 2</span><span style=\"font-family:Google Sans;font-size:12pt;font-weight:bold\">단계</span><span style=\"font-family:Google Sans;font-size:12pt;font-weight:bold\">: </span><span style=\"font-family:Google Sans;font-size:16pt;font-weight:bold\">심층</span><span style=\"font-family:Google Sans;font-size:16pt;font-weight:bold\"> </span><span style=\"font-family:Google Sans;font-size:16pt;font-weight:bold\">평가</span><span style=\"font-family:Google Sans;font-size:16pt;font-weight:bold\"> </span><span style=\"font-family:Google Sans;font-size:16pt;font-weight:bold\">기준</span><span style=\"font-family:Google Sans;font-size:16pt;font-weight:bold\"> (In-Depth Core Criteria)</span></p>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text;font-weight:bold\">항목</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-weight:bold\">Check point</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Malgun Gothic;font-weight:bold\">성격</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">감정 기복이 적고 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">일관성</span><span style=\"font-family:Google Sans Text\"> 있으며, </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">정직</span><span style=\"font-family:Google Sans Text\">하고 신뢰할 수 있는가?</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">케미/편안함</span><span lang=\"en-US\" style=\"font-family:Google Sans Text\"> </span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"ko-KR\" style=\"margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">대화</span><span lang=\"en-US\">, </span><span lang=\"en-US\" style=\"font-family:Google Sans Text\">안정성, </span><span lang=\"en-US\" style=\"font-family:Google Sans Text\">책임감</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Google Sans Text\">함께 있을 때 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">자연스럽고 편안함</span><span style=\"font-family:Google Sans Text\">을 느끼며, </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">설렘</span><span style=\"font-family:Google Sans Text\">과 호감이 유지되는가?</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">소통/갈등 해결</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">결혼의 성패를 가르는 핵심 능력입니다. (성격과 동등하게)</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">정서적 친밀감</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">친밀감은 소통/갈등 해결만큼 중요합니다.</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">경제력(태도)</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">(태도 중심이므로 적절)</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">가치관 일치도</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">(장기적 방향성을 결정)</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">지적 호기심/대화력</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">중요하지만, 성격/소통보다 우선순위는 낮습니다.</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">유머/재미</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">(생활의 윤활유)</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">직업/커리어</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">(성장 의지가 중요)</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">가족관계</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">(독립성/경계에 초점)</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">자녀 계획</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">(결혼의 중대한 목적)</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">책임감/주도성</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">자신의 역할에 책임을 다하고, 삶을 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">주도적</span><span style=\"font-family:Google Sans Text\">으로 이끌어가는 의지가 있는가?</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">소통 품질</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">자신의 생각과 감정을 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">건강하게 표현</span><span style=\"font-family:Google Sans Text\">하며, </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">경청</span><span style=\"font-family:Google Sans Text\">하는 능력이 있는가?</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">갈등 해결 능력</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">갈등 발생 시 대화를 통해 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">타협</span><span style=\"font-family:Google Sans Text\">하고, </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">함께 해결책</span><span style=\"font-family:Google Sans Text\">을 찾으려는 태도가 있는가?</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">정서적 친밀감</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">애정 표현 방식</span><span lang=\"en-US\" style=\"font-family:Google Sans Text\">과 스킨십 스타일이 나에게 맞고, </span><span style=\"font-family:Google Sans Text;font-weight:bold\">감정적인 교류</span><span lang=\"en-US\" style=\"font-family:Google Sans Text\">가 깊은가?</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">가치관 일치도</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">라이프스타일, 정치 성향, 종교</span><span lang=\"en-US\" style=\"font-family:Google Sans Text\"> 등 중요한 가치관이 크게 충돌하지 않는가?</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">자녀 계획</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">자녀 유무, 시기, 양육 방식에 대한 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">합의</span><span style=\"font-family:Google Sans Text\">가 잘 이루어져 있는가?</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">경제력(태도)</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">소비 습관이 합리적이고, </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">돈 관리에 대한 태도</span><span style=\"font-family:Google Sans Text\">와 재정 안정성에 대한 인식이 일치하는가?</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">직업/성장 의지</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">직업에 대한 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">지속성</span><span style=\"font-family:Google Sans Text\">이 있으며, 개인적/직업적 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">성장 의지</span><span style=\"font-family:Google Sans Text\">가 있는가?</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">가족 관계 (독립성)</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">부모로부터 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">심리적/경제적 독립성</span><span style=\"font-family:Google Sans Text\">을 확보했고, 나의 사생활을 존중하는 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">경계 설정</span><span style=\"font-family:Google Sans Text\">이 명확한가?</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">지적 대화력</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">대화의 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">깊이</span><span style=\"font-family:Google Sans Text\">와 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">지적 호기심</span><span style=\"font-family:Google Sans Text\">이 있으며, 사고 방식에 자극을 주는가?</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"ko-KR\"><span style=\"font-family:Google Sans Text;font-weight:bold\">유머/재미</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">유머 코드가 잘 맞고, 함께 있을 때 </span><span lang=\"ko-KR\" style=\"font-family:Google Sans Text;font-weight:bold\">즐거움과 활력</span><span style=\"font-family:Google Sans Text\">을 주는가?</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:16pt;font-weight:bold\">3</span><span style=\"font-family:Malgun Gothic;font-size:16pt;font-weight:bold\">단계</span><span style=\"font-size:16pt;font-weight:bold\">: </span><span style=\"font-family:Malgun Gothic;font-size:16pt;font-weight:bold\">조건형 비교 항목</span><span style=\"font-size:16pt;font-weight:bold\"> </span><span style=\"font-family:Google Sans;font-size:16pt;font-weight:bold\">(Tie-breaker &amp; Info)</span></p>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic;color:#6a6a68\">항목</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic;color:#6a6a68\">체크</span><span style=\"color:#6a6a68\"> </span><span style=\"font-family:Malgun Gothic;color:#6a6a68\">기준</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">나이</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">라이프</span> <span style=\"font-family:Malgun Gothic\">사이클</span> <span style=\"font-family:Malgun Gothic\">일치</span> <span style=\"font-family:Malgun Gothic\">여부</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">외모</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">장기적으로</span> <span style=\"font-family:Malgun Gothic\">편안한</span> <span style=\"font-family:Malgun Gothic\">호감</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">키</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">개인</span> <span style=\"font-family:Malgun Gothic\">선호</span> <span style=\"font-family:Malgun Gothic\">충족</span> <span style=\"font-family:Malgun Gothic\">여부</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">학벌</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">교육</span> <span style=\"font-family:Malgun Gothic\">배경</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">사고방식</span>/<span style=\"font-family:Malgun Gothic\">자존감</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">성장</span> <span style=\"font-family:Malgun Gothic\">마인드</span>, <span style=\"font-family:Malgun Gothic\">자기</span> <span style=\"font-family:Malgun Gothic\">확신</span> <span style=\"font-family:Malgun Gothic\">수준</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">거주지</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">부</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">모님이</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">서울</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">거주하면</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">가점</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">음주</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">빈도</span>&#183;<span style=\"font-family:Malgun Gothic\">통제력</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">건강</span> <span style=\"font-family:Malgun Gothic\">상태</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Google Sans Text\">만성 </span><span style=\"font-family:Google Sans Text\">질환</span><span style=\"font-family:Google Sans Text\">, </span><span style=\"font-family:Google Sans Text\">정신</span><span style=\"font-family:Google Sans Text\"> </span><span style=\"font-family:Google Sans Text\">건강</span><span style=\"font-family:Google Sans Text\"> </span><span style=\"font-family:Google Sans Text\">이력</span><span style=\"font-family:Google Sans Text\">, </span><span style=\"font-family:Google Sans Text\">건강</span><span style=\"font-family:Google Sans Text\"> </span><span style=\"font-family:Google Sans Text\">관리</span><span style=\"font-family:Google Sans Text\"> </span><span style=\"font-family:Google Sans Text\">노력</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">종교</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">신앙</span> <span style=\"font-family:Malgun Gothic\">강도</span>, <span style=\"font-family:Malgun Gothic\">실천</span> <span style=\"font-family:Malgun Gothic\">수준</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">가족</span> <span style=\"font-family:Malgun Gothic\">부양</span> <span style=\"font-family:Malgun Gothic\">의무</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">상대</span> <span style=\"font-family:Malgun Gothic\">부모</span> <span style=\"font-family:Malgun Gothic\">부양</span> <span style=\"font-family:Malgun Gothic\">계획</span>/<span style=\"font-family:Malgun Gothic\">기대치</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t"
+  }
+];
+const CONTENT_HASH = 'a0a8ebfd';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -133,33 +391,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

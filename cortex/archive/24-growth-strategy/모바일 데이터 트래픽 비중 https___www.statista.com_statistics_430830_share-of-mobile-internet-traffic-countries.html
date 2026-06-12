@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모바일 데이터 트래픽 비중 https://www.statista.com/statistics/430830/share-of-mobile-internet-traffic-countries/</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">모바일 데이터 트래픽 비중 https://www.statista.com/statistics/430830/share-of-mobile-internet-traffic-countries/</div>
+<div class="date">2018년 7월 26일 목요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-모바일-데이터-트래픽-비중-https-www-statista-com-st';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 408,
+    "y": 43,
+    "w": 600,
+    "content": "모바일 데이터 트래픽 비중 https://www.statista.com/statistics/430830/share-of-mobile-internet-traffic-countries/</a>"
+  },
+  {
+    "type": "html",
+    "x": 48,
+    "y": 139,
+    "w": 814,
+    "html": "\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white;font-weight:bold;text-decoration:underline\">1.&#160;유사시장의&#160;Market Cap.&#160;조사</span></p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">ㅇ 오프라인</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">&#160;Ent. -&#160;</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">영화관</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">,&#160;</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">게임방</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">,&#160;</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">콘서트</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">,&#160;</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">스포츠</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">(</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">야구</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">,&#160;</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">농구</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">)</span></p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">ㅇ 인터넷 비디오</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">,&#160;</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">웹소설</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">,&#160;</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">웹툰</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">,&#160;</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">애니메이션</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">,&#160;</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">게임</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">ㅇ 광고</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">&#160;-&#160;</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">모바일</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\"> </span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">영역</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">&#160;&#160;</span><span lang=\"en-US\" style=\"font-family:Segoe UI Symbol;font-size:9pt;color:black;background-color:white\">▶</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\"> </span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">린지</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">ㅇ 유료</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">TV -&#160;</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">케이블</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">, IPTV,&#160;</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">위성방송</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\"> </span><span lang=\"en-US\" style=\"font-family:Segoe UI Symbol;font-size:9pt;color:black;background-color:white\">▶</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\"> </span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">린지</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">&#160;</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white;font-weight:bold;text-decoration:underline\">2.&#160;유사시장에서 점유 가능한&#160;potion&#160;추정로직</span></p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">ㅇ</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">&#160;SK&#160;Asset leverage - T</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">전화</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">, T</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">맵</span><span lang=\"en-US\" style=\"font-size:9pt;color:black;background-color:white\">, </span><span style=\"font-size:9pt;color:black;background-color:white\">뮤직메이트</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\"> </span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">시장</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\"> </span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">점유율</span><span lang=\"en-US\" style=\"font-size:9pt;color:black;background-color:white\"> (</span><span style=\"font-size:9pt;color:black;background-color:white\">멜론</span><span lang=\"en-US\" style=\"font-size:9pt;color:black;background-color:white\"> 13</span><span style=\"font-size:9pt;color:black;background-color:white\">년</span><span lang=\"en-US\" style=\"font-size:9pt;color:black;background-color:white\"> 9</span><span style=\"font-size:9pt;color:black;background-color:white\">월</span><span lang=\"en-US\" style=\"font-size:9pt;color:black;background-color:white\"> </span><span style=\"font-size:9pt;color:black;background-color:white\">매각</span><span lang=\"en-US\" style=\"font-size:9pt;color:black;background-color:white\">)</span></p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">ㅇ 넷프릭스 북미시장 점유율</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">ㅇ 스마트폰 사용시간</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">&#160;&amp;&#160;</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">영상</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\"> </span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">콘텐츠</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\"> </span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">사용</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\"> </span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">시간</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">&#160;&#160;</span><span lang=\"en-US\" style=\"font-family:Segoe UI Symbol;font-size:9pt;color:black;background-color:white\">▶</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\"> </span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">린지</span></p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">ㅇ 통계청 생산가능 인구&#160;</span><span lang=\"en-US\" style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">3,700</span><span style=\"font-family:돋움;font-size:9pt;color:black;background-color:white\">만</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:11pt;color:black;background-color:white\">1.</span><span style=\"font-family:돋움;font-size:7pt;color:black;background-color:white\">&#160;&#160;&#160;&#160;&#160;</span><span style=\"font-family:돋움;font-size:11pt;color:black;background-color:white\">국가&#160;overview + mobile + young + engaged</span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">Total population : </span><span lang=\"ko-KR\">총인구는 5,127만명</span>(2016; mm) <span lang=\"ko-KR\">2016년 11월</span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">Nominal GDP : $</span><span lang=\"ko-KR\">1</span>,<span lang=\"ko-KR\">54</span>1(US$ bn)/ <span lang=\"ko-KR\">1,730,398.5</span>(<span lang=\"ko-KR\">십억원</span>) 2017<span lang=\"ko-KR\">년</span> <span lang=\"ko-KR\">기준</span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">Real GDP : </span><span lang=\"ko-KR\">3.1</span>% (<span lang=\"ko-KR\">전년동기비 %</span>)</p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">GDP per Capita </span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">Consumer Spend per Capita </span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\"># of Internet Users : 45 (2017; mm) / </span><span lang=\"ko-KR\">45</span>,<span lang=\"ko-KR\">283</span>,<span lang=\"ko-KR\">000</span> <span lang=\"ko-KR\">명</span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">Smartphone penetration : 94% (2017; %)</span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">PC Internet Usage per Day : 5.1H/W 0.6 hours </span><span lang=\"ko-KR\">1,207분</span>(<span lang=\"ko-KR\">2018년 5월</span>) <a href=\"http://www.koreanclick.com/insights/newsletter_view.html?code=trend&amp;id=478&amp;page=1\" lang=\"ko-KR\">닐슨코리아클릭</a></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">Mobile Internet Usage per Day : 4.0H/W 3.8 hours </span><span style=\"font-size:11pt\">7,041</span><span lang=\"ko-KR\">분</span>(<span lang=\"ko-KR\">2018년 5월</span>)</p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">Mobile media Consumption Trend in Korea 2010-2018 CAGR</span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">Device and connection per Capita : </span><span lang=\"ko-KR\" style=\"font-size:11pt;color:black;background-color:white\">2016년 6.7건에서 2021년 12.0건</span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">Average cell Speed : </span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">Average Traffic per Capita per Month</span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">% video share of total mobile data traffic</span></p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">Facebook &amp; Instargram users(# ranked globally)</span></p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11pt;color:black;background-color:white\">일일</span><span lang=\"en-US\" style=\"font-size:11pt;color:black;background-color:white\"> pc, tv, mobile </span><span style=\"font-size:11pt;color:black;background-color:white\">사용시간</span></p>\r\n\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">한국의 개인 인터넷 비디오 트래픽은 2020년까지 전체 개인 사용자 인터넷 트래픽의 75%를 차지, 2015년 58%대비 증가</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:11pt;color:black;background-color:white\">2.</span><span style=\"font-family:돋움;font-size:7pt;color:black;background-color:white\">&#160;&#160;&#160;&#160;&#160;</span><span style=\"font-family:돋움;font-size:11pt;color:black;background-color:white\">add market</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:11pt;color:black;background-color:white\">3.</span><span style=\"font-family:돋움;font-size:7pt;color:black;background-color:white\">&#160;&#160;&#160;&#160;&#160;</span><span style=\"font-family:돋움;font-size:11pt;color:black;background-color:white\">경쟁&#160;player + OTT&#160;성장 잠재력</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:11pt;color:black;background-color:white\">4.</span><span style=\"font-family:돋움;font-size:7pt;color:black;background-color:white\">&#160;&#160;&#160;&#160;&#160;</span><span style=\"font-family:돋움;font-size:11pt;color:black;background-color:white\">인접 영역 매출 성장</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:11pt;color:black;background-color:white\">5.</span><span style=\"font-family:돋움;font-size:7pt;color:black;background-color:white\">&#160;&#160;&#160;&#160;&#160;</span><span style=\"font-family:돋움;font-size:11pt;color:black;background-color:white\">SKT Asset leverage</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;font-size:11pt;color:black;background-color:white\">- T전화, T맵,&#160;멜론,&#160;뮤직메이트 가입자 성장</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Market opportunity </p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">5G <span lang=\"ko-KR\">도입</span>?, <span lang=\"ko-KR\">와이파이존</span> <span lang=\"ko-KR\">수</span></p>\r\n\t\t\t<br />\r\n\t\t\t<img alt=\"• 국내 OTr 시장 규모 (단위: \n[자료 I 정보통신청책연구원. 참고 1 昶)전은 전망체 \n3178 \n2015 \n2016 \" width=\"350\" height=\"213\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-de75c7e38c75711e9662c36ae7b1b5cd!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/png\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-de75c7e38c75711e9662c36ae7b1b5cd!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/png\" />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">---------------------------------------------------------</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>영화관</p>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">연도</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">매출액</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">관객수</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:right\"><span style=\"font-family:맑은 고딕;color:black\">2015</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:right\"><span style=\"font-family:맑은 고딕;color:black\">1,715,501,571,678</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:right\"><span style=\"font-family:맑은 고딕;color:black\">217,299,523</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:right\"><span style=\"font-family:맑은 고딕;color:black\">2016</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:right\"><span style=\"font-family:맑은 고딕;color:black\">1,743,194,424,370</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:right\"><span style=\"font-family:맑은 고딕;color:black\">217,026,182</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:right\"><span style=\"font-family:맑은 고딕;color:black\">2017</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:right\"><span style=\"font-family:맑은 고딕;color:black\">1,756,577,980,613</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:right\"><span style=\"font-family:맑은 고딕;color:black\">219,876,248</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>게임</p>\r\n\t\t\t<img alt=\"국내 게임시장의 규모와 쮀2015신2019년) \n|된위: 역 \n2019(E) \n다홀액 성장를 \n온라인 ,띰 \n모바일,띰 \n비디오케김 \n%케임 \n아케0드게임 \n0}케이트,띰장 \n합계 \n매출액 \n52墨04 \n14墨44 \n1£61 \n379 \n474 \n16夐04 \n457 \n107223 \n성장를 \n1테6% \n19% \n115% \n-102% \n352% \n110% \n75% \n매출액 \n46.서64 \n41覺1 \n2627 \n223 \n14.æ8 \n10테뾔5 \n성장를 \n-12원% \n242% \n58-1% \n-14墨% \n715% \n-11-7% \n631% \n1 £% \n매출액 \n47207 \n서콤.E00 \n2.711 \n237 \n792 \n1i137 \n11i703 \n성장를 \n1-6% \n121% \n4 \n-27% \n匾2% \n매출액 \n47321 \n53,141 \n276] \n245 \n721 \n15,121 \n1203覺 \n성장를 \n12% \n1 프% \n23% \n15% \n4-4% \n서콤그47 \n뚀704 \n2.724 \n250 \n70B \n1i472 \n577 \n124墨2 \n1-1% \n1 7% \n-1嚼 \n-12粥 \n14% \" width=\"543\" height=\"247\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-5734d64d638574698d87e6ed6d8b9be0!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/png\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-5734d64d638574698d87e6ed6d8b9be0!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/png\" />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:19.5pt;margin-bottom:19.5pt\"><span style=\"font-size:12pt;color:black;background-color:white;font-weight:bold\">[</span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white;font-weight:bold\">성장</span><span style=\"font-size:12pt;color:black;background-color:white;font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white;font-weight:bold\">추이데이터</span><span style=\"font-size:12pt;color:black;background-color:white;font-weight:bold\">]</span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">￼</span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">ㅇ</span><span style=\"font-size:12pt;color:black;background-color:white\"> </span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">콘서트</span><span style=\"font-size:12pt;color:black;background-color:white\"> </span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">티켓판매</span><span style=\"font-size:12pt;color:black;background-color:white\"> </span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">매출</span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">￼</span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">ㅇ</span><span style=\"font-size:12pt;color:black;background-color:white\"> </span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">스포츠</span><span style=\"font-size:12pt;color:black;background-color:white\">_</span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">야구</span><span style=\"font-size:12pt;color:black;background-color:white\"> </span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">티켓판매</span><span style=\"font-size:12pt;color:black;background-color:white\">￼</span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">ㅇ</span><span style=\"font-size:12pt;color:black;background-color:white\"> </span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">스포츠</span><span style=\"font-size:12pt;color:black;background-color:white\">_</span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">농구</span><span style=\"font-size:12pt;color:black;background-color:white\"> </span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">티켓판매</span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">￼</span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">ㅇ</span><span style=\"font-size:12pt;color:black;background-color:white\"> </span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">애니메이션</span><span style=\"font-size:12pt;color:black;background-color:white\"> </span><span lang=\"ko-KR\" style=\"font-size:12pt;color:black;background-color:white\">유통</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:19.5pt;margin-bottom:19.5pt\"><span style=\"font-size:12pt;color:black;background-color:white\">ㅇ</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> </span><span style=\"font-size:12pt;color:black;background-color:white\">웹소설</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\">/</span><span style=\"font-size:12pt;color:black;background-color:white\">웹툰</span><span style=\"font-size:12pt;color:black;background-color:white\">￼</span></p>\r\n\t\t\t<img alt=\"4 Ⅸ Ⅸ \n- 16 4 旵 I-&#39;1 4 旵 Ll 0 / § 鮅 \n20 \n1 \n~ 80 , 1 \n81 \n3437.334 \nIl Ⅱ | \n17 2 刁 \n匕 3 \nqbl \n3 , 499 , E38 \n17 : 刁 \n10-0 \n17Z \" width=\"601\" height=\"442\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-22f2656ef31979ae8a2eaa9d71c87dc9!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/png\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-22f2656ef31979ae8a2eaa9d71c87dc9!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/png\" />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:19.5pt;margin-bottom:19.5pt\"><span style=\"font-size:12pt;color:black;background-color:white\">ㅇ</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> </span><span style=\"font-size:12pt;color:black;background-color:white\">멜론</span><span style=\"font-size:12pt;color:black;background-color:white\">￼</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\">2004</span><span style=\"font-size:12pt;color:black;background-color:white\">년</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> </span><span style=\"font-size:12pt;color:black;background-color:white\">런칭</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\">, 2013</span><span style=\"font-size:12pt;color:black;background-color:white\">년</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> 9</span><span style=\"font-size:12pt;color:black;background-color:white\">월</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> </span><span style=\"font-size:12pt;color:black;background-color:white\">매각</span></p>\r\n\t\t\t<img alt=\"ë©ë¡  ê°ìììì ëí ì´ë¯¸ì§ ê²ìê²°ê³¼\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1c01732d895c754c955b79ab75b3b5e8!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/jpeg\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-1c01732d895c754c955b79ab75b3b5e8!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t<img alt=\"ìë£:ë©ë¡ \" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-dc442ff64b877f44977c85f1c73d0c3c!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/jpeg\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-dc442ff64b877f44977c85f1c73d0c3c!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t<img alt=\"ë©ë¡  ì±ì¥ë¥ ì ëí ì´ë¯¸ì§ ê²ìê²°ê³¼\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b541c12736da7578aa1468d3c0d0d2ae!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/jpeg\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-b541c12736da7578aa1468d3c0d0d2ae!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:19.5pt;margin-bottom:19.5pt\"><span style=\"font-size:12pt;color:black;background-color:white\">ㅇ</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> </span><span style=\"font-size:12pt;color:black;background-color:white\">티맵</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> 2007</span><span style=\"font-size:12pt;color:black;background-color:white\">년</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> 7</span><span style=\"font-size:12pt;color:black;background-color:white\">월</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> </span><span style=\"font-size:12pt;color:black;background-color:white\">런칭</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> </span><a href=\"http://jaejoonchung.blogspot.com/2014/09/9-8-128916.html\">http://jaejoonchung.blogspot.com/2014/09/9-8-128916.html</a>￼현재<span lang=\"en-US\"> </span>누적<span lang=\"en-US\"> </span>다운로드<span lang=\"en-US\"> 800</span>만</p>\r\n\t\t\t<img alt=\"T MAP ê°ììì ëí ì´ë¯¸ì§ ê²ìê²°ê³¼\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f7c891efdc49719292d2831c441da0e6!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/png\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-f7c891efdc49719292d2831c441da0e6!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/png\" />\r\n\t\t\t<img alt=\"Të§µ ì±ì¥ë¥ ì ëí ì´ë¯¸ì§ ê²ìê²°ê³¼\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0d5ba905fa407ba0a45aea6ce316d144!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/png\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-0d5ba905fa407ba0a45aea6ce316d144!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/png\" />\r\n\t\t\t<img alt=\"ë¶(å) ë¹ í¸ëí½ì´ ê°ì¥ ë§ì ë . ì¶ì ì°í´ ê¸°ê° í°ë§µ ì´ì©ì ì. í°ë§µê³¼ ì¬ë ë´ë¹ ëì  ê°ìì ì.\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-67b1df5ae46679a8812ffaec27dd6a8e!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/jpeg\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-67b1df5ae46679a8812ffaec27dd6a8e!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:19.5pt;margin-bottom:19.5pt\"><span style=\"font-size:12pt;color:black;background-color:white\">ㅇ</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> T</span><span style=\"font-size:12pt;color:black;background-color:white\">전화</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> </span>2014년 2월경￼<span lang=\"en-US\">2014</span>년<span lang=\"en-US\"> - 100</span>만￼<span lang=\"en-US\">2015</span>년<span lang=\"en-US\"> 5</span>월<span lang=\"en-US\"> 500</span>만￼<span lang=\"en-US\">2015</span>년<span lang=\"en-US\"> 7</span>월<span lang=\"en-US\"> 700</span>만￼<span lang=\"en-US\">2016</span>년<span lang=\"en-US\"> - 1000</span>만</p>\r\n\t\t\t<img alt=\"T전화 \n수 1000만 가입자 돌파 \n테마기능출시 \n2014.05 \n1000L \n마 2016.08 \n녹음기능출시 \n2015.05 \nKT/LG/U+/알뜰폰 \n모두 오픈 \n2015.12 \n500만2015.03 \n100만2014.11 \nT전화출시 2014.02 \" width=\"410\" height=\"370\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-21c3630333e57c1f96b128a58a3a72b1!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/png\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-21c3630333e57c1f96b128a58a3a72b1!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/png\" />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:19.5pt;margin-bottom:19.5pt\"><span style=\"font-size:12pt;color:black;background-color:white\">ㅇ</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> SKB</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\">￼</span><span style=\"font-size:12pt;color:black;background-color:white\">SK텔레콤, 하나로텔레콤 인수 &lt;2007년 12월&gt;</span></p>\r\n\t\t\t<img alt=\"SKB ê°ìì ìì ëí ì´ë¯¸ì§ ê²ìê²°ê³¼\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-c0d74da213df7b21886528e8a65dfd24!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/jpeg\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-c0d74da213df7b21886528e8a65dfd24!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t<img alt=\"SKB ê°ìì ìì ëí ì´ë¯¸ì§ ê²ìê²°ê³¼\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-9c3e7a9c91357cc49f7f9927e0547279!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/jpeg\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-9c3e7a9c91357cc49f7f9927e0547279!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:19.5pt;margin-bottom:19.5pt\"><span style=\"font-size:12pt;color:black;background-color:white\">넷플릭스는 약 74%를 기록해 1위였고, 유튜브가 약 54%로 그 뒤를 쫓았다. 아마존닷컴의 아마존 비디오가 33%로 3위였고 훌루도 23%의 점유율을 기록했다.</span><span lang=\"en-US\" style=\"font-size:12pt;color:black;background-color:white\"> (</span>서비스별 점유율(복수응답)<span lang=\"en-US\">)</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:19.5pt;margin-bottom:19.5pt\"><span style=\"font-size:12pt;color:black;background-color:white\">방송통신위원회</span><span style=\"font-size:12pt;color:black;background-color:white\">￼</span><span style=\"font-size:12pt;color:black;background-color:white\">한국인의 OTT 이용률은 약 35%로 90%</span></p>\r\n\t\t"
+  }
+];
+const CONTENT_HASH = 'fc912dd4';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

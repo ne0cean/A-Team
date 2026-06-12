@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>시계</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">시계</div>
+<div class="date">2016년 7월 2일 토요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-시계';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 360,
+    "y": 43,
+    "w": 205,
+    "content": "Depth of time\nDOT\nWatch ->가치 Gotch\n갈바닉 피부 반응을 통한 측정"
+  },
+  {
+    "type": "text",
+    "x": 624,
+    "y": 43,
+    "w": 600,
+    "content": "[참고 문헌]\n시계와 문명\n시간적 인간\n<제2의 시간>"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 150,
+    "w": 600,
+    "content": "[기존의 시계]\n- 시, 분, 초의 단위로 시계열적 시간을 표현\n- 미래, 현재, 과거의 선형적인 시간 관념을 표현\n- 모든 시간의 가치를 일률적으로 표현\n“증기기관이 아니라 시계가 근대 산업 사회의 핵심 기계이다.” &#160; &#160;\n- 루이스 멈포드 (1895~1990년)\n<a href=\"https://aimatters.co.kr/news-report/ai-report/30405/\">https://aimatters.co.kr/news-report/ai-report/30405/</a>\n[나의 시계] - ㅇㅇ왓치, ㅇㅇ클락,  월든(헨레 데이빗 소로우), 폴리크론\n테슬라처럼 고급 시계 공략\nKey word : 시간관, 시계, 시제, 시간제도, 시간 개념\n시간은 시계가 아니고, 시간은 시계가 아니다.\n오늘날의 시간관은 시계에 얽메여 있다.\n지금은 너무도 당연하게 여기지만, ‘시간은 돈’이라는 개념은 산업자본주의 태동기에 생겨난 전례 없던 것이었다. “시간은 돈이라는 개념은 우리가 삶을 대하는 태도까지 송두리째 바꿔 버렸다.”"
+  },
+  {
+    "type": "text",
+    "x": 864,
+    "y": 150,
+    "w": 319,
+    "content": "즉 시간을 돈으로 환산하기도 하고, 아껴야하는 물건처럼 생각한다. 이러한 가치관을 자본주의적 시간관이라고 부르며, 자본주의가 발달하면서 정착하게 된 현대인의 시간관념이다.&#160;\n우리는 현재 우리가 가지고 있는 시간의 개념이 불변하는 것이라고 생각하고 있다. 그러나 사실은 그렇지 않다. 시간의 개념은 나라마다 다르며, 또 같은 나라 안에서도 시대에 따라서 다르다. 고대 그리이스의 경우 모든 시간이 같은 레벨에서 측정되어 인지되는 것은 아니었다고 한다. 기회와 행운의 순간을 말하는 카이로스와 영원과 지속의 순간을 의미하는 크로노스라고 하는 서로 다른 시간의 개념이 있었다. 또 서양의 중세에는 수도원의 시간, 농민들의 시간 그리고 상인들이나 도시의 시간 등으로 분절되어 있었다. 도시를 중심으로 활동을 하고 있던 중세의 상인들이 가진 시간의 개념은 교회의 신성한 시간이나 농민들의 자연적인 시간과는 별도로 발전하게 되었다. 우리의 조상들도 계절적인 순환과 농경생활에 맞는 방법으로 시간을 인식하고 있었다.\n호피족의 언어에는 시제라는 것이 없다. 과거와 현재를 구분하는 것 또는 현재와 미래를 구분하는 것 따위가 크게 중요하지 않다는 뜻이기도 하다. 호피인들은 시제라고 하는 기준을 가지고 말을 하기보다는 행위자의 행위자체를 더 중요한 기준으로 삼아서 말을 하고 있음을 알게 된다.&#160;\n현대를 사는 우리에게 익숙한 표준시간체계가 세워진 것이 그리 오래된 일은 아니다. 학자들에 따르면, 서구에서 근대적 시간체제는 18세기부터 뚜렷해지기 시작하였다고 한다. 이 대부터 휴대용 시계들이 상업화되고, 시계의 소유가 신분의 상징이 되었다. 뿐만 아니라 시간을 정확하게 재는 방법이 나오면서 공장, 학교, 수용소, 가정 등에서 시간을 통제하는 방법들이 나타나게 되었다. 한편, 철도의 출현은 시간의 정확함에 대한 신앙을 전 세계로 알리는데 큰 몫을 하였다.\n바로 영국 맨체스터 대학의 심리학 교수 스티브 테일러가 쓴 <제2의 시간>이다. <제2의 시간>은 생활 속에서의 인식과 경험을 중심으로 시간을 분석한 '시간에 관한 심리분석서'\n이러한 심리적 시간을 '제2의 시간'이라 말하는데, 여기에는 5가지 법칙이 있다. 시간은 첫째, 나이가 들수록 빨리 흐른다. 둘째, 새로운 경험과 환경에 놓이면 천천히 흐른다. 셋째, 몰입하면 빨리 흐른다. 넷째, 몰입하지 못하면 천천히 흐른다. 다섯째, '의식하는 정신' 또는 평소의 자아가 사라지면 시간은 천천히 흐르거나 아예 멈춘다고 느끼는 것이다.\n19세기 심리학자인 윌리엄 제임스는 한 사람이 인생의 어느 지점에서 느끼는 일정 기간의 시간의 길이는 인생 자체의 총 길이에 따라 변한다고 했다. 즉 열 살 아이에게 1년은 살아온 삶의 10분의 1이고, 쉰 살 사람에게는 50분의 1이라는 것이다. 따라서 어린 아이에 비해 나이가 들수록 시간이 빨리 흐른다고 느끼게 된다는 것이다.\n불교에서는 윤회를 통해 시간이 순환되는 것으로 인식한다. 남미의 마야족 역시 세상은 계속되는 순환에 따라 창조되고 멸망하기를 반복한다고 생각했다.&#160;\n또한 아프리카나 아메리카 원주민들 중에는 아예 시간이란 것을 인식하지 않는 사람들도 있다. 아메리카 원주민인 나바호족과 호피족에게는 아예 시간이라는 단어가 없고, 과거형, 현재형, 미래형과 같은 동사의 시제 자체가 없다고 한다. 이들에게 시간은 그저 삶의 리듬의 일부이며, 시간을 보내는 것은 숨을 쉬듯 자연스러운 일인 것이다.&#160;\n시간을 인식하지 않으니 시간에 얽매이지 않고 자연과 일체가 되어 편안하게 살아간다. 반면에 시간을 과거, 현재, 미래로 구분하는 서양식 시간개념은 우리로 하여금 과거와 미래에 매여 현실에 충실하지 못하도록 한다. 과거와 미래에 대해 생각하느라 정작 지금 살고 있는 현실에 대해서는 잊게 되는 것이다.&#160;\n아인슈타인은 시간은 속도와 중력에 대해 상대성을 띠며 사건의 발생에는 정해진 순서가 없다고 했다. 즉 보는 이의 시각에 따라 두 가지 사건이 동시에 일어난 것일 수도 있고 혹은 속도에 따라 시간차가 존재할 수도 있다는 것이다. 또한 현대 물리학에서는 우주가 4차원의 시공간에 존재하기 때문에 시간이 흐른다는 말 자체가 맞지 않다고 주장한다.\n따라서 모든 과거와 미래는 지금 여기 현재와 나란히 존재하고 있으며, 4차원의 시간과 공간에서는 과거와 현재, 미래의 개념이 아무 의미가 없다는 것이다. 옥스퍼드 대학의 수학교수인 로저 펜로즈는 '우리에게는 단지 정적으로 고정된 시공간이 있고, 이를 바탕으로 우주의 사건이 펼쳐질 뿐'이라고 말했다.&#160;\n즉 시간이 흐른다는 가정과 시간은 현재를 기준으로 과거와 미래로 나뉜다는 가정은 그 어떤 물리학 연구에서도 증명된 바가 없다는 것이다. 따라서 시간이 뒤로도 갈 수 있다고 믿는 물리학자도 많으며, 블랙홀과 같은 거대한 물질에 의해 우주의 구조가 산산조각 났을 때 생기는 시간과 공간의 통로, 즉 웜홀을 통해 그것이 가능하다는 주장이 나오기도 한다.\n오늘날 양자물리학에서는 사건의 흐름이 뒤에서 앞으로 흐를 수도 있다고 본다. 결국 시간의 흐름에 관한 우리의 생각은 허상에 불과하다고 저자는 주장한다. 좀 더 정확히 말하자면 정적인 상태의 각 순간이 있고, 이 순간이 지나면 다른 순간이 오는 순서가 있기에 우리는 시간이 흐른다고 느낄 뿐이라는 것이다.\n시간이 흐르는 곳은 오직 하나,&#160;우리 '생각' 안에서일 뿐\n칸트 역시 객관적인 시간이란 없으며, 시간은 정리된 삶을 위해 우리가 만들어낸 '분류법'에 불과하다고 말했는데, 즉 세상에 존재하지 않는 시간을 '인식의 편리함'을 위한 도구로 개념화해 우리에게 짐을 지웠다는 것이다. 시간이 흐르는 곳은 오직 하나, 우리의 생각 안에서일 뿐이라고 저자는 말한다.\n1. 서양의 시간 개념은 일직선; 나바호의 시간은 원.&#160;\n서양 개념에서는 스케쥴상의 시간이 지나버리면서 중요한 계획이나 이정표가 수포로 돌아가는 것이고, 다시 스케쥴을 짜야 새로운 사건이나 이정표가 생기는 것임에 반해 나바호 개념은 시간이 지나면서 잃어버린 사건이나 이정표는 언제나 다시 돌아온다는 생각에서 다시 스케쥴을 짜는 것보다는 잠깐 중단했던 일들을 다시 하면 된다는 생각.&#160;\n===> 백인들이 인디언들을 게으르다고 믿었던 이유가 여기에 있었던 것 같은데요.....\n2. 서양 개념은 시작 시간과 마침 시간을 지키는 것이 엄청 중요하나, 나바호 개념은 한번 시작한 일을 끝까지 참여하고 마무리 하는 것이 엄청 중요.&#160;\n서양 사람에게는 약속 시간에 늦게 나타나는 것이 큰 실례요 무례가 되지만, 나바호 사람들에겐 대화 중에 혹은 회의 중간에 시계를 자꾸 쳐다본다거나 자리를 뜨는 것이 엄청 큰 실례요 무례가 됨.&#160;\n===> 인디언들이 백인들을 믿을 수 없는 족속이라고 여겼던 이유 중 하나가 여기 있었던 것 같습니다......\n시간을 지킨다라고 표현한다. - 규율적 시간\n시간을 쓴다라고 표현한다 - 자본주의적 시간"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 474,
+    "w": 600,
+    "content": "개인이 체감하는 시간의 가치와, 선형적 시간이 아닌 생산성/효율성의 개념을 담을 수 있어야 한다."
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 526,
+    "w": 600,
+    "content": "- 의사결정 사항\n\n시간의 속도나 보여주는 단위를 변동해서 시간의 가치를 기존 계량화된 방법으로 보여줄 것인가.\n시간의 가치를 보여주는 다른 단위나 표현방식을 사용할 것인가\n둘을 혼용할 것인가. (e.g 현재의 선형적 시간은 이 지점이다. 그러나 이것의 가치는 이러하다.)\n\n그럼 시간의 가치를 어떻게 측정하고 보여줄 것인가?\n\n감정상태, 긴급도(심장박동), 착용자의 컨디션, 라이프 패턴\n\"중요한 것은 과거나 미래는 결국 존재하지 않는 추상이며 실제로는 오로지 하나의 시점인 현재만이 존재한다는 사실이다. 진정한 의미에서 시간이란 존재하지 않는 것이기에 시간이 오든 가든 아쉬워할 일이 전혀 없다.\"\nType1. 시간의 흐름이 아니라, 지금 이 순간 현재의 가치를 보여주는 ㅇㅇ\nType2. 시계열적인 시간 상에, 각 시점의 가치를 보여주는 것. 그 때 기분이 좋았는지 뭐 이런거.\n\n필수요소 KFS\n\n시간의 가치를 보여주는 시계, 다시 시계를 차아햘 이유를 만들어준다. - 목걸이형도 좋겠다.\n미적 요소 충족 , 동양철학을 비쥬얼적으로 표현\n시간을 보여주는게 아니었어\n순간의 가치를 피드백\n생체리듬에 따라 시간의 속도와 비중이 다르게 표기되는 스마트 워치. 웨어러블 디바이스\n아이언맨처럼? 목걸이 시계. 밴드형 led팔찌\n모든 시간의 가치는 다르다.\n분절된 시간에 힘겹게 자신을 끼워넣고\n또 측정하며 시간에 쫓기느라 시간을 보는게 아닌,\n살아내는 시간의 가치를 정확하게 볼 수 있는 시계를 만들고 싶었다.\n이 시계는 정교한 무브먼트로 대변되는\n기존의 시계산업과 시간관념에 대한\n새 시대, 새 세대의 질문이자 화답이다.\n당시들은 정말 많은 것을 이뤘어요\n이제 당신의 딸이자 아들 후배인 우리는\n생산성 보다는 가치를\n성장보다는 행복을,\n바라봐도 될까요?\n프랭클린 다이어리가 어울리는 사람은 벤자민 프랭클린 뿐입니다. 삶에 얼마쯤의 혼돈과 무질서. 무계획과 세렌디피티(우연)\nㅇ 심리상태, 패턴, 기후, 온도, 습도 - 즉, 환경적 변수와 이를 받아들이는 심리상태에 따라 시간의 가치를 측정\n- 목소리의 톤과 억양 분석, 피부전기도도(GSR), 피부온도, 심박(PPG) 등 생체신호\nㅇ"
+  }
+];
+const CONTENT_HASH = 'f765c4bd';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

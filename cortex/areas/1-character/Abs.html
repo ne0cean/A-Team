@@ -6,153 +6,389 @@
 <title>Abs</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 14px; line-height: 1.7; }
-.toolbar { position: sticky; top: 0; z-index: 100; background: #161b22; border-bottom: 1px solid #30363d; padding: 8px 24px; display: flex; gap: 10px; align-items: center; }
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.onenote-body { max-width: 900px; margin: 0 auto; padding: 24px 24px 80px; outline: none; }
-.onenote-body * { color: #e0e0e0 !important; background-color: transparent !important; font-family: 'Segoe UI', sans-serif !important; }
-.onenote-body table { border-collapse: collapse; margin: 8px 0 14px; width: auto; }
-.onenote-body td, .onenote-body th { border: 1px solid #444 !important; padding: 6px 10px !important; vertical-align: top; cursor: text; }
-.onenote-body th { background: #2d333b !important; font-weight: 600; }
-.onenote-body td[contenteditable="true"], .onenote-body th[contenteditable="true"] { outline: 2px solid #388bfd !important; background: rgba(56,139,253,0.08) !important; }
-.onenote-body img { max-width: 100%; height: auto; border-radius: 4px; display: block; margin: 4px 0; }
-.onenote-body a { color: #6cb0f6 !important; text-decoration: none; }
-.onenote-body a:hover { text-decoration: underline; }
-.onenote-body p, .onenote-body span, .onenote-body div { min-height: 1em; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">Abs</span>
-  
-  <button onclick="save()">💾 저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">Abs</div>
+<div class="date"></div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="onenote-body" id="doc" contenteditable="true">
-		<div style="">
-			<table style="border:1px solid;border-collapse:collapse">
-				<tr>
-					<td style="border:1px solid;font-family:Calibri"><span style="font-family:Malgun Gothic">바디</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">슈링크</span></td>
-					<td style="border:1px solid;font-family:Calibri"><span style="font-family:Malgun Gothic">바디</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">울쎄라</span></td>
-					<td style="border:1px solid;font-family:Calibri"><span style="font-family:Malgun Gothic">바디</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">인모드</span></td>
-					<td style="border:1px solid;font-family:Calibri"><span style="font-family:Malgun Gothic">울핏</span></td>
-					<td style="border:1px solid;font-family:Calibri"><span style="font-family:Malgun Gothic">트리플바디</span></td>
-				</tr>
-				<tr>
-					<td style="border:1px solid"><br />
-					</td>
-					<td style="border:1px solid"><br />
-					</td>
-					<td style="border:1px solid"><p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><a href="https://evers12.co.kr/ulfit" style="font-family:Malgun Gothic">닥터에버스클리닉</a></p>
-					<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Open Sans;font-size:16.5pt;color:#6b6a67;font-weight:bold">바디인모드</span><span style="font-family:Open Sans;font-size:16.5pt;color:#6b6a67;font-weight:bold"> 2</span><span style="font-family:Open Sans;font-size:16.5pt;color:#6b6a67;font-weight:bold">패치&#160;</span></p>
-					<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">:</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">고주파</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">(RF)</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">에너지를</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">고전압</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">전기자극</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">(HVP)</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">으로</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">근막</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">(SMAS)</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">층까지</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">전달해</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">불필요한</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">지방</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">세포를</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">사멸</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">+</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">탄력</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">개선&#160;</span></p>
-					<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt;text-align:right"><span style="font-family:Open Sans;font-size:10.5pt;color:red">&#160;</span><span style="font-family:Open Sans;font-size:9.5pt;color:#fc0404;font-weight:bold">1회&#160;</span><span style="font-family:Open Sans;font-size:9.5pt;color:#6b6a67;text-decoration:line-through">18.7</span><span style="font-family:Open Sans;font-size:9.5pt;color:#6b6a67;text-decoration:line-through">만</span><span style="font-family:Open Sans;font-size:9.5pt;color:#6b6a67">&#160;&#160;</span><span style="font-family:Open Sans;color:#ff0202;font-weight:bold">15</span><span style="font-family:Open Sans;color:#6b6a67">만원</span></p>
-					<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt;text-align:right"><span style="font-family:Open Sans;font-size:10.5pt;color:red">&#160;</span><span style="font-family:Open Sans;font-size:9.5pt;color:#fc0404;font-weight:bold">3회&#160;</span><span style="font-family:Open Sans;font-size:9.5pt;color:#6b6a67;text-decoration:line-through">43.7</span><span style="font-family:Open Sans;font-size:9.5pt;color:#6b6a67;text-decoration:line-through">만</span><span style="font-family:Open Sans;font-size:9.5pt;color:#6b6a67">&#160;&#160;</span><span style="font-family:Open Sans;color:red;font-weight:bold">35</span><span style="font-family:Open Sans;color:#6b6a67">만원</span></p>
-					<br />
-					<cite style="font-family:Calibri;font-size:9pt;color:#595959;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">출처</span>: &lt;<a href="https://evers12.co.kr/EVENT2011">https://evers12.co.kr/EVENT2011</a>&gt; </cite>
-					<br />
-					<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><a href="http://www.ppeum16.com/" style="font-family:Malgun Gothic">명동</a><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">쁨클리닉</span><span lang="en-US" style="font-family:Malgun Gothic"> 5</span><span style="font-family:Malgun Gothic">분</span><span lang="en-US" style="font-family:Malgun Gothic"> 129,000</span></p>
-					</td>
-					<td style="border:1px solid">					<ul>
-						<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">신촌</span></p>
-						<p lang="ko" data-tag="to-do" style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><a href="https://si.branch.mimimi.co.kr/index.php" style="font-family:Malgun Gothic">미앤미신촌</a></p>
-						<br />
-						<p data-tag="to-do:completed" style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><a href="http://sinchon.feeline.network/" style="font-family:Malgun Gothic">필라인</a></p>
-						<li style="font-family:Calibri"><span style="font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold">울핏 600샷 1회</span><span style="font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold"> </span><span style="font-family:210_020;font-size:12pt;color:#888887;background-color:#342815">180,000</span></li>
-						<li style="font-family:Calibri"><span style="font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold">울핏 600샷 3회</span><span style="font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold"> </span><span style="font-family:210_020;font-size:12pt;color:#888887;background-color:#342815">490,000</span></li>
-						<li style="font-family:Calibri"><span style="font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold">울핏 800샷 1회</span><span style="font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold"> </span><span style="font-family:210_020;font-size:12pt;color:#888887;background-color:#342815">240,000</span></li>
-						<li style="font-family:Calibri"><span style="font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold">울핏 800샷 3회</span><span style="font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold"> </span><span style="font-family:210_020;font-size:12pt;color:#888887;background-color:#342815">650,000</span></li>
-						<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><span style="font-family:-apple-system">600샷 1회 기준 198,000원</span></p>
-						<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><span style="font-family:-apple-system">800샷 1회 기준 264,000원</span></p>
-						<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">부가세 포함</span></p>
-						<li style="font-family:Calibri"><span style="font-family:210_020;font-size:12pt;color:#696968;font-weight:bold">울핏 800샷 1회 + 지방분해주사 2부위 한달무제한</span><span style="font-family:210_020;font-size:12pt;color:#696968;font-weight:bold">￼</span><span style="font-family:210_020;font-size:12pt;color:#696968">360,000</span></li>
-						<li style="font-family:Calibri"><span style="font-family:210_020;font-size:12pt;color:#696968;font-weight:bold">울핏 1600샷 1회 + 지방분해주사 4부위 한달무제한</span><span style="font-family:210_020;font-size:12pt;color:#696968;font-weight:bold">￼</span><span style="font-family:210_020;font-size:12pt;color:#696968">700,000</span></li>
-						<li style="font-family:Calibri"><span style="font-family:210_020;font-size:12pt;color:#696968;font-weight:bold">울핏 2400샷 + 지방분해주사 6부위 한달무제한</span><span style="font-family:210_020;font-size:12pt;color:#696968;font-weight:bold">￼</span><span style="font-family:210_020;font-size:12pt;color:#696968">990,000</span></li>
-						<p data-tag="to-do:completed" style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><a href="https://evers12.co.kr/ulfit" style="font-family:Malgun Gothic">닥터에버스클리닉</a></p>
-						<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic;font-size:16.5pt;color:#6b6a67;font-weight:bold">울핏</span><span style="font-family:Open Sans;font-size:16.5pt;color:#6b6a67;font-weight:bold"> 800</span><span style="font-family:Malgun Gothic;font-size:16.5pt;color:#6b6a67;font-weight:bold">샷</span><span style="font-family:Open Sans;font-size:16.5pt;color:#6b6a67;font-weight:bold">&#160;</span></p>
-						<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">:</span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">골드</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">스탠다드</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">울쎄라</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">리프팅과</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">같은</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">원리로</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">초음파</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">에너지를</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">이용해</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">불필요한</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">지방을</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">분해하고</span></p>
-						<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">&#160;</span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">콜라겐을</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">형성하여</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">바디리프팅</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">및</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">탱탱한</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">피부</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">탄력을</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">높이는</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a"> </span><span style="font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a">시술</span><span style="font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a">&#160;</span></p>
-						<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt;text-align:right"><span style="font-family:Open Sans;font-size:10.5pt;color:red">&#160;</span><span style="font-family:Open Sans;font-size:9.5pt;color:#fc0404;font-weight:bold">1</span><span style="font-family:Malgun Gothic;font-size:9.5pt;color:#fc0404;font-weight:bold">회</span><span style="font-family:Open Sans;font-size:9.5pt;color:#fc0404;font-weight:bold">&#160;</span><span style="font-family:Open Sans;font-size:9.5pt;color:#6b6a67;text-decoration:line-through">20</span><span style="font-family:Malgun Gothic;font-size:9.5pt;color:#6b6a67;text-decoration:line-through">만</span><span style="font-family:Open Sans;font-size:9.5pt;color:#6b6a67">&#160;&#160;</span><span style="font-family:Open Sans;color:#ff0202;font-weight:bold">16</span><span style="font-family:Malgun Gothic;color:#6b6a67">만원</span></p>
-						<p style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">명동</span></p>
-						<p data-tag="to-do" style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><a href="https://www.toxnfill35.com/m/detail.php?c=&amp;i=2576" style="font-family:Malgun Gothic">톡스앤필</a><span lang="en-US" style="font-family:Malgun Gothic"> 1000</span><span style="font-family:Malgun Gothic">샷</span><span lang="en-US" style="font-family:Malgun Gothic"> 30.8만원</span></p>
-						<p lang="en-US" style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">트</span><span style="font-family:Malgun Gothic">리플바디</span><span style="font-family:Malgun Gothic"> 1회 968천원 3회</span></p>
-						<p lang="en-US" data-tag="to-do" style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><a href="https://myeongdong.museclinic.co.kr/index.php/price/price_view/?middleId=5810" style="font-family:Malgun Gothic">뮤즈클리닉</a><span style="font-family:Malgun Gothic"> </span><span lang="ko-KR" style="font-family:Malgun Gothic">울핏 </span><span style="font-family:Malgun Gothic">6</span><span lang="ko-KR" style="font-family:Malgun Gothic">00샷</span><span style="font-family:Malgun Gothic"> 218천원</span></p>
-						<p lang="en-US" style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">트리플바디</span><span style="font-family:Malgun Gothic"> 20분 39천원</span></p>
-						<p data-tag="to-do" style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><a href="http://md.reverseclinic.com/index.php?idx=c5db92f80f4b28/c5ec3b16135bbf" style="font-family:Malgun Gothic">리버스클리닉</a><span lang="en-US" style="font-family:Malgun Gothic"> 500</span><span style="font-family:Malgun Gothic">샷</span><span lang="en-US" style="font-family:Malgun Gothic"> 15</span><span style="font-family:Malgun Gothic">만원</span></p>
-						<p lang="en-US" style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">100샷 3.3만원</span></p>
-						<br />
-						<p data-tag="to-do" style="font-family:Calibri;margin-top:0pt;margin-bottom:0pt"><a href="http://www.ppeum16.com/" style="font-family:Malgun Gothic">명동 쁨클리닉</a><span lang="en-US" style="font-family:Malgun Gothic"> 100</span><span style="font-family:Malgun Gothic">샷</span><span lang="en-US" style="font-family:Malgun Gothic"> 5.5만원</span></p>
-					</ul>
-					<br />
-					<br />
-					</td>
-					<td style="border:1px solid"><br />
-					</td>
-				</tr>
-			</table>
-		</div>
-		<div style="">
-			<br />
-		</div>
-		<div style="">
-			<p style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">복부</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">인바디</span><span lang="en-US" style="font-family:Malgun Gothic">/</span><span style="font-family:Malgun Gothic">바디온다</span></p>
-			<p data-tag="to-do,remember-for-later" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">이에스</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">의원</span><span lang="en-US" style="font-family:Malgun Gothic"> - </span><span style="font-family:Malgun Gothic">양손바닥 정도의 면적을 기준으로 15만줄 시술을 기본으로 권장</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">55만원</span></p>
-			<p style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt">60만줄 구독 패키지도 있는데요 이 경우에는 4회 지방분해주사 시술 15만원 상당 4회를 받으실 수 있습니다</p>
-			<p data-tag="to-do" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">필라인</span><span lang="en-US" style="font-family:Malgun Gothic"> - </span>울핏<span lang="en-US"> </span>현재 800샷 1회 264,000원, 3회 715,000</p>
-			<p data-tag="to-do,remember-for-later" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">유앤아이</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">명동</span><span lang="en-US" style="font-family:Malgun Gothic"> - </span>바디 인모드는 지금 첫방문 이벤트 진행중이라서 1부위에 부가세 포함 97,900원 진행중이고, ￼<span lang="en-US">                               </span>바디온다같은 경우에는 12만줄에 759,000원 20만줄 1,199,000원 30만줄에 1,529,000원으로 진행중입니다 :)</p>
-			<p data-tag="to-do" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">유앤아이</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">신촌</span><span lang="en-US" style="font-family:Malgun Gothic"> - </span>리니어지 추천드렸었는데 복부는 5-600샷정도 진행하시는걸 추천<span lang="en-US" style="font-family:Malgun Gothic">, </span>1000샷 이벤트중으로 495000원</p>
-			<p data-tag="to-do" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">명동</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">톡스앤필</span><span lang="en-US" style="font-family:Malgun Gothic"> - </span><span style="font-family:Malgun Gothic">온다</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">리프팅</span><span lang="en-US" style="font-family:Malgun Gothic"> </span>한부위당 60kj<span lang="en-US" style="font-family:Malgun Gothic">, 95</span><span style="font-family:Malgun Gothic">만원</span> </p>
-			<p data-tag="to-do" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">리버스</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">클리닉</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">명동</span><span lang="en-US" style="font-family:Malgun Gothic"> - </span><span style="font-family:Malgun Gothic">울핏</span><span lang="en-US" style="font-family:Malgun Gothic"> 600</span><span style="font-family:Malgun Gothic">샷</span><span lang="en-US" style="font-family:Malgun Gothic"> 21</span><span style="font-family:Malgun Gothic">만원</span></p>
-			<img width="214.5" height="82" src="../../attachments/5149ccae94.png" data-src-type="image/png" data-fullres-src="../../attachments/5149ccae94.png" data-fullres-src-type="image/png" data-tag="to-do" />
-			<p data-tag="to-do" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">명동</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">올클리닉</span><span lang="en-US" style="font-family:Malgun Gothic"> - </span>바디인모드 1부위 손바닥 정도 사이즈 기준 12만원이며, 바디 슈링크는 100샷당 7만원 부가세 10% 별도입니다.^^ 900샷 정도 원하시면 바디 슈링크는 63만원으로 부가세 포함69만3천원이며 바디슈링크는 면적에 따라서 비용은 달라질 수 있어 방문 상담이 정확하세요.^^ 편하신 일정 있으시면 확인 도와드릴까요^^?</p>
-			<p data-tag="to-do,remember-for-later" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">리엔장</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">명동</span><span lang="en-US" style="font-family:Malgun Gothic"> - </span>온다<span lang="en-US"> </span>또는 인모드</p>
-			<p lang="en-US" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">______________________</span></p>
-			<p data-tag="to-do" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt">이에스<span lang="en-US"> - </span>복부브이로<span lang="en-US"> 900</span>샷<span lang="en-US"> 36/ 1800</span>샷<span lang="en-US"> 79</span>만</p>
-			<p data-tag="to-do" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt">바디슈링크<span lang="en-US"> - </span>신촌<span lang="en-US"> </span>필라인<span lang="en-US">, </span>명동<span lang="en-US"> </span>리버스클리닉</p>
-			<p lang="en-US" data-tag="to-do" style="font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt"><a href="https://m.blog.naver.com/feelineclinic/222317982241" style="font-family:Malgun Gothic">신촌 필라인</a><span style="font-family:Malgun Gothic"> - </span></p>
-			<p lang="ko" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic;font-size:10.5pt">보통은 600~800샷 안내드리고 있어</span></p>
-			<p lang="ko" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic;font-size:10.5pt">600샷 1회 198,000원, 3회 539,000원</span></p>
-			<p lang="ko" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic;font-size:10.5pt">800샷 1회 264,000원, 3회 715,000원으로 </span></p>
-			<p lang="ko" style="font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic;font-size:10.5pt">모두</span><span lang="en-US" style="font-family:Malgun Gothic;font-size:10.5pt"> </span><span style="font-family:Malgun Gothic;font-size:10.5pt">부가세</span><span lang="en-US" style="font-family:Malgun Gothic;font-size:10.5pt"> </span><span style="font-family:Malgun Gothic;font-size:10.5pt">포함</span></p>
-			<p data-tag="to-do:completed" style="font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">유앤아이의원</span><span lang="en-US" style="font-family:Malgun Gothic"> 명</span><span style="font-family:Malgun Gothic">동</span></p>
-			<p lang="en-US" style="font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">바디온다리프팅</span><span style="font-family:Calibri"> 12</span><span style="font-family:Malgun Gothic">만줄</span><span style="font-family:Calibri"> </span><span style="font-family:Malgun Gothic">기준</span><span style="font-family:Calibri"> </span><span style="font-family:Malgun Gothic">부가세</span><span style="font-family:Calibri"> </span><span style="font-family:Malgun Gothic">포함해</span><span style="font-family:Calibri"> 759,000</span><span style="font-family:Malgun Gothic">원입니다</span></p>
-			<p data-tag="to-do:completed" style="font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">신촌</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">유앤아이</span></p>
-			<p lang="en-US" style="font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">100</span><span lang="ko" style="font-family:Malgun Gothic">샷당</span><span style="font-family:Malgun Gothic"> 6</span><span lang="ko" style="font-family:Malgun Gothic">만</span><span style="font-family:Malgun Gothic">6</span><span lang="ko" style="font-family:Malgun Gothic">천원이며</span><span style="font-family:Malgun Gothic"> </span><span lang="ko" style="font-family:Malgun Gothic">복부에</span><span style="font-family:Malgun Gothic"> </span><span lang="ko" style="font-family:Malgun Gothic">진행할경우</span><span style="font-family:Malgun Gothic"> 500</span><span lang="ko" style="font-family:Malgun Gothic">샷정도</span><span style="font-family:Malgun Gothic"> </span><span lang="ko" style="font-family:Malgun Gothic">추천드려</span><span style="font-family:Malgun Gothic">  1</span><span lang="ko" style="font-family:Malgun Gothic">회</span><span style="font-family:Malgun Gothic"> 33</span><span lang="ko" style="font-family:Malgun Gothic">만원입니다</span><span style="font-family:Malgun Gothic">! </span><span lang="ko" style="font-family:Malgun Gothic">최소</span><span style="font-family:Malgun Gothic"> 3-5</span><span lang="ko" style="font-family:Malgun Gothic">회정도</span><span style="font-family:Malgun Gothic"> </span><span lang="ko" style="font-family:Malgun Gothic">누적하여</span><span style="font-family:Malgun Gothic"> </span><span lang="ko" style="font-family:Malgun Gothic">시술</span><span style="font-family:Malgun Gothic"> </span><span lang="ko" style="font-family:Malgun Gothic">추천드리고</span><span style="font-family:Malgun Gothic"> </span><span lang="ko" style="font-family:Malgun Gothic">있습니다</span><span style="font-family:Malgun Gothic">^^</span></p>
-			<p lang="ko" data-tag="to-do:completed" style="font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt"><a href="https://www.toxnfill35.com/detail.php?c=962&amp;i=13494&amp;utm_source=gnb_event&amp;utm_medium=%EB%A6%AC%ED%94%84%ED%8C%85%20(1:1%EB%A7%9E%EC%B6%A4%20%EB%A6%AC%ED%94%84%ED%8C%85)&amp;utm_campaign=[%EC%B0%A8%EC%84%B8%EB%8C%80%20%EB%A6%AC%ED%94%84%ED%8C%85]%20%EC%8A%88%EB%A7%81%ED%81%AC%20%EC%9C%A0%EB%8B%88%EB%B2%84%EC%8A%A4" style="font-family:Malgun Gothic">명동 톡스앤필</a></p>
-			<p lang="ko" data-tag="to-do:completed" style="font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt"><a href="http://reverseclinic.com/new/eventpage/kakao_event_2.php" style="font-family:Malgun Gothic">리버스 클리닉 명동점</a><span lang="en-US" style="font-family:Malgun Gothic"> - </span></p>
-			<img alt="원하는 부위 어디든 날씬하게 0 물핏 바디리프팅 
-물핏 + 바디술림주사 패키지 
-울핏 500샷 + 바디술림주사 40cc 
-물핏 바디리프팅(복부/허벅지) 
-울핏 800샷 + 바디술림주사 80cc 
-물핏 바디리프팅(2부위 가능) 
-울핏 1000샷 + 바디술림주사 100cc 
-19=- 
-마일 
-32만원 
-39만원 " width="272.5" height="116.5" src="../../attachments/8bf76fb276.png" data-src-type="image/png" data-fullres-src="../../attachments/8bf76fb276.png" data-fullres-src-type="image/png" data-tag="to-do:completed" />
-			<p data-tag="to-do:completed" style="font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">명동</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">올클리닉</span><span lang="en-US" style="font-family:Malgun Gothic"> - </span><span lang="ko" style="font-family:Malgun Gothic">바디</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span lang="ko" style="font-family:Malgun Gothic">슈링크</span><span lang="en-US" style="font-family:Malgun Gothic"> 100</span><span lang="ko" style="font-family:Malgun Gothic">샷당</span><span lang="en-US" style="font-family:Malgun Gothic"> 77,000</span><span lang="ko" style="font-family:Malgun Gothic">원이며</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span lang="ko" style="font-family:Malgun Gothic">복부는</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span lang="ko" style="font-family:Malgun Gothic">보통</span><span lang="en-US" style="font-family:Malgun Gothic"> 400-500</span><span lang="ko" style="font-family:Malgun Gothic">샷</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span lang="ko" style="font-family:Malgun Gothic">정도</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span lang="ko" style="font-family:Malgun Gothic">진행</span></p>
-			<p data-tag="to-do:completed" style="font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt"><span style="font-family:Malgun Gothic">리엔장</span><span lang="en-US" style="font-family:Malgun Gothic"> </span><span style="font-family:Malgun Gothic">명동점</span><span lang="en-US" style="font-family:Malgun Gothic"> - 바디슈링크 100샷기준 9만9천원, 부가세 포함하실경우 10만8900원입니다</span></p>
-		</div>
-	</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
 <script>
-const SAVE_KEY = 'doc-Abs';
-let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+const SAVE_KEY = 'board-Abs';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 840,
+    "y": 115,
+    "w": 447,
+    "content": "복부 인바디/바디온다\n이에스 의원 - 양손바닥 정도의 면적을 기준으로 15만줄 시술을 기본으로 권장 55만원\n60만줄 구독 패키지도 있는데요 이 경우에는 4회 지방분해주사 시술 15만원 상당 4회를 받으실 수 있습니다\n필라인 - 울핏 현재 800샷 1회 264,000원, 3회 715,000\n유앤아이 명동 - 바디 인모드는 지금 첫방문 이벤트 진행중이라서 1부위에 부가세 포함 97,900원 진행중이고, ￼                               바디온다같은 경우에는 12만줄에 759,000원 20만줄 1,199,000원 30만줄에 1,529,000원으로 진행중입니다 :)\n유앤아이 신촌 - 리니어지 추천드렸었는데 복부는 5-600샷정도 진행하시는걸 추천, 1000샷 이벤트중으로 495000원\n명동 톡스앤필 - 온다 리프팅 한부위당 60kj, 95만원\n리버스 클리닉 명동 - 울핏 600샷 21만원"
+  },
+  {
+    "type": "html",
+    "x": 48,
+    "y": 139,
+    "w": 720,
+    "html": "\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">바디</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">슈링크</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">바디</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">울쎄라</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">바디</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">인모드</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">울핏</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">트리플바디</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://evers12.co.kr/ulfit\" style=\"font-family:Malgun Gothic\">닥터에버스클리닉</a></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Open Sans;font-size:16.5pt;color:#6b6a67;font-weight:bold\">바디인모드</span><span style=\"font-family:Open Sans;font-size:16.5pt;color:#6b6a67;font-weight:bold\"> 2</span><span style=\"font-family:Open Sans;font-size:16.5pt;color:#6b6a67;font-weight:bold\">패치&#160;</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">:</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">고주파</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">(RF)</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">에너지를</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">고전압</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">전기자극</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">(HVP)</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">으로</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">근막</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">(SMAS)</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">층까지</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">전달해</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">불필요한</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">지방</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">세포를</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">사멸</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">+</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">탄력</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">개선&#160;</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt;text-align:right\"><span style=\"font-family:Open Sans;font-size:10.5pt;color:red\">&#160;</span><span style=\"font-family:Open Sans;font-size:9.5pt;color:#fc0404;font-weight:bold\">1회&#160;</span><span style=\"font-family:Open Sans;font-size:9.5pt;color:#6b6a67;text-decoration:line-through\">18.7</span><span style=\"font-family:Open Sans;font-size:9.5pt;color:#6b6a67;text-decoration:line-through\">만</span><span style=\"font-family:Open Sans;font-size:9.5pt;color:#6b6a67\">&#160;&#160;</span><span style=\"font-family:Open Sans;color:#ff0202;font-weight:bold\">15</span><span style=\"font-family:Open Sans;color:#6b6a67\">만원</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt;text-align:right\"><span style=\"font-family:Open Sans;font-size:10.5pt;color:red\">&#160;</span><span style=\"font-family:Open Sans;font-size:9.5pt;color:#fc0404;font-weight:bold\">3회&#160;</span><span style=\"font-family:Open Sans;font-size:9.5pt;color:#6b6a67;text-decoration:line-through\">43.7</span><span style=\"font-family:Open Sans;font-size:9.5pt;color:#6b6a67;text-decoration:line-through\">만</span><span style=\"font-family:Open Sans;font-size:9.5pt;color:#6b6a67\">&#160;&#160;</span><span style=\"font-family:Open Sans;color:red;font-weight:bold\">35</span><span style=\"font-family:Open Sans;color:#6b6a67\">만원</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<cite style=\"font-family:Calibri;font-size:9pt;color:#595959;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">출처</span>: &lt;<a href=\"https://evers12.co.kr/EVENT2011\">https://evers12.co.kr/EVENT2011</a>&gt; </cite>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://www.ppeum16.com/\" style=\"font-family:Malgun Gothic\">명동</a><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">쁨클리닉</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 5</span><span style=\"font-family:Malgun Gothic\">분</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 129,000</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\">\t\t\t\t\t<ul>\r\n\t\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">신촌</span></p>\r\n\t\t\t\t\t\t<p lang=\"ko\" data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://si.branch.mimimi.co.kr/index.php\" style=\"font-family:Malgun Gothic\">미앤미신촌</a></p>\r\n\t\t\t\t\t\t<br />\r\n\t\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://sinchon.feeline.network/\" style=\"font-family:Malgun Gothic\">필라인</a></p>\r\n\t\t\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold\">울핏 600샷 1회</span><span style=\"font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold\"> </span><span style=\"font-family:210_020;font-size:12pt;color:#888887;background-color:#342815\">180,000</span></li>\r\n\t\t\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold\">울핏 600샷 3회</span><span style=\"font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold\"> </span><span style=\"font-family:210_020;font-size:12pt;color:#888887;background-color:#342815\">490,000</span></li>\r\n\t\t\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold\">울핏 800샷 1회</span><span style=\"font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold\"> </span><span style=\"font-family:210_020;font-size:12pt;color:#888887;background-color:#342815\">240,000</span></li>\r\n\t\t\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold\">울핏 800샷 3회</span><span style=\"font-family:210_020;font-size:12pt;color:#888887;background-color:#342815;font-weight:bold\"> </span><span style=\"font-family:210_020;font-size:12pt;color:#888887;background-color:#342815\">650,000</span></li>\r\n\t\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:-apple-system\">600샷 1회 기준 198,000원</span></p>\r\n\t\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:-apple-system\">800샷 1회 기준 264,000원</span></p>\r\n\t\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">부가세 포함</span></p>\r\n\t\t\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:210_020;font-size:12pt;color:#696968;font-weight:bold\">울핏 800샷 1회 + 지방분해주사 2부위 한달무제한</span><span style=\"font-family:210_020;font-size:12pt;color:#696968;font-weight:bold\">￼</span><span style=\"font-family:210_020;font-size:12pt;color:#696968\">360,000</span></li>\r\n\t\t\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:210_020;font-size:12pt;color:#696968;font-weight:bold\">울핏 1600샷 1회 + 지방분해주사 4부위 한달무제한</span><span style=\"font-family:210_020;font-size:12pt;color:#696968;font-weight:bold\">￼</span><span style=\"font-family:210_020;font-size:12pt;color:#696968\">700,000</span></li>\r\n\t\t\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:210_020;font-size:12pt;color:#696968;font-weight:bold\">울핏 2400샷 + 지방분해주사 6부위 한달무제한</span><span style=\"font-family:210_020;font-size:12pt;color:#696968;font-weight:bold\">￼</span><span style=\"font-family:210_020;font-size:12pt;color:#696968\">990,000</span></li>\r\n\t\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://evers12.co.kr/ulfit\" style=\"font-family:Malgun Gothic\">닥터에버스클리닉</a></p>\r\n\t\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:16.5pt;color:#6b6a67;font-weight:bold\">울핏</span><span style=\"font-family:Open Sans;font-size:16.5pt;color:#6b6a67;font-weight:bold\"> 800</span><span style=\"font-family:Malgun Gothic;font-size:16.5pt;color:#6b6a67;font-weight:bold\">샷</span><span style=\"font-family:Open Sans;font-size:16.5pt;color:#6b6a67;font-weight:bold\">&#160;</span></p>\r\n\t\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">:</span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">골드</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">스탠다드</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">울쎄라</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">리프팅과</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">같은</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">원리로</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">초음파</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">에너지를</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">이용해</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">불필요한</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">지방을</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">분해하고</span></p>\r\n\t\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">&#160;</span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">콜라겐을</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">형성하여</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">바디리프팅</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">및</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">탱탱한</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">피부</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">탄력을</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">높이는</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt;color:#818181;background-color:#191a1a\">시술</span><span style=\"font-family:Open Sans;font-size:9pt;color:#818181;background-color:#191a1a\">&#160;</span></p>\r\n\t\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt;text-align:right\"><span style=\"font-family:Open Sans;font-size:10.5pt;color:red\">&#160;</span><span style=\"font-family:Open Sans;font-size:9.5pt;color:#fc0404;font-weight:bold\">1</span><span style=\"font-family:Malgun Gothic;font-size:9.5pt;color:#fc0404;font-weight:bold\">회</span><span style=\"font-family:Open Sans;font-size:9.5pt;color:#fc0404;font-weight:bold\">&#160;</span><span style=\"font-family:Open Sans;font-size:9.5pt;color:#6b6a67;text-decoration:line-through\">20</span><span style=\"font-family:Malgun Gothic;font-size:9.5pt;color:#6b6a67;text-decoration:line-through\">만</span><span style=\"font-family:Open Sans;font-size:9.5pt;color:#6b6a67\">&#160;&#160;</span><span style=\"font-family:Open Sans;color:#ff0202;font-weight:bold\">16</span><span style=\"font-family:Malgun Gothic;color:#6b6a67\">만원</span></p>\r\n\t\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">명동</span></p>\r\n\t\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.toxnfill35.com/m/detail.php?c=&amp;i=2576\" style=\"font-family:Malgun Gothic\">톡스앤필</a><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 1000</span><span style=\"font-family:Malgun Gothic\">샷</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 30.8만원</span></p>\r\n\t\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">트</span><span style=\"font-family:Malgun Gothic\">리플바디</span><span style=\"font-family:Malgun Gothic\"> 1회 968천원 3회</span></p>\r\n\t\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://myeongdong.museclinic.co.kr/index.php/price/price_view/?middleId=5810\" style=\"font-family:Malgun Gothic\">뮤즈클리닉</a><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">울핏 </span><span style=\"font-family:Malgun Gothic\">6</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">00샷</span><span style=\"font-family:Malgun Gothic\"> 218천원</span></p>\r\n\t\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">트리플바디</span><span style=\"font-family:Malgun Gothic\"> 20분 39천원</span></p>\r\n\t\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://md.reverseclinic.com/index.php?idx=c5db92f80f4b28/c5ec3b16135bbf\" style=\"font-family:Malgun Gothic\">리버스클리닉</a><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 500</span><span style=\"font-family:Malgun Gothic\">샷</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 15</span><span style=\"font-family:Malgun Gothic\">만원</span></p>\r\n\t\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">100샷 3.3만원</span></p>\r\n\t\t\t\t\t\t<br />\r\n\t\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://www.ppeum16.com/\" style=\"font-family:Malgun Gothic\">명동 쁨클리닉</a><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 100</span><span style=\"font-family:Malgun Gothic\">샷</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 5.5만원</span></p>\r\n\t\t\t\t\t</ul>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t"
+  },
+  {
+    "type": "image",
+    "x": 840,
+    "y": 399,
+    "w": 215,
+    "h": 82,
+    "src": "5149ccae94.png"
+  },
+  {
+    "type": "image",
+    "x": 1063,
+    "y": 399,
+    "w": 273,
+    "h": 117,
+    "src": "8bf76fb276.png",
+    "caption": "원하는 부위 어디든 날씬하게 0 물핏 바디리프팅 물핏 + 바디술림주사 패키지 울핏 500샷 + 바디술림주사 40cc 물핏 바디리프팅(복부/허벅지) 울핏 800샷 + 바디술림주사 80cc 물핏 바디리프팅(2부위 가능) 울핏 1000샷 + 바디술림주사 100cc 19=- 마일 32만원 39만원"
+  }
+];
+const CONTENT_HASH = 'b02ceef6';
 
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -161,47 +397,56 @@ function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); 
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey) {
     if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
-    if (e.key === '-') { e.preventDefault(); zoomOut(); }
-    if (e.key === '0') { e.preventDefault(); zoom = 1.0; applyZoom(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-function save() {
-  localStorage.setItem(SAVE_KEY, document.getElementById('doc').innerHTML);
-  const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
-  });
-}
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
 
-// Table cell dblclick editing (prevent accidental edits via contenteditable parent)
-const doc = document.getElementById('doc');
-doc.addEventListener('dblclick', e => {
-  const cell = e.target.closest('td, th');
-  if (!cell) return;
-  e.stopPropagation();
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
 
-// Load saved content
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) document.getElementById('doc').innerHTML = saved;
-
-// Auto-save every 30s
-setInterval(save, 30000);
-
-applyZoom();
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

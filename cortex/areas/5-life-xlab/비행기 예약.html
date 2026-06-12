@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>비행기 예약</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">비행기 예약</div>
+<div class="date">2014년 10월 1일 수요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-비행기-예약';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 65,
+    "y": 139,
+    "w": 600,
+    "content": "0 - 파리, 호주\n1 - 베트남, 라오스\n1- 핀란드, 노르웨이, 스웨덴\n2 지중해 휴양지 : 바하마, 푸에르토리코, 코스타리카, 파나마, 코타키나발루, 칸쿤\n싱가폴\n여자친구 - 체코 프라하\n와이페이모어\n<a href=\"http://www.whypaymore.co.kr/?NVKWD=%EB%B9%84%ED%96%89%EA%B8%B0+%EC%98%88%EC%95%BD&NVADKWD=%EB%B9%84%ED%96%89%EA%B8%B0%EC%98%88%EC%95%BD&NVAR=BZ&NVADID=78463038+0Ce10022I2HihrC0005i\">http://www.whypaymore.co.kr/?NVKWD=%EB%B9%84%ED%96%89%EA%B8%B0+%EC%98%88%EC%95%BD&NVADKWD=%EB%B9%84%ED%96%89%EA%B8%B0%EC%98%88%EC%95%BD&NVAR=BZ&NVADID=78463038+0Ce10022I2HihrC0005i</a>\n인터파크나 스카이스캐너\n와이페이모어\n<a href=\"http://news.naver.com/main/read.nhn?mode=LS2D&mid=shm&sid1=101&sid2=261&oid=277&aid=0003349631\">http://news.naver.com/main/read.nhn?mode=LS2D&mid=shm&sid1=101&sid2=261&oid=277&aid=0003349631</a>\nhttp://media.daum.net/life/outdoor/travel/newsview?newsId=20141022170208726</a>\n베트남은 크게 북부/중부/남부 이렇게 나뉘는데,\n북부는 하노이, 하롱베이 / 중부는 다낭, 호이안 / 남부는 호치민 등으로 나뉨\n북부를 가면 사파 트레킹이라고 해서 요새 대한항공 CF 어디까지 가봤니에 나오는 트레킹을 1박 2일 하는데 이거 좋다고 함\n<a href=\"http://blog.naver.com/dicaworld?Redirect=Log&logNo=140135986743\" style=\"font-family:굴림;font-size:9.5pt\">http://blog.naver.com/dicaworld?Redirect=Log&logNo=140135986743</a>\n하노이는 정치적 중심지로\n<a href=\"http://blog.naver.com/lhill1?Redirect=Log&logNo=220147425165\" style=\"font-family:굴림;font-size:9.5pt\">http://blog.naver.com/lhill1?Redirect=Log&logNo=220147425165</a>\n<a href=\"http://blog.naver.com/qingsong16?Redirect=Log&logNo=220121141713\" style=\"font-family:굴림;font-size:9.5pt\">http://blog.naver.com/qingsong16?Redirect=Log&logNo=220121141713</a>\n이 정도 느낌일듯\n다낭/호이안은 경치보러 가는건데\n<a href=\"http://blog.naver.com/alif96ogxf?Redirect=Log&logNo=220142688221\" style=\"font-family:굴림;font-size:9.5pt\">http://blog.naver.com/alif96ogxf?Redirect=Log&logNo=220142688221</a>\n<a href=\"http://blog.naver.com/caecilia85?Redirect=Log&logNo=220074154513\" style=\"font-family:굴림;font-size:9.5pt\">http://blog.naver.com/caecilia85?Redirect=Log&logNo=220074154513</a>\n이 정도 느낌일듯\n호치민은 경제적 중심지로 여기는 메콩강 투어가 있어서 이거 좋다는듯?\n<a href=\"http://hot0334.blog.me/220145891580\" style=\"font-family:굴림;font-size:9.5pt\">http://hot0334.blog.me/220145891580</a> 이거 참고\n<a href=\"http://blog.naver.com/bg772?Redirect=Log&logNo=220143773589\" style=\"font-family:굴림;font-size:9.5pt\">http://blog.naver.com/bg772?Redirect=Log&logNo=220143773589</a>\n<a href=\"http://blog.naver.com/laughingsky?Redirect=Log&logNo=220145733508\" style=\"font-family:굴림;font-size:9.5pt\">http://blog.naver.com/laughingsky?Redirect=Log&logNo=220145733508</a>\n이 정도 느낌일듯\n기회 되면 한번 읽어봐라.\n정 파리 가고 싶음 너라도 먼저 발권해놓고 나중에 가게 되면 혼자라도 가보던지.\n나는 아직 그렇게 멀리는 미정이여....\n기본적으로 이 코스가 좋을 것 같음\n<a href=\"http://blog.naver.com/byung2725?Redirect=Log&logNo=220099169423\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/byung2725?Redirect=Log&logNo=220099169423</a>\n<a href=\"http://arumico.blog.me/130032842447\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://arumico.blog.me/130032842447</a>\n북부에서 중부, 남부로 오는 코스인데, 각 주요 도시들이 위 블로그에 잘 나와 있음 (꼭 읽어볼 수 있도록!!!)\n&#160;\n항공편은,\nIn 하노이, Out 호치민으로….북부에서 남부로 오는게 더 좋은지 남부에서 북부로 일주를 하는게 좋은지는 모르겠으나 일단 이렇게.\n그리고 보통 베트남 갈 따는 북부/중부 or 남부만 가는데 이렇게\n&#160;\n1. 북부\nhttp://blog.naver.com/thfl41411?Redirect=Log&logNo=220156414459</a>\n요기 블로그 보면 잘 나와 있음. 밑에 1일차, 2일차 이렇게 나와 있는데, 퀵하게 찾아본걸로는 하노이, 하롱베이, 사파, 땀꼭 이 갈만한 곳임 (시간이 많이 없으면 하노이를 제외한 3개 중에서 하나만 가는 식으로)\n사파는 참고로 버스는 10시간, 기차도 밤은 새서 가야한다고 함. 요새 대한항공 나오는 사파트래킹 하는데임\n사파는 <a href=\"http://blog.naver.com/iam2860?Redirect=Log&logNo=60211725034\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/iam2860?Redirect=Log&logNo=60211725034</a>\n이런 느낌인데 너가 좋아할 수도 있을 것 같음.\n&#160;\n일단 하노이에서 사파 가는길은, 크게 두가지가 있다는데, 아래 블로그를 참고하삼\n1. 슬리핑버스를 이용해서 하노이에서 사파까지 바로 가는 방법\n2. 하노이에서 라오까이까지 기차를 이용한 후 라오까이에서 사파까지 버스를 이용하는 방법\n<a href=\"http://blog.naver.com/iam2860?Redirect=Log&logNo=60211725034\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/iam2860?Redirect=Log&logNo=60211725034</a>\n<a href=\"http://blog.naver.com/hyejeong5103?Redirect=Log&logNo=220047023776\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/hyejeong5103?Redirect=Log&logNo=220047023776</a>\n&#160;\n알아보는게 귀찮으면 사파 2박 3일, 3박 4일 투어도 있음 가격은 <a href=\"http://www.kvisiontours.com/%EC%82%AC%ED%8C%8C-3%EB%B0%954%EC%9D%BC%EB%8B%A8%EC%B2%B4%ED%88%AC%EC%96%B4\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://www.kvisiontours.com/%EC%82%AC%ED%8C%8C-3%EB%B0%954%EC%9D%BC%EB%8B%A8%EC%B2%B4%ED%88%AC%EC%96%B4</a> 이거 참고하삼.\n&#160;\n하롱베이는 <a href=\"http://blog.naver.com/wldushoy?Redirect=Log&logNo=220104315720\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/wldushoy?Redirect=Log&logNo=220104315720</a> <a href=\"http://yyyuuunnn.tistory.com/59\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://yyyuuunnn.tistory.com/59</a>\n이런 느낌인데 어르신이나 물놀이를 좋아하는 사람들이 좋아하는 건 확실해보임. (하노이에서 버스로 3시간 반 이동)\n근데 하롱베이에서 배에서 잘 수도 있고 당일로도 갔다올 수 있을 것 같은데 이 때 현지 투어를 이용해보는 게 좋아보이는데 현지투어는 1박 2일이 있고 당일도 있다고 함.\n&#160;\n땀꼭은 육지의 하롱베이인데 하롱베이 vs 땀꼭 약간 평이 갈림. 아래 블로그 참고하고…하롱베이랑 비슷한 느낌인 것 같음\n<a href=\"http://blog.naver.com/lllllbk?Redirect=Log&logNo=220102452289\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/lllllbk?Redirect=Log&logNo=220102452289</a>\n<a href=\"http://blog.naver.com/wanmuscle?Redirect=Log&logNo=220158775633\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/wanmuscle?Redirect=Log&logNo=220158775633</a>\n&#160;\n그리고 하노이 관광을 해야 하는데, <a href=\"http://blog.naver.com/dsublog?Redirect=Log&logNo=220134256785\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/dsublog?Redirect=Log&logNo=220134256785</a> <a href=\"http://blog.naver.com/yoyojin742?Redirect=Log&logNo=220151284817\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/yoyojin742?Redirect=Log&logNo=220151284817</a>\n이런 느낌인데 호수가 좀 있고 호치민 생가, 묘, 야시장 등이 있음. 근데 남부에 비해서는 의외로 볼 거는 없다고 함. 주변 도시가 볼 게 있지.\n&#160;\n결론적으로 하노이에 간 다음 1박 하고 하롱베이, 사파, 땀꼭 중에서 1개가고(1박~2박), 다시 하노이로 돌아와 1박 또는 당일 출발를 하는 것으로 하면 될 것 같음.\n&#160;\n2. 중부\n약간 이슈가 있는데 중부는 휴양지 중심이라 호이안, 후에, 다낭 등 쉬러 가는 곳임\n호이안은 아래 블로그 참고.\n<a href=\"http://blog.naver.com/kimvo97?Redirect=Log&logNo=220129502466\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/kimvo97?Redirect=Log&logNo=220129502466</a>\n<a href=\"http://blog.naver.com/clocher?Redirect=Log&logNo=220151075271\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/clocher?Redirect=Log&logNo=220151075271</a>\n<a href=\"http://blog.naver.com/jazzin?Redirect=Log&logNo=220146673555\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/jazzin?Redirect=Log&logNo=220146673555</a>\n&#160;\n다낭은 아래 블로그 참고\n<a href=\"http://blog.naver.com/4fkdgoyou?Redirect=Log&logNo=220087823599\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/4fkdgoyou?Redirect=Log&logNo=220087823599</a>\n<a href=\"http://blog.naver.com/ebbowoo?Redirect=Log&logNo=220118911782\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/ebbowoo?Redirect=Log&logNo=220118911782</a>\n&#160;\n후에는 아래 블로그 참고\n<a href=\"http://blog.naver.com/kimvo97?Redirect=Log&logNo=220156896462\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/kimvo97?Redirect=Log&logNo=220156896462</a>\n<a href=\"http://seun8372.blog.me/220155444449\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://seun8372.blog.me/220155444449</a>\n&#160;\n3. 남부\n여기는 볼 도시가 제일 많은데 나짱(나트랑), 달랏, 무이네, 호치민 등등이 있음. 문제는 중부를 들렸다가 오면 <a href=\"http://arumico.blog.me/130032842447\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://arumico.blog.me/130032842447</a> 여기 지도에 있는 순서대로 남쪽으로 내려가면 되는데 중부를 안 가면 하노이에서 호치민으로 뱅기 타고 오고 호치민에서 시작해야 된다는 점에서 나짱 같은 데는\n가기에 좀 멀수가 있기는 함\n전체적인 코스는 여행사에서 이렇게 짜고 있으니 <a href=\"http://hykim.tistory.com/1101\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://hykim.tistory.com/1101</a> 참고하삼\n&#160;\n나짱은 휴양 도시로, <a href=\"http://nice80j.blog.me/220154398885\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://nice80j.blog.me/220154398885</a> 이 정도 느낌인데 호치민에서 갈 때는 슬리핑 버스(10시간), 국내선(비엣젯 등) 비행기(2시간)가 있다고 하고 옆에 있는 블로그 참고 (<a href=\"http://blog.naver.com/js2276?Redirect=Log&logNo=220129970628\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/js2276?Redirect=Log&logNo=220129970628</a>) 쉬러 가는 곳임. 베트남 최고의 휴양지라고 들었음\n&#160;\n달랏은 유럽 같은 느낌이 나는 도시라는데, 아래 블로그 참고하삼\n<a href=\"http://blog.naver.com/iamqueena?Redirect=Log&logNo=220159415448\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/iamqueena?Redirect=Log&logNo=220159415448</a>\n<a href=\"http://blog.naver.com/namu698?Redirect=Log&logNo=220060309156\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/namu698?Redirect=Log&logNo=220060309156</a>\n<a href=\"http://blog.naver.com/yhk1830?Redirect=Log&logNo=220013493475\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/yhk1830?Redirect=Log&logNo=220013493475</a>\n<a href=\"http://blog.naver.com/teukgong2?Redirect=Log&logNo=220153564340\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/teukgong2?Redirect=Log&logNo=220153564340</a>\n&#160;\n호치민에서 달랏으로 이동하려면 버스(7시간), 국내선 비행기 등이 있다고 함\n버스는 <a href=\"http://psm722.tistory.com/226\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://psm722.tistory.com/226</a> 참고하고, 비행기는 <a href=\"http://blog.naver.com/ssodooi?Redirect=Log&logNo=70176149198\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/ssodooi?Redirect=Log&logNo=70176149198</a> 참고하면 되는데 비행기가 왕복 10만원 정도한다니 나쁘지는 않아보임.\n공항에서 시내 들어오는 거는 <a href=\"http://blog.naver.com/bboguri19?Redirect=Log&logNo=220151975056\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/bboguri19?Redirect=Log&logNo=220151975056</a> 참고하삼\n&#160;\n무이네는 해안 도시로, 특이하게 어촌마을, 모래 해변과 사막이 있어서 유명하다고 함 (여기도 기본적으로는 휴양지여서 리조트가 많음)\n<a href=\"http://blog.naver.com/js2276?Redirect=Log&logNo=220156708809\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/js2276?Redirect=Log&logNo=220156708809</a> 이거 참고하고 어촌 마을은 <a href=\"http://yolizori.blog.me/150165008408\" style=\"font-family:돋움;font-size:9pt\">http://yolizori.blog.me/150165008408</a> 이거 참고하삼\n사막은 <a href=\"http://blog.naver.com/hwanseo207?Redirect=Log&logNo=70139516163\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/hwanseo207?Redirect=Log&logNo=70139516163</a> <a href=\"http://violet1437.blog.me/220088447758\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://violet1437.blog.me/220088447758</a> 이런 느낌이라고 함. 지프투어도 있고 ATV 투어도 있다는데 내 경험상 사막이 있으면 현지 여행사에서 각종 투어 방법이 있음 (<a href=\"http://ma_pick.blog.me/220148162022\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://ma_pick.blog.me/220148162022</a>)\n&#160;\n무이네로의 이동은 역시 슬리핑버스, 국내선 비행기가 있다고 하는데 버스가 5시간 정도라 비행기를 굳이 타지는 않아도 될 것 같음\n버스는 <a href=\"http://blogglee.blog.me/220157898551\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://blogglee.blog.me/220157898551</a> 참고하고, 비행기는 검색이 되지는 않음\n&#160;\n호치민은 베트남 최대 관광지로 다이아몬드플라자, 대통령궁, 전쟁박물관, 노틀담성당, 중앙우체국 등이 있음. 시티투어도 있고 메콩강투어, 시장 등도 많음 (여행지는 <a href=\"http://ddtadh.blog.me/220127587035\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://ddtadh.blog.me/220127587035</a> 참고하삼)\n호치민 지도는 <a href=\"http://blog.naver.com/pamkyu?Redirect=Log&logNo=10176367679\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/pamkyu?Redirect=Log&logNo=10176367679</a> 요게 있음\n&#160;\n①다이아몬드 플라자 → 호치민 관저 → 통일궁(대통령궁) → 벤탄시장 → 전쟁박물관\n&#183; 호치민-다이아몬드 플라자\n호치민시의 중심가에 우뚝솟은 다이아몬드 플라자는 호치민시 1구역 레주언(LE DUAN)거리에 위치해 있으며, 포스코그룹이 세워 그 의미가 있다. 호치민에서 한국과 비슷한 분위기의 백화점을 보실 수 있으며, 타국에서 우리나라 모습을 볼 수 있는 기회가 됩니다. 노틀담 성당에서 도보5분 가량, 뉴에폭호텔, 엘리오스호텔에서 택시 15~20분 소요\n&#183; 통일궁(대통령궁)\n1966년에 지어진 구 대통령 관저로서 해방군의 탱크가 이 부지 안으로 집입하면서 베트남 전쟁은 종결됐다. 현재는 일반인에게 공개되며 외교나 회의장소로 이용되는 곳이다.\n&#183; 벤탄시장\n호치민 시내 교통의 요지에 위치한 호치민의 대표적인 시장. 생동감 넘치는 현지인들과 여행객들의 모습을 볼 수 있는 호치민에서 가장 큰 규모의 시장이다.\n&#183; 전쟁박물관\n호치민의 시내 중심에 위치하고 있는 베트남 전쟁박물관은 베트남 전쟁사를 한눈에 볼 수 있는 전시물과 그림 등으로 전쟁에 대한 경각심을 일깨워 준다.\n&#160;\n②역사박물관→ 노틀담성당 → 중앙우체국 → 인민위원회청사 → 유람선관광\n&#183; 노틀담성당\n호치민의 명물인 노틀담 성당은 1880년 4월에 완공된 곳으로 좌우 대칭 2개의 종루가 매우 인상적으로 예비 신혼부부들에게 야외 웨딩 촬영자리 사랑받고있으며 하루종일 예배드리는 천주교인들의 모습도 볼수있다.\n&#183; 중앙우체국\n19세기 말 프랑스 통치시대에 지어진 건출물로 내부는 오래됐지만 웅장하고 아치형의 높은 천장이 인상적이다.\n&#183; 인민위원회청사\n인민위원회청사는 프랑스 통치시절에 지어진 프랑스식 건물이다. 밤이되면 호치민에서 가장 아름다운 야경을 연출하며 청사앞에는 호치민이 아이를 안고 있는 커다란 조각상이 세워져있다.\n&#160;\n메콩강 투어는 <a href=\"http://blog.naver.com/miinly?Redirect=Log&logNo=220127908192\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/miinly?Redirect=Log&logNo=220127908192</a> <a href=\"http://tangkong16.blog.me/200000215054\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://tangkong16.blog.me/200000215054</a>\n기본적으로 큰 배 타는 투어도 있고 작은 배도 있고 (1~2만원선) 투어는 다양한 것 같음 <a href=\"http://blog.naver.com/kmh900701?Redirect=Log&logNo=220062104826\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://blog.naver.com/kmh900701?Redirect=Log&logNo=220062104826</a> 보니 혼자 투어 했다네.\n&#160;\n시장은 <a href=\"http://ddtadh.blog.me/220127813375\" lang=\"en-US\" style=\"font-family:돋움;font-size:9pt\">http://ddtadh.blog.me/220127813375</a> 이런 모습이니 참고하삼\n&#160;\n<의사결정 사항>\n중부 지역을 갈건지, 안 갈건지\n북부 하노이 뺀 3개 중에서 어딜 갈건지\n남부는 어떤 도시를 골라서 갈건지\n가장 중요한 건데 호텔이나 리조트 수준은 어떻게 할 것인지\n비행기는 뭐타고 갈 것인지 (빨리 예약함)\n&#160;\n이 모든 고민을 날려버릴 수 있는 것은 패키지 투어를 가는 것임 (물론 북부/남부 다 가는 것은 없고 하나만 가는 것들이 대다수임)\n&#160;\n그럼 잘 읽어보고 너의 답변을 기다리마. (찾느라 고생/시간 좀 들임 – 블로그 다 들어가서 봐…보면 이것저것 겹치는 것들 많으니깐 이해될 거야)\n토욜출발이나 화욜출발해서 6일짜리"
+  }
+];
+const CONTENT_HASH = '6d673bc6';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

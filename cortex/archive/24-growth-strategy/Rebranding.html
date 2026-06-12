@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rebranding</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Rebranding</div>
+<div class="date">2018년 11월 21일 수요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Rebranding';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "html",
+    "x": 48,
+    "y": 139,
+    "w": 720,
+    "html": "\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://beginner.kipris.or.kr/beginner/search/headerSearch.do?#page1\">http://beginner.kipris.or.kr/beginner/search/headerSearch.do?#page1</a></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">&quot;</span><span lang=\"ko-KR\" style=\"font-weight:bold\">당신의 서비스를 ‘한 단어’로 설명하라.</span><span style=\"font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-weight:bold\">그것이 네이밍이다.</span><span style=\"font-weight:bold\">&quot;</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Symbol;font-weight:bold\">■</span><span lang=\"en-US\" style=\"font-weight:bold\"> oksusu </span><span style=\"font-weight:bold\">리브랜딩</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">목적</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">1. </span><span lang=\"ko-KR\">기존</span> &#39;oksusu&#39;<span lang=\"ko-KR\">에</span> <span lang=\"ko-KR\">대한</span> <span lang=\"ko-KR\">인지도</span>/<span lang=\"ko-KR\">선호도가</span> <span lang=\"ko-KR\">낮음</span>, <span lang=\"ko-KR\">서비스</span> <span lang=\"ko-KR\">성격을</span> <span lang=\"ko-KR\">대변하기에는</span> <span lang=\"ko-KR\">연상작용이</span> <span lang=\"ko-KR\">약함</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">2. </span><span lang=\"ko-KR\">글로벌 이용자</span> <span lang=\"ko-KR\">대상</span> <span lang=\"ko-KR\" style=\"font-weight:bold\">매력적으로</span><span style=\"font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-weight:bold\">소구할</span><span style=\"font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-weight:bold\">수</span><span style=\"font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-weight:bold\">있는</span><span style=\"font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-weight:bold\">서비스</span><span style=\"font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-weight:bold\">이름</span><span style=\"font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-weight:bold\">확보</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Symbol;font-weight:bold\">■</span><span lang=\"en-US\" style=\"font-weight:bold\"> oksusu </span><span style=\"font-weight:bold\">네이밍</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">요건</span></p>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-weight:bold\">Dos</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-weight:bold\">Don&#39;ts</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">아시아<span lang=\"en-US\"> </span>문화권에서<span lang=\"en-US\"> </span>연상이<span lang=\"en-US\"> </span>쉽고<span lang=\"en-US\"> </span>좋은<span lang=\"en-US\"> </span>어감을<span lang=\"en-US\"> </span>가질<span lang=\"en-US\"> </span>것</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">9. <span lang=\"ko-KR\">사업자 등록, 도메인 등록 그리고 상표 등록이</span> <span lang=\"ko-KR\">가능</span> <span lang=\"ko-KR\">할</span> <span lang=\"ko-KR\">것</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">아시아<span lang=\"en-US\"> </span>문화권에<span lang=\"en-US\"> </span>대한<span lang=\"en-US\"> </span>고려<span lang=\"en-US\"> (HOOQ - </span>인도네시아<span lang=\"en-US\">, </span>싱가폴<span lang=\"en-US\">, </span>필리핀<span lang=\"en-US\">, </span>태국<span lang=\"en-US\">, </span>인도<span lang=\"en-US\">)</span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">시장에서<span lang=\"en-US\"> </span>크리티컬하지<span lang=\"en-US\"> </span>않은<span lang=\"en-US\"> </span>어감을<span lang=\"en-US\"> </span>가질<span lang=\"en-US\"> </span>것<span lang=\"en-US\"> </span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">10. <span lang=\"ko-KR\">고유명사를</span> <span lang=\"ko-KR\">피할</span> <span lang=\"ko-KR\">것</span> - <span lang=\"ko-KR\">검색</span>, <span lang=\"ko-KR\">해쉬태그</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">11. <span lang=\"ko-KR\">숫자를</span> <span lang=\"ko-KR\">피할</span> <span lang=\"ko-KR\">것</span> - GA<span lang=\"ko-KR\">를</span> <span lang=\"ko-KR\">등</span> <span lang=\"ko-KR\">분석</span> <span lang=\"ko-KR\">툴</span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이름에 숫자를 넣는 건 해외 시장 진출 이름으로는 그다지 추천할 만하지 않다. 숫자를 타이핑할 경우, 가령 스카이원이라는 기업의 경우 1인지, one인지 방식 구분이 쉽지 않기 때문<span lang=\"en-US\">(</span>Google Analytics 사용 개발자는 30%<span lang=\"en-US\">)</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">된발음이<span lang=\"en-US\"> </span>나는<span lang=\"en-US\"> </span>네이밍은<span lang=\"en-US\"> </span>피할<span lang=\"en-US\"> </span>것</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:9pt;color:black\">Cinus는 씨너스로 하면 나오지만 시너스로 하면 검색에</span><span lang=\"en-US\" style=\"font-size:9pt;color:black\"> </span><span style=\"font-size:9pt;color:black\">걸리지</span><span lang=\"en-US\" style=\"font-size:9pt;color:black\"> </span><span style=\"font-size:9pt;color:black\">않는다</span><span lang=\"en-US\" style=\"font-size:9pt;color:black\">.</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">1. <span lang=\"ko-KR\">브랜드</span> 확장성</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">2. 불편<span lang=\"ko-KR\">이</span>이나 언멧니즈에 괸한 공감할만한 <span lang=\"ko-KR\">스토리</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:10.5pt;color:#3b3b3b\"> - </span><span lang=\"ko-KR\" style=\"font-size:10.5pt;color:#3b3b3b\">아마존(AMAZON)의 경우 A부터 Z까지(모든 상품을 판매한다는 뜻)</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"> - <span lang=\"ko-KR\">없어서</span> <span lang=\"ko-KR\">내가</span> <span lang=\"ko-KR\">만들었다</span> <span lang=\"ko-KR\">이런…</span>.</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">3. <span lang=\"ko-KR\">서비스가 연상되는 신조어</span>/<span lang=\"ko-KR\">합성어</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">4. <span lang=\"ko-KR\">파열음을 적절히 사용한다</span><span lang=\"ko-KR\">￼</span><span lang=\"ko-KR\">AppHarbor , Apportable , Beetailer , Bitplay , Comprehend Systems , Custora , DrChrono , Earbits , Fitfu , GiftRocket , Grubwithus , HelloFax , Humble Bundle, Hyperink , inPulse , Lanyrd , Like.fm , Mailgun , MinoMonsters , Moki.tv , Noteleaf , NowJS , Sendoid , Swipegood , TalkBin , Taskforce , TellFi , Tumult , Tutorspree , Upverter , Venuetastic , WhereBerry , YouGotListings Inc</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">위 스타트업들은 미국의 Y Combinator가 최근 투자한 스타트업의 회사’이름’이다. 33개의 기업 중 5개 정도의 회사를 제외하고는 1단어로 이루어진 회사이름을 사용하고 있다. 또, 33개의 기업명 중 21개의 기업이름에 파열음(ㅌ, ㅊ, ㅍ, ㅋ 등)이 들어간다는 것을 확인할 수 있다. 티몬, 쿠팡, 위메프 등의 소셜커머스 서비스는 물론이고, 카카오톡, 틱톡, 왓츠앱 등의 메신저 서비스, 애니팡, 쿠키런, 캔디크러쉬사가, 컴투스 등의 게임에서도 파열음이 포함된 이름이 많다는 것을 확인할 수 있다. </p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">5. <span lang=\"ko-KR\">자음, 모음을 적절히 배치한다</span>.</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">CPI, KPTX, TDX, UPS 등과 같이 ‘대문자 자음조합’로 이루어진 브랜드들은 듣는 사람이 노력해야 기억할 수 있는 단어들로<span lang=\"en-US\"> </span>피해야<span lang=\"en-US\"> </span>한다<span lang=\"en-US\">. </span> Yahoo!, Fedex, AVAYA, AVIS, Viber, KAKAO 등의 경우를 살펴보면, 자음+모음+자음 또는 모음+자음+모음 등의 순서가 숨어있음을 알 수 있다. 자음+자음+자음으로 이루어진 이름은 결국 대문자 자음조합으로 이루어진 이름이나 마찬가지이며, CPC, CPI 등과 같이 해당 대문자의 의미를 수 차례 설명해줘야 한다. (BLT도 듣는 사람들에게 B, L, T가 무엇인지 설명해줘도, 기억하기 쉽지 않은 단점이 있다.)<span lang=\"en-US\">￼</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">6. <span lang=\"ko-KR\">린치핀을</span> <span lang=\"ko-KR\">찾아야</span> <span lang=\"ko-KR\">한다</span>. - <span lang=\"ko-KR\">츠타야</span> <span lang=\"ko-KR\">서점과</span> Netflix</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">츠타야는<span lang=\"en-US\"> </span>서점을<span lang=\"en-US\"> </span>표방하지만<span lang=\"en-US\"> </span>서적보다<span lang=\"en-US\"> </span>음반과<span lang=\"en-US\"> </span>취급<span lang=\"en-US\"> </span>비중과<span lang=\"en-US\"> </span>판매량이<span lang=\"en-US\"> </span>더<span lang=\"en-US\"> </span>많다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Netflix<span lang=\"ko-KR\">는</span> flix(<span lang=\"ko-KR\">영화</span>)<span lang=\"ko-KR\">를</span> <span lang=\"ko-KR\">표방하지만</span>, <span lang=\"ko-KR\">드라마</span>, <span lang=\"ko-KR\">예능</span> <span lang=\"ko-KR\">등의</span> <span lang=\"ko-KR\">취급</span> <span lang=\"ko-KR\">및</span> <span lang=\"ko-KR\">판매</span> <span lang=\"ko-KR\">비중이</span> <span lang=\"ko-KR\">더</span> <span lang=\"ko-KR\">높다</span>.</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">7. <span lang=\"ko-KR\">네트웍</span> <span lang=\"ko-KR\">기술력을</span> <span lang=\"ko-KR\">연상할</span> <span lang=\"ko-KR\">수</span> <span lang=\"ko-KR\">있을</span> <span lang=\"ko-KR\">것</span> </p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">국문<span lang=\"en-US\"> 5</span>음절<span lang=\"en-US\"> </span>이하</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">--------------------------------------------------------</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">네이밍<span lang=\"en-US\">, </span>스토리<span lang=\"en-US\">, </span>연상<span lang=\"en-US\"> </span>카테고리로<span lang=\"en-US\"> 30</span>개<span lang=\"en-US\"> </span>정리<span lang=\"en-US\"> </span><span style=\"font-family:Segoe UI Symbol\">▶</span><span lang=\"en-US\"> </span>네이밍<span lang=\"en-US\">(</span>한글<span lang=\"en-US\">, </span>영문<span lang=\"en-US\">)/ </span>슬로건<span lang=\"en-US\">/ </span>스토리<span lang=\"en-US\"> </span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">영상, 모바일, 영상품질, 재미있고, 오리지널이나 익스클루<span lang=\"ko-KR\">시</span>브, 합리적 가격, 가족과 공유,</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">다 볼 수 있고, 통신망, 제일 먼저 k 콘텐츠볼수 있고, </p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>무엇을<span lang=\"en-US\"> </span>제공하는가<span lang=\"en-US\"> - </span>영상<span lang=\"en-US\">, VOD, </span>영화<span lang=\"en-US\">, </span>드라마<span lang=\"en-US\"> Series, Spots </span>중계<span lang=\"en-US\">, </span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>어떤<span lang=\"en-US\"> </span>차별점이<span lang=\"en-US\"> </span>있는가<span lang=\"en-US\">/</span>왜<span lang=\"en-US\"> </span>사용해야<span lang=\"en-US\"> </span>하는가<span lang=\"en-US\">?? Original, </span>네트웍<span lang=\"en-US\"> </span>기술력<span lang=\"en-US\">, K-Contents, Live K-Contents, </span>많은<span lang=\"en-US\"> </span>콘텐츠<span lang=\"en-US\"> </span>수<span lang=\"en-US\">, </span>가격이<span lang=\"en-US\"> </span>저렴해서<span lang=\"en-US\">?, </span>콘텐츠<span lang=\"en-US\">, </span>화질</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>어느<span lang=\"en-US\"> </span>상황에서<span lang=\"en-US\"> </span>사용하는가<span lang=\"en-US\">? - </span>영화<span lang=\"en-US\">, </span>드라마<span lang=\"en-US\">, Killing time, </span>휴식시간<span lang=\"en-US\">, </span>무료하고<span lang=\"en-US\"> </span>심심할<span lang=\"en-US\"> </span>때</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Tech - 5G/ Media</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">k learn ch k 학습 채널 Klearnch[크런치]</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Original - unique, only</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Kuri : K-Contents Curator</p>\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">KON - Korea Original Network</p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">VOD@ : VOD <span lang=\"ko-KR\">이상을</span> <span lang=\"ko-KR\">보다</span>. VOD + @<span lang=\"ko-KR\">를</span> <span lang=\"ko-KR\">보다</span>. VODa</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://voda.donga.com/\">http://voda.donga.com/</a></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Contents <span lang=\"ko-KR\">수</span></p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12.5pt;color:#222222\">불교철학에서 말하는 세상에서 가장 큰 수인 무량대수는 10의 68승</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:12.5pt;color:#222222\"> </span><span lang=\"en-US\" style=\"font-size:12.5pt;color:#222222\">I</span><span style=\"font-size:12.5pt;color:#222222\">nfinity</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">television</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Hammock<span lang=\"en-US\"> TV : Ham</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">리클라이너</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Gatch 가치</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Gotch</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Got+watch</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">핸드폰과<span lang=\"en-US\"> </span>눈<span lang=\"en-US\"> </span>사이의<span lang=\"en-US\"> </span>거리<span lang=\"en-US\"> 1cm2</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">B612: 마음으로 찍는 셀카</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">리멤버  모바일 스크린 mobile phone screen 모크린, 포크링</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">왓챠</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">풀무원<span lang=\"en-US\"> - </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">가타카처럼<span lang=\"en-US\"> </span>이미<span lang=\"en-US\"> </span>있는<span lang=\"en-US\"> </span>단어<span lang=\"en-US\"> </span>뒤섞기 무비 드라마 스크린 </p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">면사무소</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:9pt;color:black\">편한가계부, 배달통, 서울버스, 쿠폰모아, 이럴땐이런앱 </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:9pt;color:black\">다운로드 서비스 </span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:9pt;color:black\">무비다운.무비트레인, </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Symbol;font-size:9pt;color:black\">││</span><span lang=\"en-US\" style=\"font-size:9pt;color:black\"> </span><span style=\"font-size:9pt;color:black\">포우즈</span><span lang=\"en-US\" style=\"font-size:9pt;color:black\"> </span>pause<span lang=\"en-US\" style=\"font-size:9pt;color:black\"> : </span><span style=\"font-size:9pt;color:black\">지르함을 멈추고</span><span lang=\"en-US\" style=\"font-size:9pt;color:black\">, </span><span style=\"font-size:9pt;color:black\">즐거움이</span><span lang=\"en-US\" style=\"font-size:9pt;color:black\"> </span><span style=\"font-size:9pt;color:black\">재생된다</span><span lang=\"en-US\" style=\"font-size:9pt;color:black\">. </span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:9pt;color:black\">포우즈보링. </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">HOOQ - <span lang=\"ko-KR\">인도네시아</span>, <span lang=\"ko-KR\">싱가폴</span>, <span lang=\"ko-KR\">필리핀</span>, <span lang=\"ko-KR\">태국</span>, <span lang=\"ko-KR\">인도</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">종교</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">laypack 누위서 보는 콘텐츠 패키지</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">큐레이션</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">라이프<span lang=\"en-US\"> </span>컨텐츠<span lang=\"en-US\"> </span>셀렉샵<span lang=\"en-US\"> - </span>웹툰<span lang=\"en-US\"> </span>등등<span lang=\"en-US\"> </span>취향<span lang=\"en-US\">, </span>컨텍스트<span lang=\"en-US\">, </span>포맷<span lang=\"en-US\">, </span>길이<span lang=\"en-US\"> </span>모든<span lang=\"en-US\"> </span>상황에<span lang=\"en-US\"> </span>맞춰</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">가격</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">VOD : Video Only $1<span lang=\"ko-KR\">달러</span> </p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">video statr</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">비스무리 비디오 스타 무비 리버</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">vogo 보고, vod go</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">video delivery vivery 비베리 비디오 딜리버리</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">movie  vomei </p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">네트웍<span lang=\"en-US\"> </span>기술력</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">지하철에서도<span lang=\"en-US\"> </span>끊김없는<span lang=\"en-US\"> </span>영상<span lang=\"en-US\"> SUBWAY + MOVIE / </span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">무비 페덱스 무덱스</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">1. 서비스 설명 3개￼ㅇ 라이프 컨텐츠 셀렉트 샵 : select shop,store/theater,cinema (서점-미술관)￼ㅇ 모바일 13inch</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">2. 스토리 담아서 3개￼ㅇ pain point : ￼- 지상파는 못 본다.￼- 뭘 봐야할지를 모르겠다. 빈지뷰잉이 끝나고나서</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 뭐든 다 볼 수 있다는데, 보던거 보고나면 뭘 봐야할지 모르겠다.</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">몇 시간 짜리인데 선뜻 새 영화 시청하기에는 정보와 확신이 부족하다. ￼ㅇ unmet needs : </p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Media</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Voyagy </p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">하루에 영회 한편.. 데일리 무비 데무</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">취향 </p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">발견 무비 디스커버리, 무디</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">호기심<span lang=\"en-US\"> curiosity, wonder 원더월드</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">제 3의 눈</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">존중과<span lang=\"en-US\"> </span>발견<span lang=\"en-US\"> curation</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">성긴<span lang=\"en-US\"> </span>연결</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">서점<span lang=\"en-US\">/</span>미술관 ko um  k콘텐츠 라이브러리 크라이브, 케이 콘텐츠 아키이브 카이브</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">서사<span lang=\"en-US\">, </span>맥락</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">what you must watch, when you need </p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">머스트 왓치 머왓 머씨</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">오마주<span lang=\"en-US\"> </span>Omaju 키마주</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Vo maju </p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">5maju</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">voyagy vod yazy a부터 zy까지 떠니는 여증 코야지, 영화 여정 모야지</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">스페이스<span lang=\"en-US\"> </span>오디티<span lang=\"en-US\"> </span>처럼<span lang=\"en-US\"> - </span>영상<span lang=\"en-US\"> </span>관련한<span lang=\"en-US\"> </span>유명한<span lang=\"en-US\"> </span>이름<span lang=\"en-US\"> </span>없나<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">다 나열해서 교차로 섞기</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">콘텐츠 브라우저</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">kon brawser</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Uni + K + On</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">1. UniK-on[유니콘] <span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">통합된</span> K-contents On</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Uni(<span lang=\"ko-KR\">통</span>일하다, 통합하다) + K-Contents + On.</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">2. UniK-on[유니콘] 유니크한 K-contents On</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Unique(독특한, 특이한) + K-Contents <span lang=\"ko-KR\">→</span> UniK + On</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Original Contents<span lang=\"ko-KR\">가</span> <span lang=\"ko-KR\">지닌</span> <span lang=\"ko-KR\">독특함과</span> K-Contents<span lang=\"ko-KR\">를</span> <span lang=\"ko-KR\">소구</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Unicon <span lang=\"ko-KR\">기업</span>: <span lang=\"ko-KR\">10억 달러 이상의</span> <span lang=\"ko-KR\">목표추구</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">포켓</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">슬랙</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">박스</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">클로즈</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">팬시</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">스케치</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">노트폴리오</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">훌루</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">징가</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">케글</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">둘리</span><span lang=\"en-US\" style=\"font-weight:bold\">, </span><span style=\"font-weight:bold\">욜</span></p>\r\n\t\t\t<br />\r\n\t\t\t<img alt=\"드롭박스Dropbox 온라인 파일 공유 \n인스타카틔nstaca다 식료품 구매 대행 \n서베이몽기SurveyMonkey 온라인 조사 \n。 버즈피드BuzzFeed 온라인 뉴스 \n제트」et 온라인 쇼핑 \n。 프로젝트전문가채용 \n•들 이벤트브라이트Eventbrite 이벤트 티케팅과발견 \n。 에버노트Evernote 모바일 노트 작성 \n,, 와비 파커warbypaker 온라인 안경 쇼핑 \no 넥스트도어Ne獻d。。r 이웃 만들기 소설미디어 사이트 \n, 개비지Kabbage 소규모사업 지금 대출 \n유다시티 온라인 수업 \n박스” 기업용온라인 파일 -우우 \" width=\"468\" height=\"624\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ac36e690fdc412c0aff1fdb4a52c290a!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/jpeg\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-ac36e690fdc412c0aff1fdb4a52c290a!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t\t<br />\r\n\t\t\t<img alt=\", 우버LJb€r 차량 공유 \n, 에어비앤비시rbnb 숙박공유 \n, 위워크Wewo瓲 사무실 공유 \n스포티파이sp。바 음악 스트리밍 \n스E*snapdeal 온라인 쇼핑 \n• 제네피츠z예efi髥 온라인 인사관리 소프트웨어 \n• 소파이soft 학자금 대출 \n• 바이스미디어ViceMedia 미디어와 저널리즘 \n크레디트 카르마creditKarma 무료 신용 점수 \n, 털리버리 히어로DeliveryHero 온라인 식품주문 \n| 위시Wish 온라인 쇼핑 \n하우즈Houn 인테리어 디자인 \n블루 에이프äBlueApron 식재료배달 \" width=\"468\" height=\"624\" src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-6bacbd491656c3cea866cc2f43e4d877!1-733661839CC53BA5!7931/$value\" data-src-type=\"image/jpeg\" data-fullres-src=\"https://graph.microsoft.com/v1.0/users('realpage@naver.com')/onenote/resources/0-6bacbd491656c3cea866cc2f43e4d877!1-733661839CC53BA5!7931/$value\" data-fullres-src-type=\"image/jpeg\" />\r\n\t\t"
+  }
+];
+const CONTENT_HASH = 'e9b40f47';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

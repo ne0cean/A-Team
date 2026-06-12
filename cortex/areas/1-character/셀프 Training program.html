@@ -6,121 +6,407 @@
 <title>셀프 Training program</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">셀프 Training program</span>
-  <span class="t-date">2015년 5월 31일 일요일</span>
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">셀프 Training program</div>
+<div class="date">2015년 5월 31일 일요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">셀프 Training program<br>		<br>		<br>	<br>	<br>		<br>			<br>				<br>					구분<br>					1주<br>					2주<br>					3주<br>					4주<br>					임시<br>				<br>				<br>					복근<br>					Sit-up twist<br>					레그레이즈<br>					리버스크런치<br>					미는 기구<br>					<br><a href="https://www.youtube.com/watch?v=VZPZZSLJ4fY" target="_blank">복근</a>- <a href="https://www.youtube.com/watch?v=hgB2xxlqU2I" target="_blank">크런치</a>/ 로만 체어/ V-UP/  <a href="https://www.youtube.com/watch?v=vdJMItbm0WQ" target="_blank">dragon flag</a><br>					<br>싯업, 레그레이즈, <a href="https://www.youtube.com/watch?v=Hp8rPGLHRWc" target="_blank">Altermate leg raise</a>, <a href="https://www.youtube.com/watch?v=8zOu9nFiMmA" target="_blank">Frog Kick</a><br>					<br>허리 트위스트 - 90회 4세트, 싯업 sit-up 트위스트 - 20회 4세트, 리닝&#160;트위스트 - 50회 4세트<br>					<br>기구<br>					<br>플랭크<br>					<br>				<br>				<br>					가슴<br>					버터플라이<br>					딥스<br>					벤치프레스레스  기구 밀기<br>					버터플라이<br>					벤치/ <a href="https://www.monsterzym.com/training_encyclopedia/5099850" target="_blank">덤벨 풀오버</a>/ <a href="https://www.youtube.com/watch?v=XwAtRONAdHE" target="_blank">Press lockout</a>/ 팔굽혀펴기(삼각-코)<br>				<br>				<br>					등<br>					바벨 로우<br>					<br>턱걸이 & <br>					<br><a href="http://terms.naver.com/entry.nhn?docId=938911&ref=y&cid=51030&categoryId=51030" target="_blank">http://terms.naver.com/entry.nhn?docId=938911&ref=y&cid=51030&categoryId=51030</a><br>					<br>					<br>기구 당기기<br>					<br><a href="http://terms.naver.com/entry.nhn?docId=938909&cid=51030&categoryId=51030" target="_blank">http://terms.naver.com/entry.nhn?docId=938909&cid=51030&categoryId=51030</a><br>					<br>					바벨로우<br>					<br>바벨 풀오버/ 와이드그립 풀업 / 친업/  렛풀다운/ 바벨로우<br>					<br><br>					<br>기구 - 아래로 당기기<br>					<br>				<br>				<br>					어깨<br>					밀리터리 프레스<br>					사이드 레터럴 레이즈<br>					<br>프론트<br>					<br>레터럴레이즈<br>					<br>					숄더 프레스<br>					<br>숄더프레스<br>					<br>(덤벨 머리위로올리기)<br>					<br><a href="https://www.youtube.com/watch?v=wI_2Amaqt1Y" target="_blank">https://www.youtube.com/watch?v=wI_2Amaqt1Y</a> 밀리터리 프레스, 덤벨 숄더프레스, 사이드 레터럴레이즈, 기구, 업라이트 로우<br>					<br><br>					<br>서서하기 <br>					<br>				<br>				<br>					허리<br>					로만체어 백익스텐션<br>					바벨 굿모닝<br>					<br>허리기구<br>					<br>덤벨 허리로 들어올리기<br>					<br><br>					<br>					로만체어 백익스텐션<br>					슈퍼맨 등운동￼(팔과 다리 교차 들기)<br>				<br>			<br>			<br><br>			<br>				<br>					구분<br>					1주<br>					2주<br>					3주<br>					임시<br>				<br>				<br>					복근<br>					<br>윗몸일으키기<br>					<br>기구<br>					<br>					레그레이즈<br>					리버스크런치<br>					<br>기구 <br>					<br>플랭크<br>					<br>				<br>				<br>					가슴<br>					<br>버터플라이<br>					<br>기구<br>					<br>					딥스<br>					벤치프레스레스  기구 밀기<br>					푸쉬업<br>				<br>				<br>					등<br>					기구 - 아래로 당기기￼턱걸이<br>					<br>턱걸이 & <br>					<br><a href="http://terms.naver.com/entry.nhn?docId=938911&ref=y&cid=51030&categoryId=51030" target="_blank">http://terms.naver.com/entry.nhn?docId=938911&ref=y&cid=51030&categoryId=51030</a><br>					<br>					<br>기구 당기기<br>					<br><a href="http://terms.naver.com/entry.nhn?docId=938909&cid=51030&categoryId=51030" target="_blank">http://terms.naver.com/entry.nhn?docId=938909&cid=51030&categoryId=51030</a><br>					<br>					<br><br>					<br><br>					<br><br>					<br><br>					<br>				<br>				<br>					어깨<br>					<br>숄더프레스<br>					<br>(덤벨 머리위로올리기)<br>					<br>					사이드 레터럴 레이즈<br>					<br>프론트<br>					<br>레터럴레이즈<br>					<br>					<br><br>					<br>				<br>				<br>					허리<br>					백익스텐션<br>					<br>로만체어<br>					<br>슈퍼맨 등운동￼(팔과 다리 교차 들기)<br>					<br>					<br>덤벨 하나 허리로 들어올리기<br>					<br><br>					<br>					굿모닝<br>				<br>			<br>			<br><br>			<br><a href="https://burnfit.io/blog/%EC%9D%BC%EC%A3%BC%EC%9D%BC-3%EC%9D%BC_3%EB%B6%84%ED%95%A0-%EC%9A%B4%EB%8F%99-%EC%99%84%EB%B2%BD-%EA%B0%80%EC%9D%B4%EB%93%9C/" target="_blank">https://burnfit.io/blog/%EC%9D%BC%EC%A3%BC%EC%9D%BC-3%EC%9D%BC_3%EB%B6%84%ED%95%A0-%EC%9A%B4%EB%8F%99-%EC%99%84%EB%B2%BD-%EA%B0%80%EC%9D%B4%EB%93%9C/</a><br>			<br>하신다 해도 3분할이 가능합니다. 그냥 순서대로 하면 되니까요.<br>			<br>				<br>					<br>Day 1<br>					<br>메인: 하체<br>					<br>보조 : 복근, 코어<br>					<br>					<br>Day2<br>					<br>메인: 가슴<br>					<br>보조: 어깨, 삼두<br>					<br>					<br>Day3<br>					<br>메인: 등<br>					<br>보조: 이두<br>					<br>				<br>				<br>					바벨 스쿼트<br>					바벨 벤치프레스<br>					루마니안 데드리프트<br>				<br>				<br>					레그 프레스<br>					인클라인 벤치 프레스<br>					바벨 로우<br>				<br>				<br>					레그 익스텐션<br>					오버헤드 프레스<br>					랫 풀 다운<br>				<br>				<br>					레그 컬<br>					덤벨 플라이<br>					케이블 로우<br>				<br>				<br>					카프레이즈<br>					스컬 크러셔<br>					바벨 컬<br>				<br>				<br>					행잉 레그 레이즈<br>					덤벨 레터럴 레이즈<br>					해머 컬<br>				<br>				<br>					플랭크<br>					케이블 푸시다운<br>					<br><br>					<br>				<br>			<br>			<br><br>		<br>		<br>			<br>A일 - 가슴/ 복근/ 허리/ 스쿼트<br>			<br>B일 - 신/ 복근/ 등/ 스쿼트<br>		<br>		<br>			<br>ㅇ 데스런 <a href="http://www.deslunfitness.com/" target="_blank">http://www.deslunfitness.com/</a><br>			<br>ㅇ 데스런 <a href="http://m.blog.naver.com/PostList.nhn?blogId=deslun" target="_blank">http://m.blog.naver.com/PostList.nhn?blogId=deslun</a><br>			<br>ㅇ 고강도 서킷 트레이닝 & 인터벌 트레이닝<br>			<br><a href="https://youtu.be/EbEeg3_lCHI?t=520" target="_blank">뱃살이</a> 안 빠지는 이유 TOP3(뱃살에 대한 오해)<br>		<br>		<br>			<br><a href="http://ppss.kr/archives/61885" target="_blank">http://ppss.kr/archives/61885</a> 데드리프트<br>		<br>		<br>			<br><a href="https://www.facebook.com/dietnote/videos/622286907974503/" target="_blank">https://www.facebook.com/dietnote/videos/622286907974503/</a><br>			<br><a href="https://www.youtube.com/watch?v=6jWHyd1Aa6k&ab_channel=%EB%B3%B4%ED%86%B5%EC%82%AC%EB%9E%8C%EC%9D%84%EC%9C%84%ED%95%9C%EC%9A%B4%EB%8F%99%EC%B1%84%EB%84%90" target="_blank">연구결과 밝혀진</a>, 가장 효과적인 복근 운동 3가지!?<br>		<br>		<br>			<br>가슴-등<br>			<br>어깨-허리<br>			<br><br>			<br>가슴 - 벤치/ <a href="https://www.monsterzym.com/training_encyclopedia/5099850" target="_blank">덤벨 풀오버</a>/ <a href="https://www.youtube.com/watch?v=XwAtRONAdHE" target="_blank">Press lockout</a>/ 팔굽혀펴기(삼각-코)<br>			<br>등 - 바벨 풀오버/ 와이드그립 풀업 / 친업/  렛풀다운/ 바벨로우<br>			<br><br>			<br>어깨- <a href="https://www.youtube.com/watch?v=wI_2Amaqt1Y" target="_blank">https://www.youtube.com/watch?v=wI_2Amaqt1Y</a> 밀리터리 프레스, 덤벨 숄더프레스, 사이드 레터럴레이즈, 기구, <br>			<br>허리- 덤벨 굿모닝/ <a href="https://www.youtube.com/watch?v=FyFvHLKokSc" target="_blank">바벨</a> 굿모닝<br>			<br><br>			<br><a href="https://www.youtube.com/watch?v=VZPZZSLJ4fY" target="_blank">복근</a>- <a href="https://www.youtube.com/watch?v=hgB2xxlqU2I" target="_blank">크런치</a>/ 로만 체어/ V-UP/  <a href="https://www.youtube.com/watch?v=vdJMItbm0WQ" target="_blank">dragon flag</a><br>			<br>싯업, 레그레이즈, <a href="https://www.youtube.com/watch?v=Hp8rPGLHRWc" target="_blank">Altermate leg raise</a>, <a href="https://www.youtube.com/watch?v=8zOu9nFiMmA" target="_blank">Frog Kick</a><br>			<br>허리 트위스트 - 90회 4세트, 싯업 sit-up 트위스트 - 20회 4세트, 리닝&#160;트위스트 - 50회 4세트<br>			<br><br>			<br><a href="https://www.youtube.com/watch?v=0OlrC43wuvo" target="_blank">클린 & 프레스</a><br>			<br>이두근 - 바벨컬<br>			<br><br>			<br>비타민 C, 과립 레시틴 Lecithin, 벌 화분 bee pollen, 비타민 E, 로즈 힙 오일 rose hip oil (들장미 열매 오일), wheat germ oil (소맥 베아 오일.&#160;비타민 A,&#160;E가 풍부), Acerola — C 와 B-Folia 등을 섭취하였다.&#160;<br>			<br><br>			<br>고농축 비타민 B5(판토텐산 pantothenic acid: 항체형성에 중요한 역할을 하고, 비타민의 활용을 돕고 지방, 탄수화물 및 단백질의 에너지 전환을 도움) 와 비타민 B6(피리독신 pyridoxine: 아미노산 대사와 단백질 합성에 관여), 아세틸콜린&#160;(acetylcholine),&#160;그리고 신속하게 에너지를 공급하는 18가지 아미노산과 같은 복합 B 비타민을 섭취하기 위해 인삼과 로얄 젤리를 자주 섭취하였다.&#160;<br>		<br>		<br>			<br>[새학기 맞이 승찬님 리노베이션 Project]<br>			<br><br>			<br>ㅇ 본 P/G의 목적은 김승찬님의 근골격 강화 및 심혈관계 기능 강화 있습니다.<br>			<br>ㅇ 운동 routine<br>			<br>				<br>					<br><br>					<br>					월<br>					화<br>					수<br>					목<br>					금<br>					토<br>					일<br>				<br>				<br>					유산소<br>					러닝 30분<br>					러닝 30분<br>					러닝 30분<br>					러닝 30분<br>					러닝 30분<br>					산책<br>					<br><br>					<br>				<br>				<br>					복근<br>					Sit-up<br>					▶<br>					▶<br>					▶<br>					▶<br>					▶<br>					<br><br>					<br>				<br>				<br>					가슴<br>					바벨 풀오버<br>					<br><br>					<br>					▶<br>					<br><br>					<br>					▶<br>					<br><br>					<br>					<br><br>					<br>				<br>				<br>					허리<br>					로만체어 백익스텐션<br>					<br><br>					<br>					▶<br>					<br><br>					<br>					▶<br>					<br><br>					<br>					<br><br>					<br>				<br>				<br>					어깨<br>					<br><br>					<br>					밀리터리 프레스<br>					<br><br>					<br>					▶<br>					<br><br>					<br>					▶<br>					<br><br>					<br>				<br>				<br>					등<br>					바벨 로우<br>					<br><br>					<br>					<br><br>					<br>					<br><br>					<br>					<br><br>					<br>					<br><br>					<br>					<br><br>					<br>				<br>				<br>					하체<br>					스쿼트<br>					▶<br>					▶<br>					▶<br>					▶<br>					▶<br>					<br><br>					<br>				<br>			<br>			<br>*운동 강도 : 한 Set에 12~20회 정도 시행할 수 있을 정도의 무게로 시행하는 것이 좋습니다. (복근의 경우 30~60회)<br>			<br>*서로 다른 가동부위를 가진 근육을 연속해서 단련하면 총 운동 시간을 효율적으로 운용할 수 있고, 고강도의 유산소 운동 효과도 거둘 수 있습니다.<br>			<br>*허리/복근(척추 기립근, 복직근)은 Core근육이고, 허벅지/종아리(햄스트링,대퇴사두근)는 제2의 심장이라 불리울 정도로 심혈관계에 지대한 영향을 미치므로<br>			<br> 외모보다는 건강 측면에서 매일 단련해야 하는 가장 중요한 근육입니다.(특히 복근은 회복속도가 빠르므로 매일 운동해도 됩니다.)<br>			<br><br>			<br>※ 우리의 몸은 '항상성'을 유지하려는 성격이 있어서, 하나의 운동 루틴에 쉽게 적응합니다. 해서 2~3주에 1번씩 운동루틴을 바꿔주는 것이 근육 생성에 도움이 됩니다. 아래의 루틴을 참고하시면 되겠습니다.<br>			<br><br>			<br>				<br>					구분<br>					1주<br>					2주<br>					3주<br>					기타<br>				<br>				<br>					복근<br>					Sit-up twist<br>					레그레이즈<br>					리버스크런치<br>					크런치/ V-UP/  dragon flag, 레그레이즈, Altermate leg raise, Frog Kick<br>				<br>				<br>					허리<br>					로만체어 백익스텐션<br>					바벨 굿모닝<br>					<br>백익스텐션 머신<br>					<br><br>					<br>					<br><br>					<br>				<br>				<br>					가슴<br>					바벨 풀오버<br>					딥스<br>					벤치프레스레스  기구 밀기<br>					벤치/ 덤벨 풀오버/ Press lockout/ 푸쉬업, 버터플라이<br>				<br>				<br>					어깨<br>					밀리터리 프레스<br>					사이드 레터럴 레이즈<br>					프론트 레터럴레이즈<br>					숄더 프레스, 덤벨 숄더프레스, 사이드 레터럴레이즈 <br>				<br>				<br>					등<br>					바벨 로우<br>					<br>턱걸이<br>					<br><br>					<br>					<br>렛풀 다운<br>					<br><br>					<br>					바벨 풀오버, 와이드그립 풀업, 친업<br>				<br>				<br>					하체<br>					스쿼트<br>					와이드 스쿼트<br>					덤벨 스쿼트</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note-셀프-Training-program';
+const SAVE_KEY = 'board-셀프-Training-program';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 408,
+    "y": 19,
+    "w": 600,
+    "content": "A일 - 가슴/ 복근/ 허리/ 스쿼트\nB일 - 신/ 복근/ 등/ 스쿼트"
+  },
+  {
+    "type": "text",
+    "x": 792,
+    "y": 43,
+    "w": 512,
+    "content": "ㅇ 데스런 <a href=\"http://www.deslunfitness.com/\">http://www.deslunfitness.com/</a>\nㅇ 데스런 <a href=\"http://m.blog.naver.com/PostList.nhn?blogId=deslun\">http://m.blog.naver.com/PostList.nhn?blogId=deslun</a>\nㅇ 고강도 서킷 트레이닝 & 인터벌 트레이닝\n뱃살이</a> 안 빠지는 이유 TOP3(뱃살에 대한 오해)"
+  },
+  {
+    "type": "html",
+    "x": 36,
+    "y": 115,
+    "w": 643,
+    "html": "\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">구분</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span lang=\"en-US\">1<span lang=\"ko-KR\">주</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span lang=\"en-US\">2<span lang=\"ko-KR\">주</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span lang=\"en-US\">3<span lang=\"ko-KR\">주</span></span></td>\r\n\t\t\t\t\t<td style=\"width:84;border:1px solid;font-size:10pt\"><span lang=\"en-US\">4<span lang=\"ko-KR\">주</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">임시</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">복근</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span lang=\"en-US\">Sit-up twist</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">레그레이즈</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">리버스크런치</td>\r\n\t\t\t\t\t<td style=\"width:84;border:1px solid;font-size:10pt\">미는<span lang=\"en-US\"> </span>기구</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.youtube.com/watch?v=VZPZZSLJ4fY\" style=\"font-weight:bold\">복근</a><span lang=\"en-US\">- </span><a href=\"https://www.youtube.com/watch?v=hgB2xxlqU2I\" lang=\"en-US\">크런치</a><span lang=\"en-US\">/ </span><span lang=\"en-US\">로만 체어</span><span lang=\"en-US\">/ V-UP/ </span><span lang=\"en-US\"> </span><a href=\"https://www.youtube.com/watch?v=vdJMItbm0WQ\" lang=\"en-US\">dragon flag</a></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">싯업<span lang=\"en-US\">, </span>레그레이즈<span lang=\"en-US\">, </span><a href=\"https://www.youtube.com/watch?v=Hp8rPGLHRWc\">Altermate leg raise</a><span lang=\"en-US\">, </span><a href=\"https://www.youtube.com/watch?v=8zOu9nFiMmA\">Frog Kick</a></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">허리 트위스트 - 90회 4세트, 싯업 sit-up 트위스트 - 20회 4세트, 리닝<span lang=\"en-US\">&#160;</span><span lang=\"en-US\">트위스트 - 50회 4세트</span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">기구</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">플랭크</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">가슴</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">버터플라이</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">딥스</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">벤치프레스레스<span lang=\"en-US\">  기구 밀기</span></td>\r\n\t\t\t\t\t<td style=\"width:84;border:1px solid;font-size:10pt\">버터플라이</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">벤치<span lang=\"en-US\">/ </span><a href=\"https://www.monsterzym.com/training_encyclopedia/5099850\">덤벨 풀오버</a><span lang=\"en-US\">/ </span><a href=\"https://www.youtube.com/watch?v=XwAtRONAdHE\">Press lockout</a><span lang=\"en-US\">/ </span>팔굽혀펴기<span lang=\"en-US\">(</span>삼각<span lang=\"en-US\">-</span>코<span lang=\"en-US\">)</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">등</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">바벨<span lang=\"en-US\"> </span>로우</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">턱걸이<span lang=\"en-US\"> &amp; </span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://terms.naver.com/entry.nhn?docId=938911&amp;ref=y&amp;cid=51030&amp;categoryId=51030\">http://terms.naver.com/entry.nhn?docId=938911&amp;ref=y&amp;cid=51030&amp;categoryId=51030</a></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">기구<span lang=\"en-US\"> 당기기</span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://terms.naver.com/entry.nhn?docId=938909&amp;cid=51030&amp;categoryId=51030\">http://terms.naver.com/entry.nhn?docId=938909&amp;cid=51030&amp;categoryId=51030</a></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:84;border:1px solid;font-size:10pt\">바벨로우</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">바벨<span lang=\"en-US\"> </span>풀오버<span lang=\"en-US\">/ </span><span lang=\"en-US\">와이드그립 풀업 / 친업/  렛풀다운/ 바벨로우</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">기구<span lang=\"en-US\"> - </span>아래로<span lang=\"en-US\"> </span>당기기</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">어깨</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">밀리터리<span lang=\"en-US\"> </span>프레스</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">사이드<span lang=\"en-US\"> </span>레터럴<span lang=\"en-US\"> </span>레이즈</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">프론트</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">레터럴레이즈</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:84;border:1px solid;font-size:10pt\">숄더<span lang=\"en-US\"> </span>프레스</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">숄더프레스</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">(<span lang=\"ko-KR\">덤벨</span> <span lang=\"ko-KR\">머리위로올리기</span>)</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.youtube.com/watch?v=wI_2Amaqt1Y\">https://www.youtube.com/watch?v=wI_2Amaqt1Y</a><span lang=\"en-US\"> </span>밀리터리<span lang=\"en-US\"> </span>프레스<span lang=\"en-US\">, </span>덤벨<span lang=\"en-US\"> </span>숄더프레스<span lang=\"en-US\">, </span>사이드<span lang=\"en-US\"> </span>레터럴레이즈<span lang=\"en-US\">, </span>기구<span lang=\"en-US\">, 업라이트 로우</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">서서하기 </p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">허리</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">로만체어<span lang=\"en-US\"> </span>백익스텐션</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">바벨<span lang=\"en-US\"> </span>굿모닝</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">허리기구</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">덤벨<span lang=\"en-US\"> </span><span lang=\"en-US\">허리로 들어올리기</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:84;border:1px solid;font-size:10pt\">로만체어<span lang=\"en-US\"> </span>백익스텐션</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">슈퍼맨<span lang=\"en-US\"> </span>등운동<span lang=\"en-US\">￼</span><span lang=\"en-US\">(</span>팔과<span lang=\"en-US\"> </span>다리<span lang=\"en-US\"> </span>교차<span lang=\"en-US\"> </span>들기<span lang=\"en-US\">)</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">구분</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span lang=\"en-US\">1<span lang=\"ko-KR\">주</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span lang=\"en-US\">2<span lang=\"ko-KR\">주</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span lang=\"en-US\">3<span lang=\"ko-KR\">주</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">임시</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">복근</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">윗몸일으키기</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">기구</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">레그레이즈</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">리버스크런치</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">기구<span lang=\"en-US\"> </span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">플랭크</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">가슴</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">버터플라이</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">기구</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">딥스</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">벤치프레스레스<span lang=\"en-US\">  기구 밀기</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">푸쉬업</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">등</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">기구<span lang=\"en-US\"> - </span>아래로<span lang=\"en-US\"> </span>당기기￼턱걸이</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">턱걸이<span lang=\"en-US\"> &amp; </span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://terms.naver.com/entry.nhn?docId=938911&amp;ref=y&amp;cid=51030&amp;categoryId=51030\">http://terms.naver.com/entry.nhn?docId=938911&amp;ref=y&amp;cid=51030&amp;categoryId=51030</a></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">기구<span lang=\"en-US\"> 당기기</span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://terms.naver.com/entry.nhn?docId=938909&amp;cid=51030&amp;categoryId=51030\">http://terms.naver.com/entry.nhn?docId=938909&amp;cid=51030&amp;categoryId=51030</a></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">어깨</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">숄더프레스</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">(<span lang=\"ko-KR\">덤벨</span> <span lang=\"ko-KR\">머리위로올리기</span>)</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">사이드<span lang=\"en-US\"> </span>레터럴<span lang=\"en-US\"> </span>레이즈</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">프론트</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">레터럴레이즈</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">허리</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">백익스텐션</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">로만체어</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">슈퍼맨<span lang=\"en-US\"> </span>등운동<span lang=\"en-US\">￼</span><span lang=\"en-US\">(</span>팔과<span lang=\"en-US\"> </span>다리<span lang=\"en-US\"> </span>교차<span lang=\"en-US\"> </span>들기<span lang=\"en-US\">)</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">덤벨<span lang=\"en-US\"> 하나 허리로 들어올리기</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">굿모닝</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://burnfit.io/blog/%EC%9D%BC%EC%A3%BC%EC%9D%BC-3%EC%9D%BC_3%EB%B6%84%ED%95%A0-%EC%9A%B4%EB%8F%99-%EC%99%84%EB%B2%BD-%EA%B0%80%EC%9D%B4%EB%93%9C/\">https://burnfit.io/blog/%EC%9D%BC%EC%A3%BC%EC%9D%BC-3%EC%9D%BC_3%EB%B6%84%ED%95%A0-%EC%9A%B4%EB%8F%99-%EC%99%84%EB%B2%BD-%EA%B0%80%EC%9D%B4%EB%93%9C/</a></p>\r\n\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\">하신다 해도 3분할이 가능합니다. 그냥 순서대로 하면 되니까요.</p>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">Day 1</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">메인: 하체</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">보조 : 복근, 코어</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">Day2</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">메인: 가슴</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">보조: 어깨, 삼두</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">Day3</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">메인: 등</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">보조: 이두</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">바벨 스쿼트</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">바벨 벤치프레스</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">루마니안 데드리프트</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">레그 프레스</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">인클라인 벤치 프레스</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">바벨 로우</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">레그 익스텐션</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">오버헤드 프레스</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">랫 풀 다운</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">레그 컬</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">덤벨 플라이</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">케이블 로우</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">카프레이즈</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">스컬 크러셔</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">바벨 컬</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">행잉 레그 레이즈</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">덤벨 레터럴 레이즈</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">해머 컬</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">플랭크</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard Light;font-size:10.5pt\">케이블 푸시다운</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t"
+  },
+  {
+    "type": "text",
+    "x": 720,
+    "y": 173,
+    "w": 600,
+    "content": "<a href=\"https://www.facebook.com/dietnote/videos/622286907974503/\">https://www.facebook.com/dietnote/videos/622286907974503/</a>\n연구결과 밝혀진</a>, 가장 효과적인 복근 운동 3가지!?"
+  },
+  {
+    "type": "text",
+    "x": 744,
+    "y": 269,
+    "w": 455,
+    "content": "가슴-등\n어깨-허리\n가슴 - 벤치/ 덤벨 풀오버</a>/ Press lockout</a>/ 팔굽혀펴기(삼각-코)\n등 - 바벨 풀오버/ 와이드그립 풀업 / 친업/  렛풀다운/ 바벨로우\n어깨- <a href=\"https://www.youtube.com/watch?v=wI_2Amaqt1Y\">https://www.youtube.com/watch?v=wI_2Amaqt1Y</a> 밀리터리 프레스, 덤벨 숄더프레스, 사이드 레터럴레이즈, 기구,\n허리- 덤벨 굿모닝/ <a href=\"https://www.youtube.com/watch?v=FyFvHLKokSc\">바벨</a> 굿모닝\n<a href=\"https://www.youtube.com/watch?v=VZPZZSLJ4fY\" style=\"font-weight:bold\">복근</a>- <a href=\"https://www.youtube.com/watch?v=hgB2xxlqU2I\" lang=\"en-US\">크런치</a>/ 로만 체어/ V-UP/  <a href=\"https://www.youtube.com/watch?v=vdJMItbm0WQ\" lang=\"en-US\">dragon flag</a>\n싯업, 레그레이즈, <a href=\"https://www.youtube.com/watch?v=Hp8rPGLHRWc\">Altermate leg raise</a>, <a href=\"https://www.youtube.com/watch?v=8zOu9nFiMmA\">Frog Kick</a>\n허리 트위스트 - 90회 4세트, 싯업 sit-up 트위스트 - 20회 4세트, 리닝&#160;트위스트 - 50회 4세트\n<a href=\"https://www.youtube.com/watch?v=0OlrC43wuvo\">클린 & 프레스</a>\n이두근 - 바벨컬\n비타민 C, 과립 레시틴 Lecithin, 벌 화분 bee pollen, 비타민 E, 로즈 힙 오일 rose hip oil (들장미 열매 오일), wheat germ oil (소맥 베아 오일.&#160;비타민 A,&#160;E가 풍부), Acerola — C 와 B-Folia 등을 섭취하였다.&#160;\n고농축 비타민 B5(판토텐산 pantothenic acid: 항체형성에 중요한 역할을 하고, 비타민의 활용을 돕고 지방, 탄수화물 및 단백질의 에너지 전환을 도움) 와 비타민 B6(피리독신 pyridoxine: 아미노산 대사와 단백질 합성에 관여), 아세틸콜린&#160;(acetylcholine),&#160;그리고 신속하게 에너지를 공급하는 18가지 아미노산과 같은 복합 B 비타민을 섭취하기 위해 인삼과 로얄 젤리를 자주 섭취하였다.&#160;"
+  },
+  {
+    "type": "text",
+    "x": 792,
+    "y": 908,
+    "w": 416,
+    "content": "<a href=\"http://ppss.kr/archives/61885\" style=\"font-family:Calibri;font-size:9pt;font-weight:bold\">http://ppss.kr/archives/61885</a> 데드리프트"
+  },
+  {
+    "type": "html",
+    "x": 792,
+    "y": 1004,
+    "w": 709,
+    "html": "\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">[</span><span lang=\"ko-KR\" style=\"font-weight:bold\">새학기</span><span style=\"font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-weight:bold\">맞이</span><span style=\"font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-weight:bold\">승찬님</span><span style=\"font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-weight:bold\">리노베이션</span><span style=\"font-weight:bold\"> Project]</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>본<span lang=\"en-US\"> P/G</span>의<span lang=\"en-US\"> </span>목적은<span lang=\"en-US\"> </span>김승찬님의<span lang=\"en-US\"> </span>근골격<span lang=\"en-US\"> </span>강화<span lang=\"en-US\"> </span>및<span lang=\"en-US\"> </span>심혈관계<span lang=\"en-US\"> </span>기능<span lang=\"en-US\"> </span>강화<span lang=\"en-US\"> </span>있습니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>운동<span lang=\"en-US\"> routine</span></p>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#deebf6;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"background-color:#deebf6;border:1px solid;font-size:10pt;text-align:center\">월</td>\r\n\t\t\t\t\t<td style=\"background-color:#deebf6;border:1px solid;font-size:10pt;text-align:center\">화</td>\r\n\t\t\t\t\t<td style=\"background-color:#deebf6;border:1px solid;font-size:10pt;text-align:center\">수</td>\r\n\t\t\t\t\t<td style=\"background-color:#deebf6;border:1px solid;font-size:10pt;text-align:center\">목</td>\r\n\t\t\t\t\t<td style=\"background-color:#deebf6;border:1px solid;font-size:10pt;text-align:center\">금</td>\r\n\t\t\t\t\t<td style=\"background-color:#deebf6;border:1px solid;font-size:10pt;text-align:center\">토</td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;border:1px solid;font-size:10pt;text-align:center\">일</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">유산소</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">러닝<span lang=\"en-US\"> 30</span>분</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">러닝<span lang=\"en-US\"> 30</span>분</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">러닝<span lang=\"en-US\"> 30</span>분</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">러닝<span lang=\"en-US\"> 30</span>분</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">러닝<span lang=\"en-US\"> 30</span>분</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">산책</td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">복근</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\">Sit-up</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">가슴</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">바벨<span lang=\"en-US\"> </span>풀오버</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">허리</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">로만체어<span lang=\"en-US\"> </span>백익스텐션</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">어깨</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">밀리터리<span lang=\"en-US\"> </span>프레스</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">등</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">바벨<span lang=\"en-US\"> </span>로우</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">하체</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\">스쿼트</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:Segoe UI Symbol\">▶</span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">*<span lang=\"ko-KR\">운동</span> <span lang=\"ko-KR\">강도</span> : <span lang=\"ko-KR\">한</span> Set<span lang=\"ko-KR\">에</span> 12~20<span lang=\"ko-KR\">회</span> <span lang=\"ko-KR\">정도</span> <span lang=\"ko-KR\">시행할</span> <span lang=\"ko-KR\">수</span> <span lang=\"ko-KR\">있을</span> <span lang=\"ko-KR\">정도의</span> <span lang=\"ko-KR\">무게로</span> <span lang=\"ko-KR\">시행하는</span> <span lang=\"ko-KR\">것이</span> <span lang=\"ko-KR\">좋습니다</span>. (<span lang=\"ko-KR\">복근의</span> <span lang=\"ko-KR\">경우</span> 30~60<span lang=\"ko-KR\">회</span>)</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">*<span lang=\"ko-KR\">서로</span> <span lang=\"ko-KR\">다른</span> <span lang=\"ko-KR\">가동부위를</span> <span lang=\"ko-KR\">가진</span> <span lang=\"ko-KR\">근육을</span> <span lang=\"ko-KR\">연속해서</span> <span lang=\"ko-KR\">단련하면</span> <span lang=\"ko-KR\">총</span> <span lang=\"ko-KR\">운동</span> <span lang=\"ko-KR\">시간을</span> <span lang=\"ko-KR\">효율적으로</span> <span lang=\"ko-KR\">운용할</span> <span lang=\"ko-KR\">수</span> <span lang=\"ko-KR\">있고</span>, <span lang=\"ko-KR\">고강도의</span> <span lang=\"ko-KR\">유산소</span> <span lang=\"ko-KR\">운동</span> <span lang=\"ko-KR\">효과도</span> <span lang=\"ko-KR\">거둘</span> <span lang=\"ko-KR\">수</span> <span lang=\"ko-KR\">있습니다</span>.</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">*<span lang=\"ko-KR\">허리</span>/<span lang=\"ko-KR\">복근</span>(<span lang=\"ko-KR\">척추</span> <span lang=\"ko-KR\">기립근</span>, <span lang=\"ko-KR\">복직근</span>)<span lang=\"ko-KR\">은</span> Core<span lang=\"ko-KR\">근육이고</span>, <span lang=\"ko-KR\">허벅지</span>/<span lang=\"ko-KR\">종아리</span>(<span lang=\"ko-KR\">햄스트링</span>,<span lang=\"ko-KR\">대퇴사두근</span>)<span lang=\"ko-KR\">는</span> <span lang=\"ko-KR\">제</span>2<span lang=\"ko-KR\">의</span> <span lang=\"ko-KR\">심장이라</span> <span lang=\"ko-KR\">불리울</span> <span lang=\"ko-KR\">정도로</span> <span lang=\"ko-KR\">심혈관계에</span> <span lang=\"ko-KR\">지대한</span> <span lang=\"ko-KR\">영향을</span> <span lang=\"ko-KR\">미치므로</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"> <span lang=\"ko-KR\">외모보다는</span> <span lang=\"ko-KR\">건강</span> <span lang=\"ko-KR\">측면에서</span> <span lang=\"ko-KR\">매일</span> <span lang=\"ko-KR\">단련해야</span> <span lang=\"ko-KR\">하는</span> <span lang=\"ko-KR\">가장</span> <span lang=\"ko-KR\">중요한</span> <span lang=\"ko-KR\">근육입니다</span>.(<span lang=\"ko-KR\">특히</span> <span lang=\"ko-KR\">복근은</span> <span lang=\"ko-KR\">회복속도가</span> <span lang=\"ko-KR\">빠르므로</span> <span lang=\"ko-KR\">매일</span> <span lang=\"ko-KR\">운동해도</span> <span lang=\"ko-KR\">됩니다</span>.)</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">※<span lang=\"en-US\"> </span>우리의<span lang=\"en-US\"> </span>몸은<span lang=\"en-US\"> &#39;</span>항상성<span lang=\"en-US\">&#39;</span>을<span lang=\"en-US\"> </span>유지하려는<span lang=\"en-US\"> </span>성격이<span lang=\"en-US\"> </span>있어서<span lang=\"en-US\">, </span>하나의<span lang=\"en-US\"> </span>운동<span lang=\"en-US\"> </span>루틴에<span lang=\"en-US\"> </span>쉽게<span lang=\"en-US\"> </span>적응합니다<span lang=\"en-US\">. </span>해서<span lang=\"en-US\"> 2~3</span>주에<span lang=\"en-US\"> 1</span>번씩<span lang=\"en-US\"> </span>운동루틴을<span lang=\"en-US\"> </span>바꿔주는<span lang=\"en-US\"> </span>것이<span lang=\"en-US\"> </span>근육<span lang=\"en-US\"> </span>생성에<span lang=\"en-US\"> </span>도움이<span lang=\"en-US\"> </span>됩니다<span lang=\"en-US\">. </span>아래의<span lang=\"en-US\"> </span>루틴을<span lang=\"en-US\"> </span>참고하시면<span lang=\"en-US\"> </span>되겠습니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#fbe5d5;border:1px solid;font-size:10pt;text-align:center\">구분</td>\r\n\t\t\t\t\t<td style=\"background-color:#fbe5d5;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\">1<span lang=\"ko-KR\">주</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#fbe5d5;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\">2<span lang=\"ko-KR\">주</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#fbe5d5;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\">3<span lang=\"ko-KR\">주</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#fbe5d5;border:1px solid;font-size:10pt;text-align:center\">기타</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-weight:bold\">복근</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span lang=\"en-US\">Sit-up twist</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">레그레이즈</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">리버스크런치</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span lang=\"en-US\">크런치/ V-UP/  dragon flag, <span lang=\"ko-KR\">레그레이즈</span>, <span lang=\"ko-KR\">Altermate leg raise</span>, <span lang=\"ko-KR\">Frog Kick</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-weight:bold\">허리</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">로만체어<span lang=\"en-US\"> </span>백익스텐션</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">바벨<span lang=\"en-US\"> </span>굿모닝</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">백익스텐션<span lang=\"en-US\"> </span>머신</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-weight:bold\">가슴</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">바벨<span lang=\"en-US\"> </span>풀오버</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">딥스</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">벤치프레스레스<span lang=\"en-US\">  기구 밀기</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">벤치<span lang=\"en-US\">/ </span>덤벨 풀오버<span lang=\"en-US\">/ </span>Press lockout<span lang=\"en-US\">/ </span>푸쉬업<span lang=\"en-US\">, </span>버터플라이</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-weight:bold\">어깨</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">밀리터리<span lang=\"en-US\"> </span>프레스</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">사이드<span lang=\"en-US\"> </span>레터럴<span lang=\"en-US\"> </span>레이즈</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">프론트<span lang=\"en-US\"> </span>레터럴레이즈</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">숄더<span lang=\"en-US\"> </span>프레스<span lang=\"en-US\">, </span>덤벨<span lang=\"en-US\"> </span>숄더프레스<span lang=\"en-US\">, </span>사이드<span lang=\"en-US\"> </span>레터럴레이즈<span lang=\"en-US\"> </span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-weight:bold\">등</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">바벨<span lang=\"en-US\"> </span>로우</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">턱걸이</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">렛풀<span lang=\"en-US\"> </span>다운</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">바벨<span lang=\"en-US\"> </span>풀오버<span lang=\"en-US\">, </span><span lang=\"en-US\">와이드그립 풀업</span><span lang=\"en-US\">,</span><span lang=\"en-US\"> 친업</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-weight:bold\">하체</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">스쿼트</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">와이드<span lang=\"en-US\"> </span>스쿼트</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">덤벨<span lang=\"en-US\"> </span>스쿼트</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t"
+  }
+];
+const CONTENT_HASH = 'c6f16e7e';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -133,33 +419,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>국내외 자료원</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">국내외 자료원</div>
+<div class="date">2013년 12월 23일 월요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-국내외-자료원';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 360,
+    "y": 19,
+    "w": 512,
+    "content": "<a href=\"https://brunch.co.kr/@futureagent/8\" style=\"font-size:9pt;font-weight:bold\">https://brunch.co.kr/@futureagent/8</a>"
+  },
+  {
+    "type": "text",
+    "x": 720,
+    "y": 19,
+    "w": 600,
+    "content": "[&#160;오픈서베이 마전팀 공용 계정&#160;]\n사이트&#160;:&#160;https://opensurvey.co.kr</a>\nID :&#160;jong0358@</a>sk.com\nPW : MJshared201("
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 589,
+    "content": "<a href=\"https://news.hada.io/topic?id=11481&utm_source=discord&utm_medium=bot&utm_campaign=280\" style=\"font-family:inherit;font-size:12pt;background-color:#313338;font-weight:bold\">언젠가 써먹는 심리효과 101</a> <a href=\"https://slashpage.com/haebom/psychology101\">https://slashpage.com/haebom/psychology101</a>\n유동인구 <a href=\"https://giraf.sktelecom.com/web/kostat/\">https://giraf.sktelecom.com/web/kostat/</a>\n[국내 사이트]\n&#160;\n1.&#160;국가통계포털&#160;&#160;(<a href=\"http://www.kosis.kr/\" lang=\"en-US\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.kosis.kr/</a>)\n- 통계청 및 각 시도청의 통계 자료 검색 용이, 모든 분야의 통계 자료를 보유\n&#160;\n2. 통계청 (<a href=\"http://www.nso.go.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.nso.go.kr/</a>)\n- 통계 안내, 통계 간행물, 통계 조사, 그래프로 본 한국, 통계 데이터베이스 등 제공.\n&#160;\n3. 산업연구원 산업통계 (<a href=\"http://www.istans.or.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.istans.or.kr/</a>)\n- 산업의 흐름을 한 눈에 파악할 수 있는 산업통계,등록된 콘텐츠 총 6,197건(2009년 4월)\n&#160;\n4. 특허청 (<a href=\"http://www.kipo.go.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.kipo.go.kr/</a>)\n- 지적 재산과 산업 재산권에 대한 통계 자료 제공\n&#160;\n&#160;\n5. 한국갤럽 (<a href=\"http://www.gallup.co.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.gallup.co.kr/</a>)\n- 조사 전문회사, 마케팅, 사회여론 등 조사 프로그램 안내, 조사 자료모음 제공\n&#160;\n&#160;\n6. 매경리서치&#160;(<a href=\"http://www.c-news.co.kr/\" lang=\"en-US\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.c-news.co.kr/</a>)\n- 각 업종별&#183;상품별 브랜드의 선호도&#183;인지도&#183;만족도 순위 자료 제공\n&#160;\n&#160;\n7. IT 통계 포털 사이트 (<a href=\"http://www.iti.or.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.iti.or.kr/</a>)\n- 한국 정보통신산업협회에서 만든 IT 관련 생산ㆍ수출입ㆍ인력 등 기초적인 통계에서 부터 세부적인관련자료까지 체계적으로 정리, 다양한 3차원 그래프를 곁들여 알기 쉽게 제공\n&#160;\n&#160;\n8. 한국 금융 연구원 (<a href=\"http://www.kif.re.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.kif.re.kr/</a>)\n- 한국 경제 지표와 금융에 관련된 통계 자료 제공\n&#160;\n&#160;\n9. 인터넷 통계 정보검색시스템 (<a href=\"http://isis.nida.or.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://isis.nida.or.kr/</a>)\n- 인터넷에 관련된 국내외 통계 자료 제공(무료)\n&#160;\n&#160;\n10. 인터넷 마케팅 통계 센터 (<a href=\"http://www.marketcast.co.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.marketcast.co.kr/</a>)\n- 인터넷 마케팅, 광고, 전자상거래, 인터넷 비즈니스에 관련된 통계 자료 제공\n&#160;\n&#160;\n11. 삼성 경제 연구소 소비자 실태조사 (<a href=\"http://www.seri.org/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.seri.org/</a>)\n- 경제 동향, 경제 통계, 소비자, 태도 조사 등 삼성 경제 연구소 연구 결과 자료\n&#160;\n&#160;\n12. i-biznet 인터넷 통계 (<a href=\"http://www.i-biznet.com/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.i-biznet.com/</a>)\n- 사용자수 통계, EC 통계, 광고 통계, 트래픽 통계, 사용자 특성 분석, 웹 브라우저, 웹 서버 통계\n&#160;\n&#160;\n13. 한국사회과학데이터센터 (<a href=\"http://www.ksdc.re.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.ksdc.re.kr/</a>)\n- 국내외 통계자료, 국내여론조사자료, 통계항목 검색서비스 제공\n&#160;\n14. 한국은행 경제통계시스템 (<a href=\"http://ecos.bok.or.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://ecos.bok.or.kr/</a>)\n- 통계검색, 증감률 계산, 생산자, 수출입물가지수 및 검색결과 다운로드 제공.\n&#160;\n15. 인구통계&#160;(<a href=\"http://www.census.gov/main/www/popclock.html\" lang=\"en-US\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.census.gov/main/www/popclock.html</a>)\n- 세계 인구 실시간 통계 수록.\n&#160;\n16. 노동통계정보시스템 (<a href=\"http://laborstat.molab.go.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://laborstat.molab.go.kr/</a>)\n- 노동통계소개, 보도분석자료, 임금구조 기본, 기업체노동비용 등 조사통계 자료 수록.\n&#160;\n17. 통계박사 (<a href=\"http://tongtong.tnaru.net/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://tongtong.tnaru.net/</a>)\n- 논문 통계 분석 전문업체, 학술연구, 통계상담, 통계교육 등 업무 안내.\n&#160;\n18. 국토해양통계통계누리 (<a href=\"http://stat.mltm.go.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://stat.mltm.go.kr/</a>)\n- 국토해양통계 제공 사이트, 국토, 해양, 주택, 교통, 항공 등 통계 자료 제공.\n&#160;\n19. 한국바송광고공사 광고통계시스템 (<a href=\"http://adstat.kobaco.co.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://adstat.kobaco.co.kr/</a>)\n- 정보시스템 소개, 사업체매출, 거래트래픽, MCR미디어 통계 등 서비스 안내.\n&#160;\n20. 한국관세무역개발원 무역통계서비스 (http://trass.kctdi.or.kr/</a>)\n- 한국관세무역개발원 운영, 무역통계, HS정보, 수출입통계, 수출입실적증명서 등 제공.\n&#160;\n21. 환경부 환경통계포털 (<a href=\"http://stat.me.go.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://stat.me.go.kr/</a>)\n- 환경부 환경통계 정보서비스, 분야별, 등록순위, 검색순위별 통계, OECD 환경지표 제공.\n&#160;\n22. 국가에너지통계종합정보시스템 (<a href=\"http://www.kesis.net/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.kesis.net/</a>)\n- 에너지 정보, 통계 포털 사이트, 해외에너지통계, 유관기관, 이용사례 등 수록.\n&#160;\n23. 신재생에너지통계정보시스템 (<a href=\"http://konesis.kemco.or.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://konesis.kemco.or.kr/</a>)\n- 사업소개, 신재생에너지 및 설비현황, 모니터링, 보급통계, 데이터분석 등 안내.\n&#160;\n24. 소재종합정보통합시스템 (<a href=\"http://www.matis.or.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.matis.or.kr/</a>)\n- 한국부품소재산업진흥원 운영 솔루션, 특허, 표준화, 통계, 연구개발정보 등 제공.\n&#160;\n25. 한국정보통계인포나라 (<a href=\"http://www.infonara.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.infonara.kr/</a>)\n- 입찰 정보 사이트, 용역, 구매 등 공공기관 입찰 정보 제공.\n&#160;\n26. 온실가스배출량 정보시스템 (<a href=\"http://geis.kemco.or.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://geis.kemco.or.kr/</a>)\n- 기후변화 협약, GEIS 소개, 배출량 계산, 통계분석, 해외배출량 가이드라인 안내.\n&#160;\n27. 관광통계-한국관광공사 (<a href=\"http://korean.visitkorea.or.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://korean.visitkorea.or.kr/</a>) , 관광지식정보시스템 (<a href=\"http://www.tour.go.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.tour.go.kr/</a>)\n- 월별, 국가별 통계자료 수록, 관광시장 정보, 관광법령 등 정보 제공.\n&#160;\n28. 중소기업통계 (<a href=\"http://stat.kfsb.or.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://stat.kfsb.or.kr/</a>)\n- 중소기업 기술통계 및 임금실태조사, 월별동향, 통계 법률, 용어 수록.\n&#160;\n29. 한국교육개발원 취업통계시스템 (<a href=\"http://swiss.kedi.re.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://swiss.kedi.re.kr/</a>)\n- 취업률 조사 전문기관, 업종별, 지역별 취업현황, 학과별 순위, 취업률 비교 안내.\n&#160;\n30. 통계지리정보 (<a href=\"http://kogis.nso.go.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://kogis.nso.go.kr/</a>)\n- 시, 도별 국토, 기후, 인구, 재정, 재해 등 통계지리정보 제공.\n&#160;\n31. 어업생산통계시스템 (<a href=\"http://fs.fips.go.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://fs.fips.go.kr/</a>)\n- 행정구역, 어법, 품종별 어업생산통계 자료 수록.\n&#160;\n32. 사업체기초통계조사 (<a href=\"http://www.nso.go.kr/eb/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.nso.go.kr/eb/</a>)\n- 통계청 사업체기초통계조사, 부서소개, 통계작성절차, 표준산업분류 검색 등 제공.\n&#160;\n33. 논문통계정보 (<a href=\"http://www.rsinfo.co.kr/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.rsinfo.co.kr/</a>)\n- 논문자료 제공업체, 통계 분석, 리서치, 영작, 번역, 논문 복사 등 서비스 안내.\n&#160;\n34. NTIS 과학기술 통계서비스 (<a href=\"http://sts.ntis.go.kr/index.jsp\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://sts.ntis.go.kr/index.jsp</a>)\n- R&D 관련 투자현형과 성과. 인력정보 등 과학기술과 관련한 각종자료 제공\n&#160;\n35. 해외진출정보 시스템 <a href=\"http://www.ois.go.kr/\" lang=\"ko-KR\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.ois.go.kr/</a>\n&#160;\n37. 해외시장 정보 <a href=\"http://www.globalwindow.org/wps/portal/gw2\" lang=\"ko-KR\" style=\"font-size:9pt;background-color:white\">http://www.globalwindow.org/wps/portal/gw2</a>\n&#160;\n38. 시장동향자료 판매대행 <a href=\"http://www.giikorea.co.kr/\" lang=\"ko-KR\" style=\"font-size:9pt;background-color:white\">http://www.giikorea.co.kr/</a>\n&#160;\n39. DMC 미디어 <a href=\"http://www.dmcmedia.co.kr/\" lang=\"ko-KR\" style=\"background-color:white\">http://www.dmcmedia.co.kr/</a>\n&#160;\n40. 제일기획 <a href=\"http://www.cheil.co.kr/\" lang=\"ko-KR\" style=\"background-color:white\">http://www.cheil.co.kr/</a>\n&#160;\n41. 닐슨 <a href=\"http://www.agbnielsen.co.kr/\" lang=\"ko-KR\" style=\"font-size:9pt;background-color:white\">http://www.agbnielsen.co.kr/</a>\n&#160;\n42. 나스미디어 <a href=\"http://www.nasmedia.co.kr/\" lang=\"ko-KR\" style=\"font-size:9pt;background-color:white\">http://www.nasmedia.co.kr/</a>\n&#160;\n43. 식품음료신문 http://www.thinkfood.co.kr/</a>\n&#160;\n44. AC 닐슨 <a href=\"http://kr.nielsen.com/site/index.shtml\" lang=\"ko-KR\" style=\"font-family:맑은 고딕;font-size:9pt;background-color:white\">http://kr.nielsen.com/site/index.shtml</a>\n&#160;\n45. 더바이어 http://www.withbuyer.com/news/main.asp</a>\n&#160;\n46. 트렌드 모니터 http://www.trendmonitor.co.kr/</a>\n&#160;\n\n정책브리빙 : 대한민국 정책 및 행정부 보고서 <a href=\"http://www.korea.kr/archive/mainList.do\" lang=\"en-US\">http</a>://www.korea.kr/archive/mainList.do\n각종 신문기사 검색(카인즈, <a href=\"http://www.kinds.or.kr/\" style=\"font-family:굴림;font-size:9pt\">www.kinds.or.kr</a>)\n&#160;\n[해외 사이트]\n&#160;\n1. Internet.com의 Cyberatlas (<a href=\"http://cyberatlas.internet.com/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://cyberatlas.internet.com/</a>)\n- 인터넷과 관련된 다양한 최신 통계를 뉴스 형태로 제공(무료)\n&#160;\n&#160;\n2. Forrester Research (<a href=\"http://www.forrester.com/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.forrester.com/</a>)\n- 인터넷 비즈니스에 대한 통계와 자체 분석 자료 제공(유료)\n&#160;\n&#160;\n3. Grunwald (<a href=\"http://www.grunwald.com/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.grunwald.com/</a>)\n- 인터넷과 컴퓨터에 대한 통계 자료 제공(무료)\n&#160;\n&#160;\n4. Jupiter Communications (<a href=\"http://www.jup.com/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.jup.com/</a>)\n- 인터넷 및 정보 기술에 대한 정보, 기업의 정보 활용 전략 제공(유료)\n&#160;\n&#160;\n5. Internet Society (<a href=\"http://www.isoc.org/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.isoc.org/</a>)\n- 인터넷과 관련된 각종 통계 정보 제공\n&#160;\n&#160;\n6. IDC (<a href=\"http://www.idc.com/\" style=\"font-family:dotum;font-size:9pt;background-color:white\">http://www.idc.com/</a>)\n- 인터넷과 IT에 관련된 통계와 분석 자료\n&#160;\n<a href=\"http://knp.adic.co.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">1. 한국 광고 단체 연합회 (http://knp.adic.co.kr</a>)&#160;\n&#160;인구 통계학적 특성, 인터넷 사용 일반, 인터넷 광고 접촉 실태, 인터넷 쇼핑몰 구매 행동 분석, 신규 여성 접속별 방식 PC방 사용자, 인터넷 사용자 유형 분류, 웹 사이트 만족도 및 재방문 의향 모형 등의 조사 결과를 매년 2회 3월과 9월에 발표하고 있습니다.\n&#160;\n<a href=\"http://www.nic.or.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">2. 한국 인터넷 정보 센터(http://www.nic.or.kr</a>)\nco.kr 도메인 등록 기관으로 더 잘 알려진 한국 인터넷 정보 센터 사이트에서는 인터넷에 관련된 국내외 통계 자료를 무료로 제공하고 있습니다.&#160;\n&#160;\n<a href=\"http://www.i-biznet.com/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">3. i-biznet 엔터넷 통계 (http://www.i-biznet.com</a>)&#160;\n&#160;사용자수 통계, EC 통계, 광고 통계, 트래픽 통계, 사용자 특성 분석, 웹 브라우저, 웹 서버 통계, 인터넷 통계 정보를 제공해 주는 사이트들, 인터넷 메트릭스 통계 등을 제공합니다. 국내외 통계 사이트들 자료를 보기 쉽게 정리해 주고, 통계 자료가 있는 곳도 안내해 주며 무료로 제공됩니다.\n아이뉴스 24 와 통합 로그인을 제공한다고 하는데 전 로그인이 안됩니다. 왜 이럴까요? 아시는 분 좀...\n&#160;\n<a href=\"http://webmania.co.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">4. 웹 매니아 뉴스 및 통계 (http://webmania.co.kr</a>)\n인터넷에 관련된 정보를 제공하는 사이트로 뉴스 메뉴의 통계 부분을 보면 기사화된 통계 자료를 무료로 제공합니다.\n&#160;\n<a href=\"http://www.planup.co.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">5. 기획거래소 플랜업(http://www.planup.co.kr</a>)&#160;\n&#160;기획서, 제안서, 보고서, 마케팅 전략 조사자료, 광고/홍보/브랜딩 계획서, 이벤트 설문 통계 자료 다운로드 서비스\n&#160;\n<a href=\"http://www.nso.go.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">6. 통계청(http://www.nso.go.kr</a>)\n한국 사회 전반에 걸친 통계 자료 조사 결가를 볼 수 있습니다.&#160;&#160;\n&#160;\n<a href=\"http://www.stat.go.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">7. STAT KOREA(http://www.stat.go.kr</a>)&#160;\n통계청 및 각 시도청의 통계 잘를 카테고리 분류와 검색 시스템을 이용하여 쉽게 찾을 수 있고 편리하게 볼 수 있도록 되어있습니다. 모든 분야의 통계 자료를 보유하고 있습니다.\n&#160;\n<a href=\"http://seriecon.seri21.org/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">8. 삼성 경제 연구소 소비자 실태조사(http://seriecon.seri21.org</a>)\n경제 동향, 경제 통계, 소비자, 태도 조사 등 삼성 경제 연구소 연구 결과를 보여줍니다. 무료이지만 회원제로 운영되고 있습니다.&#160;\n&#160;\n<a href=\"http://www.lgeri.com/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">9. LG 경제 연구원(http://www.lgeri.com</a>)\nLG경제 연구원 조사 자료를 볼 수 있습니다. 무료 회원제로 운영되고 있습니다.&#160;&#160;\n&#160;\n<a href=\"http://www.nuri21.co.kr/stat\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">10. 열린누리의 주제별 통계 자료(http://www.nuri21.co.kr/stat</a>)&#160;\n&#160;교육, 가정, 여성, 성, 대중문화, 종료, 정보 통신, 사회에 대한 각종 신문의 통계 자료가 있습니다.\n&#160;\n<a href=\"http://www.kif.re.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">11. 한국 금융 연구원(http://www.kif.re.kr</a>)\n한국 경제 지표와 금융에 관련된 통계 자료를 제공하고 있습니다.\n&#160;\n<a href=\"http://www.kipo.go.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">12. 특허청(http://www.kipo.go.kr</a>)&#160;\n&#160;지적 재산과 산업 재산권에 대한 통계 자료를 제공하고 있습니다.\n&#160;\n<a href=\"http://www.businesslogistics.co.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">13. 기업 물류 연구센서 (http://www.businesslogistics.co.kr</a>)\n국내 물류에 관한 통계 자료를 제공하고 있습니다.\n<a href=\"http://cyberatlas.internet.com/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">14. Internet.com의 Cyberatlas(http://cyberatlas.internet.com</a>)\n인터넷과 관련된 다양한 최신 통계를 뉴스 형태로 무료로 제공합니다.\n&#160;\n<a href=\"http://www.forrester.com/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">15. Forrester Research (http://www.forrester.com</a>)\n인터넷 비즈니스에 대한 통계와 자체 분석 자료를 제공하는 사이트로 유료로 제공합니다.&#160;\n다만 영어라는&#160;장벽도 존재합니다. 그리고&#160;쇼셜 미디어 자료도&#160;훌륭합니다.&#160;\n&#160;\n<a href=\"http://www.grunwald.com/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">16. Grunwald (http://www.grunwald.com</a>)\n인터넷과 컴퓨터에 대한 통계 자료를 무료로 제공합니다.&#160;\n&#160;\n<a href=\"http://www.jup.com/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">17. Jupiter Communications (http://www.jup.com</a>)\n인터넷 및 정보 기술에 대한 정보 및 기업의 정보 활용 전략을 유료로 제공합니다.&#160;\n&#160;\n<a href=\"http://www.statmarket.com/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">18. StatMarket (http://www.statmarket.com</a>)&#160;\n&#160;인터넷과 인터넷 기술에 대한 통계를 그래픽으로 제공합니다.\n&#160;\n<a href=\"http://www.isoc.org/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">19. Internet Society (http://www.isoc.org</a>)\n인터넷과 곤련딘 각종 통계 정보를 제공합니다.\n&#160;\n<a href=\"http://www.gvu.gatech.edu/user_surveys\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">20. GVU's WWW User Surveys(http://www.gvu.gatech.edu/user_surveys</a>)&#160;\n매년 4월과 10월에 인터넷 사용자에 관련된 조사를 실시하여 그 분석 자료를 제공하고 있습니다.&#160;\n&#160;\n<a href=\"http://www.idc.com/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">21. IDC (http://www.idc.com</a>)\n인터넷과 IT에 관련된 통계와 분석 자료를 제공합니다.\n&#160;\n<a href=\"http://www.nanet.go.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">22. 국회 도서관 (http://www.nanet.go.kr</a>)\n법률 관련 입법부 발간자료, 국회공보, 국정감사자료, 국내 학위논문 DB 소개, 소장자료 검색안내&#160;\n&#160;\n<a href=\"http://www.kinds.or.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">23. 종합뉴스 데이터베이스(http://www.kinds.or.kr</a>)&#160;\n&#160;한국언론재단 구축, 종합뉴스 데이터베이스, 최근 5년간 신문기사 검색, 뉴스 속보, TV뉴스, 시사 잡지 기사 검색 서비스&#160;\n&#160;\n<a href=\"http://www.gallup.co.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">24. 한국갤럽 (http://www.gallup.co.kr</a>)\n조사 전문회사, 마케팅, 사회여론 등 조사 프로그램 안내, 조사 자료모음 제공\n&#160;\n<a href=\"http://www.adic.co.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">25. 광고정보센터(http://www.adic.co.kr</a>)&#160;\n&#160;광고계 동향, 광고물 검색, 강좌, 관련법규, 실무 용어사전 등 광고관련정보 제공\n&#160;\n<a href=\"http://www.adchannel.co.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">26. 애드채널(http://www.adchannel.co.kr</a>)&#160;\n&#160;광고종합정보, 광고업체, 매체별, 요금, 광고 수상작품정보, 모니터링, 커뮤니티 운영\n&#160;\n<a href=\"http://www.marketcast.co.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">27. 인터넷 마케팅 통계 센터(http://www.marketcast.co.kr</a>)\n인터넷 마케팅, 광고, 전자상거래, 인터넷 비즈니스에 관련된 통계 자료를 무료로 제공합니다.\n&#160;\n<a href=\"http://www.brandreport.co.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">28. 브랜드리포트(http://www.brandreport.co.kr</a>)\n브랜드 전문 웹진, 관련 이슈 및 사례, 브랜딩 이론, 칼럼 수록)\n&#160;\n<a href=\"http://www.iti.or.kr/\" style=\"font-family:957317_9;font-size:9pt;background-color:white;font-weight:bold\">29. IT 통계 포털 사이트 (http://www.iti.or.kr</a>)\n한국 정보통신산업협회에서 만든 IT 관련 생산ㆍ수출입ㆍ인력 등 기초적인 통계에서 부터 세부적인관련자료까지 체계적으로 정리, 다양한 3차원 그래프를 곁들여 알기 쉽게 제공하고있다\n학술 자료원\n<a href=\"http://blog.naver.com/skcareers/150314813\">http://blog.naver.com/skcareers/150314813</a>\n경영경제연구소\n<a href=\"http://blog.naver.com/sjnacf?Redirect=Log&logNo=120146595450\">http://blog.naver.com/sjnacf?Redirect=Log&logNo=120146595450</a>\n1. 산업 동향: 국내 정책/해외 시장/업계별/트렌드까지!\n\n<a href=\"https://www.korea.kr/archive/expDocMainList.do\" style=\"font-family:Pretendard;font-size:14pt\">대한민국 정책브리핑</a>￼(국내 경제&#183;정책)최근 경제 동향, 경제지표, 월간 재정동향, 한국판 뉴딜정책 개요 등 경제&#183;정책 관련 세부사항들에 대한 정보\nKotra 해외시장뉴스</a>￼(해외 시장) 해외 국가별 주요 산업 동향, 국내 수출 동향, 상품 트렌드 등\n<a href=\"https://www.itfind.or.kr/main.do\" style=\"font-family:Pretendard;font-size:14pt\">IT FIND - IT 지식포털</a>￼(IT)업계 동향부터 뉴스까지. 가장 좋은 점 중 하나는 '동향정보 > 유관기관 스크랩' 탭에 들어가면 한국전자통신연구원, 대한무역투자진흥공사 등 연관 업계가 발행하는 주요 자료들을 함께 볼 수 있음\n<a href=\"https://www.adic.or.kr/index.waple\" style=\"font-family:Pretendard;font-size:14pt\">한국광고총연합회 - 광고정보센터</a>￼(문화)광고정보센터 탭으로 들어가면 마케팅학회 등에서 정리한 전문자료 뿐만 아니라 현재까지 발행된 크리에이티브 광고물(TV CF, 전단 등) 샘플 확인 가능\n<a href=\"https://www.kocca.kr/kocca/main.do?null\" style=\"font-family:Pretendard;font-size:14pt\">한국콘텐츠진흥원</a>￼(문화)게임, 드라마, 영화, 도서 등에 대한 국내 정책부터 해외시장 동향까지 문화 콘텐츠를 총망라한 자료들 확인 가능\n네이버 트렌드</a>￼(검색어 트렌드) 장점: 키워드별로 하위 검색어를 설정할 수 있고 기간, 성별, 연령까지 상세하게 나누어 찾아볼 수 있음. 구체적인 타깃에 대한 조사가 필요할 때 유용하게 사용 가능\n구글 트렌드</a>￼(검색어 트렌드)기간별 검색어 트렌드를 보여주되, 전 세계 지역별 관심도를 함께 제공해 해외 시장&#183;소비자에 대한 조사가 필요할 때 유의미한 자료를 찾을 수 있음\n\n&#128216; 사이트 출처 아티클:&#160;<a href=\"https://publy.co/content/5356?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><회사 막내로 살아남기: 자료조사 효율적으로 하는 법></a>\n\n카카오 트렌드</a>￼(검색어 트렌드) 2020년 런칭되었으며, 지역별로 트래픽 추이를 살펴보기 좋음\n\n&#128216; 사이트 출처 아티클:&#160;<a href=\"https://publy.co/content/6180?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><아무도 안 알려주는 시장조사 1시간 만에 끝내는 법></a>\n\n<a href=\"https://www.bigkinds.or.kr/\" style=\"font-family:Pretendard;font-size:14pt\">빅카인즈</a>￼(빅데이터 분석) 54개 언론사 기반의 뉴스 빅데이터 분석 서비스\n<a href=\"https://www.kita.net/\" style=\"font-family:Pretendard;font-size:14pt\">한국무역협회</a>￼(무역) 무역 관련 최신 동향 및 통계자료 사이트\n<a href=\"https://www.dmcreport.co.kr/\" style=\"font-family:Pretendard;font-size:14pt\">DMC리포트</a>￼(미디어) 국내외 디지털 미디어.광고.마케팅 관련 종합적 전문자료를 제공함. 연구보고서, 동향, 통계자료, 인포그래픽 등.\n<a href=\"https://www.crowdnet.or.kr/index.jsp\" style=\"font-family:Pretendard;font-size:14pt\">한국예탁결제원 크라우드넷</a>￼(크라우드 펀딩) 업체 수, 총 펀딩발행금액, 평균 조달금액, 투자자 연령&#183;성별 등 크라우드 펀딩 통계정보 제공\n<a href=\"http://korfin.kr/kr/\" style=\"font-family:Pretendard;font-size:14pt\">한국핀테크산업협회</a>￼(핀테크) 업계 동향, 핀테크 업체 리스트 및 기업소개, 이용금액, 이용 건수 등 핀테크 관련 자료 제공\n<a href=\"https://www.kfia.or.kr/kfia/main.php\" style=\"font-family:Pretendard;font-size:14pt\">한국식품산업협회</a>￼(식품산업) 식품산업 규모, 주요 식품기업, 종사자 등 식품 산업 관련 자료 제공\n<a href=\"http://www.ikfa.or.kr/\" style=\"font-family:Pretendard;font-size:14pt\">한국프랜차이즈산업협회</a>￼(프랜차이즈산업) 업계 동향, 해외 주요국 프랜차이즈 법률 정보, 관련 보고서 공유 등 프랜차이즈 산업 관련 자료 제공\n\n&#128216; 사이트 출처 아티클:&#160;\n<a href=\"https://publy.co/content/5268?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><대기업 11년차의 보고서 작성법: 구글링은 그만! 신뢰성 높은 자료 찾기></a>\n\n<a href=\"https://samsungsgr.com/sgr/\" style=\"font-family:Pretendard;font-size:14pt\">삼성경제연구소</a>￼(경제 전반) 국내외 주요 경제지표 및 연구자료, 경기 관련 지표 산업동향, 국제수지 통계자료, 주요 외국 경기 및 산업 생산 지표 제공\n<a href=\"https://www.lgbr.co.kr/index.do\" style=\"font-family:Pretendard;font-size:14pt\">LG경영연구원</a>￼(경제 전반) 국내외 주요 경제지표 및 연구자료, 경기 관련 지표 산업동향, 국제수지 통계자료, 주요 외국 경기 및 산업 생산 지표 제공\n\n2. 회사 동향: 경쟁사/고객사 완전정복!\n\n<a href=\"https://dart.fss.or.kr/\" style=\"font-family:Pretendard;font-size:14pt\">다트공시자료</a>￼(IR자료) 상장한 회사의 IR자료를 통해 사업계획, 수익 구조를 살펴볼 수 있음\n<a href=\"https://www.cretop.com/cm/CMCOM08R1.do\" style=\"font-family:Pretendard;font-size:14pt\">CRETOP</a>￼(비상장 기업) 비상장 기업 정보 파악 가능\nTHE VC</a>￼(기업정보) 스타트업뿐만 아니라 중견기업, 대기업 기업 정보 파악 가능. 카테고리 기능과 제품/서비스 형태, 비즈니스 형태의 필터를 잘 활용하면 시간을 아낄 수 있음\n<a href=\"https://www.innoforest.co.kr/\" style=\"font-family:Pretendard;font-size:14pt\">혁신의 숲</a>￼(기업정보) 기업규모, 매출액/영업이익, 주요 프로덕트 MAU/판매량, 평균 객단가, 주요 소비자층 파악 가능\n\n&#128216; 사이트 출처 아티클:&#160;<a href=\"https://publy.co/content/6988?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><의미없는 구글링은 그만! 진짜 도움 되는 경쟁사 조사 5단계></a>\n\n<a href=\"https://finance.naver.com/\" style=\"font-family:Pretendard;font-size:14pt\">네이버 증권</a>￼(기업 리포트) 리서치 탭: 산업 분석 및 경제 분석 리포트 파악 가능\n<a href=\"https://markets.hankyung.com/consensus\" style=\"font-family:Pretendard;font-size:14pt\">한경컨센서스</a>￼(기업 리포트) 특정 기업에 대한 재무 실적 전망, 재무 구조에 대한 시장 반응 등 자료가 필요할 때\n<a href=\"https://stock.mk.co.kr/\" style=\"font-family:Pretendard;font-size:14pt\">MK증권</a>￼(기업 리포트) 특정 기업에 대한 재무 실적 전망, 재무 구조에 대한 시장 반응 등 자료가 필요할 때\n<a href=\"https://www.bok.or.kr/portal/bbs/P0000559/list.do?menuNo=200690&searchWrd=%EA%B2%BD%EC%98%81%EB%B6%84%EC%84%9D&searchCnd=1&sdate=&edate=\" style=\"font-family:Pretendard;font-size:14pt\">한국은행 기업경영분석</a>￼(기업 지표) 매출액 증가율, 매출액 영업이익률, 부채비율 등 업종별 재무제표 관련 지표가 필요할 때\n<a href=\"https://kpmg.com/kr/ko/home.html\" style=\"font-family:Pretendard;font-size:14pt\">삼정 KPMG</a>￼(기업 전략) 경제, 경영, 산업 분석 및 기업 전략 자료가 필요할 때\n<a href=\"https://www.pwc.com/kr/ko.html\" style=\"font-family:Pretendard;font-size:14pt\">삼일 PWC</a>￼(기업 전략) 경제, 경영, 산업 분석 및 기업 전략 자료가 필요할 때\n\n&#128216; 사이트 출처 아티클:&#160;\n<a href=\"https://publy.co/content/5268?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><대기업 11년차의 보고서 작성법: 구글링은 그만! 신뢰성 높은 자료 찾기></a>\n3. 해외 동향: 해외 시장/해외 고객 완전 정복!\n\nKotra 해외시장뉴스</a>￼'국가&#183;지역정보' 카테고리를 클릭하면 원하는 국가의 전반적인 개황을 확인 가능\n<a href=\"https://www.oecd.org/about/members-and-partners/\" style=\"font-family:Pretendard;font-size:14pt\">OECD</a>￼(영문 사이트) 국가의 전반적인 경제 상황 등 수치 기반의 시각화된 데이터 자료를 제공\n<a href=\"https://www.ipsos.com/en-id\" style=\"font-family:Pretendard;font-size:14pt\">Ipsos</a>￼(영문 사이트) 대표적인 글로벌 마케팅 리서치 회사로 Ipsos가 무료 보고서를 가장 많이 제공함. 홈페이지에 게재되어 있는 보고서를 통해 기본적으로 특정 이슈에 대한 고객의 인식과 행동에 대한 데이터를 살펴볼 수 있음\n<a href=\"https://www.accenture.com/us-en\" style=\"font-family:Pretendard;font-size:14pt\">Accenture</a>￼(영문 사이트) 디지털, 기술, 경영 전략 등에 대한 컨설팅 서비스를 제공하는 회사. 기술과 디지털에 특화된 서비스를 제공하다 보니, 보고서 역시 기술적인 트렌드 및 혁신과 관련한 케이스 스터디에 특화\n<a href=\"https://www2.deloitte.com/id/en.html\" style=\"font-family:Pretendard;font-size:14pt\">Deloitte</a>￼(영문 사이트) 재무를 비롯한 다양한 컨설팅 서비스를 제공하기 때문에, 국가 전반의 상황과 트렌드를 한눈에 파악하기 좋은 사이트\n\n&#128216; 사이트 출처 아티클:&#160;<a href=\"https://publy.co/content/6480?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><출장 못 가는 요즘, 1시간 만에 해외 동향 조사하는 법></a>\n\n<a href=\"https://www.pwc.com/\" style=\"font-family:Pretendard;font-size:14pt\">PWC</a>￼(영문 사이트) 글로벌 회계 및 컨설팅 업체로, 각 주제 및 분야별 트렌드에 대한 보고서를 주기적으로 업데이트\n\n&#128216; 사이트 출처 아티클:&#160;\n<a href=\"https://publy.co/content/7047?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><무작정 검색은 그만! 뇌피셜을 오피셜로 만드는 자료 조사 방법(feat. 자료 사이트)></a>\n\n<a href=\"https://www.consumerreports.org/\" style=\"font-family:Pretendard;font-size:14pt\">Consumer Reports</a>￼(영문 사이트) 뉴스에서 매일 인용되는 그 조사기관. 소비자 조사에 있어서 세계 최고의 권위를 갖는 기관으로, 각 상품에 대한 상세 리뷰 및 비교분석을 제공\n\n4. '정확한' 자료가 최우선 조건일 때: 정부 기관 사이트\n\n<a href=\"https://mdis.kostat.go.kr/index.do\" style=\"font-family:Pretendard;font-size:14pt\">통계청 MDIS</a>￼국가승인통계는 통계청의 엄격한 데이터 수집 기준을 충족하며 국내 최고 수준의 신뢰성을 인정받는 데이터. 가장 정확하고 가장 방대한 데이터를 제공\n<a href=\"https://www.data.go.kr/\" style=\"font-family:Pretendard;font-size:14pt\">공공데이터 포털</a>￼한국지능정보사회진흥원(NIA) 또한 매우 권위 있는 국가 기관. 엑셀로 구성된 데이터뿐만 아니라 JSON, Open API 등 보다 다양한 데이터를 제공\n<a href=\"https://www.kdi.re.kr/\" style=\"font-family:Pretendard;font-size:14pt\">한국개발연구원 KDI</a>￼(경제) 한국개발연구원에서는 각종 경제 분야에 대한 연구 보고서를 발간하고 있음. 거시, 금융, 규제, 노동 등 경제 관련 분야에 대한 보고서를 지속적으로 발간\n<a href=\"https://www.prism.go.kr/homepage/\" style=\"font-family:Pretendard;font-size:14pt\">정책연구관리시스템 PRISM</a>￼(정책) 여러 국가기관의 정책연구를 종합적으로 관리하는 시스템. 각종 중앙정부 부처와 지자체에서 수행한 성과평가, 타당성, 컨설팅 등에 대한 보고서가 있음.\n<a href=\"https://nkis.re.kr/main.do\" style=\"font-family:Pretendard;font-size:14pt\">국가정책연구포털</a>￼(사회 이슈) 사회 이슈에 관해 각 연구소에서 발행한 정책 연구 보고서를 찾아볼 수 있음. 특정 이슈에 대한 정제된 연구자료를 찾아보고 싶으시다면 참고.\n<a href=\"https://sg.sbiz.or.kr/godo/index.sg\" style=\"font-family:Pretendard;font-size:14pt\">소상공인 상권분석 시스템</a>￼(상권) 소상공인 업종별로 각 지역의 상권에 대한 종합 분석을 제공. 업종을 선택한 후 희망하는 지역을 선택하면 해당 지역의 유동 인구, 예상 매출액 등의 데이터를 확인할 수 있음.\n<a href=\"http://kosis.kr/\" style=\"font-family:Pretendard;font-size:14pt\">KOSIS 국가통계포털</a>￼통계청의 다양한 통계 자료를 엑셀로 다운 가능\n\n&#128216; 사이트 출처 아티클:&#160;\n<a href=\"https://publy.co/content/7047?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><무작정 검색은 그만! 뇌피셜을 오피셜로 만드는 자료 조사 방법(feat. 자료 사이트)></a>\n5. 마케팅 조사 회사의 전문 보고서를 내 근거 자료로!\n\n<a href=\"https://www.consumerinsight.co.kr/voc_list_search.aspx\" style=\"font-family:Pretendard;font-size:14pt\">컨슈머 인사이트</a>￼한국의 '컨슈머리포트'를 표방하는 조사회사로, 소비 전반에 대해 국내에서 가장 많은 기획조사 데이터를 수집하고 있음\n<a href=\"https://www.gallup.co.kr/gallupdb/main.asp\" style=\"font-family:Pretendard;font-size:14pt\">한국갤럽조사연구소</a>￼여론 조사 전문 회사\n<a href=\"https://blog.opensurvey.co.kr/\" style=\"font-family:Pretendard;font-size:14pt\">오픈서베이</a>￼젊은 조사회사답게, 뷰티, 홈트, 팬덤, 음원 등 트렌디한 분야에 대한 기획조사 보고서를 제공\n<a href=\"https://kantar.co.kr/index.php?module=Board&action=SiteBoard&sMode=SELECT_FORM&iBrdNo=3\" style=\"font-family:Pretendard;font-size:14pt\">칸타코리아</a>￼미디어, 광고, 이커머스 등에 대한 기획조사 보고서를 제공. 글로벌 기업답게, 해외 소비자에 대한 보고서도 종종 볼 수 있음.\nTrendwatching.com</a>￼세계 최대 트렌드 파악&#183;분석 업체\n\n&#128216; 사이트 출처 아티클:&#160;\n<a href=\"https://publy.co/content/7047?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><무작정 검색은 그만! 뇌피셜을 오피셜로 만드는 자료 조사 방법(feat. 자료 사이트)></a>\n6. 학술적 논문 자료가 필요하다면\n\n<a href=\"https://scholar.google.co.kr/schhp?hl=ko\" style=\"font-family:Pretendard;font-size:14pt\">구글 스칼라</a>\n<a href=\"https://academic.naver.com/\" style=\"font-family:Pretendard;font-size:14pt\">네이버 아카데믹</a>\n\n&#128216; 사이트 출처 아티클:&#160;\n<a href=\"https://publy.co/content/5268?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><대기업 11년차의 보고서 작성법: 구글링은 그만! 신뢰성 높은 자료 찾기></a>\n\n<a href=\"https://www.nanet.go.kr/main.do\" style=\"font-family:Pretendard;font-size:14pt\">전자국회도서관</a>￼국내학술지, 학위논문검색, 발간자료, 추천DB를 볼 수 있음. 1억 6천만 면이 넘는 방대한 국내 및 해외의 정보원을 온라인상에서 이용할 수 있는 데이터베이스\n\n7. '최신 트렌드'를 찾고 있다면: 뉴스레터\n\n<a href=\"https://uppity.co.kr/\" style=\"font-family:Pretendard;font-size:14pt\">어피티</a>￼(경제)지금 가장 이슈가 되고 있는 경제 정책과 상황을 빠르게 접하고 이해할 수 있음\n<a href=\"https://www.newneek.co/\" style=\"font-family:Pretendard;font-size:14pt\">뉴닉</a>￼(뉴스 전반) 업계 동향 자료를 읽어도 단어가 너무 어려워 이해가 하나도 안 될 때 유용. 용어에 대한 설명부터 차근차근 단계별로 설명해주기 때문에 전반적인 업계 동향에 익숙해지는 데 도움\n<a href=\"https://magazine.contenta.co/\" style=\"font-family:Pretendard;font-size:14pt\">콘텐타</a>￼(마케팅)실무에서 뛰고 있는 작가들이 직접 콘텐츠를 쓰는 플랫폼. 정보의 생생함이 강점.\n<a href=\"https://page.stibee.com/subscriptions/51479\" style=\"font-family:Pretendard;font-size:14pt\">어거스트</a>￼(미디어) 미디어 시장에서 화두가 되고 있는 주요 뉴스들을 소개\n<a href=\"https://facebook.us17.list-manage.com/subscribe?u=ce3b621bb97c5c8e57fb3028b&id=c951053d96\" style=\"font-family:Pretendard;font-size:14pt\">안전가옥</a>￼(문화) 미디어&#183;문화 전반의 주요 이슈에 대한 뉴스를 요약해 줌. 특히, 요즘 대두되고 있는 웹소설&#183;웹드라마 또는 주요 문화 행사들에 대한 정보도 얻을 수 있음\n<a href=\"http://glance.media/\" style=\"font-family:Pretendard;font-size:14pt\">스타트업 위클리</a>￼(스타트업) 스타트업에서 일하거나, 스타트업을 대상으로 조사할 때 필수적인 뉴스레터. 업계 동향부터 실무진들의 인터뷰 기사까지 한눈에 살펴볼 수 있다는 게 장점\n<a href=\"https://www.careet.net/\" style=\"font-family:Pretendard;font-size:14pt\">캐릿</a>￼(Z세대) 요즘 MZ세대들 사이에서 유행하는 줄임말부터 가장 핫하게 떠오르고 있는 게 무엇인지 파악할 수 있음\n\n&#128216; 사이트 출처 아티클:&#160;<a href=\"https://publy.co/content/5356?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><회사 막내로 살아남기: 자료조사 효율적으로 하는 법></a>\n\n<a href=\"https://weeklyd.stibee.com/\" style=\"font-family:Pretendard;font-size:14pt\">weekly D</a>(디자인)\n<a href=\"http://smallbrander.kr/31\" style=\"font-family:Pretendard;font-size:14pt\">스몰브랜더</a>(스몰 브랜드)\n<a href=\"https://www.openads.co.kr/home\" style=\"font-family:Pretendard;font-size:14pt\">오픈애즈</a>(마케팅 큐레이션)\n<a href=\"https://maily.so/tipster\" style=\"font-family:Pretendard;font-size:14pt\">팁스터</a>(프로덕트)\n<a href=\"https://page.stibee.com/subscriptions/50103\" style=\"font-family:Pretendard;font-size:14pt\">프로젝트썸원(</a>콘텐츠, 아이디어, 영감 큐레이션/아티클)\n\n8. '많은 레퍼런스'를 찾고 있다면\n\nFacebook ads Library</a>￼(경쟁사 SNS 광고) 경쟁사의 페이스북&#183;인스타그램 광고를 한눈에 모아 볼 수 있음\n<a href=\"https://tvcf.co.kr/\" style=\"font-family:Pretendard;font-size:14pt\">TVCF</a>￼(경쟁사 TV 광고 현황)\n\n&#128216; 사이트 출처 아티클:&#160;<a href=\"https://publy.co/content/6988?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><의미없는 구글링은 그만! 진짜 도움 되는 경쟁사 조사 5단계></a>\n\nAds of the World</a>￼(영문 사이트) 해외 다양한 광고 레퍼런스 참고 가능\n\n9. '소비자 반응'이 궁금하다면\n\n<a href=\"https://labs.mediance.co.kr/influence/main\" style=\"font-family:Pretendard;font-size:14pt\">해시태그LAB</a>￼(정량적 소비자 반응) (해시태그 분석) 최근 1년간의 월간 태그 분석 / 해당 해시태그를 포함하는 인기 게시물의 평균 반응과 유형 분석 / 연관 태그 트리를 통한 관련 키워드 확인\n네이버 VIEW탭￼(정성적 소비자 반응) *해당 키워드 검색 후 VIEW탭 확인, 자세한 자료 조사법은 아래 아티클을 확인해주세요!\n\n&#128216; 사이트 출처 아티클:&#160;<a href=\"https://publy.co/content/6675?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><출근길 멍때리지 말고! 30분컷 소비자 조사하기></a>\n10. '날 것'의 소비자 반응이 궁금하다면: 커뮤니티\n\n<a href=\"http://www.ppomppu.co.kr/\" style=\"font-family:Pretendard;font-size:14pt\">뽐뿌</a>(IT, 쇼핑)\n<a href=\"https://bbs.ruliweb.com/\" style=\"font-family:Pretendard;font-size:14pt\">루리웹</a>(IT, 게임)\n<a href=\"http://www.gasengi.com/\" style=\"font-family:Pretendard;font-size:14pt\">가생이닷컴</a>(스포츠, 해외 반응)\n<a href=\"http://mlbpark.donga.com/mp/\" style=\"font-family:Pretendard;font-size:14pt\">MLB파크</a>(야구)\n<a href=\"https://gall.dcinside.com/\" style=\"font-family:Pretendard;font-size:14pt\">디시인사이드 갤러리</a>(문화 전반)\n<a href=\"https://extmovie.com/\" style=\"font-family:Pretendard;font-size:14pt\">익스트림무비</a>(영화)\n<a href=\"https://www.bobaedream.co.kr/\" style=\"font-family:Pretendard;font-size:14pt\">보배드림</a>(자동차)\n<a href=\"http://www.slrclub.com/\" style=\"font-family:Pretendard;font-size:14pt\">SLR클럽</a>(카메라, 사진)\n\n&#128216; 사이트 출처 아티클:&#160;<a href=\"https://publy.co/content/5356?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><회사 막내로 살아남기: 자료조사 효율적으로 하는 법></a>\n11. 보고서를 더 빛내줄 '디자인' 사이트\n\n<a href=\"https://www.miricanvas.com/ko\" style=\"font-family:Pretendard;font-size:14pt\">미리캔버스</a>￼(카드뉴스) 저작권 문제없이 사용 가능한 이미지가 많음.\n<a href=\"https://www.mangoboard.net/\" style=\"font-family:Pretendard;font-size:14pt\">망고보드</a>￼(인포그래픽) 인포그래픽에 특화된 플랫폼. 템플릿 카테고리에서 각각 확인 가능하며 활용 가능한 도표&#183;그래프가 가장 많이 정리되어 있음. 단, 저작권의 보호가 걸린 이미지들이 꽤 있어서 워터마크로 출처를 표기해야 하는 경우가 있으니 유의 필요\n<a href=\"https://www.canva.com/ko_kr/\" style=\"font-family:Pretendard;font-size:14pt\">칸바</a>￼(A4문서) 다양한 A4 문서 템플릿과 함께 필요할 경우 돈을 지불하면 인쇄물로 만들어 주는 서비스까지 함께 제공\n<a href=\"https://noonnu.cc/\" style=\"font-family:Pretendard;font-size:14pt\">눈누</a>￼한글 폰트 무료 다운로드 사이트\n<a href=\"https://pixabay.com/ko/\" style=\"font-family:Pretendard;font-size:14pt\">픽사베이</a>￼이미지 무료 다운로드 사이트\n<a href=\"https://morguefile.com/\" style=\"font-family:Pretendard;font-size:14pt\">모그파일</a>￼다운로드한 이미지를 편집할 수 있다는 점에서 유용함. 대부분의 사이트가 원본 그대로를 유지해야 한다면 모그파일은 조금 더 자유롭게 이용할 수 있음.\n<a href=\"https://picjumbo.com/\" style=\"font-family:Pretendard;font-size:14pt\">픽점보</a>￼아카이브 형태의 이미지 다수. 블로그나 특정 SNS 게시용으로 활용할만한 실용적 이미지가 특징\n\n&#128216; 사이트 출처 아티클:&#160;<a href=\"https://publy.co/content/5411?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><회사 막내로 살아남기: 퇴근을 앞당겨주는 소소한 PPT&#183;포토샵 팁></a>\n\n<a href=\"https://unsplash.com/ko\" style=\"font-family:Pretendard;font-size:14pt\">언스플래쉬</a>￼10일마다 10장씩 이미지를 올려주는 사이트. 다운로드 가능\n<a href=\"https://www.pinterest.co.kr/\" style=\"font-family:Pretendard;font-size:14pt\">핀터레스트</a>￼원하는 키워드로 국내외 다양한 디자인 레퍼런스 파악 가능\n<a href=\"https://notefolio.net/\" style=\"font-family:Pretendard;font-size:14pt\">노트폴리오</a>￼디자인/영상/모션그래픽 등 디자인 특화 레퍼런스 파악 가능. 관련 분야 아티클, 클래스, 커뮤니티 보유\n<a href=\"https://www.behance.net/\" style=\"font-family:Pretendard;font-size:14pt\">비핸스</a>￼어도비 프로그램을 통해 만든 작품을 포트폴리오 형태로 보여주는 사이트\n<a href=\"https://dribbble.com/\" style=\"font-family:Pretendard;font-size:14pt\">드리블</a>￼(해외 사이트) 작품 공유, 커뮤니티, 채용이 주된 목적.\n<a href=\"https://www.dafont.com/\" style=\"font-family:Pretendard;font-size:14pt\">Dafont</a>￼영문 폰트 무료 다운로드 사이트\n<a href=\"https://www.freepik.com/\" style=\"font-family:Pretendard;font-size:14pt\">프리픽</a>￼이미지 무료 다운로드 사이트\n<a href=\"https://www.iconfinder.com/\" style=\"font-family:Pretendard;font-size:14pt\">아이콘파인더</a>￼일러스트 스타일의 아이콘 이미지\n<a href=\"https://www.resizepixel.com/ko\" style=\"font-family:Pretendard;font-size:14pt\">라이즈픽셀</a>￼이미지 변환/압축/크기조정/자르기/좌우반전/회전을 아주 간단하게 할 수 있는 사이트\n\n12. 회사에 신청해서 사용하면 좋은 '유료' 통계 사이트\n&#160;\n(온라인 지표) 사이트&#183;앱별 이용자 수, 이용 시간, 페이지뷰 등을 조회\n\n<a href=\"https://www.nielsenkorea.co.kr/\" style=\"font-family:Pretendard;font-size:14pt\">닐슨코리아</a>\n<a href=\"http://www.koreanclick.com/\" style=\"font-family:Pretendard;font-size:14pt\">코리안클릭</a>\n\n(앱 지표) 특정 앱의 마켓별 매출액, 카테고리 내 순위, 다운로드 수 등을 조회\n\n<a href=\"https://www.data.ai/kr/\" style=\"font-family:Pretendard;font-size:14pt\">앱애니</a>\n<a href=\"https://www.mobileindex.com/home\" style=\"font-family:Pretendard;font-size:14pt\">모바일인덱스</a>\n\n(산업 규모, GDP 등 국가&#183;산업 거시 지표) 국내 이커머스(e-commerce) 거래액, 호텔 산업 매출, 미국 인구 등 특정 산업의 나라별 지표를 조회\n\n<a href=\"https://www.statista.com/\" style=\"font-family:Pretendard;font-size:14pt\">스태티스타</a>\n<a href=\"https://www.bloomberg.com/asia\" style=\"font-family:Pretendard;font-size:14pt\">블룸버그</a>\n<a href=\"https://www.reuters.com/\" style=\"font-family:Pretendard;font-size:14pt\">로이터</a>\n\n&#128216; 사이트 출처 아티클:&#160;\n<a href=\"https://publy.co/content/5268?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\"><대기업 11년차의 보고서 작성법: 구글링은 그만! 신뢰성 높은 자료 찾기></a>\n13. 더 보고서를 잘 쓰고 싶다면\n\n<a href=\"http://publy.co/?fr=chapter-text\" style=\"font-family:Pretendard;font-size:14pt\">&#128526;퍼블리&#128526;</a>￼일잘러 기획자들의 보고서/기획서 작성법, 자료조사법 등 업무 스킬 노하우 확인 가능\n출처: <<a href=\"https://publy.co/content/7168?s=sklk84\">https://publy.co/content/7168?s=sklk84</a>>"
+  },
+  {
+    "type": "text",
+    "x": 768,
+    "y": 163,
+    "w": 443,
+    "content": "논문 검색 싸이허브\nhttps://dymaxionkim.github.io/beautiful-jekyll/2017-09-24-sci-hub/</a>"
+  },
+  {
+    "type": "text",
+    "x": 768,
+    "y": 247,
+    "w": 443,
+    "content": "[STEP 3] 뇌피셜을 오피셜로 바꿔줄 데이터 수집\n1. 공공기관 데이터\n수많은 공공기관이 인구, 소비, 경제, 산업 등 모든 분야에 대한 데이터를 수집하고 분석하고 있습니다. 그 데이터를 무료로 공개하기까지 하죠. 우리나라 최고 권위의 데이터와 함께, 내 상품에 대한 근거 논리를 구성해보세요.\n&#160;\n1)&#160;<a href=\"https://mdis.kostat.go.kr/\" style=\"font-family:Pretendard;font-size:14pt;font-weight:bold\">통계청 MDIS</a>"
+  },
+  {
+    "type": "text",
+    "x": 768,
+    "y": 459,
+    "w": 443,
+    "content": "출처: <<a href=\"https://publy.co/content/7047?fr=chapter-text\">https://publy.co/content/7047?fr=chapter-text</a>>"
+  }
+];
+const CONTENT_HASH = '693cfc0e';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

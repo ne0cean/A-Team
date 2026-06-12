@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>유용한 어플</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">유용한 어플</div>
+<div class="date">2014년 10월 23일 목요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-유용한-어플';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 65,
+    "y": 139,
+    "w": 600,
+    "content": "01 Beat 비트 <a href=\"https://itunes.apple.com/kr/app/beat-biteu-mulyo-ladio-sosyeol/id853073541?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.beatpacking.beat\">안드로이드</a> 무료 최신 가요/팝송 무료 감상, 라디오 무료 감상, 좋아하는 곡을 믹스로 제작 및 감상\n02 City Maps 2Go iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.ulmon.android.citymaps2go\">안드로이드</a> 무료 해외여행에서 유용한 길찾기 앱, 오프라인 지도여서 데이터 요금 걱정 Free\n03 이밥차 <a href=\"https://itunes.apple.com/kr/app/ibabcha-yoli-lesipi-2000won/id767231129?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.mezzo.dayfood\">안드로이드</a> 무료 한글 레시피 앱의 최고봉이라는 평가, 레시피(요리법)를 사진과 글로 자세히 소개\n04 Duolingo <a href=\"https://itunes.apple.com/kr/app/duolingo-learn-languages-for/id570060128?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.duolingo\">안드로이드</a> 무료 스페인어, 독일어, 프랑스어 등을 배울 수 있는 어학앱, 구글 플레이 스토어 2013 베스트 앱\n05 스마트택배 <a href=\"https://itunes.apple.com/kr/app/seumateutaegbae-taegbaejohoe/id523045854?mt=8\" style=\"font-weight:bold\">iOS</a>/안드로이드</a> 무료 택배조회, 배송추적, 배송위치 바뀔 때마다 알림 기능\n06 야후 날씨 <a href=\"https://itunes.apple.com/kr/app/yahu-nalssi/id628677149?mt=8\">iOS</a>/안드로이드</a> 무료 현재 날씨 상태와 일치하는 사진과 날씨 표시, 2013 애플 디자인 어워드 수상(우승)\n07 CamCard Free <a href=\"https://itunes.apple.com/kr/app/camcard-free-myeonghamseukaeneo/id364514190?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.intsig.BCRLite\">안드로이드</a> 명함 인식 스캔 후 보관, 명함 교환 및 공유 기능, 다른 기기 동기화 지원\n08 서울버스 3 <a href=\"https://itunes.apple.com/kr/app/seoul-bus-3-sudogwonbeoseu/id340701877?mt=8\">iOS</a>/안드로이드</a> 무료 수도권 버스 실시간 정보, 버스정류소에 버스가 몇분 후 도착하는지 표시, 주변 정류소 찾기\n09 지하철 <a href=\"https://itunes.apple.com/kr/app/jihacheol-daeswibodeu-gineungchuga/id325924444?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.imagedrome.jihachul\">안드로이드</a> 무료 서울 및 광역시 지하철 노선도 보기, 환승정보, 열차 시간표, 알람 기능, 가까운 역 찾기\n10 Runtastic Road Bike GPS <a href=\"https://itunes.apple.com/kr/app/runtastic-road-bike-gps-cycling/id467567868?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.runtastic.android.roadbike.lite\">안드로이드</a> 무료 자전거를 취미로 타는 사람부터 선수까지 활용할 수 있는 다양한 기능\n11 알람몬 <a href=\"https://itunes.apple.com/kr/app/allammon-achim-eul-kkaeuneun/id529141346?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.malangstudio.alarmmon\">안드로이드</a> 무료 잠을 깨지 않고는 견딜 수 없는 강력하고 귀여운 알람소리, 빠른 알람으로 손쉬운 알람 설정\n12 배달의 민족 <a href=\"https://itunes.apple.com/kr/app/baedal-uiminjog-pilsueopeul/id378084485?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.sampleapp\">안드로이드</a> 무료 배달 음식 주문 및 결제, 주변 배달음식점 및 메뉴 확인, 이용 후기, 배달 앱 점유율 1위\n13 Google 번역 <a href=\"https://itunes.apple.com/kr/app/google-beon-yeog/id414706506?mt=8\">iOS</a>/안드로이드</a> 무료 폰에 대고 한글로 말하면 외국어로 번역해서 보여주고 들려줌, 놀라운 수준의 인공지능\n14 남자의 옷장 <a href=\"https://itunes.apple.com/kr/app/namjaui-osjang-ad-namja-paesyeon/id765375638?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.zaverome.free.fashion\">안드로이드</a> 무료 남자 패션 아이템 기본 지식, 옷 잘 입는 법 등 옷 입는 노하우 소개\n15 피키캐스트 <a href=\"https://itunes.apple.com/kr/app/pikikaeseuteu/id794383890?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=sixclk.newpiki\">안드로이드</a> 무료 재미있는 콘텐츠 소개, 페이스북 인기글 5개 매일 소개, 오늘의 핫이슈, 킬링타임에 적합\n16 이음 <a href=\"https://itunes.apple.com/kr/app/ieum-guggadaepyo-sogaeting/id463416244?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=net.ium.mobile.android\">안드로이드</a> 무료 소개팅, 소셜 데이팅 앱, 매일 정해진 시간에 소개팅 상대 알려줌, 국내 최다 회원 보유\n17 한컴오피스 뷰어 <a href=\"https://itunes.apple.com/kr/app/hankeom-opiseu-byueo/id369832061?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=kr.co.hancom.hancomviewer.androidmarket\">안드로이드</a> 무료 아이폰에서 한글(.hwp) 파일을 볼 수 있도록 도와주는 앱\n18 Snapseed <a href=\"https://itunes.apple.com/kr/app/snapseed/id439438619?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.niksoftware.snapseed&hl=ko\">안드로이드</a> 무료 구글이 인수한 사진 촬영 및 보정 앱, 사용자들로부터 최고의 보정 앱으로 평가받고 있음\n19 자격증 <a href=\"https://itunes.apple.com/us/app/jagyeogjeung/id882313725?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.luckyleeis.certificationstudy\">안드로이드</a> 무료 컴퓨터활용능력, 미용사, 등 각종 자격증 기출문제, 모의고사, 모의고사 성적확인\n20 전국 스마트 버스 <a href=\"https://itunes.apple.com/kr/app/jeongug-seumateu-beoseu/id884947832?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=teamdoppelganger.smarterbus\">안드로이드</a> 무료 수도권 뿐 아니라 지방 버스 정류장의 버스 도착 정보 제공\n21 Puffin Web Browser Free <a href=\"https://itunes.apple.com/kr/app/puffin-web-browser-free/id472937654?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.cloudmosa.puffinFree\">안드로이드</a> 무료 인터넷 카페 및 온라인 커뮤니티의 플래시 동영상을 볼 수 있는 앱\n22 TED <a href=\"https://itunes.apple.com/kr/app/ted/id376183339?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.ted.android\">안드로이드</a> 무료 세계적인 명사들이 나와 다양한 주제에 관해 강연, 한글 자막이 지원되는 영상도 다수\n23 Umano <a href=\"https://itunes.apple.com/kr/app/umano-listen-to-news-articles/id564125545?mt=8\">iOS</a>/안드로이드</a> 무료 뉴스 기사를 앵커가 직접 읽어줘 영어 듣기/말하기 공부에 효과적, 속도 조절, 관심사 선택 기능\n24 에버노트 <a href=\"https://itunes.apple.com/kr/app/evernote/id281796108?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.evernote\">안드로이드</a> 무료 PC, 맥, 모바일 기기 등 모든 기기에서 문서 편집 및 동기화, 최고의 메모앱이라는 평가\n25 Twitch <a href=\"https://itunes.apple.com/kr/app/twitch/id460177396?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=tv.twitch.android.viewer\">안드로이드</a> 무료 콘솔 게임, 컴퓨터 게임 등 전세계 게이머들의 게임방송 실시간 감상\n26 Virtual Trainer Bodyweight iOS</a>/안드로이드</a> 무료 운동법 동영상 제공, 단계별 운동 순서, 타이머, 운동 프로그램 제작\n27 캔디카메라 <a href=\"https://itunes.apple.com/kr/app/kaendikamela/id881267423?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.joeware.android.gpulumera\">안드로이드</a> 무료 실시간 필터, 스와이프로 필터 변경, 무음 촬영, 볼륨키로 사진 찍기\n28 굿닥 <a href=\"https://itunes.apple.com/kr/app/ulidongnebyeong-won-byeong/id517637141?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.ksncho.hospitalinfo\">안드로이드</a> 무료 주변 병원 찾기, 진료시간 보기, 내과/피부과/치과/안과 등 유형별 병원 찾기\n29 리디북스 <a href=\"https://itunes.apple.com/kr/app/lidibugseu-ebook-ridibooks/id338813698?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.initialcoms.ridi\">안드로이드</a> 무료 무료책이 가장 많은 책보기 앱, 책의 종류도 가장 많은 것으로 알려짐\n30 Vingle <a href=\"https://itunes.apple.com/kr/app/vingle-bing-geul/id637534820?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.vingle.android\">안드로이드</a> 무료 유익한 정보와 볼거리가 넘치는 관심사 기반 소셜네트워크서비스\n31 SoundCloud <a href=\"https://itunes.apple.com/us/app/soundcloud-music-audio-discover/id336353151?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.soundcloud.android\">안드로이드</a> 무료 최신 음악/오디오/장르별 음악/오디오북/뉴스 듣기가 모두 무료, 영어공부에도 효과적\n32 Runkeeper <a href=\"https://itunes.apple.com/us/app/runkeeper-gps-running-walk/id300235330?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.fitnesskeeper.runkeeper.pro\">안드로이드</a> 무료 자전거, 달리기, 걷기 운동량 측정 GPS 앱, 한국어 지원\n33 Wear <a href=\"https://itunes.apple.com/kr/app/fashion-lookbook-wear/id725208930?l=en&mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.starttoday.android.wear\">안드로이드</a> 무료 전세계의 패션 코디를 엿볼수 있음, 마음에 드는 코디/아이템 저장 가능\n34 서울대중교통 <a href=\"https://itunes.apple.com/kr/app/seouldaejung-gyotong/id553159448?mt=8\">iOS</a>/안드로이드</a> 무료 마을버스 정류장별 도착시간 보기 가능, 마을버스 이용자의 필수앱\n35 EndlessTV iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.endlesstv\">안드로이드</a> 무료 무료로 뉴스, 스포츠 등 동영상을 볼 수 있음, 영어공부용으로 좋음\n36 김기사 <a href=\"https://itunes.apple.com/kr/app/gugminnaebi-gimgisa-2.0/id417698849?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.locnall.KimGiSa\">안드로이드</a> 무료 자동차 내비, 초기다운로드 없는 클라우드 지도, 바이크 모드/블랙박스 등 다양한 기능 제공\n37 오늘의 임신 정보 베이비센터 <a href=\"https://itunes.apple.com/kr/app/oneul-ui-imsin-jeongbo-beibisenteo/id386022579?mt=8\">iOS</a>/안드로이드</a> 무료 출산예정일 입력하면 필요한 정보를 알려줌, 출산 예정일 계산기 제공\n38 해외안전여행 <a href=\"https://itunes.apple.com/kr/app/haeoeanjeon-yeohaeng/id515893493?mt=8\">iOS</a>/안드로이드</a> 무료 해외에서 도난/분실/교통사고 등 사고 당했을 때 대응요령 안내, 상황별 비상연락처 연결\n39 네이버 글로벌회화 <a href=\"https://itunes.apple.com/kr/app/neibeo-geullobeolhoehwa-naver/id489378283?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.nhn.android.phrasebook\">안드로이드</a> 무료 주요 여행 국가 15개국 상황별 생활회화, 한글로 읽는 법을 표시해줘 유용\n40 Tango <a href=\"https://itunes.apple.com/kr/app/tango-mesinjeo-yeongsang-mich/id372513032?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.sgiggle.production\">안드로이드</a> 무료 안드로이드폰-아이폰 이용자끼리 영상통화를 할 수 있음, 요금 폭탄 피하려면 WIFI에서 사용할 것\n41 Airbnb <a href=\"https://itunes.apple.com/kr/app/airbnb/id401626263?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.airbnb.android\">안드로이드</a> 무료 해외 현지인과 여행자를 연결해 주는 숙소 예약 앱, 집주인이 올린 사진 및 이용자 후기 열람 가능\n42 스마트환율 <a href=\"https://itunes.apple.com/kr/app/id895371266\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.keb.android.KEBSmartFXRate\">안드로이드</a> 무료 환율 조회, 환율 계산기, 사이버 환전 가능, 해외여행자를 위한 필수앱\n43 뭐야이번호 <a href=\"https://itunes.apple.com/kr/app/mwoyaibeonho/id893162472?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.andr.evine.who\">안드로이드</a> 무료 모르는 전화 번호 검색, 스팸전화 확인, 대출/보험/카드 등 받기 싫은 번호를 알 수 있음\n44 비트윈 <a href=\"https://itunes.apple.com/kr/app/gugmin-keopeul-aeb-biteuwin/id458035189?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=kr.co.vcnc.android.couple\">안드로이드</a> 무료 커플(연인)을 위한 앱, 채팅, 상대방 날씨 보기, 공동 캘린더, 잠금기능 등 제공\n45 데일리호텔 <a href=\"https://itunes.apple.com/kr/app/deillihotel-dang-hotel-yeyag/id742186886?l=en&mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.twoheart.dailyhotel\">안드로이드</a> 무료 오늘 남아있는 객실을 최저가로 예약하는 당일 호텔 예약 앱, 호텔 땡처리 개념\n46 Vsco cam <a href=\"https://itunes.apple.com/kr/app/vsco-cam/id588013838?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.vsco.cam\">안드로이드</a> 무료 고급스럽고 심플한 디자인과 다양한 필터로 꾸준한 인기를 끌고 있는 카메라 앱\n47 망고플레이트 <a href=\"https://itunes.apple.com/kr/app/mang-gopeulleiteu-pilsu-masjib/id628509224?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.mangoplate\">안드로이드</a> 무료 맛집 검색 앱, 주변 맛집 및 맛집 이용 후기를 볼 수 있음\n48 핑퐁 <a href=\"https://itunes.apple.com/kr/app/pingpong-pingpong-spot-networking/id734147693?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=kr.co.waterbear.pingpong\">안드로이드</a> 무료 로그인 없이 같은 장소에 있는 사람들과 즉석으로 퀴즈 진행, 강의, 회의, 세미나에서 활용\n49 Feedly <a href=\"https://itunes.apple.com/kr/app/feedly-blogs-news-magazine/id396069556?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.devhd.feedly\">안드로이드</a> 무료 웹사이트, 블로그의 글을 자동으로 받아볼 수 있음. 가장 우수한 RSS 리더 앱이라는 평가\n50 대한민국 구석구석 <a href=\"https://itunes.apple.com/kr/app/daehanmingug-guseogguseog/id417340980?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.visitkorea.kr\">안드로이드</a> 무료 현재 위치를 바탕으로 주변 관광지/식당/숙박/축제 등 관광정보를 보여줌\n51 New 교보도서관 <a href=\"https://itunes.apple.com/kr/app/new-gyobo-doseogwan/id561870437?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.kyobo.ebook.b2b.phone.type3\">안드로이드</a> 무료 관공서/기업/대학의 전자도서관 정보를 입력하고 대출하면 책을 무료로 볼 수 있음\n52 Any.do <a href=\"https://itunes.apple.com/kr/app/any.do-task-to-do-list/id497328576?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.anydo\">안드로이드</a> 무료 일정관리 앱, PC와 모바일 기기간 실시간 동기화로 효율적인 일정관리 가능\n53 온오프믹스 <a href=\"https://itunes.apple.com/kr/app/on-opeumigseu-mobail/id382820767?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.onoffmix.m\">안드로이드</a> 무료 세미나/컨퍼런스/스터디 모임 등 비즈니스 행사 소식, 참여 가능, 직장인 자기개발에 도움\n54 Word Lens <a href=\"https://itunes.apple.com/kr/app/word-lens/id383463868?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.questvisual.wordlens.demo\">안드로이드</a> 무료 카메라가 열리면서 렌즈에 보이는 텍스트를 영어로 번역해줌, 한글은 지원하지 않음\n55 인천공항가이드 iOS/<a href=\"https://play.google.com/store/apps/details?id=com.ubivelox.icairport\">안드로이드</a> 무료 인천공항의 운항정보, 이용시설, 쇼핑매장 정보를 보여주는 인천공항 안내원\n56 전국버스 <a href=\"https://itunes.apple.com/kr/app/jeongugbeoseu/id417608082?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=net.hyeongkyu.android.incheonBus\">안드로이드</a> 무료 국내 29개 지역 시내 버스 운행정보, 실시간 도착 정보 조회/버스 위치 조회 기능\n57 Allthecooks iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.mufumbo.android.recipe.search\">안드로이드</a> 무료 15만개가 넘는 레시피 무료 제공, 양식 레시피 데이터베이스, 한글 미지원\n58 StyleShare <a href=\"https://itunes.apple.com/kr/app/styleshare-fashion-beauty/id458165974?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.styleshare.android\">안드로이드</a> 무료 세계 각국에서 업데이트 되는 패션 사진을 감상할 수 있음, 내 스타일 공유\n59 TripAdvisor iOS</a>/안드로이드</a> 무료 해외여행지 주변 관광명소/맛집/숙소 검색, 1.5억건이 넘는 이용자 리뷰는 백미(白眉)\n60 Google Maps <a href=\"https://itunes.apple.com/kr/app/google-maps/id585027354?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.google.android.apps.maps\">안드로이드</a> 무료 운전/자전거/도보 이동을 위한 음성 안내 GPS 기능, 실시간 교통상황 정보 제공\n61 헬로베이비 <a href=\"https://itunes.apple.com/kr/app/hellobeibi-uliaga-sajin-bumonim/id903296008?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.outplaylab.hellobabee\">안드로이드</a> 무료 가족끼리 아기 사진을 공유하는 앱, 그룹을 만들어 가족끼리 사진과 동영상 공유\n62 Fancy <a href=\"https://itunes.apple.com/kr/app/fancy/id407324335?mt=8\">iOS</a>/안드로이드</a> 무료 예쁜 아이템/제품 디자인 구경, 즉시 구입도 가능, 2012년 구글 베스트 앱 선정\n63 눔 다이어트 <a href=\"https://itunes.apple.com/kr/app/num-daieoteu-noom-diet/id634598719?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.wsl.noom\">안드로이드</a> 무료 식사기록 알림 기능, 식습관 개선, 날씬하고 건강한 몸매를 위한 다이어트 코치\n64 상식브런치 <a href=\"https://itunes.apple.com/kr/app/sangsigbeuleonchi-maeil-eobdeiteu/id867986214?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.gunpodo.brunch\">안드로이드</a> 무료 오늘의 이슈/시사용어/상식퀴즈로 매일 시사상식을 익힐 수 있음, 상식시험 준비에 유용\n65 왓챠 <a href=\"https://itunes.apple.com/kr/app/watcha-personalized-movie/id644185507?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.frograms.watcha\">안드로이드</a> 무료 취향에 맞는 영화 추천, 주변 극장 시간표, TV와 폰으로 볼 수 있는 무료 영화 정보 제공\n66 기차여행 <a href=\"https://itunes.apple.com/kr/app/gichayeohaeng-naeillo-yeohaeng/id452970188?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.wehomesoft.railronew\">안드로이드</a> 무료 내일로 여행 정보, 전국철도 노선지도, 기차시간 조회, 내일로 초보팁 제공\n67 에브리온TV <a href=\"https://itunes.apple.com/kr/app/ebeuliontv/id467564273?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.everyontv\">안드로이드</a> 무료 케이블 TV 방송 무료 시청, CNN 채널도 볼 수 있어 영어공부에도 유용\n68 포크 <a href=\"https://itunes.apple.com/kr/app/pokeu-kog-jjig-eojuneun-masjib/id895348925?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.appetizercorp.fork\">안드로이드</a> 무료 주변 맛집 정보, 방문기록 분석해 맛집 랭킹 제공, TV 맛집 소개\n69 TuneIn Radio iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=tunein.player\">안드로이드</a> 무료 KBS라디오, MBC라디오 및 전세계 라디오 채널 무한 감상, 외국어 공부에도 좋음\n70 여기어때 <a href=\"https://itunes.apple.com/kr/app/yeogieottae-motelhal-in-man/id884043462?mt=8\">iOS</a>/안드로이드</a> 무료 주변 모텔 추천/검색, 객실사진/이용요금/이용시간 안내, 이용후기 제공\n71 AnTuTu 벤치마크 <a href=\"https://itunes.apple.com/kr/app/antutu-benchmark/id803837129?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.antutu.ABenchMark\">안드로이드</a> 무료 스마트폰 및 태블릿PC 성능테스트, 1억명 이상 사용, 테스트결과가 뉴스기사가 됨\n72 중고나라 <a href=\"https://itunes.apple.com/kr/app/jung-gonala-gongsig-eopeullikeisyeon/id896515652?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.elz.secondhandstore\">안드로이드</a> 무료 네이버 카페 중고나라 공식 앱, 중고상품 판매/구매, 사기방지센터로 직거래 사기 예방\n73 Google 드라이브 <a href=\"https://itunes.apple.com/kr/app/google-drive-free-online-storage/id507874739?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.google.android.apps.docs\">안드로이드</a> 무료 자료저장/문서편집 앱의 끝판왕, 기기 간 작업문서 동기화, 실시간 공동작업 가능\n74 캔고루 <a href=\"https://itunes.apple.com/kr/app/daehanmingug-jeonsihoe-baglamhoe/id649328104?l=en&mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=zeta.FairHiPass\">안드로이드</a> 무료 전시회 무료 입장권/할인 입장권, 전시회 정보 푸시 알림 기능 등 문화생활에 도움\n75 3Shift <a href=\"https://itunes.apple.com/kr/app/3shift/id874810097?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.hololog.shift\">안드로이드</a> 무료 교대근무자를 위한 일정관리 앱, 공무원/간호사/병원-마트직원의 교대근무 일정 관리에 효과적\n76 밴드 <a href=\"https://itunes.apple.com/kr/app/baendeu-moim-i-swiwojinda!/id542613198?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.nhn.android.band&hl=ko\">안드로이드</a> 무료 초대받은 사람들끼리 그룹으로 활동하는 모임 앱, 투표/캘린더/채팅/사진첩/할일/정산 기능\n77 Digital Concert Hall <a href=\"https://itunes.apple.com/kr/app/digital-concert-hall/id554616591?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.novoda.dch\">안드로이드</a> 무료 베를린 필하모닉의 공연 동영상 무료/유료 감상, 클래식 음악 마니아를 위한 앱\n78 Pocket <a href=\"https://itunes.apple.com/kr/app/pocket-save-articles-videos/id309601447?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.ideashower.readitlater.pro\">안드로이드</a> 무료 인터넷에서 나중에 보고 싶은 글을 저장해두면 컴퓨터와 모바일 기기에서 볼 수 있음\n79 1Password <a href=\"https://itunes.apple.com/kr/app/1password-password-manager/id568903335?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.agilebits.onepassword\">안드로이드</a> 무료 유료일 때도 찬사를 받은 비밀번호 관리 앱, 17.99$을 호가하던 유료앱이 무료로 풀림\n80 Moves <a href=\"https://itunes.apple.com/kr/app/moves/id509204969?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.protogeo.moves\">안드로이드</a> 무료 만능 만보계, 걷기/달리기/자전거타기등 운동유형을 자동으로 파악, 매일 저장해서 보여줌\n81 Wunderlist <a href=\"https://itunes.apple.com/kr/app/wunderlist-to-do-list-tasks/id406644151?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.wunderkinder.wunderlistandroid\">안드로이드</a> 무료 유료결제 없이 할일 관리하기에 좋은 일정관리 앱, 심플하고 직관적인 디자인도 훌륭\n82 텔레그램 <a href=\"https://itunes.apple.com/kr/app/telegram-messenger/id686449807?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=org.telegram.messenger\">안드로이드</a> 무료 메시지가 암호로 전송돼 보안이 철저한 메신저, 검경의 카카오톡 메시지 검열로 인기 급부상\n83 Knots 3D <a href=\"https://itunes.apple.com/kr/app/knots-3d/id453571750?mt=8\">iOS</a>/<a href=\"https://play.google.com/store/apps/details?id=com.nynix.knots3d\">안드로이드</a> 0.99$ 캠핑/등산/화재 및 구조 등 상황별 매듭 맺는 법을 알려주는 앱, 터치로 묶어볼 수 있음\n84 iMovie <a href=\"https://itunes.apple.com/kr/app/imovie/id377298193?mt=8\">iOS</a> 무료 애플에서 만든 동영상 편집 앱, 전문적인 지식이 없는 초보자도 손쉽게 근사한 동영상을 만들 수 있음\n85 RoadMovies <a href=\"https://itunes.apple.com/kr/app/roadmovies/id575022047?mt=8\">iOS</a> 무료 동영상 촬영 및 편집, 효과음까지 넣으면 CF 같은 동영상 제작 가능\n86 Hyperlapse from Instagram <a href=\"https://itunes.apple.com/kr/app/hyperlapse-from-instagram/id740146917?mt=8\">iOS</a> 무료 인스타그램에서 만든 동영상 촬영 앱, 정상 속도 보다 빨리돌려 보여주는 기능\n87 iTunes U <a href=\"https://itunes.apple.com/kr/app/itunes-u/id490217893?mt=8\">iOS</a> 무료 세계적 명문 대학 강의, 기타 교육기관에서 제공하는 다양한 분야의 강의 무료 시청\n88 육아 달인 icareroom <a href=\"https://itunes.apple.com/kr/app/yug-dal-in-icareroom-free/id497175388?mt=8\">iOS</a> 무료 수유 기록/분유 먹은 기록 등 육아기록, 키/몸무게 등 성장기록, 육아일기 등 육아 도우미\n89 위플 가계부 <a href=\"https://itunes.apple.com/kr/app/wipeul-gagyebu-mulyo/id467936485?mt=8\">iOS</a> 무료 무료 가계부 앱 중 최고라는 평가, 신용카드-체크카드 분류 등 세분화된 기능\n90 Hopstop iOS</a> 무료 해외 대중교통 환승 정보, 애플이 지도서비스 강화를 위해 인수하면서 안드로이드 앱은 내림\n91 Adobe Kuler <a href=\"https://itunes.apple.com/kr/app/adobe-kuler/id632313714?mt=8\">iOS</a> 무료 카메라에 보이는 사물의 색상을 자동으로 인식/표시함, 색상 찾기 및 조합 기능\n92 키친스토리 <a href=\"https://itunes.apple.com/kr/app/kitchen-stories-cookbook-video/id771068291?mt=8\">iOS</a> 무료 요리법 제공, 양식 요리 만들 때 이용하면 유용, 동영상 레시피 제공, 디자인이 예쁘고 직관적\n93 Codecademy <a href=\"https://itunes.apple.com/kr/app/id762950096\">iOS</a> 무료 실시간 코딩 배우기, HTML/CSS & 자바스크립트, PHP, 루비, Phyton 등 프로그래밍 언어 학습\n94 어썸노트 <a href=\"https://itunes.apple.com/kr/app/eosseomnoteu-iljeong-gwanli/id320203391?mt=8\">iOS</a> 3.99$ 한국인 개발자가 만든 한국인 정서에 맞는 다이어리형 일정관리 앱, 동기화 기능은 보완 필요\n95 AV플레이어 <a href=\"https://itunes.apple.com/kr/app/avplayer-mu-inkoding-sogdojojeol/id395680819?mt=8\">iOS</a> 2.99$ 영화/드라마 등 동영상 파일 별도 인코딩 없이 재생, USB 전송 기능, 재생속도 조절, 비밀폴더 기능\n96 굿슬립 <a href=\"https://itunes.apple.com/kr/app/gus-seullib-jayang-gangjang/id603484762?mt=8\">iOS</a> 0.99$ 숙면 도우미, 불면증/수면장애에 효과적, 미국 의사들 추천, 낮잠/밤잠 등 모드 전환 가능\n97 Cortex Camera <a href=\"https://itunes.apple.com/kr/app/cortex-camera/id517488939?mt=8\">iOS</a> 2.99$ 어두운 실내/야경에서도 깨끗한 결과물을 보여주는 카메라 앱, 손떨림에 취약한 점은 불편\n98 PowerGuard <a href=\"https://itunes.apple.com/kr/app/powerguard-pilsugineung-ol/id712104067?mt=8\">iOS</a> 0.99$ 아이폰 메모리 정리, 리퍼 기간 확인, 배터리 과도 충전시 알람, CPU/메모리/디스크 실시간 모니터링\n99 kWallet <a href=\"https://itunes.apple.com/kr/app/kwallet-boankadeu-sin-yongkadeu/id352882281?mt=8\">iOS</a> 0.99$ 보안카드, 신용카드, 멤버십카드, 신분증, 인터넷 로그인 정보, 주민등록증, 면허증, 여권 등 보관 및 열람\n100 스카이 가이드 <a href=\"https://itunes.apple.com/kr/app/seukai-gaideu-byeol-jido/id576588894?mt=8\">iOS</a> 1.99$ 하늘을 향해 기기를 들고 있으면 자동으로 별자리를 찾아줌, Apple Design Award 수상\n원본 위치 <<a href=\"http://bloggertip.com/4323\">http://bloggertip.com/4323</a>>"
+  }
+];
+const CONTENT_HASH = '7a1c9a4b';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>안녕하십니까.</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">안녕하십니까.</div>
+<div class="date">2015년 9월 30일 수요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-안녕하십니까-';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "html",
+    "x": 48,
+    "y": 139,
+    "w": 720,
+    "html": "\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt\"><span style=\"font-family:맑은 고딕;font-size:11pt;color:black\">안녕하십니까</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black\">.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt\"><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">T-Valley R&amp;C 강화를 위해</span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">아래와 같이 사내공모를 시행하오니</span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black\"> 관련 역량 및 경험을 보유한 구성원의 참여 부탁드립니다</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black\">. </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt\"><span style=\"font-family:맑은 고딕;font-size:12pt;color:black;font-weight:bold\">1. 공모 분야</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt\"><span style=\"font-family:Wingdings 2;font-size:12pt;color:black\">?</span><span style=\"font-family:Times New Roman;font-size:7pt;color:black\"> </span><span style=\"font-family:맑은 고딕;font-size:12pt;color:black;font-weight:bold\">T-Valley(총 6명)</span></p>\r\n\t\t\t<br />\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#d9d9d9;border:1px solid;font-size:10pt;margin-bottom:10pt;text-align:center\"><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold\">분야</span></td>\r\n\t\t\t\t\t<td style=\"background-color:#d9d9d9;border:1px solid;font-size:10pt;margin-bottom:10pt;text-align:center\"><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold\">규모</span></td>\r\n\t\t\t\t\t<td style=\"background-color:#d9d9d9;border:1px solid;font-size:10pt;margin-bottom:10pt;text-align:center\"><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold\">수행 직무 개요</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt;text-align:center\"><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">신규 서비스기획</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;font-weight:bold\">/</span><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">운영</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt;text-align:center\"><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">(남성/여성 Beauty)</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">2명</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" style=\"font-size:10pt;margin-top:3pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white;font-weight:bold\">- 신규 뷰티 서비스 기획, 마케팅, 운영</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:3pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white;font-weight:bold\">- 신규 뷰티 중개 서비스 파트너 마케팅 담당</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white;font-weight:bold\">- 뷰티 컨텐츠 및 커뮤니티 기획/운영</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">신규 서비스기획</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;font-weight:bold\">/</span><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">운영</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;font-weight:bold\">(O2O</span><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">중고</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;font-weight:bold\">/</span><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">신용거래</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;font-weight:bold\">)</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">2명</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" style=\"font-size:10pt;margin-top:3pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white;font-weight:bold\">- O2O 중고/신용거래 영역 신규 서비스 기획, 마케팅, 운영</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:3pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white;font-weight:bold\">- O2O 중고/신용거래 Operation 분석 및 고도화</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white;font-weight:bold\">- O2O 중고/신용거래 컨텐츠 및 커뮤니티 기획/운영</span> </p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt;text-align:center\"><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">Segment기반 </span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt;text-align:center\"><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">New BM 추진</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">2명</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" style=\"font-size:10pt;margin-top:3pt\"><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">- Micro-Seg. 기반 New Biz Item 발굴</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;font-weight:bold\">- 고객 Targeting 및 현장 중심의 New BM 기획 및 실행</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\"><span style=\"font-family:맑은 고딕;font-size:12pt;color:black;font-weight:bold\">2. 지원 자격 및 선발 기준</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\"><span style=\"font-family:Segoe UI Symbol;font-size:11pt;color:black\">○</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\">동일</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\">팀에서</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\"> 2</span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\">년</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\">이상</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\">근무</span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">하신 구성원에 한하여 지원이 가능합니다</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\"><span style=\"font-family:맑은 고딕;color:black\">※ 단</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\">, </span><span style=\"font-family:맑은 고딕;color:black\">신입</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\">/</span><span style=\"font-family:맑은 고딕;color:black\">경력 입사자의 경우 동일 부문에서</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\"> 5</span><span style=\"font-family:맑은 고딕;color:black\">년 이상 근속</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\">(</span><span style=\"font-family:맑은 고딕;color:black\">’</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\">10. 10. 8 </span><span lang=\"en-US\" style=\"font-family:Gulim;color:black\">前</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\"> </span><span style=\"font-family:맑은 고딕;color:black\">입사</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\">)</span><span style=\"font-family:맑은 고딕;color:black\">하신</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\"> </span><span style=\"font-family:맑은 고딕;color:black\">구성원에</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\"> </span><span style=\"font-family:맑은 고딕;color:black\">한해</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\"> </span><span style=\"font-family:맑은 고딕;color:black\">지원이</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\"><span style=\"font-family:맑은 고딕;color:black\">가능하며</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\">, </span><span style=\"font-family:맑은 고딕;color:black\">회사의</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\"> </span><span style=\"font-family:맑은 고딕;color:black\">필요에</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\"> </span><span style=\"font-family:맑은 고딕;color:black\">따른</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\"> </span><span style=\"font-family:맑은 고딕;color:black\">이동</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\">(</span><span style=\"font-family:맑은 고딕;color:black\">현장</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\"> </span><span style=\"font-family:맑은 고딕;color:black\">전진배치</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\">, </span><span style=\"font-family:맑은 고딕;color:black\">지역간</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\"> </span><span style=\"font-family:맑은 고딕;color:black\">이동</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\">, MBA</span><span style=\"font-family:맑은 고딕;color:black\">복귀</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\"> </span><span style=\"font-family:맑은 고딕;color:black\">등</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\">)</span><span style=\"font-family:맑은 고딕;color:black\">을</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\"> </span><span style=\"font-family:맑은 고딕;color:black\">하신 구성원의 경우</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black\">, </span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\"><span style=\"font-family:맑은 고딕;color:black\">3년간 해당 부문에서의 근속기준을 충족하셔야 합니다.</span><span style=\"font-family:Calibri;color:black\">.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\"><span style=\"font-family:Segoe UI Symbol;font-size:11pt;color:black\">○</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">선발은</span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">관련 직무경험</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">, </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">전공</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">등</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">역량을</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">중심으로</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">지원동기</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">등을</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">종합적으로</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">고려하여</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\"> </span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\"><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">T-Valley</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\">와</span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold\"> HR실이 함께 적임자를 선발합니다.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:3.8pt;margin-bottom:1.5pt\"><span style=\"font-family:맑은 고딕;font-size:12pt;color:black;font-weight:bold\">3. 지원 방법</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt\"><span style=\"font-family:Segoe UI Symbol;font-size:11pt;color:black\">○</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black\"> </span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\">e-HR &gt; </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\">평가</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\">/</span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\">이동</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\"> &gt; </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\">공모게시판</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\">조회</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\">/</span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black;font-weight:bold;text-decoration:underline\">신청</span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black\"> 메뉴에 접속하여</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black\">, </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black\">희망직무</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black\">, </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black\">경험</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black\">등</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black\"> </span><span style=\"font-family:맑은 고딕;font-size:11pt;color:black\">보유역량과</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt\"><span style=\"font-family:맑은 고딕;font-size:11pt;color:black\">지원 동기를 작성하신 후 제출하시면 됩니다</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:11pt;color:black\">.</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt\"><span style=\"font-family:맑은 고딕;font-size:11pt;color:black\">* 사내공모 신청여부는 비공개로 진행됩니다.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt\"><span style=\"font-family:맑은 고딕;font-size:12pt;color:black;font-weight:bold\">4. </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕;font-size:12pt;color:black;font-weight:bold\">지원기간</span><span style=\"font-family:맑은 고딕;font-size:12pt;color:black;font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕;font-size:12pt;color:black;font-weight:bold\">및</span><span style=\"font-family:맑은 고딕;font-size:12pt;color:black;font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕;font-size:12pt;color:black;font-weight:bold\">결과발표</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt\"><span style=\"font-family:Segoe UI Symbol;font-size:10.5pt;color:black;font-weight:bold\">○</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold\"> </span><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold;text-decoration:underline\">지원</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold;text-decoration:underline\"> </span><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold;text-decoration:underline\">기간</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold;text-decoration:underline\">: 9/30(</span><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold;text-decoration:underline\">수</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold;text-decoration:underline\">) ~ 10/8(</span><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold;text-decoration:underline\">목</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold;text-decoration:underline\">) 18:00</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt\"><span style=\"font-family:Segoe UI Symbol;font-size:10.5pt;color:black;font-weight:bold\">○</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold\"> </span><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold\">결과</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold\"> </span><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold\">발표</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold\">: 10</span><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold\">월</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black;font-weight:bold\"> </span><span lang=\"en-US\" style=\"font-family:Gulim;font-size:10.5pt;color:black;font-weight:bold\">中</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\">(</span><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\">선발결과는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\"> </span><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\">개별적으로</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\"> </span><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\">안내</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\">)</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt\"><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\">※ 문의</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\">: Talent Mgmt</span><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\">팀 임규민 매니저 </span><span lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\">(02-6100-3438)</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt\"><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\">T-Valley </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\">차승수</span><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\">매니저</span><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\"> (010-3796-6498). 끝.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:13.5pt;color:#979797;font-weight:bold\">공모요건조회</span></p>\r\n\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:125;border:0px;font-size:10pt\"><span style=\"font-weight:bold\">공모제목</span></td>\r\n\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">T-Valley 사내공모</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:125;border:0px;font-size:10pt\"><span style=\"font-weight:bold\">모집기간</span></td>\r\n\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">2015.09.30<span style=\"font-family:Cambria Math\">∼</span><span lang=\"en-US\">2015.10.08</span></td>\r\n\t\t\t\t\t<td style=\"border:0px;font-size:10pt\"><span style=\"font-weight:bold\">담당자</span></td>\r\n\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">차승수</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:125;border:0px;font-size:10pt\"><span style=\"font-weight:bold\">부서명</span></td>\r\n\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">T-Valley</td>\r\n\t\t\t\t\t<td style=\"border:0px;font-size:10pt\"><span style=\"font-weight:bold\">인원</span></td>\r\n\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">6</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:125;border:0px;font-size:10pt\"><span style=\"font-weight:bold\">공모사유 개요</span></td>\r\n\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">T-Valley R&amp;C 강화 </td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:125;border:0px;font-size:10pt\"><span style=\"font-weight:bold\">모집분야</span></td>\r\n\t\t\t\t\t<td style=\"border:0px\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Symbol\">■</span><span lang=\"en-US\"> </span>신규<span lang=\"en-US\"> </span>서비스기획<span lang=\"en-US\">/</span>운영<span lang=\"en-US\"> (</span>총<span lang=\"en-US\"> 4</span>명<span lang=\"en-US\">)</span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 남성/여성 Beauty (2명)</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- O2O중고/신용거래 (2명)</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Symbol\">■</span><span lang=\"en-US\"> Segment</span>기반<span lang=\"en-US\"> New BM </span>추진<span lang=\"en-US\"> (2</span>명<span lang=\"en-US\">) </span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:125;border:0px;font-size:10pt\"><span style=\"font-weight:bold\">공모대상 직무</span></td>\r\n\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">상품기획 및 운영</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:125;border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\">\t\t\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt\"><span style=\"font-weight:bold\">주요 Task</span></td>\r\n\t\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt\"><span style=\"font-weight:bold\">세부내용 및 수행절차 / 방법</span></td>\r\n\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">신규 서비스기획/운영(남성/여성 Beauty)</td>\r\n\t\t\t\t\t\t\t<td style=\"border:0px\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 신규 뷰티 서비스 기획, 마케팅, 운영</p>\r\n\t\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 신규 뷰티 중개 서비스 파트너 마케팅</p>\r\n\t\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 뷰티 컨텐츠 및 커뮤니티 기획/운영</p>\r\n\t\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">신규 서비스기획/운영(O2O중고/신용거래)</td>\r\n\t\t\t\t\t\t\t<td style=\"border:0px\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- O2O 중고/신용거래 영역 신규 서비스 기획, 마케팅, 운영</p>\r\n\t\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- O2O 중고/신용거래 Operation 분석 및 고도화</p>\r\n\t\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- O2O 중고/신용거래 컨텐츠및 커뮤니티 기획/운영</p>\r\n\t\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt\">Segment기반 New BM 추진</td>\r\n\t\t\t\t\t\t\t<td style=\"border:0px\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- Micro-Seg. 기반 New Biz Item 발굴</p>\r\n\t\t\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 고객 Targeting 및 현장 중심의 New BM 기획 및 실행</p>\r\n\t\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t</table>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:125;border:0px;font-size:10pt\"><span style=\"font-weight:bold\">비고</span></td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:163;border:0px;font-size:10pt\"><span style=\"font-weight:bold\">Requirement</span></td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:163;border:0px;font-size:10pt\"><span style=\"font-weight:bold\">학력</span></td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px;font-size:10pt\"><span style=\"font-weight:bold\">어학</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:163;border:0px;font-size:10pt\"><span style=\"font-weight:bold\">전문지식</span></td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px;font-size:10pt\"><span style=\"font-weight:bold\">관련지식</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:163;border:0px;font-size:10pt\"><span style=\"font-weight:bold\">필요자격면허</span></td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:163;border:0px;font-size:10pt\"><span style=\"font-weight:bold\">경력조건</span></td>\r\n\t\t\t\t\t<td style=\"border:0px\">\t\t\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt\"><span style=\"font-weight:bold\">직무</span></td>\r\n\t\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt\"><span style=\"font-weight:bold\">Task</span></td>\r\n\t\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt\"><span style=\"font-weight:bold\">세부수행내용</span></td>\r\n\t\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt\"><span style=\"font-weight:bold\">필요경력</span></td>\r\n\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t<td style=\"border:0px;font-size:10pt;text-align:center\">경력요건이 없습니다.</td>\r\n\t\t\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t</table>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:163;border:0px;font-size:10pt\"><span style=\"font-weight:bold\">추가사항</span></td>\r\n\t\t\t\t\t<td style=\"border:0px\"><p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Symbol\">■</span><span lang=\"en-US\"> </span>지원<span lang=\"en-US\"> </span>자격<span lang=\"en-US\"> </span>및<span lang=\"en-US\"> </span>선발<span lang=\"en-US\"> </span>기준</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Symbol\">■</span><span lang=\"en-US\"> </span>기본<span lang=\"en-US\"> </span>요건 </p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 생활가치플랫폼 사업과 관련된 환경에 대한 이해 </p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 고객 경험 보유</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 관련 사업 추진에 대한 열정과 실행 역량을 갖춘 구성원 </p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Symbol\">■</span><span lang=\"en-US\"> </span>남성<span lang=\"en-US\">/</span>여성<span lang=\"en-US\"> Beauty </span>신규서비스<span lang=\"en-US\"> </span>기획<span lang=\"en-US\">/</span>운영<span lang=\"en-US\"> </span>분야</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 커머스관련 서비스 운영 경험</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 제휴 파트너 대상 마케팅/영업 경험 </p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 최근 사업 Trend(스타트업)에 관심도 높고 유사 경험 보유자 우대 </p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 사업의 기획부터 모델링, 운영까지모든 영역을 열정적으로 치열하게 고민하고 실행할 수 있는 의지</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- Desk Job이 아닌 현장에서 답을 찾고자 하는 자세</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 시행 착오에도좌절하지 않고 지속적으로 도전/개선하는 의지 보유</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Symbol\">■</span><span lang=\"en-US\"> O2O</span>중고<span lang=\"en-US\">/</span>신용거래<span lang=\"en-US\"> </span>신규서비스<span lang=\"en-US\"> </span>기획<span lang=\"en-US\">/</span>운영<span lang=\"en-US\"> </span>분야</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 플랫폼 기반 비즈니스 모델기획 역량</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 제휴 마케팅 전략 수립 및 실행 경험</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- Market Intelligence 기반 신규 서비스 기회 도출/기획 능력 </p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 출시 상품을 운영하고사용자의 요구사항을 이해하여 처리/개선할 수 있는 역량 </p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 서비스 운영 및 Data 분석 역량</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Symbol\">■</span><span lang=\"en-US\"> Segment</span>기반<span lang=\"en-US\"> New BM </span>추진<span lang=\"en-US\"> </span>분야</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">-Micro-Seg. 기반 신규 서비스 기획 및 운영 경험 </p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 플랫폼 기반 비즈니스 모델 기획 역량</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- Market Intelligence 기반 신규 서비스 기회 도출/기획 능력 신규 서비스 기획 능력</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- 최근 사업 Trend(스타트업)에 관심도 높고 유사 경험 보유자 우대 </p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:0px\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">Micro Seg 분석을 통해 가능성이 있는 Seg에서 BM을 만드는 것입니다.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">영역은 안 정해져 있고, Smal</span><span lang=\"en-US\" style=\"color:black;background-color:white\">l</span><span style=\"font-family:맑은 고딕;color:black;background-color:white\"> Start 개념으로 접근하고 있습니다.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">찾는 기준은 &quot;Necessity가 있고, 고객에게 Value를 줄 수 있으며,</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">장기적으로 수익성을 창출&quot;할 수 있으면 됩니다.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">일하는 방식은 독립/자율적으로 할 수 있는 업무 환경이라 </span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">신규사업에 관심있으신 분들은 다은 조직보다는 일하는 것이 재미있을 겁니다.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">1. 희망 직무</span><span lang=\"en-US\" style=\"font-weight:bold\"> : </span>Segment기반 New BM 추진</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">2. 보유 역량 (전공 및 직무 경험을 기준으로 기재 부탁드립니다)</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">3. 지원사유 (25줄 내외로 상세히 기술하여 주십시오)</span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt\"><span style=\"font-family:맑은 고딕;font-size:10.5pt;color:black\">첨부파일</span><span lang=\"en-US\" style=\"font-size:10.5pt;color:black\"> 1,2,3</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">매니저님, 안녕하세요?</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">T -Valley 사내 공모에 관심 가져 주셔서 감사드립니다.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">저희 T-Valley에서는 10월중 새로운 서비스 런치와 새로운 BM 확대를 위해</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">인력 수요가 많은 조직입니다.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">지원동기와 경험/역량 고려하여 적격자라고 판단되면,</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">HR실과 이동 기준에 대해서 예외 적용도 협의해 보려고 합니다.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">이동을 희망하시는 경우 지원해 주세요. 감사합니다.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">T-Valley 내에서는 Camp는 비공식 조직이고, </span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">재배치 등이 유연하게 이루어 집니다. </span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">생활가치플랫폼관련 신규사업에 관심 있으시면</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">이번해 지원해 보셔도 좋을 듯 합니다.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t"
+  },
+  {
+    "type": "text",
+    "x": 840,
+    "y": 139,
+    "w": 600,
+    "content": "TBC\n\n다른 캠프들은 인원 충원 계획인 없는 것인지?\n5년 미만 구성원은 애초에 필터링 하는 것인지?"
+  }
+];
+const CONTENT_HASH = '4b21cfa5';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

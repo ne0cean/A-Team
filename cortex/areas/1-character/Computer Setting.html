@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Computer Setting</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Computer Setting</div>
+<div class="date">2013년 12월 22일 일요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Computer-Setting';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 384,
+    "y": 19,
+    "w": 600,
+    "content": "<a href=\"https://www.instagram.com/p/DUyFA0Uloma/?igsh=NDk3b21lc2E5aXZ0\">맥성능 최적화</a> <a href=\"https://news.hada.io/topic?id=26527\" lang=\"en-US\" style=\"font-family:Calibri\">1</a>"
+  },
+  {
+    "type": "text",
+    "x": 600,
+    "y": 19,
+    "w": 600,
+    "content": "개인 노트북 영구 오피스 계정키: 49QR7-6X2VK-2FHJ3-7H7HW-XRFTZ\nSurface laptop serial number: (신) 027201294957 (구) 025515395157\n서피스독2 일련번호: 006946302340\n메가클라우드</a> 복구코드: mRpoCAz9uO2ST_EB7PSy3A"
+  },
+  {
+    "type": "text",
+    "x": 1296,
+    "y": 19,
+    "w": 600,
+    "content": "회사PC 모델\nThinkpad </a>E15 Gen 4 (type 21E6 21E7) Laptops (ThinkPad) - Type 21E6\n시리얼 넘버 PF40JPV0"
+  },
+  {
+    "type": "html",
+    "x": 48,
+    "y": 139,
+    "w": 1400,
+    "html": "\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:355;border:1px solid;font-size:10pt\"><span lang=\"en-US\">Back-up protocol</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span lang=\"en-US\">Black Blade_Local</span></td>\r\n\t\t\t\t\t<td style=\"width:1596;border:1px solid;font-size:10pt\"><span lang=\"en-US\">My desk</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Local</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:355;border:1px solid\"><p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">바탕화면<span lang=\"en-US\"> </span>백업</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">퀵런처<span lang=\"en-US\">, </span>시작프로그램<span lang=\"en-US\"> </span>캡쳐 </p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;font-size:9pt;color:#262626\">%APPDATA%\\Microsoft\\Internet Explorer\\Quick Launch</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:9pt;color:#262626\">WIN+R, </span><span lang=\"ko-KR\">shell:startup</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">C<span lang=\"ko-KR\">드라이브</span> (<span lang=\"ko-KR\">배경화면</span> <span lang=\"ko-KR\">등</span>)</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>포맷<span lang=\"en-US\"> </span>시<span lang=\"en-US\"> </span>요청사항</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">오피스</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span style=\"font-family:맑은 고딕\">최신버전</span><span lang=\"en-US\" style=\"font-family:Calibri\"> (</span><span style=\"font-family:맑은 고딕\">원노트</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">포함</span><span lang=\"en-US\" style=\"font-family:Calibri\">)</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">어도비<span lang=\"en-US\" style=\"font-family:Calibri\"> </span>포토샵<span lang=\"en-US\" style=\"font-family:Calibri\">/</span>프리미어</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">유선랜<span lang=\"en-US\"> </span>우선설정</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">한컴오피스</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">포맷</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">이후</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">설치</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">킨들</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> pc</span><span style=\"font-family:맑은 고딕\">버전</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://apps.microsoft.com/store/detail/XP89DCGQ3K6VLD?ocid=pdpshare\" style=\"font-family:맑은 고딕\">Power toy</a><span style=\"font-family:맑은 고딕\"> - </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">특히</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">마우스</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">포인터</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">기능</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.kakaocorp.com/page/service/service/KakaoTalk?lang=ko\">카톡</a><a href=\"https://desktop.telegram.org/?setln=ko\" lang=\"en-US\" style=\"font-family:Calibri\">/</a>텔레그램</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://slack.com/intl/ko-kr\">슬랙</a><span lang=\"en-US\" style=\"font-family:Calibri\">/</span><a href=\"https://discord.com/download\">디스코드</a></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://support.zoom.us/hc/ko-kr/categories/200101697-Zoom-%EC%8B%9C%EC%9E%91%ED%95%98%EA%B8%B0\">줌</a><span lang=\"en-US\" style=\"font-family:Calibri\">/</span><a href=\"https://www.meet-us.co.kr/\">미더스</a></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://down.kilho.net/secretdns\">시크릿</a><span lang=\"en-US\"> DSN</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Logi</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">한컴오피스</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.adobe.com/kr/#\" style=\"font-family:맑은 고딕\">Adobe </a><span style=\"font-family:Tahoma\">DC pro</span><span style=\"font-family:Tahoma\"> feat.june@sk.com/ ID: </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">사번</span><span style=\"font-family:맑은 고딕\"> / PW: </span><span lang=\"ko-KR\">WNDdyd00!!</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">어도비<span lang=\"en-US\"> CC </span><a href=\"https://creativecloud.adobe.com/cc/\">https://creativecloud.adobe.com/cc/</a></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">TurnedONtimeView</span><span style=\"font-family:맑은 고딕\"> </span><a href=\"http://www.nirsoft.net/utils/computer_turned_on_times.html\" lang=\"ko-KR\">http://www.nirsoft.net/utils/computer_turned_on_times.html</a></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">원노트<span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">원드라이브</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> realpage@naver.com</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">즐겨찾기</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;text-decoration:line-through\">퀵런처</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;text-decoration:line-through\"> </span><span style=\"font-family:맑은 고딕;text-decoration:line-through\">구성</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;text-decoration:line-through\"> </span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"text-decoration:line-through\">%APPDATA%\\Microsoft\\Internet Explorer\\Quick Launch</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">3dp</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">드라이버</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">F.LUX <a href=\"https://justgetflux.com/\" lang=\"ko-KR\">https://justgetflux.com/</a></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">2010 </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">인증키</span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">2MX4H-84G9Y-6H6JX-KMTHC-VQ4Y6</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">Wifi: Noir/ wnddyd00 </span><a href=\"http://192.168.0.1\" lang=\"ko-KR\" style=\"font-family:맑은 고딕\">http://192.168.0.1</a><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\"> </span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>설정</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">야간<span lang=\"en-US\"> </span>모드</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">유선랜<span lang=\"en-US\"> </span>우선<span lang=\"en-US\"> </span>설정</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">레노버<span lang=\"en-US\"> </span><span lang=\"en-US\" style=\"font-family:Calibri\">Ctrl </span>↔<span lang=\"en-US\"> Alt </span>변환<span lang=\"en-US\"> </span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://m.blog.naver.com/bbilbu/223315526398\">레노버 씽크패드 Fn, Ctrl 키패드 변경 방법 2가지 : 네이버 블로그 (naver.com)</a>https://m.blog.naver.com/ar822/221238812724</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">F1<span lang=\"ko-KR\">키</span> <span lang=\"ko-KR\">비활성화</span> <a href=\"https://liverex.tistory.com/849\" lang=\"ko-KR\">https://liverex.tistory.com/849</a></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">시작프로그램<span lang=\"en-US\"> </span>추가<span lang=\"en-US\"> - </span>파일전송<span lang=\"en-US\"> </span>자동실행<span lang=\"en-US\"> </span><a href=\"https://prolite.tistory.com/1102\">https://prolite.tistory.com/1102</a></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:10pt\">Windows 로고 키 +&#160;R을 누르고&#160;shell:startup</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10pt\"> (</span><span style=\"font-family:Malgun Gothic;font-size:10pt\">카톡</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10pt\">, </span><span style=\"font-family:Malgun Gothic;font-size:10pt\">텔레그램</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10pt\">, </span><span style=\"font-family:Malgun Gothic;font-size:10pt\">파일전송</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10pt\">, </span><span style=\"font-family:Malgun Gothic;font-size:10pt\">디스코드</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10pt\">)</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://prolite.tistory.com/1102\">윈도우10 시작프로그램 추가 및 제거</a></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">크롬</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">화면</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">분할</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><a href=\"https://brunch.co.kr/@pletalk/137\">https://brunch.co.kr/@pletalk/137</a></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">Onenote 2016</span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://officetutor365.com/onenote2016-is-back/\">https://officetutor365.com/onenote2016-is-back/</a></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">유튜브<span lang=\"en-US\"> </span>광고차단<span lang=\"en-US\"> </span>팝업<span lang=\"en-US\"> </span>해제</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://fivem.tistory.com/59\" lang=\"en-US\">[10.16 새로운 방법] 유튜브 광고 차단 경고창 해결하는 방법 2가지! | YouTube 서비스 약관을 위반하는 광고 차단 프로그램 - FiveM Korea (tistory.com)</a></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.oppadu.com/%EC%97%91%EC%85%80-ctrl-shift-0-%EB%AC%B8%EC%A0%9C/#:~:text=%EC%A0%84%EC%B2%B4%20%ED%96%89%2F%EC%97%B4%20%EC%88%A8%EA%B8%B0%EA%B8%B0%20%EB%8B%A8%EC%B6%95%ED%82%A4%EB%8A%94%20%EB%A7%8E%EC%9D%80%20%EC%96%91%EC%9D%98%20%EB%8D%B0%EC%9D%B4%ED%84%B0,%EC%84%A4%EC%A0%95%EC%9D%84%20%EB%B3%80%EA%B2%BD%ED%95%B4%EC%A4%98%EC%95%BC%20%ED%95%98%EB%8A%94%EB%8D%B0%EC%9A%94.\">엑셀</a><span lang=\"en-US\"> </span>열<span lang=\"en-US\"> </span>숨기기<span lang=\"en-US\"> </span>취소<span lang=\"en-US\"> </span>단축키<span lang=\"en-US\"> Ctrl + Shift + 0</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Thin\">을지로</span><span lang=\"en-US\" style=\"font-family:Pretendard Thin\"> </span><span style=\"font-family:Pretendard Thin\">마우스</span><span lang=\"en-US\" style=\"font-family:Pretendard Thin\"> </span><span style=\"font-family:Pretendard Thin\">수리</span><span lang=\"en-US\" style=\"font-family:Pretendard Thin\">: </span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Thin\">마우스 수리(</span><span lang=\"ko-KR\" style=\"font-family:Pretendard Thin\">수신기</span><span style=\"font-family:Pretendard Thin\">): 나윤테크</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Thin\">을지로 157, 대림상가 2층 가열 281호</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.perplexity.ai/search/f4cfa364-fa11-481d-b78d-47abfc4ac303\">https://www.perplexity.ai/search/f4cfa364-fa11-481d-b78d-47abfc4ac303</a></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Mole<span style=\"font-family:Malgun Gothic\">은</span> macOS <span style=\"font-family:Malgun Gothic\">터미널에서</span>&#160;<span style=\"font-family:pplxSansMono\">mo</span>&#160;<span style=\"font-family:Malgun Gothic\">또는</span>&#160;<span style=\"font-family:pplxSansMono\">mole</span>&#160;<span style=\"font-family:Malgun Gothic\">명령어로</span> <span style=\"font-family:Malgun Gothic\">실행</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://github.com/tw93/mole\">https://github.com/tw93/mole</a></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">E16</span></p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:600px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">E15_2024. 10. 30.</span></p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">Noir 2023.06.15.</span></p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:454px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:480px;height:220px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">Black-Blade 2021. 10. 15  </span><span lang=\"ko-KR\">일련번호</span> 025515395157</p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:600px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">마이데스크</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\"> Temp&#160;</span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">정리 명령어</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">: </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">윈도우</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\"> + E</span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">탐색기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">열고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\"> </span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">정리해야</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">할</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">폴더</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">주소창에</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">아래</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">명령어</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">입력</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:black;background-color:white\">Attrib +U -P /S</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\">서피스<span lang=\"en-US\"> </span>배터리<span lang=\"en-US\"> </span>제한<span lang=\"en-US\"> </span>설정<span lang=\"en-US\">: </span><a href=\"https://docs.microsoft.com/ko-kr/surface/battery-limit\">https://docs.microsoft.com/ko-kr/surface/battery-limit</a></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">서피스<span lang=\"en-US\"> </span>지지직<span lang=\"en-US\"> </span>고주파<span lang=\"en-US\"> </span>문제</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://m.ppomppu.co.kr/new/bbs_view.php?id=wintab&amp;no=46860\">https://m.ppomppu.co.kr/new/bbs_view.php?id=wintab&amp;no=46860</a></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://m.blog.naver.com/PostView.naver?isHttpsRedirect=true&amp;blogId=taylorearl&amp;logNo=180221970\">https://m.blog.naver.com/PostView.naver?isHttpsRedirect=true&amp;blogId=taylorearl&amp;logNo=180221970</a></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p data-tag=\"remember-for-later\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">서피스독<span lang=\"en-US\">2 </span>듀얼모니터<span lang=\"en-US\"> </span>출력<span lang=\"en-US\"> - </span>외장하드<span lang=\"en-US\"> - </span>포맷<span lang=\"en-US\"> </span>후<span lang=\"en-US\"> </span>초기<span lang=\"en-US\"> </span>셋팅<span lang=\"en-US\"> </span>폴더<span lang=\"en-US\"> - Dual monitor dirver</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"remember-for-later\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">34WK500</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">화면분할<span lang=\"en-US\"> </span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">MS <a href=\"https://microsoft-powertoys.softonic.kr/download\">Power toy</a></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://m.blog.naver.com/parosaone/221932597537\">https://m.blog.naver.com/parosaone/221932597537</a></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://blog.naver.com/parosaone/222235737405\">https://blog.naver.com/parosaone/222235737405</a></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">Black-blade </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">일련번호</span><span style=\"font-family:Malgun Gothic\"> 025515395157 / </span><span lang=\"ko-KR\">027201294957</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">서피스독</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">2 </span><span style=\"font-family:Malgun Gothic\">일련번호</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 006946302340</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">USB-C <span lang=\"ko-KR\">허브</span> <span lang=\"ko-KR\">오류</span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://forbes.tistory.com/220\">https://forbes.tistory.com/220</a></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://ssotori.tistory.com/99\">https://ssotori.tistory.com/99</a></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">시작프로그램</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">추가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span lang=\"en-US\">Win + R : shell:startup</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">[Microsoft <span style=\"font-family:Malgun Gothic\">체팅상담</span>]</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://support.microsoft.com/ko-kr/contactus/\">https://support.microsoft.com/ko-kr/contactus/</a></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">해당링크 접속하여</span> &gt; Microsoft <span style=\"font-family:Malgun Gothic\">에문의</span> &gt; <span style=\"font-family:Malgun Gothic\">해당 링크 접속후</span> &gt; <span style=\"font-family:Malgun Gothic\">지원문의 클릭하여 알맞는 메뉴설정하여진행</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://lifeonguide.tistory.com/164\" style=\"font-family:Malgun Gothic\">키보드</a><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">자모음</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">분리</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">안녕하세요</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">고객님</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">, </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">불편을</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">드려</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">죄송합니다</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">. </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">현재</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">고객님께서</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">장시간</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">응답이</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">없으셔서</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">, </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">부득이하게</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">먼저</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">채팅을</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">종료</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">하게</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">되었습니다</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">마이크로소프트를</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">이용해</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">주셔서</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">다시</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">한번</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">감사드리며</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">, </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">남은</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">하루</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">행복하시길</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">바랍니다</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">. </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">추후라도</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">개인용</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> Microsoft </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">제품</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">사용하시던</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">중</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">, </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">상담이</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">필요한</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">경우에는</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">채팅</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">상담</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">서비스</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">또는</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">고객지원센터</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">(1577-9700)</span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">으로</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">문의</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">주시면</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">, </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">최선을</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">다하여</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">도움을</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">드리도록</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">노력</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">하겠습니다</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">(Microsoft </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">고객지원센터</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">운영시간</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">: </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">평일</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> 09</span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">시</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">~21</span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">시</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">, </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">토요일</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">, </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">일요일</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">및</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">공휴일</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\"> </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">휴무</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">)</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">Microsoft </span><span style=\"font-family:Malgun Gothic;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">커뮤니티</span><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">:&#160; </span><a href=\"http://answers.microsoft.com/ko-kr\" style=\"font-family:Segoe UI;font-size:10.5pt;background-color:#3f6484\">http://answers.microsoft.com/ko-kr</a><span style=\"font-family:Segoe UI;font-size:10.5pt;color:#cdcdcc;background-color:#3f6484\">)</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<cite style=\"font-family:Calibri;font-size:9pt;color:#595959;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">출처</span>: &lt;<a href=\"https://support.microsoft.com/ko-kr/home/livechatwidget?theme=smc_colorful&amp;customcontext=%7B%22CaseNumber%22%3A%227065819016%22%7D&amp;x-ems-sessionid=6e0ceb41-53bb-47b5-8e93-cc3100a927ca\">https://support.microsoft.com/ko-kr/home/livechatwidget?theme=smc_colorful&amp;customcontext=%7B%22CaseNumber%22%3A%227065819016%22%7D&amp;x-ems-sessionid=6e0ceb41-53bb-47b5-8e93-cc3100a927ca</a>&gt; </cite>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;margin-top:0pt;margin-bottom:0pt\">Working offline. Sign in to sync your notes. </p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;margin-top:0pt;margin-bottom:0pt\">Sticky Notes can&#39;t sync your notes because you </p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;margin-top:0pt;margin-bottom:0pt\">are signed out. Sign in to continue syncing to the </p>\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;margin-top:0pt;margin-bottom:0pt\">cloud and to access your notes from anywhere. </p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:600px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://answers.microsoft.com/ko-kr/msoffice/forum/all/%EC%9B%90%EB%85%B8%ED%8A%B8/5d68768f-9add-4366-8648-bf8dc0c025cc\">원노트</a><span lang=\"en-US\"> </span>로그인<span lang=\"en-US\"> </span>이슈<span lang=\"en-US\"> </span><a href=\"https://www.google.com/search?q=Working+offline.+Sign+in+to+sync+your+notes.+Sticky+Notes+can%27t+sync+your+notes+because+you+are+signed+out.+Sign+in+to+continue+syncing+to+the+cloud+and+to+access+your+notes+from+anywhere.&amp;oq=Working+offline.+Sign+in+to+sync+your+notes.+Sticky+Notes+can%27t+sync+your+notes+because+you+are+signed+out.+Sign+in+to+continue+syncing+to+the+cloud+and+to+access+your+notes+from+anywhere.&amp;gs_lcrp=EgZjaHJvbWUyBggAEEUYOdIBBzUxNmowajGoAgCwAgA&amp;sourceid=chrome&amp;ie=UTF-8\" lang=\"en-US\">1</a><span lang=\"en-US\"> </span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Ms <span lang=\"ko-KR\">대체재</span> <a href=\"https://ko.libreoffice.org/download/libreoffice-fresh/?type=mac-x86_64&amp;version=24.8.2&amp;lang=ko\">LibreOffice </a><span lang=\"ko-KR\">설치</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:1596;border:1px solid\"><div style=\"display:inline-block;width:326px;height:345px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10.5pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">회사</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span lang=\"en-US\">책상</span><span lang=\"en-US\">아래 </span><span lang=\"en-US\">키</span><span lang=\"en-US\">보드 - </span>로지텍<span lang=\"en-US\"> mk295</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">마이데스크</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">2021.06.02(<span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">수</span>)</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">원드라이브<span lang=\"en-US\"> </span>내에<span lang=\"en-US\"> </span>있는<span lang=\"en-US\"> </span>것들은<span lang=\"en-US\"> </span>다<span lang=\"en-US\"> </span>뭔데<span lang=\"en-US\"> </span>안지워져</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:480px;height:49px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:480px;height:52px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">탐색기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">즐겨찾기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> DEAN - PP1 - PPG - </span><span style=\"font-family:Malgun Gothic\">마이데스크</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">원노트</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">백업</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">아웃룩</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">백업</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">오피스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">빠른도구모음</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">바탕화면</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">파일</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">C</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">드라이브</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">사용자</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">퀵런처</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">설정</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span lang=\"en-US\">%APPDATA%\\Microsoft\\Internet Explorer\\Quick Launch</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">오피스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">업그레이드</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">오피스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">설정</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - </span><span style=\"font-family:Malgun Gothic\">영문</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">어도비</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">한컴</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">비즈<span lang=\"en-US\"> </span>이모티콘</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">메일<span lang=\"en-US\"> signiture</span><span lang=\"en-US\">￼</span>Outlook 서명 Export &amp; Impaort<span lang=\"en-US\"> </span><a href=\"https://ko.extendoffice.com/documents/outlook/1453-outlook-import-export-signatures.html#export\">https://ko.extendoffice.com/documents/outlook/1453-outlook-import-export-signatures.html#export</a></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:10pt\">%userprofile%\\AppData\\Roaming\\Microsoft\\Signatures </span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">F1<span lang=\"ko-KR\">키</span> <span lang=\"ko-KR\">편집</span> <a href=\"https://liverex.tistory.com/849\" lang=\"ko-KR\">https://liverex.tistory.com/849</a></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">시작<span lang=\"en-US\"> </span>프로그램<span lang=\"en-US\"> </span>추가<span lang=\"en-US\"> - </span>파일전송<span lang=\"en-US\"> </span>자동실행<span lang=\"en-US\"> </span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t<ol>\r\n\t\t\t\t\t\t<li value=\"2024\" style=\"font-family:Calibri\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">6. 22</span></span></li>\r\n\t\t\t\t\t</ol>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:362px;height:600px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:333px;height:496px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">시작프로그램</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> win+R, </span><span style=\"font-family:Malgun Gothic;font-size:10pt\">shell:startup</span></p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:165px;height:165px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">로컬</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 2022. 10. 04.(</span><span style=\"font-family:Malgun Gothic\">화</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">)</span></p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:480px;height:67px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:239px;height:114px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">로컬</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 2021.03.23(</span><span style=\"font-family:Malgun Gothic\">수</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">)</span></p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:446px;height:475px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">로컬</span><span lang=\"en-US\"> 2020.09.14</span></p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:200px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">로컬</span><span lang=\"en-US\"> 2019.09.24</span></p>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:360px;height:312px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:295px;height:51px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<div style=\"display:inline-block;width:416px;height:467px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<div style=\"display:inline-block;width:406px;height:589px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t"
+  },
+  {
+    "type": "text",
+    "x": 1248,
+    "y": 14094,
+    "w": 600,
+    "content": "<a href=\"https://n.news.naver.com/mnews/article/008/0004480563?sid=101\">https://n.news.naver.com/mnews/article/008/0004480563?sid=101</a>"
+  },
+  {
+    "type": "text",
+    "x": 72,
+    "y": 15567,
+    "w": 600,
+    "content": "Black Blade 2021.02.21\n<a href=\"https://mydesk.sktelecom.com/NON_SSO/Login/Login?uid=6329596\">https://mydesk.sktelecom.com/NON_SSO/Login/Login?uid=6329596</a>"
+  }
+];
+const CONTENT_HASH = 'f004b1f8';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STS [Smart Taxi Solution] (Anti Uber)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">STS [Smart Taxi Solution] (Anti Uber)</div>
+<div class="date">2014년 9월 15일 월요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-STS-Smart-Taxi-Solution-Anti-Uber-';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 115,
+    "w": 600,
+    "content": "Background : Core Needs 발굴\n기존의 어떤 문제/불편을 해결하고자 하는가?\nUber의 창립자는 승차거부로 인해 불편을 겪은 경험 때문에 Uber를 창립하게 되었다고 한다. 그렇다면 '승차거부'는 왜 일어나는 것인가?\n첫째, \"가까워도 안 가고, 멀어도 안 간다.\" - 택시기사-승객 간 니즈(수요와 공급)의 불일치.\n둘째, \"히치하이킹과 택시 잡는 법이 다를 것이 무엇인가? 무려 2014년인데도 말이다.\" - 기사가 선호하는 행선지와 승객의 목적지간 불일치할 가능성이 높음.\n당사의 ICT 기술을 활용하여 이러한 불일치를 해소하고자 한다. 나아가 Uber에 대항하여 위기에 처한 택시 영업을 활성화하고, 스마트 택시로의 이행을 돕는 것이 본 제안의 궁극적인 목적임.\n그 문제/불편을 해결하는 것의 가치 / 시장에 대한 파급력 / 사회적 의미는 무엇인가?\n택시는 가장 \"개인화\"된 \"대중\"교통이라는 점에서 매우 독특한 서비스임. 그럼에도 그간 서비스 방식의 혁신이나 진보가 전혀 없었던 영역이기도 함.\n기존 택시 서비스는 승차거부, 합승 바가지 요금, 불친절 등의 문제가 야기되어 왔으며, 이는 \"택시기사\"라는 직업군의 저열한 성향 탓으로 치부되어 왔던 것이 사실임.\n하지만, 이러한 고질적  문제는 택시 서비스의 구조적/시스템적 문제에서 기인하는 것일 수 있으며, 이를 해결하는 것은 택시업체와 기사, 고객 모두에게 매우 고무적이며 가치 있는 일임이 자명함.\n대중교통을 혁신하는 것이야 말로 진정한 고객 가치실현이자 생활가치 혁신이라는 의의를 가지고 있음.\n승객들의 Core Needs는 안심하고 탑승 할 수 있는 택시 서비스를 저렴한 가격에 제공받는데 있음.\n기존 해결책은 무엇이며 어떻게 문제를 해결하고 있는가?\n기존 택시 : 콜 택시 서비스 - 보다 높은 요율로 고객이 원하는 시간에 원하는 장소로 이동 가능.\n우버 택시 : 모바일 콜택시. 콜센터 역할을 모바일로 대체하며 보다 높은 서비스 퀄리티를 비싼 가격에 제공함.\n카카오 택시 : 기존 택시 사업자와 카카오톡 사용자를 위치기반으로 Matching 해주는 서비스.\n기존 해결책의 한계는 무엇인가?\nㅇ 콜택시\n일반 택시에 비해 비싼 요율로 인한 고객부담\nㅇ 우버 택시 & 우버X\n운영의 주체가 개인으로, 제도권 밖에 있기 때문에 택시 승객의 안전 및 사고 시 보험은 물론 법적인 보호를 받을 수 없음.\n이용료의 10%~20%를 수수료로 가져가는 BM을 취하고 있기 때문에 택시요금 상향이 불가피함. 현재 2~3배 정도 비싼 요금이 책정되며, 요금 폭탄 사례도\n종종 목격되고 있음.\n-> 공유경제가 아닌 불법운송 : 우버 등에 대한 <a href=\"http://www.etoday.co.kr/news/section/newsview.php?idxno=976022\" lang=\"ko-KR\">파파라치</a> 신고제도와 탑승자까지도 최대 <a href=\"http://www.etoday.co.kr/news/section/newsview.php?idxno=976022\" lang=\"ko-KR\">1000만원</a>의 벌금을 부과하는 법령이 국회에 곧 상정될 예정.\n국부 유출 : 매출이 해외(샌프란시스코 본사)로 빠져나간다.\n서민 경제 혼란 : 택시는 퇴직자나 자영업자의 마지막 보루 중 하이며, 합법적이지 않은 사업이 이들의 밥그릇을 빼앗는 것은 부당하다.\n택시 운전도 일정 수준의 전문성이 요구되는데 자가용 운전자들에게 이를 기대하는 것은 무리가 따른다.\n개인정보 유출 이슈 : 가입 시 제공한 개인정보가 어떻게 쓰이는지,\n자동으로 결제가 되다 보니 이용자 입장에서는 간 거리만큼 제대로 과금이 됐는지를 즉시 확인할 수 없다.\n후기&평가의 투명성이 담보되지 않음 : 후기나 평가 등을 보면 서비스 품질이 좋다는 평가가 많으나, 우버 택시 이용 시 쓸 수 있는 할인 쿠폰 등을 받기 위한 목적으로 쓴 글이 적지 않음.\nㅇ 카카오택시 & 이지택시\nLBS 기반으로 근거리에 운행중인 택시를 매칭해주는 단계에 머물러 있음.\n택시를 잡는 방법이 기존의 수신호에서 모바일로 바뀐 것에 지나지 않음.\nSolution : Core Value\n어떤 대안/서비스 인가?\n모바일 APP을 이용한 택시-승객 중계 플랫폼으로써, 모든 택시의 콜택시 & Smart화를 통한 경쟁력 제고가 목적이다.\nUber는 택시업계를 위협하는 Disruptive BM이지만 본 Solution은 택시 영업을 지원한다.\n경쟁 차별화 요소 : 기존의 해결책(상품/서비스)과 어떻게 다른가?\nUber처럼 기존 택시 업계의 파이를 앗아가는 Disruptive BM이 아닌, 기존의 택시 서비스를 보다 효율화/스마트화 함.\nUber처럼 수요에 공급을 맞추는 주문형 시스템이 아닌, 수요와 공급을 Matching 시켜주는 플랫폼 역할을 수행함.\nMNO 전략 방향성(OTT대비 경쟁 차별화 요소) : Telco 사업자로서 단말/요금/Network 기반 Legacy 활용.(e.g. 기지국, 매장 활용 등)\n만약, 당사가 Uber와 같은 O2O SVC로 기존 산업을 잠식한다면 커다란 사회적 반대여론에 부딪힐 것임.\n기존 산업을 ICT 기술을 활용하여 스마트화 및 고도화 하는 것이 SK텔레콤의 사회적 사명이며 이에 부합함. e.g. 전통시장 활성화\n당사의 솔루션 개발 및 판매 노하우/채널 활용 가능\n요금 결제 방법에 소액결제를 연동하여 소액결제 이용률을 제고 할 수 있음. (현재 1,100만명이 사용 중)\nSVC 구성 및 프로세스 : Value Packaging\nDevice : 미터기 + Navi(T-map) + LED표시등 + [사이드 미러형 블랙박스?(T.B.D)]\n과금 : 솔루션 이용 월정액[택시용 T-map 전용요금제] + 택시 이용 요금의 ##% 수수료\nSVC\n택시 : 1) 실시간 최적 승객 탐색 : ① 현재 위치 ② 희망 행선지에 따라 최적의 승객 탐색\n-> 승객을 찾아 돌아다닐 필요 없이, 실시간 자동 매칭하여 유휴시간 절감.\n승객 : 1) 택시 탐색 :  App상에서 목적지와 탑승 희망 시간만 설정하면 자동 배차\n3) 자동 결제 : 승객은 타고 내리기만 하면 미리 등록해 놓은 카드나, 핸드폰 소액결제를 통해 자동 결제 가능.\n*Real-time Market (제공자의 숫자가 많은 경우 시세가 떨어지는 시스템) 방식의 요금책정 시스템 도입\n-> 상대적으로 공급이 떨어지는 단거리의 경우 일반 택시에 비해 상대적으로 비싼 요금을 책정.\n반대로, 수요에 비해 공급이 많은 행선지의 경우는 저렴한 요금 책정\nContents : 1) 택시 전용 T-map : T-map 대중교통 app과 연동, T-map이 제공하는 실시간 최적 경로 중에서 고객이 직접 선택 가능.\n2) 안심 택시 : 탑승한 택시 정보(승하차 지점, 이동경로, 승하차 시간)를 미리 지정한 사람에게 APP알림으로 전송 (SMS가 아닌 APP을 이용한 알람 방식 채택 -> 보호자의 APP 설치 유도 -> 네트워크 효과를 활용한 SVC 침투율 극대화)\nSVC Process(도식) - 참고 이미지 수집 필요. (Provider & Customer 입장에서 서비스 순서도를 그려줘야….)\nㅇ 택시\n승객 탐색 : 빈차 상태가 되었을 때 [빈차] 버튼을 누르고 선호하는 행선지를 선택\n승객 선택 : 택시의 현 위치 + 행선지 정보 + 인근의 승객 정보 조합하여 최적의 승객을 우선순위에 따라 List-up -> 승객 선택\n-> 택시 LED 전광판에 APP에서 설정된 승객의 닉네임이나 승객의 회선 뒷자리 번호가 자동으로 표시됨.\n이동 : 승객의 탑승 위치까지의 최적 경로를 T-map으로 안내\n승객 탑승 : APP을 통해 매칭된 승객이 맞는지를 확인\n하차 및 결제 : 승객이 원하는 결제 옵션에 따라 자유롭게 결제 카드/현금/소액결제/OCB -> 택시 결제 및 포인트 적립에 OCB 활용\nㅇ 승객\n택시 탐색 : 자신이 가고자 하는 목적지와 탑승위치 및 시간을 설정\n택시 지정 : 배차된 택시의 도착예상 시간과 현 위치, 서비스 정보(차종, 차 번호, 기사 프로필, 서비스 평점 등)가 App상에 표시됨.\n택시 탑승 : App상에 나타난 택시 정보와 택시를 비교 후 택시 탑승. APP상에서 T-map이 제공하는 최적경로 중의 하나를 선택\n*안심귀가모드 : 선택한 이동경로를 벗어날 경우 App Alert. 밤에 탑승하거나 취중에 택시를 탑승할 경우 미리 설정.\n하차 및 결제 : 상동\n서비스 평가 : 승객은 기사들의 서비스를 평가하여 이를 다음 승객이 참고 할 수 있게 한다.\nRevenue Streams\nBiz Model 가능성_#1 : 어떻게 돈을 버는가?\n첫째, Solution 판매 수익.  -> 차라리, 무료로 설치해주고 월정액을 받는 방식이 나을 수도….\n둘째, Solution 이용 월정액\n셋째, 중계수수료 : 택시 요금의 ##%를 수수료로 징수\nBiz Model 가능성_#2 : 얼마나 돈을 벌 수 있는가?\n전국에 택시가 ##대 운영중이며 이중에서 안심택시 솔루션은 ##대가 들어가 있음.\nFeasibility\n기술적 : OK\n제도적 : OK\n재무적 :\n해결책이 현 시점의 시장/기술 측면에서 적합한가?\nUber가 커다란 사회적 파장을 불러일으키고 있는 시기에 택시업계는 물론 정부의 유력한 Plan B가 될 수 있음.\n기대효과 : <a href=\"http://blog.naver.com/runturtle/220009741034\">http://blog.naver.com/runturtle/220009741034</a>\n외부\n대안 제시 : Uber를 위험하다고 인지하고 있는 택시업계와 정부에 대안 제시\n승차거부 문화 개선 : 승객이 택시를 잡는 방식에서 기사와 승객을 서로의 니즈에 따라 매칭시켜주는 방식으로 패러다임 쉬프트\n-> 승차거부의 여지를 원천적으로 제거.\n보다 안전한 대중교통 이용 체계 구축 : 길가에 서서 손을 흔들거나, 택시로 가장한 각종 범죄의 위협에서 자유로움.내부\n택시 서비스의 질적 향상 및 서비스 이용 만족도 향상\n내부\n행복동행 실현 : 택시업계의 강력한 지지 및 택시 영업 활성화\n대중교통과 결합한 새로운 BM 제시 : 당사의 ICT 기술을 대중교통에 활용하여 추가 비즈니스 창출\n브랜드 인지도 제고 : Uber와 같은 Disruptive BM에 손잡고 대항한다는 의미에서 사회적 인식 개선이 기대됨\n정성적 : MNO 전략 방향성(OTT대비 경쟁 차별화 요소)\n전통 산업에 ICT 기술과 회선을 활용하여 Smart화\nT-map과 당사의 측위기술을 활용한 대중교통 서비스는 OTT 서비스가 모방 할 수 없는 독보적 서비스임.\n정량적 : 비즈모델 가능성\n회선과 결합된 형태의 Solution 판매로 회선 매출 확대\n전국 ##만대의 택시를 대상으로 한 월정책 + 수수료 수익\nAppendix\nCustomer Segments - 서비스 확장을 위해서 우선적으로 공략해야 할 타겟은 누구인가?\n택시업계(솔루션 판매) : 택시 사업자와 정부/지자체 (1st target - 서울시)\n콜택시 이용 유 경험자\nKey Partnership : 반드시 있어야 할 파트너는? (아웃 소싱, Coopetition)\n택시운송사업조합\n마케팅 방안\nㅇ Solution 마케팅\nUber로 인해 골머리를 앓고 있는 정부/지자체가 Solution을 도입하는 택시 사업자에게 보조금을 지급하도록 유도\n택시  사업자 : \"택시운송사업조합\"에 해당 솔루션 제안. 안티 우버 컨셉.\nㅇ App 마케팅\n택시 기사들을 통한 네트워크 마케팅 : 앱을 설치하고 해당 택시 등록번호를 입력하면 해당 택시 기사에게 인센티브 제공.\n서비스 이용 평가(별점)이 높은 기사들에게 정액 컨테스트 시행\n유통망 활용\n우리 택시 타기 캠페인 - 국부가 유출되는 Uber 말고, 우리의 가장, 우리의 아버지, 어머니가 운전하며 우리나라에 세금을 내는 우리 택시를 타자.\n2) 최적 경로 설정 및 모니터링 : ① 택시에 탑재된 승객용 디스플레이를 통해 이동 경로 설정\n② 정해진 이동경로를 벗어나 주행할 경우 알람\n전국 택시중 ##%에만 납품해도 $\\을 벌 수 있음."
+  }
+];
+const CONTENT_HASH = '4ba8d929';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

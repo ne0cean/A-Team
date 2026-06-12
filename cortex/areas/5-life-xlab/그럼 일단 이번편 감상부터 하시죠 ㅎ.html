@@ -1,0 +1,2395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>그럼 일단 이번편 감상부터 하시죠 ㅎ</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">그럼 일단 이번편 감상부터 하시죠 ㅎ</div>
+<div class="date">2016년 8월 18일 목요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-그럼-일단-이번편-감상부터-하시죠-';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 600,
+    "content": "그럼 일단 이번편 감상부터 하시죠 ㅎ"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 191,
+    "w": 600,
+    "content": "현장감을 위해 움짤도 중간 중간 넣어볼게요 ㅎ\n쪽쪽~ 잘빨아 주는 우리 꿀민이~"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 455,
+    "w": 600,
+    "content": "출처: <<a href=\"http://ggulbam39.com/index.php?mid=review&location_srls=38&document_srl=21202325\">http://ggulbam39.com/index.php?mid=review&location_srls=38&document_srl=21202325</a>>"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 763,
+    "w": 600,
+    "content": "발싸~~~\n뽀나스샷~~"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 907,
+    "w": 600,
+    "content": "이벤트는 다음주 중입니다~~&#160;\n자세한 내용은 1탄을 참고해주세요~~~ =)\n그럼 좋은하루용~\n이벤트때&#160;\n꿀민이를 찾으셔서 황홀한 밤을 보내시길~^^\n행운을 빕니다!!&#160;\n출처: <<a href=\"http://ggulbam39.com/index.php?mid=review&location_srls=38&document_srl=21207030\">http://ggulbam39.com/index.php?mid=review&location_srls=38&document_srl=21207030</a>>"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1111,
+    "w": 600,
+    "content": "꿀민여동생 꿀밤</a>\n<a href=\"http://zozh1234.blog.fc2.com/img/201808030357301d4.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1183,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/20180803023439a6f.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1235,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859435837352.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1287,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859435831646.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1339,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859435828709.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1391,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859435822359.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1443,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859435819051.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1495,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859435750384.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1547,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859435748941.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1599,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859435747392.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1651,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859435745636.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1703,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429688873.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1755,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429684128.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1807,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429679407.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1859,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429345425.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1911,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429335295.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1963,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429314721.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2015,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429296588.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2067,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429287465.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2119,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429281166.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2171,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429275065.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2223,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429268728.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2275,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429262141.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2327,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429252365.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2379,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429244266.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2431,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429236155.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2483,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429223275.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2535,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429217267.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2587,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429201251.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2639,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429181339.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2691,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429166968.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2743,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429151696.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2795,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429069451.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2847,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429050515.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2899,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859429042964.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2951,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428990266.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3003,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428969077.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3055,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428959907.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3107,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428955435.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3159,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428950446.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3211,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428931203.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3263,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428926409.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3315,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428921727.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3367,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428916946.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3419,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428912428.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3471,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428907871.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3523,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428903065.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3575,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428884597.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3627,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428879688.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3679,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428874898.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3731,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428860599.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3783,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428812323.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3835,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428710467.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3887,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428695271.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3939,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428685996.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3991,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428665394.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4043,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428655742.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4095,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428646282.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4147,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428636987.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4199,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428603575.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4251,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428589681.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4303,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428564772.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4355,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428529122.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4407,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859428475475.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4459,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427852007.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4511,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427834774.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4563,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427807244.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4615,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427779338.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4667,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427769462.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4719,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427748174.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4771,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427719216.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4823,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427677433.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4875,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427662691.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4927,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427575059.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4979,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427563984.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5031,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427552867.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5083,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427508186.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5135,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427482676.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5187,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427460415.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5239,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427438525.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5291,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427381582.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5343,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427367522.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5395,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/20180803022724ecf.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5447,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427298723.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5499,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427283893.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5551,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427264781.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5603,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427248899.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5655,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427094505.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5707,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427075261.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5759,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427061877.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5811,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427045963.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5863,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859427032141.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5915,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426986119.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 5967,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/201808030225503d2.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6019,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426969286.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6071,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426896071.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6123,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426886203.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6175,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426809541.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6227,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426796702.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6279,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426770378.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6331,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426746553.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6383,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426548174.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6435,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426543521.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6487,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426538917.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6539,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426533947.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6591,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426529043.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6643,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426524241.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6695,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426516246.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6747,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426506263.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6799,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426502852.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6851,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426494675.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6903,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426488185.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 6955,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426483584.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7007,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426478701.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7059,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426473713.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7111,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426468662.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7163,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426394421.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7215,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426381608.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7267,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426368431.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7319,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426341394.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7371,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426324358.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7423,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426308279.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7475,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426289355.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7527,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426278469.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7579,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426267888.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7631,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426166852.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7683,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426156798.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7735,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426151564.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7787,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426146841.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7839,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426142188.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7891,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426137162.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7943,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426133618.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 7995,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426128865.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8047,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426124201.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8099,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426120953.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8151,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426116379.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8203,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426111869.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8255,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426108854.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8307,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426104309.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8359,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426099528.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8411,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426094224.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8463,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426090721.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8515,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426085582.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8567,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426080251.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8619,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426075097.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8671,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426070049.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8723,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426057238.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8775,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859426000577.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8827,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425990743.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8879,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425985344.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8931,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425980679.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 8983,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425976007.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9035,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425971525.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9087,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425966816.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9139,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425961868.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9191,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425952342.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9243,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425947175.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9295,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425887741.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9347,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425858155.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9399,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425800615.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9451,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425774251.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9503,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425742387.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9555,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425682615.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9607,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425671407.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9659,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425660623.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9711,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425650684.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9763,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425637818.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9815,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425610735.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9867,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425597602.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9919,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425579475.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 9971,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425555097.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10023,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425522495.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10075,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425451236.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10127,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425311532.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10179,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425289785.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10231,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425244182.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10283,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425220536.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10335,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425205128.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10387,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859425192406.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10439,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424885126.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10491,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424767832.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10543,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424756737.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10595,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424744213.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10647,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424669909.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10699,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424584257.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10751,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424574317.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10803,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424550108.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10855,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424532913.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10907,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424502349.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 10959,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424491213.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11011,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424479832.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11063,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424454841.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11115,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424379909.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11167,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424375234.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11219,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424370435.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11271,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424365235.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11323,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424359529.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11375,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424350334.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11427,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424340953.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11479,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424335671.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11531,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424330935.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11583,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424325882.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11635,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424320671.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11687,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424314184.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11739,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424308795.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11791,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424303881.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11843,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424299109.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11895,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424294366.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11947,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424238866.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 11999,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424235352.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12051,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424230621.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12103,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424225734.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12155,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424222331.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12207,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424217354.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12259,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424212254.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12311,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424207311.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12363,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424202339.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12415,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424197381.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12467,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424192292.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12519,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424181878.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12571,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424178437.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12623,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424173239.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12675,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424104313.gif/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12727,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424055286.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12779,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859424030016.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12831,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423993117.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12883,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423982161.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12935,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423973902.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 12987,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423941769.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13039,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423929132.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13091,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423917223.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13143,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423907302.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13195,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423885354.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13247,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423874667.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13299,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423858716.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13351,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423847182.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13403,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423822591.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13455,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423752918.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13507,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423748447.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13559,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423739315.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13611,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423730252.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13663,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423721179.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13715,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423716714.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13767,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423712251.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13819,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423707476.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13871,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423702383.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13923,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423697536.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 13975,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423688182.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14027,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423678562.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14079,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/14859423606167.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14131,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/1485942967488.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14183,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/1485942932475.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14235,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/1485942919442.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14287,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/1485942914238.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14339,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/148594270035.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14391,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/148594259571.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14443,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/148594240176.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14495,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/3032380339_TqkD4OvK_113835feb480fd220723b5f5cbbf51849e599521.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14567,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/3032380339_nW3H5PpM_b5f9e9c97163c0ac602d99ae7c7abed5d5f2db2c.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14639,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/3032380339_JsDKi0n5_1d5b20a943e3ea8ae25e453db43decd7a16656ca.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14711,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/3032380339_HfG5ql1K_e85593bebfcfa00ffc7174c599abc795d6f67d17.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14783,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/3032380339_G6nyICOq_54fa5867448ae121adb6bda37bf820a48b7c44dc.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14855,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/3032380339_CNYmL29n_01c19c0285b57d95fc731ad550e33575fc325f7a.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14927,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/3032380339_6vW9ZS1a_0e5979ae8821f12992f66cc112f331b569dc6b03.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 14999,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/3032380339_6pucSLe2_85017842788184b15fe2a88283f1c1c20a744bfb.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 15071,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/1485942901157.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 15123,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/1485942888947.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 15175,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/1485942886545.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 15227,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/1485942885579.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 15279,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/1485942741279.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 15331,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/1485942701866.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 15383,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/1485942635707.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 15435,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/1485942616186.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 15487,
+    "w": 600,
+    "content": "<a href=\"http://zozh1234.blog.fc2.com/img/1485942418714.jpg/\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 15539,
+    "w": 600,
+    "content": "출처: <http://zozh1234.blog.fc2.com/blog-entry-21.html</a>>"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 15583,
+    "w": 600,
+    "content": "갤러리</a>\n\n집</a>\n사진</a>\n블로그</a>\n동영상</a>\n팬티 스타킹</a>\n나일론 양말</a>"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 15775,
+    "w": 600,
+    "content": "출처: <<a href=\"https://tumblrgallery.xyz/tumblrblog/gallery/1010636/9.html\">https://tumblrgallery.xyz/tumblrblog/gallery/1010636/9.html</a>>"
+  }
+];
+const CONTENT_HASH = '551bafc2';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

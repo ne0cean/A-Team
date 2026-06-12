@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fintech - Mobile Social 결제[더치페이/n분의1] 서비스 : 위시리스트 넣기</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Fintech - Mobile Social 결제[더치페이/n분의1] 서비스 : 위시리스트 넣기</div>
+<div class="date">2014년 9월 15일 월요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Fintech-Mobile-Social-결제-더치페이-n분의1-서비스-위';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 648,
+    "y": 19,
+    "w": 600,
+    "content": "*더치페이 : 각자가 이용한 서비스/재화의 비용을 각자가 부담하는 것.\n*n분의 1 : 전체 총액을 전체 인원의 수로 나누어 분담하는 것."
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 152,
+    "w": 600,
+    "content": "Background : Core Needs 발굴\n기존의 어떤 문제/불편을 해결하고자 하는가?\n한국 사회에서는 회식이나 모임에서 1명이 전체 금액을 부담하는 경우가 많음.\n'돈'에 대해 언급하는 것 자체를 터부시 하는 관습적 성향 탓에, 1명이 결제하는 방식이 부담되면서도 더치페이나 n분의1 문화가 좀처럼 활성화 되지 않고 있음.\n굳이 서로간에 \"돈\"을 요구하거나 언급하지 않아도 자연스럽게 결제할 수 있도록 하는 결제 방식에 대한 구조적 접근이 필요함.\n그럼에도, 기존 그리고 현행 모바일 결제(카카오 페이, 애플페이, 앱 카드, 모바이 결제 등)는 상점-개인, 개인-개인간의 1:1 결제 및 송금을 지원하는데 국한되어 있음.\n모바일 결제가 가능하다는 것은 물리적, 시공간적 제약을 극복할 수 있다는 의미임.\n모바일의 강점을 활용하여 서비스/재화를 여러 사람이 동시에 이용할 때 이에 대한 요금/비용을 이용자들이 나누어 지불 가능한 시스템을 구축하고자 함.\n그 문제/불편을 해결하는 것의 가치 / 시장에 대한 파급력 / 사회적 의미는 무엇인가?\n더치페이/n분의1 결제(이하 \"Social(공동) 결제\"라 함.) 문화 활성화로, 1인이 전체 금액을 결제 하는데 대한 부담 완화 -> 1회 결제 비용에 대한 부담 완화로 소비 활성화 견인\n조의금 부탁할 때????? 재상이형????\nSocial(공동) 송금/결제 개념의 도입 : 본 서비스에 가입만 되어있으면 자유롭게 공동결제가 가능.\ne.g. 축의금/조의금, 단체 회비 결제, 각종 경조사 공동선물 결제 등에 자유롭게 활용\n결제 정보의 고도화 : 1인이 결제하는 방식에서 해당 서비스/재화를 이용한 모든 이가 결제에 참여함으로써 결제/소비 Big Data 자체가 보다 고도화됨.\n기존 해결책은 무엇이며 어떻게 문제를 해결하고 있는가?\n기존의 Social(공동)결제는 결제 시점에 갹출하여 결제하거나, 1인이 대신 총액을 결제한 후, 추후 1:1 송금이나 직접 현금을 건네는 방식으로 이루어져 왔음.\n이는 응당 지불하거나 받아야 할 돈임에도 서로에게 '돈'에 대해 언급하는 자체를 꺼려하는 문화 탓에, 상당한 심리적 장벽과 부담이 상존해왔음.\n기존 해결책의 한계는 무엇인가?\n현재의 모바일 결제(모바일 뱅킹, 카카오 페이, 애플 페이, 앱타드 등)는 기업-개인 or 개인-개인간 1:1 direct 송금 및 결제에 focus되어 있음.\n이는 모바일의 특성과 장점을 활용하지 못하고 기존의 결제 방식이 모바일로 이행된 것에 지나지 않음.\n단지 \"모바일로 간편하게 결제를 할 수 있다.\"라는 Value만으로는 고객들에게 어필하기 어려움.\n카카오페이 또한 기존 '앱카드'와 간편 결제 등 다른 전자결제 수단과 큰 차별성이 없는 만큼 시장에 영향은 크지 않을 것으로 예상 됨.\n아직 발굴되지 않은 모바일 결제의 Core needs는 단순한 결제 수단의 대체(신용카드/현금 -> 모바일)가 아닌 결제 방식의 진화임. 고객들이 경험해보지 못한 형태의 결제 방식을 제시 할 수 있어야 함.\n공동결제는 고래로부터 존재하던 방식의 경제활동임에도 현재까지 이를 지원하는 결제 서비스는 전무함.\nSolution : Core Value\n어떤 대안/서비스 인가?\n1가지 서비스/재화에 대한 다중결제 방식으로 기존에 존재하지 않던 방식의 결제 서비스임.\n경쟁 차별화 요소 : 기존의 해결책(상품/서비스)과 어떻게 다른가?\n모바일 뱅킹, 카카오페이, 애플 페이 등 기존 서비스가 모바일이나 NFC를 통한 \"결제 단계의 간소화\"에 초점을 맞춘데 비하여. 본 제안은 Social(공동) 결제에 포커스를 맞춤으로써, 구체적인 Usage 및 사용상황을 제시하고 이를 토대로 SVC 침투율 극대화 가능.\n충전 방식이 아닌 \"소액결제\"방식을 활용하므로 환금성이 떨어지는 포인트를 충전하는데 따른 거부감을 상쇄 가능.\nMNO 전략 방향성(OTT대비 경쟁 차별화 요소) : Telco 사업자로서 단말/요금/Network 기반 Legacy 활용.\ne.g. 기지국, 매장 활용 등\nMNO 사업자의 Legacy인 \"소액결제\"를 활용함으로써 인프라 구축 및 초기 침투가 용이함.\n소액결제를 활용하므로 공인인증서 사용이 불필요함. -> One touch 결제 가능.\n단말 혹은 T전화 등의 플랫폼에 embedded 및 연동 가능.\nOCB, Syrup(구 스마트월렛) 등의 그룹 내 SVC와 Co-work 및 synergy 창출 가능.\nSVC 구성 및 프로세스 : Value Packaging\nPlatform : 고객용 App + 사업자용 App\n과금 : 결제 수수료 + 가맹 수수료\nSVC :\n더치페이/서로 상이한 금액을 공동결제(1대 다 방식의 송금)\nn분의 1\n일반 1:1 결제/송금 서비스\nContents\n쿠폰 발급 : 상점에서 본 SVC를 활용하여 결제 시 결제한 개별 고객에게 모바일 쿠폰 발급 가능\nㅇ 사업자 : 고객에게 쿠폰이나 할인권 발급 가능\n-> 개별 고객에 대한 Retention 증대 및 CRM 기반 마련\nㅇ 고객 : 할인권/쿠폰 Book -> 유효기간 알람 (SK Planet의 Syrup과 연동)\n-> 고객은 발급받은 쿠폰의 유효기간 알람 수신 서비스를 받을 수 있음.\n자동 가계부 작성 기능 : 결제 위치, 결제 메뉴, 일시 등을 자동으로 Timeline으로 작성 및 통계 제공\n-> 기타 모바일 가계부와 연동 및 퍼블리싱 가능하도록 구현\nSVC Process(도식) - 참고 이미지 수집 필요. (Provider & Customer 입장에서 서비스 순서도를 그려줘야….)\n일반고객 : App설치 및 서비스 가입 동의 -> 각 통신사별 소액결제 연동 동의\n사업자/법인 : 카운터 직원 혹은 법인용 단말(Phone or 태블릿)에 App설치 및 당사와 결제서비스 가맹 계약 체결\n실사용 시 : 더치페이 or n분의 1 결제 여부를 사전에 고객과 comm.\nn분의 모드\n1. 상점에서 총 결제금액과 인원을 입력 -> 결제 코드 생성\n2. 고객에게 구두로 결제 코드를 고지함\n3. 고객이 결제 코드를 App상에서 입력 -> 자신이 결제해야 할 금액 확인 후 원터치 결제 승인\n더치페이 모드 (선불/후불 모두 가능)\nㅇ 선불\n1. 사업자용 App으로 결제 요청을 고객의 회선/ID를 통해 발신 -> 고객은 거래 내역 및 금액 확인 후 '승인'\nㅇ 후불\n1. 주문 시 : 사업자용 App에서 테이블의 좌석별로 주문을 달아놓고 고객 회선번호/ID를 matching (App으로 인증)\n* 메뉴판에 바코드나 QR코드를 삽입하여, 주문 시 고객이 폰을 통한 스캔만으로 선결제 가능\n2. 결제 시 : 해당 테이블 전체 고객에게 각기 결제승인 메시지 일괄 발송 -> 고객은 수신한 메시지에서 메뉴(서비스 내역) 및 금액확인 후 '승인'선택 -> 고객 모바일 영수증 발급\n1대 다 송금 모드 : 결제에 참여할 사람을 자체 채팅방이나, 연락처/카톡/라인 등에서 선택 -> 채팅방 or SMS/카톡/라인 통해 결제 금액 전송 -> (App 미 설치 고객에게는 설치 URL 전송) -> 수신 한 메시지에서 금액 확인 후 '승인' 선택.\n일반 1:1 결제/송금 서비스\n송금 할 대상 선택(회선 번호 나 App ID로 선택 - T전화 연동 가능) -> 송금할 금액 입력 -> 송금완료 및 SMS 발송\nRevenue Streams\nBiz Model 가능성_#1 : 어떻게 돈을 버는가?\n결제 수수료 : 송금 및 결제액의 일부를 수수료로 받는 방식\n*소액결제 수수료 산정 Logic 준용\n가맹점 수수료 :\n1차적으로는 결제 수수료 모델로 수익을 거두고,\n플랫폼이 자리를 잡게될 경우, 2차적으로는 개인간 커머스(직거래)와 지인기반(Social) 공동구매로 확장하여 추가 수익 창출 가능.\nBiz Model 가능성_#2 : 얼마나 돈을 벌 수 있는가?\n현재 모바일 결제 시장 규모\n각 모바일 결제 서비스 & 카드 결제 수수료 수익률\nFeasibility\n기술적 : OK\n제도적 : 소액결제와 연동하는 방식에 대한 법률적 huddle이 없는지 검토 필요.\n재무적 : 개발에 소요되는 비용은?? 고객에게 소액결제 금액이 과금되기 이전에 미리 결제해줄 자금을 운영해야 함. 아니면 소액결제 말고 카드사에 위탁하는 방식으로 처리?\n해결책이 현 시점의 시장/기술 측면에서 적합한가?\n기대효과 : <a href=\"http://blog.naver.com/runturtle/220009741034\">http://blog.naver.com/runturtle/220009741034</a>\n외부\n공동으로 비용을 부담하거나 분담할 경우 결제가 용이해짐\n고객이 선택할 수 있는 결제 방식의 다양화\n기존 모바일 결제 tool들이 제공하는 방식은 Default로 제공하고 이에 Socil결제 까지 제공하므로\n본 서비스를 통해서 모든 방식의 결제/송금이 가능 -> 소비 흐름을 한번에 파악할 수 있음.\n내부\n소액결제 활성화를 통한 수익 창출\nMy shop에 연동하여 My shop 솔루션 판매율 제고 가능\n보다 구체적인 고객 Transaction data 수집 및 분석 가능\n정성적\nMNO 사업자의 Legacy인 \"소액결제\"를 활용함으로써 인프라 구축 및 초기 침투가 용이함.\n소액결제를 활용하므로 공인인증서 사용이 불필요함. -> One touch 결제 가능.\n단말 혹은 T전화 등의 플랫폼에 embedded 및 연동 가능.\nOCB, Syrup(구 스마트월렛) 등의 그룹 내 SVC와 Co-work 및 synergy 창출 가능.\n정량적\n현재 모바일 결제 시장 규모\n각 모바일 결제 서비스 & 카드 결제 수수료 수익률\nAppendix\nCustomer Segments - 서비스 확장을 위해서 우선적으로 공략해야 할 타겟은 누구인가?\n모바일 결제 이용 고객\n더치페이/n분의 1 문화가 익숙한 YT\nKey Partnership : 반드시 있어야 할 파트너는? (아웃 소싱, Coopetition)\nSK Planet : OCB, Syrup\n마케팅 방안\n더치페이가 필수적이고 빈번한 사업자와 필수적으로 연계해야함.\n11번가 결제 옵션으로 등록\n결제 금액비율에 상응하는 Point 제공 -> Data나 OCB로 전환하여 활용가능\n초기 네트워크 마케팅/MGM\n지인에게 설치 URL을 전송해서 해당 링크로 인입된 지인이 가입하면 포인트가 돌아오는 방식\nApp을 설치하면 쿠폰이나 포인트를 받을 수 있는 URL을 지인에게 전송하게 하는 이벤트\n-> 자신의 돈을 쓰지 않고 지인에게 인심 쓸 수 있는 것이 핵심.\n쿠폰이나 결제 가능금액을 선물(앱을 설치해야만 쓸 수 있고, 유효기간이 있는)"
+  }
+];
+const CONTENT_HASH = '7a97ec34';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

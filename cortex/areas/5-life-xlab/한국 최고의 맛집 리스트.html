@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한국 최고의 맛집 리스트</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">한국 최고의 맛집 리스트</div>
+<div class="date">2013년 10월 10일 목요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-한국-최고의-맛집-리스트';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 595,
+    "content": "한국 최고의 맛집 리스트\n서울 강북식당 100:&#160;<a href=\"http://begopa1092.blog.me/80194037461\" style=\"font-family:lucida grande;font-size:9.5pt;background-color:white\">http://begopa1092.blog.me/80194037461</a>\n서울 강남식당 100:&#160;<a href=\"http://begopa1092.blog.me/80194035641\" style=\"font-family:lucida grande;font-size:9.5pt;background-color:white\">http://begopa1092.blog.me/80194035641</a>\n지방 식당 144:&#160;<a href=\"http://begopa1092.blog.me/80194428553\" style=\"font-family:lucida grande;font-size:9.5pt;background-color:white\">http://begopa1092.blog.me/80194428553</a>\n원본 위치 <<a href=\"https://www.facebook.com/pure0cean\">https://www.facebook.com/pure0cean</a>>\n★ 서울 지하철 노선 별 데이트 장소 ★\n1호선\n신도림 - 디큐브시티\n영등포 - 타임스퀘어, 에베레스트(인도.네팔식 음식점)\n신길 - 매운짬뽕\n노량진 - 길거리음식(컵밥+너무 많아서 다 쓸순 없음ㅋㅋ)\n서울역 - 서울역박물관, 남산 김구 공원\n시청 - 만족오향족발, 덕수궁 돌담길+정동길, 덕수궁(서울시립미술관)\n종각 - 젊음의 거리(거리상으로 서울의 센터), 떼아떼베네(종로 제1의 파스타집)\n종로5가 - 광장시장(마약김밥, 빈대떡, 창신육회)\n동대문 - 의류시장, 못난이 핫도그(유난히 동대문에 많음. 그 이유는 모르겠음.)\n신설동 - 서울풍물시장(전통있는 물건의 박물관(?))\n제기동 - 용두동 쭈꾸미 골목(카레와 쭈꾸미의 특이한 조합, 맛있게 매움)\n청량리 - 홍릉수목원(서울 유일의 정통 수목원)\n회기 - 경희대(개인적으로 1st 외관의 학교), 회기 파전 골목(저렴하고 왁자지껄.)\n2호선\n도림천- 도림천(도림천역~신림까지 이어지는 천, 일부 구간은 공사중.)\n신림 - 신림 순대 타운(백순대가 특히 유명하다. 느끼할 수도 있음.)\n봉천 - 봉천 녹두 거리(물가가 매우 싸서 서울대 생들에게 인기.)\n방배 - 서리풀공원+서리골공원+몽마르뜨공원(서울에서 녹음진 곳으로 가장 유명함, 누에다리 야경으로도 유명하다.)\n강남 - 미즈컨테이너, 서가앤쿡 등(너무 많아서 나열 불가, 서가앤쿡 뿐만 아니라 최근에 프랜차이즈들의 향연... 획일성이 아쉽다. 그래도 분모가 많은 만큼 갈 곳은 많다.)\n선릉 - 아마네(돈코츠라멘.차슈덮밥.야끼소바의 명소. 중앙대생이라면 알 듯.)\n삼성 - 코엑스(COEX)(맛집은 없다. 푸드 코트 일색이라 당황함.)\n잠실 - 석촌호수(동호와 서호 2개의 호수로 이루어진 큰 호수, 매년 벚꽃 축제가 열리기도 한다. 개인적으로 가장 좋아하는 호수.), 롯데월드, 방이동 먹자 골목(무한 리필 갈비, 곱창 쪽이 유명함.)\n잠실나루 - 잠실나루(잠실나루역에서 한강 까지 이어지는 1km정도 나무산책길 으뜸)\n건대입구 - 건대 양꼬치 골목(여기가 원조라고 하네.), 건대 먹자 골목(먹자 골목이라고 기대는 금물. 치킨집과 술집이 70프로 이상.)\n왕십리 - Enter6(코엑스의 Enter6와 함께 서울에는 2개 있다. 정체성이 좀 애매한 쇼핑몰...차라리 디큐브시티나 타임스퀘어가 좋다.)\n상왕십리 - 상왕십리 곱창 골목(진정한 곱창과 부추와 조합 추구.)\n신당 - 신당동 떡볶이 타운(제일 첫번째 마복림 할머니 집보다는 옆의 막내 아들집의 평이 더 낫기도 함. 나도 마찬가지 생각.)\n이대 - 이화여대(외관이 가장 좋은 학교라고 생각함.)\n신촌\n홍대입구 - 진정 먹을 것이 많다.(뿔레치킨, 이런 된장, 함박식당, 비너스키친, 홍대 돈부리(프랜차이즈), 젠장버거(원조)를 꼽을 수 있음, 빵집도 많다('몹시'와 '미카야'라는 집의 치즈케익은 케이크 마니아들에게 정말 유명))\n합정 - 서교동 카페골목(un프랜차이즈, 특색있는 예쁜 카페들이 많음), 봉주르하와이(프랑스와 하와이 가정식, 거의 분위기 값인듯), 메세나폴리스(합정의 신 쇼핑몰)\n3호선\n남부터미널 - 예술의 전당(한가람 미술관), 백년옥(두부요리집, 예술의 전당 근처에 마땅히 식당이 없는데 여기는 괜찮다.)\n고속터미널 - 서래마을(카페골목, 브런치로 가장 유명한 곳, '스토브'와 '더페이지'라는 두 곳이 상대적으로 브런치 가격이 괜찮다.)\n신사 - 신사동 가로수길(프랜차이즈와 신사동 만의 상호가 적절히 분배되어 있어서 좋아함, '젠블루바드'라는 마카롱집 등 후식으로도 유명.), 라스팅(무한리필스테이크) 불칸(함박스테이크) 킹콩스테이크(스테이크집)\n동대입구 - 장충동 족발 골목(공덕동에 비해 조용하고, 서비스도 미진하다.)\n안국 - 인사동 쌈지길(한국적 분위기 조성(100프로 한국 간판) - 달새는 달만 생각한다(한국식 카페, 비오는 날 10프로 할인), 별다방 미스리(전자보다 조금 더 현대적, 추억의 도시락으로 유명)), 삼청동 카페 골목(카페 골목이지만 신발 가게가 정말 많다, 소수의 양식집말고는 음식점이 잘 없다.), 파머스반(햄버거 집), 북촌 한옥 마을(한번 가볼 만한 정도.)\n경복궁 - 경복궁, 통인시장 도시락카페(그 안에서 약속된 화폐로 계산이 이루어짐, 이색적인데 맛이 뛰어나진 않음), 토속촌(삼계탕집), 송스키친(한국적 양식)\n4호선\n동작 - 국립 현충원(매년 수양벚꽃 축제가 열림)\n이촌 - 국립 중앙 박물관\n삼각지 - 명화원(찹쌀 탕수육), 전쟁 기념관\n회현 - 남대문 시장(찰밥 하나만 시켜도 밑반찬, 칼국수, 쫄면이 나옴. 입구에 호떡집), 북창동 먹자 골목(별 거 없음.)\n명동 - 불낙지불냉면, 명동교자(칼국수+만두), 명동돈까스\n충무로 - 남산(남산가는 전기 버스 타는 곳, 남산골 한옥마을, 남산타워, 남산 케이블카, 서울 애니메이션 박물관(남산 갈 때 한 번 들려보시길. 무료.))\n혜화 - 대학로(연극의 메카), 돌쇠 아저씨네(혜화 제1 맛집 명소), 창경궁(창경궁 돌담길), 이화 벽화 마을(아담하니 낯익은 벽화들.), 낙산 공원(서울 성곽)\n미아삼거리 - 북서울 꿈의 숲\n노원 - 노원 문화의 거리(별 거 없음.)\n5호선\n목동 - 목동 로데오 거리(차라리 압구정을 갑시닼ㅋㅋ)\n여의도 - 여의도 공원, 윤중로(벚꽃 축제의 메카, 차량 all 통제 쩔었음!!!!), 여의도 IFC몰, 63빌딩(입장료는 1인당 12,000원인데 아주 허무함.)\n여의나루 - 여의나루 공원\n마포 - 마포 갈비 골목(서서갈비도 유명하고 다 기본적으로 맛있음. 요즘은 마포에서 공덕쪽으로 음식점들이 이동하는 듯.)\n공덕 - 공덕동 족발 골목(족발의 왕국. 파족발을 꼭 드셔보길.) 전골목(전+튀김 아마 서울에서 가장 많은 종류인 듯.)\n서대문 - 경희궁, 서대문, 서울역사박물관, 독립문, 한옥집(김치찜으로 유명함.)\n광화문 - 광화문(세종대왕, 이순신 동상, 교보문고(서점 중 가장 크다고 함.))\n광나루 - 광나루 한강 자전거 공원.\n올림픽공원 - 올림픽공원(서울에서 두 번째로 큰 부지라고 함. 피크닉 가기 좋을 듯.)\n6호선\n연신내 - 연신내 로데오 거리(별 거 없음.)\n불광 - 불광천(도림천 다음으로 괜찮은 하천.)\n응암 - 응암동 감자탕 골목(이름값인 듯.)\n월드컵경기장 - 하늘공원(서울에서 3번째로 큰 부지. 꽤 괜찮다.), 난지캠핑장(그린플러그드공연장)\n이태원 - 이태원 세계 음식 거리(프랑스, 스페인, 브라질, 태국, 중국, 이탈리아, 독일 등 갖가지 나라의 음식들을 레스토랑으로 개량해 비교적 높은 값에 판매하고 있다. 케밥도 유명함.), 이태원 앤틱 가구 거리, 이슬람 사원, 타르틴(가장 유명한 타르트 가게. 맛도 분위기도 괜찮음. 가격은 꽤 있다.)\n한강진 - 한강진 꼼지 가로수길, 블루스퀘어, 부자 피자(피자 마니아들에게 인기. 대기 시간 기본 30분.)\n안암 - 고려대(예쁜 학교로 경희대, 이대와 함께 빅3에 드는 듯.)\n7호선\n보라매 - 보라매 공원(한 바퀴 돌며 산책하기 제격.)\n신대방삼거리 - 디진다 돈까스(도전받는 돈까슼ㅋㅋ. 양념 돈까스 양도 좋고 맛있음.)\n상도 - 상도소곱창(아는 사람은 안다는...)\n청담 - 청담동 명품 거리(갖가지 명품들이 모여 있어서 구경하는 새로운 재미가 있다, 야경이 무척 멋있으니 7.8시에 가면 딱 좋을 듯. 숨겨진 명소로 자주 추천하는 곳.)\n뚝섬유원지 - 뚝섬 유원지(피크닉 장소로 나름 좋은 듯, 자벌레 모양의 건물, 오리배로도 유명하다. 여름에는 아이들 대상으로 야외 수영장 개방하는 듯.)\n어린이대공원 - 어린이 대공원(어린이만 가는 곳이라는 건 편견. 동물원.식물원 등 테마별로 잘 갖춰져 있다.)\n8호선\n문정 - 문정동 로데오 거리(별 거 없음.)\n장지 - 가든파이브(외관만 멋잇고 안에는...슬프다ㅋㅋㅋ)\n가락시장 - 가락시장(5일장으로 유명한 곳. 4.9일날 개장한다. 눈요기로 한 번 가보면 좋다.)\n9호선\n선유도 - 선유도 공원(최근에 갔는데 조명공사 해 놔서 더 예뻐짐. 강추.)\n국회의사당 - 국회의사당\n샛강 - 샛강 생태 공원(식물들 사이사이로 산책하기 딱 좋다.)\n구반포 -애플 하우스(동네 상가의 떡볶이 집인데 길게 줄서서 먹는 다는 곳. 한 번 가봤는데 분위기도 맛도 괜찮은 듯 분식집 떡볶이에 질렸다면 추천!)\n분당선\n서울숲 - 서울숲(서울에서 가장 큰 부지, 말할 필요가 없다. 사슴 먹이 주는 것(?)으로도 유명하다.), 퍼니주키친(규동이 괜찮음.)\n압구정로데오 - 압구정 로데오 거리(로데오 거리 중 갑. 음식점은 생각보다 마땅한 곳은 없지만. 로데오로 충분히 커벜ㅋ.)\n신분당선\n양재시민의숲 - 양재 시민의 숲(서울숲, 북서울 꿈의 숲 보다 조용해서 새로운 느낌.)\n원본 위치 <<a href=\"https://www.facebook.com/pure0cean\">https://www.facebook.com/pure0cean</a>>\nhttp://www.clien.net/cs2/bbs/board.php?bo_table=park&wr_id=21738714</a>\n추천 여행지 50선\n1위 - 가평 아침고요수목원&#160;\n2위 - 이천온천&#160;\n3위 - 평창 허브나라&#160;\n4위 - 거제 외도 해상농원&#160;\n5위 - 홍성 그림이 있는 정원&#160;\n6위 - 당진 왜목마을&#160;\n7위 - 평창 삼양대관령목장&#160;\n8위 - 광양 매화마을&#160;\n9위 - 해남 땅끝마을&#160;\n10위 - 청도 운문사&#160;\n11위 - 부안 변산반도 국립공원&#160;\n12위 - 전주 덕진공원&#160;\n13위 - 보성 녹차밭&#160;\n14위 - 수원 화성&#160;\n15위 - 춘천 남이섬&#160;\n16위 - 영월 별마로천문대&#160;\n17위 - 구례 산수유마을&#160;\n18위 - 원주 흥원창&#160;\n19위 - 원주 치악산국립공원&#160;\n20위 - 태안 꽃지해수욕장&#160;\n21위 - 평창 보광휘닉스파크&#160;\n22위 - 영주 부석사&#160;\n23위 - 고창 선운사&#160;\n24위 - 당진 대호방조제&#160;\n25위 - 예산 덕산온천&#160;\n26위 - 진주 반성수목원&#160;\n27위 - 청원 상수허브랜드&#160;\n28위 - 태안 안면도 자연휴양림&#160;\n29위 - 영암 월출산 국립공원&#160;\n30위 - 부안 내소사&#160;\n31위 - 담양 소쇄원&#160;\n32위 - 가평 청평호&#160;\n33위 - 남원 광한루원&#160;\n34위 - 속초 설악산 국립공원&#160;\n35위 - 안동 하회마을&#160;\n36위 - 하동 쌍계사&#160;\n37위 - 마산 돝섬해상유원지&#160;\n38위 - 이천 지산포레스트리조트&#160;\n39위 - 청송 주왕계곡&#160;\n40위 - 원주 용수골계곡&#160;\n41위 - 천안 유관순열사 유적지&#160;\n42위 - 구례 지리산온천랜드&#160;\n43위 - 가평 유명산자연휴양림&#160;\n44위 - 청원 청남대&#160;\n45위 - 평창 금당계곡&#160;\n46위 - 용인 삼성교통박물관&#160;\n47위 - 서천 서천해양박물관&#160;\n48위 - 평창 오대산국립공원&#160;\n49위 - 동해 망상해수욕장&#160;\n50위 - 인천 을왕리해수욕장&#160;\n원본 위치 <<a href=\"https://www.facebook.com/pure0cean\">https://www.facebook.com/pure0cean</a>>"
+  }
+];
+const CONTENT_HASH = '15fd30b1';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

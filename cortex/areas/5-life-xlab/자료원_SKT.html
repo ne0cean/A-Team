@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자료원_SKT</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">자료원_SKT</div>
+<div class="date">2019년 7월 21일 일요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-자료원-SKT';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "html",
+    "x": 48,
+    "y": 139,
+    "w": 720,
+    "html": "\r\n\t\t\t<ul>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">매경이코노미&#160;</span><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">sktelecom1 password1</span></p>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">북저널리즘&#160;</span><a href=\"mailto:soojinvan@sk.com\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">soojinvan@sk.com</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;tlibrary18</span></p>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">시사저널&#160;</span><a href=\"http://www.sisapress.com/\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">http://www.sisapress.com/</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;&#160;</span><a href=\"mailto:soheechoi@sk.com\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">soheechoi@sk.com</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;password1!</span></p>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">시사</span><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">in&#160;</span><a href=\"http://www.sisain.co.kr/\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">http://www.sisain.co.kr/</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;&#160;</span><a href=\"mailto:soheechoi@sk.com\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">soheechoi@sk.com</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;password1!</span></p>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">주간경향&#160;</span><a href=\"http://weekly.khan.co.kr/\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">http://weekly.khan.co.kr/</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;sktelecom22 tlibrary18</span></p>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">주간동아&#160;</span><a href=\"http://weekly.donga.com/\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">http://weekly.donga.com</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;tlibrary password1212</span></p>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">한경</span><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">business&#160;</span><a href=\"http://www.kbizweek.com/\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">http://www.kbizweek.com/</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;&#160;</span><a href=\"mailto:soheechoi@sk.com\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">soheechoi@sk.com</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;password1</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Apple Machine Learning Journal&#160;</span><a href=\"https://machinelearning.apple.com/\" style=\"font-family:돋움;background-color:#181a1b\">https://machinelearning.apple.com/</a></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&amp;rschRegTyCd=JNL&amp;searchType=NAMEDESC&amp;searchText=&amp;rschTyCd=&amp;rschDbCd=JC057\" style=\"font-family:돋움;background-color:#181a1b\">Apple이&#160;직접&#160;운영하는 MAchine Learning&#160;관련&#160;리서치&#160;블로그</a></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Automotive News&#160;</span><a href=\"http://www.autonews.com/\" style=\"font-family:돋움;background-color:#181a1b\">http://www.autonews.com/</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"mailto:soheechoi@sk.com\" style=\"font-family:돋움;background-color:#181a1b\">soheechoi@sk.com</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;password1</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&amp;rschRegTyCd=JNL&amp;searchType=NAMEDESC&amp;searchText=&amp;rschTyCd=&amp;rschDbCd=JC060\" style=\"font-family:돋움;background-color:#181a1b\">자동차&#160;산업&#160;관련(브랜드,&#160;모빌리티, Special Report&#160;등)&#160;뉴스&#160;제공</a></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Fol:in&#160;</span><a href=\"https://www.folin.co/\" style=\"font-family:돋움;background-color:#181a1b\">https://www.folin.co/</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"mailto:seinchoi@sk.com\" style=\"font-family:돋움;background-color:#181a1b\">seinchoi@sk.com</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;tlibrary17</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Journal of Consumer Research (JCR)&#160;</span><a href=\"http://www.jstor.org/action/showPublication?journalCode=jconsrese\" style=\"font-family:돋움;background-color:#181a1b\">http://www.jstor.org/action/showPublication?journalCode</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"background-color:#181a1b;border:0px;font-family:맑은 고딕;font-size:9pt;color:#262626\"><span lang=\"en-US\"><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&amp;rschRegTyCd=JNL&amp;searchType=NAMEDESC&amp;searchText=&amp;rschTyCd=&amp;rschDbCd=JM018\" style=\"font-family:돋움\">(격월간)소비자&#160;행동&#160;연구의&#160;경험적&#160;이론&#160;및&#160;방법론을&#160;다루고&#160;학술&#160;연구를&#160;발행- [회사아이피로&#160;접속시</a></span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">MIT Technology Review: MIT’s magazine of innovation&#160;</span><a href=\"http://www.technologyreview.com/\" style=\"font-family:돋움;background-color:#181a1b\">http://www.technologyreview.com/</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"mailto:soheechoi@sk.com\" style=\"font-family:돋움;background-color:#181a1b\">soheechoi@sk.com</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;password1</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&amp;rschRegTyCd=JNL&amp;searchType=NAMEDESC&amp;searchText=&amp;rschTyCd=&amp;rschDbCd=JT013\" style=\"font-family:돋움;background-color:#181a1b\">격월) MIT&#160;발간&#160;과학저널,&#160;생명공학,&#160;에너지&#160;및&#160;나노기술&#160;등&#160;정보&#160;제공</a></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Nature&#160;</span><a href=\"http://www.nature.com/\" style=\"font-family:돋움;background-color:#181a1b\">http://www.nature.com/</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;skwc04@sktelecom pas</span><a href=\"https://www.nytimes.com/\" style=\"font-family:돋움;background-color:#181a1b\">https://www.nytimes.com/</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;sword1</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">New York Times(</span><span lang=\"ko-KR\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">뉴욕타임즈</span><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">)&#160;</span><a href=\"https://www.nytimes.com/\" style=\"font-family:돋움;background-color:#181a1b\">https://www.nytimes.com/</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"mailto:soheechoi@sk.com\" style=\"font-family:돋움;background-color:#181a1b\">soheechoi@sk.com</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;password1</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">[</span><span lang=\"ko-KR\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">기술</span><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">/</span><span lang=\"ko-KR\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">문화</span><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">] Wired&#160;</span><a href=\"http://www.wired.com/\" style=\"font-family:돋움;background-color:#181a1b\">http://www.wired.com&#160;</a><a href=\"mailto:bhn0508@sk.com\" style=\"font-family:돋움;background-color:#181a1b\">bhn0508@sk.com</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;password1</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">[</span><span lang=\"ko-KR\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">문화</span><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">] Monocle&#160;</span><a href=\"http://monocle.com/magazine/\" style=\"font-family:돋움;background-color:#181a1b\">http://monocle.com/magazine/</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"mailto:soheechoi@sk.com\" style=\"font-family:돋움;background-color:#181a1b\">soheechoi@sk.com</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;password1</span></p>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">미디어</span><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">] Media + Future =&#160;</span><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">미디어미래 &#160;</span><a href=\"http://www.mfi.re.kr/\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">http://www.mfi.re.kr/</a></p>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">동아비즈니스리뷰</span><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">(DBR)&#160;</span><a href=\"https://dbr.donga.com/\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">https://dbr.donga.com/</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;sktelecom password1</span></p>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">매경 독서클럽</span><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;NBS&#160;</span><a href=\"http://bookzip.mk.co.kr/\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">http://bookzip.mk.co.kr/</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;sktelecom1 password1</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"background-color:#181a1b;border:0px;font-family:맑은 고딕;font-size:9pt;color:#262626\"><span lang=\"en-US\"><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&amp;rschRegTyCd=JNL&amp;searchType=NAMEDESC&amp;searchText=&amp;rschTyCd=&amp;rschDbCd=JS012\" style=\"font-family:돋움\">해외&#160;신간&#160;비즈니스&#160;서적의&#160;핵심만을&#160;요약해서&#160;제공하는&#160;서비스로&#160;매주 2권의&#160;신간을&#160;업데이트하고&#160;있으며&#160;주간지(NBS)&#160;서비스도&#160;함께&#160;제공</a></span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">스마트 디바이스 트렌드 매거진</span></p>\r\n\t\t\t\t<li style=\"font-family:맑은 고딕;font-size:9pt;color:#262626\"><span lang=\"en-US\"><a href=\"http://www.itfind.or.kr/itfind/periodical/periodicalTopList.htm?searClassCode=B_ITA_22&amp;masterCode=publication\" style=\"font-family:돋움;background-color:#181a1b\">http://www.itfind.or.kr/itfind/periodical/periodicalTopList.htm?searClassCode=B_ITA_22&amp;masterCode=publication</a></span></li>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">아웃스탠딩&#160;</span><a href=\"http://outstanding.kr/\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">http://outstanding.kr/</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"mailto:seinchoi@sk.com\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">seinchoi@sk.com</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160; password1</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">App Story =&#160;</span><span lang=\"ko-KR\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">앱스토리</span><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&amp;rschRegTyCd=JNL&amp;searchType=NAMEDESC&amp;searchText=&amp;rschTyCd=&amp;rschDbCd=JC035\" style=\"font-family:돋움;background-color:#181a1b\">(월간)&#160;최신&#160;앱&#160;관련 IT정보&#160;제공</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"http://www.appstory.co.kr/\" style=\"font-family:돋움;background-color:#181a1b\">http://www.appstory.co.kr/</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;sktelecom password1</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"background-color:#181a1b;border:0px;font-family:맑은 고딕;font-size:9pt;color:#262626\"><span lang=\"en-US\"><span style=\"font-family:돋움;color:#e8e6e3\">BeSUCCESS(</span><span lang=\"ko-KR\" style=\"font-family:돋움;color:#e8e6e3\">비썩쎄스</span><span style=\"font-family:돋움;color:#e8e6e3\">)</span></span></td>\r\n\t\t\t\t\t\t<td style=\"background-color:#181a1b;border:0px;font-family:맑은 고딕;font-size:9pt;color:#262626\"><span lang=\"en-US\"><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&amp;rschRegTyCd=JNL&amp;searchType=NAMEDESC&amp;searchText=&amp;rschTyCd=&amp;rschDbCd=JC048\" style=\"font-family:돋움\">스타트업&#160;미디어로&#160;오프라인&#160;행사도&#160;개최</a></span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://kr.besuccess.com/\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">http://kr.besuccess.com</a></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Betalist&#160;</span><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&amp;rschRegTyCd=JNL&amp;searchType=NAMEDESC&amp;searchText=&amp;rschTyCd=&amp;rschDbCd=JC055\" style=\"font-family:돋움;background-color:#181a1b\">신규&#160;인터넷&#160;스타트업/서비스&#160;소개</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"http://betalist.com/\" style=\"font-family:돋움;background-color:#181a1b\">http://betalist.com</a></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Bloomberg Businessweek&#160;</span><a href=\"http://www.businessweek.com/Businessweek\" style=\"font-family:돋움;background-color:#181a1b\">http://www.businessweek.com/Businessweek</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;&#160;</span><a href=\"mailto:soheechoi@sk.com\" style=\"font-family:돋움;background-color:#181a1b\">soheechoi@sk.com</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160; tlibrary18!</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Economist&#160;</span><span lang=\"ko-KR\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">로그인 후</span><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;my account</span><span lang=\"ko-KR\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">에서 구독번호</span><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;(00107673)&#160;</span><span lang=\"ko-KR\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">인증</span><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"http://www.economist.com/\" style=\"font-family:돋움;background-color:#181a1b\">http://www.economist.com/</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"mailto:soheechoi@sk.com\" style=\"font-family:돋움;background-color:#181a1b\">soheechoi@sk.com</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;tlibrary18</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Economy Chosun&#160;</span><a href=\"http://www.economyplus.co.kr/\" style=\"font-family:돋움;background-color:#181a1b\">http://www.economyplus.co.kr</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;sktelecom2 password</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Financial Times&#160;</span><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&amp;rschRegTyCd=JNL&amp;searchType=NAMEDESC&amp;searchText=&amp;rschTyCd=&amp;rschDbCd=JS002\" style=\"font-family:돋움;background-color:#181a1b\">(일간)&#160;영국에서&#160;발행하는&#160;국제경제전문&#160;일간신문으로&#160;가장&#160;뛰어난&#160;비즈니스&#160;일간지&#160;평가받고&#160;있는&#160;</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">http://www.ft.com/home/europe</span></p>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><a href=\"mailto:soheechoi@sk.com\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">soheechoi@sk.com</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;tlibrary18</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Forbes Korea&#160;</span><a href=\"http://jmagazine.joins.com/forbes%20sktelecom1%20password1\" style=\"font-family:돋움;background-color:#181a1b\">http://jmagazine.joins.com/forbes sktelecom1 password1</a></p>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://fortune.com/\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">http://fortune.com/</a></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Harvard Business Review (HBR)&#160;</span><a href=\"http://hbr.org/\" style=\"font-family:돋움;background-color:#181a1b\">http://hbr.org/</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"mailto:soheechoi@sk.com\" style=\"font-family:돋움;background-color:#181a1b\">soheechoi@sk.com</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;hy8649</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Harvard Business Review Korea&#160;</span><a href=\"http://www.hbrkorea.com/\" style=\"font-family:돋움;background-color:#181a1b\">http://www.hbrkorea.com/</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;sktelecom1 password1</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Mckinsey Insights&#160;</span><a href=\"https://www.mckinsey.com/featured-insights\" style=\"font-family:돋움;background-color:#181a1b\">https://www.mckinsey.com/featured-insights</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"mailto:bhn0508@sk.com\" style=\"font-family:돋움;background-color:#181a1b\">bhn0508@sk.com</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;tlibrary18</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"background-color:#181a1b;border:0px;font-family:맑은 고딕;font-size:9pt;color:#262626\"><span lang=\"en-US\"><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&amp;rschRegTyCd=JNL&amp;searchType=NAMEDESC&amp;searchText=&amp;rschTyCd=&amp;rschDbCd=JM007\" style=\"font-family:돋움\">보고서,&#160;비디오, McKinsey Quarterlyee(계간)&#160;등&#160;주요&#160;경영&#160;이슈&#160;연구&#160;발행 App&#160;이용&#160;가능:&#160;로그인&#160;정보&#160;동일</a></span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">MIT Sloan Management Review&#160;</span><a href=\"http://sloanreview.mit.edu/the-magazine/2009-fall/51108/the-business-of-sustainability-what-it-means-to-managers-now/\" style=\"font-family:돋움;background-color:#181a1b\">http://sloanreview.mit.edu/the-magazine/2009-fall/</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"mailto:soheechoi@sk.com\" style=\"font-family:돋움;background-color:#181a1b\">soheechoi@sk.com</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;password1</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&amp;rschRegTyCd=JNL&amp;searchType=NAMEDESC&amp;searchText=&amp;rschTyCd=&amp;rschDbCd=JM006\" style=\"font-family:돋움;background-color:#181a1b\">(계간) MIT&#160;발행&#160;주요&#160;경영&#160;이슈&#160;및&#160;동향/사례분석 MIT SMR app으로&#160;이용&#160;가능</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"background-color:#181a1b;border:0px;font-family:맑은 고딕;font-size:9pt;color:#262626\"><span lang=\"en-US\"><span style=\"font-family:돋움;color:#e8e6e3\">Product Hunt</span></span></td>\r\n\t\t\t\t\t\t<td style=\"background-color:#181a1b;border:0px;font-family:맑은 고딕;font-size:9pt;color:#262626\"><span lang=\"en-US\"><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&amp;rschRegTyCd=JNL&amp;searchType=NAMEDESC&amp;searchText=&amp;rschTyCd=&amp;rschDbCd=JC053\" style=\"font-family:돋움\">신규&#160;서비스/제품&#160;소개</a></span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"https://www.producthunt.com/\" style=\"font-family:돋움;background-color:#181a1b\">https://www.producthunt.com</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<table style=\"border:0px\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"background-color:#181a1b;border:0px;font-family:맑은 고딕;font-size:9pt;color:#262626\"><span lang=\"en-US\"><span style=\"font-family:돋움;color:#e8e6e3\">Springwise</span></span></td>\r\n\t\t\t\t\t\t<td style=\"background-color:#181a1b;border:0px;font-family:맑은 고딕;font-size:9pt;color:#262626\"><span lang=\"en-US\"><a href=\"http://arra.sktelecom.com/ResearchDB/ResearchDBView.aspx?MENU_ID=RD00031&amp;rschRegTyCd=JNL&amp;searchType=NAMEDESC&amp;searchText=&amp;rschTyCd=&amp;rschDbCd=JC052\" style=\"font-family:돋움\">신규&#160;서비스/제품을&#160;소개</a></span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"http://www.springwise.com/\" style=\"font-family:돋움;background-color:#181a1b\">http://www.springwise.com</a></p>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">TIME&#160;</span><a href=\"http://www.time.com/time/magazine\" style=\"font-family:돋움;background-color:#181a1b\">http://www.time.com/time/magazine</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;</span><a href=\"mailto:rh415@sk.com\" style=\"font-family:돋움;background-color:#181a1b\">rh415@sk.com</a><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;sktelecom1</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">Wall Street Journal ePaper</span><span lang=\"ko-KR\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">이용시</span><span style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">: ID:seinchoi@sktelecom.com / PW: 12341234</span></p>\r\n\t\t\t\t<p style=\"font-family:맑은 고딕;font-size:9pt;color:#262626;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://asia.wsj.com/home-page\" lang=\"en-US\" style=\"font-family:돋움;background-color:#181a1b\">http://asia.wsj.com/home-page</a><span lang=\"en-US\" style=\"font-family:돋움;color:#e8e6e3;background-color:#181a1b\">&#160;sktelecom 12345</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t</ul>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t"
+  }
+];
+const CONTENT_HASH = '3df84eed';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>https://www.ilovexs.com/post_id/16229/page/4/</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">https://www.ilovexs.com/post_id/16229/page/4/</div>
+<div class="date">2022년 7월 31일 일요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-https-www-ilovexs-com-post-id-16229-page';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 576,
+    "y": 19,
+    "w": 600,
+    "content": "<a href=\"https://www.ilovexs.com/post_id/16229/page/4/\">https://www.ilovexs.com/post_id/16229/page/4/</a>"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 155,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-tcnag4EHSE4/YT2y6XTcteI/AAAAAAAAKms/Dj9Ps-Xhv-ghLxOKqIbMdlFUYCb0jnZMgCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%25289%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 247,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-JFNaxh2eaIE/YT2yaN5DhkI/AAAAAAAAKjQ/0wLcJ72x5PwVWLZfvDw5qMiK1bZXf-L6gCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252810%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 339,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/--p4XBMr53jk/YT2yaxYVh_I/AAAAAAAAKjU/sO2JhuffS-UyM7BrF9_T-2KI6KHdhUmIwCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252811%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 431,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-ZxAW3p38B_I/YT2yb38pjZI/AAAAAAAAKjY/YOKJW6h_GBIs2UtyA9pogaLieo_B0IedQCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252812%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 523,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-CDKW_8neD6A/YT2ydIeim5I/AAAAAAAAKjg/v6ym8nQxCTMq7it4Gii0EPZXrdsY4w7ngCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252813%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 615,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-jCvAjeJNyrQ/YT2yck4eD8I/AAAAAAAAKjc/26AxpwWPLs84runoHk4fRvLQBaZYrRRSwCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252814%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 707,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-FeA-imqqAJ8/YT2ydTFc5cI/AAAAAAAAKjk/_uIhubwuVaUrYgBIMkvhSweVRoewIPcNwCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252815%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 799,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-NwHcRj7qM5s/YT2yeLw1OPI/AAAAAAAAKjo/cLrcXFyHjJcHYU7XA_-k-EgEUpQMjaq4ACLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252816%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 891,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-TDe_QaOJK8w/YT2yekkgYeI/AAAAAAAAKjs/FMXi7WhKcsMWq-Rqa1IvdOEUEFfmA_JugCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252817%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 983,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-z99VkBMdO4Y/YT2ye-ayBaI/AAAAAAAAKjw/zHUHBw62-PwStnBaZDdRDHug4zFHIKO3QCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252818%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1083,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-3loxOq3bxEU/YT2yhASBY8I/AAAAAAAAKj8/UEKVLlCOXjUkqZKSFke_LXFfkdLPiS1zgCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252820%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1175,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-EW0EHyoLWAc/YT2yhdof4YI/AAAAAAAAKkA/XFwj1MAgDV8QOxV_1-4TIRpW1hO7_xkoQCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252821%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1267,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-dQeis9Pg9gY/YT2yiFHHACI/AAAAAAAAKkE/6oYXJaLuXK08Zut4F2dLUUykPLC0QTsQQCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252822%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1367,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-M7Z6jel43g0/YT2yjbqxd9I/AAAAAAAAKkM/85lG7Cd-QxwX6i_PLOYRyDyF5saHFxtTwCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252824%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1459,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-NECVLXqYUAY/YT2ykaPq23I/AAAAAAAAKkQ/fQ3UFu16F345n_S_hWvi4snk6FWBRuYtgCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252825%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1551,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-FmPAMCzsNek/YT2ylMokIyI/AAAAAAAAKkU/ifAUnjbzBZkD2nRe57do5xk_HdlQyS-9ACLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252826%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1643,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-Ad2AokkLUPc/YT2ylgK_h8I/AAAAAAAAKkY/_WLBibdogqkWhUowcXY4Dp4GkaVSD0PfgCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252827%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1735,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-74TYvOpCkcs/YT2ymO3F6yI/AAAAAAAAKkc/QzAAqSKmk0Q9uy5vmheTooo7hywZm-9gQCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252828%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1827,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-ECds8yWJK0M/YT2ympCqUgI/AAAAAAAAKkg/2cuBwbg7kMQxjnd_R08HQU0BOHz3Nti4QCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252829%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 1919,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-5vgLupopiv8/YT2ynttXJ8I/AAAAAAAAKko/g5SEWSoerUYXyvbdxOIy7EGBnRhv8vWXQCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252830%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2011,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-OeRuEhp0VAc/YT2yoeVrMWI/AAAAAAAAKks/LItuF2lFR3giJ99KpJxVGC6n81X0Up9JQCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252831%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2103,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-f8LRcXbaNJI/YT2yqBK4LzI/AAAAAAAAKk0/gWPLEfvYdt4oR7E9rw9xH3XiM2EQrnQwQCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252832%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2195,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-ESj0QnVjpvw/YT2ypu0FnDI/AAAAAAAAKkw/V6NNTKR9nAEgPi054JA-CqlFiImnM7LawCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252833%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2287,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-mhMFHHvfpr8/YT2yqdY4gLI/AAAAAAAAKk4/cRJvsKmh85Iwj3bR4xzjwjEBh64dGs3ugCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252834%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2379,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-xntANU5jY8I/YT2yq6b3hQI/AAAAAAAAKlA/rogobjD4804V3jvzrDkzoRGGLuwC5g5YwCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252835%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2471,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/--_JJDYvYO9o/YT2yrfJXbxI/AAAAAAAAKlE/VbonuxSwCV02y2mS3ASZDqpYfpECsr0EgCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252836%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2563,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-dVc8Do2FTLE/YT2ysBVgVVI/AAAAAAAAKlI/SKzWCcP1shgbcX1T0Oqel2_sygQSCdFwQCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252837%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2655,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-cgy11SWenkg/YT2ytZROcAI/AAAAAAAAKlQ/gNudFOYI6j0_QCXHDjDj4LIU-LRsRv6ngCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252838%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2747,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-aim-Vvv2Q1A/YT2ytAKuJpI/AAAAAAAAKlM/18wlQHhLyzI-WKpzikp2H07UNpBY4HG5ACLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252839%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2839,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-DLaSQo3UhJ0/YT2yuv0QuFI/AAAAAAAAKlY/0ieFcY_m1JEgVrpsneT_l42PhmP6TzV2gCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252840%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 2931,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-noB_OGkdP8Y/YT2yvIQe8mI/AAAAAAAAKlc/dbcbD1-bhbIC6hF8rcedzFL2MGkmQ9MCgCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252841%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3031,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-Db48WPqw_p4/YT2ywOYvjGI/AAAAAAAAKlk/459I4NRYANYPnyijhtEi0unrm_s3pbt-QCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252843%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3123,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-juDyOPnfAoc/YT2ywzZGI-I/AAAAAAAAKlo/HqO5fHSvu4sp7adiks2vHFLf35fe8S6VQCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252844%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3215,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-JNWSbjYJ77o/YT2yxWJnmYI/AAAAAAAAKls/rmSsfyMPlpIcCyhmEeczZxRjV6jMlhgPgCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252845%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3307,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-25JSAX_kAN0/YT2yx4DmX6I/AAAAAAAAKlw/QtNJ0MQ7wBoc1TyKZXQVE-HuDEEBeADOwCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252846%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3399,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-zmsHBz6hP8w/YT2yyOzQzFI/AAAAAAAAKl0/A90_8stkSlIsBamfQ2ukfr-eUkP-KrSCACLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252847%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3491,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-Kk5u3iWbvDQ/YT2yy9mz8hI/AAAAAAAAKl4/H86KPa7a4R4SpvW1QC5BTg8IRBsFvM6_wCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252848%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3583,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-6_b8g5LeNJI/YT2yzasqu-I/AAAAAAAAKl8/Lec5F0llFs0fdJWJR0Nx728xrlKKKI3kQCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252849%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3675,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-FmcSWyKciWc/YT2y0XN8CAI/AAAAAAAAKmE/sf2tox0Ukj43AFDqRusUPM_GuSp15YcgwCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252850%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3767,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-4wFRM7AdLgk/YT2y0-P-uxI/AAAAAAAAKmI/EcmOhsvgeaYLjguUzbBZv-ErRHbcUYNHACLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252851%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3859,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-239tt-_7nbc/YT2y1h_X0SI/AAAAAAAAKmM/VW5RdKftpXIKfkHFEiGo0t8YgNUsoGpPACLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252852%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 3951,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-Hu8uwYgHvrM/YT2y14kqfKI/AAAAAAAAKmQ/_7yAU840gkcETLQc1dHG14leePJmEJEpgCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252853%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4043,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-SE6tjO3eI1A/YT2y2KhfOEI/AAAAAAAAKmU/kefdKcxiDygJa-rVoiqW6-ZUmuAd-2iWwCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252854%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4135,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-AGEBCAtIlpE/YT2y3DO1PLI/AAAAAAAAKmY/JlVQN5d0vnsUYhaghRVnqcIjvJ7EKxyVgCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252855%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4227,
+    "w": 600,
+    "content": "<a href=\"https://1.bp.blogspot.com/-4wN1amPaf2k/YT2y37-n24I/AAAAAAAAKmc/0MpvovPkiYAaEBsNj8ISGApJemsbl4YOQCLcBGAsYHQ/s0/%25ED%2594%25BC%25EC%2595%2584%2B%252856%2529.jpg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4319,
+    "w": 600,
+    "content": "출처: <<a href=\"https://www.ilovexs.com/post_id/12150/page/0/\">https://www.ilovexs.com/post_id/12150/page/0/</a>>"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4391,
+    "w": 600,
+    "content": "<a href=\"https://tv06.avsee.in/data/file/community/fnmlZaL2_f30dafb535f94e535d9061b9ac094bd6195ef68f.jpeg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4463,
+    "w": 600,
+    "content": "<a href=\"https://tv06.avsee.in/data/file/community/hDfNpBiA_610e5bf1dfe9c968b38f9fc24690aae01397d5d2.jpeg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4535,
+    "w": 600,
+    "content": "<a href=\"https://tv06.avsee.in/data/file/community/z8Z1h3N0_7303b546736a6a248c50a367181ed66fd4c3d440.jpeg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4607,
+    "w": 600,
+    "content": "<a href=\"https://tv06.avsee.in/data/file/community/vrbZWV7D_118540a348c6d6419be0c6070f3cd5112d15ff42.jpeg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4679,
+    "w": 600,
+    "content": "<a href=\"https://tv06.avsee.in/data/file/community/lpnWbohK_035cc8e8b61dff6a7e55d95fd52f1e15ff128016.jpeg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4751,
+    "w": 600,
+    "content": "<a href=\"https://tv06.avsee.in/data/file/community/76PiLnfh_23c09fb8ab8320d04f042fc4fe6c760c0c4d0b7e.jpeg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4831,
+    "w": 600,
+    "content": "<a href=\"https://tv06.avsee.in/data/file/community/x4rgzqON_61090908e4810235047048f68d0c19a8c52bfb94.jpeg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4903,
+    "w": 600,
+    "content": "<a href=\"https://tv06.avsee.in/data/file/community/pmg6lMfV_ac65ae475f24ba42917adf17feb8feeb6c624fac.jpeg\">"
+  },
+  {
+    "type": "text",
+    "x": 48,
+    "y": 4975,
+    "w": 600,
+    "content": "출처: <https://tv06.avsee.in/bbs/board.php?bo_table=community&wr_id=1557752</a>>"
+  }
+];
+const CONTENT_HASH = '6cdcb38c';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

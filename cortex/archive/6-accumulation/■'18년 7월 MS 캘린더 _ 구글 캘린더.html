@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>■'18년 7월 MS 캘린더 / 구글 캘린더</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">■'18년 7월 MS 캘린더 / 구글 캘린더</div>
+<div class="date">2018년 8월 1일 수요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board--18년-7월-MS-캘린더-구글-캘린더';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "html",
+    "x": 48,
+    "y": 139,
+    "w": 720,
+    "html": "\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Segoe UI Symbol;font-size:13pt;font-weight:bold\">■</span><span lang=\"en-US\" style=\"font-size:13pt;font-weight:bold\">&#39;18</span><span style=\"font-size:13pt;font-weight:bold\">년</span><span lang=\"en-US\" style=\"font-size:13pt;font-weight:bold\"> 7</span><span style=\"font-size:13pt;font-weight:bold\">월</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><a href=\"https://sharing.calendar.live.com/calendar/private/5bf24110-3f13-469d-95ee-6e04ded12fe6/bf23f0f2-f7f7-48d2-8922-14228c82c41b/cid-733661839cc53ba5/index.html\">MS 캘린더</a><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> / </span><a href=\"https://www.google.com/calendar/render?hl=ko#main_7%7Cmonth\">구글 캘린더</a><span lang=\"en-US\" style=\"font-size:13pt;font-weight:bold\"> </span></p>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#ffd965;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-family:맑은 고딕;color:blue;font-weight:bold\">One</span><span style=\"color:blue;font-weight:bold\"> </span><span style=\"font-family:맑은 고딕;color:blue;font-weight:bold\">Ting</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#fadbd2;border:1px solid;font-size:10pt;text-align:center\"><span style=\"color:#c00000;font-weight:bold\">일</span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:103;border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-weight:bold\">월</span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:101;border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-weight:bold\">화</span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:113;border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-weight:bold\">수</span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:145;border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-weight:bold\">목</span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:143;border:1px solid;font-size:10pt;text-align:center\"><span style=\"font-weight:bold\">금</span></td>\r\n\t\t\t\t\t<td style=\"background-color:#deebf6;border:1px solid;font-size:10pt;text-align:center\"><span style=\"color:blue;font-weight:bold\">토</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#ffd965;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"background-color:#fadbd2;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"color:#c00000;font-weight:bold\">1</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:103;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">2</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:101;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">3</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:113;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">4</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:145;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">5</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:143;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">6</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#deebf6;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"color:blue;font-weight:bold\">7</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">월세<span lang=\"en-US\"> </span>납입</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">엄마 도포수여</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">넷플릭스<span lang=\"en-US\">, </span>왓챠<span lang=\"en-US\"> </span>플레이<span lang=\"en-US\"> </span>가입</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">찰스<span lang=\"en-US\"> 숙제</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">7월 달력업데이트</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">HBR </p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">힉원</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">코인<span lang=\"en-US\"> 관리</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:103;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">팀장통보<span lang=\"en-US\"> </span>후<span lang=\"en-US\"> </span>종호<span lang=\"en-US\"> </span>알려주기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">인계준비<span lang=\"en-US\"> </span>시작</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">순옥이 면담</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- <span lang=\"ko-KR\">서비스</span> <span lang=\"ko-KR\">리뉴얼</span>?</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- <span lang=\"ko-KR\">컨텐츠</span> <span lang=\"ko-KR\">소싱</span>?</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">------------</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">6<span lang=\"ko-KR\">시</span> 1:1 <span lang=\"ko-KR\">수업</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">접착제</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:101;border:1px solid\"><p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">R<span lang=\"ko-KR\">교육</span> 9<span lang=\"ko-KR\">시</span> <span lang=\"ko-KR\">삼화</span>3<span lang=\"ko-KR\">층</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">캔미팅</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:113;border:1px solid\"><p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">동기모임</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">아크네<span lang=\"en-US\"> </span>예약</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">아빠<span lang=\"en-US\"> 건강검진</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">스틸북스</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">------------</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">운동띠<span lang=\"en-US\">::0</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:145;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">점</span><span lang=\"en-US\">: </span>재혁<span lang=\"en-US\"> &amp; </span>시형</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">코인원</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">츠타야<span lang=\"en-US\"> 서적</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">하나카드<span lang=\"en-US\"> 입금</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">-----------------</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">저<span lang=\"en-US\">: 7:30 </span><span lang=\"en-US\">페스트 브리핑</span><span lang=\"en-US\">@</span>위워크<span lang=\"en-US\"> </span>역삼</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:143;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">: </span>광희<span lang=\"en-US\">/</span>도연</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">오전<span lang=\"en-US\"> : </span>인계<span lang=\"en-US\"> </span>파일<span lang=\"en-US\"> </span>마무리</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">오후<span lang=\"en-US\"> : </span>아이디어<span lang=\"en-US\"> </span>정리</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">IDP <span lang=\"ko-KR\">정산</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">마우스<span lang=\"en-US\"> </span>구입</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">------------------</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">명동<span lang=\"en-US\"> </span>아디다스<span lang=\"en-US\">/</span>나이키</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">10<span lang=\"ko-KR\">시</span> 1:1<span lang=\"ko-KR\">수업</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">책상<span lang=\"en-US\"> </span>옮기기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">원노트<span lang=\"en-US\"> </span>정리</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">운동</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">트레바리<span lang=\"en-US\"> </span>영화<span lang=\"en-US\"> </span>번개</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">영어이름<span lang=\"en-US\"> </span>공모</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">호두<span lang=\"en-US\"> </span>털<span lang=\"en-US\"> </span>밀기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">신발</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">미술관<span lang=\"en-US\"> </span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#ffd965;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"background-color:#fadbd2;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"color:#c00000;font-weight:bold\">8</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:103;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">9</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:101;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">10</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:113;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">11</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:145;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">12</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:143;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">13</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#deebf6;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"color:blue;font-weight:bold\">14</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:103;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">업무수케쥴러<span lang=\"en-US\"> 만들어주기 </span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">: </span>그룹장</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">아이디어<span lang=\"en-US\"> </span>정리</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">자료<span lang=\"en-US\"> </span>읽어보기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">로컬<span lang=\"en-US\"> </span>원노트<span lang=\"en-US\"> </span>정리</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">1. Biz <span lang=\"ko-KR\">모델</span> <span lang=\"ko-KR\">정리</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">2. Oksusu <span lang=\"ko-KR\">네이밍</span> <span lang=\"ko-KR\">스토리</span> <span lang=\"ko-KR\">정리</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">3. <span lang=\"ko-KR\">영어이름</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:101;border:1px solid\"><p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">OLAP <span lang=\"ko-KR\">교육</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">: </span>형기형<span lang=\"en-US\">/</span>재준</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">현경이<span lang=\"en-US\"> 맛집주기</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">---------------</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">모임일</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:113;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">: </span>최종호</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">6:00 1:1 <span lang=\"ko-KR\">수업</span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">숙제하기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">아이디어정리</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">명함파기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이사<span lang=\"en-US\"> </span>하기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">자료<span lang=\"en-US\"> </span>읽어보기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">카톡<span lang=\"en-US\"> 폰 정보수합</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">현경이<span lang=\"en-US\"> </span>맛집</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">--------------</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">6:00 1:1 <span lang=\"ko-KR\">수업</span></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:145;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">첫<span lang=\"en-US\"> </span>출근</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">콘센트<span lang=\"en-US\"> </span>신청</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">: </span>김광태님</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">18:30<span lang=\"ko-KR\">분</span> <span lang=\"ko-KR\">미디어</span> <span lang=\"ko-KR\">밋업</span></p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://m.onoffmix.com/ticket/141779\">https://m.onoffmix.com/ticket/141779</a></p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:143;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">: </span>최수진</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">롯데<span lang=\"en-US\"> </span>컬쳐앤웍스<span lang=\"en-US\"> </span>미팅</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">독후감<span lang=\"en-US\"> </span>마감</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">------------------</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">독후감<span lang=\"en-US\"> </span>작성</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.google.co.kr/search?q=%EC%97%90%EC%96%B4%ED%8F%AC%EC%8A%A41+%EC%A0%9C%EC%8A%A4%ED%84%B0&amp;tbm=isch&amp;source=iu&amp;ictx=1&amp;fir=kF03gCPfT-jK6M%253A%252C2NlrR2-qesSn8M%252C_&amp;usg=__RLj84_kAvxnfvtL8ctdwFBcDZoU%3D&amp;sa=X&amp;ved=0ahUKEwjv6_u-gYrcAhWDk5QKHY8TDjoQ9QEILjAD#imgrc=_\">에어포스</a><span lang=\"en-US\">1 </span>제스터</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">10<span lang=\"ko-KR\">시</span> 1:1</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">운동</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">스니터즈</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">빨래<span lang=\"en-US\"> 운동</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">트레바리</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#ffd965;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"background-color:#fadbd2;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"color:#c00000;font-weight:bold\">15</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:103;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">16</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:101;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">17</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:113;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">18</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:145;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">19</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:143;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">20</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#deebf6;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"color:blue;font-weight:bold\">21</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">SciFic-<span lang=\"ko-KR\">안국</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">가디건</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">모자 맡기기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">명함<span lang=\"en-US\"> </span>홀더</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:103;border:1px solid\"><p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">인사 시원하게 잘 <span lang=\"ko-KR\">하기</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">트레바리<span lang=\"en-US\"> </span>회신</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">트레바리<span lang=\"en-US\"> </span>책<span lang=\"en-US\"> </span>공지<span lang=\"en-US\"> </span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">내옷장을<span lang=\"en-US\"> </span>부탁해<span lang=\"en-US\">/</span>오늘까지</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://hbrforum.org/events/\">https://hbrforum.org/events/</a></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">주인<span lang=\"ko-KR\">집</span> <span lang=\"ko-KR\">전</span>화</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">--------------</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">팀회식</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:101;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">오후<span lang=\"en-US\"> 2</span>시<span lang=\"en-US\"> </span>웹툰<span lang=\"en-US\"> </span>피칭</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">모자<span lang=\"en-US\"> </span><span lang=\"en-US\">택배 </span>꺼내두기</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:113;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:145;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">. </span>인성이형</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">HBR <span lang=\"ko-KR\">주피터</span>?</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">피칭<span lang=\"en-US\"> </span>준비</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">--------------</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">면도날</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:143;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://www.derchaeum.com/\">더채움견과중요류</a><span lang=\"en-US\"> </span>입금</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">트레바리<span lang=\"en-US\"> </span>책<span lang=\"en-US\"> </span>선정하기<span lang=\"en-US\">(</span>나도<span lang=\"en-US\"> </span>추천<span lang=\"en-US\">)</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">1일 1개 브랜드 스토리 한개에 힌장</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">글로벌리 네이밍 정리</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">교육<span lang=\"en-US\"> 게임 웹툰 </span>컨텐츠<span lang=\"en-US\"> </span>고민</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">파고다원<span lang=\"en-US\"> </span>등록</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Business One:One: Pre-Intermediate<span lang=\"en-US\"> </span>구입</p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">---------</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">6:30 <span lang=\"ko-KR\">펌</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">정품<span lang=\"en-US\"> </span>인증<span lang=\"en-US\"> </span>크랙</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">10<span lang=\"ko-KR\">시</span> 1:1</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">운동</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">에어포스<span lang=\"en-US\"> </span>팬텀<span lang=\"en-US\"> </span>신어보기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://m.blog.naver.com/PostView.nhn?blogId=kks0754&amp;logNo=220659766026&amp;proxyReferer=https%3A%2F%2Fwww.google.co.kr%2F\">마나가게</a></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">하비팩토리</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">책<span lang=\"en-US\"> </span>반납</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">트레바리<span lang=\"en-US\"> </span>책<span lang=\"en-US\"> </span>선정</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">아름이<span lang=\"en-US\"> </span>올거냐고<span lang=\"en-US\"> </span>물어보기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">시현하다</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">MK.1 <span lang=\"ko-KR\">피규어</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">원노트<span lang=\"en-US\"> </span>정리</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">실외<span lang=\"en-US\"> </span>골프<span lang=\"en-US\"> </span>등록<span lang=\"en-US\"> </span><a href=\"http://www.9017.net/club/location.php?G_SITE_CODE=lkgolf\" lang=\"en-US\">LK</a>골프클럽<span lang=\"en-US\">, </span><a href=\"http://blog.kbmyshop.com/content/blog.php?st_idx=101545&amp;st_type=MY\">효창골프클럽</a></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">전시회,<span lang=\"ko-KR\">미술관</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">라이프로깅용 앳션캠</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">인디고고</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">OJD <span lang=\"ko-KR\">지원검토</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#ffd965;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"background-color:#fadbd2;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"color:#c00000;font-weight:bold\">22</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:103;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">23</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:101;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">24</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:113;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">25</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:145;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">26</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:143;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">27</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#deebf6;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"color:blue;font-weight:bold\">28</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">스탠드<span lang=\"en-US\"> </span>챙기기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">책<span lang=\"en-US\"> 찾아보기</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">재혁이형<span lang=\"en-US\"> </span>조문</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">정품<span lang=\"en-US\"> </span>인증하기</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:103;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">기술원<span lang=\"en-US\"> </span>기술<span lang=\"en-US\"> </span>카달로그<span lang=\"en-US\"> </span>받기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">: CD </span>주니어</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">트레바리공지</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">피칭<span lang=\"en-US\"> </span>시리즈<span lang=\"en-US\"> </span>작성</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:101;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">컨텐츠<span lang=\"en-US\"> </span>서밋</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">: </span><span lang=\"en-US\">현경.송희</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">CDG <span lang=\"ko-KR\">타운홀</span> 4<span lang=\"ko-KR\">시</span> <span lang=\"ko-KR\">및</span> <span lang=\"ko-KR\">회식</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">트레바리 신청</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">알라딘에서<span lang=\"en-US\"> </span>책사기</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:113;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">컨텐츠<span lang=\"en-US\"> </span>서밋</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">저<span lang=\"en-US\">. 이틀원정대</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://smartstore.naver.com/tbuying3/products/3135989857?NaPm=ct%3Djjv37mao%7Cci%3D4a0e59a39508e09bb3b519173247e00a83479b59%7Ctr%3Dslsl%7Csn%3D592997%7Cic%3D%7Chk%3Dd445e4dc5fcd059d561db763efb8ab3bca893ade\">MK1 </a><span lang=\"ko-KR\">티바잉</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">---------</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">M&amp;A</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">영어<span lang=\"en-US\"> </span>숙제</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">다트사용법</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://makersmagazine.net/\">http://makersmagazine.net/</a><span lang=\"en-US\"> </span>메이커스<span lang=\"en-US\"> </span>잡지</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">배그<span lang=\"en-US\"> </span>게임하기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.ringleplus.com/student/tutorial\">링글</a><span lang=\"en-US\">?</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"onenote:5.%20Life%20X-lab.one#취미와%20취향&amp;section-id={A1358BBF-6A89-420D-87B8-A657A8842C48}&amp;page-id={8E059966-B929-4DB9-85AE-4D18E3D71D87}&amp;object-id={B2383AA8-E9BE-4FA2-921B-05087CEC8056}&amp;96&amp;base-path=https://d.docs.live.net/733661839cc53ba5/문서/이상\">취미와 취향</a></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">도전 글로벌 기업</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">웹툰보기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">하루<span lang=\"en-US\"> 1~2</span>시간<span lang=\"en-US\"> </span>영어<span lang=\"en-US\">, 1</span>시간의<span lang=\"en-US\"> </span>콘텐츠<span lang=\"en-US\"> </span>스터디<span lang=\"en-US\"> </span>시간을<span lang=\"en-US\"> </span>반드시<span lang=\"en-US\"> </span>확보한다<span lang=\"en-US\">.</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Maker: SQL/ <a href=\"onenote:4.%20Interstellar.one#파고다원&amp;section-id={CBEFECF2-06BB-4950-876F-CDE1A59D474F}&amp;page-id={3327A1C2-2121-4886-88DA-AEAC1AD48DD3}&amp;end&amp;base-path=https://d.docs.live.net/733661839cc53ba5/문서/이상\" lang=\"ko-KR\">파고다원</a>/ <span lang=\"ko-KR\">영어</span>/ <span lang=\"ko-KR\">포토샵</span>/ <a href=\"https://www.coursera.org/learn/interactive-python-1/home/welcome\">SK MOOC</a>/ 카티아/ <span lang=\"ko-KR\">블로깅</span> _ <span lang=\"ko-KR\">축적</span>, <span lang=\"ko-KR\">브랜딩</span>(<span lang=\"ko-KR\">온라인</span> <span lang=\"ko-KR\">포트폴리오</span>)</p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Interstellar <span lang=\"ko-KR\">정보수집</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">페북, 카톡 공부정보 수집</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">매일<span lang=\"en-US\"> </span>뭔가를<span lang=\"en-US\"> </span>써라<span lang=\"en-US\">/</span>만들어라</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:145;border:1px solid\"><p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">. 선민 대웅님</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://www.digitalmarketingkorea.co.kr/download2/\">마케팅 서밋</a></p>\r\n\t\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">양해준님 연락</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:143;border:1px solid\"><p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">: </span>허진석</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">케이스<span lang=\"en-US\"> </span>스터디<span lang=\"en-US\"> : </span>위워크<span lang=\"en-US\"> </span>서울역</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">영어<span lang=\"en-US\"> </span>숙제</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">9<span lang=\"ko-KR\">시</span> 1:!<span lang=\"ko-KR\">수업</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">운동</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">현대<span lang=\"en-US\"> </span>아웃렛<span lang=\"en-US\">-</span>상의<span lang=\"en-US\"> </span>수선<span lang=\"en-US\"> </span>맡기기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">통신기능<span lang=\"en-US\"> </span>갖춘<span lang=\"en-US\"> </span>디지털<span lang=\"en-US\"> </span>번호판<span lang=\"en-US\"> - </span>키보드<span lang=\"en-US\">? </span>사업화<span lang=\"en-US\"> </span>가능성<span lang=\"en-US\"> </span>검토</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:#ffd965;border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"background-color:#fadbd2;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"color:#c00000;font-weight:bold\">29</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:103;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">30</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:101;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">31</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:113;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">1</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:145;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">2</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#f2f2f2;width:143;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"font-weight:bold\">3</span></span></td>\r\n\t\t\t\t\t<td style=\"background-color:#deebf6;border:1px solid;font-size:10pt;text-align:center\"><span lang=\"en-US\"><span style=\"color:blue;font-weight:bold\">4</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">HBR</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">페북<span lang=\"en-US\">/</span>카톡<span lang=\"en-US\">/</span>퍼블리</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">아이디어<span lang=\"en-US\"> </span>정리</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">피티<span lang=\"en-US\"> </span>만들기<span lang=\"en-US\"> </span>연습</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:103;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\"> 동호 정은</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">저<span lang=\"en-US\">: </span>신과함께<span lang=\"en-US\"> </span>시사회</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">주인집<span lang=\"en-US\"> </span>전화하기<span lang=\"en-US\">-</span>에어컨<span lang=\"en-US\"> </span>기사</p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:101;border:1px solid\"><p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">: </span>재익</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">트레바리</p>\r\n\t\t\t\t\t<p data-tag=\"to-do:completed\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">바탕화면<span lang=\"en-US\"> </span>정리</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">저<span lang=\"en-US\">: </span><span lang=\"en-US\">일호</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:113;border:1px solid\"><p lang=\"en-US\" data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">인사 시원하게 잘 <span lang=\"ko-KR\">하기</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">우리말<span lang=\"en-US\"> </span>역순사전</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">파고다<span lang=\"en-US\"> </span>결제</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">알라딘<span lang=\"en-US\"> </span>책사기</p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://news.mk.co.kr/newsRead.php?year=2018&amp;no=413655\">콘텐츠최고위과정</a></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">퍼블리<span lang=\"en-US\"> IDP </span>신청<span lang=\"en-US\">?</span></p>\r\n\t\t\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">: </span>박순옥</p>\r\n\t\t\t\t\t<br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:145;border:1px solid\"><p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">점<span lang=\"en-US\">: </span>조성욱<span lang=\"en-US\">/</span>표승현</p>\r\n\t\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">저<span lang=\"en-US\">. 상현형님</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"width:143;border:1px solid;font-size:10pt\"><span data-tag=\"to-do\">점<span lang=\"en-US\">: </span>송희</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span data-tag=\"to-do\"><a href=\"http://www.sihyunhada.com/\">시현하다</a></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t"
+  }
+];
+const CONTENT_HASH = 'b63486d2';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

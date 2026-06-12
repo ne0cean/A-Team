@@ -6,121 +6,395 @@
 <title>Tennis</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">Tennis</span>
-  
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">Tennis</div>
+<div class="date"></div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">Tennis<br>		<br>		<br>	<br>	<br>		<br>			<br>(교정사항) <br>			<br>백핸드 포핸드 전환은?<br>			<br>				<br>					포핸드<br>					<br>박자. 점프 후 왼발부터 타다닥. 왼발뒤꿈치를 오른발과 라켓 하나 간격 벌리고<br>					<br>오른발 무게와 라켓을 동시에 끌고 앞의 타점으로 가져오면서 타격<br>					<br>오른손 엄지손가락이 왼쪽 뺨으로 들어오도록 11시 방향으로 타격<br>					<br>왼쪽 팔꿈치를 돌리면서 상체 전체를 회전하면서 타격<br>					<br>에프로치샷 - 일단 자리잡고 어느정도 내려왔을때 타격<br>					<br>타점이 중요함, 내려올 때 타격. + 타점 앞에두고 발 내딛으며 타격.<br>					<br>오른발을 왼발보다 더 빼면서 회전, 오른발 가져오면서 오른발 앞에서 타격<br>					<br>사선으로 8자를 빼면서 뒤로 빼고, 최대한 아래서 위로 올리며 타격<br>					<br>오른 발 무게 실어서 멀리 던지듯이 앞으로 밀면기 <br>					<br>최종적으로 손등이 왼쪽 귀 옆에 오도록 상향 타격<br>					<br>수평으로 뒤로 빼고, 팔목을 이용해서 아래로 내리면서, 아래로 위로 공을 올려치기.<br>					<br>공이 올라갔다가 내려오기 직전에 아래에서 1/3 지점을 타격.<br>					<br>				<br>				<br>					백핸드<br>					<br>타격 지점으로 이동해서 자리잡고 라켓 돌리면서 타격<br>					<br>왼쪽으로 평행하게 돌리고, 타격 전에 아래로 내리면서 타격<br>					<br>포핸드 반대로 잡고, 왼손과 오른손 이격 없이 잡는 그립<br>					<br>너무 크게 들어서 빼지 말고 라켓이 얼굴 옆으로 수평으로 오도록, 주먹을 몸가까이로 빼기￼왼발 무게로 타격한다고 생각하고 치기<br>					<br>				<br>			<br>			<br><br>			<br>무게중심을 앞으로, 스텝 밟을 때도 타격 할 때도.<br>			<br>뒤로 넘기다 멈추지 말고, 어깨 위로 크게 접어 올리기<br>			<br>팔/어깨를 당기지말고, 멀리 큰 궤적을 그리면서 왼쪽 어깨위로 넘어오기<br>			<br>테이크백하면서 아래로 크게 떨구면서 스윙<br>			<br>공이 내려가는 타이밍에 2/3 지점 타격 - 타점에서 크게 위로 스핀 먹이듯이 올리기<br>			<br><br>			<br><a href="https://m.blog.naver.com/lotto828282/222524163778" target="_blank">실내테니스장</a><br>			<br><br>			<br>집근처 스텔라 테니스 010 6303 8622<br>			<br>평일06시~21시20분까지 하며 <br>			<br>토요일 09~17시<br>			<br>일요일 09~12시 까지 운영중입니다.<br>			<br><br>			<br>			<br>토/일 - 8시 30, 오전 9시 30분, 9시  일요일 10:30<br>			<br><br>			<br>레슨비: 평일 4주 기준 1주일 1회 15만, 2회 27만원, 한달 4회 혹은 8회 <br>			<br>레슨 시간: 30분 단위 잔여 : 월6시 화요일 9시<br>			<br>운영시간: 6~10시<br>			<br>주말/공휴일: 토 5시 6시, 일 오후 4시 <br>			<br>운동복 운동화<br>			<br><br>			<br>레슨 구성: 개인 레슨/ 쿠폰 레슨 차이?<br>			<br>레슨비: 주 1회 16만, 주 3회 38만<br>			<br>평일/주말 레슨 시간은 6시~10시<br>			<br>일시 중단하거나 주말-평일 바꿀 수 있나?<br>			<br>시설 이용료 X<br>			<br>시설 운영 시간/휴무일: X<br>			<br>당장 구입이 필요한 장비: 라켓, 복장, 신발<br>			<br>볼머신기 대여료 30분에 2만원<br>			<br><br>			<br><a href="https://autotennis24.co.kr/" target="_blank">오토테니스</a> (autotennis24.co.kr)<br>			<br>논현 코인테니스 <a href="https://lanalin.tistory.com/176" target="_blank">https://lanalin.tistory.com/176</a><br>			<br>성수 테니스포레 <a href="https://map.naver.com/v5/search/%EB%B3%BC%EB%A8%B8%EC%8B%A0%20%ED%85%8C%EB%8B%88%EC%8A%A4/place/1387105876?c=14127886.7501840,4515604.2731534,12,0,0,0,dh" target="_blank">https://map.naver.com/v5/search/%EB%B3%BC%EB%A8%B8%EC%8B%A0%20%ED%85%8C%EB%8B%88%EC%8A%A4/place/1387105876?c=14127886.7501840,4515604.2731534,12,0,0,0,dh</a><br>			<br>효창공원 하나테니스파크 <a href="https://map.naver.com/v5/search/%EC%8A%A4%ED%81%AC%EB%A6%B0%ED%85%8C%EB%8B%88%EC%8A%A4/place/1914677609?c=14132943.7720118,4514304.2478922,13,0,0,0,dh&placePath=%3Fentry%253Dbmp" target="_blank">https://map.naver.com/v5/search/%EC%8A%A4%ED%81%AC%EB%A6%B0%ED%85%8C%EB%8B%88%EC%8A%A4/place/1914677609?c=14132943.7720118,4514304.2478922,13,0,0,0,dh&placePath=%3Fentry%253Dbmp</a><br>			<br>락테니스 연희점<br>			<br>락테니스 여의도점<br>			<br>Y테니스 연희점 <a href="https://map.naver.com/v5/search/%EB%AC%B4%EC%9D%B8%ED%85%8C%EB%8B%88%EC%8A%A4/place/1005354644?c=14128882.8258557,4518723.8524276,14,0,0,0,dh" target="_blank">https://map.naver.com/v5/search/%EB%AC%B4%EC%9D%B8%ED%85%8C%EB%8B%88%EC%8A%A4/place/1005354644?c=14128882.8258557,4518723.8524276,14,0,0,0,dh</a><br>			<br>(8월 오픈) 다이나믹 테니스 <a href="https://map.naver.com/v5/search/%EB%AC%B4%EC%9D%B8%ED%85%8C%EB%8B%88%EC%8A%A4/place/1157592839?c=14128882.8258557,4518723.8524276,14,0,0,0,dh" target="_blank">https://map.naver.com/v5/search/%EB%AC%B4%EC%9D%B8%ED%85%8C%EB%8B%88%EC%8A%A4/place/1157592839?c=14128882.8258557,4518723.8524276,14,0,0,0,dh</a><br>			<br><br>			<br>[테니스 만화]<br>			<br>프레너미<br>			<br>티니스의 왕자<br>			<br>자이언트 스텝<br>			<br>베이비 스텝<br>			<br>해피<br>			<br>윔블던<br>			<br><a href="http://m.tennispeople.kr/news/articleView.html?idxno=11097" target="_blank">http://m.tennispeople.kr/news/articleView.html?idxno=11097</a><br>			<br><br>			<br>[스텝]<br>			<br><a href="https://m.blog.naver.com/PostView.naver?isHttpsRedirect=true&blogId=yum_47&logNo=220587262763" target="_blank">https://m.blog.naver.com/PostView.naver?isHttpsRedirect=true&blogId=yum_47&logNo=220587262763</a><br>			<br>잔발 스텝 - 사이드 스텝 - Split Step<br>		<br>		<br>			<br>Rule & Eticket_________________________<br>			<br><a href="https://laktc.com/tutorials/271" target="_blank">https://laktc.com/tutorials/271</a><br>			<br><br>			<br>Community_________________________<br>			<br>바미<br>			<br><a href="https://blog.naver.com/tennisparkmagazine/223993316598" target="_blank">테니스파크</a> 모집 <br>			<br>초보 랠리 가능한 곳?<br>			<br><a href="https://autotennis24.co.kr/" target="_blank">오토테니스</a> (autotennis24.co.kr)<br>			<br><br>			<br>창고형 & 대형 실내 테니스장<br>			<br><a href="https://www.instagram.com/cut_tennis11/" target="_blank">컷테니스</a>-상수역￼<a href="https://www.instagram.com/tennis__village/" target="_blank">테니스빌리지</a>(창고형)<br>			<br><br>		<br>		<br>			<br>				<br>					테니스UP24<br>					<a href="http://www.tennisup24.com" target="_blank">www.tennisup24.com</a><br>					6500원<br>					30분<br>					서울특별시 광진구 아차산로76길 19 지하1층<br>					 	010-7243-0018<br>				<br>				<br>					더에이스테니스아카데미<br>						<a href="https://blog.naver.com/blacksky1228/222364108863" target="_blank">https://blog.naver.com/blacksky1228/222364108863</a>	<br>					2000원	<br>					50개<br>					<br>서울특별시 강서구 마곡중앙4로 22 A동 지하1층<br>					<br><a href="https://blog.naver.com/blacksky1228" target="_blank">https://blog.naver.com/blacksky1228</a><br>					<br>					010-8336-9289<br>				<br>				<br>					나혼자테니스랩<br>					나혼자테니스연습장<br>					2000원<br>					 50개<br>					서울 서초구 서초동 1344 동국빌딩 1<br>						 <br>				<br>			<br>		<br>		<br>			<br>가방<a href="https://www.musinsa.com/app/goods/1562421" target="_blank">https://www.musinsa.com/app/goods/1562421</a></div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note-Tennis';
+const SAVE_KEY = 'board-Tennis';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "html",
+    "x": 48,
+    "y": 91,
+    "w": 720,
+    "html": "\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">(</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">교정사항</span><span style=\"font-family:Malgun Gothic\">) </span></p>\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">백핸드</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">포핸드</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">전환은</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">?</span></p>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Tahoma\"><span style=\"font-family:Malgun Gothic\">포핸드</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"en-US\" style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">박자</span><span style=\"font-family:Malgun Gothic\">. 점프 후 왼발부</span><span style=\"font-family:Malgun Gothic\">터</span><span style=\"font-family:Malgun Gothic\"> 타</span><span style=\"font-family:Malgun Gothic\">다닥</span><span style=\"font-family:Malgun Gothic\">. 왼발뒤꿈치</span><span style=\"font-family:Malgun Gothic\">를</span><span style=\"font-family:Malgun Gothic\"> 오</span><span style=\"font-family:Malgun Gothic\">른발과</span><span style=\"font-family:Malgun Gothic\"> 라</span><span style=\"font-family:Malgun Gothic\">켓</span><span style=\"font-family:Malgun Gothic\"> 하</span><span style=\"font-family:Malgun Gothic\">나</span><span style=\"font-family:Malgun Gothic\"> 간격 벌리</span><span style=\"font-family:Malgun Gothic\">고</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">오른발</span><span style=\"font-family:Malgun Gothic\"> 무</span><span style=\"font-family:Malgun Gothic\">게와</span><span style=\"font-family:Malgun Gothic\"> 라</span><span style=\"font-family:Malgun Gothic\">켓을</span><span style=\"font-family:Malgun Gothic\"> 동시</span><span style=\"font-family:Malgun Gothic\">에</span><span style=\"font-family:Malgun Gothic\"> 끌고 앞의 타</span><span style=\"font-family:Malgun Gothic\">점으로</span><span style=\"font-family:Malgun Gothic\"> 가</span><span style=\"font-family:Malgun Gothic\">져오면서</span><span style=\"font-family:Malgun Gothic\"> 타</span><span style=\"font-family:Malgun Gothic\">격</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">오른손</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">엄지손가락이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">왼쪽</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">뺨으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">들어오도록</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 11</span><span style=\"font-family:Malgun Gothic\">시</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">방향으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">타격</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">왼쪽</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">팔꿈치를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">돌리면서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">상체</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">전체를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">회전하면서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">타격</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">에프로치샷</span><span style=\"font-family:Malgun Gothic\"> - 일단 자</span><span style=\"font-family:Malgun Gothic\">리잡고</span><span style=\"font-family:Malgun Gothic\"> 어</span><span style=\"font-family:Malgun Gothic\">느정도</span><span style=\"font-family:Malgun Gothic\"> 내</span><span style=\"font-family:Malgun Gothic\">려왔을때</span><span style=\"font-family:Malgun Gothic\"> 타</span><span style=\"font-family:Malgun Gothic\">격</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">타점이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">중요함</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">내려올</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">때</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">타격</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">. + 타</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">점</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 앞에</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">두고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 발 내</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">딛으며</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 타</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">격</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">오른</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">발을 왼발보다 더 빼면서 회전</span><span lang=\"en-US\" style=\"font-family:Calibri\">, </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">오른발</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">가져오면서</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">오른발</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">앞에서</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">타격</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">사선으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 8</span><span style=\"font-family:Malgun Gothic\">자를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">빼면서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">뒤로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">빼고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">최대한</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">아래서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">위로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">올리며</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">타격</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">오른</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">발</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">무게</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">실어서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">멀리</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">던지듯이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">앞으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">밀면기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">최종적으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">손등이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">왼쪽</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">귀</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">옆에</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">오도록</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">상향</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">타격</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">수평으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">뒤로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">빼고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">팔목을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">이용해서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">아래로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">내리면서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">아래로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">위로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">공을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">올려치기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">공이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">올라갔다가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">내려오기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">직전에</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">아래에서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 1/3 </span><span style=\"font-family:Malgun Gothic\">지점을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">타격</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Tahoma\"><span style=\"font-family:Malgun Gothic\">백핸드</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">타격</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">지점으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">이동해서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">자리잡고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">라켓</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">돌리면서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">타격</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">왼쪽으로</span><span style=\"font-family:Malgun Gothic\"> 평행하</span><span style=\"font-family:Malgun Gothic\">게</span><span style=\"font-family:Malgun Gothic\"> 돌리</span><span style=\"font-family:Malgun Gothic\">고</span><span style=\"font-family:Malgun Gothic\">, 타</span><span style=\"font-family:Malgun Gothic\">격</span><span style=\"font-family:Malgun Gothic\"> 전에 아</span><span style=\"font-family:Malgun Gothic\">래로</span><span style=\"font-family:Malgun Gothic\"> 내</span><span style=\"font-family:Malgun Gothic\">리면서</span><span style=\"font-family:Malgun Gothic\"> 타</span><span style=\"font-family:Malgun Gothic\">격</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">포핸드</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">반대로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">잡고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">왼손과</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">오른손</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">이격</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">없이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">잡는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">그립</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">너무</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">크게</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">들어서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">빼지</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">말고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">라켓이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">얼굴</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">옆으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">수평으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">오도록</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">주먹을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">몸가까이로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">빼기</span><span style=\"font-family:Malgun Gothic\">￼</span><span style=\"font-family:Malgun Gothic\">왼발</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">무게로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">타격한다고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">생각하고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">치기</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">무게중심을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">앞으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">스텝</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">밟을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">때도</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">타격</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">할</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">때도</span><span lang=\"en-US\" style=\"font-family:Calibri\">.</span></p>\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">뒤로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">넘기다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">멈추지</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">말고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">어깨</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">위로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">크게</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">접어</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">올리기</span></p>\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">팔</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">어깨를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">당기지말고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">멀리</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">큰</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">궤적을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">그리면서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">왼쪽</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">어깨위로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">넘어오기</span></p>\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">테이크백하면서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">아래로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">크게</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">떨구면서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">스윙</span></p>\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">공이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">내려가는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">타이밍에</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 2/3 </span><span style=\"font-family:Malgun Gothic\">지점</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">타격</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - </span><span style=\"font-family:Malgun Gothic\">타점에서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">크게</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">위로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">스핀</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">먹이듯이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">올리기</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://m.blog.naver.com/lotto828282/222524163778\" style=\"font-family:Malgun Gothic\">실내테니스장</a></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">집근처 스텔라 테니스 010 6303 8622</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">평일</span>06<span style=\"font-family:Malgun Gothic\">시</span>~21<span style=\"font-family:Malgun Gothic\">시</span>20<span style=\"font-family:Malgun Gothic\">분까지</span> <span style=\"font-family:Malgun Gothic\">하며</span> </p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">토요일</span> 09~17<span style=\"font-family:Malgun Gothic\">시</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">일요일</span> 09~12<span style=\"font-family:Malgun Gothic\">시</span> <span style=\"font-family:Malgun Gothic\">까지</span> <span style=\"font-family:Malgun Gothic\">운영중입니다</span>.</p>\r\n\t\t\t<br />\r\n\t\t\t<div style=\"display:inline-block;width:413px;height:600px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\">토<span lang=\"en-US\" style=\"font-family:Calibri\">/</span><span style=\"font-family:Malgun Gothic\">일</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - 8</span><span style=\"font-family:Malgun Gothic\">시</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 30, </span><span style=\"font-family:Malgun Gothic\">오전</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 9</span><span style=\"font-family:Malgun Gothic\">시</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 30</span><span style=\"font-family:Malgun Gothic\">분</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, 9</span><span style=\"font-family:Malgun Gothic\">시</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">  </span><span style=\"font-family:Malgun Gothic\">일요일</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 10:30</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\">레슨비<span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: </span><span style=\"font-family:Malgun Gothic\">평일</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 4</span><span style=\"font-family:Malgun Gothic\">주</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">기준</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 1</span><span style=\"font-family:Malgun Gothic\">주일</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 1</span><span style=\"font-family:Malgun Gothic\">회</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 15</span><span style=\"font-family:Malgun Gothic\">만</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, 2</span><span style=\"font-family:Malgun Gothic\">회</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 27</span><span style=\"font-family:Malgun Gothic\">만원</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">한달</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 4</span><span style=\"font-family:Malgun Gothic\">회</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">혹은</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 8</span><span style=\"font-family:Malgun Gothic\">회</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\">레슨<span lang=\"en-US\"> </span>시간<span lang=\"en-US\">: 30</span>분<span lang=\"en-US\"> </span>단위<span lang=\"en-US\"> </span>잔여<span lang=\"en-US\"> : </span>월<span lang=\"en-US\">6</span>시<span lang=\"en-US\"> </span><span style=\"font-weight:bold\">화요일</span><span lang=\"en-US\" style=\"font-weight:bold\"> 9</span><span style=\"font-weight:bold\">시</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\">운영시간<span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: </span><span lang=\"en-US\">6~10</span>시</p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\">주말<span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">공휴일</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: </span><span style=\"font-family:Malgun Gothic\">토</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 5</span><span style=\"font-family:Malgun Gothic\">시</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 6</span><span style=\"font-family:Malgun Gothic\">시</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic;font-weight:bold\">일</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-weight:bold\"> </span><span style=\"font-family:Malgun Gothic;font-weight:bold\">오후</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-weight:bold\"> 4</span><span style=\"font-family:Malgun Gothic;font-weight:bold\">시</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">운동복</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">운동화</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">레슨</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">구성</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: </span><span style=\"font-family:Malgun Gothic\">개인</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">레슨</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/ </span><span style=\"font-family:Malgun Gothic\">쿠폰</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">레슨</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">차이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">?</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">레슨비</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: </span><span style=\"font-family:Malgun Gothic\">주</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 1</span><span style=\"font-family:Malgun Gothic\">회</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 16</span><span style=\"font-family:Malgun Gothic\">만</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">주</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 3</span><span style=\"font-family:Malgun Gothic\">회</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 38</span><span style=\"font-family:Malgun Gothic\">만</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">평일</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">주말</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">레슨</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">시간은</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 6</span><span style=\"font-family:Malgun Gothic\">시</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">~10</span><span style=\"font-family:Malgun Gothic\">시</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">일시</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">중단하거나</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">주말</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">-</span><span style=\"font-family:Malgun Gothic\">평일</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">바꿀</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">수</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">있나</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">?</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">시설</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">이용료</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> X</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">시설</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">운영</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">시간</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">휴무일</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: X</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">당장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">구입이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">필요한</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">장비</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: </span><span style=\"font-family:Malgun Gothic\">라켓</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">복장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">신발</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">볼머신기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대여료</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 30</span><span style=\"font-family:Malgun Gothic\">분에</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> 2</span><span style=\"font-family:Malgun Gothic\">만원</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"ko\" style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://autotennis24.co.kr/\" lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">오토테니스</a><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> (autotennis24.co.kr)</span></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\">논현<span lang=\"en-US\"> </span>코인테니스<span lang=\"en-US\"> </span><a href=\"https://lanalin.tistory.com/176\" lang=\"en-US\">https://lanalin.tistory.com/176</a></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\">성수<span lang=\"en-US\"> </span>테니스포레<span lang=\"en-US\"> </span><a href=\"https://map.naver.com/v5/search/%EB%B3%BC%EB%A8%B8%EC%8B%A0%20%ED%85%8C%EB%8B%88%EC%8A%A4/place/1387105876?c=14127886.7501840,4515604.2731534,12,0,0,0,dh\" lang=\"en-US\">https://map.naver.com/v5/search/%EB%B3%BC%EB%A8%B8%EC%8B%A0%20%ED%85%8C%EB%8B%88%EC%8A%A4/place/1387105876?c=14127886.7501840,4515604.2731534,12,0,0,0,dh</a></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\">효창공원<span lang=\"en-US\"> </span>하나테니스파크<span lang=\"en-US\"> </span><a href=\"https://map.naver.com/v5/search/%EC%8A%A4%ED%81%AC%EB%A6%B0%ED%85%8C%EB%8B%88%EC%8A%A4/place/1914677609?c=14132943.7720118,4514304.2478922,13,0,0,0,dh&amp;placePath=%3Fentry%253Dbmp\" lang=\"en-US\">https://map.naver.com/v5/search/%EC%8A%A4%ED%81%AC%EB%A6%B0%ED%85%8C%EB%8B%88%EC%8A%A4/place/1914677609?c=14132943.7720118,4514304.2478922,13,0,0,0,dh&amp;placePath=%3Fentry%253Dbmp</a></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\">락테니스<span lang=\"en-US\"> </span>연희점</p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\">락테니스<span lang=\"en-US\"> </span>여의도점</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">Y</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">테니스</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">연희점</span><span style=\"font-family:Malgun Gothic\"> </span><a href=\"https://map.naver.com/v5/search/%EB%AC%B4%EC%9D%B8%ED%85%8C%EB%8B%88%EC%8A%A4/place/1005354644?c=14128882.8258557,4518723.8524276,14,0,0,0,dh\">https://map.naver.com/v5/search/%EB%AC%B4%EC%9D%B8%ED%85%8C%EB%8B%88%EC%8A%A4/place/1005354644?c=14128882.8258557,4518723.8524276,14,0,0,0,dh</a></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">(8</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">월</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">오픈</span><span style=\"font-family:Malgun Gothic\">) </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">다이나믹</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">테니스</span><span style=\"font-family:Malgun Gothic\"> </span><a href=\"https://map.naver.com/v5/search/%EB%AC%B4%EC%9D%B8%ED%85%8C%EB%8B%88%EC%8A%A4/place/1157592839?c=14128882.8258557,4518723.8524276,14,0,0,0,dh\">https://map.naver.com/v5/search/%EB%AC%B4%EC%9D%B8%ED%85%8C%EB%8B%88%EC%8A%A4/place/1157592839?c=14128882.8258557,4518723.8524276,14,0,0,0,dh</a></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">[</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">테니스</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">만화</span><span style=\"font-family:Malgun Gothic\">]</span></p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:9pt\">프레너미</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:9pt\">티니스의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:9pt\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt\">왕자</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:9pt\">자이언트</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:9pt\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt\">스텝</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:9pt\">베이비</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic;font-size:9pt\"> </span><span style=\"font-family:Malgun Gothic;font-size:9pt\">스텝</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:9pt\">해피</span></p>\r\n\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic;font-size:9pt\">윔블던</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://m.tennispeople.kr/news/articleView.html?idxno=11097\">http://m.tennispeople.kr/news/articleView.html?idxno=11097</a></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">[</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">스텝</span><span style=\"font-family:Malgun Gothic\">]</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://m.blog.naver.com/PostView.naver?isHttpsRedirect=true&amp;blogId=yum_47&amp;logNo=220587262763\" style=\"font-family:Malgun Gothic\">https://m.blog.naver.com/PostView.naver?isHttpsRedirect=true&amp;blogId=yum_47&amp;logNo=220587262763</a></p>\r\n\t\t\t<p style=\"font-family:맑은 고딕;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">잔발</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">스텝</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - </span><span style=\"font-family:Malgun Gothic\">사이드</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">스텝</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - Split Step</span></p>\r\n\t\t"
+  },
+  {
+    "type": "text",
+    "x": 768,
+    "y": 91,
+    "w": 493,
+    "content": "Rule & Eticket_________________________\n<a href=\"https://laktc.com/tutorials/271\">https://laktc.com/tutorials/271</a>\nCommunity_________________________\n바미\n테니스파크</a> 모집\n초보 랠리 가능한 곳?\n오토테니스</a> (autotennis24.co.kr)\n창고형 & 대형 실내 테니스장\n<a href=\"https://www.instagram.com/cut_tennis11/\">컷테니스</a>-상수역￼<a href=\"https://www.instagram.com/tennis__village/\">테니스빌리지</a>(창고형)"
+  },
+  {
+    "type": "image",
+    "x": 60,
+    "y": 103,
+    "w": 413,
+    "h": 624,
+    "src": "5ddca2a6e8.png",
+    "caption": "스텔라 테니스 프로그램 rt霧馝S (월-금 06:00~22:00, 토-일 07:00~19:00) 주중(월~금) 1:1 레슨 2:1 레슨 주말(토~일) 1:1 레슨 2:1 레슨 주2회(월8회) 쿠폰 레슨 주말 부대시설 주2회(월8회) 주1회(월4회) 28만원 16만원 20만원 11만원 레슨 20분 + 볼며신 4주 기준/1인가격 주1회(월4회) 18만원 12만원 레슨 20분 + 볼며신 4주 기준/1인가격 1:1 레슨 32만원 레슨 20분 + 몰며신 4주 기준/1인가격 1회 6만원 7만원 구폰리|슨은 1 기. 2:1 가격동일 (VAT별도) 주3회(월12회) 42만원 27만원 (VAT별도) 주2회(월8회) 34만원 22만원 (VAT별도) 2:1 레슨 21만원 5회(6주내 소진) 29만원 34만원 라켓 대여 개인 라커 대여(4주) 5,000원"
+  },
+  {
+    "type": "text",
+    "x": 1320,
+    "y": 163,
+    "w": 163,
+    "content": "가방https://www.musinsa.com/app/goods/1562421"
+  },
+  {
+    "type": "html",
+    "x": 744,
+    "y": 398,
+    "w": 624,
+    "html": "\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\"><span style=\"font-family:Malgun Gothic\">테니스</span>UP24</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\"><a href=\"http://www.tennisup24.com\">www.tennisup24.com</a></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\">6500<span style=\"font-family:Malgun Gothic\">원</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\">30<span style=\"font-family:Malgun Gothic\">분</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\"><span style=\"font-family:Malgun Gothic\">서울특별시</span> <span style=\"font-family:Malgun Gothic\">광진구</span> <span style=\"font-family:Malgun Gothic\">아차산로</span>76<span style=\"font-family:Malgun Gothic\">길</span> 19 <span style=\"font-family:Malgun Gothic\">지하</span>1<span style=\"font-family:Malgun Gothic\">층</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\"> \t010-7243-0018</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\"><span style=\"font-family:Malgun Gothic\">더에이스테니스아카데미</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\">\t<a href=\"https://blog.naver.com/blacksky1228/222364108863\">https://blog.naver.com/blacksky1228/222364108863</a>\t</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\">2000<span style=\"font-family:Malgun Gothic\">원</span>\t</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\">50<span style=\"font-family:Malgun Gothic\">개</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p lang=\"ko\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">서울특별시 강서구 마곡중앙</span>4<span style=\"font-family:Malgun Gothic\">로</span> 22 A<span style=\"font-family:Malgun Gothic\">동 지하</span>1<span style=\"font-family:Malgun Gothic\">층</span></p>\r\n\t\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://blog.naver.com/blacksky1228\">https://blog.naver.com/blacksky1228</a></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\">010-8336-9289</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\"><span style=\"font-family:Malgun Gothic\">나혼자테니스랩</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\"><span style=\"font-family:Malgun Gothic\">나혼자테니스연습장</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"en-US\">2000<span lang=\"ko\" style=\"font-family:Malgun Gothic\">원</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"en-US\"> 50<span lang=\"ko\" style=\"font-family:Malgun Gothic\">개</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"ko\"><span style=\"font-family:Malgun Gothic\">서울</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">서초구</span><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">서초동</span><span lang=\"en-US\"> 1344 </span><span style=\"font-family:Malgun Gothic\">동국빌딩</span><span lang=\"en-US\"> 1</span></span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Calibri\"><span lang=\"en-US\">\t </span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t"
+  }
+];
+const CONTENT_HASH = '9970b402';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -133,33 +407,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

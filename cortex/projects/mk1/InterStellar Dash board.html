@@ -6,121 +6,388 @@
 <title>InterStellar Dash board</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">InterStellar Dash board</span>
-  
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">InterStellar Dash board</div>
+<div class="date"></div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">InterStellar Dash board<br>		<br>		<br>	<br>	<br>		<br>			<br>				<br>Start-업 routine 만들기, 매일 아침 1시간 퇴근 후 2시간 총 3시간, 일 최대 4시간 확보 -> 주말은 flow day & block day<br>				<br>여기서 중요한 건&#160;창업하기가 아니라, ‘창업 준비 동작’을 자동화한다는 것.<br>				<br>뇌는 “나는 창업하는 사람이다”로 정체성을 재등록<br>				<br>- 매일 아침 5:30 ~ 6:30 (또는 너에게 맞는 새벽 시간) → 딱 1시간만 코딩 “오늘은 딱 로그인 화면 하나만 만든다” “오늘은 오픈AI API 키 발급받고 hello world만 찍는다” → 이 정도로 작게 시작해. 5분만 해도 성공으로 쳐.<br>				<br>- “0일차 → 1일차”를 넘는 순간이 제일 중요해. 연속 3일만 넘기면 그다음부터는 습관이 알아서 굴러감.<br>				<br><br>				<br>제일 먼저 만들 제품은 나 자신.<br>				<br><br>				<br>매일 아침,<br>				<br>- 만들고 싶은 기능 1개<br>				<br>- 내일 만들 기능 1개<br>				<br>- 아이디어 스케치 5줄<br>				<br><br>				<br>					<br>						Task<br>						Due date<br>						Target <br>					<br>					<br>						누구의 어떤 문제를 풀 것인가?<br>						<br><br>						<br>						모바일 과잠<br>					<br>				<br>				<br>죽은 인터넷 - <a href="https://youtu.be/xuTOnTVrIk4" target="_blank">인간증명</a>: 시공간 안에 위치해 있는 인간을 복수의 인간이 시각적으로 확인 하여, 증명 보고.<br>				<br><br>				<br>망치가 답이 아니라는 것을 알기 위해,<br>				<br>망치를 만들어야 할 필요는 없다.<br>				<br><br>				<br>소셜 디스커버리<br>				<br><br>				<br>일단 팔고 만들어라<br>				<br><br>				<br>Solo leveling - 회사가 아니라 <a href="https://www.youtube.com/watch?v=Lj5fyDX01v8" target="_blank">에이전트로 된 여단</a>을 만든다.<br>				<br><br>				<br>1/ 해외 페스티벌<br>				<br>2/ 버스킹<br>				<br><br>				<br>1/ 게임이어야해, 게이미피케이션이 아니라.<br>				<br>2/ AI를 어떻게든 활용해서 효율화 해야해.<br>				<br><br>				<br>제갈량 메소드 - 뉴스 언론이용, 바이럴<br>				<br><br>				<br>Opt1. 돈을 벌 수 있는걸 먼저하고, <br>				<br>하고 싶은 것을 하느냐,<br>				<br>Opt2. 하려는 것을 Day 1부터 매출이 나오는 것으로 시작하느냐<br>				<br><br>				<br>					<br>						능력과 역할<br>						 기획 개발, 펀딩, 운영, 마케팅, 영어<br>					<br>					<br>						Item<br>						<br><br>						<br>					<br>					<br>						Crew<br>						<br><br>						<br>					<br>					<br>						Funding<br>						<br><br>						<br>					<br>				<br>				<br><br>				<br>저커버그가 그리는 미래가 오긴 온다. 사업적으로 준비해<br>				<br>GPT와 함께 아이데이션<br>				<br><br>				<br>카카오 모빌리티 박송원<br>				<br>비즈니스 아이디어 추출기 <a href="https://founderpal.ai/business-ideas-generator?ref=producthunt" target="_blank">https://founderpal.ai/business-ideas-generator?ref=producthunt</a><br>				<br><a href="https://brunch.co.kr/@grit-han/27" target="_blank">https://brunch.co.kr/@grit-han/27</a><br>				<br><br>				<br><a href="https://www.youtube.com/watch?v=WH1psHHF4MQ" target="_blank">하버드 MBA에서 가장 먼저 가르치는 '이 방법' | 디커플링</a><br>				<br>창업가가 만드는 것은 <br>				<br>  ① 비전(제품)   ② 조직과 문화   ③ 연료 - 돈과 비전. <br>				<br>					<br>- 가설-제품을 만든다.<br>					<br>- 고객/시장 테스트를 한다.<br>					<br>- 팀을 만든다/키운다.<br>					<br>- (매출/투자 유치를 통해)현금 흐름을 만든다. 1~3을 반복한다. <br>					<br>- 세포를 분화한다.<br>					<br>- 목표를 이루고, 사멸한다.<br>				<br>				<br><br>				<br>인터넷에 없는 데이터를 획득 가능할 것: 테슬라 처럼<br>				<br><br>				<br>지금은 자본금 100만 원으로도&#160;<a href="http://www.startbiz.go.kr/" target="_blank">온라인 법인설립 시스템</a><br>				<br><br>				출처: <<a href="https://publy.co/content/4628?fr=chapter-bottom-list" target="_blank">https://publy.co/content/4628?fr=chapter-bottom-list</a>> <br>				<br><br>				<br><a href="https://eopla.net/magazines/15013#" target="_blank">https://eopla.net/magazines/15013#</a><br>				<br><br>				<br>지오비전 퍼즐 <a href="https://puzzle.geovision.co.kr/map?lat=37.56648210&lng=126.98510375&zoom=12&poiId=-1&showFP=N" target="_blank">https://puzzle.geovision.co.kr/map?lat=37.56648210&lng=126.98510375&zoom=12&poiId=-1&showFP=N</a><br>				<br><br>				<br>상권분석 <a href="https://golmok.seoul.go.kr/main.do" target="_blank">https://golmok.seoul.go.kr/main.do</a><br>				<br>상권분석 <a href="https://sg.sbiz.or.kr/godo/index.sg" target="_blank">https://sg.sbiz.or.kr/godo/index.sg</a><br>				<br>ㅓ<br>				<br>내가 생각하는 거랑 되게되게 유사한 서비스 파인애플 <a href="http://www.pineappleapp.io/" target="_blank">http://www.pineappleapp.io/</a><br>				<br><br>				<br>불편할때만 불편을 제품화 할 생각을 할 수 있다면, 정말 확실한 pain point를 잡아낼수 없다. 누가 걷는걸 pain point라고 생각하는가?<br>				<br><br>				<br><br>				<br>하도훈/지오비전 문의 - 내아이템 ㅋㅋ<br>				<br><a href="https://camen.co.kr/" target="_blank">https://camen.co.kr/</a> 개발자 매칭 추 │ 디오 - <br>				<br><br>				<br><a href="https://playbook.lab021.xyz/" target="_blank">https://playbook.lab021.xyz/</a><br>				<br><br>				<br><br>				<br>더미 프로필 대량 생성 - AI 이용 <a href="https://www.themiilk.com/articles/a1a6ec346?u=c329880f&t=ae1ad82ec&from=" target="_blank">https://www.themiilk.com/articles/a1a6ec346?u=c329880f&t=ae1ad82ec&from=</a><br>				<br><br>				<br>한 창업자가 어느날 직원에게 전화했더니 불편하다고 끊더랍니다. 얼굴 보이는 줌은 오피셜이지만, 전화는 프라이빗이라는 거죠.<br>				<br><br>				출처: <<a href="https://n.news.naver.com/mnews/article/366/0000868086?sid=103" target="_blank">https://n.news.naver.com/mnews/article/366/0000868086?sid=103</a>> <br>				<br><br>				<br><br>				<br><a href="https://brunch.co.kr/@taewookim/54" target="_blank">https://brunch.co.kr/@taewookim/54</a><br>				<br><a href="https://brunch.co.kr/@swooparupa/34" target="_blank">https://brunch.co.kr/@swooparupa/34</a><br>				<br><a href="http://icunow.co.kr/first1k/" target="_blank">http://icunow.co.kr/first1k/</a><br>				<br><br>				<br><br>				<br>초기가입자 모객 <a href="https://brunch.co.kr/@taewookim/96" target="_blank">https://brunch.co.kr/@taewookim/96</a><br>				<br><br>				<br>AI <a href="https://brunch.co.kr/@taewookim/102'" target="_blank">https://brunch.co.kr/@taewookim/102</a>'<br>				<br><br>				<br>새로운 것은 익숙한 방식으로,<br>				<br>익숙한 것을 새로운 방식으로.<br>				<br><br>				<br>아자르같은 매칠 시스템이면 글로벌로 바로 go 가능?<br>				<br>근거리부터 꼭 구축해야하나? 아님 동시?<br>				<br>location based games<br>				<br><br>				<br>아스피린, 비타민 모두 아니다.<br>				<br>메스암페타민을 만드는 것, 중독을 설계하는 일<br>				<br>				<br>원자마켓, 근거리에서 서로어떤 니즈를 매개로 COMM. 하게 할 것인지??<br>				<br>줄서기? 취미? 게임? 데이트? 아니면 각원자마켓마다 다른?<br>				<br>요건]로컬 + 실시간<br>				<br><br>				<br>에어드랍 처럼 실시간공간 안에서의 정보를 주고 받는 커뮤니케이션 앱<br>				<br>증강 패션/프로필? 최초에 생각한 트래픽 앱 못만드나?<br>				<br>지역피드? 타임라인? 시공간 담벼락, 종횡 스크롤V<br>				<br>GPT랑 논의 해보기<br>				<br><br>				<br>비즈니스 아이디어 <a href="https://www.halfbakedbusinessideas.com/top" target="_blank">https://www.halfbakedbusinessideas.com/top</a><br>				<br>AR 모노클 - 게임에 이용가능하지 않을까 <a href="https://news.hada.io/topic?id=8446&utm_source=discord&utm_medium=bot&utm_campaign=280" target="_blank">https://news.hada.io/topic?id=8446&utm_source=discord&utm_medium=bot&utm_campaign=280</a><br>				<br><br>				<br><br>				<br>TDL_____________________________<br>				<br>가설검증<br>				<br>시작할 방법 물어보기: 트레바리에서 만난 사람들 + 이동형 대표, 김미희 대표<br>				<br><br>				<br>시장호응가설, XYZ 가설 수립 & 비즈니스 모델 캔버스 그려보기, 블루오션 전략<br>				<br>MVP, Pretotyping 방법 찾기<br>				<br>더미 계정 다량으로 만들 방법 찾기<br>				<br>김미희, 이동영 대표 및 다른 대표들 만나서 피드백 받기 - 피드백 받을 프레임 작성<br>				<br>서한교, 이새로찬, 홍석희(클럽장)<br>				<br>마스토돈 활용 가능여부?<br>				<br>10단계 - 로터스 맵: 세계 최대의 커뮤니케이션 서비스로 - 세레브로 단계로 인류 커뮤니케이션 evolve.<br>				<br><br>				<br>함께 실리콘밸리에 갈 사람들이 필요해. 아님 내다 가거나?<br>				<br><br>				<br>실리콘밸리 취업?<br>				<br>기획 -> 투자 -> 개발자?<br>				<br><a href="https://brunch.co.kr/brunchbook/silliconvalley" target="_blank">https://brunch.co.kr/brunchbook/silliconvalley</a><br>				<br>디자인, VC, 개발<br>				<br>실리콘밸리의 한국인<br>				<br><br>				<br><a href="https://www.youtube.com/watch?v=4YLbOaDqDhQ&ab_channel=%ED%8B%B0%ED%83%80%EC%9E%84%EC%A6%88TV" target="_blank">한국</a> 문과 출신이 실리콘밸리에서 일하는 법<br>				<br><br>				<br><br>				<br><a href="https://www.instagram.com/reel/DH7FjXPTOd4/?igsh=Ymhib3JrZTU5eHhi" target="_blank">AI </a>부대<br>			<br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			출처: <<a href="https://publy.co/content/4628?fr=chapter-bottom-list" target="_blank">https://publy.co/content/4628?fr=chapter-bottom-list</a>> <br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			출처: <<a href="https://n.news.naver.com/mnews/article/366/0000868086?sid=103" target="_blank">https://n.news.naver.com/mnews/article/366/0000868086?sid=103</a>> <br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br><br>			<br>			<br><br>		<br>		<br>			<br><a href="https://news.hada.io/topic?id=21474&utm_source=discord&utm_medium=bot&utm_campaign=280" target="_blank">Andrew Ng: AI </a>에이전트의 현황 [유튜브] (youtube.com)<br>		<br>		<br>			<br><br>		<br>		<br>			<br>아주 작고 표쪽한 '기능', 즉시 돈 낼 만한 기능<br>			<br><a href="https://launched.lovable.dev/" target="_blank">Lovable Lunched</a></div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note-InterStellar-Dash-board';
+const SAVE_KEY = 'board-InterStellar-Dash-board';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 408,
+    "y": 19,
+    "w": 600,
+    "content": "아주 작고 표쪽한 '기능', 즉시 돈 낼 만한 기능\nLovable Lunched</a>"
+  },
+  {
+    "type": "text",
+    "x": 831,
+    "y": 106,
+    "w": 378,
+    "content": "<a href=\"https://news.hada.io/topic?id=21474&utm_source=discord&utm_medium=bot&utm_campaign=280\">Andrew Ng: AI </a>에이전트의 현황 [유튜브] (youtube.com)"
+  },
+  {
+    "type": "html",
+    "x": 40,
+    "y": 113,
+    "w": 727,
+    "html": "\r\n\t\t\t<ul>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">Start-</span><span style=\"font-family:Malgun Gothic\">업</span><span style=\"font-family:Calibri\"> routine </span><span style=\"font-family:Malgun Gothic\">만들기</span><span style=\"font-family:Calibri\">, </span><span style=\"font-family:Malgun Gothic\">매일</span><span style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">아침</span><span style=\"font-family:Calibri\"> 1</span><span style=\"font-family:Malgun Gothic\">시간</span><span style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">퇴근</span><span style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">후</span><span style=\"font-family:Calibri\"> 2</span><span style=\"font-family:Malgun Gothic\">시간</span><span style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">총</span><span style=\"font-family:Calibri\"> 3</span><span style=\"font-family:Malgun Gothic\">시간</span><span style=\"font-family:Calibri\">, </span><span style=\"font-family:Malgun Gothic\">일</span><span style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">최대</span><span style=\"font-family:Calibri\"> 4</span><span style=\"font-family:Malgun Gothic\">시간</span><span style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">확보</span><span style=\"font-family:Calibri\"> -&gt; </span><span style=\"font-family:Malgun Gothic\">주말은</span><span style=\"font-family:Calibri\"> flow day &amp; block day</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:ui-sans-serif;font-size:12pt;color:#b3b0ad;background-color:#212121\">여기서 중요한 건&#160;창업하기가 아니라, ‘창업 준비 동작’을 자동화한다는 것.</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:ui-sans-serif;font-size:12pt;color:#b3b0ad;background-color:#212121\">뇌는 “나는 창업하는 사람이다”로 정체성을 재등록</span></p>\r\n\t\t\t\t<li style=\"font-family:Calibri\"><span lang=\"en-US\"><span style=\"font-family:universalSans;font-size:12pt;color:#787877;background-color:#0f1010\">매일 아침 5:30 ~ 6:30 (또는 너에게 맞는 새벽 시간) → 딱 1시간만 코딩 “오늘은 딱 로그인 화면 하나만 만든다” “오늘은 오픈AI API 키 발급받고 hello world만 찍는다” → 이 정도로 작게 시작해. 5분만 해도 성공으로 쳐.</span></span></li>\r\n\t\t\t\t<li style=\"font-family:Calibri\"><span lang=\"en-US\"><span style=\"font-family:universalSans;font-size:12pt;color:#787877;background-color:#0f1010\">“0일차 → 1일차”를 넘는 순간이 제일 중요해. 연속 3일만 넘기면 그다음부터는 습관이 알아서 굴러감.</span></span></li>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">제일</span> <span style=\"font-family:Malgun Gothic\">먼저</span> <span style=\"font-family:Malgun Gothic\">만들</span> <span style=\"font-family:Malgun Gothic\">제품은</span> <span style=\"font-family:Malgun Gothic\">나</span> <span style=\"font-family:Malgun Gothic\">자신</span>.</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:ui-sans-serif;font-size:12pt;color:#b3b0ad;background-color:#212121\">매일 </span><span style=\"font-family:ui-sans-serif;font-size:12pt;color:#b3b0ad;background-color:#212121\">아침</span><span style=\"font-family:ui-sans-serif;font-size:12pt;color:#b3b0ad;background-color:#212121\">,</span></p>\r\n\t\t\t\t<li style=\"font-family:Calibri\"><span lang=\"en-US\"><span style=\"font-family:ui-sans-serif;font-size:12pt;color:#b3b0ad;background-color:#212121\">만들고 </span><span style=\"font-family:ui-sans-serif;font-size:12pt;color:#b3b0ad;background-color:#212121\">싶은</span><span style=\"font-family:ui-sans-serif;font-size:12pt;color:#b3b0ad;background-color:#212121\"> </span><span style=\"font-family:ui-sans-serif;font-size:12pt;color:#b3b0ad;background-color:#212121\">기능</span><span style=\"font-family:ui-sans-serif;font-size:12pt;color:#b3b0ad;background-color:#212121\"> 1</span><span style=\"font-family:ui-sans-serif;font-size:12pt;color:#b3b0ad;background-color:#212121\">개</span></span></li>\r\n\t\t\t\t<li style=\"font-family:Calibri\"><span lang=\"en-US\"><span style=\"font-family:ui-sans-serif;font-size:12pt;color:#b3b0ad;background-color:#212121\">내일 만들 기능 1개</span></span></li>\r\n\t\t\t\t<li style=\"font-family:Calibri\"><span lang=\"en-US\"><span style=\"font-family:ui-sans-serif;font-size:12pt;color:#b3b0ad;background-color:#212121\">아이디어 스케치 5줄</span></span></li>\r\n\t\t\t\t<br />\r\n\t\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">Task</span></span></td>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">Due date</span></span></td>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">Target </span></span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard\"><span style=\"font-family:Malgun Gothic\">누구의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">어떤</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">문제를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">풀</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">것인가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">?</span></td>\r\n\t\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t\t</td>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Pretendard\"><span style=\"font-family:Malgun Gothic\">모바일</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">과잠</span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">죽은<span lang=\"en-US\"> </span>인터넷<span lang=\"en-US\"> - </span><a href=\"https://youtu.be/xuTOnTVrIk4\" lang=\"en-US\">인간증명</a><span lang=\"en-US\" style=\"font-size:11pt\">: </span><span style=\"font-size:11pt\">시공간</span><span lang=\"en-US\" style=\"font-size:11pt\"> </span><span style=\"font-size:11pt\">안에</span><span lang=\"en-US\" style=\"font-size:11pt\"> </span><span style=\"font-size:11pt\">위치해</span><span lang=\"en-US\" style=\"font-size:11pt\"> </span><span style=\"font-size:11pt\">있는</span><span lang=\"en-US\" style=\"font-size:11pt\"> </span><span style=\"font-size:11pt\">인간을</span><span lang=\"en-US\" style=\"font-size:11pt\"> </span><span style=\"font-size:11pt\">복수의</span><span lang=\"en-US\" style=\"font-size:11pt\"> </span><span style=\"font-size:11pt\">인간이</span><span lang=\"en-US\" style=\"font-size:11pt\"> </span><span style=\"font-size:11pt\">시각적으로</span><span lang=\"en-US\" style=\"font-size:11pt\"> </span><span style=\"font-size:11pt\">확인</span><span lang=\"en-US\" style=\"font-size:11pt\"> </span><span style=\"font-size:11pt\">하여</span><span lang=\"en-US\" style=\"font-size:11pt\">, </span><span style=\"font-size:11pt\">증명</span><span lang=\"en-US\" style=\"font-size:11pt\"> </span><span style=\"font-size:11pt\">보고</span><span lang=\"en-US\" style=\"font-size:11pt\">.</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">망치가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">답이</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">아니라는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">것을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">알기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">위해</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">,</span></p>\r\n\t\t\t\t<p style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">망치를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">만들어야</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">할</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">필요는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">없다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">소셜</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">디스커버리</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">일단</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">팔고</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">만들어라</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\">Solo leveling - <span lang=\"ko-KR\">회사가</span> <span lang=\"ko-KR\">아니라</span> <a href=\"https://www.youtube.com/watch?v=Lj5fyDX01v8\" lang=\"ko-KR\">에이전트로 된 여단</a><span lang=\"ko-KR\">을</span> <span lang=\"ko-KR\">만든다</span>.</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">1/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">해외</span><span style=\"font-family:Calibri\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">페스티벌</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">2/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">버스킹</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">1/ </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">게임이어야해</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">게이미피케이션이</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">아니라</span><span style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">2/ AI</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">를</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">어떻게든</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">활용해서</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">효율화</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">해야해</span><span style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">제갈량</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">메소드</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - </span><span style=\"font-family:Malgun Gothic\">뉴스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">언론이용</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">바이럴</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">Opt1. </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">돈을</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">벌</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">수</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">있는걸</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">먼저하고</span><span style=\"font-family:Malgun Gothic\">, </span></p>\r\n\t\t\t\t<p style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">하고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">싶은</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">것을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">하느냐</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">,</span></p>\r\n\t\t\t\t<p style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Tahoma\">Opt2. </span><span style=\"font-family:Malgun Gothic\">하려는</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">것을</span><span lang=\"en-US\" style=\"font-family:Calibri\"> Day 1</span><span style=\"font-family:Malgun Gothic\">부터</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">매출이</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">나오는</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">것으로</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span style=\"font-family:Malgun Gothic\">시작하느냐</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Tahoma\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">능력과 역할</span></span></td>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Tahoma\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\"> 기</span><span style=\"font-family:Malgun Gothic\">획</span><span style=\"font-family:Malgun Gothic\"> 개</span><span style=\"font-family:Malgun Gothic\">발</span><span style=\"font-family:Malgun Gothic\">, 펀딩, 운영, 마</span><span style=\"font-family:Malgun Gothic\">케팅</span><span style=\"font-family:Malgun Gothic\">, </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">영어</span></span></td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Tahoma\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">Item</span></span></td>\r\n\t\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t\t</td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Tahoma\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">Crew</span></span></td>\r\n\t\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t\t</td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t<td style=\"border:1px solid;font-family:Tahoma\"><span lang=\"en-US\"><span style=\"font-family:Malgun Gothic\">Funding</span></span></td>\r\n\t\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t\t</td>\r\n\t\t\t\t\t</tr>\r\n\t\t\t\t</table>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">저커버그가 그리는 미래가 오긴 온다. 사업적으로 준비해</span></p>\r\n\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\">GPT와 함께 아이데이션</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">카카오</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">모빌리티</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">박송원</span></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">비즈니스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">아이디어</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">추출기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><a href=\"https://founderpal.ai/business-ideas-generator?ref=producthunt\">https://founderpal.ai/business-ideas-generator?ref=producthunt</a></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://brunch.co.kr/@grit-han/27\">https://brunch.co.kr/@grit-han/27</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.youtube.com/watch?v=WH1psHHF4MQ\" style=\"font-family:Pretendard Light;font-size:10pt\">하버드 MBA에서 가장 먼저 가르치는 &#39;이 방법&#39; | 디커플링</a></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">창업가가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">만드는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">것은</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">  </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">①</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">비전</span><span style=\"font-family:Malgun Gothic\">(</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">제품</span><span style=\"font-family:Malgun Gothic\">)  </span><span style=\"font-family:Tahoma\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">②</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">조직과</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">문화</span><span style=\"font-family:Malgun Gothic\">   </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">③</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">연료</span><span style=\"font-family:Malgun Gothic\"> - </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">돈과</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">비전</span><span style=\"font-family:Malgun Gothic\">. </span></p>\r\n\t\t\t\t<ol>\r\n\t\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">가설</span><span lang=\"en-US\">-</span><span style=\"font-family:Malgun Gothic\">제품을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">만든다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></li>\r\n\t\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">고객</span><span lang=\"en-US\">/</span><span style=\"font-family:Malgun Gothic\">시장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">테스트를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">한다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></li>\r\n\t\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">팀을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">만든다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">/</span><span style=\"font-family:Malgun Gothic\">키운다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></li>\r\n\t\t\t\t\t<li style=\"font-family:Calibri\"><span lang=\"en-US\">(<span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">매출</span>/<span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">투자</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">유치를</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">통해</span><span style=\"font-family:Malgun Gothic\">)</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">현금</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">흐름을</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">만든다</span><span style=\"font-family:Malgun Gothic\">. 1~3</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">을</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">반복한다</span><span style=\"font-family:Malgun Gothic\">. </span></span></li>\r\n\t\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">세포를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">분화한다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></li>\r\n\t\t\t\t\t<li style=\"font-family:Calibri\"><span style=\"font-family:Malgun Gothic\">목표를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">이루고</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">사멸한다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></li>\r\n\t\t\t\t</ol>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">인터넷에</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">없는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">데이터를</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">획득</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">가능할</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">것</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: </span><span style=\"font-family:Malgun Gothic\">테슬라</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">처럼</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">지금은 자본금 100만 원으로도&#160;</span><a href=\"http://www.startbiz.go.kr/\" style=\"font-family:Pretendard;font-size:14pt;background-color:#191a1a\">온라인 법인설립 시스템</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<cite style=\"font-family:Calibri;font-size:9pt;color:#595959;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">출처</span>: &lt;<a href=\"https://publy.co/content/4628?fr=chapter-bottom-list\">https://publy.co/content/4628?fr=chapter-bottom-list</a>&gt; </cite>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://eopla.net/magazines/15013#\">https://eopla.net/magazines/15013#</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">지오비전</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">퍼즐</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><a href=\"https://puzzle.geovision.co.kr/map?lat=37.56648210&amp;lng=126.98510375&amp;zoom=12&amp;poiId=-1&amp;showFP=N\">https://puzzle.geovision.co.kr/map?lat=37.56648210&amp;lng=126.98510375&amp;zoom=12&amp;poiId=-1&amp;showFP=N</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">상권분석</span> <a href=\"https://golmok.seoul.go.kr/main.do\">https://golmok.seoul.go.kr/main.do</a></p>\r\n\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">상권분석</span> <a href=\"https://sg.sbiz.or.kr/godo/index.sg\">https://sg.sbiz.or.kr/godo/index.sg</a></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">ㅓ</span></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">내가</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">생각하는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">거랑</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">되게되게</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">유사한</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">서비스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">파인애플</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><a href=\"http://www.pineappleapp.io/\" lang=\"en-US\">http://www.pineappleapp.io/</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Pretendard;margin-top:0pt;margin-bottom:0pt\">불편할때만 불<span lang=\"en-US\" style=\"font-family:Malgun Gothic\">편</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">을 </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">제</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">품화 할 </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">생</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">각을 </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">할 수 있</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">다면</span><span lang=\"en-US\" style=\"font-family:Calibri\">, </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">정말 </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">확</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">실한</span><span lang=\"en-US\" style=\"font-family:Calibri\"> pain point</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">를 잡</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">아낼수 없다</span><span lang=\"en-US\" style=\"font-family:Calibri\">. </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">누</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">가 </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">걷</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">는걸</span><span lang=\"en-US\" style=\"font-family:Calibri\"> pain point</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">라</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">고 </span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">생</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">각하는가</span><span lang=\"en-US\" style=\"font-family:Calibri\">?</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<br />\r\n\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">하도훈</span><span lang=\"en-US\" style=\"font-family:Tahoma\">/</span><span style=\"font-family:Malgun Gothic\">지오비전</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">문의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - </span><span style=\"font-family:Malgun Gothic\">내아이템</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">ㅋㅋ</span></p>\r\n\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://camen.co.kr/\">https://camen.co.kr/</a><span lang=\"en-US\"> </span><span style=\"font-family:Malgun Gothic\">개발자</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">매칭</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">추</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">│</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">디오</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - </span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://playbook.lab021.xyz/\">https://playbook.lab021.xyz/</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">더미</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">프로필</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대량</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">생성</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - AI </span><span style=\"font-family:Malgun Gothic\">이용</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><a href=\"https://www.themiilk.com/articles/a1a6ec346?u=c329880f&amp;t=ae1ad82ec&amp;from=\">https://www.themiilk.com/articles/a1a6ec346?u=c329880f&amp;t=ae1ad82ec&amp;from=</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">한 창업자가 어느날 직원에게 전화했더니 불편하다고 끊더랍니다. 얼굴 보이는 줌은 오피셜이지만, 전화는 프라이빗이라는 거죠.</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<cite style=\"font-family:Calibri;font-size:9pt;color:#595959;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">출처</span>: &lt;<a href=\"https://n.news.naver.com/mnews/article/366/0000868086?sid=103\">https://n.news.naver.com/mnews/article/366/0000868086?sid=103</a>&gt; </cite>\r\n\t\t\t\t<br />\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://brunch.co.kr/@taewookim/54\">https://brunch.co.kr/@taewookim/54</a></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://brunch.co.kr/@swooparupa/34\">https://brunch.co.kr/@swooparupa/34</a></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://icunow.co.kr/first1k/\">http://icunow.co.kr/first1k/</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">초기가입자</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">모객</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><a href=\"https://brunch.co.kr/@taewookim/96\">https://brunch.co.kr/@taewookim/96</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">AI <a href=\"https://brunch.co.kr/@taewookim/102&#39;\" lang=\"ko-KR\">https://brunch.co.kr/@taewookim/102</a>&#39;</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">새로운</span> <span style=\"font-family:Malgun Gothic\">것은</span> <span style=\"font-family:Malgun Gothic\">익숙한</span> <span style=\"font-family:Malgun Gothic\">방식으로</span>,</p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">익숙한</span> <span style=\"font-family:Malgun Gothic\">것을</span> <span style=\"font-family:Malgun Gothic\">새로운</span> <span style=\"font-family:Malgun Gothic\">방식으로</span>.</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">아자르같은</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">매칠</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">시스템이면</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">글로벌로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">바로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> go </span><span style=\"font-family:Malgun Gothic\">가능</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">?</span></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">근거리부터</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">꼭</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">구축해야하나</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">? </span><span style=\"font-family:Malgun Gothic\">아님</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">동시</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">?</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">location based games</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">아스피린</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">비타민</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">모두</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">아니다</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">.</span></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">메스암페타민을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">만드는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">것</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">중독을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">설계하는</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">일</span></p>\r\n\t\t\t\t<div style=\"display:inline-block;width:480px;height:171px;background:#2d333b;border-radius:4px;margin:2px;vertical-align:top;opacity:0.4\"></div>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">원자마켓</span><span style=\"font-family:Malgun Gothic\">, 근거리에서 서로어떤 니즈를 매개로 COMM. 하게 할 것인지??</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">줄서기</span><span style=\"font-family:Malgun Gothic\">? 취미? 게임? 데이트? 아니면 각원자마켓마다 다른?</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">요건</span><span style=\"font-family:Malgun Gothic\">]</span><span style=\"font-family:Malgun Gothic\">로컬</span><span style=\"font-family:Malgun Gothic\"> + 실시간</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">에어드랍</span><span style=\"font-family:Malgun Gothic\"> 처럼 실시간공간 안에서의 정보를 주고 받는 커뮤니케이션 앱</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">증강</span><span style=\"font-family:Malgun Gothic\"> 패션/프</span><span style=\"font-family:Malgun Gothic\">로필</span><span style=\"font-family:Malgun Gothic\">? 최초에 생각한 트래픽 앱 못만드나?</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">지역피드? 타임라인? 시공간 담벼락, 종횡 스크롤V</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">GPT</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">랑</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">논의</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">해보기</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">비즈니스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">아이디어</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><a href=\"https://www.halfbakedbusinessideas.com/top\">https://www.halfbakedbusinessideas.com/top</a></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">AR <span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">모노클</span><span style=\"font-family:Malgun Gothic\"> - </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">게임에</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">이용가능하지</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">않을까</span><span style=\"font-family:Malgun Gothic\"> </span><a href=\"https://news.hada.io/topic?id=8446&amp;utm_source=discord&amp;utm_medium=bot&amp;utm_campaign=280\" lang=\"ko-KR\">https://news.hada.io/topic?id=8446&amp;utm_source=discord&amp;utm_medium=bot&amp;utm_campaign=280</a></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Tahoma;font-weight:bold\">TDL_____________________________</span></p>\r\n\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">가설검증</span></p>\r\n\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">시작할</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">방법</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">물어보기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">: </span><span style=\"font-family:Malgun Gothic\">트레바리에서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">만난</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">사람들</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> + </span><span style=\"font-family:Malgun Gothic\">이동형</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대표</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">김미희</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대표</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">시장호응가설</span><span lang=\"en-US\">, XYZ </span><span style=\"font-family:Malgun Gothic\">가설</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">수립</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> &amp; </span><span style=\"font-family:Malgun Gothic\">비즈니스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">모델</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">캔버스</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">그려보기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">블루오션</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">전략</span></p>\r\n\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\">MVP, Pretotyping <span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">방법</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">찾기</span></p>\r\n\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">더미</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">계정</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">다량으로</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">만들</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">방법</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">찾기</span></p>\r\n\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">김미희</span><span lang=\"en-US\">, </span><span style=\"font-family:Malgun Gothic\">이동영</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대표</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">및</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">다른</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">대표들</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">만나서</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">피드백</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">받기</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> - </span><span style=\"font-family:Malgun Gothic\">피드백</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">받을</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">프레임</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">작성</span></p>\r\n\t\t\t\t<p style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">서한교</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">이새로찬</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">, </span><span style=\"font-family:Malgun Gothic\">홍석희</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">(</span><span style=\"font-family:Malgun Gothic\">클럽장</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">)</span></p>\r\n\t\t\t\t<p data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">마스토돈</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">활용</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">가능여부</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">?</span></p>\r\n\t\t\t\t<p lang=\"en-US\" data-tag=\"to-do\" style=\"font-family:Calibri;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">10</span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">단계</span><span style=\"font-family:Malgun Gothic\"> - </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">로터스</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">맵</span><span style=\"font-family:Malgun Gothic\">: </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">세계</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">최대의</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">커뮤니케이션</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">서비스로</span><span style=\"font-family:Malgun Gothic\"> - </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">세레브로</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">단계로</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">인류</span><span style=\"font-family:Malgun Gothic\"> </span><span lang=\"ko-KR\" style=\"font-family:Malgun Gothic\">커뮤니케이션</span><span style=\"font-family:Malgun Gothic\"> evolve.</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">함께 실리콘밸리에 갈 사람들이 필요해. 아님 내다 가거나?</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">실리콘밸리 취업?</span></p>\r\n\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">기획</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> -&gt; </span><span style=\"font-family:Malgun Gothic\">투자</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> -&gt; </span><span style=\"font-family:Malgun Gothic\">개발자</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\">?</span></p>\r\n\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://brunch.co.kr/brunchbook/silliconvalley\">https://brunch.co.kr/brunchbook/silliconvalley</a></p>\r\n\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">디자인</span><span lang=\"en-US\">, VC, </span><span style=\"font-family:Malgun Gothic\">개발</span></p>\r\n\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">실리콘밸리의</span><span lang=\"en-US\" style=\"font-family:Malgun Gothic\"> </span><span style=\"font-family:Malgun Gothic\">한국인</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.youtube.com/watch?v=4YLbOaDqDhQ&amp;ab_channel=%ED%8B%B0%ED%83%80%EC%9E%84%EC%A6%88TV\" style=\"font-family:Malgun Gothic\">한국</a> <span style=\"font-family:Malgun Gothic\">문과</span> <span style=\"font-family:Malgun Gothic\">출신이</span> <span style=\"font-family:Malgun Gothic\">실리콘밸리에서</span> <span style=\"font-family:Malgun Gothic\">일하는</span> <span style=\"font-family:Malgun Gothic\">법</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-family:Pretendard Light;font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"https://www.instagram.com/reel/DH7FjXPTOd4/?igsh=Ymhib3JrZTU5eHhi\" style=\"font-family:Calibri\">AI </a><span style=\"font-family:Malgun Gothic\">부대</span></p>\r\n\t\t\t</ul>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<cite style=\"font-family:Calibri;font-size:9pt;color:#595959;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">출처</span>: &lt;<a href=\"https://publy.co/content/4628?fr=chapter-bottom-list\">https://publy.co/content/4628?fr=chapter-bottom-list</a>&gt; </cite>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<cite style=\"font-family:Calibri;font-size:9pt;color:#595959;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Malgun Gothic\">출처</span>: &lt;<a href=\"https://n.news.naver.com/mnews/article/366/0000868086?sid=103\">https://n.news.naver.com/mnews/article/366/0000868086?sid=103</a>&gt; </cite>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<iframe width=\"356\" height=\"200\" data-original-src=\"https://www.youtube.com/watch?v=4YLbOaDqDhQ&amp;ab_channel=%ED%8B%B0%ED%83%80%EC%9E%84%EC%A6%88TV\" src=\"https://www.youtube.com/embed/4YLbOaDqDhQ?feature=oembed&autoplay=true\" />\r\n\t\t\t<br />\r\n\t\t"
+  },
+  {
+    "type": "image",
+    "x": 52,
+    "y": 125,
+    "w": 480,
+    "h": 171,
+    "src": "b2b3640228.png",
+    "caption": "소설 네트워크는 일곱 가지 죄악 중 하나를 활용할 때 가장 잘 0772 운영됩니다. 페이스북은 &#39;자아&#39;, 정가는 &#39;나태&#39;, 링크드인은 &#39;탐욕&#39; 을 활용합니다. Social networks do best when they tap into one of the seven deadly sins. Facebook is ego. Zynga is sloth. Linkedln is greed."
+  }
+];
+const CONTENT_HASH = 'f448f5ac';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -133,33 +400,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

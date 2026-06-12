@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>저 대충봤는데 우리 갈곳은 많네요ㅎㅎ</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">저 대충봤는데 우리 갈곳은 많네요ㅎㅎ</div>
+<div class="date">2020년 10월 20일 화요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-저-대충봤는데-우리-갈곳은-많네요-';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 48,
+    "y": 139,
+    "w": 600,
+    "content": "저 대충봤는데 우리 갈곳은 많네요ㅎㅎ\n목요일은 천천히 준영 씨 가고싶은 곳 가고\n수목원은 코로나 때문에 지금 안 여는 것 같은데 확인해볼게요.\n오목대에서 야경보는 거 좋다고하고 야시장 금토저녁에 여니깐 금요일에 가면 되겠네용\n<a href=\"http://www.hani.co.kr/arti/area/yeongnam/942794.html\">http://www.hani.co.kr/arti/area/yeongnam/942794.html</a>\n<a href=\"https://korean.visitkorea.or.kr/main/main.do#home\">https://korean.visitkorea.or.kr/main/main.do#home</a>\n수: 에버랜드, 심야-영화, 드라이브, 여의도/마포역 포장마차,\n목: 호캉스 or\n<a href=\"https://m.seoulcitybus.com/main.do\">https://m.seoulcitybus.com/main.do</a>\n잠실 석촌호수, 낙산공원+광장시장\n전주 방문 13(금)~15(일) or 13/14\n제주도 여행 - 바다, 한라산 등정,\n11월 28일\n국립박물관\n콘란숍\n#코타바이뎐\n[서울]\n선유도 공원\n반포 한강공원\n[야간]\n송도 한옥마을\n군포 반월호수 둘레길\n광주 남한산성\n응봉산 전망대\n낙산공원\n주말\n위례 책발전소\n포천 산정호수\n치과보내기\n화분 구입\n인스타 계정파기\n이태원 남산 일몰\n대학로, 낙산공원\n강남 카페\n에버랜드\n같이배울 스포츠\n화분\n타임스퀘어 볼링, 양궁\n액티비티 https://www.myrealtrip.com/themes/900/offers</a>\n<a href=\"https://www.stayfolio.com/picks/dialogue\">https://www.stayfolio.com/picks/dialogue</a>\n하동\n양양 카루나\n거지 지평집\n남해 적정온도\n무주 서림연가\n홍천 올라운드원\n정선 파크로쉬\n세이지우드 홍천\n스트라디움\n더 볼트\n1 대학로에서 연극 보기\n(*참고 : 배우가 누구냐에 따라 연극의 질이 다르겠지만 추천드리고 싶은 연극/ 옥탑방 고양이,  룸넘버13)\n2 뮤지컬보기\n3 찜질방 데이트\n(*참고 : 음식이랑 시설, 거리, 전반적인 부분을 다 따져봤을때 데이트하기 좋은 찜질방은 송파인 가든파이브 입니다.)\n4 문래동 데이트\n(* 참고 : 문래 맛집 영일분식 꼭 가시고, 카페는 호텔707추천)\n5 성수동 - 서울숲데이트\n6 한강 데이트( 한강은 뭐 두말할것 없죠?! )\n7 스케이트장(종합운동장에도 있어요-)\n8 놀이동산 ( 롯데월드, 대구 이월드, 에버랜드, 서울랜드, 대구이월드 )\n9 민속촌 데이트\n10 홍대\n11 강남 ( 강남역 주변에 위치한 마녀주방/ 맛있어요. )\n12 신촌 (신촌에 가면 이 음식은 꼭 먹어야해요! 쭈꾸미 블루스 !!진짜 추천!)\n13 애견카페\n14 영화 DVD ( 하루종일 영화보기 )\n15 따릉이 데이트( 날씨 좋은날 하면 정말 좋아요! )\n16 동네데이트 ( 동네에 숨어있는 카페 찾아다니기 )\n17 전시회 데이트\n18 커플데이트\n19 도자기 만들기\n20 반지 만들기\n21 요리하기\n22 책방데이트\n23 도서관데이트\n24 강연 들어보기\n25 방청신청\n26 등산\n27 오션월드( 겨울에는 온천처럼 따뜻한거 아시죠? 가볼만해요! )\n28 바닷가 ( 장호항, 만리포-태안쪽 추천합니다. 아니면 가까운 오이도, 대부도! )\n29 상수역\n30 콘서트\n31 한강 야시장데이트\n32 코엑스\n33 송도 센트럴파크 ( 가셔서 전동킥보드 타보세요 짱좋음 )\n34 ifc몰 ( 하루종일 데이트하기 좋아요 )\n35 스타필드\n36 하늘공원\n37 월미도(영종도)\n38 선유도\n39 동물원\n40 경마공원(렛츠런파크)\n41뚝섬\n42 동물원\n43 DDP\n44 IKEA이케아\n45 수원화성\n46 건대\n47 락 볼링/ 당구/ 포켓볼\n48 룸카페\n49 보드게임\n50 아쿠아리움\n51 남이섬\n52 용산 아이파크몰\n53 일산 호수공원\n54 익선동\n55 상암 하늘공원\n56 화성 광교 앨리웨이\n****더 많은 데이트 장소는 여기를 눌러주세요.****\n실내데이트\n여기서 실내데이트 할만한 곳만 정리해볼게요!\n겨울에 데이트 할만한곳 / 실내데이트 추천 / 서울가볼만한곳 / 겨울실내데이트/ 실내데이트\n찜징방\n이케아\nIFC몰\n용산아이파크몰\n코엑스\nVR(하루종일)\nDVD\n현대 프리미엄 아울렛\n미술관(디뮤지엄, 대림미술관 등등)\n시흥 프리미엄 아울렛\n안양 엔터식스\n하남 스타필드\n판교 현대백화점\n신도림 현대백화점"
+  },
+  {
+    "type": "text",
+    "x": 720,
+    "y": 139,
+    "w": 600,
+    "content": "벽난로 산장 <a href=\"https://brunch.co.kr/@lifeplus/204\">https://brunch.co.kr/@lifeplus/204</a>\n<a href=\"http://www.allurekorea.com/2012/01/11/%EC%98%88%EC%81%9C-%EB%B3%84%EC%B1%84-%ED%8E%9C%EC%85%98%EB%93%A4/\">http://www.allurekorea.com/2012/01/11/%EC%98%88%EC%81%9C-%EB%B3%84%EC%B1%84-%ED%8E%9C%EC%85%98%EB%93%A4/</a>\n리솜포레스트\n증도 엘도라도\n속초 마리나베이\n내일 우리 서울심야데이트/호캉스/에버랜드 할 수 있는데\n산장\n2/ 경기 광주 작은연못숲\n3/ 홍천 살둔산장 <a href=\"http://www.saldun.co.kr/company/reservation.asp\" lang=\"ko-KR\">http://www.saldun.co.kr/company/reservation.asp</a>\n4/ 정선 방성애 산장\n5/ 제주 친봉산장\n경북 영양 ‘새방골산방\n경남 산청 ‘마리의 부엌’\n경북 포항 ‘선류산장’\n<a href=\"https://brunch.co.kr/@lifeplus/204\">https://brunch.co.kr/@lifeplus/204</a>\n1. 용인&#160;세모난나무\n디자인 펜션인 세모난나무는 빼어난 자연을 품고 있지는 않지만 완벽한 하루를 보내기엔 부족함이 없다. 삼각형 모양의 객실은 복층구조로 1인당 2만5천원의 가격에 반찬까지 있는 완벽한 바비큐를 차려주니 밖에 나가 식사를 할 필요도 없다. 월풀 욕조는 기본이고, 닌텐도 위(Wii)와 폴라로이드 카메라를 빌릴 수도 있다. 공용 공간인 카페에는 당구와 보드게임, 간단한 읽을거리가 기다리고 있다. 위치는 용인이다. 피곤해서 멀리는 못 가겠다며 핑계를 대던 남자친구도 꼼짝 못할 거다. <a href=\"http://www.semonamu.com\">www.semonamu.com</a>\n2. 대관령&#160;스위스펜션\n대관령을 가리켜 ‘한국의 알프스’라고 부르기 때문일까, 대관령 고개에 자리 잡은 펜션의 이름이 스위스라는 것이 낯설지 않다. 각기 다른 테마의 커플룸과 커플용 빌라, 그리고 가족을 위한 공간으로 나누어진 스위스펜션은 눈 내리는 겨울 가장 아름다운 곳이다. 찜질방과 치즈 퐁듀를 한번에 즐길 수 있는 곳은 아마 전 세계에서도 드물 거다. 나무를 흰색으로 칠한 외관과 달리 객실은 컬러풀 그 자체다. 발랄한 신혼부부가 거실을 꾸민다면 꼭 이럴 것만 같다. <a href=\"http://www.swisspension.co.kr\">www.swisspension.co.kr</a>\n3. 양평&#160;앨리스펜션\n연애를 할 때는 가끔 간지러운 액션이 필요하다. 신기한 건 그 액션이 효과가 있다는 것이다. 소녀들이 좋아할 요소로 가득한 소설 <이상한 나라의 앨리스>를 모티프로 한 앨리스 펜션의 객실들은 3월토끼, 모자장수, 붉은 여왕 등 소설에 등장하는 캐릭터의 이름을 달았다. 통나무집처럼 원목으로 마감한 실내는 캐릭터의 성격에 맞게 꾸며져 있고 캠핑카를 닮은 체셔고양이 룸은 다른 나라에 온 것 같은 기분이 절로 든다. 올겨울, 양평에서 멜로드라마 한 편 찍어보길. <a href=\"http://www.miunori.net\">www.miunori.net</a>\n4. 평창&#160;샬레스타\n스위스 사람들이 휴가철 콘도처럼 머무르는 곳을 샬레라고 한다. 자동차 디자이너였던 주인이 손수 지은 통나무 산장인 샬레스타의 전 객실은 독립된 별장으로 복층의 실내는 벽난로를 품고 있다. 한마디로 진짜 겨울 산장에 놀러 온 기분을 낼 수 있다는 것. 무엇보다 좋은 점은 반려동물을 데리고 올 수 있다는 점, 샬레스타의 마스코트인 귀여운 골든 리트리버 누리와 놀 수 있다는 점이다. 연극을 볼 수 있는 테마공원 달빛극장도 펜션과 3분 거리다. <a href=\"http://www.chaletstar.com\">www.chaletstar.com</a>\n5. 안면도&#160;유명산장\n청평에 낸 1, 2호점과 안면도점까지 총 3개의 산장을 운영하는 유명산장은 새로운 곳은 아니다. 하지만 10년이라는 세월 동안 서해가 보이는 안면도의 낮은 언덕에서 손님을 맞이해온 이곳에는 오랜 시간 동안 쌓인 정취가 있다. 단독 별채로 이루어진 구조 덕에 수백 개의 객실을 가진 리조트처럼 낯선 누군가와 마주칠 염려가 없는 것이 가장 큰 장점. 바닥부터 천장까지 나무로 지어진 빌라A를 비롯해 6개의 객실 모두 개인 스파가 마련되어 있다. 고요한 안면도의 겨울 바다는 덤이다. <a href=\"http://www.ympension.co.kr\">www.ympension.co.kr</a>\n6. 홍천&#160;마리안느&#160;프랑스 고성들의 이름을 객실에 가져다붙인 마리안느는 겨울 산장이라기보다는 ‘성’에 가깝다. 흰색과 상아색을 주조로 한 실내 공간은 아치로 이어져 있고, 복층으로 오르는 나무 계단, 그리고 높은 천장까지 이어지는 벽난로까지만 보면 스케일만 큰 그렇고 그런 유럽풍 펜션이라 오해할 수도 있겠다. 샹들리에와 앤티크 가구는 모두 프랑스에서 가져왔으며, 식기는 백악관의 공식 식기인 레녹스를, 매트리스는 라텍스를 사용했다. 하룻밤 성주가 되고 싶은 이들을 위한 곳이다. www.themarianne.net</a>\n출처: <<a href=\"http://www.allurekorea.com/2012/01/11/%EC%98%88%EC%81%9C-%EB%B3%84%EC%B1%84-%ED%8E%9C%EC%85%98%EB%93%A4/\">http://www.allurekorea.com/2012/01/11/%EC%98%88%EC%81%9C-%EB%B3%84%EC%B1%84-%ED%8E%9C%EC%85%98%EB%93%A4/</a>>\n더풍년 - 술집\n코타바이뎐 - 한식 오마카세\n서순라길 이다 - 퓨전 한식\n윤서울 - 홍대 한식 다이닝\n신사동 무아\n서촌 레에스티우\n연남동 쿠루미\n피아노와 벽난로\n<a href=\"http://dcjjang.com/rsc/view.html?step=room_detail&cno=4131&rno=10727&plm=\">http://dcjjang.com/rsc/view.html?step=room_detail&cno=4131&rno=10727&plm=</a>"
+  },
+  {
+    "type": "text",
+    "x": 1488,
+    "y": 139,
+    "w": 600,
+    "content": "ㅋㅋㅋ저거 인당 38000원 코스요리 시키거나\n아님 어리굴젓(or 낙지젓) 카펠리니, 김밥(가성비최고ㅋㅋㅋ), 유부구이, 오뎅\n어리굴젓 카펠리니, 유부, 오뎅 2개 + 와인/사케 or 생맥/잔와인"
+  },
+  {
+    "type": "text",
+    "x": 696,
+    "y": 3650,
+    "w": 600,
+    "content": "아침에\n점심은 마포일원에서\n2시 집보러 가기\n[준비물]\n물놀이: 수영모, 수경\n간식: 냉장고의 과일, 견과류, 치즈, 와인, 와인 오프너\n콘텐츠: 책, 노트북\nhttps://botanicpark.seoul.go.kr/front/introduce/location.do</a>"
+  }
+];
+const CONTENT_HASH = 'd21144ff';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

@@ -6,121 +6,372 @@
 <title>ONE</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">ONE</span>
-  <span class="t-date">2016년 6월 13일 월요일</span>
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">ONE</div>
+<div class="date">2016년 6월 13일 월요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">ONE<br>		<br>		<br>	<br>	<br>		<br>			<br>내가 단순히 누구를 사랑히는지의 문제를 떠나서<br>			<br>남은 생 동안 어떻게 살아가고<br>			<br>어떤사람이고 싶은지를 결정하는일<br>			<br>내 아이의 엄마를 만나는 일.<br>			<br><br>			<br>랠리/핑퐁이 되는 유머감각 밝은 성격, 사려깊음 사고력 <br>			<br>우아하고 귀티나는<br>			<br>어떤 아내/ 어떤 엄마/ 어떤 사람<br>			<br>ㅇ 서로에게는 평생의 친구<br>			<br>ㅇ 가족에게는 사려깊은 가족 구성원<br>			<br>ㅇ 내 아이에게는 '엄마'<br>			<br>ㅇ 그리고 나 에게는 평생의 친구<br>			<br><br>			<br>소모임 개설 검토<br>			<br>사내 : 점심 무조건 먹기<br>			<br>온라인 : 1Km, 모아, <a href="https://www.skypeople.me/matching/today.do?position=819" target="_blank">스피</a>, [미팅](onenote:#미팅파티&section-id={1617CEF3-4981-44F2-AD77-4A33AF8F170B}&page-id={30FB0B85-ACE3-4F88-97CA-8AA3DAD1650F}&object-id={7F9D1C24-472F-0B20-3000-1231F28767D4}&12&base-path=<a href="https://d.docs.live.net/733661839cc53ba5/문서/이상海_/2.%20Mo%20chuisle.one)" target="_blank">https://d.docs.live.net/733661839cc53ba5/문서/이상海_/2.%20Mo%20chuisle.one)</a><br>			<br>오프라인 : 프립, <a href="https://hbrforum.org/" target="_blank">HBR</a>, <a href="http://cafe.naver.com/hbrforumkorea" target="_blank">HBR카페</a> [트레바리](onenote:5.%20Life%20X-lab.one#트레바리&section-id={516349C3-2B7A-4A76-9B32-40B159C0E645}&page-id={B7BB88C5-B3DB-40E3-B6D1-E79452E180EC}&end&base-path=<a href="https://d.docs.live.net/733661839cc53ba5/문서/이상海_)," target="_blank">https://d.docs.live.net/733661839cc53ba5/문서/이상海_),</a> 프래그, 성당, 교회<br>			<br><a href="http://m.blog.naver.com/goodbrather" target="_blank">GoodbrAther</a> <a href="http://blog.naver.com/PostThumbnailList.nhn?blogId=goodbrather&from=postList&categoryNo=120&parentCategoryNo=120" target="_blank">굿브라더</a>  <a href="http://cafe.naver.com/THESLINGPARTY" target="_blank">슬링</a> <a href="http://cafe.naver.com/dbrinsight" target="_blank">인사이터</a> <a href="http://cafe.naver.com/theslingparty/6826" target="_blank">슬링</a><br>			<br>맺음, 골프 동호회, [회사](onenote:#채널&section-id={1617CEF3-4981-44F2-AD77-4A33AF8F170B}&page-id={755815AD-5B77-4F99-877D-6EEDA4E7954A}&end&base-path=<a href="https://d.docs.live.net/733661839cc53ba5/문서/이상海_/2.%20Mo%20chuisle.one)," target="_blank">https://d.docs.live.net/733661839cc53ba5/문서/이상海_/2.%20Mo%20chuisle.one),</a> 승마, 탱고, 위즈돔. 학원스터, 어썸피플<br>			<br>슬링 - <a href="https://pf.kakao.com/_Qpnlu/1712282" target="_blank">https://pf.kakao.com/_Qpnlu/1712282</a><br>			<br>강남3구<br>			<br><br>			<br>=========================================<br>			<br><br>			<br>연애를 안하고 있다거나,<br>			<br>결혼이 문제가 아니다.<br>			<br><br>			<br>그 시절 이후로, 그렇게나 긴 시간 동안<br>			<br>누구도 깊이 사랑하지 못했다는 건,<br>			<br>나에게 문제가 있다는 뜻이다.<br>			<br><br>			<br>이 명료한 진단을 스스로 이끌어 내는데<br>			<br>적지 않은 시간과 고민을 우회해야 했다.<br>			<br><br>			<br>알아야 더 궁금하고, 궁금해야 보고싶고<br>			<br>자꾸 봐야 사랑하게 되는 건데.<br>			<br>멀찍이서 팔짱낀채 선입견과 상상 사이를 오가며<br>			<br>판단의 무게로 감정을 짓눌렀다.<br>			<br><br>			<br>해라, 사랑해라. 사랑해버려라.<br>			<br><br>			<br>나는 집적대는걸 혐오했다.<br>			<br>한번 들이 대보는 놈들이<br>			<br>같잖다고 생각했다.<br>			<br>진<br>			<br>내 인생에 가장 큰 문제는, 여자 문제가 없었다는 거라고<br>			<br>심이, 굳혀지지 않으면 한발짝도 다가서질 않았다.<br>			<br><br>			<br>괜한 오해나, 치정에 얽히는걸 혐오해서<br>			<br>호감 없이는 여자랑은 밥한끼 차한잔도 피했다.<br>			<br><br>			<br>나를 십년 넘게 알아온 녀석들이 놀리더라.<br>			<br> <br>			<br>끼를 좀, 부려볼참이다.<br>			<br><br>			<br><br>			<br>F/UP<br>			<br>				<br>					개팅 : <br>					<br><br>					<br>				<br>			<br>			<br>지인 : 성현<br>			<br>Ideal : 아주라, 황혜진, 이희은, 이주영, 최현경<br>			<br>사내 : 최수아, 김도은, 최근영 // 박순옥<br>			<br>모임 : <br>			<br>- 클래시<br>			<br>- 탑피 <br>			<br>- HBR : <a href="https://www.facebook.com/musicsemipark" target="_blank">박세미</a>, <a href="https://www.instagram.com/theluckyroh/" target="_blank">노지우</a>, 부품사, 아모레<br>			<br>- 프립<br>			<br>- 트레바리 : <br>			<br>회사 : 동기 ㅊㅎㄱ/ ㅇㅈㅇ/ <br>			<br>        후배 ㅊㅅㅇ/ ㅇㅈㅇ/ ㅊㅅㅇ/ ㅎㅅㅎ/ ㅄㅇ<br>			<br>김진아, <br>			<br>소모임 : 한의사, <br>			<br>아주라, 황혜진, 이희은, <br>			<br><br>			<br>최순지네 조희경<br>			<br>강미나네<br>			<br>유문혁에<br>			<br><br>			<br>그 어떠한 일이 있어도, 나를 믿어주는 것<br>			<br>자신이 꾸려 가는 삶과 목표가 있는<br>			<br>내가 더 좋은 사람이 되고 싶게 만드는<br>			<br><br>			<br>AI서비스본부 - 이은지<br>			<br><br>			<br>[이상형]<br>			<br>				<br>- 성격 : 유머/센스, 사려깊은, 에너제틱한 <br>				<br>- 나이 : 27~30 <br>				<br>- 키 : 164~170, 피부 좋은, 글래머<br>				<br>- 직업 : 커리어에 대한 애착이 있는분<br>				<br>대기업(메이저 그룹사) 혹은 외국계 <br>				<br>- 학벌 : 서성한 이상<br>			<br>			<br><br>			<br>[기피하는 성향]<br>			<br>				<br>- 성격 : 염세적이거나 인생의 목표가 없는<br>				<br>- 종교 : 너무 신실한 기독교인<br>				<br>- 음주 : 술을 전혀 못하시는 분<br>				<br>- 직업 : 영업/서비스직(감정노동) 종사자, 초등교사<br>				<br>- 외모 : 너무 마른, 성형 X<br>				<br>- 흡연자<br>				<br>- 결손가정<br>			<br>		<br>		<br>			<br><a href="https://www.youtube.com/channel/UCscP0u0eOWp0ZtgG8_yvZxg" target="_blank">아주라 v로그</a><br>			<br>주짓수 어디서?<br>			<br>접점<br>			<br>아주라<br>			<br>민정<br>			<br>지원<br>			<br><a href="https://instagram.com/mm1ns_?igshid=6st6xtjm3lbp" target="_blank">https://instagram.com/mm1ns_?igshid=6st6xtjm3lbp</a><br>			<br><br>			<br><br>			<br><a href="https://www.facebook.com/mj0130" target="_blank">https://www.facebook.com/mj0130</a><br>			<br>아주라<br>			<br>김동률<br>			<br><br>			<br><a href="https://instagram.com/angierosyred?igshid=wv6gwp8qqx4t" target="_blank">https://instagram.com/angierosyred?igshid=wv6gwp8qqx4t</a><br>			<br><br>			<br><a href="https://fernando.kr/11?fbclid=IwAR3dKA6zJ9RBAedmU4gwys5CnJcbpCWaeoAg_QLgxyVWN2RNOPPUCPEVfAs" target="_blank">https://fernando.kr/11?fbclid=IwAR3dKA6zJ9RBAedmU4gwys5CnJcbpCWaeoAg_QLgxyVWN2RNOPPUCPEVfAs</a><br>			<br><br>			<br>신민정<br>			<br>문지원<br>			<br>김도은<br>			<br>황혜진<br>			<br>아주라<br>			<br>Matatron 사업팀 김민성<br>			<br><br>			<br><a href="https://www.instagram.com/p/Bj2XVy-nehM/?utm_source=ig_share_sheet&igshid=1829pzkmqkuot" target="_blank">https://www.instagram.com/p/Bj2XVy-nehM/?utm_source=ig_share_sheet&igshid=1829pzkmqkuot</a><br>			<br><br>			<br>신민정 MJ<br>			<br><a href="https://m.youtube.com/watch?v=UQM3ZF8noGM" target="_blank">https://m.youtube.com/watch?v=UQM3ZF8noGM</a><br>			<br><br>			<br>이혜경<br>			<br>광주 박현<br>			<br>남주영 친구<br>			<br><br>			<br>골프<br>			<br>서란누나 쪽<br>			<br>건영이형쪽<br>			<br><br>			<br>소개팅 모수 확대.<br>			<br>대인영업<br>			<br>어플<br>			<br>결정사<br>			<br><br>			<br>ㅇ 성격 : 유머러스, 센스, 사려깊고, 똑똑한, 에너지가 있는 성격 - 진국<br>			<br>ㅇ 외모 : 깨끗한 피부, 선이곱고 우아한, 키는 163~170, 글래머<br>			<br> - 장소라. 신한생명, 제니퍼 로렌스, <a href="http://athlete.host.whoisweb.net/?p=1158" target="_blank">아주라</a>, 김혜연(진현이형 마누라)<br>			<br>   차홍, 김민성, 엄지원, 김고은, 설수현, 김원희<br>			<br>아주라. 신한. 장소라. 설현, 차홍<br>			<br>수아, 지윤,  미소랑, 이희은(자라)<br>			<br><br>			<br>ㅇ 가치관<br>			<br>ㅇ 경제력 : 안정적인 직업 or 좋은 집안<br>			<br>ㅇ 가정 환경 : 결손가정X<br>			<br>ㅇ 직업 : 메이저 대기업 or 외국계<br>			<br>ㅇ 종교<br>			<br>ㅇ 연령 : 27~30<br>			<br>ㅇ 학벌 : 서성한+이대/홍대미대 이상<br>			<br>ㅇ 취미/관심사<br>			<br>ㅇ 건강<br>			<br>ㅇ 추후부모 동거여부<br>			<br>ㅇ 거주지<br>			<br>ㅇ 출신지역<br>			<br> <br>			<br>Target : 결혼 적령기 28, 29의 고스펙<br>			<br>전략 : 외모와 나이, 직업으로 학벌과 집안을 커버<br>			<br>총점이 같으면 되는데, 외모랑 집안을 타협 본다.</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note-ONE';
+const SAVE_KEY = 'board-ONE';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "html",
+    "x": 48,
+    "y": 139,
+    "w": 469,
+    "html": "\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">내가 단순히 누구를 사랑히는지의 문제를 떠나서</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">남은 생 동안 어떻게 살아가고</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">어떤사람이고 싶은지를 결정하는일</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">내<span lang=\"en-US\"> </span>아이의<span lang=\"en-US\"> </span>엄마를<span lang=\"en-US\"> </span>만나는<span lang=\"en-US\"> </span>일<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">랠리<span lang=\"en-US\">/</span>핑퐁이<span lang=\"en-US\"> </span>되는<span lang=\"en-US\"> </span>유머감각<span lang=\"en-US\"> </span>밝은<span lang=\"en-US\"> </span>성격<span lang=\"en-US\">, </span>사려깊음<span lang=\"en-US\"> </span>사고력<span lang=\"en-US\"> </span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">우아하고<span lang=\"en-US\"> </span>귀티나는</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">어떤<span lang=\"en-US\"> </span>아내<span lang=\"en-US\">/ </span>어떤<span lang=\"en-US\"> </span>엄마<span lang=\"en-US\">/ </span>어떤<span lang=\"en-US\"> </span>사람</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>서로에게는<span lang=\"en-US\"> </span>평생의<span lang=\"en-US\"> </span>친구</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>가족에게는<span lang=\"en-US\"> </span>사려깊은<span lang=\"en-US\"> </span>가족<span lang=\"en-US\"> </span>구성원</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>내<span lang=\"en-US\"> </span>아이에게는<span lang=\"en-US\"> &#39;</span>엄마<span lang=\"en-US\">&#39;</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>그리고<span lang=\"en-US\"> </span>나<span lang=\"en-US\"> </span>에게는<span lang=\"en-US\"> </span>평생의<span lang=\"en-US\"> </span>친구</p>\r\n\t\t\t<br />\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">소모임<span lang=\"en-US\"> </span>개설<span lang=\"en-US\"> </span>검토</p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">사내<span lang=\"en-US\"> : </span>점심<span lang=\"en-US\"> </span>무조건<span lang=\"en-US\"> </span>먹기</p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">온라인<span lang=\"en-US\"> : 1Km, </span>모아<span lang=\"en-US\">, </span><a href=\"https://www.skypeople.me/matching/today.do?position=819\">스피</a><span lang=\"en-US\">, </span><a href=\"onenote:#미팅파티&amp;section-id={1617CEF3-4981-44F2-AD77-4A33AF8F170B}&amp;page-id={30FB0B85-ACE3-4F88-97CA-8AA3DAD1650F}&amp;object-id={7F9D1C24-472F-0B20-3000-1231F28767D4}&amp;12&amp;base-path=https://d.docs.live.net/733661839cc53ba5/문서/이상海_/2.%20Mo%20chuisle.one\">미팅</a></p>\r\n\t\t\t<p data-tag=\"to-do\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">오프라인<span lang=\"en-US\"> : </span>프립<span lang=\"en-US\">, </span><a href=\"https://hbrforum.org/\">HBR</a><span lang=\"en-US\">, </span><a href=\"http://cafe.naver.com/hbrforumkorea\">HBR카페</a><span lang=\"en-US\"> </span><a href=\"onenote:5.%20Life%20X-lab.one#트레바리&amp;section-id={516349C3-2B7A-4A76-9B32-40B159C0E645}&amp;page-id={B7BB88C5-B3DB-40E3-B6D1-E79452E180EC}&amp;end&amp;base-path=https://d.docs.live.net/733661839cc53ba5/문서/이상海_\">트레바리</a><span lang=\"en-US\">, </span>프래그<span lang=\"en-US\">, </span>성당<span lang=\"en-US\">, </span>교회</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><a href=\"http://m.blog.naver.com/goodbrather\" lang=\"ko-KR\">GoodbrAther</a> <a href=\"http://blog.naver.com/PostThumbnailList.nhn?blogId=goodbrather&amp;from=postList&amp;categoryNo=120&amp;parentCategoryNo=120\" lang=\"ko-KR\">굿브라더</a>  <a href=\"http://cafe.naver.com/THESLINGPARTY\" lang=\"ko-KR\">슬링</a> <a href=\"http://cafe.naver.com/dbrinsight\" lang=\"ko-KR\">인사이터</a> <a href=\"http://cafe.naver.com/theslingparty/6826\" lang=\"ko-KR\">슬링</a></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">맺음<span lang=\"en-US\">, </span>골프<span lang=\"en-US\"> </span>동호회<span lang=\"en-US\">, </span><a href=\"onenote:#채널&amp;section-id={1617CEF3-4981-44F2-AD77-4A33AF8F170B}&amp;page-id={755815AD-5B77-4F99-877D-6EEDA4E7954A}&amp;end&amp;base-path=https://d.docs.live.net/733661839cc53ba5/문서/이상海_/2.%20Mo%20chuisle.one\">회사</a><span lang=\"en-US\">, </span>승마<span lang=\"en-US\">, </span>탱고<span lang=\"en-US\">, </span>위즈돔. 학원스터<span lang=\"en-US\">, </span>어썸피플</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">슬링<span lang=\"en-US\"> - </span><a href=\"https://pf.kakao.com/_Qpnlu/1712282\">https://pf.kakao.com/_Qpnlu/1712282</a></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">강남3구</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">=========================================</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">연애를<span lang=\"en-US\"> </span>안하고<span lang=\"en-US\"> </span>있다거나<span lang=\"en-US\">,</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">결혼이<span lang=\"en-US\"> </span>문제가<span lang=\"en-US\"> </span>아니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그<span lang=\"en-US\"> </span>시절<span lang=\"en-US\"> </span>이후로<span lang=\"en-US\">, </span>그렇게나<span lang=\"en-US\"> </span>긴<span lang=\"en-US\"> </span>시간<span lang=\"en-US\"> </span>동안</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">누구도<span lang=\"en-US\"> </span>깊이<span lang=\"en-US\"> </span>사랑하지<span lang=\"en-US\"> </span>못했다는<span lang=\"en-US\"> </span>건<span lang=\"en-US\">,</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">나에게<span lang=\"en-US\"> </span>문제가<span lang=\"en-US\"> </span>있다는<span lang=\"en-US\"> </span>뜻이다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이<span lang=\"en-US\"> </span>명료한<span lang=\"en-US\"> </span>진단을<span lang=\"en-US\"> </span>스스로<span lang=\"en-US\"> </span>이끌어<span lang=\"en-US\"> </span>내는데</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">적지<span lang=\"en-US\"> </span>않은<span lang=\"en-US\"> </span>시간과<span lang=\"en-US\"> </span>고민을<span lang=\"en-US\"> </span>우회해야<span lang=\"en-US\"> </span>했다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">알아야<span lang=\"en-US\"> </span>더<span lang=\"en-US\"> </span>궁금하고<span lang=\"en-US\">, </span>궁금해야<span lang=\"en-US\"> </span>보고싶고</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">자꾸<span lang=\"en-US\"> </span>봐야<span lang=\"en-US\"> </span>사랑하게<span lang=\"en-US\"> </span>되는<span lang=\"en-US\"> </span>건데<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">멀찍이서<span lang=\"en-US\"> </span>팔짱낀채<span lang=\"en-US\"> </span>선입견과<span lang=\"en-US\"> </span>상상<span lang=\"en-US\"> </span>사이를<span lang=\"en-US\"> </span>오가며</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">판단의<span lang=\"en-US\"> </span>무게로<span lang=\"en-US\"> </span>감정을<span lang=\"en-US\"> </span>짓눌렀다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">해라<span lang=\"en-US\">, </span>사랑해라<span lang=\"en-US\">. </span>사랑해버려라<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">나는<span lang=\"en-US\"> </span>집적대는걸<span lang=\"en-US\"> </span>혐오했다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">한번<span lang=\"en-US\"> </span>들이<span lang=\"en-US\"> </span>대보는<span lang=\"en-US\"> </span>놈들이</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">같잖다고<span lang=\"en-US\"> </span>생각했다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">진</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">내<span lang=\"en-US\"> </span>인생에<span lang=\"en-US\"> </span>가장<span lang=\"en-US\"> </span>큰<span lang=\"en-US\"> </span>문제는<span lang=\"en-US\">, </span>여자<span lang=\"en-US\"> </span>문제가<span lang=\"en-US\"> </span>없었다는<span lang=\"en-US\"> </span>거라고</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">심이<span lang=\"en-US\">, </span>굳혀지지<span lang=\"en-US\"> </span>않으면<span lang=\"en-US\"> </span>한발짝도<span lang=\"en-US\"> </span>다가서질<span lang=\"en-US\"> </span>않았다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">괜한<span lang=\"en-US\"> </span>오해나<span lang=\"en-US\">, </span>치정에<span lang=\"en-US\"> </span>얽히는걸<span lang=\"en-US\"> </span>혐오해서</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">호감<span lang=\"en-US\"> </span>없이는<span lang=\"en-US\"> </span>여자랑은<span lang=\"en-US\"> </span>밥한끼<span lang=\"en-US\"> </span>차한잔도<span lang=\"en-US\"> </span>피했다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">나를<span lang=\"en-US\"> </span>십년<span lang=\"en-US\"> </span>넘게<span lang=\"en-US\"> </span>알아온<span lang=\"en-US\"> </span>녀석들이<span lang=\"en-US\"> </span>놀리더라<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"> </p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">끼를<span lang=\"en-US\"> </span>좀<span lang=\"en-US\">, </span>부려볼참이다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">F/UP</p>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\">개팅<span lang=\"en-US\"> : </span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><br />\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">지인<span lang=\"en-US\"> : </span>성현</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Ideal : <span lang=\"ko-KR\">아주라</span>, <span lang=\"ko-KR\">황혜진</span>, <span lang=\"ko-KR\">이희은</span>, <span lang=\"ko-KR\">이주영</span>, <span lang=\"ko-KR\">최현경</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">사내<span lang=\"en-US\"> : </span>최수아<span lang=\"en-US\">, </span>김도은<span lang=\"en-US\">, </span>최근영<span lang=\"en-US\"> // </span>박순옥</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">모임<span lang=\"en-US\"> : </span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- <span lang=\"ko-KR\">클래시</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- <span lang=\"ko-KR\">탑피</span> </p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- HBR : <a href=\"https://www.facebook.com/musicsemipark\" lang=\"ko-KR\">박세미</a>, <a href=\"https://www.instagram.com/theluckyroh/\" lang=\"ko-KR\">노지우</a>, <span lang=\"ko-KR\">부품사</span>, <span lang=\"ko-KR\">아모레</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- <span lang=\"ko-KR\">프립</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">- <span lang=\"ko-KR\">트레바리</span> : </p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">회사<span lang=\"en-US\"> : </span>동기<span lang=\"en-US\"> </span>ㅊㅎㄱ<span lang=\"en-US\">/ </span>ㅇㅈㅇ<span lang=\"en-US\">/ </span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">        <span lang=\"ko-KR\">후배</span> <span lang=\"ko-KR\">ㅊㅅㅇ</span>/ <span lang=\"ko-KR\">ㅇㅈㅇ</span>/ <span lang=\"ko-KR\">ㅊㅅㅇ</span>/ <span lang=\"ko-KR\">ㅎㅅㅎ</span>/ <span lang=\"ko-KR\">ㅄㅇ</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">김진아<span lang=\"en-US\">, </span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">소모임<span lang=\"en-US\"> : </span>한의사<span lang=\"en-US\">, </span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">아주라<span lang=\"en-US\">, </span>황혜진<span lang=\"en-US\">, </span>이희은<span lang=\"en-US\">, </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">최순지네<span lang=\"en-US\"> </span>조희경</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">강미나네</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">유문혁에</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그<span lang=\"en-US\"> </span>어떠한<span lang=\"en-US\"> </span>일이<span lang=\"en-US\"> </span>있어도<span lang=\"en-US\">, </span>나를<span lang=\"en-US\"> </span>믿어주는<span lang=\"en-US\"> </span>것</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">자신이<span lang=\"en-US\"> </span>꾸려<span lang=\"en-US\"> </span>가는<span lang=\"en-US\"> </span>삶과<span lang=\"en-US\"> </span>목표가<span lang=\"en-US\"> </span>있는</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">내가<span lang=\"en-US\"> </span>더<span lang=\"en-US\"> </span>좋은<span lang=\"en-US\"> </span>사람이<span lang=\"en-US\"> </span>되고<span lang=\"en-US\"> </span>싶게<span lang=\"en-US\"> </span>만드는</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">AI<span lang=\"ko-KR\">서비스본부</span> - <span lang=\"ko-KR\">이은지</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">[</span><span lang=\"ko-KR\" style=\"font-weight:bold\">이상형</span><span style=\"font-weight:bold\">]</span></p>\r\n\t\t\t<ul>\r\n\t\t\t\t<li style=\"font-size:10pt\">성격<span lang=\"en-US\"> : </span>유머<span lang=\"en-US\">/</span>센스<span lang=\"en-US\">, </span>사려깊은<span lang=\"en-US\">, </span>에너제틱한<span lang=\"en-US\"> </span></li>\r\n\t\t\t\t<li style=\"font-size:10pt\">나이<span lang=\"en-US\"> : 27~30</span> </li>\r\n\t\t\t\t<li style=\"font-size:10pt\">키<span lang=\"en-US\"> : 164~170, </span>피부<span lang=\"en-US\"> </span>좋은<span lang=\"en-US\">, </span>글래머</li>\r\n\t\t\t\t<li style=\"font-size:10pt\">직업 <span lang=\"en-US\">: </span>커리어에<span lang=\"en-US\"> </span>대한<span lang=\"en-US\"> </span>애착이<span lang=\"en-US\"> </span>있는분</li>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">대기업<span lang=\"en-US\">(</span>메이저<span lang=\"en-US\"> </span>그룹사<span lang=\"en-US\">) </span>혹은<span lang=\"en-US\"> </span>외국계<span lang=\"en-US\"> </span></p>\r\n\t\t\t\t<li style=\"font-size:10pt\">학벌<span lang=\"en-US\"> : </span>서성한<span lang=\"en-US\"> </span>이상</li>\r\n\t\t\t</ul>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">[</span><span lang=\"ko-KR\" style=\"font-weight:bold\">기피하는</span><span style=\"font-weight:bold\"> </span><span lang=\"ko-KR\" style=\"font-weight:bold\">성향</span><span style=\"font-weight:bold\">]</span></p>\r\n\t\t\t<ul>\r\n\t\t\t\t<li style=\"font-size:10pt\">성격<span lang=\"en-US\"> : </span>염세적이거나<span lang=\"en-US\"> </span>인생의<span lang=\"en-US\"> </span>목표가<span lang=\"en-US\"> </span>없는</li>\r\n\t\t\t\t<li style=\"font-size:10pt\">종교<span lang=\"en-US\"> : </span>너무<span lang=\"en-US\"> </span>신실한<span lang=\"en-US\"> </span>기독교인</li>\r\n\t\t\t\t<li style=\"font-size:10pt\">음주<span lang=\"en-US\"> : </span>술을<span lang=\"en-US\"> </span>전혀<span lang=\"en-US\"> </span>못하시는<span lang=\"en-US\"> </span>분</li>\r\n\t\t\t\t<li style=\"font-size:10pt\">직업<span lang=\"en-US\"> : </span>영업<span lang=\"en-US\">/</span>서비스직<span lang=\"en-US\">(</span>감정노동<span lang=\"en-US\">) </span>종사자<span lang=\"en-US\">, </span>초등교사</li>\r\n\t\t\t\t<li style=\"font-size:10pt\">외모<span lang=\"en-US\"> : </span>너무<span lang=\"en-US\"> </span>마른<span lang=\"en-US\">, </span>성형<span lang=\"en-US\"> X</span></li>\r\n\t\t\t\t<li style=\"font-size:10pt\">흡연자</li>\r\n\t\t\t\t<li style=\"font-size:10pt\">결손가정</li>\r\n\t\t\t</ul>\r\n\t\t"
+  },
+  {
+    "type": "text",
+    "x": 576,
+    "y": 139,
+    "w": 568,
+    "content": "<a href=\"https://www.youtube.com/channel/UCscP0u0eOWp0ZtgG8_yvZxg\">아주라 v로그</a>\n주짓수 어디서?\n접점\n아주라\n민정\n지원\n<a href=\"https://instagram.com/mm1ns_?igshid=6st6xtjm3lbp\">https://instagram.com/mm1ns_?igshid=6st6xtjm3lbp</a>\n<a href=\"https://www.facebook.com/mj0130\">https://www.facebook.com/mj0130</a>\n아주라\n김동률\n<a href=\"https://instagram.com/angierosyred?igshid=wv6gwp8qqx4t\">https://instagram.com/angierosyred?igshid=wv6gwp8qqx4t</a>\n<a href=\"https://fernando.kr/11?fbclid=IwAR3dKA6zJ9RBAedmU4gwys5CnJcbpCWaeoAg_QLgxyVWN2RNOPPUCPEVfAs\">https://fernando.kr/11?fbclid=IwAR3dKA6zJ9RBAedmU4gwys5CnJcbpCWaeoAg_QLgxyVWN2RNOPPUCPEVfAs</a>\n신민정\n문지원\n김도은\n황혜진\n아주라\nMatatron 사업팀 김민성\n<a href=\"https://www.instagram.com/p/Bj2XVy-nehM/?utm_source=ig_share_sheet&igshid=1829pzkmqkuot\">https://www.instagram.com/p/Bj2XVy-nehM/?utm_source=ig_share_sheet&igshid=1829pzkmqkuot</a>\n신민정 MJ\n<a href=\"https://m.youtube.com/watch?v=UQM3ZF8noGM\">https://m.youtube.com/watch?v=UQM3ZF8noGM</a>\n이혜경\n광주 박현\n남주영 친구\n골프\n서란누나 쪽\n건영이형쪽\n소개팅 모수 확대.\n대인영업\n어플\n결정사\nㅇ 성격 : 유머러스, 센스, 사려깊고, 똑똑한, 에너지가 있는 성격 - 진국\nㅇ 외모 : 깨끗한 피부, 선이곱고 우아한, 키는 163~170, 글래머\n- 장소라. 신한생명, 제니퍼 로렌스, 아주라</a>, 김혜연(진현이형 마누라)\n차홍, 김민성, 엄지원, 김고은, 설수현, 김원희\n아주라. 신한. 장소라. 설현, 차홍\n수아, 지윤,  미소랑, 이희은(자라)\nㅇ 가치관\nㅇ 경제력 : 안정적인 직업 or 좋은 집안\nㅇ 가정 환경 : 결손가정X\nㅇ 직업 : 메이저 대기업 or 외국계\nㅇ 종교\nㅇ 연령 : 27~30\nㅇ 학벌 : 서성한+이대/홍대미대 이상\nㅇ 취미/관심사\nㅇ 건강\nㅇ 추후부모 동거여부\nㅇ 거주지\nㅇ 출신지역\n\nTarget : 결혼 적령기 28, 29의 고스펙\n전략 : 외모와 나이, 직업으로 학벌과 집안을 커버\n총점이 같으면 되는데, 외모랑 집안을 타협 본다."
+  }
+];
+const CONTENT_HASH = 'bb3b7e24';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -133,33 +384,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

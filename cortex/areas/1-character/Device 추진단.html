@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Device 추진단</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">Device 추진단</div>
+<div class="date">2016년 12월 15일 목요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-Device-추진단';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "html",
+    "x": 48,
+    "y": 139,
+    "w": 720,
+    "html": "\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">메일<span lang=\"en-US\"> or </span>쪽지</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">수신자<span lang=\"en-US\"> : </span>이기서<span lang=\"en-US\"> </span>매니저님</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">CC : <span lang=\"ko-KR\">김성한</span> <span lang=\"ko-KR\">본부장</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">숨은<span lang=\"en-US\"> </span>참조<span lang=\"en-US\"> : </span>표승현<span lang=\"en-US\">, </span>배재근<span lang=\"en-US\"> </span>매니저님</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">[<span lang=\"ko-KR\">제목</span> : Device <span lang=\"ko-KR\">추진단으로</span> <span lang=\"ko-KR\">이동을</span> <span lang=\"ko-KR\">희망합니다</span>.]</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">안녕하세요<span lang=\"en-US\"> </span>매니저님<span lang=\"en-US\">,</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">정책팀<span lang=\"en-US\"> </span>김준영<span lang=\"en-US\"> </span>매니저입니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">지난<span lang=\"en-US\"> </span>여름<span lang=\"en-US\">, T-icon</span>을<span lang=\"en-US\"> </span>통해서<span lang=\"en-US\"> Aria </span>프로젝트를<span lang=\"en-US\"> </span>접한<span lang=\"en-US\"> </span>이후로<span lang=\"en-US\">,</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Device <span lang=\"ko-KR\">지원단에서</span> <span lang=\"ko-KR\">일하는</span> <span lang=\"ko-KR\">것을</span> <span lang=\"ko-KR\">진지하게</span> <span lang=\"ko-KR\">생각해오고</span> <span lang=\"ko-KR\">있었고</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">제<span lang=\"en-US\"> </span>뜻을<span lang=\"en-US\"> </span>전해드릴<span lang=\"en-US\"> </span>기회가<span lang=\"en-US\"> </span>있어서<span lang=\"en-US\"> </span>기쁘게<span lang=\"en-US\"> </span>생각합니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">회사원인지라 조직에서 쓰는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\"> </span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">대로 쓰여지는 것이 맞는 것인지도 모르겠습니다만,</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕;color:black;background-color:white\">이왕이면</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\"> </span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">원하고</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\"> </span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">또</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\"> </span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">잘</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\"> </span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">할</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\"> </span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">수</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\"> </span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">있는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\">(</span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">혹은</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\"> </span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">그렇게</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\"> </span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">믿는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\">) job</span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">에</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\"> </span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">대한</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\"> </span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">욕심이</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\"> </span><span style=\"font-family:맑은 고딕;color:black;background-color:white\">있습니다</span><span lang=\"en-US\" style=\"font-family:맑은 고딕;color:black;background-color:white\">.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">월급쟁이가<span lang=\"en-US\"> </span>조직에서<span lang=\"en-US\"> </span>급여<span lang=\"en-US\"> </span>이외에<span lang=\"en-US\"> </span>바랄<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있는<span lang=\"en-US\"> </span>것이<span lang=\"en-US\"> </span>딱<span lang=\"en-US\"> </span>하나<span lang=\"en-US\"> </span>있다면<span lang=\"en-US\">, &#39;</span>성장의<span lang=\"en-US\"> </span>기회<span lang=\"en-US\">&#39;</span>라고<span lang=\"en-US\"> </span>생각합니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">입사<span lang=\"en-US\"> </span>당시부터<span lang=\"en-US\"> </span>상품에<span lang=\"en-US\"> </span>대한<span lang=\"en-US\"> </span>열망이<span lang=\"en-US\"> </span>있었습니다<span lang=\"en-US\">. </span>하지만<span lang=\"en-US\"> </span>저희<span lang=\"en-US\"> </span>기수<span lang=\"en-US\">(24</span>기<span lang=\"en-US\">, 2012</span>년<span lang=\"en-US\"> </span>입사<span lang=\"en-US\">)</span>를<span lang=\"en-US\"> </span>채용<span lang=\"en-US\"> </span>할<span lang=\"en-US\"> </span>당시에는<span lang=\"en-US\"> </span>상품관련<span lang=\"en-US\"> </span>조직이<span lang=\"en-US\"> </span>정비되지<span lang=\"en-US\"> </span>않았었고<span lang=\"en-US\">, </span>선발도<span lang=\"en-US\"> </span>하지<span lang=\"en-US\"> </span>않는<span lang=\"en-US\"> </span>상태였었습니다<span lang=\"en-US\">. </span>그<span lang=\"en-US\"> </span>후로<span lang=\"en-US\"> </span>회사에서<span lang=\"en-US\"> </span>각종<span lang=\"en-US\"> </span>상품과<span lang=\"en-US\"> </span>플랫폼<span lang=\"en-US\"> </span>조직이<span lang=\"en-US\"> </span>신설되고<span lang=\"en-US\">, </span>방향성이<span lang=\"en-US\"> </span>변화하는<span lang=\"en-US\"> </span>모습을<span lang=\"en-US\"> </span>묵묵히<span lang=\"en-US\"> </span>지켜보면서<span lang=\"en-US\"> </span>언젠가<span lang=\"en-US\"> </span>저도<span lang=\"en-US\"> </span>해당<span lang=\"en-US\"> </span>조직에서<span lang=\"en-US\"> </span>기여할<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있을<span lang=\"en-US\"> </span>것이라는<span lang=\"en-US\"> </span>기대감을<span lang=\"en-US\"> </span>품어왔습니다<span lang=\"en-US\">. </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그<span lang=\"en-US\"> </span>시간들<span lang=\"en-US\"> </span>동안<span lang=\"en-US\"> </span>숱하게<span lang=\"en-US\"> </span>제출했던<span lang=\"en-US\"> Input SUPEX </span>제안들<span lang=\"en-US\">, </span>매해<span lang=\"en-US\"> </span>도맡아<span lang=\"en-US\"> </span>했었던<span lang=\"en-US\"> junior Jump-up </span>과제<span lang=\"en-US\">, &quot;</span>네가<span lang=\"en-US\"> </span>애플<span lang=\"en-US\"> </span>키노트를<span lang=\"en-US\"> </span>왜<span lang=\"en-US\"> </span>보냐<span lang=\"en-US\">&quot;</span>는<span lang=\"en-US\"> </span>선배의<span lang=\"en-US\"> </span>핀잔에도<span lang=\"en-US\"> </span>졸린<span lang=\"en-US\"> </span>눈<span lang=\"en-US\"> </span>비벼가며<span lang=\"en-US\"> </span>챙겨봤던<span lang=\"en-US\"> </span>각종<span lang=\"en-US\"> IT</span>이슈들<span lang=\"en-US\">, </span>그리고<span lang=\"en-US\"> </span>올해<span lang=\"en-US\"> 2</span>회에<span lang=\"en-US\"> </span>걸친<span lang=\"en-US\"> T-icon </span>대상<span lang=\"en-US\"> </span>수상<span lang=\"en-US\"> </span>등<span lang=\"en-US\"> </span>도<span lang=\"en-US\"> </span>그러한<span lang=\"en-US\"> </span>갈증에<span lang=\"en-US\"> </span>대한<span lang=\"en-US\"> </span>나름의<span lang=\"en-US\"> </span>해소<span lang=\"en-US\"> </span>방안이었습니다<span lang=\"en-US\">. </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">물론<span lang=\"en-US\">, </span>마케팅<span lang=\"en-US\"> </span>부문에서<span lang=\"en-US\"> </span>뛰어난<span lang=\"en-US\"> </span>선배들과<span lang=\"en-US\"> </span>일하며<span lang=\"en-US\"> </span>인정받는<span lang=\"en-US\"> </span>것도<span lang=\"en-US\"> </span>더할<span lang=\"en-US\"> </span>나위<span lang=\"en-US\"> </span>없는<span lang=\"en-US\"> </span>영광입니다<span lang=\"en-US\">. </span>아직도<span lang=\"en-US\"> </span>우리의<span lang=\"en-US\"> </span>본질은<span lang=\"en-US\"> MNO</span>라는<span lang=\"en-US\"> </span>인식이<span lang=\"en-US\"> </span>팽배한<span lang=\"en-US\"> </span>가운데<span lang=\"en-US\">, </span>안정적인<span lang=\"en-US\"> </span>커리어를<span lang=\"en-US\"> </span>이탈하는<span lang=\"en-US\"> </span>것에<span lang=\"en-US\"> </span>대한<span lang=\"en-US\"> </span>두려움과<span lang=\"en-US\"> </span>우려의<span lang=\"en-US\"> </span>시선도<span lang=\"en-US\"> </span>분명<span lang=\"en-US\"> </span>있습니다<span lang=\"en-US\">. </span>하지만<span lang=\"en-US\">, </span>지금의<span lang=\"en-US\"> </span>조직에서<span lang=\"en-US\"> </span>안주한다면<span lang=\"en-US\">, 2~3</span>년<span lang=\"en-US\"> </span>후<span lang=\"en-US\"> </span>과장급<span lang=\"en-US\"> </span>연차가<span lang=\"en-US\"> </span>되었을<span lang=\"en-US\"> </span>때<span lang=\"en-US\">, </span>제가<span lang=\"en-US\"> </span>도전할<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있는<span lang=\"en-US\"> </span>영역은<span lang=\"en-US\"> </span>고작해야<span lang=\"en-US\"> </span>옆<span lang=\"en-US\"> </span>팀으로<span lang=\"en-US\"> </span>옮기는<span lang=\"en-US\"> </span>것<span lang=\"en-US\"> </span>뿐일<span lang=\"en-US\"> </span>것입니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이만큼<span lang=\"en-US\"> </span>안정적인<span lang=\"en-US\"> </span>회사에서<span lang=\"en-US\"> </span>이정도<span lang=\"en-US\"> </span>도전도<span lang=\"en-US\"> </span>하지<span lang=\"en-US\"> </span>못한다면<span lang=\"en-US\">, </span>그것이야말로<span lang=\"en-US\"> Value </span>없는<span lang=\"en-US\"> </span>구성원이라고<span lang=\"en-US\"> </span>생각합니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">내년이면<span lang=\"en-US\"> </span>저는<span lang=\"en-US\"> 6</span>년차가<span lang=\"en-US\"> </span>됩니다<span lang=\"en-US\">. </span>아직도<span lang=\"en-US\"> </span>주니어라<span lang=\"en-US\"> </span>분류되지만<span lang=\"en-US\">, </span>이제<span lang=\"en-US\"> </span>제<span lang=\"en-US\"> </span>필드<span lang=\"en-US\"> </span>정도는<span lang=\"en-US\"> </span>제가<span lang=\"en-US\"> </span>정할<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있어야<span lang=\"en-US\"> </span>한다<span lang=\"en-US\">.</span>고<span lang=\"en-US\"> </span>생각합니다<span lang=\"en-US\">. </span>지금<span lang=\"en-US\"> </span>제게<span lang=\"en-US\"> </span>절실한<span lang=\"en-US\"> </span>것은<span lang=\"en-US\"> </span>더<span lang=\"en-US\"> </span>많은<span lang=\"en-US\"> </span>연봉이나<span lang=\"en-US\"> </span>좋은<span lang=\"en-US\"> </span>고과가<span lang=\"en-US\"> </span>아닙니다<span lang=\"en-US\">. </span>성장의<span lang=\"en-US\"> </span>기회입니다<span lang=\"en-US\">. </span>이를<span lang=\"en-US\"> </span>통해서<span lang=\"en-US\">, </span>제가<span lang=\"en-US\"> </span>기여할<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있는<span lang=\"en-US\"> </span>방식으로<span lang=\"en-US\"> </span>회사에<span lang=\"en-US\"> </span>보탬이<span lang=\"en-US\"> </span>될<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있기를<span lang=\"en-US\"> </span>바랍니다<span lang=\"en-US\">. </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이상은<span lang=\"en-US\"> </span>저의<span lang=\"en-US\"> </span>희망과<span lang=\"en-US\"> </span>포부에<span lang=\"en-US\"> </span>대한<span lang=\"en-US\"> </span>이야기였습니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">아래의<span lang=\"en-US\"> </span>내용은<span lang=\"en-US\">, </span>객관적으로<span lang=\"en-US\"> </span>저를<span lang=\"en-US\"> </span>조직의<span lang=\"en-US\"> </span>일원으로<span lang=\"en-US\"> </span>수용할<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있을지<span lang=\"en-US\"> </span>판단에<span lang=\"en-US\"> </span>도움을<span lang=\"en-US\"> </span>드리기<span lang=\"en-US\"> </span>위해<span lang=\"en-US\"> </span>정리한<span lang=\"en-US\"> </span>내용입니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">==========================================================================</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">■</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">희망직무</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">IA<span lang=\"ko-KR\">서비스</span>1<span lang=\"ko-KR\">팀에서</span> <span lang=\"ko-KR\">서비스기획</span> <span lang=\"ko-KR\">업무를</span> <span lang=\"ko-KR\">담당하게</span> <span lang=\"ko-KR\">되기를</span> <span lang=\"ko-KR\">희망합니다</span>.</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">■</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">지원동기</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">[<span lang=\"ko-KR\">물리적</span> <span lang=\"ko-KR\">실체가</span> <span lang=\"ko-KR\">있는</span> <span lang=\"ko-KR\">상품과</span> <span lang=\"ko-KR\">서비스</span>]</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">알파고와<span lang=\"en-US\"> </span>이세돌덕에<span lang=\"en-US\"> AI</span>는<span lang=\"en-US\"> </span>올해<span lang=\"en-US\"> </span>원년을<span lang=\"en-US\"> </span>맞이한<span lang=\"en-US\"> </span>듯<span lang=\"en-US\"> </span>보입니다<span lang=\"en-US\">. </span>하지만<span lang=\"en-US\"> </span>제가<span lang=\"en-US\"> IA</span>서비스<span lang=\"en-US\"> </span>기획에<span lang=\"en-US\"> </span>관심을<span lang=\"en-US\"> </span>갖는<span lang=\"en-US\"> </span>이유는<span lang=\"en-US\"> Hot</span>한 상품이어서가 아닙니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">우리<span lang=\"en-US\"> </span>회사는<span lang=\"en-US\"> </span>지금껏<span lang=\"en-US\"> </span>물리적<span lang=\"en-US\"> </span>실체를<span lang=\"en-US\"> </span>가진<span lang=\"en-US\"> </span>상품을<span lang=\"en-US\"> </span>팔아본<span lang=\"en-US\"> </span>경험이<span lang=\"en-US\"> </span>많지<span lang=\"en-US\"> </span>않은<span lang=\"en-US\"> </span>회사입니다<span lang=\"en-US\">. </span>치킨은<span lang=\"en-US\"> </span>한<span lang=\"en-US\"> </span>달에<span lang=\"en-US\"> </span>몇<span lang=\"en-US\"> </span>번을<span lang=\"en-US\"> </span>먹어도<span lang=\"en-US\">, </span>통신료는<span lang=\"en-US\"> </span>비싸다는<span lang=\"en-US\"> </span>고객들<span lang=\"en-US\">, 010</span>번호통합<span lang=\"en-US\"> </span>제도로<span lang=\"en-US\"> </span>인한<span lang=\"en-US\"> </span>차별적인<span lang=\"en-US\"> </span>포지셔닝<span lang=\"en-US\"> </span>상쇄<span lang=\"en-US\"> </span>등<span lang=\"en-US\"> </span>눈에<span lang=\"en-US\"> </span>보이지<span lang=\"en-US\"> </span>않고<span lang=\"en-US\">, </span>잡히지<span lang=\"en-US\"> </span>않는<span lang=\"en-US\"> </span>상품을<span lang=\"en-US\"> </span>주력으로<span lang=\"en-US\"> </span>하며<span lang=\"en-US\"> </span>겪어온<span lang=\"en-US\"> </span>어려움<span lang=\"en-US\"> </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">그만큼<span lang=\"en-US\"> T</span>angible한 상품을 다뤄본다는 것은 SKT라는 회사에서 굉장히 소중한 자산이고, 저<span lang=\"en-US\"> </span>자신에게는<span lang=\"en-US\"> </span>정말로 욕심나는<span lang=\"en-US\"> </span>직무<span lang=\"en-US\"> </span>경험입니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">또한<span lang=\"en-US\"> </span>홈<span lang=\"en-US\"> </span>어시스턴트로써의<span lang=\"en-US\"> NUGU</span>는<span lang=\"en-US\"> </span>장기적으로는<span lang=\"en-US\"> Home</span>의<span lang=\"en-US\"> </span>문턱을<span lang=\"en-US\"> </span>넘어<span lang=\"en-US\"> Smart Car</span>에<span lang=\"en-US\"> </span>이르기까지<span lang=\"en-US\"> Seamless</span>하게<span lang=\"en-US\"> </span>연결해나갈<span lang=\"en-US\"> </span>베이스캠프이자<span lang=\"en-US\"> </span>전진기지라고<span lang=\"en-US\"> </span>생각합니다<span lang=\"en-US\">. </span>우리<span lang=\"en-US\"> </span>회사의<span lang=\"en-US\"> </span>막대한<span lang=\"en-US\"> </span>유통망<span lang=\"en-US\">, </span>회선판매<span lang=\"en-US\"> </span>경험<span lang=\"en-US\">, </span>기술적<span lang=\"en-US\"> </span>기반<span lang=\"en-US\"> </span>등을<span lang=\"en-US\"> </span>종합적으로<span lang=\"en-US\"> </span>고려했을<span lang=\"en-US\"> </span>때<span lang=\"en-US\">, </span>우리가<span lang=\"en-US\"> </span>잘<span lang=\"en-US\"> </span>할<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있는<span lang=\"en-US\"> </span>일이고<span lang=\"en-US\"> </span>잘해야만<span lang=\"en-US\"> </span>하는<span lang=\"en-US\"> </span>일이라고<span lang=\"en-US\"> </span>생각하고<span lang=\"en-US\"> </span>이<span lang=\"en-US\"> </span>성장을<span lang=\"en-US\"> </span>함께하고<span lang=\"en-US\"> </span>싶습니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">[</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">파는</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">마케터가</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">아닌</span><span style=\"font-family:맑은 고딕\">, </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">만드는</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">마케터</span> - <span lang=\"ko-KR\">서비스</span>/<span lang=\"ko-KR\">상품</span> <span lang=\"ko-KR\">기획자</span><span style=\"font-family:맑은 고딕\">]</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">입사</span><span lang=\"en-US\"> </span><span style=\"font-family:맑은 고딕\">전부터</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">마케팅을</span><span lang=\"en-US\"> </span>공부하는<span lang=\"en-US\"> </span>과정에서<span lang=\"en-US\" style=\"font-family:맑은 고딕\"> &quot;</span><span style=\"font-family:맑은 고딕\">궁극의</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">마케팅은</span><span lang=\"en-US\"> </span>결국<span lang=\"en-US\">, </span><span style=\"font-family:맑은 고딕\">궁극의</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">제품이다</span><span lang=\"en-US\">.</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\">&quot;</span><span style=\"font-family:맑은 고딕\">는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">신념을</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">가지게</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">되었습니다</span><span lang=\"en-US\">. </span><span style=\"font-family:맑은 고딕\">판매하는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">마케터보다</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">만드는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">마케터</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">즉</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\">, </span><span style=\"font-family:맑은 고딕\">상품기획자로써</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">성장하는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">것을</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">목표로</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">갖게</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">되었습니다</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\">. 2010</span><span style=\"font-family:맑은 고딕\">년</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">월드컵</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">당시</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> ireds</span><span style=\"font-family:맑은 고딕\">라는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">응원</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">어플리케이션을</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">기획하고</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\">, </span><span style=\"font-family:맑은 고딕\">홍보하여</span><span lang=\"en-US\"> </span>이를<span lang=\"en-US\"> </span>활용<span style=\"font-family:맑은 고딕\">한</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">응원전을</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">펼치면서</span><span lang=\"en-US\"> Apple app </span><span style=\"font-family:맑은 고딕\">스토어</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> 31</span><span style=\"font-family:맑은 고딕\">위에</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">랭크되는</span><span lang=\"en-US\"> </span><span style=\"font-family:맑은 고딕\">경험</span><span lang=\"en-US\"> </span>하면서<span lang=\"en-US\">, </span>하나의<span lang=\"en-US\"> </span>서비스를<span lang=\"en-US\"> </span>기획하고<span lang=\"en-US\"> </span><span style=\"font-family:맑은 고딕\">그것이</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> working</span><span style=\"font-family:맑은 고딕\">하게</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">만드는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">과정</span><span lang=\"en-US\"> </span>자체에서<span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">큰</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">흥미와</span><span lang=\"en-US\"> </span>의미를<span lang=\"en-US\"> </span>찾<span style=\"font-family:맑은 고딕\">게</span><span lang=\"en-US\"> </span>되었습니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">■</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">보유</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">역량</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">[</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">입사</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">전</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">직무경험</span> : CRM <span lang=\"ko-KR\">컨설팅社에</span> <span lang=\"ko-KR\">근무</span><span style=\"font-family:맑은 고딕\">]</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">CRM <span lang=\"ko-KR\">컨설팅</span><span lang=\"ko-KR\" style=\"font-family:Gulim\">社</span><span lang=\"ko-KR\">에</span> <span lang=\"ko-KR\">근무하며</span>, <span lang=\"ko-KR\">고객</span> Data <span lang=\"ko-KR\">기반의</span> <span lang=\"ko-KR\">마케팅</span> <span lang=\"ko-KR\">경험을</span> <span lang=\"ko-KR\">쌓았습니다</span>. CRM<span lang=\"ko-KR\">의</span> <span lang=\"ko-KR\">특성</span> <span lang=\"ko-KR\">상</span> <span lang=\"ko-KR\">이종</span> <span lang=\"ko-KR\">산업간</span> <span lang=\"ko-KR\">연계나</span> Agency/<span lang=\"ko-KR\">외주업체와의</span> Co-work<span lang=\"ko-KR\">을</span> <span lang=\"ko-KR\">통한</span> <span lang=\"ko-KR\">마케팅</span> Campaign planning <span lang=\"ko-KR\">및</span> <span lang=\"ko-KR\">운영</span> <span lang=\"ko-KR\">업무가</span> <span lang=\"ko-KR\">많았습니다</span>. <span lang=\"ko-KR\">이</span> <span lang=\"ko-KR\">과정에서</span> <span lang=\"ko-KR\">개발자</span>/<span lang=\"ko-KR\">디자이너와</span> <span lang=\"ko-KR\">잦은</span> Comm.<span lang=\"ko-KR\">과</span> <span lang=\"ko-KR\">협업이</span> <span lang=\"ko-KR\">필수적이었습니다</span>. <span lang=\"ko-KR\">이러한</span> <span lang=\"ko-KR\">경험을</span> <span lang=\"ko-KR\">통해</span> <span lang=\"ko-KR\">다양한</span> <span lang=\"ko-KR\">이해관계자의</span> <span lang=\"ko-KR\">입장에서</span> <span lang=\"ko-KR\">사안을</span> <span lang=\"ko-KR\">헤아리게</span> <span lang=\"ko-KR\">되었으며</span>, <span lang=\"ko-KR\">다양한</span> BP<span lang=\"ko-KR\">와의</span> <span lang=\"ko-KR\">협업에</span> <span lang=\"ko-KR\">불편함이</span> <span lang=\"ko-KR\">없다는</span> <span lang=\"ko-KR\">강점을</span> <span lang=\"ko-KR\">갖추게</span> <span lang=\"ko-KR\">되었습니다</span>.</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">기획자로서<span lang=\"en-US\"> </span>가장<span lang=\"en-US\"> </span>중요한<span lang=\"en-US\"> </span>능력<span lang=\"en-US\"> </span>중<span lang=\"en-US\"> </span>하나는<span lang=\"en-US\">, </span>내부<span lang=\"en-US\"> </span>마케팅<span lang=\"en-US\"> </span>역량이라고<span lang=\"en-US\"> </span>생각합니다<span lang=\"en-US\">. </span>데이터로<span lang=\"en-US\"> </span>의사결정권자를<span lang=\"en-US\"> </span>설득하여<span lang=\"en-US\"> </span>컨펌<span lang=\"en-US\"> </span>받고<span lang=\"en-US\">, </span>동료들과<span lang=\"en-US\"> BP</span>로부터<span lang=\"en-US\"> </span>지지를<span lang=\"en-US\"> </span>얻어<span lang=\"en-US\">, &#39;</span>아이디어<span lang=\"en-US\">&#39;</span>에<span lang=\"en-US\"> </span>그치지<span lang=\"en-US\"> </span>않고<span lang=\"en-US\"> &#39;</span>일이<span lang=\"en-US\"> </span>되게<span lang=\"en-US\"> </span>만드는<span lang=\"en-US\">&#39; </span>것이<span lang=\"en-US\"> </span>정말<span lang=\"en-US\"> </span>중요하다는<span lang=\"en-US\"> </span>것을<span lang=\"en-US\"> </span>경험으로<span lang=\"en-US\"> </span>알고<span lang=\"en-US\"> </span>있습니다<span lang=\"en-US\">. </span>모두가<span lang=\"en-US\"> </span>외부와<span lang=\"en-US\"> </span>고객에<span lang=\"en-US\"> </span>집중할<span lang=\"en-US\"> </span>때<span lang=\"en-US\">, </span>내부로부터<span lang=\"en-US\"> &#39;</span>실행력<span lang=\"en-US\">&#39;</span>을<span lang=\"en-US\"> </span>담보해<span lang=\"en-US\"> </span>낼<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있는<span lang=\"en-US\"> &#39;</span>내부<span lang=\"en-US\"> </span>마케팅<span lang=\"en-US\">&#39; </span>능력이<span lang=\"en-US\"> </span>저의<span lang=\"en-US\"> </span>강점입니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">[입사 후 직무경험] </p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">[1] 2012<span lang=\"ko-KR\">년</span> : <span lang=\"ko-KR\">서부</span> CV<span lang=\"ko-KR\">추진팀</span>(<span lang=\"ko-KR\">現</span> <span lang=\"ko-KR\">채널기획팀</span>) <span lang=\"ko-KR\">유통모듈에서</span> 1<span lang=\"ko-KR\">년간</span> <span lang=\"ko-KR\">유통</span>(<span lang=\"ko-KR\">대리점</span> <span lang=\"ko-KR\">계약</span> <span lang=\"ko-KR\">체결</span>, <span lang=\"ko-KR\">상생복지</span>P/G, <span lang=\"ko-KR\">상권분석</span>, <span lang=\"ko-KR\">소매</span> <span lang=\"ko-KR\">점당</span> <span lang=\"ko-KR\">판매력</span> <span lang=\"ko-KR\">제고</span>, <span lang=\"ko-KR\">단골고객</span> <span lang=\"ko-KR\">관리</span>, SI) <span lang=\"ko-KR\">업무</span> <span lang=\"ko-KR\">경험</span> </p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">[2] 2013<span lang=\"ko-KR\">년</span>~2014<span lang=\"ko-KR\">년</span> : <span lang=\"ko-KR\">전주마케팅팀에서</span> 2<span lang=\"ko-KR\">년간</span> <span lang=\"ko-KR\">이동전화</span> <span lang=\"ko-KR\">정책</span> <span lang=\"ko-KR\">담당</span>   </p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">[3] 2015<span lang=\"ko-KR\">년</span> : <span lang=\"ko-KR\">서부</span> <span lang=\"ko-KR\">마케팅기획팀에서</span> <span lang=\"ko-KR\">본부</span> <span lang=\"ko-KR\">유선</span>(<span lang=\"ko-KR\">도매</span>)<span lang=\"ko-KR\">정책</span> &amp; <span lang=\"ko-KR\">매출지표</span> <span lang=\"ko-KR\">담당</span> </p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">[4] 2016<span lang=\"ko-KR\">년</span> : <span lang=\"ko-KR\">생활가치전략본부</span> <span lang=\"ko-KR\">정책팀</span> - <span lang=\"ko-KR\">유선</span>CRM <span lang=\"ko-KR\">센터</span> <span lang=\"ko-KR\">및</span> <span lang=\"ko-KR\">전사</span> <span lang=\"ko-KR\">선택동의율</span> <span lang=\"ko-KR\">관리업무</span> <span lang=\"ko-KR\">수행</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:9pt\">[</span><span lang=\"ko-KR\" style=\"font-size:9pt\">기초</span><span style=\"font-size:9pt\"> </span><span lang=\"ko-KR\" style=\"font-size:9pt\">업무</span><span style=\"font-size:9pt\"> </span><span lang=\"ko-KR\" style=\"font-size:9pt\">능력</span><span style=\"font-size:9pt\">]</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> Paper work (</span>문서 저작 Tool 숙련도<span lang=\"en-US\">)</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">  - <span lang=\"en-US\">PPT/Word : </span>문서<span lang=\"en-US\"> </span>작성에<span lang=\"en-US\"> </span>어려움이<span lang=\"en-US\"> </span>없으며<span lang=\"en-US\">, </span>기초적인<span lang=\"en-US\"> </span>인포그래픽<span lang=\"en-US\"> </span>제작<span lang=\"en-US\"> </span>가능</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">  - Excel<span lang=\"en-US\"> :</span> 매크로와<span lang=\"en-US\"> </span>기본적인<span lang=\"en-US\"> VBA</span> 활용<span lang=\"en-US\"> </span>가능</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">  - MS Project : <span lang=\"ko-KR\">체계적</span> <span lang=\"ko-KR\">프로젝트</span> <span lang=\"ko-KR\">스케쥴</span> <span lang=\"ko-KR\">관리</span> <span lang=\"ko-KR\">가능</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ Data managemnet <span lang=\"en-US\">(</span>사내 DBMS 숙련도<span lang=\"en-US\">)</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">  - <span lang=\"en-US\">U.key, </span>DBM, OLAP, SID를<span lang=\"en-US\"> </span>활용한<span lang=\"en-US\"> </span>다양한<span lang=\"en-US\"> </span>Data 산출<span lang=\"en-US\"> </span>가능</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ ICT 산업에 대한 꾸준한 학습</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"> <span lang=\"en-US\"> </span>- 매일<span lang=\"en-US\"> </span>News clip을<span lang=\"en-US\"> </span>읽는<span lang=\"en-US\"> </span>것으로<span lang=\"en-US\"> </span>일과를<span lang=\"en-US\"> </span>시작하여<span lang=\"en-US\">, </span>틈틈히<span lang=\"en-US\"> </span>T-infornet &amp; 주간동향<span lang=\"en-US\"> </span>등 최신 ICT 보고서를 탐독함</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"> <span lang=\"en-US\"> </span> <span lang=\"en-US\">*</span>Study 결과를 토대로 New BM 및 개선사항 Input-Supex 제안 (201<span lang=\"en-US\">6</span>년 개인<span lang=\"en-US\"> </span>누적 제안 수 3<span lang=\"en-US\">3</span>개)</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>기초<span lang=\"en-US\"> </span>체력</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"> - <span lang=\"ko-KR\">매일</span> <span lang=\"ko-KR\">아침</span> 40<span lang=\"ko-KR\">분</span> <span lang=\"ko-KR\">이상의</span> <span lang=\"ko-KR\">러닝으로</span> <span lang=\"ko-KR\">하루를</span> <span lang=\"ko-KR\">시작하며</span>, <span lang=\"ko-KR\">마라톤</span> <span lang=\"ko-KR\">풀코스</span> 3<span lang=\"ko-KR\">회</span> <span lang=\"ko-KR\">완주</span> <span lang=\"ko-KR\">경험이</span> <span lang=\"ko-KR\">있습니다</span>.</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">   <span lang=\"ko-KR\">이를</span> <span lang=\"ko-KR\">통해</span> <span lang=\"ko-KR\">고강도의</span> <span lang=\"ko-KR\">업무를</span> <span lang=\"ko-KR\">견딜</span> <span lang=\"ko-KR\">수</span> <span lang=\"ko-KR\">있는</span> <span lang=\"ko-KR\">체력과</span> <span lang=\"ko-KR\">근성</span>, <span lang=\"ko-KR\">집중력을</span> <span lang=\"ko-KR\">길러</span> <span lang=\"ko-KR\">왔습니다</span>.</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>상품<span lang=\"en-US\"> </span>관련<span lang=\"en-US\"> </span>경험</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"> - <span lang=\"ko-KR\">누적</span> Input SUPEX <span lang=\"ko-KR\">제안</span> 33<span lang=\"ko-KR\">개</span> </p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"> - T-icon OKSUSU<span lang=\"ko-KR\">편</span> <span lang=\"ko-KR\">대상</span> <span lang=\"ko-KR\">수상</span> </p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"> - T-genius NUGU<span lang=\"ko-KR\">편</span> <span lang=\"ko-KR\">대상</span> <span lang=\"ko-KR\">수상</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">■</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">이동</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">후</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">계획</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">및</span><span lang=\"en-US\" style=\"font-weight:bold\"> </span><span style=\"font-weight:bold\">포부</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">Market sensing<span lang=\"ko-KR\">과</span> Tech Intelligence<span lang=\"ko-KR\">를</span> <span lang=\"ko-KR\">겸비한</span>, <span lang=\"ko-KR\">서비스</span> <span lang=\"ko-KR\">기획자로</span> <span lang=\"ko-KR\">성장하고자</span> <span lang=\"ko-KR\">하는</span> <span lang=\"ko-KR\">열망이</span> <span lang=\"ko-KR\">있습니다</span>. </p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">기술이<span lang=\"en-US\"> </span>따라가지<span lang=\"en-US\"> </span>못하는<span lang=\"en-US\"> </span>영역과<span lang=\"en-US\"> </span>캐즘을<span lang=\"en-US\">, </span>인간의<span lang=\"en-US\"> </span>관점에서<span lang=\"en-US\"> </span>채워줄<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있는<span lang=\"en-US\"> </span>서비스<span lang=\"en-US\"> </span>기획을<span lang=\"en-US\"> </span>하고<span lang=\"en-US\"> </span>싶습니다<span lang=\"en-US\">. </span>가령<span lang=\"en-US\">, </span>음성<span lang=\"en-US\"> </span>인식률이<span lang=\"en-US\"> </span>낮다고<span lang=\"en-US\"> </span>해서<span lang=\"en-US\"> </span>엔지니어들이<span lang=\"en-US\"> </span>음성<span lang=\"en-US\"> </span>인식률을<span lang=\"en-US\"> </span>향상시키기를<span lang=\"en-US\"> </span>기다려야<span lang=\"en-US\"> </span>한다면<span lang=\"en-US\"> </span>서비스<span lang=\"en-US\"> </span>기획자의<span lang=\"en-US\"> </span>존재의<span lang=\"en-US\"> </span>이유가<span lang=\"en-US\"> </span>없다고<span lang=\"en-US\"> </span>생각합니다<span lang=\"en-US\">. </span>낮은<span lang=\"en-US\"> </span>음성인식률을<span lang=\"en-US\"> </span>사용자들이<span lang=\"en-US\"> </span>불쾌한<span lang=\"en-US\"> </span>경험으로<span lang=\"en-US\"> </span>인식하지<span lang=\"en-US\"> </span>않고<span lang=\"en-US\">, </span>나아가<span lang=\"en-US\"> </span>친숙하고<span lang=\"en-US\"> </span>재미있는<span lang=\"en-US\"> </span>경험으로<span lang=\"en-US\"> </span>받아들일<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있도록<span lang=\"en-US\"> </span>서비스<span lang=\"en-US\"> </span>맥락을<span lang=\"en-US\"> </span>기획하는<span lang=\"en-US\"> </span>것이<span lang=\"en-US\"> </span>기획자의<span lang=\"en-US\"> </span>가치라고<span lang=\"en-US\"> </span>생각합니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">이렇듯</span><span lang=\"en-US\">, </span>기술로는<span lang=\"en-US\"> </span>충분하지<span lang=\"en-US\"> </span>않은<span lang=\"en-US\"> </span>영역을<span lang=\"en-US\"> </span>사람의<span lang=\"en-US\"> </span>관점에서<span lang=\"en-US\"> </span>채워나갈<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있는<span lang=\"en-US\"> &#39;</span>기술<span lang=\"en-US\">&#39;</span>과<span lang=\"en-US\"> &#39;</span>사용자<span lang=\"en-US\">&#39;</span>에<span lang=\"en-US\"> </span>대한<span lang=\"en-US\"> </span>균형<span lang=\"en-US\"> </span>있는<span lang=\"en-US\"> </span>시각을<span lang=\"en-US\"> </span>통해<span lang=\"en-US\"> </span>접점을<span lang=\"en-US\"> </span>제시할<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있는<span lang=\"en-US\"> </span>기획자가<span lang=\"en-US\"> </span>되고<span lang=\"en-US\"> </span>싶습니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-weight:bold\">■</span><span lang=\"en-US\" style=\"font-weight:bold\"> Career goal</span></p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">[<span lang=\"ko-KR\">중장기</span> <span lang=\"ko-KR\">커리어</span> <span lang=\"ko-KR\">목표</span>]</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">진정한<span lang=\"en-US\"> transformation</span>이란<span lang=\"en-US\"> </span>탈<span lang=\"en-US\">(</span>脫<span lang=\"en-US\">) </span>통신과<span lang=\"en-US\"> </span>기존에<span lang=\"en-US\"> </span>우리가<span lang=\"en-US\"> </span>가진<span lang=\"en-US\"> </span>것들을<span lang=\"en-US\"> </span>부정하는<span lang=\"en-US\"> </span>것이<span lang=\"en-US\"> </span>아니라<span lang=\"en-US\">, </span>기존의<span lang=\"en-US\"> </span>잠재력을<span lang=\"en-US\"> </span>새로운<span lang=\"en-US\"> </span>곳에<span lang=\"en-US\"> </span>쏟아서<span lang=\"en-US\"> </span>새로운<span lang=\"en-US\"> </span>가치를<span lang=\"en-US\"> </span>만들어<span lang=\"en-US\"> </span>내는<span lang=\"en-US\"> </span>것이라<span lang=\"en-US\"> </span>생각합니다<span lang=\"en-US\">. </span>이러한<span lang=\"en-US\"> </span>관점에서<span lang=\"en-US\">, </span>외부에서 영입된 인력이 아닌 Telco Backgroud를 가진 인재로써<span lang=\"en-US\">, MNO Biz.</span>와<span lang=\"en-US\"> </span>당사<span lang=\"en-US\"> legacy</span>를<span lang=\"en-US\"> </span>자<span lang=\"en-US\"> </span>이해하고<span lang=\"en-US\"> </span>이를<span lang=\"en-US\"> </span>바탕으로<span lang=\"en-US\"> </span>상품<span lang=\"en-US\">/</span>서비스의<span lang=\"en-US\"> value</span>를<span lang=\"en-US\"> </span>극대화<span lang=\"en-US\"> </span>할<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있는<span lang=\"en-US\"> PMM(Product marketing manager)</span>로써<span lang=\"en-US\"> </span>자리매김<span lang=\"en-US\"> </span>하는<span lang=\"en-US\"> </span>것이<span lang=\"en-US\"> </span>중장기<span lang=\"en-US\"> </span>Career 목표<span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">입니다</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">[<span lang=\"ko-KR\">최종</span> <span lang=\"ko-KR\">커리어</span> <span lang=\"ko-KR\">목표</span>]</p>\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">SKT<span lang=\"ko-KR\">의</span> <span lang=\"ko-KR\">상품</span>/<span lang=\"ko-KR\">서비스를</span> <span lang=\"ko-KR\">총괄하는</span> <span lang=\"ko-KR\">조직에서</span>, expert(<span lang=\"ko-KR\">명장</span>)<span lang=\"ko-KR\">가</span> <span lang=\"ko-KR\">되는</span> <span lang=\"ko-KR\">것입니다</span>. <span lang=\"ko-KR\">한</span> <span lang=\"ko-KR\">조직의</span> <span lang=\"ko-KR\">장이</span> <span lang=\"ko-KR\">되기</span> <span lang=\"ko-KR\">보다는</span>, <span lang=\"ko-KR\">군대</span> <span lang=\"ko-KR\">조직으로</span> <span lang=\"ko-KR\">비유하자면</span> <span lang=\"ko-KR\">기술</span> <span lang=\"ko-KR\">부사관</span> <span lang=\"ko-KR\">직군처럼</span> <span lang=\"ko-KR\">상품</span> <span lang=\"ko-KR\">기획</span> <span lang=\"ko-KR\">및</span> <span lang=\"ko-KR\">매니지먼트의</span> <span lang=\"ko-KR\">전문가로</span> <span lang=\"ko-KR\">성장하고</span> <span lang=\"ko-KR\">싶습니다</span>.</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이상적인<span lang=\"en-US\"> </span>조직은<span lang=\"en-US\">, </span>개인의<span lang=\"en-US\"> </span>비전과<span lang=\"en-US\"> </span>개인의<span lang=\"en-US\"> </span>비전이<span lang=\"en-US\"> </span>합치된<span lang=\"en-US\"> </span>조직이라고<span lang=\"en-US\"> </span>생각합니다<span lang=\"en-US\">. MNO Biz</span>를<span lang=\"en-US\"> </span>경험하고<span lang=\"en-US\">, Telco</span>내에서<span lang=\"en-US\"> </span>자생적으로<span lang=\"en-US\"> </span>성장한<span lang=\"en-US\"> </span>서비스<span lang=\"en-US\"> </span>기획<span lang=\"en-US\"> </span>전문가로<span lang=\"en-US\"> </span>성장하고자<span lang=\"en-US\"> </span>하는<span lang=\"en-US\">, </span>저<span lang=\"en-US\"> </span>개인의<span lang=\"en-US\"> </span>확고한<span lang=\"en-US\"> </span>목표가<span lang=\"en-US\"> </span>조직에<span lang=\"en-US\"> </span>유익한<span lang=\"en-US\"> </span>에너지로<span lang=\"en-US\"> </span>작용할<span lang=\"en-US\"> </span>것임을<span lang=\"en-US\"> </span>확신합니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">=======================================</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">이기서<span lang=\"en-US\"> </span>매니저님께<span lang=\"en-US\"> </span>보낼<span lang=\"en-US\"> </span>메일인데요</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">검토<span lang=\"en-US\"> </span>부탁드립니다<span lang=\"en-US\"> </span>ㅎㅎ</p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">결과와 행동으로 말하는 사람이다.</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">나의 관심이 그냥 흥미에 지나지 않는다는 것을 보여드리기 위해 오늘<span lang=\"en-US\"> </span>하루 고민해본 결과를 조악하게나마 <span lang=\"en-US\">PPT</span>에<span lang=\"en-US\"> </span>옮겨<span lang=\"en-US\"> </span>보았다.</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">#<span lang=\"ko-KR\">상품</span> <span lang=\"ko-KR\">제안</span> <span lang=\"ko-KR\">관련</span> <span lang=\"ko-KR\">수상기록</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> T-</span>지니어스<span lang=\"en-US\"> NUGU</span>편<span lang=\"en-US\"> </span>대상</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> T-icon OKSUSU</span>편<span lang=\"en-US\"> </span>대상</p>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">01. </p>\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-size:10pt\"><span lang=\"en-US\"><span style=\"font-family:맑은 고딕\">02. </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">상품</span><span style=\"font-family:맑은 고딕\">&amp;</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">서비스 관련 제안 자료</span><span style=\"font-family:맑은 고딕\">.zip</span></span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"background-color:whitesmoke;border:1px solid;font-size:10pt\"><a href=\"http://massmail.sk.com/BulkMail/MailFileDownLoad.aspx?token=f962248f-0a6f-44d2-82ac-2888e2057847\" lang=\"en-US\" style=\"font-family:맑은 고딕;font-weight:bold\">open download page</a><span lang=\"en-US\" style=\"font-family:굴림\"> </span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">#<span lang=\"ko-KR\">첨부파일</span></p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> </span>최종<span lang=\"en-US\"> </span>면접<span lang=\"en-US\"> </span>시<span lang=\"en-US\"> </span>제출했던<span lang=\"en-US\"> </span>파일</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> Junior </span>점프업<span lang=\"en-US\"> </span>과제<span lang=\"en-US\"> &#39;12~&#39;13</span>년</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> NUGU</span>편<span lang=\"en-US\"> </span>제안</p>\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">ㅇ<span lang=\"en-US\"> NUGU </span>인식률<span lang=\"en-US\"> </span>제고<span lang=\"en-US\"> </span>및<span lang=\"en-US\"> </span>개인식별을<span lang=\"en-US\"> </span>위한<span lang=\"en-US\"> </span>제안</p>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">#<span lang=\"ko-KR\">첨부파일</span> <span lang=\"ko-KR\">설명</span></p>\r\n\t\t\t<ol>\r\n\t\t\t\t<li style=\"font-size:10pt\">본<span lang=\"en-US\"> </span>자료는<span lang=\"en-US\">, 2013</span>년<span lang=\"en-US\"> 1~2</span>년차<span lang=\"en-US\"> </span>대상<span lang=\"en-US\"> Jump-up</span>과제<span lang=\"en-US\"> </span>발표<span lang=\"en-US\"> </span>자료로<span lang=\"en-US\"> </span>작성한<span lang=\"en-US\"> </span>것입니다<span lang=\"en-US\">.</span></li>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">현재<span lang=\"en-US\"> </span>당사의<span lang=\"en-US\"> </span>스마트홈<span lang=\"en-US\"> </span>플랫폼에<span lang=\"en-US\"> </span>대한<span lang=\"en-US\"> Approach</span>는<span lang=\"en-US\"> </span>&#39;개방형 IoT 플랫폼<span lang=\"en-US\"> </span>생태계<span lang=\"en-US\"> </span>구축<span lang=\"en-US\">&#39;</span>으로<span lang=\"en-US\"> </span>전환되었으나<span lang=\"en-US\">, </span>당시에는<span lang=\"en-US\"> IPTV STB</span>만을<span lang=\"en-US\"> Hub</span>로<span lang=\"en-US\"> </span>삼은<span lang=\"en-US\"> </span>한<span lang=\"en-US\"> </span>폐쇄형<span lang=\"en-US\"> </span>플랫폼<span lang=\"en-US\"> </span>전략을<span lang=\"en-US\"> </span>선택지<span lang=\"en-US\"> </span>중의<span lang=\"en-US\"> </span>하나로<span lang=\"en-US\"> </span>보고<span lang=\"en-US\">, </span>그를<span lang=\"en-US\"> </span>위한<span lang=\"en-US\"> </span>포석으로써<span lang=\"en-US\"> STB </span>전략에<span lang=\"en-US\"> </span>접근<span lang=\"en-US\"> </span>한<span lang=\"en-US\"> </span>결과물입니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">IPTV STB<span lang=\"ko-KR\">가</span> <span lang=\"ko-KR\">추후</span> Smart Home<span lang=\"ko-KR\">의</span> Hub<span lang=\"ko-KR\">로</span> <span lang=\"ko-KR\">활용될</span> <span lang=\"ko-KR\">가능성을</span> <span lang=\"ko-KR\">상정하고</span>, &#39;STB<span lang=\"ko-KR\">의</span> <span lang=\"ko-KR\">개선</span>&#39;<span lang=\"ko-KR\">이</span> <span lang=\"ko-KR\">아닌</span> &#39;<span lang=\"ko-KR\">매력도</span> <span lang=\"ko-KR\">높은</span> Device<span lang=\"ko-KR\">의</span> STB<span lang=\"ko-KR\">화</span>&#39;<span lang=\"ko-KR\">를</span> <span lang=\"ko-KR\">목표하였습니다</span>. &#39;<span lang=\"ko-KR\">먼지</span> <span lang=\"ko-KR\">쌓인</span> <span lang=\"ko-KR\">채</span> <span lang=\"ko-KR\">방치된</span> <span lang=\"ko-KR\">검은</span> <span lang=\"ko-KR\">박스</span>&#39;<span lang=\"ko-KR\">를</span> <span lang=\"ko-KR\">구매욕을</span> <span lang=\"ko-KR\">자극하는</span> <span lang=\"ko-KR\">하나의</span> &#39;Smart Device&#39;<span lang=\"ko-KR\">로</span> <span lang=\"ko-KR\">재포지셔닝</span> <span lang=\"ko-KR\">한다는</span> <span lang=\"ko-KR\">것이</span> <span lang=\"ko-KR\">제안의</span> <span lang=\"ko-KR\">핵심입니다</span>.</p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">당시</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">제안한</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> 3</span><span style=\"font-family:맑은 고딕\">가지</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">컨셉</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> STB</span><span style=\"font-family:맑은 고딕\">중</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">메인</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">제안인</span><span lang=\"en-US\"> &#39;Audio</span>형<span lang=\"en-US\"> STB&#39;</span>는<span lang=\"en-US\" style=\"font-family:맑은 고딕\"> LGU+</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span lang=\"en-US\" style=\"font-family:Calibri\">&#39;</span><span lang=\"en-US\" style=\"font-family:Calibri\">tvG </span><span style=\"font-family:맑은 고딕\">우퍼</span><span lang=\"en-US\" style=\"font-family:Calibri\">&#39;</span><span style=\"font-family:맑은 고딕\">와</span><span lang=\"en-US\" style=\"font-family:Calibri\"> </span><span style=\"font-family:맑은 고딕\">동일한</span></p>\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Calibri\">Scheme</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">으로</span><span style=\"font-family:Calibri\">, </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">현재</span><span style=\"font-family:Calibri\"> </span>LGU+<span lang=\"ko-KR\">에서</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">출시되어</span> <span lang=\"ko-KR\">인기리에</span> <span lang=\"ko-KR\">판매</span> <span lang=\"ko-KR\">중에</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">있습니다</span><span style=\"font-family:맑은 고딕\">.</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">자료<span lang=\"en-US\"> </span>작성과<span lang=\"en-US\"> </span>발표를<span lang=\"en-US\"> </span>맡은<span lang=\"en-US\"> </span>저의<span lang=\"en-US\"> Smart home</span>에<span lang=\"en-US\"> </span>대한<span lang=\"en-US\"> </span>관심과<span lang=\"en-US\"> </span>관점을<span lang=\"en-US\"> </span>참고하실<span lang=\"en-US\"> </span>수<span lang=\"en-US\"> </span>있도록<span lang=\"en-US\"> </span>첨부하였습니다<span lang=\"en-US\">.</span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<li style=\"font-size:10pt\">본<span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">자료는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\">, </span><span style=\"font-family:맑은 고딕\">올해</span><span lang=\"en-US\"> </span>초<span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">서부마케팅본부</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">본부</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">유선담당</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">업무를</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">담당하며</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">작성한</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">자료입니다</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\">.</span></li>\r\n\t\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:맑은 고딕\">현장</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">마케터</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">및</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">유통망을</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">대상으로</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">유선상품</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\">,</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">그</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">중에서도</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> IPTV</span><span style=\"font-family:맑은 고딕\">를</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">판매해야</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">하는</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">당위성을</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">거시적인</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">관점에서</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">설명하기</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">위해</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">작성한</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\"> </span><span style=\"font-family:맑은 고딕\">자료입니다</span><span lang=\"en-US\" style=\"font-family:맑은 고딕\">. </span></p>\r\n\t\t\t\t<br />\r\n\t\t\t\t<p lang=\"en-US\" style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">&quot;<span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">나무보다</span> <span lang=\"ko-KR\">숲을</span> <span lang=\"ko-KR\">보라</span>&quot;<span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">는</span> <span lang=\"ko-KR\">말이</span> <span lang=\"ko-KR\">있습니다</span>. <span lang=\"ko-KR\">하지만</span>, <span lang=\"ko-KR\">숲에는</span> <span lang=\"ko-KR\">방향이</span> <span lang=\"ko-KR\">담겨</span> <span lang=\"ko-KR\">있고</span>, <span lang=\"ko-KR\">나무에는</span> <span lang=\"ko-KR\">현상에</span> <span lang=\"ko-KR\">대한</span> <span lang=\"ko-KR\">디테일이</span> <span lang=\"ko-KR\">있습니다</span>. <span lang=\"ko-KR\">우리가</span> <span lang=\"ko-KR\">하는</span> <span lang=\"ko-KR\">일은</span>, <span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">숲과</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">나무를</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">번갈아</span> <span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">조망할</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">수</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">있는</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">시각이</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">중요하다고</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">생각합니다</span><span style=\"font-family:맑은 고딕\">. </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">현장에</span> <span lang=\"ko-KR\">근무하면서도</span> <span lang=\"ko-KR\">지속적으로</span> <span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">스마트홈</span> <span lang=\"ko-KR\">사업</span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">에</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">대해</span> <span lang=\"ko-KR\">저의</span> <span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">지속적</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">관심과</span> <span lang=\"ko-KR\">관점에</span> <span lang=\"ko-KR\">대한</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">참고</span><span lang=\"ko-KR\">자료가</span> <span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">될</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">것으로</span> <span lang=\"ko-KR\">판단되어</span><span style=\"font-family:맑은 고딕\"> </span><span lang=\"ko-KR\" style=\"font-family:맑은 고딕\">첨부하였습니다</span><span style=\"font-family:맑은 고딕\">.</span></p>\r\n\t\t\t</ol>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-size:10pt;margin-top:0pt;margin-bottom:0pt\">물론<span lang=\"en-US\">, </span>위에<span lang=\"en-US\"> </span>열거한<span lang=\"en-US\"> </span>아이디어들은<span lang=\"en-US\"> </span>저만의<span lang=\"en-US\"> </span>단견이므로<span lang=\"en-US\"> Feasibility</span>를<span lang=\"en-US\"> </span>검증해야<span lang=\"en-US\"> </span>마땅합니다<span lang=\"en-US\">. </span></p>\r\n\t\t"
+  }
+];
+const CONTENT_HASH = '6ce842c4';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

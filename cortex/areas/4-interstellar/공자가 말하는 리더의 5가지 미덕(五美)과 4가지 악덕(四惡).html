@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공자가 말하는 리더의 5가지 미덕(五美)과 4가지 악덕(四惡)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">공자가 말하는 리더의 5가지 미덕(五美)과 4가지 악덕(四惡)</div>
+<div class="date">2015년 4월 5일 일요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-공자가-말하는-리더의-5가지-미덕-과-4가지-악덕-';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 65,
+    "y": 139,
+    "w": 600,
+    "content": "【논어명장면】<10> 리더를 꿈꾸는 젊은이에게\n君子疾沒世而名不稱焉\n군자질몰세이명불칭언\n“군자는 죽는 날까지 이름을 남기고자 분투하는 사람이다.”-‘위령공’편 19장\n1. 치중(恥重)\n오늘은 훌륭한 리더를 꿈꾸는 젊은이를 격려한 선생님의 말씀을 전하려 한다. 우리가 노나라에 돌아올 때 목격한 씁쓸했던 장면이 이 이야기를 하게 된 동기이다. 공자 일행이 노나라 접경을 지나가는데 저쪽에서 죄수를 실은 수레가 오고 있었다. 사람들은 그 죄수를 치중(恥重)이라고 불렀다. 도필(刀筆)을 무기로 해바라기마냥 벼슬을 좇은 사람이었다. 출세에 도움이 된다면 누구에게든 아첨하고, 방해가 되면 누구든 음해했다. 그의 주특기는 선동과 독설이었다. 노정공이 죽고 애공이 즉위하면서 권력층이 교체되자 그는 자기 세상이 왔다고 여겼다. 그러나 막상 벼슬이 주어지자 그동안 휘두른 험한 언설이 고스란히 자신의 목을 겨누는 창이 되어 돌아왔다. 심한 스트레스에 시달린 그는 휴가 삼아 사신 행차에 끼어 외국에 갔다가 술에 취한 채 부인희롱죄에 걸려들었다. 그는 정치적 음모라고 주장했지만, 같은 당파 사람들조차 비웃었다. 짧은 벼슬살이에 부끄러운 훈장만 목에 건 채 이웃나라로 붙잡혀가는 가련한 한 선비의 말로를 유독 뜨거운 호기심으로 바라보는 청년이 있으니, 진(陳)나라 출신의 제자 자장(子張)이었다.\n2. 야망의 빛과 그림자\n자장(서기전 503~?)은 성이 전손(오로지 전孫), 이름이 사(師)이다. 공자보다 48살 아래니 공자가 환국할 때 겨우 스무 살이었다. 하급 사족인 자장은 높은 지위의 경대부(卿大夫)가 되는 것이 목표였다. 자장은 스승을 대면할 기회만 있으면 ‘벼슬 얻는 법’을 물었다.(子張學干祿.‘위정’편 18장①) 자장이 공자를 찾아와 한 첫 질문은 이랬다.\n“선생님 저는 출세하고 싶습니다. 어떻게 하면 되나요?”\n공자는 아직 십대 소년이던 자장의 치기만만한 당돌함을 풋풋한 기개로 보듬어 안아주면서 당부했다.\n“젊은이, 선비는 평생 세상을 염려하며 쉼 없이 자신을 연마하는 자라네. 벼슬 따위는 선비의 궁극적인 목표가 아닐세.”"
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 583,
+    "w": 600,
+    "content": "자장 역시 출세의 본질이 개인적인 영달에만 있다고 보지 않았다. 자장은 사회개혁에 대한 신념이 강했다. 세상을 바꾸고 싶은 열정은 그 누구보다 뜨거웠다. 스무 살도 되기 전에 공자의 문하를 찾은 것은 제2의 자산(子産. 정나라 재상. 춘추시대 탁월한 정치가)이 되겠다는 나름의 원대한 포부가 있기 때문이었다.\n자장은 구세안민(救世安民)의 대의를 세상에 펼치기 위해서는 먼저 사람들을 그 길로 이끄는 위치에 올라야 하고, 그 지위에 걸맞은 사람이라면 마땅히 민중의 벗이 되어야 한다고 믿었다. 이런 자장의 신념과 행동은 훗날 선배 자공이 “자장은 공로와 지위를 자랑하지 않고 사람을 동등하게 여겨 힘없고 ‘빽 없는’ 사람들을 외면하지 않는다”라고 평하고, 공자가“민중을 아끼는 마음이야말로 군자의 인(仁)”(<공자가어> 제자행②)이라고 화답하게 할 정도였다.\n자장은 확신과 열정이 지나쳐서 자기중심적인 엘리트주의자, 전체보다 개인적 야망이 앞서는 출세주의자로 비칠 때가 많았다. 자유(子游. 오나라 출신으로 공문십철의 한 사람이다)가 “내 친구 자장은 대단히 유능한 사람이지만, 인자함이 부족하다”(‘자장’편 15장③)고 걱정한 것도, 공자 사후 학통 계승을 놓고 치열하게 경쟁한 증자(曾子)가 “자장은 자긍심이 높아 어디서나 당당하게 행동하지만, 더불어 인을 실천하기는 쉽지 않다”(‘자장’편 16장④)고 평가한 것도 이런 일면 때문이었다. 그러나 어쩌면 이는 어느 시대에서나 머리 좋고 야심만만한 젊은이에게 흔히 찾아볼 수 있는 특징일 것이다. 공자도 자장이 지나친 이념성과 도덕적 우월감으로 인해 동료들과 불화하는 것(師能莊而不能同. <공자가어> ‘육본’편⑤)을 늘 염려했다. 공자는 기회 있을 때마다 자장에게 군자의 자질을 가진 자일수록 더욱 자신을 성찰하고 쉼 없이 인격을 도야하지 않으면 안 된다고 타일렀다."
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 915,
+    "w": 600,
+    "content": "3. 군자와 리더\n자장이 스승에게 주로 던진 질문은 리더의 덕목에 관한 것이었다. 성실&#183;충성&#183;청렴&#183;능력이었다. 자장은 이 중에서 한 가지만 가져도 훌륭한 리더가 될 수 있지 않을까 여겼다. 젊은 자장은 자신의 빠른 머리를 이용해 당장 세상에서 써먹을 수 있는 지식과 요령을 습득하는 것이 효율적인 공부라고 여기는 듯했다. 그러나 그것은 지름길을 찾는 것이지 성실한 공부와는 거리가 멀었다.\n“자질이 이미 훌륭한데 굳이 옛 성현의 가르침을 배울 필요가 있습니까?”\n“굳이 나쁜 짓에 물들지는 않겠지만, 격이 높은 사람으로 성장하기는 어렵지 않겠니?”(子張問善人之道 子曰 不踐迹 亦不入於室.‘선진’편 19장⑥)\n소년 제자와 노인 스승의 문답은 종종 이런 식이었다. 자질이 좋으면 충분하지 않습니까? 아무리 자질이 훌륭해도 선인지도(善人之道)를 배워서 갈고닦지 않으면 진정한 발전을 이룰 수 없는 법이란다.\n“지도자의 명석함이란 무엇을 두고 하는 말입니까?”\n“마치 물이 스며들 듯 은근히 남을 헐뜯는 말과 살을 도려내는 듯한 절박한 하소연이라도 진실을 간파해 그것을 따르지 않는다면 명철할 뿐만 아니라, 멀리 내다볼 줄 아는 사람이라고 할 수 있다.”(‘안연’편 6장⑦)\n사야, 훌륭한 리더는 잘 들을 줄 아는 사람이다. 교묘하게 남을 중상모략하는 말에 말려들지 않아야 한다. 험담에 치우쳐 사람을 잘못 판단하는 것은 리더의 중대한 실책이다. 또한 울며불며 매달리는 호소가 아무리 절절해도 그 안의 진실만큼은 이성적으로 판단할 수 있어야 ‘좋은 귀’를 가졌다고 말할 수 있다.\n공자가 리더의 덕목에 앞서 군자의 덕목을 누차 강조하자, 자장은 총체적인 덕목으로서 인(仁)에 대해 물었다.\n“선생님께서 말씀하시는 그 인이란 무엇입니까?”\n“다음의 다섯 가지를 세상에 실현시킨다면 인이라고 할 수 있다.”\n“무엇입니까?”\n“공손함&#183;너그러움&#183;신의&#183;민첩함&#183;은혜로움이다. 공손하면 남이 업신여기지 못하고, 너그러우면 대중을 얻고, 신의가 있으면 사람들이 의지하고, 민첩하면 업적을 쌓고, 은혜로우면 아랫사람이 자발적으로 따른다는 것이다.(恭寬信敏惠. 恭則不侮, 寬則得衆, 信則人任焉, 敏則有功, 惠則足以使人.‘양화’편 6장⑧)\n4. 오미(五美)와 사악(四惡）\n어느 날 자장은 스승에게 단독으로 가르침을 받을 기회를 잡았다. 이때 공자는 고희를 넘긴 뒤였으니, 자장이 스물서너 살 무렵이었다. 자장은 나를 따로 불러 큰 허리띠 하나를 내놓으며 부탁했다.\n“이생. 오늘은 내 곁에서 선생님의 가르침을 한 자도 빠뜨리지 말고 적어주시구려.”\n자장은 일찍이 자기 허리띠에 선생님의 말씀을 직접 기록한 적이 있었다. 자장이 이때의 감동을 기념하고, 그때처럼 가르침을 잊지 않기 위해 특별히 별도의 비단 허리띠를 준비한 것이다.\n자장은 언젠가 공자에게 사람이 출세해 뜻을 펼칠 수 있는 길에 대해 묻자 공자께서 가르침을 주셨다. “말을 성실하고 신의 있게 하고, 행동을 돈독히 하고 공손하게 하면 비록 야만의 나라에서도 뜻을 펼칠 수 있다. 그러나 말과 행동이 그렇지 못하면 자기 마을에서조차 뜻을 펼칠 수 없다. 서 있을 때나 수레를 탔을 때나 성실&#183;신의&#183;돈독&#183;공손, 이 네 단어가 항상 눈앞에 어른거릴 정도가 되어야 비로소 뜻을 펼칠 수 있다.” 자장이 잊어버릴까 두려워 급히 자기 허리띠에 말씀을 기록했다.(‘위령공’편 5장, <사기> ‘공자세가’⑨)\n“선생님, 저는 벼슬도 벼슬이지만, 무엇보다 인간적으로 훌륭한 지도자라는 평판을 얻고 싶습니다.”\n자장은 어떻게 해야 좋은 리더가 될 수 있는지 알고 싶었다. 공자가 자장을 가까이 불러 말했다.\n“사야, 지금 내가 말하는 다섯 가지 미덕을 진심으로 실천하고, 네 가지 악덕을 멀리한다면 좋은 지도자가 될 수 있다. 할 수 있겠느냐?”\n“최선을 다해 가르침을 받아 평생토록 잊지 않고 간직하겠습니다.”\n“다섯 가지 미덕이란 첫째, 사람들에게 은혜를 베풀되 낭비함이 없어야 한다. 둘째, 사람들에게 일을 시키면서 원망을 사는 일이 없어야 한다. 셋째, 마땅히 목표 실현을 추구하되 개인적인 탐욕을 부려서는 안 된다. 넷째, 어떤 상황에서도 태연함을 잃지 않되 교만하면 안 된다. 다섯째, 위엄있되 사납지 않아야 한다.”（子曰 君子 惠而不費 勞而不怨 欲而不貪 泰而不驕 威而不猛.）\n자장의 표정이 심각해졌다. “선생님. 참으로 쉬운 일이란 없는 것 같습니다. 하나씩 풀어서 설명해주십시오. 은혜를 베풀되 낭비함이 없어야 한다는 것은 무슨 뜻입니까?”\n“사야, 생각해보아라. 먼저 사람들이 진실로 원하는 것이 무엇인지 잘 파악해 그것을 이뤄주는데 힘을 집중하면 낭비가 없는 것이 아니겠느냐? 은혜를 베풂에 있어 사람들이 은혜의 참뜻을 모른다면, 그것은 그 사람의 잘못이 아니라 지도자가 은혜를 베푸는 방법을 잘 모르기 때문이다.”\n“일을 시키면서 원망을 사지 않기란 쉽지 않습니다. 어찌해야 합니까?”\n“꼭 필요한 일을 필요한 시기에 하도록 지시하고 일을 배치하면 누가 그것을 원망하겠느냐?”\n“목표 달성을 독려하는 것이 자기 욕망을 위해 다른 사람들을 동원하는 것처럼 비치지는 않겠습니까?”\n“누가 보더라도 리더로서 해야 할 마땅한 목표를 제시하고 그것을 합당한 방법으로 추구해 실현한다면 그것이 어찌 개인적인 탐욕으로 폄하되겠느냐?”\n“어떻게 해야 태연하면서도 교만하지 않은 것입니까?”\n“중대하다 해서 신중하고, 사소하다 해서 자만하는 모습이어선 안 된다. 군자는 보는 사람이 많든 적든, 맡은 일이 크든 작든 한결같이 성실해야 한다. 이것을 태연하면서도 교만스럽지 않다고 하는 것이다.”\n“위엄이 넘치면서도 사납지 않으려면 어찌해야 합니까?”\n“군자는 늘 용모를 단정히 하고, 표정은 밝은 가운데 진지함을 잃지 않아야 한다. 사람들은 지도자의 당당하고 의연함을 보고 스스로 조심하는 것이다. 이것이 바로 위엄이 넘치면서도 사납지 않은 모습이 아니겠느냐?”"
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 2119,
+    "w": 600,
+    "content": "자장은 내가 잘 기록하는지 돌아보고 다시 공자에게 물었다.\n“선생님, 감사합니다. 그러면 지도자가 물리쳐야 할 네 가지 악덕에 대해 말씀해주십시오.”\n“사야, 잘 듣거라. 군자가 남을 부리고 이끄는 위치에 있을 때 해서는 안 될 행동은 다음과 같으니라.\n첫째, 일을 제대로 가르쳐주지 않은 채, 엄벌하는 것이다. 이를 리더의 잔학(虐)이라 한다. 오만하고 관용이 부족해 아랫사람을 잔인하게 다루는 자이다.\n둘째, 일을 실행함에 있어 경계할 점을 미리 일러주지 않고 성공만 요구하는 것이다. 이를 리더의 횡포(暴)라 한다. 일의 핵심은 전수해주지 않으면서 잘못한 책임을 아랫사람에게 돌리는 부류이다.\n셋째, 지시는 늦게 하고 일의 달성은 사납게 독촉하는 것이다. 이것을 리더의 도둑질(賊)이라 한다. 일이 안 되면 책임을 뒤집어씌우고, 다행히 결과가 좋으면 자기의 공으로 삼으니 도적이나 다름없다.\n넷째, 마땅히 주어야 할 것을 놓고 온갖 생색을 내며 주는 것이다. 이런 자는 리더가 아니라 창고지기(유사有司)에 불과하다. 마치 자신이 포상을 사적으로 베푸는 것인 양 인색하게 굴고, 줄 때에도 줄 듯 말 듯하면서 아랫사람의 마음을 시험하며 공(公)으로 사(私)를 확인하려 드는 자이니, 그 그릇의 크기가 소소한 소모품 창고열쇠를 흔들며 으스대는 자의 크기에 지나지 않는다.”(子曰 不敎而殺 謂之虐 不戒視成 謂之暴 慢令致期 謂之賊 猶之與人也 出納之吝 謂之有司. 이상 ‘요왈’편 2장⑩)"
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 2431,
+    "w": 600,
+    "content": "5. 명성과 통달\n자장은 감격했다.‘아, 오미(五美)와 사악(四惡)이야말로 벼슬하려는 군자가 반드시 새겨야 할 가르침이 아닌가!’ 자장이 다시 공자에게 물었다.\n“세월이 흘러도 이 말씀의 취지는 변하지 않을 것 같습니다. 수백 년 후의 사회규범이나 도덕이 어떻게 변할지 미리 알 수 있습니까?”\n“미래는 현재의 연장선에 있는 것이므로 과거 역사를 살펴보면 미래의 모습도 짐작할 수 있겠지. 은나라는 하나라의 규범과 도덕을 기초로 변화를 겪었고, 주나라는 은나라의 것을 더욱 진보시켰다. 물론 그 과정에서 더하기도 하고 빼기도 했지만, 뼈대는 변하지 않았다. 이런 사실로 미루어 보면, 수천 년 후의 사회라도 그 규범과 도덕의 큰 줄기는 알 수 있는 것이다.”(‘위정’편 23장⑪)\n공자는 자장의 공부가 일취월장하는 것을 기특하게 여기면서도 자존의식이 강한 그가 자칫 허명을 추구하지 않을까 염려했다. 아니나 다를까, 자장은 공부에 자신감이 붙었는지 세상사에 통달한 경지가 궁금해졌다. 통달한 선비야말로 자신이 도달하고 이뤄야 할 성공모델처럼 여겨졌다. 스물다섯 살 자장이 일흔셋의 공자에게 물었다.\n“선비가 되어 어떤 경지를 통달이라고 할 수 있습니까?”\n공자가 되물었다. “네가 말하는 ‘통달’이란 무엇을 말하느냐?”\n“온 나라 집집마다 자신의 이름이 알려지는 것입니다.”\n“그것은 명성을 얻은 것이지, 통달한 것이 아니다. 무릇 통달했다는 것은 마음이 질박하며 곧고, 정의를 사랑하며, 남의 말을 자세히 듣고 처지를 잘 살피며, 겸손한 자세로 상대방의 입장을 깊이 헤아리는 것이다. 이렇게 하면 사회에서나 집에서나 모든 일에 막힘이 없어 이를 통달했다고 하는 것이다. 이에 비하면 명성이란 겉으로만 인(仁)하고 실제로는 그렇게 행동하지 않아도 얻을 수 있는 수준의 것이다.”(夫達也者 質直而好義 察言而觀色 慮以下人 在邦必達 在家必達．夫聞也者 色取仁而行違 居之不疑 在邦必聞 在家必聞.‘안연’편 20장⑫)\n사야, 너는 명성을 원하는 것이냐? 통달을 원하는 것이냐?\n6. 종(終)과 사(死)\n자장은 일평생 자신이 군자를 지향하는 선비라는 사실에 무한한 자부심을 가졌다. 만약 붓을 든 선비가 되지 않았다면 검을 든 협객이 되어 강호의 정의를 추구할 사람이었다. 훗날 자장의 유파가 공자 학파 중 가장 의협의 성격이 짙었던 것도 자장이란 사람의 개인 성향과 결코 무관하지 않았으리라.\n“선비는 정의를 위해 목숨을 바치고, 재물을 얻을 때는 정당한 것인지를 먼저 생각한다. 제사 지낼 때는 정성을 다하고, 상을 당했을 때는 진심으로 슬퍼한다. 이 네 가지를 실천한다면 선비의 자격이 있다.”(子張曰 士見危致命 見得思義 祭思敬 喪思哀 其可已矣.‘자장’편 1장⑬)\n훗날 자장이 스스로 정의한 선비상(像)이었다.\n그의 이런 넘치는 자부심은 한편으로 내면의 성찰보다 외면의 수식에 치중하는 사람으로 보이게 만들었다. 남의 시선이나 평가에 민감하다는 평을 들었던 것은 사람들이 그를 어떻게 이해했는지를 보여주는 일면이다. 그는 죽을 때 자신이 군자로 죽는다는 사실을 자신뿐 아니라 남들도 알아주기 원했다.‘자장, 그 친구는 적어도 허명을 쫓지는 않았어…’\n만년의 선생님께서 죽음을 예감하시고 남긴 말씀을 자장은 평생토록 가슴에 간직했다. “군자는 세상을 떠나는 그 날까지 이름을 남기지 못할 것을 걱정한다.”(君子疾沒世而名不稱焉. ‘위령공’편 19장⑭)\n훗날 자장이 임종에 이르러 아들에게 한 말이 중원에 회자되었다.\n“옛말에 군자의 죽음을 종(終)이라 하고 소인의 죽음을 사(死)라고 한다지?”\n“나는 오늘에야 겨우 종(終)의 경지에 가까워진 것일까….” (君子曰終 小人曰死. 吾今日其庶幾乎. <예기> ‘단궁’편⑮)\n소인은 몸이 죽으면 존재도 잊혀지지만 무릇 군자는 이름을 남기는 자이니, 육신의 죽음은 사업(命)을 마치고 가는 것일 뿐, 존재(名)의 소멸은 아니어야 한다….\n아름다운 이름을 후세에 드리우고 싶은 바람은 자장뿐 아니라 무릇 군자라면 모두 죽는 그 순간까지 마땅히 간구하는 바이다.\n“선생님, 저의 죽음은 종(終)입니까?”\n“아, 부디 그렇다고 말씀해주십시오….”"
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 3335,
+    "w": 600,
+    "content": "子張問政 子曰 居之無倦 行之以忠.\n훌륭한 리더가 되고 싶은가? 그렇다면 명심하라. 이상의 모든 말을 합쳐도 성실만한 것이 없다.\n자장이 다스림에 대해 묻자 선생님께서 말씀하셨다.\n늘 정도(正道)를 생각하며, 맡은 바 일에 진심으로 최선을 다하라.(‘안연’편 14장<16>)"
+  },
+  {
+    "type": "text",
+    "x": 65,
+    "y": 3447,
+    "w": 600,
+    "content": "<원문 보기>\n*<논어명장면>은 소설 형식을 취하다 보니 글쓴 이의 상상력이 불가피하게 개입되었다. 역사적 상상력을 통해 논어를 새롭게 해석해보자는 글쓴 이의 취지를 살리면서 동시에 독자들의 주체적이고 다양한 해석을 돕기 위해 원문을 글 말미에 소개한다. 소설 이상의 깊이 있는 논어읽기를 원하시는 분들에게 도움이 되기를 바란다.\n**<논어> 원문의 한글 번역은 <논어집주>(성백효 역주, 전통문화연구회 편)와 <안티쿠스 클래식6-논어>(한필훈 옮김)를 나란히 싣는다. 각각 신구 번역문의 좋은 사례로 생각되어서이다. 표기는 집(논어집주)과 한(한필훈 논어)으로 한다. 이와 다른 해석을 실을 때는 별도로 출처를 밝힐 것이다.\n***<논어>는 편명만 표시하고, 그 외의 문헌은 책명을 밝혔다.\n① 위정편 18장\n子張 學干祿.子曰 多聞闕疑 愼言其餘則寡尤 多見闕殆 愼行其餘則寡悔 言寡尤 行寡悔 祿在其中矣.\n집-자장이 녹을 구하는 방법을 배우려고 하였다. 공자께서 말씀하셨다. “많이 듣고서 의심나는 것을 빼버리고 그 나머지를 삼가서 말하면 허물이 적어지며, 많이 보고서 위태로운 것을 빼버리고 그 나머지를 삼사서 행하면 후회하는 일이 적어질 것이니, 말에 허물이 적으며 행실에 후회할 일이 적으면 녹이 그 가운데에 있는 것이다.”\n한-제자 자장이 공자에게 말하였다. “관직에 오르는 법을 배우고 싶습니다.” “많이 듣되 그 가운데 의심스러운 것은 빼고 자신 있는 것만 신중하게 말하라. 그러면 과오가 적을 것이다. 또 많이 보되 그 가운데 마음에 불안한 것은 버리고 확실한 것만 신중하게 행동으로 옮겨라. 그러면 뉘우칠 일이 적을 것이다. 이같이 말로 과오를 저지르지 않고 후회할 행동을 하지 않으면 관직은 자연히 따라오는 것이다.”\n② <공자가어>(임동석 역주) ‘제자행’편\n美功不伐 貴位不善 不侮不佚 不傲無告 是전(오로지 전)孫師之行也. 孔子言之曰 其不伐 則猶可能也 其不弊百姓 則仁也. <詩>云 愷悌君子 民之父母 夫子以其仁爲大學之深.\n아름다운 공로가 있어도 자랑하지 아니하며, 귀한 지위를 가졌어도 잘한다 여기지 않으며, 남을 업신여기지도 않고, 안일에 빠지지도 않으면서 어디 고할 데 없는 이들에게 거만히 굴지 않는 자는 바로 전손사의 행동입니다. 이에 대하여 선생님께서는 ‘그 공로를 자랑하지 않는 것은 그럴 수 있다 해도 그 백성들에게 폐단이 없게 하는 것은 어짊이다. <시>에 아름다운 군자시여, 백성의 부모로다 하였으니, 그 어짊은 대학의 깊은 뜻이로다’라고 하셨습니다.\n③ 자장편 15장\n子游曰 吾友張也 爲難能也 然而未仁.\n집-자유가 말하였다. “나의 벗 자장은 어려운 일을 잘하나, 그러나 인하지는 못하다.”\n한-자유가 말하였다. “내 친구 자장은 어려운 일도 잘 해내지만 마음이 인자하지는 않다.”\n④ 자장편 16장\n曾子曰 堂堂乎 張也 難與竝爲仁矣.\n집-증자가 말씀하셨다. “당당하구나 자장이여! 그러나 함께 인을 하기는 어렵다.”\n한-증자가 말하였다. “자장은 위풍당당하지만 그와 더불어 인을 실천하기는 어렵다.”\n⑤ <공자가어> ‘육본’편\n子夏曰 子張之爲人奚若 子曰 師之莊賢於丘. (…)師能莊而不能同.\n자하가 공자에게 (여러 제자들의 장단점을 물으며 자장에 대해서도) 여쭈었다. “자장의 사람됨은 어떠합니까?” 선생님께서 말씀하셨다. “사의 장엄함은 나보다 낫다.(…) 자장은 장엄하지만 남과 동화할 줄 모른다.”\n⑥ 선진편 19장\n子張問善人之道 子曰 不踐迹 亦不入於室.\n집-자장이 선인의 도를 묻자, 공자께서 말씀하셨다. “성인의 자취를 밟지 않더라도 (악한 일을 하지 않지만) 또한 방(성인의 경지)까지는 들어가지 못한다.”\n한-자장이 공자에게 물었다. “타고난 성품이 착하지만 옛 성현의 가르침을 배우지 않는 사람은 어떻습니까?”“그런 사람은 나쁜 짓은 하지 않겠지만, 성인의 경지에 들기는 어렵다.”\n⑦ 안연편 6장\n子張問明 子曰 浸潤之참(참소할 참) 膚受之소(하소연할 소) 不行焉 可謂明也已矣. 浸潤之참(참소할 참) 膚受之소(하소연할 소) 不行焉 可謂遠也已矣.\n집-자장이 밝음을 묻자, 공자께서 말씀하셨다. “서서히 무젖어드는 참소와 피부로 받는 하소연이 행해지지 않는다면 밝다고 이를 만하다. 서서히 무젖어드는 참소와 피부로 받는 하소연이 행해지지 않는다면 멀다고 이를 만하다.”\n한-자장이 공자에게 물었다. “명철함이란 어떤 것입니까?”“마치 물이 스며들 듯 은근히 남을 헐뜯는 말과 살을 도려내는 듯 절박한 하소연이라도 진실을 간파하여 그것을 따르지 않는다면, 명철할 뿐만 아니라 멀리 내다보는 사람이라고 할 수 있다.”\n⑧ 양화편 6장\n子張問仁於孔子 孔子曰 能行五者於天下爲仁也. 請問之 曰 恭寬信敏惠. 恭則不侮, 寬則得衆, 信則人任焉, 敏則有功, 惠則足以使人.\n집-자장이 공자에게 인을 여쭙자, 공자께서 말씀하셨다. “능히 다섯 가지를 천하에 행할 수 있으면 인이 된다.”하셨다. 자장이 가르쳐 주시기를 청하니, 말씀하시기를 “공손함, 너그러움, 믿음, 민첩함, 은혜로움이니, 공손하면 업신여김을 받지 않고, 너그러우면 뭇사람들을 얻게 되고, 믿음이 있으면 남들이 의지하게 되고, 민첩하면 공이 있게 되고, 은혜로우면 충분히 남들을 부릴 수 있게 된다.”하셨다.\n한-자장이 공자에게 물었다. “인이란 무엇입니까?” “다섯 가지를 세상에 실현시킨다면 인이라고 할 수 있다.”“그 다섯 가지가 무엇입니까?”“공손함, 너그러움, 신의, 민첩함, 은혜로움이다. 공손하면 남이 업신여기지 못하고, 너그러우면 대중이 따르고, 신의가 있으면 사람들이 의지하고, 민첩하면 공을 이루고, 은혜로우면 아랫사람을 부릴 수 있다.”\n⑨ 위령공편 5장\n子張問行 子曰 言忠信 行篤敬 雖蠻貊之邦 行矣. 言不忠信 行不篤敬 雖州里 行乎哉. 立則見其參於前也 在輿則見其倚於衡也 夫然後行. 子張書諸紳.\n집-자장이 행해짐을 묻자, 공자께서 말씀하셨다. “말이 충신하고 행실이 돈후하고 공경하면 비록 오랑캐의 나라라 하더라도 행해질 수 있거니와 말이 충신하지 못하고 행실이 독경하지 못하면 주리라 하더라도 행해질 수 있겠는가? 일어서면 그것이 앞에 참여함을 볼 수 있고, 수레에 있으면 그것이 멍에에 기댐을 볼 수 있어야 하니, 이와 같은 뒤에야 행해질 수 있는 것이다.”자장이 이 말씀을 띠에 썼다.\n한-자장이 공자에게 물었다.“어떻게 하면 뜻을 펼칠 수 있습니까?”“말을 성실하고 신의 있게 하고 행동을 돈독하고 공손하게 하면, 비록 야만의 나라에서도 뜻을 펼칠 수 있다. 그러나 말과 행동이 그렇지 못하면 자기 마을에서조차 뜻을 펼칠 수가 없다. 서 있을 때나 수레를 탔을때나 성실, 신의, 돈독, 공손 네 단어가 항상 눈 앞에 어른거릴 정도가 되어야 비로소 뜻을 펼칠 수 있는 것이다.” 자장은 이 말을 큰 띠에 기록해 두었다.\n*<사기> 공자세가에도 같은 내용이 있다.\n⑩ 요왈편 2장\n子張問於孔子曰何如 斯可以從政矣. 子曰 尊五美屛四惡 斯可以從政矣. 子張曰何謂五美. 子曰 君子 惠而不費 勞而不怨 欲而不貪 泰而不驕 威而不猛. 子張曰何謂惠而不費. 子曰 因民之所利而利之 斯不亦惠而不費乎. 擇可勞而勞之 又誰怨 欲仁而得仁 又焉貪. 君子 無衆寡 無小大 無敢慢 斯不亦泰而不驕乎. 君子 正其衣冠 尊其瞻視 儼然人望而畏之 斯不亦威而不猛乎. 子張曰何謂四惡. 子曰 不敎而殺 謂之虐 不戒視成 謂之暴 慢令致期 謂之賊 猶之與人也 出納之吝 謂之有司.\n집-자장이 공자께 묻기를 “어떠하여야 정사에 종사할 수 있습니까?”하니, 공자께서“오미를 높이고 사악을 물리치면 이 정사에 종사할 수 있다.”하고 대답하셨다. 자장이 “무엇을 오미라 합니까?”하고 묻자, 공자께서는 “군자는 은혜롭되 허비하지 않으며, 수고롭게 하되 원망을 받지 않으며, 하고자 하면서도 탐하지 않으며, 태연하면서도 교만하지 않으며, 위엄스러우면서도 사납지 않은 것이다.”하고 대답하셨다. 자장이 “무엇을 은혜롭되 허비하지 않는 것이라 합니까?”하고 묻자, 공자께서는 “백성들이 이롭게 여기는 것을 인하여 이롭게 해주니, 이 은혜롭되 허비하지 않는 것이 아니겠는가. 수고롭게 할 만한 일을 선택하여 수고롭게 하니, 또 누가 원망하겠는가. 인을 하고자 하여 인을 얻으니 또 무엇을 탐하겠는가. 군자는 많거나 적거나 크거나 작거나에 관계없이 감히 교만함이 없으니, 이 태연하면서도 교만하지 않은 것이 아니겠는가. 군자는 의관을 바르게 하며 첨시(봄)를 존엄히 하여 엄숙해서 사람들이 바라보고 스스로 두려워하니, 이 위엄스러우면서도 사납지 않은 것이 아니겠는가.”하고 대답하셨다.\n자장이 “무엇을 사악이라고 합니까?”하고 묻자, 공자께서는 다음과 같이 대답하셨다. “(미리)가르치지 않고 죽이는 것을 학이라 하고, 미리 경계하지 않고 성공을 책하는 것을 폭이라 하고, 명령을 태만히 하고 기일을 각박히 하는 것을 적이라 하고, 똑같이 남에게 주면서도 출납할 때에 인색하게 하는 것을 유사라고 한다.”\n한-자장이 공자에게 물었다.“어떻게 해야 정치에 종사할 수 있습니까?”“다섯 가지 미덕을 존중하고, 네 가지 악덕을 물리칠 수 있다면 정치할 자격이 있다.”“다섯가지 미덕이란 무엇입니까?”“다음과 같은 것을 말한다. 첫째, 백성들에게 은혜를 베풀지만 낭비하지 않는 것. 둘째, 백성들에게 일을 시키지만 원망을 사지 않는 것. 셋째, 포부를 실현하고자 하지만 탐욕을 부리지 않는 것. 넷째, 태연하지만 교만하지 않은 것. 다섯째, 위엄이 있지만 사납지 않은 것이다.”“그 다섯 가지에 대해 좀더 자세히 말씀해 주십시오.”“첫째, 백성들이 진실로 원하는 것을 잘 파악해서 그 일에 힘을 쏟는 것이 곧 은혜를 베풀지만 낭비하지 않는 것 아니겠는가? 둘째, 곡 필요한 일을 가지고 시기를 잘 선택해서 백성들을 동원하면 누가 원망하겠는가? 셋째, 올바른 정치를 펴고자 하는 포부를 가지고 그것을 실현시킨다면, 탐욕스러울 리가 있겠는가? 넷째,군자는 사람이 많든 적든, 일이 크든 작든 한결같이 성실하게 임한다. 이것이 태연하지만 교만하지 않은 것 아니겠는가? 다서째, 군자는 용모를 단정히 하고 엄숙한 표정을 지으므로 사람들이 그 의젓한 모습을 보고 긴장하게 된다. 이것이 바로 위엄이 있지만 사납지 않은 것 아니겠는가?”\n자장이 다시 물었다. “그려면 네 가지 악덕이란 무엇입니까?”“첫째, 백성들을 교화시키지도 않고 엄한 벌로 다스리는 것인데 이것을 ‘잔악함’이라고 한다. 둘째, 미리 주의시키지 않고 결과만을 가지고 따지는 것인데, 이것을 ‘횡포’라고 한다. 셋째, 명령은 늦게 전달하고 일의 기한을 독촉하는 것인데 이것을 ‘도적’이라고 한다. 넷째, 마땅히 주어야 할 것을 놓고 인색하게 구는 것인데 이것을 ‘창고지기’라고 한다.”\n⑪ 위정편 23장\n子張問十世可知也. 子曰 殷因於夏禮所損益可知也 周因於殷禮所損益可知也. 其或繼周者 雖百世可知也.\n집-자장이 “열 왕조 뒤의 일을 미리 알 수 있습니까?”하고 묻자, 공자께서 말씀하셨다. “은나라는 하나라의 예를 인습하였으니, 손익(가감)한 것을 알 수 있으며, 주나라는 은나라의 예를 인습하였으니, 손익한 것을 알 수 있다. 혹시라도 주나라를 잇는 자가 있다면 비록 백세 뒤라도 알 수 있을 것이다.”\n한-제자 자장이 공자에게 물었다. “앞으로 수백 년 후에 사회 규범이나 도덕이 어떻게 바뀔지 미리 알 수 있을까요?”“미래는 현재의 연장선에 있는 것이므로 과거 역사를 살펴보면 미래의 모습도 짐작할 수 있겠지. 은나라는 하나라의 규범과 도덕을 기초로 하였지만 변화를 겪었고, 주나라는 은나라의것을 바탕으로 하여 더욱 진보시켰다. 물론 그 과정에서 늘이기도 하고 줄이기도 하였지만, 뼈대는 변하지 않았다. 이런 사실로 미루어 보면, 수천년 후의 일이라도 사회 규범과 도덕의 큰 줄기는 알 수 있을 것이다.”\n⑫ 안연편 20장\n子張問 士何如斯可謂之達矣. 子曰 何哉 爾所謂達者. 子張對曰 在邦必聞 在家必聞. 子曰 是聞也非達也. 夫達也者 質直而好義 察言而觀色 慮以下人 在邦必達 在家必達．夫聞也者 色取仁而行違 居之不疑 在邦必聞 在家必聞.\n집-자장이 물었다. “선비가 어떠하여야 이 달이라고 이를 수 있습니까?”공자께서 말씀하셨다. “무엇인가? 네가 말하는 달이란 것이.”\n자장이 대답하였다. “나라에 있어도 반드시 소문이 나며, 집안에 있어도 반드시 소문이 나는 것입니다.”공자께서 말씀하셨다.“이것은 문이지 달이 아니다. 달이란 질박하며 정직하고 의를 좋아하며,남의 말을 살피고 얼굴빛을 관찰하며 생각해서 몸을 낮추는 것이니, 나라에 있어서도 반드시 달이 되며, 집안에 있어서도 반드시 달이 되는 것이다. 문이란 얼굴빛은 인을 취하나 행실은 실제 위배되며 그대로 머물면서 의심하지 않는 것이니, 나라에 있어서도 반드시 소문이 나며, 집안에 있어서도 반드시 소문이 난다.”\n한-자장이 공자에게 물었다. “선비로서 어떻게 해야 통달했다고 할 수 있습니까?”공자가 되물었다. “네가 말하는 통달이 무슨 뜻이냐?”“온 나라에 집집마다 이름이 알려지는 것을 말합니다.” “그것은 명성을 얻은 것이지 통달한 것은 아니다. 통달했다는 것은 마음이 진실하고 곧아 정의를 사랑하며, 남의 말을 자세히 듣고 표정을 잘 살펴 그 사람의 입장을 깊이 생각하는 것이다. 이렇게 하며 사회 생활이건 가정 생활이건 모든 일이 막힘 없이 풀려 나가므로 통달했다고 하는 것이다. 그런데 명성이란 겉으로만 도덕적인 체할뿐 실제 행실은 딴판이어도 얻으 수 있는 것이다. 스스로 옳다고 믿어 끝까지 태연자약하면 사람들이 속아 넘어가 온 나라에 헛된 명성을 떨칠 수도 있다.”\n⑬ 자장편 1장\n子張曰 士見危致命 見得思義 祭思敬 喪思哀 其可已矣.\n집-자장이 말하였다. “선비가 위태로움을 보고 목숨을 바치며, 이득을 보고 의를 생각하며, 제사에 공경함을 생각하며, 상사에 슬픔을 생각한다면 괜찮다.”\n한-자장이 말하였다. “선비는 정의를 위하여 목숨을 바치고, 재물을 얻을 때는 정당한 것인지를 먼저 생각한다. 제사 지낼 때는 정성을 다하고, 상을 당했을 때는 진심으로 슬퍼한다. 이 네 가지를 실천한다면 선비 자격이 있다.”\n⑭ 위령공편 19장\n子曰 君子疾沒世而名不稱焉.\n집-공자께서 말씀하셨다. “군자는 종신토록 이름이 일컬어지지 못함을 싫어한다.”\n한-공자가 말하였다. “군자는 죽은 뒤에 이름이 남지 않을까 걱정한다.”\n⑮ <예기>(지재희 해역) ‘단궁 상’편\n子張病 召申祥而語之曰 君子曰終 小人曰死. 吾今日其庶幾乎.\n자장이 병이 들어 아들인 신상을 불러 말하였다. “군자는 마친다 하고, 소인은 죽는다고 하는데, 내가 오늘에야 거의 가깝게 된 것 같구나.”\n<16> 안연편 14장\n子張問政 子曰 居之無倦 行之以忠.\n집-자장이 정사를 묻자, 공자께서 말씀하셨다. “마음을 두기를 게으름이 없음으로써 하며, 행하기를 충으로써 해야 한다.”\n한-자장이 공자에게 물었다. “올바른 정치를 하려면 어떻게 해야 합니까?”“늘 올바른 정치에 대해 생각하고, 맡은 일을 성실히 하면 되는 것이다.”\n원본 위치 <<a href=\"http://well.hani.co.kr/414315\">http://well.hani.co.kr/414315</a>>"
+  }
+];
+const CONTENT_HASH = 'fecc3410';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>

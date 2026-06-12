@@ -6,121 +6,374 @@
 <title>당 관리</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  padding: 0 0 80px;
-}
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
 a { color: #6cb0f6; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.toolbar {
-  position: sticky; top: 0; z-index: 100;
-  background: #161b22; border-bottom: 1px solid #30363d;
-  padding: 8px 24px; display: flex; gap: 10px; align-items: center;
-}
-.toolbar .t-title { font-size: 16px; font-weight: bold; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar .t-date { color: #8b949e; font-size: 12px; white-space: nowrap; }
-.toolbar button { background: #21262d; border: 1px solid #30363d; color: #ccc; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.toolbar button:hover { background: #30363d; color: #fff; }
-.toolbar .t-status { color: #8b949e; font-size: 11px; white-space: nowrap; }
-.doc { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
-.block { margin-bottom: 10px; }
-.block-text {
-  outline: none;
-  padding: 5px 8px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 1.5em;
-}
-.block-text:focus { background: rgba(255,255,255,0.04); }
-.block-text:empty::before { content: '텍스트 입력...'; color: #555; pointer-events: none; }
-.block-image img { max-width: 100%; border-radius: 6px; display: block; }
-.block-image .caption { font-size: 12px; color: #888; margin-top: 4px; }
-.block-table .table-wrap { overflow-x: auto; }
-.block-table table { border-collapse: collapse; font-size: 13px; }
-.block-table td, .block-table th { border: 1px solid #444; padding: 5px 10px; vertical-align: top; cursor: text; }
-.block-table th { background: #2a2a3a; color: #ccc; }
-.block-table td[contenteditable="true"], .block-table th[contenteditable="true"] { outline: 2px solid #388bfd; background: rgba(56,139,253,0.08); }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
 </style>
 </head>
 <body>
-<div class="toolbar">
-  <span class="t-title">당 관리</span>
-  
-  <button onclick="save()">저장</button>
-  <button id="copyBtn" onclick="copyPath()">⎘ 주소 복사</button>
-  <span class="t-status" id="status"></span>
-  <span style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:8px;">
-    <button onclick="zoomOut()" title="Ctrl+-">−</button>
-    <span id="zoom-level" style="font-size:11px;color:#8b949e;min-width:32px;text-align:center;">100%</span>
-    <button onclick="zoomIn()" title="Ctrl+=">+</button>
-  </span>
+<div class="title-bar" contenteditable="true">당 관리</div>
+<div class="date"></div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
 </div>
-<div class="doc" id="doc">
-<div class="block block-text" data-idx="0" contenteditable="true">당 관리<br>		<br>		<br>	<br>	<br>		<br>			<br>검사에서 수축기 혈압 130mmHg 이상 혹은 이완기 혈압 85mmig<br>			<br>이상, 공복혈당 100mg/dL 이상, 당화혈색소 5.7퍼센트 이상, 공복 인술린 U/mL 이상25.26, 중성지방 150mg/dL 이상, LDL콜레스테롤 130mg/에L 이상, HDL콜레스테롤 40mg/dL(남성), 50mg/L(여성)<br>			<br>이하, 요산 6.0mg/dL(남성), 4.5mg/dL(여성) 이상27, ALT(간기능검사)<br>			<br>38U/L남성), 20U/L(여성) 이상2이면 인술린 저항성이 이미 생졌거나<br>			<br>앞으로 인술린 저항성이 생길 가능성이 아주 높다.<br>			<br><br>			<br>첫 번째가 앞에서 말한 신바이오틱스(프로바이오틱스+프리바이오틱스)다.장내미생물의 불균형도 비만의 원인 중 하나이기 때문이다. 식이섬유. 올리고을많이 섭춰하는 것도 중요하지만 프로바이오틱스나 신바이오틱스 형태로 섭춰하는 것도 장내 환경을 개선해 인술린 저항성과 지방간에서 벗어나는 데 도움이 될 수 있다. 단, 특정 유산균을 복용해서 체중을 줄이겠다는 무리한 욕심은 내지말자. 건강체중은 총체적으로 접근해야 하지 특정 제품 한 가지로 만들어지지않는다. <br>			<br><br>			<br>그다음은 '종합비타민제'다. 종합비타민제는 비타민과 미네랄이 고루 들어있기 때문에 가성비 면에서 권한다. 특히 비타민8군 함량이 충분한 제품을 추천한다. 비타민B12 원료가 가장 비싸니 비타민B12 함량이 충분하게 들어 있는 제품을 고르는 것도 선택의 기준이 될 수 있다. 활성형 엽산의 함유 여부를 확인해보는 것도 도움이 된다. <br>			<br><br>			<br>그다음 권하는 게 '오메가3지방산'이다. 현대인은 오메가3지방산과 오메가6지방산의 밸런스가깨져서 몸에 염증이 생기고 몸이 망가<br>			<br>지는 경우가 많다. 그래서 오메가3지방산을 따로 영양제 형태로 보충해서 그 벨런스를 맞춰주는 것이 중요하다고 본다. 오메가3지방산을 충분히 섭취하면 중성지방 수치를 낮추거나 렙틴 저항성을 개선하는 데에도 도움이 된다. 체중감량에 도움을 줄 수 있다고 알려진 영양제 중에는 비타민C가 있고. 칼슘과 비타민)가 있다. 칼슘과 비타민D는 합께 먹는 게 좋으며 칼송을 섭취할 때는 마그네송도<br>			<br>합께 섭취하면 종다. 비타민C는 하루 1~39 고용량으로 섭취할 것을 추천한다.<br>			<br><br>			<br>				<br>					허용식품<br>					금기식품<br>				<br>				<br>					단백질 세이크 I 신바이오틱스 혹은 프로바이오틱스 영양제(종함 비타민 , 오메가3지방산 등) I 양파, 마늘, 고추가무, 식초 후추.강황, 허브| 양배추, 무, 당근, 오이, 브로콜리, 파프리카,아보카도, 코코닛오일, 올리브오일, 아보카도오일, 냉압착 들기름 I 녹차.허브티 |플레인요거트(무가당), 두부, 연두부 I 현미잡곡밥 혹은 흰쌀밥반공기|해조류(미역, 다시마, 듯), 버섯류 와사비, 저염간장(약간), 두부쌈장, 김치(평소보다 양을 줄여서) |우유(하루두잔 이하), 짜지 않은 천연치즈, 달갈, 생선, 생선회, 해산물(굴, 조개, 새우, 게, 가재, 오징어, 낙지, 문어), 닭고기(껍질 벗긴속살, 삶은 돼지고기 살코기(수육), 소고기 살코기 샤브샤브 퀴노아,콩류(검은콩, 병아리콩, 완두콩, 렌틸콩 동) I 견과류(한 줍) |블랙커피(오전중한전) 포함된 채소와 단백질(버섯, 두부, 달갈, 닭가슴살. 두부.연어샐러드, 생선, 생선회, 해산물, 수육, 보쌈 살코기, 소고기살코기 샤브샤브) 음식 위주로충분히섭취한다.<br>					<br>1 설탕, 액상과당: 청량음료, 커피믹스, 주스, 과일향 우유, 당분<br>					<br>합량높은두유, 당분이 첨가된 요거트, 과자 , 빵, 케이크, 초콜<br>					<br>릿<br>					<br>2) 트랜스지방: 케이크, 전자레인지용 팝콘, 각종 스낵, 도넛, 튀<br>					<br>김요리등<br>					<br>3)술<br>					<br>4)밀가루음식: 빵, 케이크, 국수, 라면, 파스타, 자장면 등<br>					<br>5) 동물성 포화지방이 상대적으로 많은 음식: 삼겹살, 대창 등</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
 </div>
 <script>
-const SAVE_KEY = 'note-당-관리';
+const SAVE_KEY = 'board-당-관리';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "image",
+    "x": 816,
+    "y": 187,
+    "w": 285,
+    "src": "e6d0fda11a.png",
+    "h": 505,
+    "caption": "류류하중~0 뱃살이 了五~ 나 있다면 결코 인슐린 저항성에서 자유로울 수 없다. 비만과 각&amp; 대사질한이 생기는 건 시간문제다. 대사이상체중(인슐린 저항성)의 임상적 진단기준 “체중증가+ 아래 항목 중 두 가지 이상에 해당 •허리둘레: 남성 90cm 이상, 여성 85cm 이상 •혈압 수축기 혈압 130mmHg 이상 흑은 이완기 혈압 85mmHg 이상 •공복혈당. 100mg/dL 이상 • 당화혈색소: 5.7% 이상 •공복 인슐린: 7ulU/mL 이상 •중성지방: 150mg/dL 이상 • LDL콜레스테롤: 130mg/dL 이상 •HDL콜레스테롤: 남성 40mg/dL 이하, 여성 50mg/dL 이하 •요신t 남성 6.0mg/dL 이상, 여성 4.5mg/dL 이상 •ALT(간기능검사): 남성 28U/니 여성 20U/L 이상 이 기준은 공식적인 대사증후군의 진단기준보다 더 일찍 인슐린 저항성을 발견 하기 위해 필자가 만든 주관적인 기준임을 밝혀둔다. 2부살이 찌는 진짜 이유 ,: 수나 :진(%)르2친편깐§\\;1듬별``i*§寸수*寸夤수쉬`1를:흐§국(§&#39;다`*국1 93"
+  },
+  {
+    "type": "html",
+    "x": 48,
+    "y": 212,
+    "w": 720,
+    "html": "\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">검사에서</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">수축기</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">혈압</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> 130mmHg </span><span style=\"font-family:Pretendard Light;font-size:10pt\">이상</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">혹은</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">이완기</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">혈압</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> 85mmig</span></p>\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">이상</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">공복혈당</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> 100mg/dL </span><span style=\"font-family:Pretendard Light;font-size:10pt\">이상</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">당화혈색소</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> 5.7</span><span style=\"font-family:Pretendard Light;font-size:10pt\">퍼센트</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">이상</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">공복</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">인술린</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> U/mL </span><span style=\"font-family:Pretendard Light;font-size:10pt\">이상</span><span style=\"font-family:Pretendard Light;font-size:10pt\">25.26, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">중성지방</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> 150mg/dL </span><span style=\"font-family:Pretendard Light;font-size:10pt\">이상</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, LDL</span><span style=\"font-family:Pretendard Light;font-size:10pt\">콜레스테롤</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> 130mg/</span><span style=\"font-family:Pretendard Light;font-size:10pt\">에</span><span style=\"font-family:Pretendard Light;font-size:10pt\">L </span><span style=\"font-family:Pretendard Light;font-size:10pt\">이상</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, HDL</span><span style=\"font-family:Pretendard Light;font-size:10pt\">콜레스테롤</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> 40mg/dL(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">남성</span><span style=\"font-family:Pretendard Light;font-size:10pt\">), 50mg/L(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">여성</span><span style=\"font-family:Pretendard Light;font-size:10pt\">)</span></p>\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">이하</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">요산</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> 6.0mg/dL(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">남성</span><span style=\"font-family:Pretendard Light;font-size:10pt\">), 4.5mg/dL(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">여성</span><span style=\"font-family:Pretendard Light;font-size:10pt\">) </span><span style=\"font-family:Pretendard Light;font-size:10pt\">이상</span><span style=\"font-family:Pretendard Light;font-size:10pt\">27, ALT(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">간기능검사</span><span style=\"font-family:Pretendard Light;font-size:10pt\">)</span></p>\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">38U/L</span><span style=\"font-family:Pretendard Light;font-size:10pt\">남성</span><span style=\"font-family:Pretendard Light;font-size:10pt\">), 20U/L(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">여성</span><span style=\"font-family:Pretendard Light;font-size:10pt\">) </span><span style=\"font-family:Pretendard Light;font-size:10pt\">이상</span><span style=\"font-family:Pretendard Light;font-size:10pt\">2</span><span style=\"font-family:Pretendard Light;font-size:10pt\">이면 인술린 저항성이 이미 생졌거나</span></p>\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">앞으로 인술린 저항성이 생길 가능성이 아주 높다</span><span style=\"font-family:Pretendard Light;font-size:10pt\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">첫</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">번째가</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">앞에서</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">말한</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">신바이오틱스</span><span style=\"font-family:Pretendard Light;font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">프로바이오틱스</span><span style=\"font-family:Pretendard Light;font-size:10pt\">+</span><span style=\"font-family:Pretendard Light;font-size:10pt\">프리바이오틱스</span><span style=\"font-family:Pretendard Light;font-size:10pt\">)</span><span style=\"font-family:Pretendard Light;font-size:10pt\">다</span><span style=\"font-family:Pretendard Light;font-size:10pt\">.</span><span style=\"font-family:Pretendard Light;font-size:10pt\">장</span><span lang=\"ko-KR\" style=\"font-family:Pretendard Light;font-size:10pt\">내</span><span style=\"font-family:Pretendard Light;font-size:10pt\">미생물의</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">불균형도</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">비만의</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">원인</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">중</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">하나이기</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">때문이다</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">식이섬유</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">올리고을많이</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">섭춰하는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">것도</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">중요하지만</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">프로바이오틱스나</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">신바이오틱스</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">형태로</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">섭춰하는</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">것도</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">장내</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">환경을</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">개선해</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">인술린</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">저항성과</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">지방간에서</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">벗어나는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">데</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">도움이</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">될</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">수</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">있다</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">단</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">특정</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">유산균을</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">복용해서</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">체중을</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">줄이겠다는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">무리한</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">욕심은</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">내지말자</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">건강체중은</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">총체적으로</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">접근해야</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">하지</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">특정</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">제품</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">한</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">가지로</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">만들어지지않는다</span><span style=\"font-size:10pt\">. </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">그다음은</span><span style=\"font-size:10pt\"> &#39;</span><span style=\"font-family:Pretendard Light;font-size:10pt\">종합비타민제</span><span style=\"font-size:10pt\">&#39;</span><span style=\"font-family:Pretendard Light;font-size:10pt\">다</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">종합비타민제는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">비타민과</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">미네랄이</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">고루</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">들어있기</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">때문에</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">가성비</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">면에서</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">권한다</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">특히</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">비타민</span><span style=\"font-size:10pt\">8</span><span style=\"font-family:Pretendard Light;font-size:10pt\">군</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">함량이</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">충분한</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">제품을</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">추천한다</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">비타민</span><span style=\"font-size:10pt\">B12 </span><span style=\"font-family:Pretendard Light;font-size:10pt\">원료가</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">가장</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">비싸니</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">비타민</span><span style=\"font-size:10pt\">B12 </span><span style=\"font-family:Pretendard Light;font-size:10pt\">함량이</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">충분하게</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">들어</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">있는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">제품을</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">고르는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">것도</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">선택의</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">기준이</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">될</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">수</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">있다</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">활성형</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">엽산의</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">함유</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">여부를</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">확인해보는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">것도</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">도움이</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">된다</span><span style=\"font-size:10pt\">. </span></p>\r\n\t\t\t<br />\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">그다음</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">권하는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">게</span><span style=\"font-size:10pt\"> &#39;</span><span style=\"font-family:Pretendard Light;font-size:10pt\">오메가</span><span style=\"font-size:10pt\">3</span><span style=\"font-family:Pretendard Light;font-size:10pt\">지방산</span><span style=\"font-size:10pt\">&#39;</span><span style=\"font-family:Pretendard Light;font-size:10pt\">이다</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">현대인은</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">오메가</span><span style=\"font-size:10pt\">3</span><span style=\"font-family:Pretendard Light;font-size:10pt\">지방산과</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">오메가</span><span style=\"font-size:10pt\">6</span><span style=\"font-family:Pretendard Light;font-size:10pt\">지방산의</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">밸런스가깨져서</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">몸에</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">염증이</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">생기고</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">몸이</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">망가</span></p>\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">지는 경우가 많다</span><span style=\"font-family:Pretendard Light;font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">그래서 오메가</span><span style=\"font-family:Pretendard Light;font-size:10pt\">3</span><span style=\"font-family:Pretendard Light;font-size:10pt\">지방산을 따로 영양제 형태로 보충해서 그</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">벨런스를</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">맞춰주는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">것이</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">중요하다고</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">본다</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">오메가</span><span style=\"font-size:10pt\">3</span><span style=\"font-family:Pretendard Light;font-size:10pt\">지방산을</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">충분히</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">섭취하면</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">중성지방</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">수치를</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">낮추거나</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">렙틴</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">저항성을</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">개선하는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">데에도</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">도움이</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">된다</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">체중감량에</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">도움을</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">줄</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">수</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">있다고</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">알려진</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">영양제</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">중에는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">비타민</span><span style=\"font-size:10pt\">C</span><span style=\"font-family:Pretendard Light;font-size:10pt\">가</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">있고</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">칼슘과</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">비타민</span><span style=\"font-size:10pt\">)</span><span style=\"font-family:Pretendard Light;font-size:10pt\">가</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">있다</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">칼슘과</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">비타민</span><span style=\"font-size:10pt\">D</span><span style=\"font-family:Pretendard Light;font-size:10pt\">는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">합께</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">먹는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">게</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">좋으며</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">칼송을</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">섭취할</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">때는</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">마그네송도</span></p>\r\n\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">합께</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">섭취하면</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">종다</span><span style=\"font-family:Pretendard Light;font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">비타민</span><span style=\"font-family:Pretendard Light;font-size:10pt\">C</span><span style=\"font-family:Pretendard Light;font-size:10pt\">는</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">하루</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> 1~39 </span><span style=\"font-family:Pretendard Light;font-size:10pt\">고용량으로</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">섭취할</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">것을</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">추천한다</span><span style=\"font-family:Pretendard Light;font-size:10pt\">.</span></p>\r\n\t\t\t<br />\r\n\t\t\t<table style=\"border:1px solid;border-collapse:collapse\">\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:353;border:1px solid;font-family:Tahoma\"><span style=\"font-family:Pretendard Light;font-size:10pt\">허용식품</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid;font-family:Tahoma\"><span style=\"font-family:Pretendard Light;font-size:10pt\">금기식품</span></td>\r\n\t\t\t\t</tr>\r\n\t\t\t\t<tr>\r\n\t\t\t\t\t<td style=\"width:353;border:1px solid;font-family:Tahoma\"><span style=\"font-family:Pretendard Light;font-size:10pt\">단백질</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">세이크</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> I </span><span style=\"font-family:Pretendard Light;font-size:10pt\">신바이오틱스 혹은 프로바이오틱스 영양제</span><span style=\"font-family:Pretendard Light;font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">종함 비타민</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> , </span><span style=\"font-family:Pretendard Light;font-size:10pt\">오메가</span><span style=\"font-family:Pretendard Light;font-size:10pt\">3</span><span style=\"font-family:Pretendard Light;font-size:10pt\">지방산 등</span><span style=\"font-family:Pretendard Light;font-size:10pt\">) I </span><span style=\"font-family:Pretendard Light;font-size:10pt\">양파</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">마늘</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">고추가무</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">식초 후추</span><span style=\"font-family:Pretendard Light;font-size:10pt\">.</span><span style=\"font-family:Pretendard Light;font-size:10pt\">강</span><span lang=\"ko-KR\" style=\"font-family:Pretendard Light;font-size:10pt\">황</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">허브</span><span style=\"font-size:10pt\">| </span><span style=\"font-family:Pretendard Light;font-size:10pt\">양배추</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">무</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">당근</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">오이</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">브로콜리</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">파프리카</span><span style=\"font-size:10pt\">,</span><span style=\"font-family:Pretendard Light;font-size:10pt\">아보카도</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">코코닛오일</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">올리브오일</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">아보카도오일</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">냉압착</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">들기름</span><span style=\"font-size:10pt\"> I </span><span style=\"font-family:Pretendard Light;font-size:10pt\">녹차</span><span style=\"font-size:10pt\">.</span><span style=\"font-family:Pretendard Light;font-size:10pt\">허브티</span><span style=\"font-size:10pt\"> |</span><span style=\"font-family:Pretendard Light;font-size:10pt\">플레인요거트</span><span style=\"font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">무가당</span><span style=\"font-size:10pt\">), </span><span style=\"font-family:Pretendard Light;font-size:10pt\">두부</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">연두부</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">I</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">현미잡곡밥</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">혹은</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">흰쌀밥반공기</span><span style=\"font-size:10pt\">|</span><span style=\"font-family:Pretendard Light;font-size:10pt\">해조류</span><span style=\"font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">미역</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">다시마</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">듯</span><span style=\"font-size:10pt\">), </span><span style=\"font-family:Pretendard Light;font-size:10pt\">버섯류</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">와사비</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">저염간장</span><span style=\"font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">약간</span><span style=\"font-size:10pt\">), </span><span style=\"font-family:Pretendard Light;font-size:10pt\">두부쌈장</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">김치</span><span style=\"font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">평소보다</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">양을</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">줄여서</span><span style=\"font-size:10pt\">) |</span><span style=\"font-family:Pretendard Light;font-size:10pt\">우유</span><span style=\"font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">하루두잔</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">이하</span><span style=\"font-size:10pt\">), </span><span style=\"font-family:Pretendard Light;font-size:10pt\">짜지</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">않은</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">천연치즈</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">달갈</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">생선</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">생선회</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">해산물</span><span style=\"font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">굴</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">조개</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">새우</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">게</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">가재</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">오징어</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">낙지</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">문어</span><span style=\"font-size:10pt\">), </span><span style=\"font-family:Pretendard Light;font-size:10pt\">닭고기</span><span style=\"font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">껍질</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">벗긴속살</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">삶은</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">돼지고기</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">살코기</span><span style=\"font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">수육</span><span style=\"font-size:10pt\">), </span><span style=\"font-family:Pretendard Light;font-size:10pt\">소고기</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">살코기</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">샤브샤브</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">퀴노아</span><span style=\"font-size:10pt\">,</span><span style=\"font-family:Pretendard Light;font-size:10pt\">콩류</span><span style=\"font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">검은콩</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">병아리콩</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">완두콩</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">렌틸콩</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">동</span><span style=\"font-size:10pt\">) I </span><span style=\"font-family:Pretendard Light;font-size:10pt\">견과류</span><span style=\"font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">한</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">줍</span><span style=\"font-size:10pt\">) |</span><span style=\"font-family:Pretendard Light;font-size:10pt\">블랙커피</span><span style=\"font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">오전중한전</span><span style=\"font-size:10pt\">) </span><span style=\"font-family:Pretendard Light;font-size:10pt\">포함된</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">채소와</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">단백질</span><span style=\"font-size:10pt\">(</span><span style=\"font-family:Pretendard Light;font-size:10pt\">버섯</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">두부</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">달갈</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">닭가슴살</span><span style=\"font-size:10pt\">. </span><span style=\"font-family:Pretendard Light;font-size:10pt\">두부</span><span style=\"font-size:10pt\">.</span><span style=\"font-family:Pretendard Light;font-size:10pt\">연어샐러드</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">생선</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">생선회</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">해산물</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">수육</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">보쌈</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">살코기</span><span style=\"font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">소고기살코기</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">샤브샤브</span><span style=\"font-size:10pt\">) </span><span style=\"font-family:Pretendard Light;font-size:10pt\">음식</span><span style=\"font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">위주로충분히섭취한다</span><span style=\"font-size:10pt\">.</span></td>\r\n\t\t\t\t\t<td style=\"border:1px solid\"><p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">1 </span><span style=\"font-family:Pretendard Light;font-size:10pt\">설탕</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">액상과당</span><span style=\"font-family:Pretendard Light;font-size:10pt\">: </span><span style=\"font-family:Pretendard Light;font-size:10pt\">청량음료</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">커피믹스</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">주스</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">과일향 우유</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">당분</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">합량높은두유</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">당분이 첨가된 요거트</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">과자</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> , </span><span style=\"font-family:Pretendard Light;font-size:10pt\">빵</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">케이크</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">초콜</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">릿</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">2) </span><span style=\"font-family:Pretendard Light;font-size:10pt\">트랜스지방</span><span style=\"font-family:Pretendard Light;font-size:10pt\">: </span><span style=\"font-family:Pretendard Light;font-size:10pt\">케이크</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">전자레인지용 팝콘</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">각종 스낵</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">도넛</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">튀</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">김요리등</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">3)</span><span style=\"font-family:Pretendard Light;font-size:10pt\">술</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">4)</span><span style=\"font-family:Pretendard Light;font-size:10pt\">밀가루음식</span><span style=\"font-family:Pretendard Light;font-size:10pt\">: </span><span style=\"font-family:Pretendard Light;font-size:10pt\">빵</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">케이크</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">국수</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">라면</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">파스타</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">자장면</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">등</span></p>\r\n\t\t\t\t\t<p style=\"font-family:Tahoma;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-family:Pretendard Light;font-size:10pt\">5) </span><span style=\"font-family:Pretendard Light;font-size:10pt\">동물성</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">포화지방이</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">상대적으로</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">많은</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">음식</span><span style=\"font-family:Pretendard Light;font-size:10pt\">: </span><span style=\"font-family:Pretendard Light;font-size:10pt\">삼겹살</span><span style=\"font-family:Pretendard Light;font-size:10pt\">, </span><span style=\"font-family:Pretendard Light;font-size:10pt\">대창</span><span style=\"font-family:Pretendard Light;font-size:10pt\"> </span><span style=\"font-family:Pretendard Light;font-size:10pt\">등</span></p>\r\n\t\t\t\t\t</td>\r\n\t\t\t\t</tr>\r\n\t\t\t</table>\r\n\t\t\t<br />\r\n\t\t\t<br />\r\n\t\t"
+  }
+];
+const CONTENT_HASH = '056a5de4';
 
-function save() {
-  const data = {};
-  document.querySelectorAll('.block-text').forEach(el => {
-    data[el.dataset.idx] = el.innerHTML;
-  });
-  document.querySelectorAll('.block-table').forEach(el => {
-    data['tbl-' + el.dataset.idx] = el.querySelector('.table-wrap').innerHTML;
-  });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
   const s = document.getElementById('status');
-  s.textContent = '저장됨 ' + new Date().toLocaleTimeString();
-  setTimeout(() => { s.textContent = ''; }, 2000);
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
 }
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
 
-function copyPath() {
-  navigator.clipboard.writeText(location.pathname).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ 복사됨';
-    setTimeout(() => { btn.textContent = '⎘ 주소 복사'; }, 1500);
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
   });
 }
 
-function attachTableListeners() {
-  document.querySelectorAll('.block-table td, .block-table th').forEach(td => {
-    if (td._editAttached) return;
-    td._editAttached = true;
-    td.title = '더블클릭으로 편집';
-    td.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      this.contentEditable = 'true';
-      this.focus();
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
     });
-    td.addEventListener('blur', function() {
-      this.contentEditable = 'false';
-      save();
-    });
-    td.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { this.contentEditable = 'false'; this.blur(); }
-      if (e.key === 'Enter' && !e.shiftKey && this.tagName === 'TD') {
-        e.preventDefault();
-        const cells = [...document.querySelectorAll('.block-table td, .block-table th')];
-        const next = cells[cells.indexOf(this) + 1];
-        if (next) { this.contentEditable = 'false'; next.contentEditable = 'true'; next.focus(); }
-      }
-    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
   });
 }
 
-// Zoom
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
 let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
 function applyZoom() {
-  const doc = document.getElementById('doc');
-  doc.style.transform = 'scale(' + zoom + ')';
-  doc.style.transformOrigin = '0 0';
-  doc.style.width = (100 / zoom) + '%';
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
   document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
   localStorage.setItem('zoom-' + SAVE_KEY, zoom);
 }
@@ -133,33 +386,52 @@ document.addEventListener('keydown', e => {
     if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
   }
 });
-document.getElementById('doc').addEventListener('wheel', e => {
+document.getElementById('board').addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
   e.deltaY < 0 ? zoomIn() : zoomOut();
 }, { passive: false });
-
-// Restore saved edits
-const saved = localStorage.getItem(SAVE_KEY);
-if (saved) {
-  try {
-    const data = JSON.parse(saved);
-    document.querySelectorAll('.block-text').forEach(el => {
-      if (data[el.dataset.idx] !== undefined) el.innerHTML = data[el.dataset.idx];
-    });
-    document.querySelectorAll('.block-table').forEach(el => {
-      const key = 'tbl-' + el.dataset.idx;
-      if (data[key] !== undefined) el.querySelector('.table-wrap').innerHTML = data[key];
-    });
-  } catch(e) {}
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
 }
 
-document.querySelectorAll('.block-text').forEach(el => {
-  el.addEventListener('blur', save);
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
 });
-attachTableListeners();
-applyZoom();
-setInterval(save, 30000);
+
+setInterval(saveBoard, 30000);
+loadBoard();
 </script>
 </body>
 </html>

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>홍도</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1e1e1e; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 15px; line-height: 1.6; padding: 20px 30px 60px; overflow-x: hidden; }
+a { color: #6cb0f6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.title-bar { background: #3a3a5c; display: inline-block; padding: 6px 16px; font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 4px; }
+.date { color: #999; font-size: 13px; margin-bottom: 20px; }
+.board { position: relative; }
+.card { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 12px; position: absolute; cursor: grab; transition: box-shadow 0.15s; overflow: hidden; }
+.card:hover { box-shadow: 0 0 0 1px #58a6ff; z-index: 10; }
+.card.moving { opacity: 0.8; box-shadow: 0 4px 24px rgba(0,0,0,0.6); z-index: 100; cursor: grabbing; }
+.card img { width: 100%; border-radius: 4px; display: block; }
+.card .text { outline: none; min-height: 20px; white-space: pre-wrap; word-break: break-word; }
+.card .text:focus { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px; }
+.card .text:empty::before { content: '텍스트 입력...'; color: #555; }
+.card-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 4px; }
+.card:hover .card-actions { display: flex; }
+.card-btn { background: #333; border: 1px solid #555; color: #ccc; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.card-btn:hover { background: #444; color: #fff; }
+.resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; opacity: 0; }
+.card:hover .resize-handle { opacity: 0.6; }
+.resize-handle::after { content: ''; position: absolute; bottom: 3px; right: 3px; width: 8px; height: 8px; border-right: 2px solid #666; border-bottom: 2px solid #666; }
+.card.selected { box-shadow: 0 0 0 2px #58a6ff; z-index: 5; }
+.highlight-red { color: #ff6b6b; }
+.highlight-blue { color: #6cb0f6; }
+.highlight-gold { color: #f0c040; }
+.toolbar { position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; display: flex; gap: 12px; align-items: center; z-index: 200; }
+.toolbar button { background: #21262d; border: 1px solid #30363d; color: #e0e0e0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.toolbar button:hover { background: #30363d; }
+.toolbar .status { color: #8b949e; font-size: 12px; margin-left: auto; }
+#format-toolbar { position: fixed; display: none; background: #1c2128; border: 1px solid #444c56; border-radius: 8px; padding: 4px 6px; gap: 2px; align-items: center; z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#format-toolbar button { background: none; border: none; color: #cdd9e5; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; line-height: 1; }
+#format-toolbar button:hover { background: #373e47; }
+#format-toolbar .sep { width: 1px; height: 16px; background: #444c56; margin: 0 2px; }
+</style>
+</head>
+<body>
+<div class="title-bar" contenteditable="true">홍도</div>
+<div class="date">2018년 8월 11일 토요일</div>
+<div class="board" id="board"></div>
+<div id="format-toolbar">
+  <button onmousedown="e=>e.preventDefault()" onclick="fmt('bold')" title="굵게"><b>B</b></button>
+  <button onclick="fmt('italic')" title="기울임"><i>I</i></button>
+  <button onclick="fmt('underline')" title="밑줄"><u>U</u></button>
+  <div class="sep"></div>
+  <button onclick="fmtLink()" title="링크 삽입">🔗</button>
+  <button onclick="fmt('unlink')" title="링크 제거">✂</button>
+</div>
+<div class="toolbar">
+  <button onclick="undo()" title="Ctrl+Z">↩ 실행취소</button>
+  <button onclick="addTextCard()">+ 텍스트</button>
+  <button onclick="addImageCard()">+ 이미지</button>
+  <button onclick="addImageUrl()">+ 이미지 URL</button>
+  <button onclick="addTableCard()">+ 표</button>
+  <button onclick="saveBoard()">💾 저장</button>
+  <button onclick="exportBoard()">📤 내보내기</button>
+  <button onclick="resetLayout()">↺ 재배치</button>
+  <button onclick="resetToDefaults()" style="color:#f85149">↺ 초기화</button>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:8px;border-left:1px solid #30363d;padding-left:12px;">
+    <button onclick="zoomOut()" title="Ctrl+-" style="padding:6px 10px;">−</button>
+    <span id="zoom-level" style="font-size:12px;color:#8b949e;min-width:36px;text-align:center;">100%</span>
+    <button onclick="zoomIn()" title="Ctrl+=" style="padding:6px 10px;">+</button>
+  </div>
+  <span class="status" id="status">Ready</span>
+</div>
+<script>
+const SAVE_KEY = 'board-홍도';
+const IMG_BASE = '../../attachments/';
+const DEFAULT_CARDS = [
+  {
+    "type": "text",
+    "x": 36,
+    "y": 98,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/\" style=\"font-family:Roboto;font-size:13.5pt;font-weight:bold\">홍도깨비</a>\n<a href=\"https://www.roro77.com/\" style=\"font-family:Roboto\">메인</a>\n공지사항</a>\n커뮤니티</a>\n인증게시판</a>\n성인천국19</a>\n영상자료실</a>\n자유게시판</a>\n가입인사</a>\n&#160;&#160;&#160;\n★ 2018 국산 빨롱도르 투표해봅시다 ★ -초긴글 스압주의-\n&#160;홍도깨비 &#160;&#160;109&#160;&#160;&#160;39,562&#160;07.27 09:02\n​﻿2018년 7월 현재까지 다양한 국산작품이 나왔습니다.\n그중에서도 인기가 높은 작품도 당연히 나왔겠지요 ㅎㅎ\n누구에게나 자신만의 이상형이 있고 취향이 있고 기준점이 있습니다.\n대중적으로 야동보는 관점은 비슷하지만 평가요소는 다를 수 있다는거죠.\n여배우 : 얼굴, 몸매, 신음소리, 스킬(사까시, 여성상위, 파이즈리 등)\n*사정허락범위(배싸, 입싸, 얼싸, 질싸, 애널싸)&#160;\n남배우 :&#160;얼굴, 몸매, 체력, 스킬(앞치기, 뒷치기, 가위치기, 강약조절&#160;등)\n*촬영감독능력(화질, 각도, 조명,&#160;어떻게 섹스 할것인가 스토리까지)\n​\n보통 야동은 여배우에 집중이 쏠리지만 레전드가 되려면 다양한 조건이 필요합니다.\n파트너인&#160;남자도 잘해야 한다는거죠.\n★ 특히 촬영각도 ★\n남자는 배우겸 감독입니다. 촬영각도 매우 중요하고 화질, 1인칭,3인칭 시점 잘잡아야해요\n남자&#160;엉덩이와 부랄이 더 많이 나오는거 정말 0점 짜리 촬영입니다.\n그러므로 호기심과 재미삼아 늦었지만 2018년의 상반기? 빨롱도르 투표해봅시다.\n여러이름으로 퍼진건 중복해서 적어봤구요\n각 작품은 2장씩 움짤로 올려봤습니다. (여배우 위주 설명, 남자배우겸감독 중요합니다)\n= 최근 나비녀가 인기지만 모아두고 비교해보면 우승후보일뿐입니다."
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 782,
+    "w": 597,
+    "content": "<1. 청순녀,신수진닮으녀,짱구네반점녀>\n얼굴 = 청순, 섹시, 차도녀 (피팅모델 같은 외모)\n몸매 = 피팅모델급 슬렌더, 가슴수술로 C컵예상\n사정 = 배싸\n주요스킬 = 여성상위(말타기), 사까시\n총평 = 전형적인 도시미인형, 피팅모델 같은 슬렌더의 섹스를 보고 싶으면 추천, 남배우도 잘생김\n<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F4.bp.blogspot.com%2F-utE5eEwlNfQ%2FW1mTq1bJUtI%2FAAAAAAAAABI%2FrOyKxE05cr84Q9F-pD1dtSnZnpRR5JsFACK4BGAYYCw%2Fs400%2F%2525EC%25258B%2525A0%2525EC%252588%252598.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 1014,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F1.bp.blogspot.com%2F-Sc68CmYAA1Q%2FW1mTsf2MNKI%2FAAAAAAAAABY%2FrMQ3sYDFiAo7_1-PF3sKhjmG2edD6nQMQCK4BGAYYCw%2Fs320%2F%2525EC%25258B%2525A0%2525EC%252588%2525982.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 1126,
+    "w": 597,
+    "content": "​<2. 손나은녀,똥까시녀>\n얼굴 = 청순, 귀염, 섹시 (가수 손나은 살짝? 닮음)\n몸매 = 슬렌더의 정석\n사정 = 촬영시간은 길지만&#160;사정이 없음\n주요스킬 = 똥까시, 사까시\n총평 = 갈색긴웨이브머리, 대학교과에 한두명쯤은 있는&#160;퀸카 같은 훈녀 의 정성스러운 사까시와 후까시 보고 싶은분에게 추천"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 1298,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F1.bp.blogspot.com%2F-N-SlOiYbyAo%2FW1mXP2bCjFI%2FAAAAAAAAADQ%2FxpE1qkG4PMYCXmR1srNABfN_-vV31DzEACK4BGAYYCw%2Fs320%2F%2525EC%252586%252590%2525EB%252582%252598.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 1410,
+    "w": 597,
+    "content": "​<3. 참젖녀, 빨통녀>\n얼굴 = 도도, 섹시, 청순 (설현 육덕버젼)\n몸매 = 육덕글래머 (자연산 D~F 추정)\n사정 = 여러파일로 나뉘어져 있으나 사정없음\n주요스킬 = 여성상위(말타기), 사까시, 신음소리\n총평 = 성형미인이 판을 치는 한국에서 자연산 D컵이상 가슴과, 도도하게 빨아주는 사까시 그리고 섹스에 미친듯한 신음소리를 듣고 싶은분에게 강력 추천\n<a href=\"https://www.xvideos.com/video38497641/_\">https://www.xvideos.com/video38497641/_</a>\n<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F3.bp.blogspot.com%2F-mZkQUrOjzlU%2FW1mTt3gE1ZI%2FAAAAAAAAABw%2FIgHCkr3jkTINxcdtOrwP3xd2JV5KceRcACK4BGAYYCw%2Fs400%2F%2525EC%2525B0%2525B8%2525EC%2525A0%252596.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 1710,
+    "w": 597,
+    "content": "​<4. 강남바퀴녀>\n얼굴 = 도도, 여우, 귀염 (배우 이솜 닮음)\n몸매 = 보통슬렌더 (뒷태이쁨 엉덩이,골반)\n​사정 = 질싸, 얼싸, 입싸\n주요스킬 =&#160;여우같은 신음소리, 여성상위(말타기)\n총평 = 복수에 끝판왕. 만남, 이별, 불륜 까지 완벽한 섹스스토리와 사진 등 섹스영화 한편 보고\n싶은 중년 남성에게 강력 추천"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 1890,
+    "w": 597,
+    "content": "​\n<5. 행복한그녀>\n얼굴 = 청순,귀욤 (배우 김태리 닮음)\n몸매 = 근육형 슬렌더, 엉덩이와 허벅지근육\n사정 = 뒷치기질싸\n주요스킬 = 행복한미소, 유연한 자세\n총평 = 풋풋한 연인과의 섹스 그자체. 사랑스럽고 소프트한 섹스의 정석. 운동으로 다져진 탄탄한 몸매\n과격하고 야하고 상식밖 야동세계에서 볼 수 없는 아름다운 섹스이야기 보고 싶으면 추천!\n<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F1.bp.blogspot.com%2F-eXq6-vQjYjY%2FW1mTtfrgQnI%2FAAAAAAAAABo%2FLinIJu0-bPsuCtffLlD-1XfxZ_ZGMqVNwCK4BGAYYCw%2Fs320%2F%2525ED%252596%252589%2525EB%2525B3%2525B4.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 2162,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F2.bp.blogspot.com%2F-nWSe5ayyTw0%2FW1mTsobUl8I%2FAAAAAAAAABg%2FKex448WX9w4QvBWUckJw9cH2cR9uAyjrQCK4BGAYYCw%2Fs320%2F%2525ED%252596%252589%2525EB%2525B3%2525B42.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 2274,
+    "w": 597,
+    "content": "<6. 흰탑녀, 흰탑녀외 여자들> = 흰탑녀는 시리즈가 많아서 종합평균적 평가입니다.\n얼굴 =&#160;섹시, 도도, 섹시 (대다수 섹기있고 섹시한 여자 위주임)\n몸매 = 육덕위주, 엉덩이 가슴 배 적당히 살집있는 몸매\n사정 = 입싸, 얼싸\n주요스킬 = 사까시(딥쓰롯,이라마치오), 2:1 ~ 2:2 단체섹스, 뒷치기 등등\n총평 = 흰탑녀를 기준으로 평균적 섹기 넘치는 여인들위주의 동영상임, 타투한 여자들도 많고\n클럽, 미용사, 간호사 같은 직업일것 같은 특유의 육덕 섹기 넘치는 여자들의 섹스.\n다양한 사까시(딥쓰롯, 침대끝누워 목까시, 2:1 초대남 사까시) 등을 보고 싶다면 강력 추천\n<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F4.bp.blogspot.com%2F-E6IAEXQqkw8%2FW1mWHb9bVrI%2FAAAAAAAAADE%2FNSP48gVmmq0_Kr6Wh3mAVrrYcuG7S9YHACK4BGAYYCw%2Fs320%2F%2525ED%25259D%2525B0%2525ED%252583%252591.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 2546,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F3.bp.blogspot.com%2F-EkLMDPaDTOo%2FW1mTsOVjK7I%2FAAAAAAAAABQ%2FQm9B_CbJfgEk1N7BvYRmCNAZd-AP25DSgCK4BGAYYCw%2Fs320%2F%2525ED%25259D%2525B0%2525ED%252583%2525912.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 2658,
+    "w": 597,
+    "content": "​<7. 트위터 나비>\n얼굴 = 도도,섹시 (헤어스타일에 따라 살짝 청순?)\n몸매 = 자연산 D~E컵 육덕 글래머 (살짝 처진가슴, 유륜 큰편)\n사정 = 애널싸 (국산에서 보기 드문 애널작품인데 애널섹스로 애널사정함)\n주요스킬 = 사까시, 딥쓰롯(이라마치오), 후장(애널)\n총평 = 국산에서 보기 드문 후장작품에 후장사정,&#160;딥쓰롯이 가능한 여배우, 굵은승천자지를 소유한 남\n자배우도 여자 다룰줄 아는 사람임. 하드한걸&#160;좋아하는 사람에게 강력 추천!\n<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F4.bp.blogspot.com%2F-89CQEio7_rA%2FW1mTu-nR5lI%2FAAAAAAAAACI%2FJ_QVOzA-0VAIKQkR3WRtq1h_UMZnVCnhQCK4BGAYYCw%2Fs320%2F%2525EB%252582%252598%2525EB%2525B9%252584.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 2910,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F3.bp.blogspot.com%2F-bNqRKtMuvPU%2FW1mTxyGUIlI%2FAAAAAAAAACg%2F3No7jz1v1EwvnTghtjGcgvgpy_JCQoYkwCK4BGAYYCw%2Fs320%2F%2525EB%252582%252598%2525EB%2525B9%2525842.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 3022,
+    "w": 597,
+    "content": "​편집하고 움짤 만들고 게시글 작성 까지 2시간 걸렸네요 ㄷㄷ\n더 다양한 작품도 있지만 주관적 판단으로 레전드라 꼽히고\n게시글에 오르락 내리락한 핫한 작품 위주로 올려봤습니다.\n설문/질문 게시판이 사라진 지금 투표 목록 만들 수 없는게 아쉽네요...\n&#160;\n마지막으로\n이 게시글에는 형식적인 댓글러 보단 감상평 및 정말 소중한 투표댓글이&#160;\n달렸으면 하는 개인적 바람이 크네요 ㅎㅎ\n이만 물러나겠습니다 모두들 발기찬 하루 보내시길~\nComments"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 3246,
+    "w": 597,
+    "content": "여하튼&#160; 제가 본 바로는&#160; 나비에&#160; 1표&#160; &#160; 보고싶은 영상은&#160; 바퀴녀&#160; 1표&#160; 투표하겠습니다 ㅎㅎ"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 3318,
+    "w": 597,
+    "content": "첫번째 <1. 청순녀,신수진닮으녀,짱구네반점녀>&#160;\n링크 :&#160;https://drive.google.com/open?id=19J4povz0gKOydQ8BgLH3uPwX8nVZDw4G</a>&#160;\n두번째 <2. 손나은녀,똥까시녀>&#160;\n링크 :&#160;https://drive.google.com/open?id=1V3MB8wJEl8LnFnp3TpCKdRKkDIap-axQ</a>&#160;\n세번째 <3. 참젖녀, 빨통녀>&#160;\n링크 :&#160;https://drive.google.com/open?id=1PW_-I9kZen0bakXjgaU5uCX1RmKJPH30</a>&#160;\n네번째 <6. 행복한그녀>&#160;\n링크 :&#160;https://drive.google.com/open?id=12Ue-uD52BMFvDb0_jH0RsDehZGnGeDeD</a>&#160;\n다번째 <5. 흰탑녀, 흰탑녀외 여자들>&#160;\n링크 :&#160;https://drive.google.com/open?id=1xd0YJ_GQib4Sqo1jIXJeqz7dgG1rUdt8</a>&#160;\n여섯번째 <7. 트위터 나비>&#160;\n링크 :&#160;https://drive.google.com/open?id=1yHjQ57yTQXO5Sfax4AtMf9oMTIfhGRMm</a>&#160;\nhttps://drive.google.com/open?id=1yHjQ57yTQXO5Sfax4AtMf9oMTIfhGRMm</a>\nrcx01&#160;&#160;08.03 03:23\n나비녀입니다.&#160;\nhttps://drive.google.com/open?id=1yHjQ57yTQXO5Sfax4AtMf9oMTIfhGRMm</a>\nInduuu&#160;&#160;08.03 13:01\n답변</a>\nhttps://drive.google.com/open?id=1TCnOZBg9Wv_eiLavghcstOuhbxRB6ye3</a>\nrandomguy&#160;&#160;08.09 16:59\n&#160;08.10</a> 가입했습니다\n&#160;08.10</a> ㅊㅊ\n&#160;08.10</a> 가입완료!\n&#160;08.10</a> 이거 검열 뜸할 때 봐라. 여캠 지린다.\n&#160;08.10</a> 출첵입니다.\n&#160;08.10</a> 가입했습니다.\n&#160;08.10</a> 출첵\n<a href=\"https://www.roro77.com/bbs/new.php?view=c\" style=\"font-family:Roboto;font-size:12pt\">+Comments</a>\nspxps &#160;08.10</a> 비밀댓글입니다.\n써너 &#160;08.10</a> 나비녀 비밀번호 좀 알려주십시오 ㅠㅠ\n그런거필요없엉 &#160;08.10</a> 비번좀 부탁드리겠습니다!!\n찰스 &#160;08.10</a> 비밀댓글입니다.\nlklklklkdadada &#160;08.10</a> 비밀댓글입니다.\n자라랴릭 &#160;08.10</a> ㅠㅠ 져둥\nlkllkl@lkllkl.com &#160;08.10</a> 나도 ㄷ ㄷ ㄷ ㄷ\n반응형 구글광고 등\nState"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 4282,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F4.bp.blogspot.com%2F-utE5eEwlNfQ%2FW1mTq1bJUtI%2FAAAAAAAAABI%2FrOyKxE05cr84Q9F-pD1dtSnZnpRR5JsFACK4BGAYYCw%2Fs400%2F%2525EC%25258B%2525A0%2525EC%252588%252598.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 4394,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F1.bp.blogspot.com%2F-Sc68CmYAA1Q%2FW1mTsf2MNKI%2FAAAAAAAAABY%2FrMQ3sYDFiAo7_1-PF3sKhjmG2edD6nQMQCK4BGAYYCw%2Fs320%2F%2525EC%25258B%2525A0%2525EC%252588%2525982.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 4514,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F1.bp.blogspot.com%2F-N-SlOiYbyAo%2FW1mXP2bCjFI%2FAAAAAAAAADQ%2FxpE1qkG4PMYCXmR1srNABfN_-vV31DzEACK4BGAYYCw%2Fs320%2F%2525EC%252586%252590%2525EB%252582%252598.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 4626,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F3.bp.blogspot.com%2F-mZkQUrOjzlU%2FW1mTt3gE1ZI%2FAAAAAAAAABw%2FIgHCkr3jkTINxcdtOrwP3xd2JV5KceRcACK4BGAYYCw%2Fs400%2F%2525EC%2525B0%2525B8%2525EC%2525A0%252596.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 4746,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F1.bp.blogspot.com%2F-eXq6-vQjYjY%2FW1mTtfrgQnI%2FAAAAAAAAABo%2FLinIJu0-bPsuCtffLlD-1XfxZ_ZGMqVNwCK4BGAYYCw%2Fs320%2F%2525ED%252596%252589%2525EB%2525B3%2525B4.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 4858,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F2.bp.blogspot.com%2F-nWSe5ayyTw0%2FW1mTsobUl8I%2FAAAAAAAAABg%2FKex448WX9w4QvBWUckJw9cH2cR9uAyjrQCK4BGAYYCw%2Fs320%2F%2525ED%252596%252589%2525EB%2525B3%2525B42.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 4970,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F4.bp.blogspot.com%2F-E6IAEXQqkw8%2FW1mWHb9bVrI%2FAAAAAAAAADE%2FNSP48gVmmq0_Kr6Wh3mAVrrYcuG7S9YHACK4BGAYYCw%2Fs320%2F%2525ED%25259D%2525B0%2525ED%252583%252591.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 5082,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F3.bp.blogspot.com%2F-EkLMDPaDTOo%2FW1mTsOVjK7I%2FAAAAAAAAABQ%2FQm9B_CbJfgEk1N7BvYRmCNAZd-AP25DSgCK4BGAYYCw%2Fs320%2F%2525ED%25259D%2525B0%2525ED%252583%2525912.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 5194,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F4.bp.blogspot.com%2F-89CQEio7_rA%2FW1mTu-nR5lI%2FAAAAAAAAACI%2FJ_QVOzA-0VAIKQkR3WRtq1h_UMZnVCnhQCK4BGAYYCw%2Fs320%2F%2525EB%252582%252598%2525EB%2525B9%252584.gif\">"
+  },
+  {
+    "type": "text",
+    "x": 36,
+    "y": 5306,
+    "w": 597,
+    "content": "<a href=\"https://www.roro77.com/bbs/view_img.php?img=https%3A%2F%2F3.bp.blogspot.com%2F-bNqRKtMuvPU%2FW1mTxyGUIlI%2FAAAAAAAAACg%2F3No7jz1v1EwvnTghtjGcgvgpy_JCQoYkwCK4BGAYYCw%2Fs320%2F%2525EB%252582%252598%2525EB%2525B9%2525842.gif\">"
+  }
+];
+const CONTENT_HASH = '1cd641f1';
+
+let cards = [];
+let moving = null, resizing = null;
+let selectedIdx = null, clipboardCard = null;
+const GRID = 20, GAP = 14;
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ── Undo (Ctrl+Z) ────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+function snapshot() {
+  syncText();
+  history.push(JSON.stringify(cards));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+function undo() {
+  if (!history.length) { showStatus('되돌릴 내용 없음'); return; }
+  syncText();
+  cards = JSON.parse(history.pop());
+  renderCards();
+  saveBoard();
+  showStatus('↩ 되돌림');
+}
+function showStatus(msg) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { s.textContent = ''; }, 2000);
+}
+document.addEventListener('keydown', e => {
+  const isText = document.activeElement?.contentEditable === 'true';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (isText) return;
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isText) {
+    if (selectedIdx !== null && cards[selectedIdx]) {
+      syncText();
+      clipboardCard = JSON.parse(JSON.stringify(cards[selectedIdx]));
+      showStatus('카드 복사됨');
+      e.preventDefault();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isText) {
+    if (clipboardCard) {
+      e.preventDefault();
+      snapshot();
+      const nc = JSON.parse(JSON.stringify(clipboardCard));
+      nc.x = (nc.x || 0) + 30; nc.y = (nc.y || 0) + 30;
+      cards.push(nc);
+      selectedIdx = cards.length - 1;
+      renderCards(); saveBoard();
+      showStatus('카드 붙여넣음');
+    }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    selectedIdx = null;
+  }
+});
+
+function pushCards(movedIdx) {
+  const moved = cards[movedIdx];
+  const movedEl = document.querySelector(`.card[data-idx="${movedIdx}"]`);
+  if (!movedEl) return;
+  const mh = movedEl.offsetHeight;
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (i === movedIdx) return;
+    const c = cards[i], oh = el.offsetHeight;
+    if (moved.x < (c.x+(c.w||200)) && (moved.x+(moved.w||200)) > c.x && moved.y < (c.y+oh) && (moved.y+mh) > c.y) {
+      c.y = moved.y + mh + GAP;
+      el.style.top = c.y + 'px';
+    }
+  });
+}
+
+function loadBoard() {
+  const saved = localStorage.getItem(SAVE_KEY);
+  const savedHash = localStorage.getItem(SAVE_KEY + ':hash');
+  let parsed = null;
+  try { parsed = saved ? JSON.parse(saved) : null; } catch(e) {}
+  // reset if: no save, empty array, or content hash changed (page regenerated)
+  if (!parsed || parsed.length === 0 || savedHash !== CONTENT_HASH) {
+    cards = DEFAULT_CARDS.map(c => ({...c}));
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH);
+    renderCards();
+    const hasCoords = cards.some(c => c.x !== undefined && c.y !== undefined);
+    if (!hasCoords) autoLayout();
+    return;
+  }
+  cards = parsed;
+  renderCards();
+}
+function resetToDefaults() { if (!confirm('저장된 보드를 지우고 원본으로 초기화합니다. 계속할까요?')) return; localStorage.removeItem(SAVE_KEY); cards = DEFAULT_CARDS.map(c => ({...c})); renderCards(); autoLayout(); }
+
+function autoLayout() {
+  const boardW = document.getElementById('board').offsetWidth;
+  const cols = Math.max(1, Math.floor(boardW / 280));
+  const colW = (boardW - GAP*(cols-1)) / cols;
+  const colH = new Array(cols).fill(0);
+  const allCards = document.querySelectorAll('.card');
+  const images = document.querySelectorAll('.card img');
+  let loaded = 0;
+  function place() {
+    allCards.forEach((el, i) => {
+      const w = Math.min(cards[i].w || colW, colW);
+      let minCol = 0;
+      for (let c = 1; c < cols; c++) if (colH[c] < colH[minCol]) minCol = c;
+      cards[i].x = minCol * (colW + GAP);
+      cards[i].y = colH[minCol];
+      cards[i].w = w;
+      el.style.left = cards[i].x + 'px';
+      el.style.top = cards[i].y + 'px';
+      el.style.width = w + 'px';
+      colH[minCol] = cards[i].y + el.offsetHeight + GAP;
+    });
+    document.getElementById('board').style.minHeight = (Math.max(...colH) + 100) + 'px';
+    saveBoard();
+  }
+  if (!images.length) { requestAnimationFrame(place); return; }
+  images.forEach(img => {
+    if (img.complete) { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }
+    else { img.onload = img.onerror = () => { loaded++; if (loaded >= images.length) requestAnimationFrame(place); }; }
+  });
+}
+
+function syncText() {
+  document.querySelectorAll('.card').forEach(el => {
+    const i = +el.dataset.idx;
+    if (cards[i]?.type === 'text') { const t = el.querySelector('.text'); if (t) cards[i].content = t.innerHTML; }
+  });
+}
+function saveBoard() { syncText(); localStorage.setItem(SAVE_KEY, JSON.stringify(cards)); localStorage.setItem(SAVE_KEY + ':hash', CONTENT_HASH); showStatus('저장됨 ' + new Date().toLocaleTimeString()); }
+
+function renderCards() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'card'; el.dataset.idx = i;
+    if (card.x !== undefined) el.style.left = card.x + 'px';
+    if (card.y !== undefined) el.style.top = card.y + 'px';
+    // html cards contain raw OneNote table HTML which may overflow the stated div width
+    if (card.w) { if (card.type === 'html') el.style.minWidth = card.w + 'px'; else el.style.width = card.w + 'px'; }
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('.text, a, .card-btn, .resize-handle, td, th')) return;
+      e.preventDefault();
+      // Update selection
+      document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+      selectedIdx = i; el.classList.add('selected');
+      snapshot();
+      moving = { idx: i, startX: e.clientX, startY: e.clientY, origX: card.x||0, origY: card.y||0 };
+      el.classList.add('moving');
+    });
+    const actions = document.createElement('div'); actions.className = 'card-actions';
+    const delBtn = document.createElement('button'); delBtn.className = 'card-btn'; delBtn.textContent = '×';
+    delBtn.onclick = e => { e.stopPropagation(); if(confirm('삭제?')) { snapshot(); cards.splice(i,1); renderCards(); saveBoard(); } };
+    actions.appendChild(delBtn); el.appendChild(actions);
+    if (card.type === 'text') {
+      const text = document.createElement('div'); text.className = 'text'; text.contentEditable = true;
+      text.innerHTML = card.content || '';
+      text.addEventListener('focus', () => { snapshot(); });
+      text.addEventListener('blur', () => { card.content = text.innerHTML; saveBoard(); });
+      el.appendChild(text);
+    } else if (card.type === 'image') {
+      const img = document.createElement('img');
+      img.src = card.src.startsWith('http') || card.src.startsWith('data:') ? card.src : IMG_BASE + card.src;
+      img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.style.display = 'none';
+      if (card.w) img.style.width = card.w + 'px';
+      if (card.h) img.style.height = card.h + 'px';
+      if (card.link) { const a = document.createElement('a'); a.href = card.link; a.target = '_blank'; a.appendChild(img); el.appendChild(a); }
+      else { el.appendChild(img); }
+      if (card.caption) { const cap = document.createElement('div'); cap.style.cssText = 'font-size:11px;color:#8b949e;margin-top:4px;word-break:break-word;padding:0 2px;'; cap.textContent = card.caption; el.appendChild(cap); }
+    } else if (card.type === 'html') {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'overflow:auto;font-size:13px;line-height:1.5;';
+      wrapper.innerHTML = card.html.replace(/__ATTACHMENT__/g, IMG_BASE);
+      wrapper.querySelectorAll('img').forEach(img => { img.style.maxWidth = '100%'; img.style.height = 'auto'; img.draggable = false; });
+      wrapper.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.style.color = '#6cb0f6'; });
+      wrapper.querySelectorAll('table').forEach(t => { t.style.borderCollapse = 'collapse'; });
+      wrapper.querySelectorAll('td,th').forEach(td => {
+        td.style.border = '1px solid #444'; td.style.padding = '4px 6px'; td.style.verticalAlign = 'top';
+        td.title = '더블클릭으로 편집';
+        td.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          snapshot();
+          this.contentEditable = 'true';
+          this.style.outline = '2px solid #388bfd';
+          this.style.background = 'rgba(56,139,253,0.08)';
+          this.focus();
+        });
+        td.addEventListener('blur', function() {
+          this.contentEditable = 'false';
+          this.style.outline = '';
+          this.style.background = '';
+          cards[i].html = wrapper.innerHTML.split(IMG_BASE).join('__ATTACHMENT__');
+          saveBoard();
+        });
+      });
+      el.appendChild(wrapper);
+    } else if (card.type === 'table') {
+      const rows = card.rows || [['','',''],['','',''],['','','']];
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
+      rows.forEach((row, ri) => {
+        const tr = tbl.insertRow();
+        row.forEach((cell, ci) => {
+          const td = document.createElement(ri === 0 ? 'th' : 'td');
+          td.contentEditable = true;
+          td.style.cssText = 'border:1px solid #30363d;padding:4px 8px;min-width:60px;text-align:left;' + (ri===0 ? 'background:#21262d;font-weight:600;' : '');
+          td.textContent = cell;
+          td.addEventListener('blur', () => { if (!cards[i].rows) cards[i].rows = rows; rows[ri][ci] = td.textContent; saveBoard(); });
+          tr.appendChild(td);
+        });
+      });
+      el.appendChild(tbl);
+      const addRow = document.createElement('button');
+      addRow.textContent = '+ 행'; addRow.style.cssText = 'margin-top:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addRow.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.push(new Array(cards[i].rows[0].length).fill('')); renderCards(); saveBoard(); };
+      const addCol = document.createElement('button');
+      addCol.textContent = '+ 열'; addCol.style.cssText = 'margin-top:4px;margin-left:4px;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:2px 8px;border-radius:4px;cursor:pointer;';
+      addCol.onclick = e => { e.stopPropagation(); snapshot(); if (!cards[i].rows) cards[i].rows = rows; cards[i].rows.forEach(r => r.push('')); renderCards(); saveBoard(); };
+      el.appendChild(addRow); el.appendChild(addCol);
+    }
+    const rh = document.createElement('div'); rh.className = 'resize-handle';
+    rh.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); snapshot(); resizing = { idx: i, startX: e.clientX, startW: card.w || el.offsetWidth }; });
+    el.appendChild(rh);
+    if (i === selectedIdx) el.classList.add('selected');
+    board.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    let maxB = 0;
+    document.querySelectorAll('.card').forEach(el => { const b = (parseFloat(el.style.top)||0) + el.offsetHeight; if (b > maxB) maxB = b; });
+    board.style.minHeight = (maxB + 100) + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (moving) {
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (!el) return;
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); el.style.outline = '1px dashed rgba(240,192,64,0.3)'; } else { el.style.outline = ''; }
+    el.style.left = nx + 'px'; el.style.top = ny + 'px';
+  }
+  if (resizing) {
+    let nw = resizing.startW + e.clientX - resizing.startX; if (e.shiftKey) nw = snap(nw);
+    cards[resizing.idx].w = Math.max(100, nw);
+    const el = document.querySelector(`.card[data-idx="${resizing.idx}"]`); if (el) el.style.width = cards[resizing.idx].w + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if (moving) {
+    let nx = moving.origX + e.clientX - moving.startX, ny = moving.origY + e.clientY - moving.startY;
+    if (e.shiftKey) { nx = snap(nx); ny = snap(ny); }
+    cards[moving.idx].x = Math.max(0, nx); cards[moving.idx].y = Math.max(0, ny);
+    const el = document.querySelector(`.card[data-idx="${moving.idx}"]`); if (el) { el.classList.remove('moving'); el.style.outline = ''; }
+    if (e.shiftKey) pushCards(moving.idx);
+    moving = null; saveBoard();
+  }
+  if (resizing) { if (e.shiftKey) pushCards(resizing.idx); resizing = null; saveBoard(); }
+});
+
+function addTextCard() { snapshot(); cards.push({ type: 'text', content: '', x: 50, y: window.scrollY+100, w: 300 }); renderCards(); setTimeout(() => { const els = document.querySelectorAll('.card .text'); els[els.length-1]?.focus(); }, 100); }
+function addImageCard() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { snapshot(); cards.push({ type: 'image', src: r.result, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }; r.readAsDataURL(f); }; input.click(); }
+function addImageUrl() { const url = prompt('이미지 URL'); if (!url) return; snapshot(); cards.push({ type: 'image', src: url, x: 50, y: window.scrollY+100, w: 240 }); renderCards(); saveBoard(); }
+function addTableCard() {
+  const colsStr = prompt('열 수 (기본 3)', '3'); const cols = Math.max(1, parseInt(colsStr)||3);
+  const rowsStr = prompt('행 수 (헤더 포함, 기본 4)', '4'); const rows = Math.max(1, parseInt(rowsStr)||4);
+  snapshot();
+  cards.push({ type: 'table', rows: Array.from({length: rows}, (_, ri) => Array.from({length: cols}, (_, ci) => ri===0 ? `열${ci+1}` : '')), x: 50, y: window.scrollY+100, w: Math.max(240, cols*100) });
+  renderCards(); saveBoard();
+}
+function exportBoard() { syncText(); const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = SAVE_KEY + '.json'; a.click(); }
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+let zoom = parseFloat(localStorage.getItem('zoom-' + SAVE_KEY) || '1.0');
+function applyZoom() {
+  const board = document.getElementById('board');
+  board.style.transform = `scale(${zoom})`;
+  board.style.transformOrigin = '0 0';
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  localStorage.setItem('zoom-' + SAVE_KEY, zoom);
+}
+function zoomIn()  { zoom = Math.min(3.0, parseFloat((zoom + 0.1).toFixed(2))); applyZoom(); }
+function zoomOut() { zoom = Math.max(0.2, parseFloat((zoom - 0.1).toFixed(2))); applyZoom(); }
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+    if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+    if (e.key === '0')                  { e.preventDefault(); zoom = 1.0; applyZoom(); }
+  }
+});
+document.getElementById('board').addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  e.deltaY < 0 ? zoomIn() : zoomOut();
+}, { passive: false });
+applyZoom();
+function resetLayout() { if (!confirm('자동 재배치합니다.')) return; cards.forEach(c => { delete c.x; delete c.y; }); renderCards(); autoLayout(); }
+// ── Floating format toolbar ───────────────────────────────────────────────────
+const fmtBar = document.getElementById('format-toolbar');
+function fmt(cmd) { document.execCommand(cmd, false, null); saveBoard(); }
+function fmtLink() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const url = prompt('링크 URL 입력', 'https://');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  // make links open in new tab
+  sel.anchorNode?.parentElement?.closest('a')?.setAttribute('target', '_blank');
+  document.querySelectorAll('.text a').forEach(a => a.target = '_blank');
+  saveBoard();
+}
+
+// prevent format buttons from blurring contenteditable
+fmtBar.addEventListener('mousedown', e => e.preventDefault());
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { fmtBar.style.display = 'none'; return; }
+  // only show if selection is inside a .text element
+  const anchor = sel.anchorNode;
+  if (!anchor) { fmtBar.style.display = 'none'; return; }
+  const textEl = anchor.nodeType === 1 ? anchor.closest('.text') : anchor.parentElement?.closest('.text');
+  if (!textEl) { fmtBar.style.display = 'none'; return; }
+  // position above selection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  fmtBar.style.display = 'flex';
+  const tbW = fmtBar.offsetWidth || 180;
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
+  fmtBar.style.left = left + 'px';
+  fmtBar.style.top = (rect.top - 44 + window.scrollY) + 'px';
+});
+
+setInterval(saveBoard, 30000);
+loadBoard();
+</script>
+</body>
+</html>
