@@ -600,18 +600,24 @@ function getCatItemsForRender(d, dayData, cat) {
       }
     }
 
-    // Re-read after potential carry modification
+    // Re-read after potential carry modification — deduplicate stored items first
+    const _rawItems = (ensureDay(d)[cat] || []).filter(i => !i._frame);
+    const _seenTexts = new Set();
+    const _dedupedItems = _rawItems.filter(i => {
+      const k = normText(i.text);
+      if (!k) return false; // drop empty-text items
+      if (_seenTexts.has(k)) return false; // drop duplicates (keep first occurrence)
+      _seenTexts.add(k);
+      return true;
+    });
+    if (_dedupedItems.length !== _rawItems.length) {
+      ensureDay(d)[cat] = _dedupedItems;
+      _pendingCarrySave = true;
+    }
+
     const stored = (ensureDay(d)[cat] || []).filter(i => !i._frame && !i._carried);
     const storedTexts = new Set(stored.map(i => normText(i.text)));
     let carriedItems = (ensureDay(d)[cat] || []).filter(i => i._carried);
-
-    // Dedup: if same text exists as stored AND carried, drop the carried copy (stored takes precedence)
-    const dupCarried = carriedItems.filter(i => storedTexts.has(normText(i.text)));
-    if (dupCarried.length) {
-      ensureDay(d)[cat] = (ensureDay(d)[cat] || []).filter(i => !i._carried || !storedTexts.has(normText(i.text)));
-      carriedItems = carriedItems.filter(i => !storedTexts.has(normText(i.text)));
-      _pendingCarrySave = true;
-    }
 
     if (!templateItems.length) {
       return [...stored, ...carriedItems];
