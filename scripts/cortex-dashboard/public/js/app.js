@@ -769,7 +769,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
           return;
         }
         html += `<div class="item${item.done?' done':''}" data-d="${d}" data-cat="${cat}" data-idx="${idx}">
-          <input type="checkbox" ${item.done?'checked':''} onchange="toggleItem(${d},'${cat}',${idx})" aria-label="${esc(item.text)}">
+          <input type="checkbox" ${item.done?'checked':''} onchange="toggleItem(${d},'${cat}',${idx},this.dataset.text)" data-text="${esc(item.text)}" aria-label="${esc(item.text)}">
           <span class="item-text frame-text" contenteditable="true"
             onblur="editFrameItemFromCalendar(${d},'${cat}',${idx},htmlToMarkdown(this.innerHTML))"
             onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
@@ -799,7 +799,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
         ondragend="dragEnd(event)"
         ondragover="dragOver(event)" ondragleave="dragLeave(event)"
         ondrop="drop(event,${d},'${cat}',${idx})">
-        <input type="checkbox" ${checked} data-drag-handle onchange="toggleItem(${d},'${cat}',${idx})" aria-label="${esc(item.text)}">
+        <input type="checkbox" ${checked} data-drag-handle onchange="toggleItem(${d},'${cat}',${idx},this.dataset.text)" data-text="${esc(item.text)}" aria-label="${esc(item.text)}">
         <span class="item-text${item.url?' has-link':''}${item._frame?' frame-text':''}" contenteditable="true"
           onblur="${blurFn}"
           onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
@@ -989,14 +989,25 @@ function ensureDay(d) {
   return monthData.days[key];
 }
 
-async function toggleItem(d, cat, idx) {
+async function toggleItem(d, cat, idx, itemText) {
   const _sy = window.scrollY || window.pageYOffset;
   const _mx = document.getElementById('main')?.scrollTop || 0;
   const dayData = ensureDay(d);
   const catType = getDayCatType(d, dayData, cat);
   if (catType === 'todo') {
-    if (!dayData[cat]?.[idx]) return;
-    dayData[cat][idx].done = !dayData[cat][idx].done;
+    const _norm = t => (t || '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+    const _text = _norm(itemText || '');
+    const stored = _text && (dayData[cat] || []).find(i => _norm(i.text) === _text);
+    if (stored) {
+      stored.done = !stored.done;
+    } else if (_text) {
+      // _frame item not yet in D1 — add as stored copy
+      if (!dayData[cat]) dayData[cat] = [];
+      dayData[cat].push({ text: _text, url: '', done: true });
+    } else {
+      if (!dayData[cat]?.[idx]) return;
+      dayData[cat][idx].done = !dayData[cat][idx].done;
+    }
   } else {
     const key = `_rdone_${cat}`;
     if (!dayData[key]) dayData[key] = [];
