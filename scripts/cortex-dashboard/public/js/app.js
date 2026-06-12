@@ -572,15 +572,16 @@ function getCatItemsForRender(d, dayData, cat) {
         const prevFrameTexts = new Set((framesData?.[prevFt]?.categories?.[cat]?.items || []).map(ti => normText(typeof ti === 'object' ? ti.text : String(ti))));
         const rejectKey = `_carry_rejects_${cat}`;
         const rejected = new Set((dayData[rejectKey] || []).map(normText));
-        // Remove stale _carried items whose source is now done in prevDay
-        const prevDoneTexts = new Set(
-          (prevDay[cat] || []).filter(i => i.done && !i._frame).map(i => normText(i.text))
+        // Remove stale _carried items: (1) source is done in prevDay, (2) source not in prevDay at all (orphan)
+        // A _carried item is valid only when prevDay has it as undone.
+        const prevUndoneTexts = new Set(
+          (prevDay[cat] || []).filter(i => !i.done && !i._frame).map(i => normText(i.text))
         );
-        if (prevDoneTexts.size > 0) {
+        {
           const currentItems = dayData[cat] || [];
-          const hasStale = currentItems.some(i => i._carried && prevDoneTexts.has(normText(i.text)));
+          const hasStale = currentItems.some(i => i._carried && !prevUndoneTexts.has(normText(i.text)));
           if (hasStale) {
-            ensureDay(d)[cat] = currentItems.filter(i => !i._carried || !prevDoneTexts.has(normText(i.text)));
+            ensureDay(d)[cat] = currentItems.filter(i => !i._carried || prevUndoneTexts.has(normText(i.text)));
             _pendingCarrySave = true;
           }
         }
