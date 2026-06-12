@@ -3,7 +3,7 @@
 ## Pre-flight Gate — 2026-06-12 (debrief)
 - [ ] 파레트 체크/체크해제/되살림 브라우저 직접 검증 (merge.js 2차 수정 배포됨, 사용자 확인 필요)
 - [ ] 파레트 Worker 수정 시 `merge.js` 먼저 확인 — done 상태 override, _carried 복원 함정
-- [ ] [Mac] launchd 설치: `bash scripts/confluence-sync/install-mac-autostart.sh`
+- [x] [Mac] launchd 설치: `bash scripts/confluence-sync/install-mac-autostart.sh` (2026-06-13 완료)
 - [ ] 자격증명 확인 순서: 작업 전 `.env.*` / `cortex/.onenote-token.json` 먼저 grep — 사용자에게 발급 요청 전 필수
 
 
