@@ -65,17 +65,29 @@ export async function cortexSaveDay(dateStr, dayData) {
   const [year, month, day] = dateStr.split('-');
   const ym = `${year}-${month}`;
 
-  // GET current month first
-  const monthData = await cortexGetMonth(ym);
   const dayNum = String(parseInt(day));
-  monthData.days = monthData.days || {};
-  monthData.days[dayNum] = dayData;
 
-  const res = await fetch(`${CONFIG.cortex.baseUrl}/api/month`, {
-    method: 'POST',
+  // PATCH 단일 날짜만 — GET→POST 전체교체 방식은 race condition으로 데이터 유실 위험
+  const res = await fetch(`${CONFIG.cortex.baseUrl}/api/month/${ym}/day/${dayNum}`, {
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ym, data: monthData }),
+    body: JSON.stringify({ data: dayData }),
   });
+
+  // PATCH 미지원 시 fallback: GET→merge→POST
+  if (res.status === 404 || res.status === 405) {
+    const monthData = await cortexGetMonth(ym);
+    monthData.days = monthData.days || {};
+    monthData.days[dayNum] = { ...monthData.days[dayNum], ...dayData };
+    const res2 = await fetch(`${CONFIG.cortex.baseUrl}/api/month`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ym, data: monthData }),
+    });
+    if (!res2.ok) throw new Error(`Cortex save failed: ${res2.status}`);
+    return res2.json();
+  }
+
   if (!res.ok) throw new Error(`Cortex save failed: ${res.status}`);
   return res.json();
 }

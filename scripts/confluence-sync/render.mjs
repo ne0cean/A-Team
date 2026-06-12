@@ -153,8 +153,9 @@ export function renderPage(monthData, soData, todayStr, cats = ['ritual','input'
   const sections = [
     todaySection(dayData, todayStr, cats),
     weekSection(monthData, todayStr, cats),
+    standingOrdersSection(soData),
     `<!-- CORTEX_META:${syncMeta} -->`,
-  ];
+  ].filter(Boolean);
 
   return sections.join('\n<hr/>\n');
 }

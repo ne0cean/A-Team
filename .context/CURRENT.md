@@ -239,13 +239,13 @@
 ## Next Tasks
 
 ### High Priority
-- [ ] **workout 백업 복구 확인** — 유실된 날짜 있으면 `GET /api/backups?key=workout-log` 확인 후 `/api/undo` 복구
-- [ ] **`POST /api/reset-day-types {"ym":"2026-06"}`** 실행 — 잘못된 explicit block/flow 일괄 정리
+- [x] **workout 백업 복구 확인** — 6/1~12 전부 존재, 유실 없음 (2026-06-12)
+- [x] **`POST /api/reset-day-types {"ym":"2026-06"}`** 실행 — cleared:0, 이미 깨끗 (2026-06-12)
 - [ ] **OneNote 663개 갭 fetch (토큰 갱신 필요)** — `python3 scripts/onenote-auth.py` 후 `node scripts/onenote-fetch-missing.mjs --from-audit .context/onenote-audit-2026-06-11.json` → migrate → D1 재빌드. Rate limit 주의: 이미지 많으면 느림. 감사 파일: `.context/onenote-audit-2026-06-11.json`
 - [ ] **Vision Board 근접 캡션** — `html` 카드(table 내 이미지) proximity 기반 캡션 연결 (현재 미구현, 사용자 결정 필요)
 - [ ] **ONENOTE-MIGRATION-SPEC.md 갱신** — 3-type 아키텍처 + docMode 규칙 반영
-- [ ] **Cortex 데이터 구조 안정화** — Confluence 동기화 구현 전 선행 필수
-- [ ] **Confluence PAT 발급** — VDI에서 프로필 > Personal Access Tokens 확인
+- [x] **Cortex 데이터 구조 안정화** — Standing Orders 렌더 버그 수정 + cortexSaveDay merge 방식 교체 + categories=work 확정 (2026-06-12)
+- [x] **Confluence PAT 발급** — .env.confluence에 이미 존재, 인증 확인 완료 (2026-06-12)
 - [ ] **Confluence 역변환기 + daemon** — 안정화 후 구현 재개
 - [ ] **제품 빌드 시작** — Connectome MVP
 
