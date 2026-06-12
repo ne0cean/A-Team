@@ -6,6 +6,7 @@
  */
 
 const SCALAR_FIELDS = ['one_thing', 'day_type', 'notes'];
+const normText = t => (t || '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
 /**
  * Merges stale incoming month data with the authoritative server state.
@@ -48,8 +49,19 @@ export function mergeMonthData(existing, incoming) {
         // _carried items are ephemeral: if client cleared them, respect that
         const toRestore = serverDay[key].filter(i => !i._carried);
         if (toRestore.length) incomingDay[key] = toRestore;
+      } else {
+        // Client sends explicit data — trust it, but preserve done:true from server.
+        // Stale browser saves must not wipe checked items.
+        // _unchecked:true on an incoming item = intentional uncheck by user, respected.
+        const serverByText = new Map(serverDay[key].map(i => [normText(i.text), i]));
+        for (const item of incomingDay[key]) {
+          const serverItem = serverByText.get(normText(item.text));
+          if (serverItem?.done && !item.done && !item._unchecked) {
+            item.done = true; // preserve server's checked state
+          }
+          delete item._unchecked; // clean up ephemeral flag before persisting
+        }
       }
-      // else: client sends explicit data — trust it completely
     }
   }
   return incoming;
