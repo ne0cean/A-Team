@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-13] /pmi + debrief + wiki 정리
+
+**완료**: /pmi 6-phase (Integration Map→Wiring→Trigger→Token→Validation→Docs Sync). html-preview/html-writer frontmatter 수정(582 PASS 복원). bash-variable-korean-bug.md wiki 28중복+인코딩오류 정리. MEMORY.md 레슨 2개 추가(macOS sed 2a\ 함정, wiki append 버그).
+**이슈**: sed '2a\' macOS 함정 — Python str.replace()로 우회. wiki update 메커니즘 append 반복 버그(근본원인 미수정, 매 세션 재발).
+**빌드**: ✅ 582 PASS
+
 ## [2026-06-13] Standing Orders 날짜 오류 수정
 
 **완료**: git pull --rebase (12커밋), 서울 재발견 7/28 D1 삭제, AI핸즈온 TUE→THU 오류 식별

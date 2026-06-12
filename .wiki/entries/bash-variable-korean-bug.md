@@ -8,7 +8,7 @@ created: 2026-06-02
 updated: 2026-06-13
 links: []
 quality: 0
-version: 28
+version: 29
 ---
 
 한국어와 bash 변수를 같이 쓸 때 `$VAR한글` 패턴은 오류를 일으킨다. `${VAR}한글`로 중괄호를 감싸야 한다.
