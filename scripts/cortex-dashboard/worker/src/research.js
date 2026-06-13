@@ -14,6 +14,13 @@ const EMBED_MODEL = '@cf/baai/bge-m3';
 const LLM_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const MIN_SCORE = 0.5;
 
+/** 제어문자·HTML엔티티·과도공백 제거 — LLM 입력 안전화(3043 internal error 방지) */
+function clean(s) {
+  let out = "";
+  for (const ch of String(s || "")) { const c = ch.codePointAt(0); out += (c < 0x20 || c === 0x7f) ? " " : ch; }
+  return out.replace(/&[a-z]+;|&#\d+;/gi, " ").replace(/\s+/g, " ").trim();
+}
+
 function djb2(s) {
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
@@ -49,7 +56,7 @@ async function recall(env, query, qvec) {
     const vres = await env.VECTORIZE.query(qvec, { topK: 5, returnMetadata: 'all' });
     priorFindings = (vres?.matches || [])
       .filter(m => (m.score ?? 0) >= MIN_SCORE)
-      .map(m => ({ query: m.metadata?.query || '', summary: m.metadata?.summary || '', score: m.score }));
+      .map(m => ({ query: clean(m.metadata?.query), summary: clean(m.metadata?.summary), score: m.score }));
   } catch (e) { console.error('vectorize query:', e?.message); }
 
   let cortexDocs = [];
@@ -61,7 +68,7 @@ async function recall(env, query, qvec) {
     const rows = await env.DB.prepare(
       'SELECT title, body FROM cortex_search WHERE title LIKE ? OR body LIKE ? LIMIT 4'
     ).bind(like, like).all();
-    cortexDocs = (rows?.results || []).map(r => ({ title: r.title, snippet: String(r.body || '').slice(0, 160) }));
+    cortexDocs = (rows?.results || []).map(r => ({ title: clean(r.title), snippet: clean(r.body).slice(0, 140) }));
   } catch (e) { console.error('cortex_search:', e?.message); }
 
   return { priorFindings, cortexDocs };
@@ -135,20 +142,25 @@ export async function handleResearch(request, env, headers) {
     return new Response(JSON.stringify({ error: 'Exa fetch failed', detail: e?.message }), { status: 502, headers });
   }
 
-  // ④ L2 개인화 합성 (Workers AI LLM)
+  // ④ L2 개인화 합성 (Workers AI LLM). 입력 과대 시 3043 internal error → 축소 + 1회 재시도.
   let answer = '';
-  try {
-    // 입력 토큰 초과 방지: 상위 5개 × 800자 (한국어 뉴스 풀텍스트 등 긴 경우 LLM 실패 → fallback 방지)
-    const ctx = hits.slice(0, 5).map((h, i) => `[${i + 1}] ${h.title} (${h.url})\n${(h.text || '').slice(0, 800)}`).join('\n\n');
+  const synth = async (perHit, n) => {
+    const ctx = hits.slice(0, n).map((h, i) => `[${i + 1}] ${clean(h.title)} (${h.url})\n${clean(h.text).slice(0, perHit)}`).join('\n\n');
     const llm = await env.AI.run(LLM_MODEL, {
       messages: [
         { role: 'system', content: grounding },
         { role: 'user', content: `# 질의\n${query}\n\n# 웹 검색 결과\n${ctx}\n\n# 지시\n위 grounding(사용자 맥락)에 따라 인용 [n] 포함 개인화 답을 한국어로 합성하라.` },
       ],
-      max_tokens: 900,
+      max_tokens: 800,
     });
-    answer = (llm?.response || '').trim();
-  } catch (e) { console.error('llm:', e?.message); }
+    return (llm?.response || '').trim();
+  };
+  try { answer = await synth(700, 5); }
+  catch (e1) {
+    console.error('llm try1:', e1?.message);
+    try { answer = await synth(350, 4); }   // 축소 재시도(한국어 풀텍스트 토큰 과다 대비)
+    catch (e2) { console.error('llm try2:', e2?.message); }
+  }
   if (!answer) answer = hits.slice(0, 5).map((h, i) => `[${i + 1}] ${h.title}\n${h.url}`).join('\n\n');
 
   // ⑤ L3 deposit (복리 적립): D1 + Vectorize
