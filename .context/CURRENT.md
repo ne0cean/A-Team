@@ -37,8 +37,11 @@
 - **3레이어**: L1 웹(Exa, 월20k무료) 사옴 / L2 개인화(질의재구성+합성grounding)=모트 / L3 복리메모리(deposit→recall). 캐시형은 퍼플렉시티 못 이김 → L2/L3 투자.
 - **복리 실증(키 불필요)**: `research.mjs --q --dry-run --root` 연속 2검색 → 2차가 1차 적립 회상→재구성질의에 엔티티 주입. CLI 테스트 고정.
 - **MVP**: L3=로컬 JSONL. D1+Vectorize/Cognee는 IO교체로 Phase 2(lib 순수로직 불변).
-- **파일**: `lib/{exa,personalize,research-memory,research-gateway}.ts` + `scripts/research/research.mjs` + `.claude/skills/research/SKILL.md` + `/research`. 694 PASS, tsc 0.
-- **BLOCK**: 라이브 웹 합성은 EXA_API_KEY(exa.ai 무료) 발급 후. dry-run으로 루프 검증 완료.
+- **라이브 가동**: EXA_API_KEY 설정됨(.env). 실 검색 검증(answer 1026자·출처8·개인화 과거4/프로필6).
+- **접근성 surface**: 브라우저 `web-server.mjs`(launchd `com.ateam.research-web` :4010 상시가동·검증) + 텔레그램 `telegram-bot.mjs`+`lib/telegram.ts`(launchd `com.ateam.research-tg`는 토큰 후 로드). CLI `research.mjs`/`/research` 스킬.
+- **L3 시맨틱**: `lib/vectorize.ts`+`lib/research-io.ts`(이중저장·graceful degrade) 코드 완료. Vectorize 인덱스 생성 시 자동 활성(없으면 로컬전용).
+- **763 tests PASS, tsc 0**.
+- **BLOCK**: 텔레그램 = @BotFather 토큰→`.env` TELEGRAM_BOT_TOKEN→`com.ateam.research-tg` 로드. 시맨틱 = `wrangler vectorize create cortex-research --dimensions=1024 --metric=cosine`+CF토큰.
 
 ## Last Completions (2026-06-13) — Cortex Palette carry/check/order 버그 수정
 
