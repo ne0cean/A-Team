@@ -1525,8 +1525,11 @@ async function delItem(d, cat, idx, refocus) {
       if (!nextDayData[rejectKey].map(t => normText(t)).includes(normalized)) {
         nextDayData[rejectKey].push(deletedItem.text);
       }
-      // Also remove already-saved _carried copies from future days
-      for (let fd = d + 1; fd <= 31; fd++) {
+      // Also remove already-saved _carried copies from future days.
+      // Bound by the real month length — never iterate beyond daysInMonth
+      // (hardcoded 31 created/touched phantom days in 28/29/30-day months).
+      const _dim = new Date(currentYear, currentMonth, 0).getDate();
+      for (let fd = d + 1; fd <= _dim; fd++) {
         const fdd = monthData.days?.[String(fd)];
         if (!fdd || !fdd[cat]) continue;
         const before = fdd[cat].length;
