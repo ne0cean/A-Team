@@ -123,7 +123,7 @@ const io = {
       if (!res.ok) return [];
       const data = await res.json();
       const rows = Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : []);
-      return rows.slice(0, k).map(r => ({ title: String(r.title || r.path || ''), snippet: String(r.body || r.snippet || '').slice(0, 200), path: r.path }));
+      return rows.slice(0, k).map(r => ({ title: String(r.title || r.name || r.path || ''), snippet: String(r.body || r.snippet || '').slice(0, 200), path: r.path }));
     } catch { return []; }
   },
   webSearch,
