@@ -44,23 +44,14 @@
 - **confluence-sync launchd 등록**: `com.cortex.confluence-sync` 가동
 - **AI핸즈온 THU 수정 + 서울 재발견 7/28 제거** D1 PATCH 완료
 
-## Last Completions (2026-06-11) — OneNote 전수 실사
+## Last Completions (2026-06-13) — OneNote 663개 갭 전량 복원 완료
 
-- InterStellar API 1,896 vs 로컬 1,233 = **갭 663개** (7개 섹션). 감사: `.context/onenote-audit-2026-06-11.json`
-- Traffic & Banking 복원 → D1 검색 확인 ✅
-- `scripts/audit-onenote-pages.mjs` + `scripts/onenote-fetch-missing.mjs` 완성
-
-**갭 현황** (전체 663개):
-| 섹션 | GAP |
-|------|-----|
-| 1_Projects/Dashbaord | 24 (23개 미처리) |
-| 1_Projects/MK1 | 57 |
-| 2_.../1. Character | 152 |
-| 2_.../4. Interstellar | 26 |
-| 2_.../5. Life Xlab | 314 |
-| 3_Archive (2개 섹션) | 90 |
-
-**fetch 방법**: `python3 scripts/onenote-auth.py` → `node scripts/onenote-fetch-missing.mjs --from-audit .context/onenote-audit-2026-06-11.json` → migrate → D1 재빌드
+- **617개 신규 fetch**: 6회 토큰 갱신 반복. `--no-images` + fast pre-check(onenote_id 검증) 최적화
+- **migrate**: src=2227 → dst=2256 (101%) PASS ✅
+- **D1 인덱스**: 2262개 완료 (실패 0)
+- **검색 확인**: Traffic & Banking ✅ + banking 쿼리 결과 2개
+- **버그 수정**: 401 즉시 abort, fast pre-check onenote_id 교차검증, --no-images 플래그
+- **/review**: HIGH-2 pre-check 불일치 버그 수정 완료
 
 ## Last Completions (2026-06-09~10) — 하네스 강화 + Cortex 버그
 
@@ -70,11 +61,10 @@
 
 ### High Priority
 - [ ] **파레트 체크 브라우저 직접 검증** — mergeMonthData done:true 보존 배포됨. 체크 후 탭 이동 → 체크 유지 확인
-- [ ] **OneNote 663개 갭 fetch** — 토큰 갱신(`python3 scripts/onenote-auth.py`) 후 진행
 - [ ] **Vision Board 근접 캡션** — html 카드 proximity 기반 캡션 연결 (사용자 결정 필요)
 - [ ] **ONENOTE-MIGRATION-SPEC.md 갱신** — 3-type 아키텍처 + docMode 규칙 반영
 - [ ] **Confluence 역변환기 + daemon** — 안정화 후 구현 재개
-- [ ] **제품 빌드 시작** — Connectome MVP
+- [ ] **Connectome 수렴 파이프라인 S2 진행** — 옵션 번들 구성. 플레이북: `~/Projects/connectome/.context/convergence-plan.md` (S1 연결 분석 완료 2026-06-13, idea-graph.md 생성됨. 빌드는 S4 창업자 결정 + S5 검증 통과 후)
 
 ### Medium Priority
 - [ ] **verify-data.mjs 자동 호출** — wrangler deploy 후 자동 실행
