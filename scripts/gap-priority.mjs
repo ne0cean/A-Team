@@ -2,7 +2,7 @@
 // gap-priority.mjs — friction-log 기반 갭 우선순위 엔진
 // score = (impact × 3) + (frequency × 2) + (feasibility × 1) - (dep_blockers × 0.5)
 
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -106,11 +106,46 @@ export function gapSummaryLine(currentPhase = 0, topN = 3) {
   return `Gap ${parts.join(' | ')} | Total: ${gaps.length}개`;
 }
 
+/**
+ * gaps.md 영속화 — Cortex 루프 폐쇄 (출력 휘발 방지).
+ * .context/gaps.md 전체 재작성(머신 소유 파일) + CURRENT.md Next Tasks 제안 블록 stdout.
+ */
+export function renderGapsMarkdown(currentPhase = 0, topN = 10) {
+  const gaps = computePriorities(currentPhase);
+  const top = gaps.slice(0, topN);
+  const stamp = new Date().toISOString().slice(0, 10);
+  const lines = [
+    `# Capability Gaps — ${stamp} (gap-priority --write)`,
+    '',
+    '> friction-log + capability-map 기반 자동 산출. 머신 소유 — 수동 편집 금지.',
+    `> score = impact×3 + frequency×2 + feasibility×1 − dep_blockers×0.5`,
+    '',
+    '| # | capability | score | cov | impact | freq | feas | dep |',
+    '|---|-----------|-------|-----|--------|------|------|-----|',
+  ];
+  top.forEach((g, i) => {
+    lines.push(`| ${i + 1} | ${g.path} | ${g.score.toFixed(1)} | ${(g.coverage * 100).toFixed(0)}% | ${g.impact} | ${g.frequency} | ${g.feasibility} | ${g.dep_blockers} |`);
+  });
+  lines.push('', `Total gaps: ${gaps.length}`, '');
+  return { markdown: lines.join('\n'), gaps, top };
+}
+
 // CLI
 if (process.argv[1] && process.argv[1].endsWith('gap-priority.mjs')) {
   const args = process.argv.slice(2);
   const json = args.includes('--json');
   const summary = args.includes('--summary');
+  const write = args.includes('--write');
+
+  if (write) {
+    const { markdown, top } = renderGapsMarkdown(0, 10);
+    const out = resolve(ROOT, '.context/gaps.md');
+    writeFileSync(out, markdown);
+    console.log(`✓ ${out} 갱신 (top ${top.length})`);
+    console.log('\n### CURRENT.md Next Tasks 제안 (수동 병합):');
+    top.slice(0, 3).forEach(g => console.log(`- [ ] **${g.path} 보강** (score=${g.score.toFixed(1)}, cov=${(g.coverage * 100).toFixed(0)}%)`));
+    process.exit(0);
+  }
   // 숫자 인수: 플래그가 아닌 첫 번째 인수
   const numArg = args.find(a => /^\d+$/.test(a));
   const top = numArg ? parseInt(numArg, 10) : 10;
