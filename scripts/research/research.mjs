@@ -104,18 +104,30 @@ async function synthesize(grounding, q, hits) {
   return synthesizeRaw(grounding, q, hits);
 }
 
-// --- IO 구성 ---
-const io = {
-  async loadProfile() {
-    if (!existsSync(profilePath)) return [];
-    return readFileSync(profilePath, 'utf-8').split('\n')
-      .map(l => l.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
-  },
-  async recall(q, k) {
-    if (!existsSync(memoryPath)) return [];
-    return rankRecall(parseMemoryJsonl(readFileSync(memoryPath, 'utf-8')), q, k);
-  },
-  async cortexSearch(q, k) {
+// --- Vectorize 어댑터 (CF 토큰 + 인덱스 + 실모드일 때만; 없으면 로컬 전용) ---
+const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID || '4cf76f439654a776856c585d60f3fc18';
+const cfToken = loadEnvKey('CLOUDFLARE_API_TOKEN');
+const vectorizeIndex = loadEnvKey('VECTORIZE_INDEX');
+let vectorize;
+if (!dryRun && cfToken && vectorizeIndex) {
+  const vlib = await import(pathToFileURL(path.join(REPO_ROOT, 'lib', 'vectorize.ts')).href);
+  const vcfg = { accountId: CF_ACCOUNT_ID, apiToken: cfToken, indexName: vectorizeIndex };
+  vectorize = {
+    embed: (texts) => vlib.embedText(vcfg, texts),
+    query: (vec, topK) => vlib.queryVectors(vcfg, vec, topK),
+    upsert: (items) => vlib.upsertVectors(vcfg, items),
+    minScore: process.env.VECTORIZE_MIN_SCORE ? parseFloat(process.env.VECTORIZE_MIN_SCORE) : 0.5,
+  };
+}
+
+// --- IO 구성 (로컬 JSONL + Vectorize 이중 저장; storage는 createGatewayIO, web/synth는 직접) ---
+const storageIO = createGatewayIO({
+  readMemory: () => (existsSync(memoryPath) ? readFileSync(memoryPath, 'utf-8') : ''),
+  appendMemory: (line) => { mkdirSync(researchDir, { recursive: true }); appendFileSync(memoryPath, line); },
+  loadProfile: () => (existsSync(profilePath)
+    ? readFileSync(profilePath, 'utf-8').split('\n').map(l => l.replace(/^[-*]\s*/, '').trim()).filter(Boolean)
+    : []),
+  cortexSearch: async (q, k) => {
     if (dryRun) return [];
     try {
       const res = await fetch(`https://cortex.feat-breeze.workers.dev/api/cortex/search?q=${encodeURIComponent(q)}`);
@@ -125,15 +137,10 @@ const io = {
       return rows.slice(0, k).map(r => ({ title: String(r.title || r.name || r.path || ''), snippet: String(r.body || r.snippet || '').slice(0, 200), path: r.path }));
     } catch { return []; }
   },
-  webSearch,
-  synthesize,
-  async embed() { return []; },           // 파일 모드는 토큰 회상 → 벡터 불필요(Phase 2 Vectorize)
-  async deposit(d) {
-    mkdirSync(researchDir, { recursive: true });
-    appendFileSync(memoryPath, serializeDeposit(d) + '\n');
-  },
-  now() { return new Date().toISOString(); },
-};
+  now: () => new Date().toISOString(),
+  vectorize,
+});
+const io = { ...storageIO, webSearch, synthesize };
 
 try {
   const r = await runResearch(io, query, { recallK: flags.n ? parseInt(flags.n, 10) : 5 });
