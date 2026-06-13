@@ -32,6 +32,14 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-13) — Cortex Research Gateway (개인화+복리 검색)
+
+- **3레이어**: L1 웹(Exa, 월20k무료) 사옴 / L2 개인화(질의재구성+합성grounding)=모트 / L3 복리메모리(deposit→recall). 캐시형은 퍼플렉시티 못 이김 → L2/L3 투자.
+- **복리 실증(키 불필요)**: `research.mjs --q --dry-run --root` 연속 2검색 → 2차가 1차 적립 회상→재구성질의에 엔티티 주입. CLI 테스트 고정.
+- **MVP**: L3=로컬 JSONL. D1+Vectorize/Cognee는 IO교체로 Phase 2(lib 순수로직 불변).
+- **파일**: `lib/{exa,personalize,research-memory,research-gateway}.ts` + `scripts/research/research.mjs` + `.claude/skills/research/SKILL.md` + `/research`. 694 PASS, tsc 0.
+- **BLOCK**: 라이브 웹 합성은 EXA_API_KEY(exa.ai 무료) 발급 후. dry-run으로 루프 검증 완료.
+
 ## Last Completions (2026-06-13) — Cortex Palette carry/check/order 버그 수정
 
 - **mergeMonthData done:true 보존**: stale save race condition 근본 수정. `_unchecked:true` 플래그로 intentional uncheck 구분. 44 tests PASS, 배포 완료.
