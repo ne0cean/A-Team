@@ -138,7 +138,8 @@ export async function handleResearch(request, env, headers) {
   // ④ L2 개인화 합성 (Workers AI LLM)
   let answer = '';
   try {
-    const ctx = hits.map((h, i) => `[${i + 1}] ${h.title} (${h.url})\n${(h.text || '').slice(0, 1200)}`).join('\n\n');
+    // 입력 토큰 초과 방지: 상위 5개 × 800자 (한국어 뉴스 풀텍스트 등 긴 경우 LLM 실패 → fallback 방지)
+    const ctx = hits.slice(0, 5).map((h, i) => `[${i + 1}] ${h.title} (${h.url})\n${(h.text || '').slice(0, 800)}`).join('\n\n');
     const llm = await env.AI.run(LLM_MODEL, {
       messages: [
         { role: 'system', content: grounding },
