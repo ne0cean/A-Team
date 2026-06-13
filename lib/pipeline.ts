@@ -284,6 +284,8 @@ export function nextActionable(m: CampaignManifest): NextAction {
       return s.executor === 'script'
         ? { kind: 'run_script', stage: s }
         : { kind: 'write_work_order', stage: s };
+    default:
+      return { kind: 'blocked', stage: s };
   }
 }
 
