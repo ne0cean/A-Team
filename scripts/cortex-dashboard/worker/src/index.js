@@ -6,6 +6,7 @@
 import { mergeMonthData } from './merge.js';
 import { cascadeFrameDone, cascadeFrameDelete } from './cascade.js';
 import { isCrossMonthClobber } from './monthGuard.js';
+import { handleResearch, researchPage } from './research.js';
 
 export default {
   async fetch(request, env) {
@@ -939,6 +940,14 @@ export default {
         } catch {}
 
         return new Response(JSON.stringify({ schedule: schedResults.slice(0,20), notes: noteResults }), { headers });
+      }
+
+      // --- Cortex Research Gateway (개인화+복리 검색) ---
+      if (path === '/research' && method === 'GET') {
+        return new Response(researchPage(), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      }
+      if (path === '/api/research' && method === 'POST') {
+        return await handleResearch(request, env, headers);
       }
 
       // Pass through to assets (static files served by Cloudflare)

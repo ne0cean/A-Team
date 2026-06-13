@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-13] Cortex Palette carry/month 구조적 결함 근절 + 7월 복구
+
+**완료**: 7월에 6월 데이터 통째 복제(D1 `month:"2026-06"`) `/investigate` → 근본원인 5개 수정. ①carry 로직 순수함수 분리(`worker/src/carry.js` computeCarry) ②cross-month owner 분리(인접월 persist 금지) ③월 정체성 이중가드(save() + worker 409) ④day 루프 daysInMonth bound ⑤carry 테스트 0→커버. verify-data 무결성 게이트(.month==key/day범위/카테고리). TDD로 restorePlan.js(--restore-month) + carry 엣지 7케이스. 77 tests PASS. 7월=백업 delete-first 복구, 6월 phantom day31 제거(GET 실측 검증). /ship reviewer HIGH 2건(1 오탐 기각, 1 하드닝).
+**이슈**: 같은 carry 부류 버그 반복(whack-a-mole) → 이번엔 근본 구조+테스트+자동게이트로 차단. reviewer가 backup-d1 apiFetch 시그니처 오탐(자체 apiFetch는 body 직접 반환).
+**빌드**: ✅ 77 tests PASS, 라이브 배포(Version 37f1776d)
+
 ## [2026-06-13] Cortex Palette carry/order 전면 수정
 
 **완료**: orphaned _carried 고아 항목 제거 (prevUndoneTexts 로직). D13/D14 carry 순서 D12 기준 완전 재정렬 (stored→_carried 변환). 레슨 K/L 추가 (carry ORDER 검증, D1 수정 후 브라우저 확인 의무).

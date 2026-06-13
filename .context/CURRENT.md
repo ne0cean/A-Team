@@ -32,6 +32,15 @@
 ## In Progress Files
 - (없음)
 
+## Last Completions (2026-06-13) — Cortex Palette carry/month 구조적 결함 근절
+
+- **사고**: 7월 스케줄러에 6월 데이터 통째 복제 (7월 D1에 `month:"2026-06"` 저장). `/investigate`로 근본원인 5개 확정.
+- **근본수정 5**: ①렌더 부작용 제거 → `worker/src/carry.js` 순수함수 `computeCarry` 추출 ②cross-month owner 분리(인접월 셀은 persist=false, 저장 금지) ③월 정체성 이중가드(프론트 `save()` + worker 409 `isCrossMonthClobber`) ④day 루프 `daysInMonth` bound(phantom day 제거) ⑤carry 테스트 0→커버.
+- **무결성 게이트**: `verify-data.mjs`에 `.month===key`/day범위/카테고리 검사 추가 → 이 부류 오염 배포 전 자동 차단. deploy.sh가 carry.js 자동 재생성(드리프트 방지).
+- **복구**: 7월=06-12백업으로 delete-first 교체(merge 우회), 6월 phantom day31 제거. GET 실측 검증 + 게이트 PASS.
+- **TDD**: `restorePlan.js`(--restore-month) + carry 엣지 7케이스. **77 tests PASS**. /ship reviewer HIGH 2건 검증(1 오탐, 1 하드닝).
+- **불변식 기록**: DECISIONS.md에 carry/owner/가드/게이트 명문화. POSTMORTEM 패턴 4개는 기존 유지.
+
 ## Last Completions (2026-06-13) — Cortex Research Gateway (개인화+복리 검색)
 
 - **3레이어**: L1 웹(Exa, 월20k무료) 사옴 / L2 개인화(질의재구성+합성grounding)=모트 / L3 복리메모리(deposit→recall). 캐시형은 퍼플렉시티 못 이김 → L2/L3 투자.
@@ -74,6 +83,7 @@
 ## Next Tasks
 
 ### High Priority
+- [ ] **파레트 carry/month 수정 브라우저 직접 검증** — 6/7월 새로고침 후 6월 데이터 안 보이는지 + carry 정상 표시 확인 (구조수정 배포됨, Version 37f1776d)
 - [ ] **파레트 체크 브라우저 직접 검증** — mergeMonthData done:true 보존 배포됨. 체크 후 탭 이동 → 체크 유지 확인
 - [ ] **Vision Board 근접 캡션** — html 카드 proximity 기반 캡션 연결 (사용자 결정 필요)
 - [x] **ONENOTE-MIGRATION-SPEC.md 갱신** — 3-type 아키텍처 + docMode 규칙 반영 (2026-06-13)
