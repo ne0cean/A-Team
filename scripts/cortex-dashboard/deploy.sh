@@ -9,6 +9,12 @@ SKIP_VERIFY="${1:-}"
 
 echo "━━━ CORTEX DEPLOY ━━━"
 
+# 0. Regenerate browser carry.js from the tested worker source (single source of truth).
+#    worker/src/carry.js is the ESM tested file; public/js/carry.js is the classic-script copy.
+echo "// AUTO-GENERATED from worker/src/carry.js — do not edit directly. Regenerate via deploy.sh." > "$SCRIPT_DIR/public/js/carry.js"
+sed 's/^export function/function/' "$SCRIPT_DIR/worker/src/carry.js" >> "$SCRIPT_DIR/public/js/carry.js"
+echo "✓ public/js/carry.js regenerated"
+
 # 1. Deploy Worker
 cd "$SCRIPT_DIR/worker"
 npx wrangler deploy --config wrangler.toml

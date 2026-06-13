@@ -61,6 +61,20 @@ node scripts/cortex-dashboard/backup-d1.mjs --restore-day YYYY-MM-DD <day> [cate
 - merge 로직 변경 → `npx vitest run` (worker/ 디렉토리에서) GREEN 확인 후 배포
 - 새 카테고리 추가 → 테스트 불필요 (동적 감지가 자동 처리)
 
+### Carry-over 로직 (2026-06-13 구조 리팩터링 — 6월→7월 통째 복제 사고 후)
+- **순수 함수**: `worker/src/carry.js` `computeCarry()` — 부작용 없음(전역/ensureDay/save 미사용).
+  앱은 `public/js/carry.js`(deploy.sh가 worker 소스에서 자동 생성, **직접 편집 금지**)로 로드.
+- **테스트**: `worker/src/__tests__/carry.test.js` (12케이스, 멱등성 포함). carry 로직 변경 = 이 테스트 GREEN 필수.
+- **렌더는 순수해야 한다**: carry 변이는 `getCatItemsForRender`에서 `persist && owner===monthData.days`
+  일 때만 현재월에 기록. **인접월 셀은 표시만, 저장 금지** (이게 cross-month 복제를 막는 핵심).
+- **월 정체성 가드**: `save()`는 `monthData.month !== ym()` 이면 차단(프론트), worker는 POST `/api/month`
+  에서 `isCrossMonthClobber(data.month, ym)` 시 409 (`worker/src/monthGuard.js`).
+- **day 범위**: 모든 day 루프는 `new Date(y, m, 0).getDate()`로 bound. `<= 31` 하드코딩 금지(phantom day 원인).
+
+### 무결성 게이트 = 배포 완료 조건 (마이그레이션 verify 게이트와 동급)
+- `verify-data.mjs`가 검사: `.month === key` / day key ∈ [1, daysInMonth] / 카테고리 화이트리스트.
+- **`node verify-data.mjs --all` PASS 후에만 "배포 완료" 선언.** FAIL = cross-month 복제 또는 phantom day 신호 → 복구.
+
 ---
 
 ## ⚠️ PRE-EDIT 필수 체크리스트 (편집 전 매번 실행)

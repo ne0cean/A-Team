@@ -81,6 +81,27 @@ async function checkMonth(ym) {
   const itemCount = countItems(data.days);
   const doneCount = countDone(data.days);
 
+  // 2b. Structural invariants — catch cross-month clone + phantom/out-of-range days.
+  // These are the exact corruption signatures of the 2026-06→2026-07 clone incident.
+  const [yy, mm] = ym.split('-').map(Number);
+  const dim = new Date(yy, mm, 0).getDate(); // real days in this month
+  if (data.month && data.month !== ym) {
+    errors.push(`month field mismatch: stored .month="${data.month}" but key="${ym}" — cross-month clone`);
+  }
+  const KNOWN_ARRAY_KEYS = new Set(['ritual', 'input', 'work', 'hexagonal', 'outcome', 'source', 'events', 'workout']);
+  for (const dk of Object.keys(data.days)) {
+    const dn = Number(dk);
+    if (!Number.isInteger(dn) || dn < 1 || dn > dim) {
+      errors.push(`out-of-range day key "${dk}" (${ym} has ${dim} days) — phantom day`);
+    }
+    const dd = data.days[dk] || {};
+    for (const k of Object.keys(dd)) {
+      if (Array.isArray(dd[k]) && !k.startsWith('_') && !KNOWN_ARRAY_KEYS.has(k)) {
+        warnings.push(`day ${dk}: unknown array category "${k}"`);
+      }
+    }
+  }
+
   // 3. Compare against local backup if available
   const latestBackup = fs.existsSync(BACKUP_DIR)
     ? fs.readdirSync(BACKUP_DIR).filter(f => f.endsWith('.json')).sort().reverse()[0]
