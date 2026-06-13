@@ -26,7 +26,7 @@ const PORT = parseInt(process.env.PORT || '4010', 10);
 function runResearch(query, synth = 'groq') {
   return new Promise((resolve) => {
     execFile('npx', ['tsx', CLI, `--q=${query}`, `--synth=${synth}`, '--json'],
-      { cwd: REPO_ROOT, timeout: 90_000, maxBuffer: 10 * 1024 * 1024 },
+      { cwd: REPO_ROOT, timeout: 90_000, maxBuffer: 10 * 1024 * 1024, encoding: 'utf8' },
       (err, stdout, stderr) => {
         // stdout에 JSON 외 노이즈가 섞일 수 있으니 첫 { ~ 마지막 } 만 추출
         const s = stdout || '';
