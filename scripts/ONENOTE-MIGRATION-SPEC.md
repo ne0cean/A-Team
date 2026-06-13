@@ -12,11 +12,32 @@
 
 ## 문서 유형별 렌더링 전략
 
-| 조건 | 렌더링 방식 | 템플릿 |
-|------|------------|--------|
-| `<body data-absolute-enabled="true">` | Board mode (인터랙티브) | `board-template.html` |
-| 일반 HTML (.onenote.html 존재) | onenote passthrough | 인라인 HTML |
-| 일반 Markdown (.md) | Block 추출 | 인라인 HTML |
+### 소스 우선순위
+
+같은 .md 파일에 `.onenote.html`(Graph API raw HTML)이 존재하면 **항상 onenote.html 사용**. .md 본문은 무시.
+
+### 3-Type 아키텍처 (detectPageType)
+
+| Type | 조건 | 렌더링 방식 | 진입점 |
+|------|------|------------|--------|
+| **A — visionboard** | `data-absolute-enabled="true"` + `<table>` 안에 `<img>` | Board mode (interactive) + 테이블 이미지 컬럼 추출 | `extractTableImageCards()` → `board-template.html` |
+| **B — twilight** | `data-absolute-enabled="true"` + 이미지 테이블 없음 | Board mode (interactive) + flow 기반 파싱 | `extractBoardCards()` → `board-template.html` |
+| **C — doc** | `data-absolute-enabled` 없음 OR `docMode: true` | Linear doc (absolute 포지셔닝 제거) | 인라인 HTML 템플릿 |
+
+### docMode 강제 오버라이드
+
+`SECTION_MAP`에서 `docMode: true` 설정 시 HTML 내용과 무관하게 Type C (doc)로 강제 처리.
+
+```js
+// SECTION_MAP 예시
+{ src: '3_Archive/skill', dst: 'archive/skill', docMode: true }
+```
+
+**docMode 적용 기준**: `data-absolute-enabled` 페이지지만 보드로 쓰지 않고 문서로 읽는 섹션.
+
+### Markdown 전용 경로 (onenote.html 없을 때)
+
+`.onenote.html` 없을 때만 사용. `extractBlocks()` → text/image/table 카드 → `generateHtml()` 인라인 HTML.
 
 ---
 
@@ -172,4 +193,4 @@ node scripts/verify-ui.mjs "http://localhost:7700/cortex/2/zeroing/Twilight%20Mo
 ---
 
 **Created**: 2026-06-08
-**Last updated**: 2026-06-08 (표 포함 div → html 카드 보존; OneNote 좌표 있으면 autoLayout 스킵; renderCards html 타입 추가; 이미지 앞 텍스트 소실 방지 firstImgBefore; html 카드 td dblclick 편집)
+**Last updated**: 2026-06-13 (3-type 아키텍처 A/B/C + detectPageType + docMode 강제 오버라이드 + 소스 우선순위 반영)
