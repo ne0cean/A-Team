@@ -37,5 +37,5 @@ FILES_MODIFIED: 5
 TESTS_STATUS: MANUAL_VERIFIED
 WORK_TYPE: dispatch
 RECOMMENDATION: 나머지 태스크 모두 대화형 인증/사용자 결정 필요. 추가 자율 실행 불가.
-LAST_CHECKED: 2026-06-13 (auto-resume 3 — no new work, all tasks deferred)
+LAST_CHECKED: 2026-06-13 (auto-resume 5 — no new work, all tasks deferred)
 ---END---
