@@ -1016,7 +1016,9 @@ async function toggleItem(d, cat, idx, itemText) {
     const _nextDayData = ensureDay(_nextD);
     for (const _c of CATS) {
       if (getDayCatType(_nextD, _nextDayData, _c) === 'todo') {
-        getCatItemsForRender(_nextD, _nextDayData, _c);
+        // d+1 is always the current month — pass owner/persist explicitly (don't rely
+        // on defaults) so the cross-month-safe contract is visible at every call site.
+        getCatItemsForRender(_nextD, _nextDayData, _c, monthData.days, true);
       }
     }
     if (_pendingCarrySave) { _pendingCarrySave = false; save(); }
