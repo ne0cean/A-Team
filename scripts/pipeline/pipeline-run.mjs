@@ -165,11 +165,11 @@ function recordToCortex(m) {
     lesson: `캠페인 '${m.title}' 9단계 dry-run 완주. 터치포인트 2회. 총 ${m.history.length} 전이.`,
     keywords: m.title.toLowerCase().split(/\s+/),
   }) + '\n');
-  // 2) gap-priority --write 호출 (gaps.md 영속화). 실패해도 계속.
-  if (!flags.root) {
-    const r = spawnSync('node', ['scripts/gap-priority.mjs', '--write'], { cwd: REPO_ROOT, stdio: 'ignore' });
-    if (r.status !== 0) console.warn('warn: gap-priority --write 실패 (무시)');
-  }
+  // 2) 자율 학습 루프 1사이클 트리거 (캠페인 완주 = 학습 1사이클).
+  //    loop-closer가 gap-priority --write + friction 에스컬레이션 + coverage 제안 수행.
+  const rootArg = flags.root ? `--root=${ROOT}` : '';
+  const r = spawnSync('npx', ['tsx', 'scripts/loop-closer.mjs', '--trigger=campaign', rootArg].filter(Boolean), { cwd: REPO_ROOT, stdio: 'ignore' });
+  if (r.status !== 0) console.warn('warn: loop-closer 실패 (무시)');
   logEvent({ event: 'campaign_complete', campaign: m.slug, transitions: m.history.length });
 }
 

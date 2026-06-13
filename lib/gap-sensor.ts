@@ -1,5 +1,9 @@
 import { appendFileSync, mkdirSync, readFileSync } from 'fs';
 import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM-safe __dirname (tsx 직접 실행 시 __dirname 미정의 — vitest는 자체 transform으로 가림)
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export interface FrictionEntry {
   ts: string;
