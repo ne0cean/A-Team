@@ -9,6 +9,8 @@ import https from 'https';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
+import { extractMonthForRestore, isRestorePayloadSafe } from './worker/src/restorePlan.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BACKUP_DIR = path.join(__dirname, 'backups');
@@ -257,11 +259,110 @@ async function restoreDay(backupDate, day, cat, apply = false) {
   }
 }
 
+/**
+ * Restore a single month cleanly from a backup snapshot.
+ *
+ * Uses delete-first strategy to bypass mergeMonthData — ensures no corrupt
+ * existing data can bleed back into the restored month.
+ *
+ * Steps (--apply only):
+ *   1. Auto-backup current D1 state
+ *   2. DELETE the ym key from D1 via wrangler
+ *   3. POST the clean month data (no existing row → no merge)
+ *   4. GET the written month and verify .month === ym and no corrupted backlog
+ *
+ * @param {string} backupDate - Date string of the snapshot file, e.g. "2026-06-13"
+ * @param {string} ym         - Month key to restore, e.g. "2026-07"
+ * @param {boolean} apply     - If false, dry-run only
+ */
+async function restoreMonth(backupDate, ym, apply = false) {
+  const file = path.join(BACKUP_DIR, `${backupDate}.json`);
+  if (!fs.existsSync(file)) {
+    console.error(`백업 없음: ${file}`);
+    console.log('사용 가능한 백업:', fs.readdirSync(BACKUP_DIR).filter(f => f.endsWith('.json')).join(', '));
+    process.exit(1);
+  }
+
+  const snapshot = JSON.parse(fs.readFileSync(file, 'utf8'));
+  console.log(`백업 날짜: ${snapshot.date} (${snapshot.timestamp})`);
+
+  // Extract and validate using pure restorePlan logic
+  let monthData;
+  try {
+    monthData = extractMonthForRestore(snapshot, ym);
+  } catch (e) {
+    console.error(`[오류] ${e.message}`);
+    process.exit(1);
+  }
+
+  const safe = isRestorePayloadSafe(monthData, ym);
+  const dayCount = Object.keys(monthData.days || {}).length;
+
+  console.log(`복구 대상: ${ym}`);
+  console.log(`  .month 필드: ${monthData.month}`);
+  console.log(`  days 수: ${dayCount}`);
+  console.log(`  안전 검증: ${safe ? 'PASS' : 'FAIL'}`);
+
+  if (!safe) {
+    console.error(`[중단] 안전 검증 실패 — days가 올바른 객체가 아니거나 .month 불일치`);
+    process.exit(1);
+  }
+
+  if (!apply) {
+    console.log('\n[dry-run] 실제 복구하려면 --apply 플래그를 추가하세요.');
+    console.log(`예: node backup-d1.mjs --restore-month ${backupDate} ${ym} --apply`);
+    return;
+  }
+
+  // 1. Auto-backup current state
+  console.log('\n[apply] Step 1: 현재 상태 백업 중...');
+  await backup();
+
+  // 2. DELETE the key from D1 (bypasses merge on subsequent POST)
+  console.log(`\n[apply] Step 2: D1에서 키 "${ym}" 삭제 중...`);
+  try {
+    execSync(
+      `wrangler d1 execute cortex-ritual-db --remote --command "DELETE FROM ritual_data WHERE key='${ym}'"`,
+      { cwd: path.join(__dirname, 'worker'), stdio: 'inherit' }
+    );
+    console.log(`  ✓ "${ym}" 삭제 완료`);
+  } catch (e) {
+    console.error(`  ✗ 삭제 실패: ${e.message}`);
+    process.exit(1);
+  }
+
+  // 3. POST clean month data (no existing row → no mergeMonthData called)
+  console.log(`\n[apply] Step 3: 깨끗한 ${ym} 데이터 POST 중...`);
+  const res = await apiPost(`${API}/api/month`, { ym, data: monthData });
+  if (!(res.status === 200 && res.body?.ok)) {
+    console.error(`  ✗ POST 실패: status=${res.status} body=${JSON.stringify(res.body)}`);
+    process.exit(1);
+  }
+  console.log(`  ✓ POST 성공`);
+
+  // 4. Verify: GET and check .month === ym
+  console.log(`\n[apply] Step 4: 복원 검증 중...`);
+  const written = await apiFetch(`${API}/api/month?ym=${ym}`);
+
+  if (written.month !== ym) {
+    console.error(`  ✗ 검증 실패: 반환된 .month="${written.month}" (기대값: "${ym}")`);
+    process.exit(1);
+  }
+
+  const writtenDays = Object.keys(written.days || {}).length;
+  console.log(`  ✓ .month === "${ym}" 확인`);
+  console.log(`  ✓ days: ${writtenDays}개`);
+  console.log(`\n[완료] ${ym} 깨끗한 복원 성공 (delete-first, merge 우회)`);
+}
+
 // CLI
 const args = process.argv.slice(2);
 const applyFlag = args.includes('--apply');
 
-if (args[0] === '--restore' && args[1]) {
+if (args[0] === '--restore-month' && args[1] && args[2]) {
+  // --restore-month <backupDate> <ym> [--apply]
+  restoreMonth(args[1], args[2], applyFlag).catch(console.error);
+} else if (args[0] === '--restore' && args[1]) {
   restore(args[1], applyFlag).catch(console.error);
 } else if (args[0] === '--restore-day' && args[1] && args[2]) {
   restoreDay(args[1], args[2], args[3] !== '--apply' ? args[3] : undefined, applyFlag).catch(console.error);

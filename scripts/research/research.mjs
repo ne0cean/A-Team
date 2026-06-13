@@ -51,8 +51,7 @@ if (!dryRun && root === REPO_ROOT) {
 
 // --- lib import ---
 const { runResearch } = await import(pathToFileURL(path.join(REPO_ROOT, 'lib', 'research-gateway.ts')).href);
-const { parseMemoryJsonl, rankRecall, serializeDeposit } =
-  await import(pathToFileURL(path.join(REPO_ROOT, 'lib', 'research-memory.ts')).href);
+const { createGatewayIO } = await import(pathToFileURL(path.join(REPO_ROOT, 'lib', 'research-io.ts')).href);
 
 // --- 경로 ---
 const researchDir = path.join(root, '.context', 'research');
