@@ -136,3 +136,48 @@ export function sourcesOf(hits: SearchHit[]): string[] {
 export function isDuplicate(existing: Deposit[], candidate: Deposit): boolean {
   return existing.some(d => d.hash === candidate.hash);
 }
+
+const RANK_RE = /[a-z0-9]{2,}|[가-힣]{2,}/g;
+function rankTokens(s: string): string[] {
+  return (s.toLowerCase().match(RANK_RE) ?? []);
+}
+
+/** 적립된 Deposit[]에서 질의와 토큰 겹침으로 회상(L3 recall 코어). */
+export function rankRecall(deposits: Deposit[], queryText: string, k: number): RecallHit[] {
+  const q = new Set(rankTokens(queryText));
+  if (q.size === 0) return [];
+  return deposits
+    .map(d => {
+      const toks = rankTokens(`${d.query} ${d.entities.join(' ')}`);
+      const seen = new Set<string>();
+      let hit = 0;
+      for (const t of toks) if (q.has(t) && !seen.has(t)) { hit++; seen.add(t); }
+      return { d, s: hit };
+    })
+    .filter(x => x.s > 0)
+    .sort((a, b) => b.s - a.s)
+    .slice(0, k)
+    .map(({ d }): RecallHit => ({
+      query: d.query, reformulated: d.reformulated, summary: d.summary,
+      entities: d.entities, sources: d.sources, ts: d.ts,
+    }));
+}
+
+/** JSONL 텍스트 → Deposit[] (깨진 줄은 건너뜀). 로컬 메모리 파일 파서. */
+export function parseMemoryJsonl(text: string): Deposit[] {
+  const out: Deposit[] = [];
+  for (const line of text.split('\n')) {
+    const t = line.trim();
+    if (!t) continue;
+    try {
+      const o = JSON.parse(t);
+      if (o && typeof o.query === 'string' && typeof o.hash === 'string') out.push(o as Deposit);
+    } catch { /* 깨진 줄 무시 */ }
+  }
+  return out;
+}
+
+/** Deposit → JSONL 한 줄 */
+export function serializeDeposit(d: Deposit): string {
+  return JSON.stringify(d);
+}

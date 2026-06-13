@@ -9,7 +9,7 @@
 
 import type { SearchHit } from './exa.js';
 import {
-  buildContextBundle, extractDeposit, sourcesOf,
+  buildContextBundle, extractDeposit, sourcesOf, rankRecall,
   type RecallHit, type CortexHit, type Deposit,
 } from './research-memory.js';
 import { reformulateQuery, buildSynthesisGrounding, selectSalientContext } from './personalize.js';
@@ -104,29 +104,10 @@ export function inMemoryIO(seed: {
   let nowIdx = 0;
   const nowSeq = seed.nowSeq ?? [];
 
-  function tokenScore(a: string, b: string): number {
-    const ta = new Set((a.toLowerCase().match(/[a-z0-9]{2,}|[가-힣]{2,}/g) ?? []));
-    const tb = (b.toLowerCase().match(/[a-z0-9]{2,}|[가-힣]{2,}/g) ?? []);
-    if (ta.size === 0) return 0;
-    let hit = 0; const seen = new Set<string>();
-    for (const t of tb) if (ta.has(t) && !seen.has(t)) { hit++; seen.add(t); }
-    return hit;
-  }
-
   return {
     store,
     async loadProfile() { return seed.profile ?? []; },
-    async recall(queryText, k) {
-      return store
-        .map(d => ({ d, s: tokenScore(queryText, `${d.query} ${d.entities.join(' ')}`) }))
-        .filter(x => x.s > 0)
-        .sort((a, b) => b.s - a.s)
-        .slice(0, k)
-        .map(({ d }): RecallHit => ({
-          query: d.query, reformulated: d.reformulated, summary: d.summary,
-          entities: d.entities, sources: d.sources, ts: d.ts,
-        }));
-    },
+    async recall(queryText, k) { return rankRecall(store, queryText, k); },
     async cortexSearch() { return []; },
     async webSearch(query) {
       return seed.webResults

@@ -5,6 +5,7 @@
 
 import { mergeMonthData } from './merge.js';
 import { cascadeFrameDone, cascadeFrameDelete } from './cascade.js';
+import { isCrossMonthClobber } from './monthGuard.js';
 
 export default {
   async fetch(request, env) {
@@ -116,6 +117,12 @@ export default {
         const { ym, data } = await request.json();
         if (!validYm(ym) || !data || typeof data !== 'object') {
           return new Response(JSON.stringify({ error: 'invalid month payload' }), { status: 400, headers });
+        }
+        // Safety: reject cross-month clobber. data.month carries which month the
+        // payload actually belongs to; if it disagrees with the target key, a client
+        // desync (week-boundary nav) is about to clone one month over another.
+        if (isCrossMonthClobber(data.month, ym)) {
+          return new Response(JSON.stringify({ error: `blocked: month mismatch (data=${data.month}, key=${ym})` }), { status: 409, headers });
         }
         // Safety: don't save empty data over existing
         const existing = await getKey(ym);

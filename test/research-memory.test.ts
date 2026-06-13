@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   hashContent, extractEntities, buildContextBundle, extractDeposit,
-  sourcesOf, isDuplicate, type RecallHit, type CortexHit, type Deposit,
+  sourcesOf, isDuplicate, rankRecall, parseMemoryJsonl, serializeDeposit,
+  type RecallHit, type CortexHit, type Deposit,
 } from '../lib/research-memory.js';
 
 const TS = '2026-06-13T00:00:00.000Z';
@@ -115,5 +116,55 @@ describe('isDuplicate (복리 dedup)', () => {
 
   it('빈 기존 목록이면 비중복', () => {
     expect(isDuplicate([], base)).toBe(false);
+  });
+});
+
+describe('rankRecall (L3 회상 코어)', () => {
+  const deposits: Deposit[] = [
+    extractDeposit({ query: 'Cloudflare D1 검색', reformulated: '', answer: 'D1 FTS5', sources: ['https://a'] }, TS),
+    extractDeposit({ query: '운동 루틴 스쿼트', reformulated: '', answer: '주3회', sources: ['https://b'] }, TS),
+  ];
+
+  it('질의와 겹치는 적립만 회상, 점수순', () => {
+    const hits = rankRecall(deposits, 'D1 검색 인덱스', 5);
+    expect(hits).toHaveLength(1);
+    expect(hits[0].query).toBe('Cloudflare D1 검색');
+  });
+
+  it('무관 질의는 빈 회상', () => {
+    expect(rankRecall(deposits, '전혀다른키워드xyz', 5)).toEqual([]);
+  });
+
+  it('빈 질의는 빈 회상', () => {
+    expect(rankRecall(deposits, '', 5)).toEqual([]);
+  });
+
+  it('k 상한 적용', () => {
+    const many = ['D1 a', 'D1 b', 'D1 c'].map(q => extractDeposit({ query: q, reformulated: '', answer: '', sources: [] }, TS));
+    expect(rankRecall(many, 'D1', 2)).toHaveLength(2);
+  });
+});
+
+describe('parseMemoryJsonl / serializeDeposit (로컬 메모리 파일)', () => {
+  const d = extractDeposit({ query: 'Q', reformulated: 'R', answer: 'A', sources: ['https://x'] }, TS);
+
+  it('round-trip: serialize → parse 복원', () => {
+    const text = serializeDeposit(d) + '\n' + serializeDeposit(d);
+    const parsed = parseMemoryJsonl(text);
+    expect(parsed).toHaveLength(2);
+    expect(parsed[0].query).toBe('Q');
+    expect(parsed[0].hash).toBe(d.hash);
+  });
+
+  it('빈 줄·깨진 JSON 줄은 건너뜀', () => {
+    const text = `${serializeDeposit(d)}\n\n{깨진 json\n{"foo":"bar"}\n`;
+    const parsed = parseMemoryJsonl(text);
+    // 정상 1개만 (깨진 줄, query/hash 없는 객체 제외)
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].query).toBe('Q');
+  });
+
+  it('빈 텍스트는 빈 배열', () => {
+    expect(parseMemoryJsonl('')).toEqual([]);
   });
 });

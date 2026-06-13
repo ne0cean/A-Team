@@ -46,7 +46,9 @@ export type EventType =
   | 'run_start'
   | 'run_end'
   | 'task_checkout'
-  | 'task_release';
+  | 'task_release'
+  // Cortex Research Gateway
+  | 'research_query';
 
 export interface AnalyticsEvent {
   skill: string;

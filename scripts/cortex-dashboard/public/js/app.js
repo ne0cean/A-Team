@@ -978,6 +978,15 @@ async function save() {
     console.warn('save() blocked: empty');
     return;
   }
+  // Guard: prevent cross-month clobber. During week-boundary navigation,
+  // syncMonthFromWeek() advances currentMonth synchronously while loadMonth()
+  // swaps monthData only after an async fetch. A save() in that window would
+  // persist the OLD month's monthData under the NEW month's key (full clone).
+  // monthData.month is the SSOT of which month this data belongs to.
+  if (monthData.month && monthData.month !== ym()) {
+    console.warn(`save() blocked: month mismatch (data=${monthData.month}, key=${ym()})`);
+    return;
+  }
   try {
     // workout은 workout-log 독립 저장소에서 관리 — month 데이터에서 제거
     const safeData = { ...monthData, days: {} };
