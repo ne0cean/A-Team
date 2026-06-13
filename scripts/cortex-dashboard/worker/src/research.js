@@ -12,7 +12,37 @@
 
 const EMBED_MODEL = '@cf/baai/bge-m3';
 const LLM_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+const RERANK_MODEL = '@cf/baai/bge-reranker-base';
 const MIN_SCORE = 0.5;
+
+/**
+ * 리랭킹(정리): Exa 결과를 질의 관련도로 재정렬해 상위 N개만 합성에 넘긴다.
+ * 실패하면 원본 순서 그대로 topN — graceful 폴백.
+ */
+async function rerankHits(env, query, hits, topN) {
+  if (hits.length <= 1) return hits.slice(0, topN);
+  try {
+    const contexts = hits.map(h => ({ text: clean(`${h.title}. ${h.text || ''}`).slice(0, 1500) }));
+    const res = await env.AI.run(RERANK_MODEL, { query, contexts });
+    const scored = res?.response;
+    if (!Array.isArray(scored) || scored.length === 0) return hits.slice(0, topN);
+    const order = [...scored]
+      .filter(s => typeof s.id === 'number' && typeof s.score === 'number')
+      .sort((a, b) => b.score - a.score);
+    const out = [];
+    const seen = new Set();
+    for (const s of order) {
+      if (s.id < 0 || s.id >= hits.length || seen.has(s.id)) continue;
+      seen.add(s.id);
+      out.push({ ...hits[s.id], rerankScore: s.score });
+      if (out.length >= topN) break;
+    }
+    return out.length ? out : hits.slice(0, topN);
+  } catch (e) {
+    console.error('rerank:', e?.message);
+    return hits.slice(0, topN);
+  }
+}
 
 /** 제어문자·HTML엔티티·과도공백 제거 — LLM 입력 안전화(3043 internal error 방지) */
 function clean(s) {
@@ -127,7 +157,7 @@ export async function handleResearch(request, env, headers) {
     const er = await fetch('https://api.exa.ai/search', {
       method: 'POST',
       headers: { 'x-api-key': env.EXA_API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: reformulated, numResults: 8, type: 'auto', contents: { text: { maxCharacters: 6000 } } }),
+      body: JSON.stringify({ query: reformulated, numResults: 12, type: 'auto', contents: { text: { maxCharacters: 6000 } } }),
     });
     if (!er.ok) {
       const d = await er.text();
@@ -142,10 +172,13 @@ export async function handleResearch(request, env, headers) {
     return new Response(JSON.stringify({ error: 'Exa fetch failed', detail: e?.message }), { status: 502, headers });
   }
 
-  // ④ L2 개인화 합성 (Workers AI LLM). 입력 과대 시 3043 internal error → 축소 + 1회 재시도.
+  // ④ 리랭킹(정리): 12개 후보 → 관련도순 상위 5개만 합성에 투입
+  const ranked = await rerankHits(env, query, hits, 5);
+
+  // ⑤ L2 개인화 합성 (Workers AI LLM). 입력 과대 시 3043 internal error → 축소 + 1회 재시도.
   let answer = '';
   const synth = async (perHit, n) => {
-    const ctx = hits.slice(0, n).map((h, i) => `[${i + 1}] ${clean(h.title)} (${h.url})\n${clean(h.text).slice(0, perHit)}`).join('\n\n');
+    const ctx = ranked.slice(0, n).map((h, i) => `[${i + 1}] ${clean(h.title)} (${h.url})\n${clean(h.text).slice(0, perHit)}`).join('\n\n');
     const llm = await env.AI.run(LLM_MODEL, {
       messages: [
         { role: 'system', content: grounding },
@@ -161,10 +194,10 @@ export async function handleResearch(request, env, headers) {
     try { answer = await synth(350, 4); }   // 축소 재시도(한국어 풀텍스트 토큰 과다 대비)
     catch (e2) { console.error('llm try2:', e2?.message); }
   }
-  if (!answer) answer = hits.slice(0, 5).map((h, i) => `[${i + 1}] ${h.title}\n${h.url}`).join('\n\n');
+  if (!answer) answer = ranked.slice(0, 5).map((h, i) => `[${i + 1}] ${h.title}\n${h.url}`).join('\n\n');
 
-  // ⑤ L3 deposit (복리 적립): D1 + Vectorize
-  const sources = [...new Set(hits.map(h => h.url).filter(Boolean))];
+  // ⑥ L3 deposit (복리 적립): D1 + Vectorize
+  const sources = [...new Set(ranked.map(h => h.url).filter(Boolean))];
   const hash = djb2(`${query.toLowerCase()}|${sources.slice().sort().join(',')}`);
   const entities = extractEntities(`${query} ${answer}`);
   const summary = answer.length > 1000 ? answer.slice(0, 1000) + '…' : answer;
@@ -180,7 +213,7 @@ export async function handleResearch(request, env, headers) {
   } catch (e) { console.error('vectorize upsert:', e?.message); }
 
   return new Response(JSON.stringify({
-    query, reformulated, answer, sources: hits.map(h => ({ url: h.url, title: h.title })),
+    query, reformulated, answer, sources: ranked.map(h => ({ url: h.url, title: h.title, rerankScore: h.rerankScore })),
     contextUsed: { priorFindings: priorFindings.length, cortexDocs: cortexDocs.length, profile: PROFILE.length },
     deposited: true,
   }), { headers });
