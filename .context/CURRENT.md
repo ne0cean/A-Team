@@ -70,5 +70,5 @@
 - [ ] **Connectome 수렴 파이프라인 S2 진행** — 옵션 번들 구성. 플레이북: `~/Projects/connectome/.context/convergence-plan.md` (S1 연결 분석 완료 2026-06-13, idea-graph.md 생성됨. 빌드는 S4 창업자 결정 + S5 검증 통과 후)
 
 ### Medium Priority
-- [ ] **verify-data.mjs 자동 호출** — wrangler deploy 후 자동 실행
+- [x] **verify-data.mjs 자동 호출** — `scripts/cortex-dashboard/deploy.sh` 생성 완료 (2026-06-13)
 - [ ] **A-Team OKR 설정** — `/okr`로 6개월 목표 설정

@@ -3,7 +3,7 @@ mode: normal
 status: deferred
 created: 2026-06-13T00:00:00+0900
 task: auto-resume — AI핸즈온 TUE→THU + SQLite 실시간 연결
-last_checked: 2026-06-13 (auto-resume 6 — no new work, all tasks deferred)
+last_checked: 2026-06-13 (auto-resume 8 — no new autonomous work, all tasks deferred)
 ---
 
 # RESUME — 세션 자동 저장 (auto-save-on-stop)
@@ -38,5 +38,5 @@ FILES_MODIFIED: 5
 TESTS_STATUS: MANUAL_VERIFIED
 WORK_TYPE: dispatch
 RECOMMENDATION: 나머지 태스크 모두 대화형 인증/사용자 결정 필요. 추가 자율 실행 불가.
-LAST_CHECKED: 2026-06-13 (auto-resume 7 — knowledge-gardener 3건 적용 후 deferred)
+LAST_CHECKED: 2026-06-13 (auto-resume 8 — 신규 자율 실행 가능 태스크 없음. CURRENT.md verify-data 완료 표시)
 ---END---
