@@ -8,6 +8,9 @@
 - [ ] **체크 날아간다는 신고**: 코드 보기 전에 `GET /api/month`로 실제 done 상태 먼저 확인
 - [ ] 자격증명 확인 순서: 작업 전 `.env.*` / `cortex/.onenote-token.json` 먼저 grep — 사용자에게 발급 요청 전 필수
 - [ ] 파레트 Worker 수정 시 `merge.js` 먼저 확인 — done:true 보존 로직, _unchecked 플래그 이해 후 수정
+- [ ] **mjs↔lib/*.ts 결합 검증**: vitest 통과 ≠ 런타임 안전. 반드시 `npx tsx`로 실제 CLI 1회 spawn. lib top-level `__dirname`은 `dirname(fileURLToPath(import.meta.url))` 확인 ([[lesson_esm_dirname_tsx_import]])
+- [ ] **knowledge-gardener 첫 실행**: loop-closer가 만든 `.context/loop/gardener-queue.md` + coverage 제안 21건 검토 (capability-map 적용은 \|Δ\|≤0.1만)
+- [ ] **파이프라인 실측 누적**: 캠페인을 실 root에서 돌려 `pipeline_stage` 이벤트 쌓아야 benchmark-gap이 N>0 (현재 전 단계 no-data)
 
 ## Status
 글로벌 AI 개발 툴킷. 독립 레포로 관리되며 모든 프로젝트에서 참조.
