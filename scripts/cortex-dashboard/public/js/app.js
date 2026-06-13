@@ -552,7 +552,12 @@ function getDayCatType(d, dayData, cat) {
 
 // Routine → live from template (done states in _rdone_${cat})
 // Todo   → stored per-day in dayData[cat]
-function getCatItemsForRender(d, dayData, cat) {
+// owner: the `days` object that owns this cell (monthData.days for current month,
+//   prev/nextMonthData.days for adjacent-month cells in week view).
+// persist: write carry mutations back. TRUE only for the current month — app.js
+//   only POSTs the current monthData, so adjacent cells render carry for display
+//   but must NEVER be written (writing them cloned one month onto another).
+function getCatItemsForRender(d, dayData, cat, owner = monthData.days, persist = true) {
   if (!framesData) return dayData[cat] || [];
   const ft = getFrameTypeForDay(d, dayData);
   const catMeta = framesData[ft]?.categories?.[cat];
@@ -561,82 +566,35 @@ function getCatItemsForRender(d, dayData, cat) {
   if (catType === 'todo') {
     const today = new Date().getDate();
     const templateItems = catMeta?.items || [];
-    const normText = t => (t || '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
-    // Carry undone items from prev day (all todo categories, including template-path days)
-    if (d >= today) {
-      const prevDay = monthData.days?.[String(d - 1)];
-      if (prevDay) {
-        const prevDow = new Date(currentYear, currentMonth - 1, d - 1).getDay();
-        const prevFt = prevDay.day_type || (prevDow === 0 ? 'block' : prevDow === 6 ? 'flow' : 'weekday');
-        const prevFrameTexts = new Set((framesData?.[prevFt]?.categories?.[cat]?.items || []).map(ti => normText(typeof ti === 'object' ? ti.text : String(ti))));
-        const rejectKey = `_carry_rejects_${cat}`;
-        const rejected = new Set((dayData[rejectKey] || []).map(normText));
-        // Remove stale _carried items: (1) source is done in prevDay, (2) source not in prevDay at all (orphan)
-        // A _carried item is valid only when prevDay has it as undone.
-        const prevUndoneTexts = new Set(
-          (prevDay[cat] || []).filter(i => !i.done && !i._frame).map(i => normText(i.text))
-        );
-        {
-          const currentItems = dayData[cat] || [];
-          const hasStale = currentItems.some(i => i._carried && !prevUndoneTexts.has(normText(i.text)));
-          if (hasStale) {
-            ensureDay(d)[cat] = currentItems.filter(i => !i._carried || prevUndoneTexts.has(normText(i.text)));
-            _pendingCarrySave = true;
-          }
-        }
-        const prevUndone = (prevDay[cat] || []).filter(i =>
-          !i.done && !i._frame && !prevFrameTexts.has(normText(i.text)) && !rejected.has(normText(i.text))
-        );
-        if (prevUndone.length > 0) {
-          const existingTexts = new Set((dayData[cat] || []).map(i => normText(i.text)));
-          const newCarried = prevUndone.filter(i => !existingTexts.has(normText(i.text)));
-          if (newCarried.length > 0) {
-            const toAdd = newCarried.map(i => ({ text: i.text, url: i.url || '', done: false, _carried: true }));
-            const existing = (dayData[cat] || []).filter(i => !i._frame);
-            ensureDay(d)[cat] = [...existing, ...toAdd];
-            _pendingCarrySave = true;
-          }
-        }
-      }
+    // Resolve previous day from the OWNER month only — never cross-month.
+    // d=1 → owner['0'] is undefined → null → no carry (faithful to original).
+    const prevDay = owner[String(d - 1)] || null;
+    let prevTemplateItems = [];
+    if (prevDay) {
+      const prevDow = new Date(currentYear, currentMonth - 1, d - 1).getDay();
+      const prevFt = prevDay.day_type || (prevDow === 0 ? 'block' : prevDow === 6 ? 'flow' : 'weekday');
+      prevTemplateItems = framesData?.[prevFt]?.categories?.[cat]?.items || [];
     }
 
-    // Re-read after potential carry modification — deduplicate stored items first
-    const _rawItems = (ensureDay(d)[cat] || []).filter(i => !i._frame);
-    const _seenTexts = new Set();
-    const _dedupedItems = _rawItems.filter(i => {
-      const k = normText(i.text);
-      if (!k) return false; // drop empty-text items
-      if (_seenTexts.has(k)) return false; // drop duplicates (keep first occurrence)
-      _seenTexts.add(k);
-      return true;
+    // Pure carry/dedup/merge — no side effects (see worker/src/carry.js).
+    const { itemsToRender, nextDayItems, changed } = computeCarry({
+      dayItems: dayData[cat] || [],
+      prevDayItems: prevDay ? (prevDay[cat] || []) : null,
+      templateItems,
+      prevTemplateItems,
+      rejects: dayData[`_carry_rejects_${cat}`] || [],
+      shouldCarry: d >= today,
     });
-    if (_dedupedItems.length !== _rawItems.length) {
-      ensureDay(d)[cat] = _dedupedItems;
+
+    // Persist ONLY into the current month. ensureDay() targets monthData; persist is
+    // true only when owner === monthData.days, so adjacent cells are never written.
+    if (changed && persist) {
+      ensureDay(d)[cat] = nextDayItems;
       _pendingCarrySave = true;
     }
 
-    const stored = (ensureDay(d)[cat] || []).filter(i => !i._frame && !i._carried);
-    const storedTexts = new Set(stored.map(i => normText(i.text)));
-    let carriedItems = (ensureDay(d)[cat] || []).filter(i => i._carried);
-
-    if (!templateItems.length) {
-      return [...stored, ...carriedItems];
-    }
-
-    // Merge: manual + carried (not in template) first, then template items
-    const templateTexts = new Set(templateItems.map(ti => normText(typeof ti === 'object' ? (ti.text || '') : String(ti))));
-    const storedByText = new Map(stored.map(i => [i.text, i]));
-    const templateResult = templateItems.map(ti => {
-      if (typeof ti === 'object' && ti.type === 'separator') return { ...ti, _frame: true };
-      const base = typeof ti === 'object' ? { text: ti.text || '', url: ti.url || '' } : { text: String(ti), url: '' };
-      const s = storedByText.get(base.text);
-      if (s) storedByText.delete(base.text);
-      return { ...base, done: s ? s.done : false, url: s?.url || base.url, _frame: true };
-    });
-    const manualOnly = [...storedByText.values()];
-    const carriedNotInTemplate = carriedItems.filter(i => !templateTexts.has(normText(i.text)));
-    return [...manualOnly, ...carriedNotInTemplate, ...templateResult];
+    return itemsToRender;
   }
 
   // Routine: live from template
@@ -674,7 +632,11 @@ function renderDayCell(d, isToday, isWeek, isCurrent) {
 }
 
 function renderDayCellContent(d, isToday, isWeek, isCurrent) {
-  const dayData = getDayData(d, isCurrent !== false);
+  const _isCur = isCurrent !== false;
+  const dayData = getDayData(d, _isCur);
+  // Carry owner = the month that owns this cell (mirrors getDayData's source).
+  // Adjacent-month cells render carry but never persist (persist=false).
+  const _carryOwner = _isCur ? monthData.days : (d > 15 ? (prevMonthData?.days || {}) : (nextMonthData?.days || {}));
   const dow = new Date(currentYear, currentMonth - 1, d).getDay();
   const dowClass = dow === 0 ? ' sun' : dow === 6 ? ' sat' : '';
 
@@ -739,7 +701,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   const _renderedCats = new Set();
 
   for (const cat of CATS) {
-    const items = getCatItemsForRender(d, dayData, cat);
+    const items = getCatItemsForRender(d, dayData, cat, _carryOwner, _isCur);
     const isFutureOrToday = isToday || new Date(currentYear, currentMonth - 1, d) >= new Date(new Date().toDateString());
     if (items.length === 0 && recArr.length === 0 && !isFutureOrToday) continue;
     if (items.length === 0 && cat !== 'outcome' && !isFutureOrToday) continue;
@@ -1120,7 +1082,8 @@ function openLinkPopupFromSpan(span, d, cat, idx) {
     const fi = framesData?.[ft]?.categories?.[cat]?.items?.[idx];
     if (fi && typeof fi === 'object') currentUrl = fi.url || '';
   } else {
-    const items = getCatItemsForRender(d, dayData, cat);
+    // Read-only context (link prefill) — never let it trigger a carry persist.
+    const items = getCatItemsForRender(d, dayData, cat, monthData.days, false);
     if (items[idx]) currentUrl = items[idx].url || '';
   }
   input.value = currentUrl;
