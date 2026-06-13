@@ -1,5 +1,11 @@
 # SESSIONS — A-Team 세션 로그
 
+## [2026-06-13] Cortex Palette carry/order 전면 수정
+
+**완료**: orphaned _carried 고아 항목 제거 (prevUndoneTexts 로직). D13/D14 carry 순서 D12 기준 완전 재정렬 (stored→_carried 변환). 레슨 K/L 추가 (carry ORDER 검증, D1 수정 후 브라우저 확인 의무).
+**이슈**: "누락 0 = 화면 동일" 오판 2회. ORDER 검증 없이 완료 선언.
+**빌드**: ✅
+
 ## [2026-06-13] /pmi + debrief + wiki 정리
 
 **완료**: /pmi 6-phase (Integration Map→Wiring→Trigger→Token→Validation→Docs Sync). html-preview/html-writer frontmatter 수정(582 PASS 복원). bash-variable-korean-bug.md wiki 28중복+인코딩오류 정리. MEMORY.md 레슨 2개 추가(macOS sed 2a\ 함정, wiki append 버그).
