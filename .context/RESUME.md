@@ -19,6 +19,7 @@ last_checked: 2026-06-13 (auto-resume 6 — no new work, all tasks deferred)
 
 ## 완료 (이번 세션 추가)
 - [x] **ONENOTE-MIGRATION-SPEC.md 갱신** — 3-type A/B/C + docMode 오버라이드 + 소스 우선순위 반영 (2026-06-13)
+- [x] **knowledge-gardener 실행** — capability-map usage-up 3건 적용: brand-guard 0.65→0.70, a11y-testing 0.70→0.75, session-management 0.75→0.80. stale-review 18건 보류. (2026-06-13 auto-resume 7)
 
 ## 미완료 Next Tasks (사용자 결정/외부 작업 필요)
 - [ ] **monthly_recurring 삭제 정상 동작** — 앱에서 직접 검증
@@ -37,5 +38,5 @@ FILES_MODIFIED: 5
 TESTS_STATUS: MANUAL_VERIFIED
 WORK_TYPE: dispatch
 RECOMMENDATION: 나머지 태스크 모두 대화형 인증/사용자 결정 필요. 추가 자율 실행 불가.
-LAST_CHECKED: 2026-06-13 (auto-resume 6 — no new work, all tasks deferred)
+LAST_CHECKED: 2026-06-13 (auto-resume 7 — knowledge-gardener 3건 적용 후 deferred)
 ---END---
