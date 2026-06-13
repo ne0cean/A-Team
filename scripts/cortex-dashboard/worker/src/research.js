@@ -11,7 +11,7 @@
  */
 
 const EMBED_MODEL = '@cf/baai/bge-m3';
-const LLM_MODEL = '@cf/meta/llama-3.1-8b-instruct';
+const LLM_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const MIN_SCORE = 0.5;
 
 function djb2(s) {
@@ -54,7 +54,10 @@ async function recall(env, query, qvec) {
 
   let cortexDocs = [];
   try {
-    const like = `%${query}%`;
+    // 긴 문장 통째 LIKE는 SQLITE "pattern too complex" → 가장 긴 키워드 1개로 단순화 + % _ 이스케이프
+    const kw = (query.split(/\s+/).filter(w => w.length >= 2).sort((a, b) => b.length - a.length)[0] || query.slice(0, 20))
+      .replace(/[%_]/g, '');
+    const like = `%${kw}%`;
     const rows = await env.DB.prepare(
       'SELECT title, body FROM cortex_search WHERE title LIKE ? OR body LIKE ? LIMIT 4'
     ).bind(like, like).all();
