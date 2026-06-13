@@ -38,5 +38,5 @@ FILES_MODIFIED: 5
 TESTS_STATUS: MANUAL_VERIFIED
 WORK_TYPE: dispatch
 RECOMMENDATION: 나머지 태스크 모두 대화형 인증/사용자 결정 필요. 추가 자율 실행 불가.
-LAST_CHECKED: 2026-06-13 (auto-resume 8 — 신규 자율 실행 가능 태스크 없음. CURRENT.md verify-data 완료 표시)
+LAST_CHECKED: 2026-06-13 (auto-resume 11 — 신규 자율 실행 가능 태스크 없음. 모든 Next Tasks 사용자 결정/외부 작업 필요)
 ---END---
