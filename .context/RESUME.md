@@ -3,7 +3,7 @@ mode: normal
 status: deferred
 created: 2026-06-13T00:00:00+0900
 task: auto-resume — AI핸즈온 TUE→THU + SQLite 실시간 연결
-last_checked: 2026-06-13 (auto-resume 8 — no new autonomous work, all tasks deferred)
+last_checked: 2026-06-13 (auto-resume 9 — no new autonomous work, all tasks deferred)
 ---
 
 # RESUME — 세션 자동 저장 (auto-save-on-stop)
