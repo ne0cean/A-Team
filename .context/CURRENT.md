@@ -62,7 +62,7 @@
 ### High Priority
 - [ ] **파레트 체크 브라우저 직접 검증** — mergeMonthData done:true 보존 배포됨. 체크 후 탭 이동 → 체크 유지 확인
 - [ ] **Vision Board 근접 캡션** — html 카드 proximity 기반 캡션 연결 (사용자 결정 필요)
-- [ ] **ONENOTE-MIGRATION-SPEC.md 갱신** — 3-type 아키텍처 + docMode 규칙 반영
+- [x] **ONENOTE-MIGRATION-SPEC.md 갱신** — 3-type 아키텍처 + docMode 규칙 반영 (2026-06-13)
 - [ ] **Confluence 역변환기 + daemon** — 안정화 후 구현 재개
 - [ ] **Connectome 수렴 파이프라인 S2 진행** — 옵션 번들 구성. 플레이북: `~/Projects/connectome/.context/convergence-plan.md` (S1 연결 분석 완료 2026-06-13, idea-graph.md 생성됨. 빌드는 S4 창업자 결정 + S5 검증 통과 후)
 
