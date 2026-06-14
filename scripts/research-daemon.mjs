@@ -23,7 +23,8 @@ const CONFIG = {
   idleThresholdMs: 10 * 60 * 1000,   // 10분
   pollIntervalMs: 60 * 1000,          // 60초마다 확인
   cycleCooldownMs: 25 * 60 * 1000,    // 유휴 재감지 간 쿨다운 (연속 사이클에는 미적용)
-  maxBudgetUsd: '0.50',               // 사이클당 최대 비용
+  model: process.env.RESEARCH_MODEL || 'sonnet', // 리서치=요약/검색 → sonnet (opus 불필요, ~5x 저렴). CLAUDE.md 모델 할당 규칙.
+  maxBudgetUsd: '0.50',               // 사이클당 최대 비용 (sonnet 기준 충분)
   budgetWarnRatio: 0.75,              // 75% 소진 시 경고
   cycleTimeoutMs: 15 * 60 * 1000,     // 사이클 최대 15분
   interCycleDelayMs: 2 * 60 * 1000,  // 연속 사이클 간 2분 대기
@@ -231,6 +232,7 @@ async function resumeCycle(activeCycle) {
       '--print',
       '--resume', sessionId,
       '--permission-mode', permMode,
+      '--model', CONFIG.model,
       '--max-budget-usd', CONFIG.maxBudgetUsd,
       '--verbose',
       '--output-format', 'stream-json',
