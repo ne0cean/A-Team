@@ -1113,24 +1113,25 @@ function openOneThingLinkPopup(event, d, owner = 'cur') {
 }
 
 let ctrlkTarget = null;
-function openLinkPopupFromSpan(span, d, cat, idx) {
+function openLinkPopupFromSpan(span, d, cat, idx, owner = 'cur') {
   // Ctrl+K: attach URL to item using the link popup (no prompt)
+  const _ctx = dayCtx(d, owner);
   const sel = window.getSelection();
   const selectedText = sel && sel.rangeCount ? sel.toString().trim() : '';
-  const dayData = monthData.days?.[String(d)] || {};
-  const catType = getDayCatType(d, dayData, cat);
-  ctrlkTarget = { d, cat, idx, catType, selectedText };
+  const dayData = (_ctx.data?.days?.[String(d)]) || {};
+  const catType = getDayCatType(d, dayData, cat, _ctx.year, _ctx.month);
+  ctrlkTarget = { d, cat, idx, catType, selectedText, owner };
   const popup = document.getElementById('linkPopup');
   const input = document.getElementById('linkUrl');
   // Prefill existing URL
   let currentUrl = '';
   if (catType === 'routine') {
-    const ft = getFrameTypeForDay(d, dayData);
+    const ft = getFrameTypeForDay(d, dayData, _ctx.year, _ctx.month);
     const fi = framesData?.[ft]?.categories?.[cat]?.items?.[idx];
     if (fi && typeof fi === 'object') currentUrl = fi.url || '';
   } else {
     // Read-only context (link prefill) — never let it trigger a carry persist.
-    const items = getCatItemsForRender(d, dayData, cat, monthData.days, false);
+    const items = getCatItemsForRender(d, dayData, cat, _ctx.data?.days || monthData.days, false, _ctx.year, _ctx.month);
     if (items[idx]) currentUrl = items[idx].url || '';
   }
   input.value = currentUrl;
@@ -1186,10 +1187,11 @@ async function saveLink() {
     return;
   }
   if (popup.dataset.mode === 'ctrlk' && ctrlkTarget) {
-    const { d, cat, idx, catType, selectedText } = ctrlkTarget;
+    const { d, cat, idx, catType, selectedText, owner = 'cur' } = ctrlkTarget;
+    const _ctx = dayCtx(d, owner);
     if (catType === 'routine') {
-      const dayData = monthData.days?.[String(d)] || {};
-      const ft = getFrameTypeForDay(d, dayData);
+      const dayData = (_ctx.data?.days?.[String(d)]) || {};
+      const ft = getFrameTypeForDay(d, dayData, _ctx.year, _ctx.month);
       const fItems = framesData?.[ft]?.categories?.[cat]?.items;
       if (fItems && idx < fItems.length) {
         if (typeof fItems[idx] !== 'object') fItems[idx] = { text: String(fItems[idx]), url: '' };
@@ -1198,9 +1200,10 @@ async function saveLink() {
       }
       saveFramesData(); renderFrames(); render();
     } else {
-      const item = ensureDay(d)[cat]?.[idx];
+      if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); closeLinkPopup(); return; }
+      const item = ensureDay(d, _ctx.data)[cat]?.[idx];
       if (item) { item.url = url; if (selectedText) item.text = selectedText; }
-      await save(); render();
+      await saveMonthData(_ctx.data); render();
     }
     closeLinkPopup();
     return;
@@ -1326,8 +1329,8 @@ async function editFrameItemFromCalendar(d, cat, idx, newText, owner = 'cur') {
   }
 
   // Todo: check if item is a _frame copy or manual
-  const item = ensureDay(d)[cat]?.[idx];
-  if (!item?._frame) { editItem(d, cat, idx, newText); return; }
+  const item = ensureDay(d, _ctx.data)[cat]?.[idx];
+  if (!item?._frame) { editItem(d, cat, idx, newText, owner); return; }
   const oldText = item.text;
   if (!newTrimmed || newTrimmed === oldText) return;
   const fItems = framesData?.[ft]?.categories?.[cat]?.items;
@@ -1337,11 +1340,12 @@ async function editFrameItemFromCalendar(d, cat, idx, newText, owner = 'cur') {
   if (typeof fItems[fi] === 'object') fItems[fi].text = newTrimmed;
   else fItems[fi] = newTrimmed;
   await saveFramesData();
-  const today = new Date().getDate();
-  const [y, m] = ym().split('-').map(Number);
-  const daysInMonth = new Date(y, m, 0).getDate();
+  // Re-inject the (global) template into the OWNER month. Current month starts at
+  // today; an adjacent month re-applies across the whole month.
+  const today = (owner === 'cur') ? new Date().getDate() : 1;
+  const daysInMonth = new Date(_ctx.year, _ctx.month, 0).getDate();
   await fetch(`${API}/api/inject-frames`, { method: 'POST', headers: AUTH,
-    body: JSON.stringify({ ym: ym(), fromDay: today, toDay: daysInMonth }) });
+    body: JSON.stringify({ ym: _ctx.ym, fromDay: today, toDay: daysInMonth }) });
   await loadMonth();
 }
 
@@ -1350,15 +1354,20 @@ function toggleEl(id) {
   if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
-async function handleItemKey(e, d, cat, idx) {
+async function handleItemKey(e, d, cat, idx, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  // Navigation is scoped to the triggering cell so same-day-number cells (current vs
+  // adjacent overlap) don't cross-focus. _scope is valid until a re-render detaches it.
+  const _scope = e.target.closest('.day-cell') || document;
   if (e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey)) {
     e.preventDefault();
     e.stopPropagation();
-    openLinkPopupFromSpan(e.target, d, cat, idx);
+    openLinkPopupFromSpan(e.target, d, cat, idx, owner);
     return;
   }
   if (e.key === 'Enter') {
     e.preventDefault();
+    if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
     const sel = window.getSelection();
     const fullText = e.target.textContent;
     // Use Range for accurate cursor offset — sel.focusOffset is node-relative, breaks with <a> tags
@@ -1375,15 +1384,17 @@ async function handleItemKey(e, d, cat, idx) {
     // Suppress onblur so editItem doesn't overwrite our split when DOM rebuilds
     e.target.onblur = null;
     // Update current item with text before cursor
-    const day = ensureDay(d);
+    const day = ensureDay(d, _ctx.data);
     if (!day[cat]) day[cat] = [];
     day[cat][idx].text = before;
     // Insert new item with text after cursor
     day[cat].splice(idx + 1, 0, { text: after, url: '', done: false });
-    save().then(() => {
+    saveMonthData(_ctx.data).then(() => {
       render();
       setTimeout(() => {
-        const newItem = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${idx + 1}"]`);
+        // DOM was rebuilt — re-find the owner cell (e.target's cell is detached).
+        const _c = cellEl(d, owner) || document;
+        const newItem = _c.querySelector(`.item[data-cat="${cat}"][data-idx="${idx + 1}"]`);
         if (newItem) {
           const _sy = window.scrollY || window.pageYOffset;
           const _mx = document.getElementById('main')?.scrollTop || 0;
@@ -1402,14 +1413,14 @@ async function handleItemKey(e, d, cat, idx) {
   } else if (e.key === 'ArrowUp') {
     e.preventDefault();
     if (idx > 0) {
-      document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${idx-1}"]`)
+      _scope.querySelector(`.item[data-cat="${cat}"][data-idx="${idx-1}"]`)
         ?.querySelector('.item-text')?.focus({ preventScroll: true });
     } else {
       // Navigate to last item of previous category in same day
       const catIdx = CATS.indexOf(cat);
       for (let ci = catIdx - 1; ci >= 0; ci--) {
         const prevCat = CATS[ci];
-        const prevItems = document.querySelectorAll(`.item[data-d="${d}"][data-cat="${prevCat}"]`);
+        const prevItems = _scope.querySelectorAll(`.item[data-cat="${prevCat}"]`);
         if (prevItems.length > 0) {
           prevItems[prevItems.length - 1].querySelector('.item-text')?.focus({ preventScroll: true });
           break;
@@ -1418,7 +1429,7 @@ async function handleItemKey(e, d, cat, idx) {
     }
   } else if (e.key === 'ArrowDown') {
     e.preventDefault();
-    const nextEl = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${idx+1}"]`);
+    const nextEl = _scope.querySelector(`.item[data-cat="${cat}"][data-idx="${idx+1}"]`);
     if (nextEl) {
       nextEl.querySelector('.item-text')?.focus({ preventScroll: true });
     } else {
@@ -1426,14 +1437,14 @@ async function handleItemKey(e, d, cat, idx) {
       const catIdx = CATS.indexOf(cat);
       for (let ci = catIdx + 1; ci < CATS.length; ci++) {
         const nextCat = CATS[ci];
-        const firstEl = document.querySelector(`.item[data-d="${d}"][data-cat="${nextCat}"][data-idx="0"]`);
+        const firstEl = _scope.querySelector(`.item[data-cat="${nextCat}"][data-idx="0"]`);
         if (firstEl) { firstEl.querySelector('.item-text')?.focus({ preventScroll: true }); break; }
       }
     }
   } else if (e.key === 'Backspace' && e.target.textContent.trim() === '') {
-    e.preventDefault(); delItem(d, cat, idx, true);
+    e.preventDefault(); delItem(d, cat, idx, true, owner);
   } else if (e.altKey && e.key === '1') {
-    e.preventDefault(); toggleItem(d, cat, idx);
+    e.preventDefault(); toggleItem(d, cat, idx, undefined, owner);
   }
 }
 
@@ -1464,13 +1475,15 @@ function parsePasteLine(line) {
   return { text: line, url: '' };
 }
 
-async function handleItemPaste(event, d, cat, idx) {
+async function handleItemPaste(event, d, cat, idx, owner = 'cur') {
   const raw = event.clipboardData.getData('text/plain');
   const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(l => l);
   if (lines.length <= 1) return; // 한 줄이면 기본 paste 동작 유지
   event.preventDefault();
 
-  const dayData = ensureDay(d);
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  const dayData = ensureDay(d, _ctx.data);
   if (!dayData[cat]) dayData[cat] = [];
 
   // 현재 아이템이 _frame이면 일반 아이템으로 처리 불가 → 새 아이템만 삽입
@@ -1498,15 +1511,17 @@ async function handleItemPaste(event, d, cat, idx) {
 
   // blur 억제 (onblur가 덮어쓰지 않도록)
   event.target.onblur = null;
-  await save(); render();
+  await saveMonthData(_ctx.data); render();
 }
 
-async function editSeparatorItem(d, cat, idx, text) {
-  const dayData = ensureDay(d);
-  const catType = getDayCatType(d, dayData, cat);
+async function editSeparatorItem(d, cat, idx, text, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  const dayData = ensureDay(d, _ctx.data);
+  const catType = getDayCatType(d, dayData, cat, _ctx.year, _ctx.month);
   if (catType === 'routine') {
     // Routine separator → edit in frame template
-    const ft = getFrameTypeForDay(d, dayData);
+    const ft = getFrameTypeForDay(d, dayData, _ctx.year, _ctx.month);
     const item = framesData?.[ft]?.categories?.[cat]?.items?.[idx];
     if (item && typeof item === 'object' && item.type === 'separator') {
       item.text = text.trim();
@@ -1515,21 +1530,23 @@ async function editSeparatorItem(d, cat, idx, text) {
     return;
   }
   const item = dayData[cat]?.[idx];
-  if (item && item.type === 'separator') { item.text = text.trim(); await save(); }
+  if (item && item.type === 'separator') { item.text = text.trim(); await saveMonthData(_ctx.data); }
 }
 
-async function delItem(d, cat, idx, refocus) {
-  const dayData = ensureDay(d);
-  const catType = getDayCatType(d, dayData, cat);
+async function delItem(d, cat, idx, refocus, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  const dayData = ensureDay(d, _ctx.data);
+  const catType = getDayCatType(d, dayData, cat, _ctx.year, _ctx.month);
   if (catType === 'routine') {
-    const ft = getFrameTypeForDay(d, dayData);
+    const ft = getFrameTypeForDay(d, dayData, _ctx.year, _ctx.month);
     delFrameItem(ft, cat, idx);
     return;
   }
   // Track deleted item text in rejection list so it won't be re-carried from prev day
   const deletedItem = dayData[cat]?.[idx];
   const normText = t => (t || '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
-  if (deletedItem && !deletedItem.type) {
+  if (owner === 'cur' && deletedItem && !deletedItem.type) {
     const rejectKey = `_carry_rejects_${cat}`;
     const normalized = normText(deletedItem.text);
     // Add to NEXT day's reject list (carry logic reads target day's rejects)
@@ -1557,26 +1574,28 @@ async function delItem(d, cat, idx, refocus) {
     }
   }
   dayData[cat].splice(idx, 1);
-  await save(); render();
+  await saveMonthData(_ctx.data); render();
   if (refocus) {
     setTimeout(() => {
-      const day = ensureDay(d);
+      const day = ensureDay(d, _ctx.data);
       const len = (day[cat] || []).length;
       const targetIdx = len === 0 ? null : idx > 0 ? idx - 1 : 0;
       if (targetIdx !== null) {
-        const el = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${targetIdx}"]`);
+        const el = (cellEl(d, owner) || document).querySelector(`.item[data-cat="${cat}"][data-idx="${targetIdx}"]`);
         el?.querySelector('.item-text')?.focus({ preventScroll: true });
       }
     }, 50);
   }
 }
 
-async function addNewItem(d, cat, text) {
+async function addNewItem(d, cat, text, owner = 'cur') {
   if (!text.trim()) return;
-  const dayData = ensureDay(d);
-  const catType = getDayCatType(d, dayData, cat);
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  const dayData = ensureDay(d, _ctx.data);
+  const catType = getDayCatType(d, dayData, cat, _ctx.year, _ctx.month);
   if (catType === 'routine') {
-    const ft = getFrameTypeForDay(d, dayData);
+    const ft = getFrameTypeForDay(d, dayData, _ctx.year, _ctx.month);
     addFrameItem(ft, cat, text.trim());
     return;
   }
@@ -1587,7 +1606,7 @@ async function addNewItem(d, cat, text) {
   const sepMatch = t.match(/^(.*?)_{3,}$/);
   if (sepMatch) {
     day[cat].push({ text: sepMatch[1].trim(), type: 'separator', done: false });
-    await save(); render(); return;
+    await saveMonthData(_ctx.data); render(); return;
   }
   // Auto-detect URL: if entire input is a URL, set as url+text
   const urlMatch = t.match(/^(https?:\/\/\S+)$/);
@@ -1603,11 +1622,11 @@ async function addNewItem(d, cat, text) {
   } else {
     day[cat].push({ text: t, url: '', done: false });
   }
-  await save(); render();
+  await saveMonthData(_ctx.data); render();
 }
 
-function addItemInline(d, cat) {
-  const c = document.getElementById(`new-${d}-${cat}`);
+function addItemInline(d, cat, owner = 'cur') {
+  const c = document.getElementById(`new-${owner}-${d}-${cat}`);
   if (c) {
     c.classList.add('active');
     const el = c.querySelector('textarea') || c.querySelector('input');
@@ -1615,30 +1634,34 @@ function addItemInline(d, cat) {
   }
 }
 
-async function submitDayCatTextarea(el, d, cat) {
+async function submitDayCatTextarea(el, d, cat, owner = 'cur') {
   const lines = el.value.split(/\r?\n/).map(l => l.trim()).filter(l => l);
   if (!lines.length) return;
   for (const line of lines) {
-    await addNewItem(d, cat, line);
+    await addNewItem(d, cat, line, owner);
   }
   el.value = '';
   el.style.height = 'auto';
   el.closest('.new-item')?.classList.remove('active');
 }
 
-async function addSeparatorItem(d, cat) {
-  const day = ensureDay(d);
+async function addSeparatorItem(d, cat, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  const day = ensureDay(d, _ctx.data);
   if (!day[cat]) day[cat] = [];
   day[cat].push({ text: '', type: 'separator', done: false });
-  await save(); render();
+  await saveMonthData(_ctx.data); render();
 }
 
-function addItemPrompt(d) {
-  ensureDay(d);
+function addItemPrompt(d, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  ensureDay(d, _ctx.data);
   render();
   setTimeout(() => {
     for (const cat of CATS) {
-      const c = document.getElementById(`new-${d}-${cat}`);
+      const c = document.getElementById(`new-${owner}-${d}-${cat}`);
       if (c) { c.classList.add('active'); const el = c.querySelector('textarea') || c.querySelector('input'); if (el) el.focus(); return; }
     }
   }, 50);
@@ -1650,12 +1673,14 @@ async function saveGoalText(text) {
   await saveStandingData();
 }
 
-async function saveOneThing(d, text) {
+async function saveOneThing(d, text, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
   const trimmed = text.trim();
-  ensureDay(d).one_thing = trimmed; // keep in-memory in sync
+  ensureDay(d, _ctx.data).one_thing = trimmed; // keep in-memory in sync
   await fetch(`${API}/api/one-thing`, {
     method: 'POST', headers: AUTH,
-    body: JSON.stringify({ ym: ym(), day: String(d), text: trimmed })
+    body: JSON.stringify({ ym: _ctx.ym, day: String(d), text: trimmed })
   });
 }
 
@@ -1739,25 +1764,29 @@ async function toggleWorkout(part) {
   renderWorkoutBar();
 }
 
-async function saveNotes(d, text) {
-  const dd = ensureDay(d);
+async function saveNotes(d, text, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  const dd = ensureDay(d, _ctx.data);
   const trimmed = text.trim();
   if (trimmed) dd.notes = trimmed; // keep in-memory in sync
   else delete dd.notes;
   await fetch(`${API}/api/notes`, {
     method: 'POST', headers: AUTH,
-    body: JSON.stringify({ ym: ym(), day: String(d), notes: trimmed })
+    body: JSON.stringify({ ym: _ctx.ym, day: String(d), notes: trimmed })
   });
 }
 
-function toggleNotes(d) {
-  const el = document.getElementById(`notes-${d}`);
+function toggleNotes(d, owner = 'cur') {
+  const el = document.getElementById(`notes-${owner}-${d}`);
   if (el) { el.classList.toggle('editing'); if (el.classList.contains('editing')) el.focus(); }
 }
 
 // --- Day Type ---
-async function cycleDayType(d) {
-  const dd = ensureDay(d);
+async function cycleDayType(d, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  const dd = ensureDay(d, _ctx.data);
   // block/flow는 요일 기반 자동 처리 — 수동 설정 불가. hf/vacation만 수동 허용.
   const MANUAL_TYPES = ['hf', 'vacation'];
   const current = dd.day_type || null;
@@ -1765,12 +1794,12 @@ async function cycleDayType(d) {
   if (current === 'block' || current === 'flow') {
     await fetch(`${API}/api/day-type`, {
       method: 'POST', headers: AUTH,
-      body: JSON.stringify({ ym: ym(), day: String(d), type: null })
+      body: JSON.stringify({ ym: _ctx.ym, day: String(d), type: null })
     });
     delete dd.day_type;
     await fetch(`${API}/api/inject-frames`, {
       method: 'POST', headers: AUTH,
-      body: JSON.stringify({ ym: ym(), fromDay: d, toDay: d })
+      body: JSON.stringify({ ym: _ctx.ym, fromDay: d, toDay: d })
     });
     await loadMonth();
     render();
@@ -1781,7 +1810,7 @@ async function cycleDayType(d) {
 
   await fetch(`${API}/api/day-type`, {
     method: 'POST', headers: AUTH,
-    body: JSON.stringify({ ym: ym(), day: String(d), type: next })
+    body: JSON.stringify({ ym: _ctx.ym, day: String(d), type: next })
   });
 
   if (next) dd.day_type = next;
@@ -1790,7 +1819,7 @@ async function cycleDayType(d) {
   // Auto-inject frame for this day
   await fetch(`${API}/api/inject-frames`, {
     method: 'POST', headers: AUTH,
-    body: JSON.stringify({ ym: ym(), fromDay: d, toDay: d })
+    body: JSON.stringify({ ym: _ctx.ym, fromDay: d, toDay: d })
   });
   await loadMonth();
   render();
@@ -1798,8 +1827,8 @@ async function cycleDayType(d) {
 
 // --- Drag and Drop ---
 let dragData = null;
-function dragStart(e, d, cat, idx) {
-  dragData = { d, cat, idx };
+function dragStart(e, d, cat, idx, owner = 'cur') {
+  dragData = { d, cat, idx, owner };
   e.target.classList.add('dragging');
   e.target.classList.remove('drag-ready');
   e.dataTransfer.effectAllowed = 'move';
@@ -1813,27 +1842,36 @@ function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-o
 function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
 
 // Drop on item (reorder within same day+cat)
-async function drop(e, d, cat, toIdx) {
+async function drop(e, d, cat, toIdx, owner = 'cur') {
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
   if (!dragData) return;
+  const _ctx = dayCtx(d, owner);
+  const srcOwner = dragData.owner || 'cur';
 
+  // Cross-month move — backend /api/move-item is single-ym; not supported.
+  if (srcOwner !== owner) {
+    showToast('월 간 이동은 지원하지 않습니다', true);
+    dragData = null;
+    return;
+  }
   // Same day, same category → reorder
   if (dragData.d === d && dragData.cat === cat) {
-    if (dragData.idx === toIdx) return;
+    if (dragData.idx === toIdx) { dragData = null; return; }
+    if (!_ctx.data) { dragData = null; return; }
     await fetch(`${API}/api/reorder`, {
       method: 'POST', headers: AUTH,
-      body: JSON.stringify({ ym: ym(), day: String(d), category: cat, fromIdx: dragData.idx, toIdx })
+      body: JSON.stringify({ ym: _ctx.ym, day: String(d), category: cat, fromIdx: dragData.idx, toIdx })
     });
-    const items = ensureDay(d)[cat];
+    const items = ensureDay(d, _ctx.data)[cat];
     const [moved] = items.splice(dragData.idx, 1);
     items.splice(toIdx, 0, moved);
     render();
   }
-  // Different day → move across days
+  // Different day (same owner month) → move across days
   else {
     await fetch(`${API}/api/move-item`, {
       method: 'POST', headers: AUTH,
-      body: JSON.stringify({ ym: ym(), fromDay: String(dragData.d), fromCat: dragData.cat, fromIdx: dragData.idx, toDay: String(d), toCat: cat })
+      body: JSON.stringify({ ym: _ctx.ym, fromDay: String(dragData.d), fromCat: dragData.cat, fromIdx: dragData.idx, toDay: String(d), toCat: cat })
     });
     await loadMonth();
   }
@@ -1843,12 +1881,20 @@ async function drop(e, d, cat, toIdx) {
 // Drop on day cell (move to that day's outcome)
 function dayDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
 function dayDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
-async function dayDrop(e, d) {
+async function dayDrop(e, d, owner = 'cur') {
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
-  if (!dragData || dragData.d === d) return;
+  if (!dragData) return;
+  const srcOwner = dragData.owner || 'cur';
+  if (dragData.d === d && srcOwner === owner) { dragData = null; return; }
+  if (srcOwner !== owner) {
+    showToast('월 간 이동은 지원하지 않습니다', true);
+    dragData = null;
+    return;
+  }
+  const _ctx = dayCtx(d, owner);
   await fetch(`${API}/api/move-item`, {
     method: 'POST', headers: AUTH,
-    body: JSON.stringify({ ym: ym(), fromDay: String(dragData.d), fromCat: dragData.cat, fromIdx: dragData.idx, toDay: String(d), toCat: dragData.cat })
+    body: JSON.stringify({ ym: _ctx.ym, fromDay: String(dragData.d), fromCat: dragData.cat, fromIdx: dragData.idx, toDay: String(d), toCat: dragData.cat })
   });
   await loadMonth();
   dragData = null;
@@ -1920,8 +1966,44 @@ async function doSearch() {
     }).join('');
   }
 
-  if (!html) html = '<div style="color:#484f58;text-align:center;padding:20px">No results</div>';
+  if (!html) html = '<div style="color:#484f58;text-align:center;padding:16px">로컬 결과 없음</div>';
+
+  // Web research — 외부 검색엔진을 그대로 쓰되 개인화+복리로 정리해서 답을 준다
+  html += `<div style="padding:10px 12px;margin-top:8px;border-top:1px solid #21262d">
+    <button id="webResearchBtn" onclick="runWebResearch()" style="width:100%;padding:10px;border-radius:8px;border:0;background:#1f6feb;color:#fff;font-size:13px;cursor:pointer">&#128270; "${esc(q)}" 웹 리서치 (개인화+복리)</button>
+    <div id="researchResult" style="margin-top:8px"></div>
+  </div>`;
   container.innerHTML = html;
+}
+async function runWebResearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (q.length < 2) return;
+  const btn = document.getElementById('webResearchBtn');
+  const out = document.getElementById('researchResult');
+  if (btn) { btn.disabled = true; btn.textContent = '🔎 리서치 중… (10~25초)'; }
+  if (out) out.innerHTML = '<div style="color:#8b949e;padding:10px;font-size:12px">웹 검색 + 개인화 합성 중…</div>';
+  try {
+    const res = await fetch(`${API}/api/research`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q })
+    });
+    const j = await res.json();
+    if (j.error) {
+      out.innerHTML = '<div style="color:#f85149;padding:10px;font-size:12px">리서치 오류: ' + esc(j.error) + '</div>';
+    } else {
+      let h = '<div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px;white-space:pre-wrap;line-height:1.6;font-size:13px">' + esc(j.answer || '') + '</div>';
+      const c = j.contextUsed || {};
+      h += '<div style="font-size:10px;color:#8b949e;padding:4px 2px">&#129504; 과거 ' + (c.priorFindings || 0) + ' · Cortex ' + (c.cortexDocs || 0) + ' · 프로필 ' + (c.profile || 0) + ' · 적립 ' + (j.deposited ? '✓' : '—') + '</div>';
+      if (j.sources && j.sources.length) {
+        h += '<div style="font-size:10px;color:#58a6ff;padding:4px 2px;font-weight:600">출처</div>';
+        h += j.sources.slice(0, 8).map((s, i) => '<div style="padding:2px 2px;font-size:12px"><a href="' + esc(s.url) + '" target="_blank" rel="noopener" style="color:#58a6ff">[' + (i + 1) + '] ' + esc(s.title || s.url) + '</a></div>').join('');
+      }
+      out.innerHTML = h;
+    }
+  } catch (e) {
+    out.innerHTML = '<div style="color:#f85149;padding:10px;font-size:12px">요청 실패: ' + esc(String(e)) + '</div>';
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '🔎 다시 리서치'; }
 }
 function goToResult(resultYm, day) {
   closeSearch();
@@ -3261,7 +3343,7 @@ document.addEventListener('touchstart', e => {
   if (!item) return;
   e.preventDefault();
   _touchDragEl = item;
-  _touchDragData = { d: parseInt(item.dataset.d), cat: item.dataset.cat, idx: parseInt(item.dataset.idx) };
+  _touchDragData = { d: parseInt(item.dataset.d), cat: item.dataset.cat, idx: parseInt(item.dataset.idx), owner: item.closest('.day-cell')?.dataset.owner || 'cur' };
   item.classList.add('dragging');
 }, { passive: false });
 document.addEventListener('touchmove', e => {
@@ -3279,13 +3361,17 @@ document.addEventListener('touchend', async e => {
   _touchDragEl.classList.remove('dragging', 'drag-ready');
   if (_touchDragTarget) {
     _touchDragTarget.classList.remove('drag-over');
-    const { d, cat, idx } = _touchDragData;
+    const { d, cat, idx, owner = 'cur' } = _touchDragData;
+    const toOwner = _touchDragTarget.closest('.day-cell')?.dataset.owner || 'cur';
     const toD = parseInt(_touchDragTarget.dataset.d), toCat = _touchDragTarget.dataset.cat, toIdx = parseInt(_touchDragTarget.dataset.idx);
-    if (d === toD && cat === toCat && idx !== toIdx) {
-      await fetch(`${API}/api/reorder`, { method:'POST', headers:AUTH, body:JSON.stringify({ ym:ym(), day:String(d), category:cat, fromIdx:idx, toIdx }) });
-      const items = ensureDay(d)[cat]; const [moved] = items.splice(idx,1); items.splice(toIdx,0,moved); render();
+    const _ctx = dayCtx(d, owner);
+    if (owner !== toOwner) {
+      showToast('월 간 이동은 지원하지 않습니다', true);
+    } else if (d === toD && cat === toCat && idx !== toIdx) {
+      await fetch(`${API}/api/reorder`, { method:'POST', headers:AUTH, body:JSON.stringify({ ym:_ctx.ym, day:String(d), category:cat, fromIdx:idx, toIdx }) });
+      const items = ensureDay(d, _ctx.data)[cat]; const [moved] = items.splice(idx,1); items.splice(toIdx,0,moved); render();
     } else if (d !== toD || cat !== toCat) {
-      await fetch(`${API}/api/move-item`, { method:'POST', headers:AUTH, body:JSON.stringify({ ym:ym(), fromDay:String(d), fromCat:cat, fromIdx:idx, toDay:String(toD), toCat }) });
+      await fetch(`${API}/api/move-item`, { method:'POST', headers:AUTH, body:JSON.stringify({ ym:_ctx.ym, fromDay:String(d), fromCat:cat, fromIdx:idx, toDay:String(toD), toCat }) });
       await loadMonth();
     }
   }
