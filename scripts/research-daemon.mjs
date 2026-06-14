@@ -314,6 +314,7 @@ async function runCycle(category) {
     [
       '--print',
       '--permission-mode', permMode,
+      '--model', CONFIG.model,
       '--max-budget-usd', CONFIG.maxBudgetUsd,
       '--verbose',
       '--output-format', 'stream-json',
