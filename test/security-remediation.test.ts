@@ -587,6 +587,35 @@ describe('CSO-H03 getPermissionMode — plan 폴백', () => {
   it('유효하지 않은 CLAUDE_PERMISSION_MODE는 에러를 던진다', () => {
     expect(() => simulateGetPermissionMode({ envMode: 'invalid' })).toThrow('Invalid CLAUDE_PERMISSION_MODE');
   });
+
+  // 회귀: auto 감지 regex가 줄바꿈을 건너 매칭하는지 (실제 버그)
+  // claude --help는 "auto" 선택지를 "permission-mode" 다음 wrapped 줄에 출력한다.
+  // 기존 /permission[- ]mode.*\bauto\b/i 는 `.`이 개행 미매칭 → auto를 놓치고 plan 폴백.
+  describe('auto 감지 regex — wrapped help 줄바꿈', () => {
+    // daemon-utils.mjs의 실제 패턴을 그대로 복제
+    const detectAuto = (output: string) =>
+      /permission[- ]mode[\s\S]*?\bauto\b/i.test(output) || /\bauto\b[\s\S]*?permission/i.test(output);
+
+    const wrappedHelp = [
+      '  --permission-mode <mode>              Permission mode to use for the session',
+      '                                        (choices: "acceptEdits", "auto",',
+      '                                        "bypassPermissions", "default", "plan")',
+    ].join('\n');
+
+    it('wrapped 줄에 있는 auto를 감지한다 (버그 재현 방어)', () => {
+      expect(detectAuto(wrappedHelp)).toBe(true);
+    });
+
+    it('구버전 .* regex는 wrapped auto를 놓친다 (왜 버그였는지 문서화)', () => {
+      const oldRegex = /permission[- ]mode.*\bauto\b/i.test(wrappedHelp) || /\bauto\b.*permission/i.test(wrappedHelp);
+      expect(oldRegex).toBe(false);
+    });
+
+    it('auto 미지원 help에서는 false', () => {
+      const noAuto = '  --permission-mode <mode>   (choices: "acceptEdits", "plan")';
+      expect(detectAuto(noAuto)).toBe(false);
+    });
+  });
 });
 
 // ─── CSO-M01: DANGEROUS_ENV_VARS에 A_TEAM_ADVISOR_* 추가 검증 ─────────────────

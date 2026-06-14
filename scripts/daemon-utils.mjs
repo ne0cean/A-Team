@@ -105,7 +105,10 @@ export function getPermissionMode() {
   try {
     const r = spawnSync(claudePath, ['--help'], { encoding: 'utf8', timeout: 10_000 });
     const output = (r.stdout || '') + (r.stderr || '');
-    if (/permission[- ]mode.*\bauto\b/i.test(output) || /\bauto\b.*permission/i.test(output)) {
+    // [\s\S]*? not .* — claude --help wraps the "auto" choice onto a continuation
+    // line, and `.` does not match newlines, so `.*` silently missed it and forced
+    // a plan-mode fallback (which cannot write note files → every research cycle failed).
+    if (/permission[- ]mode[\s\S]*?\bauto\b/i.test(output) || /\bauto\b[\s\S]*?permission/i.test(output)) {
       _cachedPermMode = 'auto';
       return 'auto';
     }
