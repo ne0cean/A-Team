@@ -1746,13 +1746,24 @@ async function toggleWorkout(part) {
   // 현재 유효 선택(carry-forward)에서 출발 → 토글 → 오늘 키로 기록.
   // 새 날에 빈 배열에서 시작하던 기존 코드는 어제 선택을 버려 "사라짐"을 유발했음.
   const current = resolveCurrentWorkout(workoutLog, todayStr).parts;
+  const hadToday = Object.prototype.hasOwnProperty.call(workoutLog, todayStr);
+  const prevToday = hadToday ? workoutLog[todayStr] : undefined;
   const wo = toggleWorkoutPart(current, part);
   workoutLog[todayStr] = wo;
-  await fetch(`${API}/api/workout-log`, {
-    method: 'POST', headers: AUTH,
-    body: JSON.stringify({ date: todayStr, workout: wo })
-  });
   renderWorkoutBar();
+  // POST 실패 시 인메모리 롤백 — 안 하면 다음 loadWorkoutLog()가 서버값으로
+  // 전체 교체하면서 방금 토글이 사라짐("어느 순간 사라짐"의 2차 원인).
+  try {
+    const res = await fetch(`${API}/api/workout-log`, {
+      method: 'POST', headers: AUTH,
+      body: JSON.stringify({ date: todayStr, workout: wo })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  } catch (e) {
+    if (hadToday) workoutLog[todayStr] = prevToday; else delete workoutLog[todayStr];
+    renderWorkoutBar();
+    showToast('운동 기록 저장 실패 — 다시 시도해주세요', true);
+  }
 }
 
 async function saveNotes(d, text, owner = 'cur') {
