@@ -278,7 +278,7 @@ function render() {
   const mainScrollTop = mainEl ? mainEl.scrollTop : 0;
   const cellScrollsByDay = {};
   const cellScrollsByIdx = {};
-  document.querySelectorAll('.day-cell[data-day]').forEach(c => { const v = c.scrollTop; if (v) cellScrollsByDay[c.dataset.day] = v; });
+  document.querySelectorAll('.day-cell[data-day]').forEach(c => { const v = c.scrollTop; if (v) cellScrollsByDay[`${c.dataset.owner||'cur'}-${c.dataset.day}`] = v; });
   document.querySelectorAll('.week-cell').forEach((c, i) => { const v = c.scrollTop; if (v) cellScrollsByIdx[i] = v; });
 
   container.innerHTML = viewMode === 'month' ? renderMonthView() : renderWeekView();
@@ -291,7 +291,7 @@ function render() {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     window.scrollTo(0, scrollY);
     if (mainEl) mainEl.scrollTop = mainScrollTop;
-    document.querySelectorAll('.day-cell[data-day]').forEach(c => { const v = cellScrollsByDay[c.dataset.day]; if (v) c.scrollTop = v; });
+    document.querySelectorAll('.day-cell[data-day]').forEach(c => { const v = cellScrollsByDay[`${c.dataset.owner||'cur'}-${c.dataset.day}`]; if (v) c.scrollTop = v; });
     document.querySelectorAll('.week-cell').forEach((c, i) => { const v = cellScrollsByIdx[i]; if (v) c.scrollTop = v; });
     // Week view: scroll today into center ONLY on mode switch (not on every re-render)
     if (viewMode !== 'month' && !_weekScrolledToToday) {
@@ -1259,9 +1259,11 @@ function cancelLongPress() {
   if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
 }
 
-async function editItem(d, cat, idx, newText) {
+async function editItem(d, cat, idx, newText, owner = 'cur') {
   if (!newText.trim()) return;
-  const item = ensureDay(d)[cat]?.[idx];
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  const item = ensureDay(d, _ctx.data)[cat]?.[idx];
   if (!item) return;
   const t = newText.trim();
   // htmlToMarkdown re-encodes <a href="url">text</a> → [text](url)
@@ -1271,7 +1273,7 @@ async function editItem(d, cat, idx, newText) {
     const [, label, url] = mdLink;
     if (item.text === label && item.url === url) return;
     item.text = label; item.url = url;
-    await save(); render(); return;
+    await saveMonthData(_ctx.data); render(); return;
   }
   if (item.text === t) return;
   // Auto-detect URL pasted into existing item
@@ -1280,13 +1282,15 @@ async function editItem(d, cat, idx, newText) {
   if (urlMatch && !item.url) item.url = t;
   else if (embeddedMatch && !item.url) item.url = embeddedMatch[1];
   item.text = t;
-  await save(); render();
+  await saveMonthData(_ctx.data); render();
 }
 
-async function editFrameItemFromCalendar(d, cat, idx, newText) {
-  const dayData = monthData.days?.[String(d)] || {};
-  const ft = getFrameTypeForDay(d, dayData);
-  const catType = getDayCatType(d, dayData, cat);
+async function editFrameItemFromCalendar(d, cat, idx, newText, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  const dayData = _ctx.data.days?.[String(d)] || {};
+  const ft = getFrameTypeForDay(d, dayData, _ctx.year, _ctx.month);
+  const catType = getDayCatType(d, dayData, cat, _ctx.year, _ctx.month);
   const mdLink = newText.trim().match(/^\[([^\]]+)\]\(([^)]+)\)$/);
   const newTrimmed = mdLink ? mdLink[1] : newText.trim();
   if (!newTrimmed) return;
@@ -1927,7 +1931,7 @@ function goToResult(resultYm, day) {
 }
 function goToDay(day) {
   closeSearch();
-  const el = document.querySelector(`.day-cell[data-day="${day}"]`);
+  const el = document.querySelector(`.day-cell[data-owner="cur"][data-day="${day}"]`);
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 function escRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
