@@ -646,7 +646,7 @@ function getCatItemsForRender(d, dayData, cat, owner = monthData.days, persist =
 function renderDayCell(d, isToday, isWeek, isCurrent, owner = 'cur') {
   const _ctx = dayCtx(d, owner);
   const _y = _ctx.year, _m = _ctx.month;
-  const dayData = getDayData(d, isCurrent !== false);
+  const dayData = (_ctx.data?.days?.[String(d)]) || {};
   const effectiveType = getEffectiveDayType(dayData, d, _y, _m);
   const typeClass = effectiveType ? ` type-${effectiveType}` : '';
   const todayClass = isToday ? ' today' : '';
@@ -660,10 +660,11 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent, owner = 'cur') {
   const _isCur = isCurrent !== false;
   const _ctx = dayCtx(d, owner);
   const _y = _ctx.year, _m = _ctx.month;
-  const dayData = getDayData(d, _isCur);
-  // Carry owner = the month that owns this cell (mirrors getDayData's source).
+  // Resolve cell data + carry owner from the explicit owner token (not the d>15
+  // heuristic) so prev/next is never misrouted.
+  const dayData = (_ctx.data?.days?.[String(d)]) || {};
   // Adjacent-month cells render carry but never persist (persist=false).
-  const _carryOwner = _isCur ? monthData.days : (d > 15 ? (prevMonthData?.days || {}) : (nextMonthData?.days || {}));
+  const _carryOwner = _ctx.data?.days || {};
   const dow = new Date(_y, _m - 1, d).getDay();
   const dowClass = dow === 0 ? ' sun' : dow === 6 ? ' sat' : '';
 
@@ -844,7 +845,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent, owner = 'cur') {
   const notesCls = notes ? 'day-notes has-content' : 'day-notes';
   const notesHtml = esc(notes).replace(/\n/g,'<br>').replace(/#lesson/gi, '<span class="note-lesson-tag">#lesson</span>');
   html += `<div class="${notesCls}" id="notes-${owner}-${d}" contenteditable="true"
-    onblur="saveNotes(${d}, this.innerText)"
+    onblur="saveNotes(${d}, this.innerText,'${owner}')"
     onkeydown="if(event.key==='Escape')this.blur()"
   >${notesHtml}</div>`;
 
@@ -3646,19 +3647,9 @@ function handlePaste(event) {
 init();
 window.addEventListener('resize', updateDeviceMode);
 
-// Refresh workout bar when tab becomes visible (picks up mobile changes)
+// Refresh workout bar when tab becomes visible (picks up mobile changes).
+// workout-log만 새로고침 — loadWorkoutLog가 내부에서 renderWorkoutBar 호출.
+// 과거엔 /api/month를 받아 dd.workout을 monthData에 썼으나 workout 분리 후 아무도 안 읽는 dead code → 제거.
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) {
-    fetch(`${API}/api/month?ym=${ym()}`)
-      .then(r => r.json())
-      .then(data => {
-        for (const [day, dd] of Object.entries(data.days || {})) {
-          if (!monthData.days[day]) monthData.days[day] = {};
-          if (dd.workout !== undefined) monthData.days[day].workout = dd.workout;
-        }
-        return loadWorkoutLog();
-      })
-      .then(() => renderWorkoutBar())
-      .catch(() => {});
-  }
+  if (!document.hidden) loadWorkoutLog().catch(() => {});
 });
