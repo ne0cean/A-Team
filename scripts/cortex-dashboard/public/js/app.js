@@ -1144,10 +1144,12 @@ function openLinkPopupFromSpan(span, d, cat, idx, owner = 'cur') {
   setTimeout(() => input.focus(), 50);
 }
 
-function openLinkPopup(event, d, cat, idx) {
-  const item = ensureDay(d)[cat]?.[idx];
+function openLinkPopup(event, d, cat, idx, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  const item = ensureDay(d, _ctx.data)[cat]?.[idx];
   if (!item) return;
-  linkTarget = { d, cat, idx };
+  linkTarget = { d, cat, idx, owner };
   const popup = document.getElementById('linkPopup');
   const input = document.getElementById('linkUrl');
   input.value = item.url || '';
@@ -1210,9 +1212,11 @@ async function saveLink() {
     return;
   }
   if (!linkTarget) return;
-  const { d, cat, idx } = linkTarget;
-  ensureDay(d)[cat][idx].url = url;
-  await save(); render(); closeLinkPopup();
+  const { d, cat, idx, owner = 'cur' } = linkTarget;
+  const _lctx = dayCtx(d, owner);
+  if (!_lctx.data) { showToast('인접월 데이터 로드 전입니다', true); closeLinkPopup(); return; }
+  ensureDay(d, _lctx.data)[cat][idx].url = url;
+  await saveMonthData(_lctx.data); render(); closeLinkPopup();
 }
 
 async function removeLink() {
@@ -1231,31 +1235,35 @@ async function removeLink() {
     return;
   }
   if (popup.dataset.mode === 'ctrlk' && ctrlkTarget) {
-    const { d, cat, idx, catType } = ctrlkTarget;
+    const { d, cat, idx, catType, owner = 'cur' } = ctrlkTarget;
+    const _ctx = dayCtx(d, owner);
     if (catType === 'routine') {
-      const dayData = monthData.days?.[String(d)] || {};
-      const ft = getFrameTypeForDay(d, dayData);
+      const dayData = (_ctx.data?.days?.[String(d)]) || {};
+      const ft = getFrameTypeForDay(d, dayData, _ctx.year, _ctx.month);
       const fItems = framesData?.[ft]?.categories?.[cat]?.items;
       if (fItems && idx < fItems.length && typeof fItems[idx] === 'object') fItems[idx].url = '';
       saveFramesData(); renderFrames(); render();
     } else {
-      const item = ensureDay(d)[cat]?.[idx];
+      if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); closeLinkPopup(); return; }
+      const item = ensureDay(d, _ctx.data)[cat]?.[idx];
       if (item) item.url = '';
-      await save(); render();
+      await saveMonthData(_ctx.data); render();
     }
     closeLinkPopup();
     return;
   }
   if (!linkTarget) return;
-  const { d, cat, idx } = linkTarget;
-  ensureDay(d)[cat][idx].url = '';
-  await save(); render(); closeLinkPopup();
+  const { d, cat, idx, owner = 'cur' } = linkTarget;
+  const _lctx = dayCtx(d, owner);
+  if (!_lctx.data) { showToast('인접월 데이터 로드 전입니다', true); closeLinkPopup(); return; }
+  ensureDay(d, _lctx.data)[cat][idx].url = '';
+  await saveMonthData(_lctx.data); render(); closeLinkPopup();
 }
 
-function startLongPress(event, d, cat, idx) {
+function startLongPress(event, d, cat, idx, owner = 'cur') {
   longPressTimer = setTimeout(() => {
     event.preventDefault();
-    openLinkPopup(event, d, cat, idx);
+    openLinkPopup(event, d, cat, idx, owner);
   }, 500);
 }
 
@@ -1449,14 +1457,16 @@ async function handleItemKey(e, d, cat, idx, owner = 'cur') {
   }
 }
 
-async function addNewItemAfter(d, cat, afterIdx) {
-  const day = ensureDay(d);
+async function addNewItemAfter(d, cat, afterIdx, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  const day = ensureDay(d, _ctx.data);
   if (!day[cat]) day[cat] = [];
   day[cat].splice(afterIdx + 1, 0, { text: '', url: '', done: false });
-  await save(); render();
+  await saveMonthData(_ctx.data); render();
   setTimeout(() => {
     // data 속성 기반으로 정확한 위치 탐색 (textContent 비교 방식은 여러 빈 항목 시 오탐)
-    const targetItem = document.querySelector(`.item[data-d="${d}"][data-cat="${cat}"][data-idx="${afterIdx + 1}"]`);
+    const targetItem = (cellEl(d, owner) || document).querySelector(`.item[data-cat="${cat}"][data-idx="${afterIdx + 1}"]`);
     if (targetItem) targetItem.querySelector('.item-text')?.focus({ preventScroll: true });
   }, 150); // 150ms: 모바일 렌더 완료 보장
 }
