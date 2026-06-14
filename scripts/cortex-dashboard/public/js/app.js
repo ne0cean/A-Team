@@ -109,6 +109,21 @@ function registerSW() {
 
 function ym() { return `${currentYear}-${String(currentMonth).padStart(2,'0')}`; }
 
+// owner: 'cur' | 'prev' | 'next'. Resolves the month-data object + identity for a cell.
+// Adjacent-month cells (full-month overlap weeks) edit/save into their OWNER month,
+// never the current month. resolveOwnerYm() comes from monthUtil.js (tested, generated).
+function dayCtx(d, owner = 'cur') {
+  if (owner === 'prev') {
+    const o = resolveOwnerYm(currentYear, currentMonth, 'prev');
+    return { data: prevMonthData, ym: o.ym, year: o.year, month: o.month };
+  }
+  if (owner === 'next') {
+    const o = resolveOwnerYm(currentYear, currentMonth, 'next');
+    return { data: nextMonthData, ym: o.ym, year: o.year, month: o.month };
+  }
+  return { data: monthData, ym: ym(), year: currentYear, month: currentMonth };
+}
+
 function getWeekStart(date) {
   const d = new Date(date);
   d.setDate(d.getDate() - d.getDay());
@@ -144,6 +159,11 @@ async function loadMonth(isInit) {
   ]);
   prevMonthData = await prevRes.json();
   nextMonthData = await nextRes.json();
+  // Stamp .month (SSOT of identity) so saveMonthData()/worker guard can verify the
+  // owner month on adjacent-cell edits. We KNOW the requested ym, so trust it over a
+  // possibly-stale .month (the worker only stamps when the key is absent).
+  if (prevMonthData) prevMonthData.month = `${py}-${String(pm).padStart(2,'0')}`;
+  if (nextMonthData) nextMonthData.month = `${ny}-${String(nm).padStart(2,'0')}`;
   // visionText2 is loaded from standingData.vision (global, see loadStandingOrders)
   // Auto viewMode: 최초 로드에만 적용. 이후 loadMonth() 재호출 시 사용자 선택 유지.
   if (isInit) {
@@ -285,18 +305,18 @@ function renderMonthView() {
   const todayDate = isCurrentMonth ? today.getDate() : -1;
 
   // Build full calendar grid (6 weeks max, each week Sun-Sat)
-  const cells = []; // {d, isCurrentMonth, date}
+  const cells = []; // {d, current, owner}
   // Previous month trailing days
   for (let i = firstDow - 1; i >= 0; i--) {
-    cells.push({ d: prevDaysInMonth - i, current: false });
+    cells.push({ d: prevDaysInMonth - i, current: false, owner: 'prev' });
   }
   // Current month
   for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ d, current: true });
+    cells.push({ d, current: true, owner: 'cur' });
   }
   // Next month leading days
   while (cells.length % 7 !== 0) {
-    cells.push({ d: cells.length - firstDow - daysInMonth + 1, current: false });
+    cells.push({ d: cells.length - firstDow - daysInMonth + 1, current: false, owner: 'next' });
   }
 
   // Group into weeks
@@ -357,16 +377,14 @@ function renderMonthView() {
 function renderWeekGridFull(week, todayDate, showToggle) {
   let html = '<div class="grid">';
   week.forEach(cell => {
-    if (!cell.current) {
-      html += `<div class="day-cell other-month"><div class="day-num" style="color:#30363d">${cell.d}</div></div>`;
-    } else {
-      const isToday = cell.d === todayDate;
-      if (showToggle) {
-        _showPastToggleOnWeek = true;
-        _pastToggleDay = week.filter(c => c.current).pop()?.d || -1;
-      }
-      html += renderDayCell(cell.d, isToday, false, cell.current);
+    // Adjacent-month cells (owner 'prev'/'next') now render full, editable content
+    // routed to their owner month — no longer a bare day-number stub.
+    if (cell.current && showToggle) {
+      _showPastToggleOnWeek = true;
+      _pastToggleDay = week.filter(c => c.current).pop()?.d || -1;
     }
+    const isToday = cell.current && cell.d === todayDate;
+    html += renderDayCell(cell.d, isToday, false, cell.current, cell.owner);
   });
   html += '</div>';
   _showPastToggleOnWeek = false;
@@ -454,35 +472,35 @@ function goTodayWeek() {
   loadMonth();
 }
 
-function getHoliday(d) {
+function getHoliday(d, yr = currentYear, mo = currentMonth) {
   if (!standingData?.holidays) return null;
-  const key = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const key = `${yr}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   return standingData.holidays[key] || null;
 }
 
-function getSoEvents(d) {
+function getSoEvents(d, yr = currentYear, mo = currentMonth) {
   if (!standingData?.standing) return [];
   return standingData.standing.filter(item => {
     if (!item.date || item.active === false) return false;
     return item.date.split(',').some(part => {
       const parsed = parseSoDate(part.trim());
-      return parsed && parsed.month === currentMonth && parsed.day === d;
+      return parsed && parsed.month === mo && parsed.day === d;
     });
   });
 }
 
-function getYearlyEvents(d) {
+function getYearlyEvents(d, yr = currentYear, mo = currentMonth) {
   if (!standingData?.yearly) return [];
   return standingData.yearly.filter(y => {
     if (y.lunar && y.lunarMonth && y.lunarDay) {
-      const sol = lunarToSolar(currentYear, y.lunarMonth, y.lunarDay);
-      return sol ? (sol.month === currentMonth && sol.day === d) : (y.month === currentMonth && y.day === d);
+      const sol = lunarToSolar(yr, y.lunarMonth, y.lunarDay);
+      return sol ? (sol.month === mo && sol.day === d) : (y.month === mo && y.day === d);
     }
-    return y.month === currentMonth && y.day === d;
+    return y.month === mo && y.day === d;
   });
 }
 
-function getMonthlyRecurring(d) {
+function getMonthlyRecurring(d, yr = currentYear, mo = currentMonth) {
   const results = [];
   // standing orders with date field: "6/15", "6월 15일", "6.15" (multi-date supported)
   if (standingData?.standing) {
@@ -490,11 +508,11 @@ function getMonthlyRecurring(d) {
       if (item.active === false) return;
       let match = false;
       if (item.dates?.length) {
-        match = item.dates.some(dt => dt.month === currentMonth && dt.day === d);
+        match = item.dates.some(dt => dt.month === mo && dt.day === d);
       } else if (item.date) {
         const parsed = parseSoDate(item.date);
         if (parsed) {
-          match = parsed.month === currentMonth && parsed.day === d;
+          match = parsed.month === mo && parsed.day === d;
         } else {
           const dayOnly = parseInt(item.date.trim());
           if (!isNaN(dayOnly)) match = dayOnly === d;
@@ -507,7 +525,7 @@ function getMonthlyRecurring(d) {
   }
   // monthly_recurring: structured {day, text} items
   if (standingData?.monthly_recurring) {
-    const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+    const daysInMonth = new Date(yr, mo, 0).getDate();
     standingData.monthly_recurring.forEach(m => {
       if (m.day === d || (m.day === 0 && d === daysInMonth)) results.push(m);
     });
@@ -516,9 +534,9 @@ function getMonthlyRecurring(d) {
   return results;
 }
 
-function getWeeklyRecurring(d) {
+function getWeeklyRecurring(d, yr = currentYear, mo = currentMonth) {
   if (!standingData?.weekly_recurring) return [];
-  const dow = new Date(currentYear, currentMonth - 1, d).getDay();
+  const dow = new Date(yr, mo - 1, d).getDay();
   // Week number from start of month (for biweekly calc)
   const weekNum = Math.floor((d - 1) / 7);
   return standingData.weekly_recurring.filter(w => {
@@ -528,25 +546,25 @@ function getWeeklyRecurring(d) {
   });
 }
 
-function isHappyFriday(d) {
-  const key = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+function isHappyFriday(d, yr = currentYear, mo = currentMonth) {
+  const key = `${yr}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   return (standingData?.happy_friday || []).includes(key);
 }
-function getEffectiveDayType(dayData, d) {
+function getEffectiveDayType(dayData, d, yr = currentYear, mo = currentMonth) {
   if (dayData.day_type) return dayData.day_type;
-  const dow = new Date(currentYear, currentMonth - 1, d).getDay();
-  const isHol = !!getHoliday(d);
-  if (isHol || dow === 6 || isHappyFriday(d)) return 'flow';
+  const dow = new Date(yr, mo - 1, d).getDay();
+  const isHol = !!getHoliday(d, yr, mo);
+  if (isHol || dow === 6 || isHappyFriday(d, yr, mo)) return 'flow';
   if (dow === 0) return 'block';
   return null;
 }
 
-function getFrameTypeForDay(d, dayData) {
-  return getEffectiveDayType(dayData, d) || 'weekday';
+function getFrameTypeForDay(d, dayData, yr = currentYear, mo = currentMonth) {
+  return getEffectiveDayType(dayData, d, yr, mo) || 'weekday';
 }
 
-function getDayCatType(d, dayData, cat) {
-  const ft = getFrameTypeForDay(d, dayData);
+function getDayCatType(d, dayData, cat, yr = currentYear, mo = currentMonth) {
+  const ft = getFrameTypeForDay(d, dayData, yr, mo);
   return framesData?.[ft]?.categories?.[cat]?.type || 'routine';
 }
 
@@ -557,9 +575,9 @@ function getDayCatType(d, dayData, cat) {
 // persist: write carry mutations back. TRUE only for the current month — app.js
 //   only POSTs the current monthData, so adjacent cells render carry for display
 //   but must NEVER be written (writing them cloned one month onto another).
-function getCatItemsForRender(d, dayData, cat, owner = monthData.days, persist = true) {
+function getCatItemsForRender(d, dayData, cat, owner = monthData.days, persist = true, yr = currentYear, mo = currentMonth) {
   if (!framesData) return dayData[cat] || [];
-  const ft = getFrameTypeForDay(d, dayData);
+  const ft = getFrameTypeForDay(d, dayData, yr, mo);
   const catMeta = framesData[ft]?.categories?.[cat];
   const catType = catMeta?.type || 'routine';
 
@@ -572,7 +590,7 @@ function getCatItemsForRender(d, dayData, cat, owner = monthData.days, persist =
     const prevDay = owner[String(d - 1)] || null;
     let prevTemplateItems = [];
     if (prevDay) {
-      const prevDow = new Date(currentYear, currentMonth - 1, d - 1).getDay();
+      const prevDow = new Date(yr, mo - 1, d - 1).getDay();
       const prevFt = prevDay.day_type || (prevDow === 0 ? 'block' : prevDow === 6 ? 'flow' : 'weekday');
       prevTemplateItems = framesData?.[prevFt]?.categories?.[cat]?.items || [];
     }
@@ -619,40 +637,43 @@ function getCatItemsForRender(d, dayData, cat, owner = monthData.days, persist =
   });
 }
 
-function renderDayCell(d, isToday, isWeek, isCurrent) {
+function renderDayCell(d, isToday, isWeek, isCurrent, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  const _y = _ctx.year, _m = _ctx.month;
   const dayData = getDayData(d, isCurrent !== false);
-  const dow = new Date(currentYear, currentMonth - 1, d).getDay();
-  const effectiveType = getEffectiveDayType(dayData, d);
+  const effectiveType = getEffectiveDayType(dayData, d, _y, _m);
   const typeClass = effectiveType ? ` type-${effectiveType}` : '';
   const todayClass = isToday ? ' today' : '';
-  const holidayClass = getHoliday(d) ? ' is-holiday' : '';
+  const holidayClass = getHoliday(d, _y, _m) ? ' is-holiday' : '';
   const otherClass = isCurrent === false ? ' other-month' : '';
 
-  return `<div class="day-cell${todayClass}${typeClass}${holidayClass}${otherClass}" data-day="${d}" ondragover="dayDragOver(event)" ondragleave="dayDragLeave(event)" ondrop="dayDrop(event,${d})">${renderDayCellContent(d, isToday, isWeek, isCurrent)}</div>`;
+  return `<div class="day-cell${todayClass}${typeClass}${holidayClass}${otherClass}" data-day="${d}" data-owner="${owner}" ondragover="dayDragOver(event)" ondragleave="dayDragLeave(event)" ondrop="dayDrop(event,${d},'${owner}')">${renderDayCellContent(d, isToday, isWeek, isCurrent, owner)}</div>`;
 }
 
-function renderDayCellContent(d, isToday, isWeek, isCurrent) {
+function renderDayCellContent(d, isToday, isWeek, isCurrent, owner = 'cur') {
   const _isCur = isCurrent !== false;
+  const _ctx = dayCtx(d, owner);
+  const _y = _ctx.year, _m = _ctx.month;
   const dayData = getDayData(d, _isCur);
   // Carry owner = the month that owns this cell (mirrors getDayData's source).
   // Adjacent-month cells render carry but never persist (persist=false).
   const _carryOwner = _isCur ? monthData.days : (d > 15 ? (prevMonthData?.days || {}) : (nextMonthData?.days || {}));
-  const dow = new Date(currentYear, currentMonth - 1, d).getDay();
+  const dow = new Date(_y, _m - 1, d).getDay();
   const dowClass = dow === 0 ? ' sun' : dow === 6 ? ' sat' : '';
 
-  const _effType = getEffectiveDayType(dayData, d);
+  const _effType = getEffectiveDayType(dayData, d, _y, _m);
   const badgeHtml = _effType
-    ? ` <span class="day-type-badge ${TYPE_COLORS[_effType]}" onclick="event.stopPropagation();cycleDayType(${d})" style="${dayData.day_type ? '' : 'opacity:0.45'}">${TYPE_LABELS[_effType]}</span>`
+    ? ` <span class="day-type-badge ${TYPE_COLORS[_effType]}" onclick="event.stopPropagation();cycleDayType(${d},'${owner}')" style="${dayData.day_type ? '' : 'opacity:0.45'}">${TYPE_LABELS[_effType]}</span>`
     : '';
   let pastArrow = '';
   if (_pastToggleDay === d) {
     pastArrow = `<span onclick="event.stopPropagation();togglePastWeeks()" id="pastToggleIcon" style="cursor:pointer;color:#484f58;font-size:10px" title="Past weeks">&#9650;</span>`;
   }
-  const holiday = getHoliday(d);
-  const soEvts = getSoEvents(d);
-  const yearlyEvts = getYearlyEvents(d);
-  const monthlyRec = getMonthlyRecurring(d);
-  const weeklyRec = getWeeklyRecurring(d);
+  const holiday = getHoliday(d, _y, _m);
+  const soEvts = getSoEvents(d, _y, _m);
+  const yearlyEvts = getYearlyEvents(d, _y, _m);
+  const monthlyRec = getMonthlyRecurring(d, _y, _m);
+  const weeklyRec = getWeeklyRecurring(d, _y, _m);
   // Inject recurring into day data if not already present
   const recItems = [
     ...yearlyEvts.map(e => ({ ...e, _src: 'yearly' })),
@@ -682,14 +703,14 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   }).join('');
   let html = `<div class="day-num${dowClass}">
     <span>${d}${badgeHtml}${progressBadge}${lessonBadge}${soBadges}</span>
-    <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d})">+</span></span>
+    <span>${pastArrow}<span class="add-btn" onclick="event.stopPropagation();addItemPrompt(${d},'${owner}')">+</span></span>
   </div>${holiday ? `<div class="holiday-name">${esc(holiday)}</div>` : ''}`;
 
   // One Thing
   const ot = dayData.one_thing || '';
   html += `<div class="one-thing" contenteditable="true"
-    onblur="saveOneThing(${d}, htmlToMarkdown(this.innerHTML))"
-    onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}else if(event.key.toLowerCase()==='k'&&(event.ctrlKey||event.metaKey)){event.preventDefault();event.stopPropagation();openOneThingLinkPopup(event,${d});}"
+    onblur="saveOneThing(${d}, htmlToMarkdown(this.innerHTML),'${owner}')"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}else if(event.key.toLowerCase()==='k'&&(event.ctrlKey||event.metaKey)){event.preventDefault();event.stopPropagation();openOneThingLinkPopup(event,${d},'${owner}');}"
   >${linkify(ot)}</div>`;
 
   // Events — one-thing 아래 배치
@@ -701,8 +722,8 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
   const _renderedCats = new Set();
 
   for (const cat of CATS) {
-    const items = getCatItemsForRender(d, dayData, cat, _carryOwner, _isCur);
-    const isFutureOrToday = isToday || new Date(currentYear, currentMonth - 1, d) >= new Date(new Date().toDateString());
+    const items = getCatItemsForRender(d, dayData, cat, _carryOwner, _isCur, _y, _m);
+    const isFutureOrToday = isToday || new Date(_y, _m - 1, d) >= new Date(new Date().toDateString());
     if (items.length === 0 && recArr.length === 0 && !isFutureOrToday) continue;
     if (items.length === 0 && cat !== 'outcome' && !isFutureOrToday) continue;
 
@@ -710,8 +731,8 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
     html += `<div class="category cat-${cat}">
       <div class="cat-label cl-${cat}">
         <span>${CAT_NAMES[cat]}</span>
-        <span class="cat-add" onclick="addSeparatorItem(${d},'${cat}')" title="구분선 추가" style="font-size:9px;color:#484f58;margin-right:1px">—</span>
-        <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span>
+        <span class="cat-add" onclick="addSeparatorItem(${d},'${cat}','${owner}')" title="구분선 추가" style="font-size:9px;color:#484f58;margin-right:1px">—</span>
+        <span class="cat-add" onclick="addItemInline(${d},'${cat}','${owner}')">+</span>
       </div>`;
 
     // Recurring items (yearly/monthly/weekly) injected into outcome
@@ -720,20 +741,20 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
         const doneClass = item.done ? 'done' : '';
         const clr = SRC_COLORS[item._src] || '#6e7681';
         html += `<div class="item ${doneClass}" style="border-left:2px solid ${clr}">
-          <input type="checkbox" ${item.done?'checked':''} onchange="toggleRecurring(${d},${idx})" aria-label="${esc(item.text)}">
+          <input type="checkbox" ${item.done?'checked':''} onchange="toggleRecurring(${d},${idx},'${owner}')" aria-label="${esc(item.text)}">
           <span class="src-dot" style="background:${clr}"></span>
           <span class="item-text" contenteditable="true" style="color:${clr}"
-            onblur="editRecurring(${d},${idx},this.textContent)"
+            onblur="editRecurring(${d},${idx},this.textContent,'${owner}')"
             onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}if(event.key==='Escape'){this.blur();}"
           >${linkify(item.text)}</span>
-          <span class="del-btn" onclick="delRecurring(${d},${idx})">&#215;</span>
+          <span class="del-btn" onclick="delRecurring(${d},${idx},'${owner}')">&#215;</span>
         </div>`;
       });
     }
 
     // Future days: collapse _frame items into a toggleable badge
     const _ftd = new Date(); _ftd.setHours(0,0,0,0);
-    const _fcd = new Date(currentYear, currentMonth - 1, d); _fcd.setHours(0,0,0,0);
+    const _fcd = new Date(_y, _m - 1, d); _fcd.setHours(0,0,0,0);
     const _isFuture = isCurrent !== false && _fcd > _ftd;
     const _frameItems = _isFuture ? items.filter(i => i._frame) : [];
     const _nonSepFrame = _frameItems.filter(i => i.type !== 'separator');
@@ -747,12 +768,12 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
           return;
         }
         html += `<div class="item${item.done?' done':''}" data-d="${d}" data-cat="${cat}" data-idx="${idx}">
-          <input type="checkbox" ${item.done?'checked':''} onchange="toggleItem(${d},'${cat}',${idx},this.dataset.text)" data-text="${esc(item.text)}" aria-label="${esc(item.text)}">
+          <input type="checkbox" ${item.done?'checked':''} onchange="toggleItem(${d},'${cat}',${idx},this.dataset.text,'${owner}')" data-text="${esc(item.text)}" aria-label="${esc(item.text)}">
           <span class="item-text frame-text" contenteditable="true"
-            onblur="editFrameItemFromCalendar(${d},'${cat}',${idx},htmlToMarkdown(this.innerHTML))"
-            onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
+            onblur="editFrameItemFromCalendar(${d},'${cat}',${idx},htmlToMarkdown(this.innerHTML),'${owner}')"
+            onkeydown="handleItemKey(event,${d},'${cat}',${idx},'${owner}')"
           >${item.url && !item.text.includes('](') ? `<a href="${esc(item.url)}" target="_blank" onmousedown="event.preventDefault();window.open(this.href,'_blank')" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
-          <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
+          <span class="del-btn" onclick="delItem(${d},'${cat}',${idx},false,'${owner}')">&#215;</span>
         </div>`;
       });
       html += '</div>';
@@ -762,28 +783,28 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       const idx = _isFuture ? items.indexOf(item) : _vi;
       // Separator item — render as horizontal divider
       if (item.type === 'separator') {
-        html += `<div class="item-separator" data-d="${d}" data-cat="${cat}" data-idx="${idx}" draggable="false" ondragstart="dragStart(event,${d},'${cat}',${idx})" ondragend="dragEnd(event)" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,${d},'${cat}',${idx})" onclick="this.querySelector('.sep-label').focus()"><span class="sep-label" data-drag-handle contenteditable="true" data-placeholder="구분선 텍스트..." onblur="editSeparatorItem(${d},'${cat}',${idx},this.textContent)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${esc(item.text || '')}</span><span class="sep-line"></span><span class="del-btn" onclick="event.stopPropagation();delItem(${d},'${cat}',${idx})">&#215;</span></div>`;
+        html += `<div class="item-separator" data-d="${d}" data-cat="${cat}" data-idx="${idx}" draggable="false" ondragstart="dragStart(event,${d},'${cat}',${idx},'${owner}')" ondragend="dragEnd(event)" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,${d},'${cat}',${idx},'${owner}')" onclick="this.querySelector('.sep-label').focus()"><span class="sep-label" data-drag-handle contenteditable="true" data-placeholder="구분선 텍스트..." onblur="editSeparatorItem(${d},'${cat}',${idx},this.textContent,'${owner}')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${esc(item.text || '')}</span><span class="sep-line"></span><span class="del-btn" onclick="event.stopPropagation();delItem(${d},'${cat}',${idx},false,'${owner}')">&#215;</span></div>`;
         return;
       }
       const doneClass = item.done ? 'done' : '';
       const carriedClass = item._carried ? 'is-carried' : '';
       const checked = item.done ? 'checked' : '';
       const blurFn = item._frame
-        ? `editFrameItemFromCalendar(${d},'${cat}',${idx},htmlToMarkdown(this.innerHTML))`
-        : `editItem(${d},'${cat}',${idx},htmlToMarkdown(this.innerHTML))`;
+        ? `editFrameItemFromCalendar(${d},'${cat}',${idx},htmlToMarkdown(this.innerHTML),'${owner}')`
+        : `editItem(${d},'${cat}',${idx},htmlToMarkdown(this.innerHTML),'${owner}')`;
       html += `<div class="item ${doneClass} ${carriedClass}" draggable="false"
         data-d="${d}" data-cat="${cat}" data-idx="${idx}"
-        ondragstart="dragStart(event,${d},'${cat}',${idx})"
+        ondragstart="dragStart(event,${d},'${cat}',${idx},'${owner}')"
         ondragend="dragEnd(event)"
         ondragover="dragOver(event)" ondragleave="dragLeave(event)"
-        ondrop="drop(event,${d},'${cat}',${idx})">
-        <input type="checkbox" ${checked} data-drag-handle onchange="toggleItem(${d},'${cat}',${idx},this.dataset.text)" data-text="${esc(item.text)}" aria-label="${esc(item.text)}">
+        ondrop="drop(event,${d},'${cat}',${idx},'${owner}')">
+        <input type="checkbox" ${checked} data-drag-handle onchange="toggleItem(${d},'${cat}',${idx},this.dataset.text,'${owner}')" data-text="${esc(item.text)}" aria-label="${esc(item.text)}">
         <span class="item-text${item.url?' has-link':''}${item._frame?' frame-text':''}" contenteditable="true"
           onblur="${blurFn}"
-          onkeydown="handleItemKey(event,${d},'${cat}',${idx})"
-          onpaste="handleItemPaste(event,${d},'${cat}',${idx})"
+          onkeydown="handleItemKey(event,${d},'${cat}',${idx},'${owner}')"
+          onpaste="handleItemPaste(event,${d},'${cat}',${idx},'${owner}')"
         >${item.url && !item.text.includes('](') ? `<a href="${esc(item.url)}" target="_blank" onmousedown="event.preventDefault();window.open(this.href,'_blank')" onclick="event.stopPropagation()">${esc(item.text)}</a>` : linkify(item.text)}</span>
-        <span class="del-btn" onclick="delItem(${d},'${cat}',${idx})">&#215;</span>
+        <span class="del-btn" onclick="delItem(${d},'${cat}',${idx},false,'${owner}')">&#215;</span>
       </div>`;
     });
 
@@ -791,7 +812,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       <textarea rows="1" placeholder="..." aria-label="${CAT_NAMES[cat]} 새 항목"
         style="resize:none;overflow:hidden;background:transparent;border:none;color:#e0e0e0;font-size:12px;padding:0;width:100%;box-sizing:border-box;font-family:inherit;outline:none"
         oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitDayCatTextarea(this,${d},'${cat}');}"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitDayCatTextarea(this,${d},'${cat}','${owner}');}"
         onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)"></textarea>
     </div></div>`;
   }
@@ -802,12 +823,12 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent) {
       if (_renderedCats.has(cat)) continue; // already rendered above
       if (cat === 'outcome' && recArr.length > 0) continue; // already rendered with recurring
       html += `<div class="category cat-${cat}"><div class="cat-label cl-${cat}"><span>${CAT_NAMES[cat]}</span>
-        <span class="cat-add" onclick="addSeparatorItem(${d},'${cat}')" title="구분선 추가" style="font-size:9px;color:#484f58;margin-right:1px">—</span>
-        <span class="cat-add" onclick="addItemInline(${d},'${cat}')">+</span></div>
+        <span class="cat-add" onclick="addSeparatorItem(${d},'${cat}','${owner}')" title="구분선 추가" style="font-size:9px;color:#484f58;margin-right:1px">—</span>
+        <span class="cat-add" onclick="addItemInline(${d},'${cat}','${owner}')">+</span></div>
         <div class="new-item" id="new-${d}-${cat}"><textarea rows="1" placeholder="..." aria-label="${CAT_NAMES[cat]} 새 항목"
           style="resize:none;overflow:hidden;background:transparent;border:none;color:#e0e0e0;font-size:12px;padding:0;width:100%;box-sizing:border-box;font-family:inherit;outline:none"
           oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitDayCatTextarea(this,${d},'${cat}');}"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitDayCatTextarea(this,${d},'${cat}','${owner}');}"
           onblur="setTimeout(()=>this.parentElement.classList.remove('active'),100)"></textarea></div></div>`;
     }
   }
@@ -928,37 +949,43 @@ window.fetch = async (input, init = {}) => {
 };
 const AUTH = authHeaders; // legacy alias — use authHeaders() directly
 
-async function save() {
-  const dayCount = Object.keys(monthData.days || {}).length;
+// Persist the CURRENT month. Adjacent-month edits route to saveMonthData(ctx.data).
+async function save() { return saveMonthData(monthData); }
+
+// Generalized persist. `data` is any month-data object (current, prev, or next).
+// It POSTs under data.month (the SSOT of identity) so the worker's isCrossMonthClobber
+// guard always sees a consistent key — adjacent-month saves stay clobber-safe.
+async function saveMonthData(data) {
+  if (!data) { showToast('인접월 데이터 로드 전입니다', true); return false; }
+  const dayCount = Object.keys(data.days || {}).length;
   let itemCount = 0;
-  for (const dd of Object.values(monthData.days || {})) {
+  for (const dd of Object.values(data.days || {})) {
     for (const k of Object.keys(dd)) {
       if (Array.isArray(dd[k])) itemCount += dd[k].length;
     }
   }
-  if (dayCount === 0 && itemCount === 0) {
-    console.warn('save() blocked: empty');
-    return;
-  }
+  const ymKey = data.month || ym();
   // Guard: prevent cross-month clobber. During week-boundary navigation,
-  // syncMonthFromWeek() advances currentMonth synchronously while loadMonth()
-  // swaps monthData only after an async fetch. A save() in that window would
-  // persist the OLD month's monthData under the NEW month's key (full clone).
-  // monthData.month is the SSOT of which month this data belongs to.
-  if (monthData.month && monthData.month !== ym()) {
-    console.warn(`save() blocked: month mismatch (data=${monthData.month}, key=${ym()})`);
+  // currentMonth can advance synchronously while monthData swaps only after an async
+  // fetch; a save() in that window would persist OLD data under a NEW key (full clone).
+  // saveBlockReason (monthUtil.js, tested) mirrors this check; data.month is the SSOT.
+  const reason = (typeof saveBlockReason === 'function')
+    ? saveBlockReason(data.month, ymKey, dayCount, itemCount)
+    : ((dayCount === 0 && itemCount === 0) ? 'empty' : null);
+  if (reason) {
+    console.warn(`save() blocked: ${reason} (data=${data.month}, key=${ymKey})`);
     return;
   }
   try {
     // workout은 workout-log 독립 저장소에서 관리 — month 데이터에서 제거
-    const safeData = { ...monthData, days: {} };
-    for (const [k, dd] of Object.entries(monthData.days || {})) {
+    const safeData = { ...data, days: {} };
+    for (const [k, dd] of Object.entries(data.days || {})) {
       const { workout, ...rest } = dd;
       safeData.days[k] = rest;
     }
     const res = await fetch(`${API}/api/month`, {
       method: 'POST', headers: AUTH,
-      body: JSON.stringify({ ym: ym(), data: safeData })
+      body: JSON.stringify({ ym: ymKey, data: safeData })
     });
     if (!res.ok) throw new Error(res.status);
     return true;
@@ -970,17 +997,19 @@ async function save() {
   }
 }
 
-function ensureDay(d) {
+function ensureDay(d, data = monthData) {
   const key = String(d);
-  if (!monthData.days[key]) monthData.days[key] = {};
-  return monthData.days[key];
+  if (!data.days[key]) data.days[key] = {};
+  return data.days[key];
 }
 
-async function toggleItem(d, cat, idx, itemText) {
+async function toggleItem(d, cat, idx, itemText, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
   const _sy = window.scrollY || window.pageYOffset;
   const _mx = document.getElementById('main')?.scrollTop || 0;
-  const dayData = ensureDay(d);
-  const catType = getDayCatType(d, dayData, cat);
+  const dayData = ensureDay(d, _ctx.data);
+  const catType = getDayCatType(d, dayData, cat, _ctx.year, _ctx.month);
   if (catType === 'todo') {
     const _norm = t => (t || '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
     const _text = _norm(itemText || '');
@@ -1006,65 +1035,75 @@ async function toggleItem(d, cat, idx, itemText) {
     const pos = dayData[key].indexOf(idx);
     if (pos === -1) dayData[key].push(idx); else dayData[key].splice(pos, 1);
   }
-  await save(); render();
+  await saveMonthData(_ctx.data); render();
   // Explicitly run carry for d+1 — render() only processes the visible week, so d+1
   // may be outside the view (e.g. today is Saturday, tomorrow is next week).
   // This ensures check→uncheck on day D immediately propagates to D+1 carry state.
-  const _nextD = d + 1;
-  const _dim = new Date(currentYear, currentMonth, 0).getDate();
-  if (_nextD <= _dim) {
-    const _nextDayData = ensureDay(_nextD);
-    for (const _c of CATS) {
-      if (getDayCatType(_nextD, _nextDayData, _c) === 'todo') {
-        // d+1 is always the current month — pass owner/persist explicitly (don't rely
-        // on defaults) so the cross-month-safe contract is visible at every call site.
-        getCatItemsForRender(_nextD, _nextDayData, _c, monthData.days, true);
+  // Current month ONLY — adjacent-month cells keep carry display-only (persist=false)
+  // to preserve the cross-month anti-duplication invariant (DECISIONS.md).
+  if (owner === 'cur') {
+    const _nextD = d + 1;
+    const _dim = new Date(currentYear, currentMonth, 0).getDate();
+    if (_nextD <= _dim) {
+      const _nextDayData = ensureDay(_nextD);
+      for (const _c of CATS) {
+        if (getDayCatType(_nextD, _nextDayData, _c) === 'todo') {
+          getCatItemsForRender(_nextD, _nextDayData, _c, monthData.days, true);
+        }
       }
+      if (_pendingCarrySave) { _pendingCarrySave = false; save(); }
     }
-    if (_pendingCarrySave) { _pendingCarrySave = false; save(); }
   }
   requestAnimationFrame(() => { window.scrollTo(0, _sy); const m = document.getElementById('main'); if (m) m.scrollTop = _mx; });
 }
 
-async function toggleRecurring(d, idx) {
+async function toggleRecurring(d, idx, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
   const _sy = window.scrollY || window.pageYOffset;
   const _mx = document.getElementById('main')?.scrollTop || 0;
-  const dd = ensureDay(d);
+  const dd = ensureDay(d, _ctx.data);
   if (!dd._recurring) return;
   dd._recurring[idx].done = !dd._recurring[idx].done;
-  await save(); render();
+  await saveMonthData(_ctx.data); render();
   requestAnimationFrame(() => { window.scrollTo(0, _sy); const m = document.getElementById('main'); if (m) m.scrollTop = _mx; });
 }
-async function editRecurring(d, idx, text) {
-  const dd = ensureDay(d);
+async function editRecurring(d, idx, text, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  const dd = ensureDay(d, _ctx.data);
   if (!dd._recurring?.[idx]) return;
   const trimmed = text.trim();
   if (!trimmed || trimmed === dd._recurring[idx].text) return;
   dd._recurring[idx].text = trimmed;
-  await save();
+  await saveMonthData(_ctx.data);
 }
-async function delRecurring(d, idx) {
-  const dd = ensureDay(d);
+async function delRecurring(d, idx, owner = 'cur') {
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
+  const dd = ensureDay(d, _ctx.data);
   if (!dd._recurring) return;
   dd._recurring.splice(idx, 1);
-  await save(); render();
+  await saveMonthData(_ctx.data); render();
 }
 
 // --- Link popup ---
 let linkTarget = null;
 let longPressTimer = null;
 
-function openOneThingLinkPopup(event, d) {
+function openOneThingLinkPopup(event, d, owner = 'cur') {
   // Insert [text](url) markdown at cursor position in one-thing field
+  const _ctx = dayCtx(d, owner);
+  if (!_ctx.data) { showToast('인접월 데이터 로드 전입니다', true); return; }
   const sel = window.getSelection();
   const selectedText = sel && sel.rangeCount ? sel.toString() : '';
   const url = prompt('URL 입력:', 'https://');
   if (!url) return;
   const label = selectedText || prompt('링크 텍스트:', '') || url;
-  const dd = ensureDay(d);
+  const dd = ensureDay(d, _ctx.data);
   const current = dd.one_thing || '';
   dd.one_thing = current + (current ? ' ' : '') + `[${label}](${url})`;
-  save().then(() => render());
+  saveMonthData(_ctx.data).then(() => render());
 }
 
 let ctrlkTarget = null;
