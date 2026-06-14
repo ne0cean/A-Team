@@ -1776,8 +1776,10 @@ async function toggleWorkout(part) {
       body: JSON.stringify({ date: todayStr, workout: wo })
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    _workoutPending = null; // 서버 반영 완료 — 보호 해제
   } catch (e) {
     if (hadToday) workoutLog[todayStr] = prevToday; else delete workoutLog[todayStr];
+    _workoutPending = null;
     renderWorkoutBar();
     showToast('운동 기록 저장 실패 — 다시 시도해주세요', true);
   }
