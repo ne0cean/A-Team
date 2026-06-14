@@ -124,6 +124,12 @@ function dayCtx(d, owner = 'cur') {
   return { data: monthData, ym: ym(), year: currentYear, month: currentMonth };
 }
 
+// Day-number-keyed DOM lookups collide across owners (current day 30 + prev day 30
+// both render data-day="30"). Scope by the owner cell to disambiguate.
+function cellEl(d, owner = 'cur') {
+  return document.querySelector(`.day-cell[data-owner="${owner}"][data-day="${d}"]`);
+}
+
 function getWeekStart(date) {
   const d = new Date(date);
   d.setDate(d.getDate() - d.getDay());
@@ -759,7 +765,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent, owner = 'cur') {
     const _frameItems = _isFuture ? items.filter(i => i._frame) : [];
     const _nonSepFrame = _frameItems.filter(i => i.type !== 'separator');
     if (_frameItems.length > 0) {
-      const _tid = `ft-${d}-${cat}`;
+      const _tid = `ft-${owner}-${d}-${cat}`;
       html += `<div id="${_tid}" class="frame-group-body">`;
       _frameItems.forEach(item => {
         const idx = items.indexOf(item);
@@ -808,7 +814,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent, owner = 'cur') {
       </div>`;
     });
 
-    html += `<div class="new-item" id="new-${d}-${cat}">
+    html += `<div class="new-item" id="new-${owner}-${d}-${cat}">
       <textarea rows="1" placeholder="..." aria-label="${CAT_NAMES[cat]} 새 항목"
         style="resize:none;overflow:hidden;background:transparent;border:none;color:#e0e0e0;font-size:12px;padding:0;width:100%;box-sizing:border-box;font-family:inherit;outline:none"
         oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
@@ -825,7 +831,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent, owner = 'cur') {
       html += `<div class="category cat-${cat}"><div class="cat-label cl-${cat}"><span>${CAT_NAMES[cat]}</span>
         <span class="cat-add" onclick="addSeparatorItem(${d},'${cat}','${owner}')" title="구분선 추가" style="font-size:9px;color:#484f58;margin-right:1px">—</span>
         <span class="cat-add" onclick="addItemInline(${d},'${cat}','${owner}')">+</span></div>
-        <div class="new-item" id="new-${d}-${cat}"><textarea rows="1" placeholder="..." aria-label="${CAT_NAMES[cat]} 새 항목"
+        <div class="new-item" id="new-${owner}-${d}-${cat}"><textarea rows="1" placeholder="..." aria-label="${CAT_NAMES[cat]} 새 항목"
           style="resize:none;overflow:hidden;background:transparent;border:none;color:#e0e0e0;font-size:12px;padding:0;width:100%;box-sizing:border-box;font-family:inherit;outline:none"
           oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitDayCatTextarea(this,${d},'${cat}','${owner}');}"
@@ -837,7 +843,7 @@ function renderDayCellContent(d, isToday, isWeek, isCurrent, owner = 'cur') {
   const notes = dayData.notes || '';
   const notesCls = notes ? 'day-notes has-content' : 'day-notes';
   const notesHtml = esc(notes).replace(/\n/g,'<br>').replace(/#lesson/gi, '<span class="note-lesson-tag">#lesson</span>');
-  html += `<div class="${notesCls}" id="notes-${d}" contenteditable="true"
+  html += `<div class="${notesCls}" id="notes-${owner}-${d}" contenteditable="true"
     onblur="saveNotes(${d}, this.innerText)"
     onkeydown="if(event.key==='Escape')this.blur()"
   >${notesHtml}</div>`;
