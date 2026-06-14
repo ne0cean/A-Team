@@ -9,6 +9,7 @@ const TYPES = ['block','flow'];
 let currentYear, currentMonth, currentWeekStart, monthData, standingData, recurringData;
 let todayMonthData = null; // 오늘 날짜 월 캐시 (월 탐색 시에도 유지)
 let workoutLog = {}; // 독립 workout 저장소 — 월 데이터와 완전 분리
+let _workoutPending = null; // {date, wo} — 토글 POST 진행 중 보호. loadWorkoutLog full-replace가 in-flight 토글 덮어쓰는 race 방지.
 let viewMode = 'month'; // 'month' (default) or 'week'
 let _weekScrolledToToday = false; // only scroll today into view on mode switch, not every render
 let _pendingCarrySave = false; // carry logic sets this; render() saves once at the end
@@ -1708,6 +1709,9 @@ async function loadWorkoutLog() {
       delete data._recovered_at;
     }
     workoutLog = data;
+    // Race guard: 토글 POST가 아직 진행 중이면 서버 응답(구버전)이 in-flight 선택을
+    // 덮어쓰지 않도록 로컬 pending 값을 다시 덮어씌운다. ("어느 순간 사라짐" 3차 벡터 차단)
+    if (_workoutPending) workoutLog[_workoutPending.date] = _workoutPending.wo;
     renderWorkoutBar(); // race-condition fix: loadMonth보다 늦게 완료되면 재렌더 필수
   } catch (e) {
     console.error('[workout] loadWorkoutLog failed:', e);
@@ -1761,6 +1765,8 @@ async function toggleWorkout(part) {
   const prevToday = hadToday ? workoutLog[todayStr] : undefined;
   const wo = toggleWorkoutPart(current, part);
   workoutLog[todayStr] = wo;
+  // pending 표시: POST 진행 중 loadWorkoutLog full-replace가 이 토글을 덮어쓰지 못하게.
+  _workoutPending = { date: todayStr, wo };
   renderWorkoutBar();
   // POST 실패 시 인메모리 롤백 — 안 하면 다음 loadWorkoutLog()가 서버값으로
   // 전체 교체하면서 방금 토글이 사라짐("어느 순간 사라짐"의 2차 원인).
