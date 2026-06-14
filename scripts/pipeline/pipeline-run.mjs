@@ -27,6 +27,8 @@ import { spawnSync } from 'child_process';
 
 try { register('tsx/esm', import.meta.url); } catch { /* tsx already loaded */ }
 
+import { runQa, runPublish, runMeasure, runFeedback, recordCampaignKnowledge } from './stage-handlers.mjs';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
@@ -118,53 +120,20 @@ function transition(m, stage, event, opts = {}) {
   return r;
 }
 
-// --- 내장 script-stage 핸들러 (built-in, argv 무시) ---
+// --- script-stage 핸들러 (stage-handlers.mjs 단일 진실 공급원에 위임) ---
 function runScriptStage(m, stage) {
-  const slug = m.slug;
-  if (stage.name === 'qa') {
-    // produce 산출물을 design audit. 간이: 산출물 존재 시 통과 점수 기록.
-    const ctx = gateCtx();
-    const produced = (m.stages.find(s => s.name === 'produce')?.outputs ?? []).flatMap(o => ctx.expand(o));
-    const score = produced.length > 0 ? 82 : 0;
-    const out = path.join(campaignDir(slug), 'qa-result.json');
-    ensureDir(campaignDir(slug));
-    writeFileSync(out, JSON.stringify({ all_passed: score >= 70, files: produced.map(f => ({ file: f, score })) }, null, 2));
-    return;
-  }
-  if (stage.name === 'publish') {
-    const log = path.join(ROOT, 'content', 'publish-log.md');
-    ensureDir(path.dirname(log));
-    const entry = `\n## ${nowISO()} — ${slug} (dry-run)\n\n| 필드 | 값 |\n|------|-----|\n| mode | dry-run |\n| platforms | twitter, linkedin |\n| postiz_job_ids | dry-run-${slug} |\n| status | dry-run |\n\n### Pre-publish Gate Results\n- [x] 파이프라인 게이트 통과\n- [ ] Postiz MCP 연결 (live 전환 조건)\n\n---\n`;
-    appendFileSync(log, entry);
-    return;
-  }
-  if (stage.name === 'measure') {
-    const out = path.join(ROOT, 'content', 'analytics', `${slug}-measure.md`);
-    ensureDir(path.dirname(out));
-    const durations = m.stages.filter(s => s.duration_sec != null).map(s => `| ${s.name} | ${s.duration_sec}s |`).join('\n');
-    writeFileSync(out, `# Measure — ${slug}\n\n> 내부 데이터(publish-log + 단계 duration). 외부 API 미연결.\n\n| 단계 | 소요 |\n|------|------|\n${durations}\n\n게이트 통과율: ${m.stages.filter(s => s.gate_results.length).length}/${m.stages.length}\n`);
-    return;
-  }
-  if (stage.name === 'feedback') {
-    // DEBRIEF 생성 + Cortex 루프 기록 (Axis 3 — 코드로 닫음)
-    const out = path.join(campaignDir(slug), 'DEBRIEF.md');
-    const lessons = m.stages.filter(s => s.attempts > 0).map(s => `- ${s.name}: ${s.attempts}회 재시도 (게이트 마찰)`);
-    writeFileSync(out, `# DEBRIEF — ${m.title} (${slug})\n\n## 단계별 결과\n${m.history.map(h => `- ${h.stage}: ${h.from}→${h.to} (${h.event})`).join('\n')}\n\n## Lessons (후보)\n${lessons.length ? lessons.join('\n') : '- 마찰 없이 완주 — 재사용 가능한 캠페인 템플릿'}\n`);
-    recordToCortex(m);
-    return;
+  switch (stage.name) {
+    case 'qa': runQa(ROOT, m); return;
+    case 'publish': runPublish(ROOT, m, nowISO()); return;
+    case 'measure': runMeasure(ROOT, m); return;
+    case 'feedback': runFeedback(ROOT, m, nowISO(), recordToCortex); return;
   }
 }
 
 // --- Axis 3: Cortex 양방향 루프 (캡처 쪽) ---
 function recordToCortex(m) {
-  // 1) 캠페인 지식을 cortex 누적 파일에 append (다음 campaign-new가 읽어 주입)
-  const knowledgeLog = path.join(ROOT, '.context', 'loop', 'campaign-knowledge.jsonl');
-  ensureDir(path.dirname(knowledgeLog));
-  appendFileSync(knowledgeLog, JSON.stringify({
-    ts: nowISO(), slug: m.slug, title: m.title,
-    lesson: `캠페인 '${m.title}' 9단계 dry-run 완주. 터치포인트 2회. 총 ${m.history.length} 전이.`,
-    keywords: m.title.toLowerCase().split(/\s+/),
-  }) + '\n');
+  // 1) 캠페인 지식 append (다음 campaign-new가 읽어 주입) — 공유 핸들러 사용
+  recordCampaignKnowledge(ROOT, m, nowISO());
   // 2) 자율 학습 루프 1사이클 트리거 (캠페인 완주 = 학습 1사이클).
   //    loop-closer가 gap-priority --write + friction 에스컬레이션 + coverage 제안 수행.
   const rootArg = flags.root ? `--root=${ROOT}` : '';
