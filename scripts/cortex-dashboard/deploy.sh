@@ -19,6 +19,10 @@ echo "// AUTO-GENERATED from worker/src/monthUtil.js — do not edit directly. R
 sed 's/^export function/function/' "$SCRIPT_DIR/worker/src/monthUtil.js" >> "$SCRIPT_DIR/public/js/monthUtil.js"
 echo "✓ public/js/monthUtil.js regenerated"
 
+echo "// AUTO-GENERATED from worker/src/workout.js — do not edit directly. Regenerate via deploy.sh." > "$SCRIPT_DIR/public/js/workout.js"
+sed 's/^export function/function/;s/^export {/\/\/ export {/' "$SCRIPT_DIR/worker/src/workout.js" >> "$SCRIPT_DIR/public/js/workout.js"
+echo "✓ public/js/workout.js regenerated"
+
 # 1. Deploy Worker
 cd "$SCRIPT_DIR/worker"
 npx wrangler deploy --config wrangler.toml

@@ -204,6 +204,17 @@ worker에서 Preserve workout 확인: `grep -n "Preserve workout" worker/src/ind
 - **타월(다른 월 탐색 시)**: 기본 뷰 = `Full Month` (month mode)
 - 월 이동(`prevPeriod`/`nextPeriod`)마다 자동 전환됨
 
+### Full-Month 인접월 셀 = 편집 가능 (2026-06-14)
+
+- **Full Month 뷰의 월 경계 주(week)에서 인접월 셀(전월 말일·다음달 초)은 빈 stub이 아니라 전체 내용을 렌더하고 편집 가능**하다. 평소 `opacity:0.5`(dim), 호버 시 `opacity:1`. (`main.css .day-cell.other-month` + `:hover`)
+- **owner 토큰 모델**: 셀은 `owner ∈ {cur,prev,next}`를 가지며(`renderMonthView` 셀 빌드 → `renderDayCell`/`renderDayCellContent` → 모든 핸들러로 전달), 편집은 **owner 월**(`prevMonthData`/`nextMonthData`)에 저장된다. `dayCtx(d, owner)` → `{data, ym, year, month}`. `resolveOwnerYm`은 `worker/src/monthUtil.js`(테스트됨, deploy.sh가 `public/js/monthUtil.js` 생성, **직접 편집 금지**).
+- **저장 라우팅**: `saveMonthData(data)`가 `data.month`(SSOT) 키로 POST → 워커 `isCrossMonthClobber`가 그대로 통과(가드 약화 아님). `save()` = `saveMonthData(monthData)`. `ensureDay(d, data)`로 owner 데이터 변이.
+- **날짜 helper 인자화**: `getEffectiveDayType/getFrameTypeForDay/getDayCatType/getHoliday/getSoEvents/getYearlyEvents/getMonthlyRecurring/getWeeklyRecurring/getCatItemsForRender`는 owner의 `(yr, mo)`를 받는다(기본=전역). 인접월 셀에서 요일/타입 오판 방지.
+- **carry는 인접월에서 표시 전용**: `getCatItemsForRender` persist 가드(`persist && owner===monthData.days`) 유지. `toggleItem` d+1 carry, `delItem` 미래 cleanup은 `owner==='cur'`에서만 실행 → cross-month 복제 재발 방지.
+- **DOM 충돌 방지**: 셀에 `data-owner`, id는 `new-${owner}-${d}-${cat}`/`notes-${owner}-${d}`/`ft-${owner}-${d}-${cat}`. 네비/검색(`goToDay` 등)은 `[data-owner="cur"]`로 스코프. 아이템 탐색은 owner 셀 스코프(`cellEl(d,owner)`).
+- **월 간 이동 미지원**: drag/drop(데스크탑·터치)에서 src/target owner가 다르면 토스트 후 차단(백엔드 move-item이 단일 ym).
+- **복원/개선 금지**: 인접월 셀을 다시 빈 stub으로 되돌리거나 carry를 인접월에 persist하지 말 것.
+
 ### 레이아웃 / UX
 
 - **사이드바**: 기본값 닫힘. `toggleSidebar()`로만 열림. `isDesktop()` 자동 열기 없음

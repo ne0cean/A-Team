@@ -1712,7 +1712,9 @@ function localDateStr() {
 
 function renderWorkoutBar() {
   const todayStr = localDateStr();
-  const wo = workoutLog[todayStr] || [];
+  // Sticky carry-forward: 오늘 키가 없으면 가장 최근 선택을 이어받아 표시.
+  // (날짜별 키만 읽던 기존 코드는 새 날마다 빈 칸이 돼 "체크가 사라진다"의 원인이었음.)
+  const wo = resolveCurrentWorkout(workoutLog, todayStr).parts;
   const WORKOUT_GROUPS = [
     { label: '전면', parts: [], color: 'blue' },
     { label: '측면', parts: [], color: 'blue' },
@@ -1741,22 +1743,11 @@ function renderWorkoutBar() {
 
 async function toggleWorkout(part) {
   const todayStr = localDateStr();
-  if (!workoutLog[todayStr]) workoutLog[todayStr] = [];
-  const wo = workoutLog[todayStr];
-  const idx = wo.indexOf(part);
-  if (idx >= 0) {
-    wo.splice(idx, 1);
-  } else {
-    const BLUE_GROUP = ['전면', '측면', '후면'];
-    const GREEN_GROUP = ['등', '가슴'];
-    const group = BLUE_GROUP.includes(part) ? BLUE_GROUP : GREEN_GROUP.includes(part) ? GREEN_GROUP : null;
-    if (group) {
-      for (let gi = wo.length - 1; gi >= 0; gi--) {
-        if (group.includes(wo[gi])) wo.splice(gi, 1);
-      }
-    }
-    wo.push(part);
-  }
+  // 현재 유효 선택(carry-forward)에서 출발 → 토글 → 오늘 키로 기록.
+  // 새 날에 빈 배열에서 시작하던 기존 코드는 어제 선택을 버려 "사라짐"을 유발했음.
+  const current = resolveCurrentWorkout(workoutLog, todayStr).parts;
+  const wo = toggleWorkoutPart(current, part);
+  workoutLog[todayStr] = wo;
   await fetch(`${API}/api/workout-log`, {
     method: 'POST', headers: AUTH,
     body: JSON.stringify({ date: todayStr, workout: wo })
@@ -1991,7 +1982,7 @@ async function runWebResearch() {
     if (j.error) {
       out.innerHTML = '<div style="color:#f85149;padding:10px;font-size:12px">리서치 오류: ' + esc(j.error) + '</div>';
     } else {
-      let h = '<div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px;white-space:pre-wrap;line-height:1.6;font-size:13px">' + esc(j.answer || '') + '</div>';
+      let h = '<div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px;white-space:pre-wrap;line-height:1.65;font-size:14px">' + esc(j.answer || '') + '</div>';
       const c = j.contextUsed || {};
       h += '<div style="font-size:10px;color:#8b949e;padding:4px 2px">&#129504; 과거 ' + (c.priorFindings || 0) + ' · Cortex ' + (c.cortexDocs || 0) + ' · 프로필 ' + (c.profile || 0) + ' · 적립 ' + (j.deposited ? '✓' : '—') + '</div>';
       if (j.sources && j.sources.length) {
