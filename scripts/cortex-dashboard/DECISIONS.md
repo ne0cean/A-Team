@@ -127,11 +127,13 @@ grep -n "saveStandingData\|_version" public/js/app.js      # 409 충돌 처리
 - **동작**: 모든 `/api/` 호출에 자동 auth 헤더 주입. 401 시 토큰 재입력 프롬프트
 - **주의**: Worker에서 auth 체크 제거됨 (2026-06-01). 인터셉터는 유지하되 실제 검증은 서버에서 하지 않음
 
-### 5. Workout Bar
-- **함수**: `renderWorkoutBar()`, `toggleWorkout(part)` — `app.js:855`
-- **칩 색상**: 전면/측면/후면 = `#58a6ff`(파랑), 등/가슴 = `#56d364`(초록). 두 그룹 사이 6px 이격
-- **데이터**: `todayMonthData` 기반 (보는 월 아닌 오늘 날짜 월)
-- **저장**: `/api/workout` 엔드포인트 (월 save와 분리)
+### 5. Workout Bar (EX 바) — STICKY carry-forward (2026-06-14 근본 수정)
+- **순수 로직**: `worker/src/workout.js` `resolveCurrentWorkout(log, today)` + `toggleWorkoutPart(parts, part)`. 앱은 `public/js/workout.js`(deploy.sh 자동 생성, **직접 편집 금지**)로 로드. 테스트 `worker/src/__tests__/workout.test.js` (13케이스).
+- **함수**: `renderWorkoutBar()`, `toggleWorkout(part)` — `app.js`
+- **칩 색상**: 전면/측면/후면 = 파랑, 등/가슴 = 초록. 같은 색 그룹은 라디오(상호배타).
+- **⚠️ STICKY 불변식 (절대 원칙)**: EX 바는 날짜별 기록이 아니라 **"한 번 정하면 바꿀 때까지 영구 유지"**. `renderWorkoutBar`는 `workoutLog[오늘]`을 직접 읽지 말 것 — 반드시 `resolveCurrentWorkout`으로 **오늘 키 없으면 가장 최근 선택을 carry-forward**. (날짜별 키만 읽으면 자정 넘어 빈 칸 = "체크 사라짐" 수십 번 재발의 원인.)
+- **저장**: `/api/workout-log` (date별 배열, 월 save와 분리). 토글은 carry된 현재값에서 출발 → 오늘 키로 기록.
+- **진단 규칙**: "체크 사라진다" 신고 = 저장 코드 보기 전에 GET `/api/workout-log`로 서버 데이터 존재 먼저 확인. 있으면 손실 아님 → 표시 모델(carry-forward) 의심. 상세: memory `lesson_workout_bar_sticky`.
 
 ### 6. del-btn hover 레이아웃 고정
 - **CSS**: `del-btn`에 `visibility: hidden` / hover 시 `visibility: visible`
