@@ -147,3 +147,123 @@
 - `commands/research.md` — `re.md` 구버전. A-Team master가 이미 상위 버전.
 - `commands/session-end.md` — `end.md` 경량 버전. 프로젝트 특화 (`.context/` 구조 하드코딩).
 - `scripts/vibe-init.sh` (DIFF) — kb-real-estate 버전은 옛 vibe-toolkit initializer. A-Team master가 상위.
+
+### IMP-20260614-01 — NEW command MANUAL.md (from Trading)
+- **날짜**: 2026-06-14
+- **출처**: /absorb 스캔 (Trading)
+- **타입**: NEW
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/Trading/.claude/commands/MANUAL.md
+- **설명**: Trading Agent — 사용자 매뉴얼
+- **액션**: [ ] GLOBAL 확정 시 복사 | [ ] 일반화 후 추가 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260614-02 — NEW command fund.md (from Trading)
+- **날짜**: 2026-06-14
+- **출처**: /absorb 스캔 (Trading)
+- **타입**: NEW
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/Trading/.claude/commands/fund.md
+- **설명**: /fund — 펀드 의사결정 시스템 원샷
+- **액션**: [ ] GLOBAL 확정 시 복사 | [ ] 일반화 후 추가 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260614-03 — NEW command ga-ingest.md (from Trading)
+- **날짜**: 2026-06-14
+- **출처**: /absorb 스캔 (Trading)
+- **타입**: NEW
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/Trading/.claude/commands/ga-ingest.md
+- **설명**: ga-ingest — 해외 트레이딩 소스 수집 + 지식 추출 원스탑
+- **액션**: [ ] GLOBAL 확정 시 복사 | [ ] 일반화 후 추가 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260614-04 — NEW command kr-morning.md (from Trading)
+- **날짜**: 2026-06-14
+- **출처**: /absorb 스캔 (Trading)
+- **타입**: NEW
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/Trading/.claude/commands/kr-morning.md
+- **설명**: /kr-morning — 국장 장전 루틴 (08:00~09:00 KST)
+- **액션**: [ ] GLOBAL 확정 시 복사 | [ ] 일반화 후 추가 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260614-05 — NEW command kr-swing.md (from Trading)
+- **날짜**: 2026-06-14
+- **출처**: /absorb 스캔 (Trading)
+- **타입**: NEW
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/Trading/.claude/commands/kr-swing.md
+- **설명**: /kr-swing — 국장 비반도체 스윙 후보 발굴
+- **액션**: [ ] GLOBAL 확정 시 복사 | [ ] 일반화 후 추가 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260614-06 — NEW command position-check.md (from Trading)
+- **날짜**: 2026-06-14
+- **출처**: /absorb 스캔 (Trading)
+- **타입**: NEW
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/Trading/.claude/commands/position-check.md
+- **설명**: /position-check — 포지션 현황 + 매도 전략 체크
+- **액션**: [ ] GLOBAL 확정 시 복사 | [ ] 일반화 후 추가 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260614-07 — NEW command trade-analyze.md (from Trading)
+- **날짜**: 2026-06-14
+- **출처**: /absorb 스캔 (Trading)
+- **타입**: NEW
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/Trading/.claude/commands/trade-analyze.md
+- **설명**: /trade-analyze — 헤지펀드 노트 형식 포지션 분석
+- **액션**: [ ] GLOBAL 확정 시 복사 | [ ] 일반화 후 추가 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260614-08 — NEW command us-night.md (from Trading)
+- **날짜**: 2026-06-14
+- **출처**: /absorb 스캔 (Trading)
+- **타입**: NEW
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/Trading/.claude/commands/us-night.md
+- **설명**: /us-night — 미장 야간 분석 (국장 마감 후)
+- **액션**: [ ] GLOBAL 확정 시 복사 | [ ] 일반화 후 추가 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260614-09 — DIFF command consolidate.md (from connectome)
+- **날짜**: 2026-06-14
+- **출처**: /absorb 스캔 (connectome)
+- **타입**: DIFF (116 diff lines)
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/connectome/.claude/commands/consolidate.md
+- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/consolidate.md
+- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260614-10 — DIFF command idea.md (from connectome)
+- **날짜**: 2026-06-14
+- **출처**: /absorb 스캔 (connectome)
+- **타입**: DIFF (126 diff lines)
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/connectome/.claude/commands/idea.md
+- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/idea.md
+- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260614-11 — DIFF command inbox.md (from connectome)
+- **날짜**: 2026-06-14
+- **출처**: /absorb 스캔 (connectome)
+- **타입**: DIFF (37 diff lines)
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/connectome/.claude/commands/inbox.md
+- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/inbox.md
+- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
+- **상태**: ⏳ pending
+
+### IMP-20260614-12 — DIFF command recall.md (from connectome)
+- **날짜**: 2026-06-14
+- **출처**: /absorb 스캔 (connectome)
+- **타입**: DIFF (68 diff lines)
+- **분류**: UNCLEAR
+- **경로**: /Users/noir/Projects/connectome/.claude/commands/recall.md
+- **master 경로**: /Users/noir/Projects/a-team/.claude/commands/recall.md
+- **액션**: [ ] master 덮어쓰기 | [ ] 일부 머지 | [ ] 거부
+- **상태**: ⏳ pending
